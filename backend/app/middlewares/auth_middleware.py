@@ -1,0 +1,1 @@
+# Middlewares personalizados, autenticación, manejo de errores, etc.

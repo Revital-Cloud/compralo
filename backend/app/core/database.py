@@ -1,0 +1,1 @@
+# Configuración de SQLAlchemy (motor, sesión, base)
