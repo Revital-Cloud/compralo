@@ -1,7 +1,5 @@
 .cursor/rules/backend-rule.mdc
 .cursor/
-/backend/venv/
-/backend/.env
 .vscode/
 
-/backend/app/__pycache__/
+
