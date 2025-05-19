@@ -12,6 +12,7 @@ y utilizan los esquemas Pydantic para la validación y transformación de datos.
 # Lógica de negocio 
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+import json
 
 from schemas.product_schema import ProductCreate, ProductUpdate
 # No necesitamos importar el schema Product aquí si solo devolvemos mappings
@@ -77,12 +78,16 @@ def create_product(db: Session, product: ProductCreate):
                       SQL no devuelve el resultado esperado.
     """
     # Asume que product.model_dump() tiene todas las claves que fun_insert_producto espera por nombre.
+    params = product.model_dump()
+    if 'spcf_producto' in params and isinstance(params['spcf_producto'], dict):
+        params['spcf_producto'] = json.dumps(params['spcf_producto'])
+
     query = text("""SELECT fun_insert_producto(
-        :nom_producto, :spcf_producto, :img_producto, :val_precio, 
-        :id_proveedor, :id_marca, :id_sublinea, :id_linea, :id_categoria, 
+        :id_categoria, :id_linea, :id_sublinea,:nom_producto, 
+        :spcf_producto, :img_producto, :val_precio, :id_proveedor, :id_marca, 
         :num_stock
     )""")
-    result = db.execute(query, product.model_dump()) # Pydantic V2
+    result = db.execute(query, params) # Pydantic V2
     db.commit()
     fetched_result = result.fetchone()
     return fetched_result[0] if fetched_result else None
@@ -106,6 +111,10 @@ def update_product(db: Session, id_producto: int, product: ProductUpdate):
                       SQL no devuelve el resultado esperado.
     """
     update_params = product.model_dump(exclude_unset=True) # Solo incluye campos que se proporcionaron
+    
+    if 'spcf_producto' in update_params and isinstance(update_params['spcf_producto'], dict):
+        update_params['spcf_producto'] = json.dumps(update_params['spcf_producto'])
+        
     update_params['id_producto'] = id_producto # Añadir el id_producto del path
 
     # La función SQL debe poder manejar que algunos de los otros parámetros no estén presentes
@@ -147,13 +156,6 @@ def delete_product(db: Session, product_id: int):
     
     if fetched_result and isinstance(fetched_result[0], str):
         return {"message": fetched_result[0]}
-    
-    # Si fun_delete_producto no devuelve un string (o no devuelve nada),
-    # decidimos qué mensaje devolver. Podría ser un error o una confirmación genérica.
-    # Si la ejecución llegó hasta aquí sin errores de DB, la transacción (commit) se hizo.
-    # Asumamos que si no hay un mensaje específico de la función SQL, pero la operación se completó,
-    # proporcionamos un mensaje genérico de éxito.
-    # Es crucial entender qué significa cuando fun_delete_producto no devuelve el string esperado.
     if db.RollbackOccurred: # Esta es una pseudopropiedad, SQLAlchemy no tiene esto directamente.
         # Si hubo un rollback implícito o un error no capturado que impidió el commit o causó un rollback.
         # Esto es más complejo de detectar así directamente. Sería mejor si fun_delete_producto indicara error.

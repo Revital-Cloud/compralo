@@ -7,8 +7,11 @@ Utiliza FastAPI para definir las rutas y depende del servicio de productos
 para la lógica de negocio y del gestor de base de datos para las sesiones.
 """
 # Definición de rutas (endpoints) de la API para productos
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Form, HTTPException
 from sqlalchemy.orm import Session
+import json
+from decimal import Decimal
+from typing import Optional, Dict, Any
 
 from core.database import get_db
 from schemas.product_schema import Product, ProductCreate, ProductUpdate, ResponseMessage
@@ -34,21 +37,63 @@ async def get_products(db: Session = Depends(get_db)):
     return products
 
 @router.post("/products", response_model=Product)
-async def create_product(product: ProductCreate, db: Session = Depends(get_db)):
+async def create_product(
+    db: Session = Depends(get_db),
+    nom_producto: str = Form(...),
+    spcf_producto_str: str = Form(..., alias="spcf_producto"),
+    img_producto: Optional[str] = Form(None),
+    val_precio: Decimal = Form(...),
+    id_proveedor: Decimal = Form(...),
+    id_marca: Decimal = Form(...),
+    id_sublinea: Decimal = Form(...),
+    id_linea: Decimal = Form(...),
+    id_categoria: Decimal = Form(...),
+    num_stock: int = Form(...)
+):
     """
     Crear un nuevo producto.
 
     Este endpoint permite crear un nuevo producto en la base de datos
-    utilizando los datos proporcionados en el cuerpo de la solicitud.
+    utilizando los datos proporcionados en el cuerpo de la solicitud como form-data.
+    El campo spcf_producto debe ser una cadena JSON válida.
 
     Args:
-        product (ProductCreate): Datos del producto a crear.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
+        nom_producto (str): Nombre del producto.
+        spcf_producto_str (str): Especificaciones del producto en formato de cadena JSON.
+        img_producto (Optional[str]): URL o ruta de la imagen del producto.
+        val_precio (Decimal): Precio de venta del producto.
+        id_proveedor (Decimal): Identificador del proveedor.
+        id_marca (Decimal): Identificador de la marca.
+        id_sublinea (Decimal): Identificador de la sublínea.
+        id_linea (Decimal): Identificador de la línea.
+        id_categoria (Decimal): Identificador de la categoría.
+        num_stock (int): Cantidad de unidades disponibles en inventario.
 
     Returns:
         Product: El producto creado.
+        
+    Raises:
+        HTTPException: Si spcf_producto_str no es una cadena JSON válida.
     """
-    return product_service.create_product(db, product)
+    try:
+        spcf_producto_dict: Dict[str, Any] = json.loads(spcf_producto_str)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="El campo 'spcf_producto' debe ser una cadena JSON válida.")
+
+    product_data = ProductCreate(
+        nom_producto=nom_producto,
+        spcf_producto=spcf_producto_dict,
+        img_producto=img_producto,
+        val_precio=val_precio,
+        id_proveedor=id_proveedor,
+        id_marca=id_marca,
+        id_sublinea=id_sublinea,
+        id_linea=id_linea,
+        id_categoria=id_categoria,
+        num_stock=num_stock
+    )
+    return product_service.create_product(db, product_data)
 
 @router.put("/products/{id_producto}", response_model=Product)
 async def update_product(id_producto: int, product: ProductUpdate, db: Session = Depends(get_db)):

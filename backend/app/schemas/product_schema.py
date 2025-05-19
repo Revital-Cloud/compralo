@@ -42,16 +42,9 @@ class ProductBase(BaseModel):
     id_linea: Decimal
     id_categoria: Decimal
     num_stock: int = Field(0, ge=0, description="Cantidad de unidades disponibles en inventario.")
-
-    # Campos de auditoría (generalmente no se envían en Create/Update desde el cliente)
-    # usr_insert: Optional[str] = None
-    # fec_insert: Optional[datetime] = None
-    # usr_update: Optional[str] = None
-    # fec_update: Optional[datetime] = None
     
     class Config:
-        from_attributes = True # Cambiado de orm_mode a from_attributes para Pydantic V2
-        # orm_mode = True # Obsoleto en Pydantic V2
+        from_attributes = True
 
 
 class ProductCreate(ProductBase):
