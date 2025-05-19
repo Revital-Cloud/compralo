@@ -1,1 +1,0 @@
-# Modelos SQLAlchemy (representación de tablas de BD)

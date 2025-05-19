@@ -62,7 +62,7 @@ Para iniciar el servidor de desarrollo:
 
 ```
 # Método 1: Usando fastapi CLI (recomendado para la versión actual)
-fastapi dev main.py
+fastapi dev app/main.py
 
 # Método 2: Usando uvicorn directamente
 # Windows
