@@ -87,7 +87,7 @@ def create_product(db: Session, product: ProductCreate):
         :spcf_producto, :img_producto, :val_precio, :id_proveedor, :id_marca, 
         :num_stock
     )""")
-    result = db.execute(query, params) # Pydantic V2
+    result = db.execute(query, params)
     db.commit()
     fetched_result = result.fetchone()
     return fetched_result[0] if fetched_result else None

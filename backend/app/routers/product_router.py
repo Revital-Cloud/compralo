@@ -7,7 +7,7 @@ Utiliza FastAPI para definir las rutas y depende del servicio de productos
 para la lógica de negocio y del gestor de base de datos para las sesiones.
 """
 # Definición de rutas (endpoints) de la API para productos
-from fastapi import APIRouter, Depends, Form, HTTPException
+from fastapi import APIRouter, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 import json
 from decimal import Decimal
@@ -36,7 +36,7 @@ async def get_products(db: Session = Depends(get_db)):
     products = product_service.get_products(db)
     return products
 
-@router.post("/products", response_model=Product)
+@router.post("/products", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_product(
     db: Session = Depends(get_db),
     nom_producto: str = Form(...),
@@ -71,7 +71,7 @@ async def create_product(
         num_stock (int): Cantidad de unidades disponibles en inventario.
 
     Returns:
-        Product: El producto creado.
+        ResponseMessage: Un mensaje indicando el resultado de la operación.
         
     Raises:
         HTTPException: Si spcf_producto_str no es una cadena JSON válida.
@@ -93,9 +93,17 @@ async def create_product(
         id_categoria=id_categoria,
         num_stock=num_stock
     )
-    return product_service.create_product(db, product_data)
+    service_response_message = product_service.create_product(db, product_data)
+    
+    if service_response_message is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="La creación del producto en el servicio no devolvió ningún mensaje de resultado."
+        )
+    
+    return ResponseMessage(message=service_response_message)
 
-@router.put("/products/{id_producto}", response_model=Product)
+@router.put("/products/{id_producto}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_product(id_producto: int, product: ProductUpdate, db: Session = Depends(get_db)):
     """
     Actualizar un producto existente.
@@ -109,11 +117,29 @@ async def update_product(id_producto: int, product: ProductUpdate, db: Session =
         db (Session): Sesión de la base de datos inyectada por FastAPI.
 
     Returns:
-        Product: El producto actualizado.
+        ResponseMessage: Un mensaje indicando el resultado de la operación de actualización.
     """
-    return product_service.update_product(db, id_producto, product)
+    service_response_message = product_service.update_product(db, id_producto, product)
 
-@router.delete("/products/{id_producto}", response_model=ResponseMessage)
+    if service_response_message is None:
+        # Esto podría significar que el producto no fue encontrado o la función de DB no devolvió nada.
+        # Un 404 sería apropiado si el producto no existe.
+        # O un 500 si se esperaba un mensaje pero no se obtuvo.
+        # Por coherencia con create, si no hay mensaje, es un problema.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, # O 500, dependiendo de la semántica de la función de servicio
+            detail=f"No se pudo actualizar el producto con ID {id_producto} o no se recibió mensaje de confirmación."
+        )
+
+    if not isinstance(service_response_message, str):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Se esperaba un mensaje de texto desde el servicio de actualización, pero se recibió: {type(service_response_message)}"
+        )
+
+    return ResponseMessage(message=service_response_message)
+
+@router.delete("/products/{id_producto}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def delete_product(id_producto: int, db: Session = Depends(get_db)):
     """
     Eliminar un producto.
@@ -128,7 +154,7 @@ async def delete_product(id_producto: int, db: Session = Depends(get_db)):
     Returns:
         ResponseMessage: Un mensaje indicando el resultado de la operación.
     """
-    response_data = product_service.delete_product(db, id_producto)
-    if response_data is None:
+    response_message = product_service.delete_product(db, id_producto)
+    if response_message is None:
         pass
-    return response_data
+    return response_message
