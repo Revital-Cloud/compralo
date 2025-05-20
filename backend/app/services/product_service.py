@@ -148,9 +148,9 @@ def update_product(db: Session, id_producto: int, product: ProductUpdate):
     # o sean NULL si product.model_dump(exclude_unset=True) los omite.
     # Asegúrate de que los nombres de los parámetros coincidan con los de tu función SQL.
     query = text("""SELECT fun_update_producto(
-        :id_producto, :nom_producto, :spcf_producto, :img_producto, 
-        :val_precio, :id_proveedor, :id_marca, :id_sublinea, :id_linea, 
-        :id_categoria, :num_stock
+        :id_categoria, :id_linea, :id_sublinea, :id_producto, 
+        :nom_producto, :spcf_producto, :img_producto, :val_precio, 
+        :id_proveedor, :id_marca, :num_stock
     )""")
     
     # Es crucial que fun_update_producto esté diseñada para tomar estos 11 parámetros

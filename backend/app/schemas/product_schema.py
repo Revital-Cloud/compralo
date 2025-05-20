@@ -78,6 +78,7 @@ class ProductUpdate(BaseModel):
         id_sublinea (Optional[Decimal]): Nuevo identificador de la sublínea.
         id_linea (Optional[Decimal]): Nuevo identificador de la línea.
         id_categoria (Optional[Decimal]): Nuevo identificador de la categoría.
+        id_producto (Optional[Decimal]): Nuevo identificador del producto.
         num_stock (Optional[int]): Nueva cantidad de unidades en inventario.
     """
     # Para las actualizaciones, a menudo todos los campos son opcionales
@@ -90,6 +91,7 @@ class ProductUpdate(BaseModel):
     id_sublinea: Optional[Decimal] = None
     id_linea: Optional[Decimal] = None
     id_categoria: Optional[Decimal] = None
+    id_producto: Optional[Decimal] = None
     num_stock: Optional[int] = Field(None, ge=0)
     # usr_update será gestionado por el backend
 
