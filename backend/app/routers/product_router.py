@@ -36,7 +36,6 @@ async def get_products(db: Session = Depends(get_db)):
     products = product_service.get_products(db)
     return products
 
-
 @router.get("/products/{id_producto}", response_model=Product)
 async def get_product(id_producto: Decimal, db: Session = Depends(get_db)):
     """

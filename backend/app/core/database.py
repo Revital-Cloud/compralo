@@ -12,6 +12,7 @@ from sqlalchemy.orm import sessionmaker
 
 from core.config import settings
 
+#Equivalente al PDO
 engine = create_engine(settings.DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
