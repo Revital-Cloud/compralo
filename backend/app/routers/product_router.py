@@ -36,6 +36,28 @@ async def get_products(db: Session = Depends(get_db)):
     products = product_service.get_products(db)
     return products
 
+
+@router.get("/products/{id_producto}", response_model=Product)
+async def get_product(id_producto: Decimal, db: Session = Depends(get_db)):
+    """
+    Obtener un producto específico por su ID.
+
+    Este endpoint permite obtener un producto específico de la base de datos
+    utilizando su ID como identificador único.
+
+    Args:
+        id_producto (Decimal): ID del producto a obtener.
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+
+    Returns:
+        Product: Un objeto de producto.
+    """
+
+    product = product_service.get_product(db, id_producto)
+    if product is None:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    return product
+
 @router.post("/products", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_product(
     db: Session = Depends(get_db),

@@ -10,6 +10,7 @@ Las funciones aquí definidas son llamadas por los routers de la API
 y utilizan los esquemas Pydantic para la validación y transformación de datos.
 """
 # Lógica de negocio 
+from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 import json
@@ -60,6 +61,32 @@ def get_products(db: Session):
     # .mappings() convierte cada fila en un objeto tipo dict (RowMapping)
     # FastAPI puede usar esto para poblar el modelo Pydantic Product definido en el router.
     return result.mappings().all()
+
+def get_product(db: Session, id_producto: Decimal):
+    """
+    Obtiene un producto específico de la base de datos.
+
+    Ejecuta una consulta SQL para seleccionar un producto por su ID y devuelve
+    el resultado como un diccionario (RowMapping).
+    """
+    query = text("""SELECT id_categoria,
+        id_linea,
+        id_sublinea,
+        id_producto,
+        nom_producto,
+        spcf_producto,
+        img_producto,
+        val_precio,
+        id_proveedor,
+        id_marca,
+        num_stock,
+        usr_insert,
+        fec_insert,
+        usr_update,
+        fec_update 
+        FROM tab_productos WHERE id_producto = :id_producto""")
+    result = db.execute(query, {"id_producto": id_producto})
+    return result.mappings().first()
 
 def create_product(db: Session, product: ProductCreate):
     """
