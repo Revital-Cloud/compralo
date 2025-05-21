@@ -91,7 +91,6 @@ class ProductUpdate(BaseModel):
     id_sublinea: Optional[Decimal] = None
     id_linea: Optional[Decimal] = None
     id_categoria: Optional[Decimal] = None
-    id_producto: Optional[Decimal] = None
     num_stock: Optional[int] = Field(None, ge=0)
     # usr_update será gestionado por el backend
 
