@@ -8,7 +8,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
-from backend.app.schemas.provider_schema import ProviderCreate, ProviderUpdate, Provider,ResponseMessage
+from schemas.provider_schema import ProviderCreate, ProviderUpdate, Provider,ResponseMessage
 from services import provider_service
 
 router = APIRouter()
@@ -34,7 +34,7 @@ async def create_provider(
     db:Session = Depends(get_db),
     nom_proveedor:str = Form(...),
     email:str = Form(...),
-    tel_proveedor:str = Form(...)
+    tel_proveedor:Decimal = Form(...)
 ):
     """
     Crea un nuevo proveedor en la base de datos.
@@ -58,7 +58,7 @@ async def update_provider(
     db:Session = Depends(get_db),
     nom_proveedor:str = Form(...),
     email:str = Form(...),
-    tel_proveedor:str = Form(...)
+    tel_proveedor:Decimal = Form(...)
 ):
     """
     Actualiza un proveedor existente en la base de datos.

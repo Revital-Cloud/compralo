@@ -9,7 +9,6 @@ así como un esquema para mensajes de respuesta genéricos.
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 from decimal import Decimal
-from datetime import datetime
 
 class ProviderBase(BaseModel):
     """
@@ -25,7 +24,7 @@ class ProviderBase(BaseModel):
     """
     nom_proveedor: str = Field(..., description="Nombre del proveedor.")
     email: str = Field(..., description="Correo electrónico del proveedor.")
-    tel_proveedor: str = Field(..., description="Teléfono del proveedor.")
+    tel_proveedor: Decimal = Field(..., description="Teléfono del proveedor.")
 
     class Config:
         from_attributes = True
@@ -51,7 +50,7 @@ class ProviderUpdate(BaseModel):
     """
     nom_proveedor: Optional[str] = None
     email: Optional[str] = None
-    tel_proveedor: Optional[str] = None
+    tel_proveedor: Optional[Decimal] = None
     
 class Provider(ProviderBase):
     """

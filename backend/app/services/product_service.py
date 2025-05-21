@@ -204,4 +204,4 @@ def delete_product(db: Session, product_id: int):
             return {"message": "Producto eliminado correctamente"}
     except Exception as e:
         db.rollback()
-        return {"message": f"Error al eliminar el producto: {str(e)}"}
+        raise Exception(f"Error al eliminar el producto: {str(e)}")
