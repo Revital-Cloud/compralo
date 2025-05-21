@@ -46,7 +46,6 @@ class ProductBase(BaseModel):
     class Config:
         from_attributes = True
 
-
 class ProductCreate(ProductBase):
     """
     Esquema para la Creación de Productos.
