@@ -7,8 +7,11 @@ Utiliza FastAPI para definir las rutas y depende del servicio de productos
 para la lógica de negocio y del gestor de base de datos para las sesiones.
 """
 # Definición de rutas (endpoints) de la API para productos
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
+import json
+from decimal import Decimal
+from typing import Optional, Dict, Any
 
 from core.database import get_db
 from schemas.product_schema import Product, ProductCreate, ProductUpdate, ResponseMessage
@@ -33,25 +36,109 @@ async def get_products(db: Session = Depends(get_db)):
     products = product_service.get_products(db)
     return products
 
-@router.post("/products", response_model=Product)
-async def create_product(product: ProductCreate, db: Session = Depends(get_db)):
+@router.get("/products/{id_producto}", response_model=Product)
+async def get_product(id_producto: Decimal, db: Session = Depends(get_db)):
+    """
+    Obtener un producto específico por su ID.
+
+    Este endpoint permite obtener un producto específico de la base de datos
+    utilizando su ID como identificador único.
+
+    Args:
+        id_producto (Decimal): ID del producto a obtener.
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+
+    Returns:
+        Product: Un objeto de producto.
+    """
+
+    product = product_service.get_product(db, id_producto)
+    if product is None:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    return product
+
+@router.post("/products", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
+async def create_product(
+    db: Session = Depends(get_db),
+    nom_producto: str = Form(...),
+    spcf_producto_str: str = Form(..., alias="spcf_producto"),
+    img_producto: Optional[str] = Form(None),
+    val_precio: Decimal = Form(...),
+    id_proveedor: Decimal = Form(...),
+    id_marca: Decimal = Form(...),
+    id_sublinea: Decimal = Form(...),
+    id_linea: Decimal = Form(...),
+    id_categoria: Decimal = Form(...),
+    num_stock: int = Form(...)
+):
     """
     Crear un nuevo producto.
 
     Este endpoint permite crear un nuevo producto en la base de datos
-    utilizando los datos proporcionados en el cuerpo de la solicitud.
+    utilizando los datos proporcionados en el cuerpo de la solicitud como form-data.
+    El campo spcf_producto debe ser una cadena JSON válida.
 
     Args:
-        product (ProductCreate): Datos del producto a crear.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
+        nom_producto (str): Nombre del producto.
+        spcf_producto_str (str): Especificaciones del producto en formato de cadena JSON.
+        img_producto (Optional[str]): URL o ruta de la imagen del producto.
+        val_precio (Decimal): Precio de venta del producto.
+        id_proveedor (Decimal): Identificador del proveedor.
+        id_marca (Decimal): Identificador de la marca.
+        id_sublinea (Decimal): Identificador de la sublínea.
+        id_linea (Decimal): Identificador de la línea.
+        id_categoria (Decimal): Identificador de la categoría.
+        num_stock (int): Cantidad de unidades disponibles en inventario.
 
     Returns:
-        Product: El producto creado.
+        ResponseMessage: Un mensaje indicando el resultado de la operación.
+        
+    Raises:
+        HTTPException: Si spcf_producto_str no es una cadena JSON válida.
     """
-    return product_service.create_product(db, product)
+    try:
+        spcf_producto_dict: Dict[str, Any] = json.loads(spcf_producto_str)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="El campo 'spcf_producto' debe ser una cadena JSON válida.")
 
-@router.put("/products/{id_producto}", response_model=Product)
-async def update_product(id_producto: int, product: ProductUpdate, db: Session = Depends(get_db)):
+    product_data = ProductCreate(
+        nom_producto=nom_producto,
+        spcf_producto=spcf_producto_dict,
+        img_producto=img_producto,
+        val_precio=val_precio,
+        id_proveedor=id_proveedor,
+        id_marca=id_marca,
+        id_sublinea=id_sublinea,
+        id_linea=id_linea,
+        id_categoria=id_categoria,
+        num_stock=num_stock
+    )
+    service_response_message = product_service.create_product(db, product_data)
+    
+    if service_response_message is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="La creación del producto en el servicio no devolvió ningún mensaje de resultado."
+        )
+    
+    return ResponseMessage(message=service_response_message)
+
+@router.put("/products/{id_producto}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def update_product(
+    id_producto: Decimal,
+    id_categoria: Decimal = Form(...),
+    id_linea: Decimal = Form(...),
+    id_sublinea: Decimal = Form(...),
+    nom_producto: str = Form(...),
+    spcf_producto_str: str = Form(..., alias="spcf_producto"),
+    img_producto: Optional[str] = Form(None),
+    val_precio: Decimal = Form(...),
+    id_proveedor: Decimal = Form(...),
+    id_marca: Decimal = Form(...),
+    num_stock: int = Form(...),
+    db: Session = Depends(get_db)
+):
     """
     Actualizar un producto existente.
 
@@ -59,17 +146,64 @@ async def update_product(id_producto: int, product: ProductUpdate, db: Session =
     identificado por su ID.
 
     Args:
-        id_producto (int): ID del producto a actualizar.
-        product (ProductUpdate): Datos del producto para actualizar.
+        id_producto (Decimal): ID del producto a actualizar.
+        id_categoria (Decimal): Identificador de la categoría.
+        id_linea (Decimal): Identificador de la línea.
+        id_sublinea (Decimal): Identificador de la sublínea.
+        nom_producto (str): Nombre del producto.
+        spcf_producto_str (str): Especificaciones del producto en formato de cadena JSON.
+        img_producto (Optional[str]): URL o ruta de la imagen del producto.
+        val_precio (Decimal): Precio de venta del producto.
+        id_proveedor (Decimal): Identificador del proveedor.
+        id_marca (Decimal): Identificador de la marca.
+        num_stock (int): Cantidad de unidades disponibles en inventario.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
 
     Returns:
-        Product: El producto actualizado.
+        ResponseMessage: Un mensaje indicando el resultado de la operación de actualización.
     """
-    return product_service.update_product(db, id_producto, product)
+    try:
+        spcf_producto_dict: Dict[str, Any] = json.loads(spcf_producto_str)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="El campo 'spcf_producto' debe ser una cadena JSON válida.")
+    
+    product_data = ProductUpdate(
+        id_producto=id_producto,
+        nom_producto=nom_producto,
+        spcf_producto=spcf_producto_dict,
+        img_producto=img_producto,
+        val_precio=val_precio,
+        id_proveedor=id_proveedor,
+        id_marca=id_marca,
+        id_sublinea=id_sublinea,
+        id_linea=id_linea,
+        id_categoria=id_categoria,
+        num_stock=num_stock
+    )
 
-@router.delete("/products/{id_producto}", response_model=ResponseMessage)
-async def delete_product(id_producto: int, db: Session = Depends(get_db)):
+
+    service_response_message = product_service.update_product(db, id_producto, product_data)
+
+    if service_response_message is None:
+        # Esto podría significar que el producto no fue encontrado o la función de DB no devolvió nada.
+        # Un 404 sería apropiado si el producto no existe.
+        # O un 500 si se esperaba un mensaje pero no se obtuvo.
+        # Por coherencia con create, si no hay mensaje, es un problema.
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, # O 500, dependiendo de la semántica de la función de servicio
+            detail=f"No se pudo actualizar el producto con ID {id_producto} o no se recibió mensaje de confirmación."
+        )
+
+    if not isinstance(service_response_message, str):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Se esperaba un mensaje de texto desde el servicio de actualización, pero se recibió: {type(service_response_message)}"
+        )
+
+    return ResponseMessage(message=service_response_message)
+
+@router.delete("/products/{id_producto}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def delete_product(id_producto: Decimal, db: Session = Depends(get_db)):
     """
     Eliminar un producto.
 
@@ -83,7 +217,10 @@ async def delete_product(id_producto: int, db: Session = Depends(get_db)):
     Returns:
         ResponseMessage: Un mensaje indicando el resultado de la operación.
     """
-    response_data = product_service.delete_product(db, id_producto)
-    if response_data is None:
-        pass
-    return response_data
+    response_message = product_service.delete_product(db, id_producto)
+    if response_message is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No se pudo eliminar el producto porque no se encontró."
+        )
+    return response_message

@@ -10,8 +10,10 @@ Las funciones aquí definidas son llamadas por los routers de la API
 y utilizan los esquemas Pydantic para la validación y transformación de datos.
 """
 # Lógica de negocio 
+from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+import json
 
 from schemas.product_schema import ProductCreate, ProductUpdate
 # No necesitamos importar el schema Product aquí si solo devolvemos mappings
@@ -32,33 +34,67 @@ def get_products(db: Session):
               FastAPI utilizará el `response_model` del endpoint para convertir esto
               en una lista de objetos `Product`.
     """
-    # Seleccionamos todas las columnas de la tabla tab_productos.
-    # Los nombres de las columnas deben coincidir con los campos del esquema Pydantic Product
-    # o deben usarse alias si los nombres son diferentes en Pydantic.
-    # En este caso, el esquema Product usa los nombres de columna directamente.
-    query = text("""
-    SELECT 
-        id_categoria,
-        id_linea,
-        id_sublinea,
-        id_producto,
-        nom_producto,
-        spcf_producto,
-        img_producto,
-        val_precio,
-        id_proveedor,
-        id_marca,
-        num_stock,
-        usr_insert,
-        fec_insert,
-        usr_update,
-        fec_update
-    FROM tab_productos
-    """)
-    result = db.execute(query)
-    # .mappings() convierte cada fila en un objeto tipo dict (RowMapping)
-    # FastAPI puede usar esto para poblar el modelo Pydantic Product definido en el router.
-    return result.mappings().all()
+    try:
+        # Seleccionamos todas las columnas de la tabla tab_productos.
+        # Los nombres de las columnas deben coincidir con los campos del esquema Pydantic Product
+        # o deben usarse alias si los nombres son diferentes en Pydantic.
+        # En este caso, el esquema Product usa los nombres de columna directamente.
+        query = text("""
+        SELECT 
+            id_categoria,
+            id_linea,
+            id_sublinea,
+            id_producto,
+            nom_producto,
+            spcf_producto,
+            img_producto,
+            val_precio,
+            id_proveedor,
+            id_marca,
+            num_stock,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
+        FROM tab_productos
+        """)
+        result = db.execute(query)
+        # .mappings() convierte cada fila en un objeto tipo dict (RowMapping)
+        # FastAPI puede usar esto para poblar el modelo Pydantic Product definido en el router.
+        return result.mappings().all()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener productos: {str(e)}")
+
+def get_product(db: Session, id_producto: Decimal):
+    """
+    Obtiene un producto específico de la base de datos.
+
+    Ejecuta una consulta SQL para seleccionar un producto por su ID y devuelve
+    el resultado como un diccionario (RowMapping).
+    """
+    try:
+        query = text("""SELECT id_categoria,
+            id_linea,
+            id_sublinea,
+            id_producto,
+            nom_producto,
+            spcf_producto,
+            img_producto,
+            val_precio,
+            id_proveedor,
+            id_marca,
+            num_stock,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update 
+            FROM tab_productos WHERE id_producto = :id_producto""")
+        result = db.execute(query, {"id_producto": id_producto})
+        return result.mappings().first()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener el producto: {str(e)}")
 
 def create_product(db: Session, product: ProductCreate):
     """
@@ -76,16 +112,24 @@ def create_product(db: Session, product: ProductCreate):
                       devuelto por la función SQL) o None si la creación falla o la función
                       SQL no devuelve el resultado esperado.
     """
-    # Asume que product.model_dump() tiene todas las claves que fun_insert_producto espera por nombre.
-    query = text("""SELECT fun_insert_producto(
-        :nom_producto, :spcf_producto, :img_producto, :val_precio, 
-        :id_proveedor, :id_marca, :id_sublinea, :id_linea, :id_categoria, 
-        :num_stock
-    )""")
-    result = db.execute(query, product.model_dump()) # Pydantic V2
-    db.commit()
-    fetched_result = result.fetchone()
-    return fetched_result[0] if fetched_result else None
+    try:
+        # Asume que product.model_dump() tiene todas las claves que fun_insert_producto espera por nombre.
+        params = product.model_dump()
+        if 'spcf_producto' in params and isinstance(params['spcf_producto'], dict):
+            params['spcf_producto'] = json.dumps(params['spcf_producto'])
+
+        query = text("""SELECT fun_insert_producto(
+            :id_categoria, :id_linea, :id_sublinea,:nom_producto, 
+            :spcf_producto, :img_producto, :val_precio, :id_proveedor, :id_marca, 
+            :num_stock
+        )""")
+        result = db.execute(query, params)
+        fetched_result = result.fetchone()
+        db.commit()
+        return fetched_result[0] if fetched_result else None
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al crear el producto: {str(e)}")
 
 def update_product(db: Session, id_producto: int, product: ProductUpdate):
     """
@@ -105,24 +149,32 @@ def update_product(db: Session, id_producto: int, product: ProductUpdate):
                       devuelto por la función SQL) o None si la actualización falla o la función
                       SQL no devuelve el resultado esperado.
     """
-    update_params = product.model_dump(exclude_unset=True) # Solo incluye campos que se proporcionaron
-    update_params['id_producto'] = id_producto # Añadir el id_producto del path
+    try:
+        update_params = product.model_dump(exclude_unset=True) # Solo incluye campos que se proporcionaron
+        
+        if 'spcf_producto' in update_params and isinstance(update_params['spcf_producto'], dict):
+            update_params['spcf_producto'] = json.dumps(update_params['spcf_producto'])
+            
+        update_params['id_producto'] = id_producto # Añadir el id_producto del path
 
-    # La función SQL debe poder manejar que algunos de los otros parámetros no estén presentes
-    # o sean NULL si product.model_dump(exclude_unset=True) los omite.
-    # Asegúrate de que los nombres de los parámetros coincidan con los de tu función SQL.
-    query = text("""SELECT fun_update_producto(
-        :id_producto, :nom_producto, :spcf_producto, :img_producto, 
-        :val_precio, :id_proveedor, :id_marca, :id_sublinea, :id_linea, 
-        :id_categoria, :num_stock
-    )""")
-    
-    # Es crucial que fun_update_producto esté diseñada para tomar estos 11 parámetros
-    # y que pueda manejar `None` o la ausencia de algunos de ellos (excepto id_producto).
-    result = db.execute(query, update_params)
-    db.commit()
-    fetched_result = result.fetchone()
-    return fetched_result[0] if fetched_result else None
+        # La función SQL debe poder manejar que algunos de los otros parámetros no estén presentes
+        # o sean NULL si product.model_dump(exclude_unset=True) los omite.
+        # Asegúrate de que los nombres de los parámetros coincidan con los de tu función SQL.
+        query = text("""SELECT fun_update_producto(
+            :id_categoria, :id_linea, :id_sublinea, :id_producto, 
+            :nom_producto, :spcf_producto, :img_producto, :val_precio, 
+            :id_proveedor, :id_marca, :num_stock
+        )""")
+        
+        # Es crucial que fun_update_producto esté diseñada para tomar estos 11 parámetros
+        # y que pueda manejar `None` o la ausencia de algunos de ellos (excepto id_producto).
+        result = db.execute(query, update_params)
+        fetched_result = result.fetchone()
+        db.commit()
+        return fetched_result[0] if fetched_result else None
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al actualizar el producto: {str(e)}")
 
 def delete_product(db: Session, product_id: int):
     """
@@ -140,25 +192,16 @@ def delete_product(db: Session, product_id: int):
               El mensaje puede provenir directamente de la función SQL o ser un
               mensaje genérico si la función no proporciona uno específico.
     """
-    query = text("""SELECT fun_delete_producto(:id_producto)""")
-    result = db.execute(query, {"id_producto": product_id})
-    db.commit()
-    fetched_result = result.fetchone()
-    
-    if fetched_result and isinstance(fetched_result[0], str):
-        return {"message": fetched_result[0]}
-    
-    # Si fun_delete_producto no devuelve un string (o no devuelve nada),
-    # decidimos qué mensaje devolver. Podría ser un error o una confirmación genérica.
-    # Si la ejecución llegó hasta aquí sin errores de DB, la transacción (commit) se hizo.
-    # Asumamos que si no hay un mensaje específico de la función SQL, pero la operación se completó,
-    # proporcionamos un mensaje genérico de éxito.
-    # Es crucial entender qué significa cuando fun_delete_producto no devuelve el string esperado.
-    if db.RollbackOccurred: # Esta es una pseudopropiedad, SQLAlchemy no tiene esto directamente.
-        # Si hubo un rollback implícito o un error no capturado que impidió el commit o causó un rollback.
-        # Esto es más complejo de detectar así directamente. Sería mejor si fun_delete_producto indicara error.
-        # Por ahora, si no tenemos el string, pero no sabemos de un error explícito de la DB:
-        return {"message": "Producto procesado para eliminación. El estado final no fue confirmado con un mensaje detallado."}
-    else:
-        # Si no hubo error aparente y el commit se realizó (o se intentó)
-        return {"message": "Producto eliminado correctamente"} # Mensaje por defecto si la función SQL no da uno.
+    try:
+        query = text("""SELECT fun_delete_producto(:id_producto)""")
+        result = db.execute(query, {"id_producto": product_id})
+        fetched_result = result.fetchone()
+        db.commit()
+        
+        if fetched_result and isinstance(fetched_result[0], str):
+            return {"message": fetched_result[0]}
+        else:
+            return {"message": "Producto eliminado correctamente"}
+    except Exception as e:
+        db.rollback()
+        return {"message": f"Error al eliminar el producto: {str(e)}"}

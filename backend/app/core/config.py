@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # Configuración de la API
-    API_V1_STR: str = "/api"
+    API_STR: str = "/api"
     PROJECT_NAME: str = "Synkro API"
     
     class Config:
