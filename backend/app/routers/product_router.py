@@ -219,5 +219,8 @@ async def delete_product(id_producto: Decimal, db: Session = Depends(get_db)):
     """
     response_message = product_service.delete_product(db, id_producto)
     if response_message is None:
-        pass
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No se pudo eliminar el producto porque no se encontró."
+        )
     return response_message
