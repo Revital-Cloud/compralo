@@ -9,6 +9,7 @@ from fastapi import FastAPI
 
 from core.config import settings
 from routers.product_router import router as product_router
+from routers.users_router import router as users_router
 
 app = FastAPI()
 
@@ -28,3 +29,5 @@ def read_root():
 # Incluye el router de productos con un prefijo de API.
 # Esto organiza todas las rutas relacionadas con productos bajo /api.
 app.include_router(product_router, prefix=settings.API_STR)
+
+app.include_router(users_router, prefix=settings.API_STR)
