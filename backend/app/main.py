@@ -26,13 +26,6 @@ def read_root():
     """
     return {"message": "Bienvenido a la API de Synkro Ecommerce Platform"}
 
-@app.middleware("http")
-async def print_raw_body(request: Request, call_next):
-    body = await request.body()
-    print("CUERPO CRUDO:", body)
-    response = await call_next(request)
-    return response
-
 # Incluye el router de productos con un prefijo de API.
 # Esto organiza todas las rutas relacionadas con productos bajo /api.
 app.include_router(product_router, prefix=settings.API_STR)
