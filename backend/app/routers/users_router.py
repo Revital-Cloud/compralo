@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from decimal import Decimal
 from typing import Optional, Dict, Any
-from datetime import datetime
+
 
 from core.database import get_db
 from schemas.users_schema import User, UserCreate, UserUpdate, ResponseMessage
@@ -68,7 +68,7 @@ async def update_user(
     id_rol: Decimal = Form(...),
     ind_genero: bool = Form(...),
     cel_usuario: str = Form(...),
-    fec_nacimiento: Optional[str] = (None),
+    fec_nacimiento: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):     
     try:
@@ -87,7 +87,7 @@ async def update_user(
         user_service.update_user(db,id_usuario,user_data)
         return ResponseMessage(message="Usuario actualizado exitosamente")
     except Exception as e:
-        raise HTTPException(status_Code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
 @router.delete("/users/{id_usuario}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def delete_user(id_usuario: Decimal, db: Session = Depends(get_db)):

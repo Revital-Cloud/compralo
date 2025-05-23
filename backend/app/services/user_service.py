@@ -85,8 +85,7 @@ def update_user(db: Session, id_usuario: Decimal, user: UserUpdate):
     
     try:
         update_params = user.model_dump(exclude_unset=True)
-        
-        update_params[id_usuario] = id_usuario
+        update_params["id_usuario"] = id_usuario
         
         query = text("""SELECT fun_update_usuarios(
             :id_usuario, :nom_usuario, :ape_usuario, :email_usuario, :password_usuario,
@@ -99,7 +98,7 @@ def update_user(db: Session, id_usuario: Decimal, user: UserUpdate):
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al actualizar el usuario: {str(e)}")
+        raise Exception(f"Error al actualizar el usuario: {e}")
     
 def delete_user(db: Session, id_usuario:Decimal):
     
