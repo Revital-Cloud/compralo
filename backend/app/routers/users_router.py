@@ -28,7 +28,7 @@ async def get_user(id_usuario: Decimal, db: Session = Depends(get_db)):
 @router.post("/users", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_users(
     db: Session = Depends(get_db),
-    id_usuario: str = Form(...),
+    id_usuario: Decimal = Form(...),
     nom_usuario: str = Form(...),
     ape_usuario: str = Form(...),
     email_usuario: str = Form(...),
