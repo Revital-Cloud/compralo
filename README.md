@@ -46,6 +46,11 @@ synkro/
    git clone https://github.com/usuario/synkro.git
    cd synkro
    ```
+   
+   ```
+   git clone https://TU_USUARIO@github.com/KevinBermudezC/synkro.git
+   -Para autenticación de dos pasos con token de github
+   ```
 
 2. **Configurar el Backend**:
    ```
