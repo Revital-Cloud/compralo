@@ -55,7 +55,7 @@ async def create_users(
         user_service.create_users(db,user_data)
         return ResponseMessage(message="Usuario creado exitosamente")
     except Exception as e:
-        raise HTTPException(status_Code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
 @router.put("/users/{id_usuario}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_user(
@@ -68,7 +68,8 @@ async def update_user(
     id_rol: Decimal = Form(...),
     ind_genero: bool = Form(...),
     cel_usuario: str = Form(...),
-    fec_nacimiento: Optional[datetime] = (None)
+    fec_nacimiento: Optional[datetime] = (None),
+    db: Session = Depends(get_db)
 ):     
     try:
         user_data = UserUpdate(
@@ -83,7 +84,7 @@ async def update_user(
             cel_usuario=cel_usuario,
             fec_nacimiento=fec_nacimiento
         )
-        user_service.update_user(db,user_data)
+        user_service.update_user(db,id_usuario,user_data)
         return ResponseMessage(message="Usuario actualizado exitosamente")
     except Exception as e:
         raise HTTPException(status_Code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -91,7 +92,7 @@ async def update_user(
 @router.delete("/users/{id_usuario}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def delete_user(id_usuario: Decimal, db: Session = Depends(get_db)):
     try:
-        user_service.delete_user(db,user_data)
+        user_service.delete_user(db,id_usuario)
         return ResponseMessage(message="Usuario eliminado exitosamente")
     except Exception as e:
         raise HTTPException(status_Code=status.HTTP_400_BAD_REQUEST, detail=str(e))

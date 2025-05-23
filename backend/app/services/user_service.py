@@ -1,4 +1,3 @@
-
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -59,11 +58,16 @@ def get_user(db: Session, id_usuario: Decimal):
     
 def create_users(db: Session, user: UserCreate):
     try:
-        
-        params = product.model_dump()
+        params = user.model_dump()
+        print("Datos recibidos:")
+        for key, value in params.items():
+            if isinstance(value, str):
+                print(f"{key}: {value}")
+                print(f"Bytes: {value.encode('utf-8')}")
         
         query = text("""
-            SELECT fun_insert_usuario(
+            SELECT fun_insert_usuarios(
+            :id_usuario,
             :nom_usuario,
             :ape_usuario,
             :email_usuario,
@@ -75,9 +79,48 @@ def create_users(db: Session, user: UserCreate):
             :fec_nacimiento)
             """)
         result = db.execute(query, params)
+        print("Resultado crudo de la consulta:", result)
+        fetched_result = result.fetchone()
+        print("fetchone():", fetched_result)
+        db.commit()
+        return fetched_result[0] if fetched_result else None
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al crear el usuario: {str(e)}")
+    
+def update_product(db: Session, id_usuario: Decimal, user: UserUpdate):
+    
+    try:
+        update_params = user.model_dump(exclude_unset=True)
+        
+        update_params[id_usuario] = id_usuario
+        
+        query = text("""SELECT fun_update_usuarios(
+            :id_usuario, :nom_usuario, :ape_usuario, :email_usuario, :password_usuario,
+            :des_direccion, :id_rol, :ind_genero, :cel_usuario, :fec_nacimiento
+            )""")
+        
+        result = db.execute(query, update_params)
         fetched_result = result.fetchone()
         db.commit()
         return fetched_result[0] if fetched_result else None
     except Exception as e:
-        db.rollback()@
-        raise Exception(f"Error al crear el usuario: {str(e)}")
+        db.rollback()
+        raise Exception(f"Error al actualizar el usuario: {str(e)}")
+    
+def delete_user(db: Session, id_usuario:Decimal):
+    
+    try:
+        query = text("""SELECT fun_delete_usuarios(:id_usuario)""")
+        result = db.execute(query, {"id_usuario": id_usuario})
+        fetched_result = result.fetchone()
+        db.commit()
+        
+        if fetched_result and isinstance(fetched_result[0], str):
+            return {"message": fetched_result[0]}
+        else:
+            return {"message": "Usuario eliminado correctamente"}
+    except Exception as e:
+        db.rollback()
+        return {"message": f"Error al eliminar el usuario: {str(e)}"}
+        

@@ -5,7 +5,7 @@ Este módulo inicializa la aplicación FastAPI, define rutas básicas
 y registra los routers de la aplicación, como el router de productos.
 También puede incluir configuraciones globales de la aplicación y middlewares.
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 from core.config import settings
 from routers.product_router import router as product_router
@@ -25,6 +25,13 @@ def read_root():
         dict: Un mensaje de bienvenida.
     """
     return {"message": "Bienvenido a la API de Synkro Ecommerce Platform"}
+
+@app.middleware("http")
+async def print_raw_body(request: Request, call_next):
+    body = await request.body()
+    print("CUERPO CRUDO:", body)
+    response = await call_next(request)
+    return response
 
 # Incluye el router de productos con un prefijo de API.
 # Esto organiza todas las rutas relacionadas con productos bajo /api.
