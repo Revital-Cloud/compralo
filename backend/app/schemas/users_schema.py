@@ -4,7 +4,7 @@ from decimal import Decimal
 from datetime import datetime
 
 class UserBase(BaseModel):
-    id_usuario: str = Field(..., description="Identificador único para el usuario.")
+    id_usuario: Decimal = Field(..., description="Identificador único para el usuario.")
     nom_usuario: str = Field(..., description="Nombre del usuario.")
     ape_usuario: str = Field(..., description="Apellido del usuario.")
     email_usuario: str = Field(..., description="Email del usuario.")
@@ -13,13 +13,12 @@ class UserBase(BaseModel):
     id_rol: Decimal = Field(..., description="Identificador del rol del usuario.")
     ind_genero: bool = Field(..., description="Género del usuario.")
     cel_usuario: str = Field(..., description="Número de celular del usuario.")
-    fec_nacimiento: Optional[datetime] = Field(None, description="Fecha de nacimiento del usuario.")
+    fec_nacimiento: Optional[str] = Field(None, description="Fecha de nacimiento del usuario.")
     
     class Config:
         from_attributes = True
         
 class UserCreate(UserBase):
-    
     pass
 
 class UserUpdate(BaseModel):
@@ -32,11 +31,12 @@ class UserUpdate(BaseModel):
     id_rol: Optional[Decimal] = Field(None, description="Identificador del rol del usuario.")
     ind_genero: Optional[bool] = Field(None, description="Género del usuario.")
     cel_usuario: Optional[str] = Field(None, description="Número de celular del usuario.")
-    fec_nacimiento: Optional[datetime] = Field(None, description="Fecha de nacimiento del usuario.")
+    fec_nacimiento: Optional[str] = Field(None, description="Fecha de nacimiento del usuario.")
     
 class User(UserBase):
     
     id_usuario: Decimal
+    fec_nacimiento: Optional[datetime] = Field(None, description="Fecha de nacimiento del usuario.")
     
 class ResponseMessage(BaseModel):
     message: str

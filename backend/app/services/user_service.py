@@ -59,11 +59,6 @@ def get_user(db: Session, id_usuario: Decimal):
 def create_users(db: Session, user: UserCreate):
     try:
         params = user.model_dump()
-        print("Datos recibidos:")
-        for key, value in params.items():
-            if isinstance(value, str):
-                print(f"{key}: {value}")
-                print(f"Bytes: {value.encode('utf-8')}")
         
         query = text("""
             SELECT fun_insert_usuarios(
@@ -79,16 +74,14 @@ def create_users(db: Session, user: UserCreate):
             :fec_nacimiento)
             """)
         result = db.execute(query, params)
-        print("Resultado crudo de la consulta:", result)
         fetched_result = result.fetchone()
-        print("fetchone():", fetched_result)
         db.commit()
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al crear el usuario: {str(e)}")
     
-def update_product(db: Session, id_usuario: Decimal, user: UserUpdate):
+def update_user(db: Session, id_usuario: Decimal, user: UserUpdate):
     
     try:
         update_params = user.model_dump(exclude_unset=True)

@@ -37,7 +37,7 @@ async def create_users(
     id_rol: Decimal = Form(...),
     ind_genero: bool = Form(...),
     cel_usuario: str = Form(...),
-    fec_nacimiento: Optional[datetime] = Form(None)
+    fec_nacimiento: Optional[str] = Form(None)
 ):
     try:
         user_data = UserCreate(
@@ -68,7 +68,7 @@ async def update_user(
     id_rol: Decimal = Form(...),
     ind_genero: bool = Form(...),
     cel_usuario: str = Form(...),
-    fec_nacimiento: Optional[datetime] = (None),
+    fec_nacimiento: Optional[str] = (None),
     db: Session = Depends(get_db)
 ):     
     try:
