@@ -5,11 +5,12 @@ Este módulo inicializa la aplicación FastAPI, define rutas básicas
 y registra los routers de la aplicación, como el router de productos.
 También puede incluir configuraciones globales de la aplicación y middlewares.
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 from routers.provider_router import router as provider_router
 from core.config import settings
 from routers.product_router import router as product_router
+from routers.users_router import router as users_router
 
 app = FastAPI()
 
@@ -32,3 +33,5 @@ app.include_router(product_router, prefix=settings.API_STR)
 # Incluye el router de proveedores con un prefijo de API.
 # Esto organiza todas las rutas relacionadas con proveedores bajo /api.
 app.include_router(provider_router, prefix=settings.API_STR)
+
+app.include_router(users_router, prefix=settings.API_STR)
