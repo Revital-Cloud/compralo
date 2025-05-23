@@ -4,9 +4,9 @@ from decimal import Decimal
 from datetime import datetime
 
 class UserBase(BaseModel):
-    id_usuario: Decimal = Field(..., description="Identificador único para el usuario.")
+    id_usuario: str = Field(..., description="Identificador único para el usuario.")
     nom_usuario: str = Field(..., description="Nombre del usuario.")
-    apellido_usuario: str = Field(..., description="Apellido del usuario.")
+    ape_usuario: str = Field(..., description="Apellido del usuario.")
     email_usuario: str = Field(..., description="Email del usuario.")
     password_usuario: str = Field(..., description="Contraseña del usuario.")
     des_direccion: Optional[str] = Field(None, description="Dirección del usuario.")
@@ -25,7 +25,7 @@ class UserCreate(UserBase):
 class UserUpdate(BaseModel):
     
     nom_usuario: Optional[str] = Field(None, description="Nombre del usuario.")
-    apellido_usuario: Optional[str] = Field(None, description="Apellido del usuario.")
+    ape_usuario: Optional[str] = Field(None, description="Apellido del usuario.")
     email_usuario: Optional[str] = Field(None, description="Email del usuario.")
     password_usuario: Optional[str] = Field(None, description="Contraseña del usuario.")
     des_direccion: Optional[str] = Field(None, description="Dirección del usuario.")
@@ -38,8 +38,6 @@ class User(UserBase):
     
     id_usuario: Decimal
     
-    
 class ResponseMessage(BaseModel):
-
     message: str
 

@@ -28,9 +28,9 @@ async def get_user(id_usuario: Decimal, db: Session = Depends(get_db)):
 @router.post("/users", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_users(
     db: Session = Depends(get_db),
-    id_usuario: Decimal = Form(...),
+    id_usuario: str = Form(...),
     nom_usuario: str = Form(...),
-    apellido_usuario: str = Form(...),
+    ape_usuario: str = Form(...),
     email_usuario: str = Form(...),
     password_usuario: str = Form(...),
     des_direccion: Optional[str] = Form(None),
@@ -43,7 +43,7 @@ async def create_users(
         user_data = UserCreate(
             id_usuario=id_usuario,
             nom_usuario=nom_usuario,
-            apellido_usuario=apellido_usuario,
+            ape_usuario=ape_usuario,
             email_usuario=email_usuario,
             password_usuario=password_usuario,
             des_direccion=des_direccion,
@@ -61,7 +61,7 @@ async def create_users(
 async def update_user(
     id_usuario: Decimal,
     nom_usuario: str = Form(...),
-    apellido_usuario: str = Form(...),
+    ape_usuario: str = Form(...),
     email_usuario: str = Form(...),
     password_usuario: str = Form(...),
     des_direccion: Optional[str] = Form(None),
@@ -75,7 +75,7 @@ async def update_user(
         user_data = UserUpdate(
             id_usuario=id_usuario,
             nom_usuario=nom_usuario,
-            apellido_usuario=apellido_usuario,
+            ape_usuario=ape_usuario,
             email_usuario=email_usuario,
             password_usuario=password_usuario,
             des_direccion=des_direccion,
