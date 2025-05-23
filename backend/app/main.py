@@ -7,6 +7,7 @@ También puede incluir configuraciones globales de la aplicación y middlewares.
 """
 from fastapi import FastAPI, Request
 
+from routers.provider_router import router as provider_router
 from core.config import settings
 from routers.product_router import router as product_router
 from routers.users_router import router as users_router
@@ -29,5 +30,8 @@ def read_root():
 # Incluye el router de productos con un prefijo de API.
 # Esto organiza todas las rutas relacionadas con productos bajo /api.
 app.include_router(product_router, prefix=settings.API_STR)
+# Incluye el router de proveedores con un prefijo de API.
+# Esto organiza todas las rutas relacionadas con proveedores bajo /api.
+app.include_router(provider_router, prefix=settings.API_STR)
 
 app.include_router(users_router, prefix=settings.API_STR)
