@@ -10,9 +10,9 @@ from fastapi import FastAPI, Request
 from routers.provider_router import router as provider_router
 from core.config import settings
 from routers.product_router import router as product_router
-from backend.app.routers.user_router import router as user_router
+from routers.user_router import router as user_router
 from routers.subline_router import router as subline_router
-from backend.app.routers.brand_router import router as brand_router
+from routers.brand_router import router as brand_router
 app = FastAPI()
 
 @app.get("/")

@@ -2,7 +2,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from backend.app.schemas.brand_schema import BrandCreate, BrandUpdate
+from schemas.brand_schema import BrandCreate, BrandUpdate
 
 
 def get_brands(db:Session):

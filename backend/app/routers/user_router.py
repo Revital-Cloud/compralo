@@ -11,7 +11,7 @@ from typing import Optional, Dict, Any
 
 
 from core.database import get_db
-from backend.app.schemas.user_schema import User, UserCreate, UserUpdate, ResponseMessage
+from schemas.user_schema import User, UserCreate, UserUpdate, ResponseMessage
 from services import user_service
 
 router = APIRouter()
