@@ -56,7 +56,7 @@ class RoleBasedAccessMiddleware:
                 "DELETE": [1],    # Solo administradores pueden eliminar usuarios
                 "GET": [1]        # Solo administradores pueden listar usuarios
             },
-            "/api/suppliers": {
+            "/api/providers": {
                 "POST": [1],      # Solo administradores
                 "PUT": [1],       # Solo administradores
                 "DELETE": [1],    # Solo administradores

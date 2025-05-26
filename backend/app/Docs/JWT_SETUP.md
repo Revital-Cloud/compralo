@@ -202,18 +202,6 @@ async def endpoint_opcional(
 - **`PUT /api/users/{id}`**: Hashea la contraseña si se proporciona en la actualización
 - **`POST /api/register`**: Nuevo endpoint específico para registro público con hash automático
 
-### ⚠️ Migración de Contraseñas Existentes
-
-Si ya tienes usuarios en tu base de datos con contraseñas en texto plano, necesitas migrarlas:
-
-```sql
--- Ejemplo de script para migrar contraseñas (ejecutar con cuidado)
--- Este es solo un ejemplo, adapta según tu estructura
-UPDATE tab_usuarios 
-SET password_usuario = '$2b$12$...' -- Hash generado con bcrypt
-WHERE password_usuario NOT LIKE '$2b$%'; -- Solo actualizar las que no están hasheadas
-```
-
 ## Próximos Pasos
 
 1. **✅ Contraseñas hasheadas:** Ya implementado en todos los endpoints
