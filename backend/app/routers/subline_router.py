@@ -52,7 +52,7 @@ async def create_subline(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
-@router.put("/sublines/{id_categoria}/{id_linea}/{id_sublinea}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+@router.put("/sublines/{id_categoria}-{id_linea}-{id_sublinea}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_subline(
     id_categoria:Decimal,
     id_linea:Decimal,
@@ -77,7 +77,7 @@ async def update_subline(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
-@router.delete("/sublines/{id_categoria}/{id_linea}/{id_sublinea}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+@router.delete("/sublines/{id_categoria}-{id_linea}-{id_sublinea}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def delete_subline(id_categoria:Decimal, id_linea:Decimal, id_sublinea:Decimal, db:Session = Depends(get_db)):
     """
     Elimina una sublinea existente en la base de datos.
