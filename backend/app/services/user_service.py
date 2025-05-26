@@ -13,7 +13,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from backend.app.schemas.user_schema import UserCreate, UserUpdate
+from schemas.user_schema import UserCreate, UserUpdate
 
 def get_users(db: Session):
     """

@@ -51,7 +51,7 @@ def create_subline(db:Session, subline:SublineCreate):
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al crear proveedor: {str(e)}")
+        raise Exception(f"Error al crear sublinea: {str(e)}")
     
 def update_subline(db:Session, id_sublinea:Decimal, id_categoria:Decimal, id_linea:Decimal, subline:SublineUpdate):
     """
