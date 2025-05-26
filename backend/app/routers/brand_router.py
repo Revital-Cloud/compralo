@@ -8,7 +8,7 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
-from schemas.brands_schema import BrandCreate, BrandUpdate, Brand, ResponseMessage
+from backend.app.schemas.brand_schema import BrandCreate, BrandUpdate, Brand, ResponseMessage
 from services import brand_service
 
 router = APIRouter()
