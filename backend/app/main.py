@@ -11,6 +11,7 @@ from routers.provider_router import router as provider_router
 from core.config import settings
 from routers.product_router import router as product_router
 from routers.users_router import router as users_router
+from routers.subline_router import router as subline_router
 from routers.brands_router import router as brands_router
 app = FastAPI()
 
@@ -37,3 +38,6 @@ app.include_router(provider_router, prefix=settings.API_STR)
 app.include_router(users_router, prefix=settings.API_STR)
 
 app.include_router(brands_router, prefix=settings.API_STR)
+
+
+app.include_router(subline_router, prefix=settings.API_STR)
