@@ -19,7 +19,6 @@ class Settings(BaseSettings):
     Atributos:
         DATABASE_URL (str): URL de conexión a la base de datos.
         APP_NAME (str): Nombre de la aplicación.
-        DEBUG (bool): Indicador de modo debug.
         SECRET_KEY (str): Clave secreta para la firma de tokens.
         ACCESS_TOKEN_EXPIRE_MINUTES (int): Tiempo de expiración para los tokens de acceso.
         API_V1_STR (str): Prefijo para la versión 1 de la API.
@@ -30,7 +29,6 @@ class Settings(BaseSettings):
     
     # Configuración de la aplicación
     APP_NAME: str = "Synkro"
-    DEBUG: bool = True
     
     # Configuración de seguridad
     SECRET_KEY: str
