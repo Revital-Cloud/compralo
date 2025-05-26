@@ -98,11 +98,11 @@ def create_users(db: Session, user: UserCreate):
 
     Returns:
         dict or None: Un diccionario que representa el usuario creado (generalmente el JSON
-                      devuelto por la función SQL) o None si la creación falla o la función
-                      SQL no devuelve el resultado esperado.
+        devuelto por la función SQL) o None si la creación falla o la función
+        SQL no devuelve el resultado esperado.
     """
     try:
-        
+        params = user.model_dump()
         query = text("""
             SELECT fun_insert_usuarios(
             :id_usuario,
