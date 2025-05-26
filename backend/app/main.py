@@ -13,6 +13,7 @@ from routers.product_router import router as product_router
 from routers.user_router import router as user_router
 from routers.subline_router import router as subline_router
 from routers.brand_router import router as brand_router
+from routers.auth_router import router as auth_router
 app = FastAPI()
 
 @app.get("/")
@@ -28,6 +29,8 @@ def read_root():
     """
     return {"message": "Bienvenido a la API de Synkro Ecommerce Platform"}
 
+# Incluye el router de autenticación con un prefijo de API.
+app.include_router(auth_router, prefix=settings.API_STR)
 # Incluye el router de productos con un prefijo de API.
 app.include_router(product_router, prefix=settings.API_STR)
 # Incluye el router de proveedores con un prefijo de API.

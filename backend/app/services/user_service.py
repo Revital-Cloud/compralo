@@ -190,4 +190,67 @@ def delete_user(db: Session, id_usuario:Decimal):
     except Exception as e:
         db.rollback()
         return {"message": f"Error al eliminar el usuario: {str(e)}"}
+
+def get_user_by_email(db: Session, email: str):
+    """
+    Obtiene un usuario por su email.
+
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        email (str): Email del usuario a buscar.
+
+    Returns:
+        dict or None: Un diccionario que representa el usuario o None si no se encuentra.
+    """
+    try:
+        query = text("""
+        SELECT 
+            id_usuario,
+            nom_usuario,
+            ape_usuario,
+            email_usuario,
+            password_usuario,
+            des_direccion,
+            id_rol,
+            ind_genero,
+            cel_usuario,
+            fec_nacimiento,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
+        FROM tab_usuarios 
+        WHERE email_usuario = :email
+        """)
+        result = db.execute(query, {"email": email})
+        return result.mappings().first()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener usuario por email: {str(e)}")
+
+def update_password(db: Session, id_usuario: Decimal, hashed_password: str):
+    """
+    Actualiza solo la contraseña de un usuario.
+
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        id_usuario (Decimal): ID del usuario.
+        hashed_password (str): Contraseña hasheada.
+
+    Returns:
+        bool: True si la actualización fue exitosa.
+    """
+    try:
+        query = text("""
+        UPDATE tab_usuarios 
+        SET password_usuario = :password, 
+            fec_update = CURRENT_TIMESTAMP 
+        WHERE id_usuario = :id_usuario
+        """)
+        db.execute(query, {"password": hashed_password, "id_usuario": id_usuario})
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al actualizar contraseña: {str(e)}")
         

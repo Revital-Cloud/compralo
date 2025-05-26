@@ -32,7 +32,9 @@ class Settings(BaseSettings):
     
     # Configuración de seguridad
     SECRET_KEY: str
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int 
+    ALGORITHM: str
+    REFRESH_TOKEN_EXPIRE_DAYS: int 
     
     # Configuración de la API
     API_STR: str = "/api"
