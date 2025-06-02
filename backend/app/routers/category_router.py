@@ -81,7 +81,7 @@ async def update_category(
     id_categoria: Decimal,
     db: Session = Depends(get_db),
     nom_categoria: str = Form(...)
-):
+    ):
     """
     Actualiza una categoría existente en la base de datos.
 
@@ -101,8 +101,11 @@ async def update_category(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
 # Ruta para eliminar una categoría existente   
-@router.delete("/categories/{id_categoria}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
-async def delete_category(id_categoria: Decimal, db: Session = Depends(get_db)):
+@router.delete("/categories/{id_categoria}",
+               response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def delete_category(
+    id_categoria: Decimal, 
+    db: Session = Depends(get_db)):
     """
     Elimina una categoría existente de la base de datos.
 
