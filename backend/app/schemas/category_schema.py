@@ -22,7 +22,7 @@ class CategoryBase(BaseModel):
         from_attributes = True
       
 # Esquema para la Creación de Categorías
-class CategoryCreate(CategoryBase):
+class CategoryCreate(BaseModel):
     """
     Esquema para la Creación de Categorías.
     Hereda de `CategoryBase` y se utiliza para validar los datos
@@ -30,13 +30,12 @@ class CategoryCreate(CategoryBase):
     modificar el comportamiento de los campos heredados si es necesario
     para la operación de creación.
     """ 
-    pass #usa exactamente los mismos campos que CategoryBase, pero se puede extender si es necesario
+    nom_categoria: str = Field(..., description="Nombre de la categoría.")
     
 
 #Esquema para la Actualización de Categorías
 class CategoryUpdate(BaseModel):
-    nom_categoria: Optional[str] = Field(None, description="Nombre de la categoría. Este campo es opcional para permitir actualizaciones parciales.")
-    
+    pass    
 #Esquema para llamar una sola categoría
 class Category(CategoryBase):
     id_categoria: Decimal = Field(..., description="Identificador único para la categoría.")
