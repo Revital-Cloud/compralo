@@ -49,26 +49,46 @@ async def get_line(id_linea: Decimal, db: Session = Depends(get_db)):
 
 # Ruta para crear una nueva línea
 @router.post("/lines", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
-async def create_line(line: LineCreate, db: Session = Depends(get_db)):
+async def create_line(
+    db: Session = Depends(get_db),
+    nom_linea: str = Form(...),
+    id_categoria: Decimal = Form(...)
+):
     """
     Crea una nueva línea en la base de datos.
 
     Args:
-        line (LineCreate): Datos de la línea a crear.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
+        nom_linea (str): Nombre de la línea a crear.
+        id_categoria (Decimal): ID de la categoría a la que pertenece la línea.
 
     Returns:
         ResponseMessage: Mensaje de confirmación.
     """
-    line_id = lines_service.create_line(db, line)
-    if not line_id:
+    try:
+        new_line = LineCreate(nom_linea=nom_linea, id_categoria=id_categoria)
+        lines_service.create_line(db, new_line)
+        return ResponseMessage(message="Línea creada con éxito")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Error al crear la línea: {str(e)}")
+    """
+    new_line = LineCreate(nom_linea=nom_linea, id_categoria=id_categoria)
+    created_line = lines_service.create_line(db, new_line)
+    if not created_line:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error al crear la línea")
     return ResponseMessage(message="Línea creada con éxito")
+    """
+
 
 
 # Ruta para actualizar una línea existente
-@router.put("/lines/{id_linea}", response_model=ResponseMessage)
-async def update_line(id_linea: Decimal, line: LineUpdate, db: Session = Depends(get_db)):
+@router.put("/lines/{id_linea}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def update_line(
+    id_linea: Decimal, 
+    nom_linea: str = Form(...),
+    id_categoria: Decimal = Form(...),
+    db: Session = Depends(get_db)
+    ):
     """
     Actualiza una línea existente en la base de datos.
 
@@ -80,14 +100,21 @@ async def update_line(id_linea: Decimal, line: LineUpdate, db: Session = Depends
     Returns:
         ResponseMessage: Mensaje de confirmación.
     """
-    updated_line = lines_service.update_line(db, id_linea, line)
-    if not updated_line:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error al actualizar la línea")
-    return ResponseMessage(message="Línea actualizada con éxito")
+    try:
+        line = LineUpdate(nom_linea=nom_linea, id_categoria=id_categoria)
+        lines_service.update_line(db, id_linea, line)
+        return ResponseMessage(message="Línea actualizada con éxito")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    
 
 # Ruta para eliminar una línea existente
-@router.delete("/lines/{id_linea}", response_model=ResponseMessage, status_code=status.HTTP_204_NO_CONTENT)
-async def delete_line(id_linea: Decimal, db: Session = Depends(get_db)):
+@router.delete("/lines/{id_linea}", 
+               response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def delete_line(
+    id_linea: Decimal, 
+    db: Session = Depends(get_db)
+    ):
     """
     Elimina una línea existente en la base de datos.
 
@@ -98,7 +125,9 @@ async def delete_line(id_linea: Decimal, db: Session = Depends(get_db)):
     Returns:
         ResponseMessage: Mensaje de confirmación.
     """
-    deleted_line = lines_service.delete_line(db, id_linea)
-    if not deleted_line:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error al eliminar la línea")
-    return ResponseMessage(message="Línea eliminada con éxito")
+    try: 
+        lines_service.delete_line(db, id_linea)# Verifica si la línea existe
+        return ResponseMessage(message="Línea eliminada con éxito")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Error al eliminar la línea: {str(e)}")  
+    
