@@ -12,6 +12,7 @@ from core.config import settings
 from routers.product_router import router as product_router
 from routers.users_router import router as users_router
 from routers.category_router import router as category_router
+from routers.lines_routers import router as lines_routers
 
 app = FastAPI()
 
@@ -38,3 +39,5 @@ app.include_router(provider_router, prefix=settings.API_STR)
 app.include_router(users_router, prefix=settings.API_STR)
 
 app.include_router(category_router, prefix=settings.API_STR)
+
+app.include_router(lines_routers, prefix=settings.API_STR)
