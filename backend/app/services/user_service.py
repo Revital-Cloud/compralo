@@ -1,11 +1,35 @@
+"""
+Módulo de Servicios de Usuario.
+
+Este módulo contiene la lógica de negocio para gestionar los usuarios.
+Se encarga de interactuar con la base de datos para realizar operaciones
+CRUD (Crear, Leer, Actualizar, Eliminar) sobre los usuarios, utilizando
+funciones de base de datos (procedimientos almacenados o funciones SQL).
+
+Las funciones aquí definidas son llamadas por los routers de la API
+y utilizan los esquemas Pydantic para la validación y transformación de datos.
+"""
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from schemas.users_schema import UserCreate, UserUpdate
+from schemas.user_schema import UserCreate, UserUpdate
 
 def get_users(db: Session):
-    
+    """
+    Obtiene todos los usuarios registrados en la base de datos.
+
+    Ejecuta una consulta SQL para seleccionar todos los usuarios y devuelve
+    los resultados como una lista de diccionarios (RowMappings).
+
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+
+    Returns:
+        list: Una lista de diccionarios, donde cada diccionario representa un usuario.
+              FastAPI utilizará el `response_model` del endpoint para convertir esto
+              en una lista de objetos `User`.
+    """
     try:
         query = text("""
         SELECT
@@ -33,7 +57,12 @@ def get_users(db: Session):
         raise Exception(f"Error al obtener usuarios: {str(e)}")
 
 def get_user(db: Session, id_usuario: Decimal):
-    
+    """
+    Obtiene un usuario específico de la base de datos.
+
+    Ejecuta una consulta SQL para seleccionar un usuario por su ID y devuelve
+    el resultado como un diccionario (RowMapping).
+    """
     try:
         query = text("""SELECT id_usuario,
             nom_usuario,
@@ -57,9 +86,23 @@ def get_user(db: Session, id_usuario: Decimal):
         raise Exception(f"Error al obtener el usuario: {str(e)}")
     
 def create_users(db: Session, user: UserCreate):
+    """
+    Crea un nuevo usuario en la base de datos llamando a una función SQL.
+
+    Utiliza la función de base de datos `fun_insert_usuarios` para insertar
+    un nuevo usuario. Los datos del usuario se toman del esquema `UserCreate`.
+
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        user (UserCreate): Un objeto Pydantic `UserCreate` con los datos del usuario.
+
+    Returns:
+        dict or None: Un diccionario que representa el usuario creado (generalmente el JSON
+        devuelto por la función SQL) o None si la creación falla o la función
+        SQL no devuelve el resultado esperado.
+    """
     try:
         params = user.model_dump()
-        
         query = text("""
             SELECT fun_insert_usuarios(
             :id_usuario,
@@ -82,6 +125,23 @@ def create_users(db: Session, user: UserCreate):
         raise Exception(f"Error al crear el usuario: {str(e)}")
     
 def update_user(db: Session, id_usuario: Decimal, user: UserUpdate):
+    """
+    Actualiza un usuario existente en la base de datos llamando a una función SQL.
+
+    Utiliza la función de base de datos `fun_update_usuarios` para actualizar
+    un usuario existente, identificado por `id_usuario`. Los datos para la
+    actualización se toman del esquema `UserUpdate` (solo campos proporcionados).
+
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        id_usuario (Decimal): El ID del usuario a actualizar.
+        user (UserUpdate): Un objeto Pydantic `UserUpdate` con los datos a actualizar.
+
+    Returns:
+        dict or None: Un diccionario que representa el usuario actualizado (generalmente el JSON
+                      devuelto por la función SQL) o None si la actualización falla o la función
+                      SQL no devuelve el resultado esperado.
+    """
     
     try:
         update_params = user.model_dump(exclude_unset=True)
@@ -101,6 +161,21 @@ def update_user(db: Session, id_usuario: Decimal, user: UserUpdate):
         raise Exception(f"Error al actualizar el usuario: {e}")
     
 def delete_user(db: Session, id_usuario:Decimal):
+    """
+    Elimina un usuario de la base de datos llamando a una función SQL.
+
+    Utiliza la función de base de datos `fun_delete_usuarios` para eliminar
+    un usuario, identificado por `id_usuario`.
+    
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        id_usuario (Decimal): El ID del usuario a eliminar.
+
+    Returns:
+        dict: Un diccionario con un mensaje indicando el resultado de la operación.
+              El mensaje puede provenir directamente de la función SQL o ser un
+              mensaje genérico si la función no proporciona uno específico.
+    """
     
     try:
         query = text("""SELECT fun_delete_usuarios(:id_usuario)""")

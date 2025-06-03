@@ -1,0 +1,65 @@
+"""
+Módulo de Esquemas para Marcas.
+
+Este módulo define los esquemas de datos para las marcas, incluyendo
+las operaciones de creación, actualización y visualización.
+Incluye esquemas para la creación, actualización y visualización de marcas,
+así como un esquema para mensajes de respuesta genéricos.
+"""
+from pydantic import BaseModel, Field
+from typing import Optional
+from decimal import Decimal
+
+class BrandBase(BaseModel):
+    """
+    Esquema Base para Marcas.
+    
+    Contiene los campos comunes para la creación y visualización de marcas.
+    Utilizado como base para otros esquemas de marcas más específicos.
+
+    Atributos:
+        nom_marca (str): Nombre de la marca.
+    """
+    nom_marca: str = Field(..., description="Nombre de la marca")
+
+    
+    class Config:
+        from_attributes = True
+    
+class BrandCreate(BrandBase):
+    """
+    Esquema para la Creación de Marcas.
+    
+    Define los campos requeridos para crear una nueva marca.
+
+    """
+    pass
+    
+class BrandUpdate(BrandBase):
+    """
+    Esquema para la Actualización de Marcas.
+    
+    Define los campos que pueden ser actualizados para una marca existente.
+    Todos los campos son opcionales, permitiendo actualizaciones parciales.
+    """
+    nom_marca: Optional[str] = None
+    
+class Brand(BrandBase):
+    """
+    Esquema para la Visualización de Marcas.
+    
+    Hereda de `BrandBase` y se utiliza como el modelo de respuesta
+    principal para los endpoints que devuelven información de marcas.
+    Incluye el `id_marca` y los campos de auditoría.
+    """
+    id_marca: Decimal
+    
+    
+class ResponseMessage(BaseModel):
+    """
+    Esquema para Mensajes de Respuesta Genéricos.
+    
+    Se utiliza para enviar mensajes simples de confirmación o error
+    desde la API.
+    """
+    message: str

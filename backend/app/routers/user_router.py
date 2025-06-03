@@ -1,4 +1,9 @@
+"""
+Módulo de enrutador para la gestión de usuarios.
 
+Define las rutas y endpoints relacionados con la gestión de usuarios,
+incluyendo la creación, actualización y visualización de usuarios.
+"""
 from fastapi import APIRouter, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from decimal import Decimal
@@ -6,14 +11,20 @@ from typing import Optional, Dict, Any
 
 
 from core.database import get_db
-from schemas.users_schema import User, UserCreate, UserUpdate, ResponseMessage
+from schemas.user_schema import User, UserCreate, UserUpdate, ResponseMessage
 from services import user_service
 
 router = APIRouter()
 
 @router.get("/users", response_model=list[User])
 async def get_users(db: Session = Depends(get_db)):
-    
+    """
+    Obtiene todos los usuarios registrados en la base de datos.
+
+    Args:
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+
+    """
     users = user_service.get_users(db)
     return users
 
@@ -39,6 +50,22 @@ async def create_users(
     cel_usuario: str = Form(...),
     fec_nacimiento: Optional[str] = Form(None)
 ):
+    """
+    Crea un nuevo usuario en la base de datos.
+
+    Args:
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+        id_usuario (Decimal): Identificador único para el usuario.
+        nom_usuario (str): Nombre del usuario.
+        ape_usuario (str): Apellido del usuario.
+        email_usuario (str): Email del usuario.
+        password_usuario (str): Contraseña del usuario.
+        des_direccion (str): Dirección del usuario.
+        id_rol (Decimal): Identificador del rol del usuario.
+        ind_genero (bool): Género del usuario.
+        cel_usuario (str): Número de celular del usuario.
+        fec_nacimiento (str): Fecha de nacimiento del usuario.
+    """
     try:
         user_data = UserCreate(
             id_usuario=id_usuario,
@@ -71,6 +98,22 @@ async def update_user(
     fec_nacimiento: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):     
+    """
+    Actualiza un usuario existente en la base de datos.
+
+    Args:
+        id_usuario (Decimal): ID del usuario a actualizar.
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+        nom_usuario (str): Nombre del usuario.
+        ape_usuario (str): Apellido del usuario.
+        email_usuario (str): Email del usuario.
+        password_usuario (str): Contraseña del usuario.
+        des_direccion (str): Dirección del usuario.
+        id_rol (Decimal): Identificador del rol del usuario.
+        ind_genero (bool): Género del usuario.
+        cel_usuario (str): Número de celular del usuario.
+        fec_nacimiento (str): Fecha de nacimiento del usuario.
+    """
     try:
         user_data = UserUpdate(
             id_usuario=id_usuario,
@@ -91,6 +134,13 @@ async def update_user(
     
 @router.delete("/users/{id_usuario}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def delete_user(id_usuario: Decimal, db: Session = Depends(get_db)):
+    """
+    Elimina un usuario existente de la base de datos.
+
+    Args:
+        id_usuario (Decimal): ID del usuario a eliminar.
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+    """
     try:
         user_service.delete_user(db,id_usuario)
         return ResponseMessage(message="Usuario eliminado exitosamente")
