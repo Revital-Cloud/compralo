@@ -66,6 +66,7 @@ def get_products(db: Session):
         db.rollback()
         raise Exception(f"Error al obtener productos: {str(e)}")
 
+
 def get_product(db: Session, id_producto: Decimal):
     """
     Obtiene un producto específico de la base de datos.

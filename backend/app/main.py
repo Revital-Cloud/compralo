@@ -12,7 +12,9 @@ from core.config import settings
 from routers.product_router import router as product_router
 from routers.user_router import router as user_router
 from routers.subline_router import router as subline_router
-from routers.brand_router import router as brand_router
+from routers.brand_router import router as brand_routerfrom routers.category_router import router as category_router
+from routers.lines_routers import router as lines_routers
+
 app = FastAPI()
 
 @app.get("/")
@@ -38,3 +40,7 @@ app.include_router(user_router, prefix=settings.API_STR)
 app.include_router(brand_router, prefix=settings.API_STR)
 # Incluye el router de sublineas con un prefijo de API.
 app.include_router(subline_router, prefix=settings.API_STR)
+
+app.include_router(category_router, prefix=settings.API_STR)
+
+app.include_router(lines_routers, prefix=settings.API_STR)
