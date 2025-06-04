@@ -5,7 +5,7 @@ Este módulo inicializa la aplicación FastAPI, define rutas básicas
 y registra los routers de la aplicación, como el router de productos.
 También puede incluir configuraciones globales de la aplicación y middlewares.
 """
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
