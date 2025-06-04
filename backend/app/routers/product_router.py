@@ -14,7 +14,9 @@ from decimal import Decimal
 from typing import Optional, Dict, Any
 
 from core.database import get_db
+from core.dependencies import require_admin, get_current_user_optional
 from schemas.product_schema import Product, ProductCreate, ProductUpdate, ResponseMessage
+from schemas.auth_schema import UserInToken
 from services import product_service
 
 router = APIRouter()
@@ -59,7 +61,6 @@ async def get_product(id_producto: Decimal, db: Session = Depends(get_db)):
 
 @router.post("/products", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_product(
-    db: Session = Depends(get_db),
     nom_producto: str = Form(...),
     spcf_producto_str: str = Form(..., alias="spcf_producto"),
     img_producto: Optional[str] = Form(None),
@@ -69,17 +70,20 @@ async def create_product(
     id_sublinea: Decimal = Form(...),
     id_linea: Decimal = Form(...),
     id_categoria: Decimal = Form(...),
-    num_stock: int = Form(...)
+    num_stock: int = Form(...),
+    current_user: UserInToken = Depends(require_admin()),
+    db: Session = Depends(get_db)
 ):
     """
-    Crear un nuevo producto.
+    Crear un nuevo producto (Solo Administradores).
 
     Este endpoint permite crear un nuevo producto en la base de datos
     utilizando los datos proporcionados en el cuerpo de la solicitud como form-data.
     El campo spcf_producto debe ser una cadena JSON válida.
+    
+    **Requiere autenticación de administrador.**
 
     Args:
-        db (Session): Sesión de la base de datos inyectada por FastAPI.
         nom_producto (str): Nombre del producto.
         spcf_producto_str (str): Especificaciones del producto en formato de cadena JSON.
         img_producto (Optional[str]): URL o ruta de la imagen del producto.
@@ -90,12 +94,16 @@ async def create_product(
         id_linea (Decimal): Identificador de la línea.
         id_categoria (Decimal): Identificador de la categoría.
         num_stock (int): Cantidad de unidades disponibles en inventario.
+        current_user (UserInToken): Usuario administrador autenticado.
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
 
     Returns:
         ResponseMessage: Un mensaje indicando el resultado de la operación.
         
     Raises:
         HTTPException: Si spcf_producto_str no es una cadena JSON válida.
+        HTTPException: Si el usuario no es administrador (403).
+        HTTPException: Si no se proporciona token de autenticación (401).
     """
     try:
         spcf_producto_dict: Dict[str, Any] = json.loads(spcf_producto_str)
@@ -137,6 +145,7 @@ async def update_product(
     id_proveedor: Decimal = Form(...),
     id_marca: Decimal = Form(...),
     num_stock: int = Form(...),
+    current_user: UserInToken = Depends(require_admin()),
     db: Session = Depends(get_db)
 ):
     """
@@ -203,19 +212,31 @@ async def update_product(
     return ResponseMessage(message=service_response_message)
 
 @router.delete("/products/{id_producto}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
-async def delete_product(id_producto: Decimal, db: Session = Depends(get_db)):
+async def delete_product(
+    id_producto: Decimal, 
+    current_user: UserInToken = Depends(require_admin()),
+    db: Session = Depends(get_db)
+):
     """
-    Eliminar un producto.
+    Eliminar un producto (Solo Administradores).
 
     Este endpoint permite eliminar un producto específico de la base de datos,
     identificado por su ID.
+    
+    **Requiere autenticación de administrador.**
 
     Args:
-        id_producto (int): ID del producto a eliminar.
+        id_producto (Decimal): ID del producto a eliminar.
+        current_user (UserInToken): Usuario administrador autenticado.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
 
     Returns:
         ResponseMessage: Un mensaje indicando el resultado de la operación.
+        
+    Raises:
+        HTTPException: Si el usuario no es administrador (403).
+        HTTPException: Si no se proporciona token de autenticación (401).
+        HTTPException: Si el producto no se encuentra (404).
     """
     response_message = product_service.delete_product(db, id_producto)
     if response_message is None:

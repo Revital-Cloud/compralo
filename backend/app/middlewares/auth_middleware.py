@@ -8,3 +8,205 @@ acciones como autenticación, manejo de errores centralizado, logging, etc.
 Actualmente, este módulo está vacío pero puede ser extendido según sea necesario.
 """
 # Middlewares personalizados, autenticación, manejo de errores, etc.
+
+"""
+Middlewares de autenticación y autorización.
+
+Define middlewares personalizados para proteger rutas específicas
+y manejar la autenticación de manera centralizada.
+"""
+from fastapi import Request, HTTPException, status
+from fastapi.security.utils import get_authorization_scheme_param
+from sqlalchemy.orm import Session
+from typing import Callable, Optional
+import logging
+
+from core.database import get_db
+from services import auth_service
+
+logger = logging.getLogger(__name__)
+
+class AuthMiddleware:
+    """
+    Middleware de autenticación que verifica tokens JWT en las rutas protegidas.
+    """
+    
+    def __init__(self, protected_paths: list[str] = None, admin_only_paths: list[str] = None):
+        """
+        Inicializa el middleware de autenticación.
+        
+        Args:
+            protected_paths: Lista de rutas que requieren autenticación
+            admin_only_paths: Lista de rutas que solo pueden acceder administradores
+        """
+        self.protected_paths = protected_paths or []
+        self.admin_only_paths = admin_only_paths or []
+    
+    async def __call__(self, request: Request, call_next: Callable):
+        """
+        Procesa la solicitud y verifica la autenticación si es necesaria.
+        
+        Args:
+            request: Solicitud HTTP
+            call_next: Siguiente función en la cadena de middleware
+            
+        Returns:
+            Response: Respuesta HTTP
+        """
+        path = request.url.path
+        method = request.method
+        
+        # Verificar si la ruta necesita protección
+        needs_auth = any(path.startswith(protected_path) for protected_path in self.protected_paths)
+        needs_admin = any(path.startswith(admin_path) for admin_path in self.admin_only_paths)
+        
+        if needs_auth or needs_admin:
+            try:
+                # Obtener el token del header Authorization
+                authorization = request.headers.get("Authorization")
+                if not authorization:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Token de autorización requerido",
+                        headers={"WWW-Authenticate": "Bearer"}
+                    )
+                
+                scheme, token = get_authorization_scheme_param(authorization)
+                if scheme.lower() != "bearer":
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Esquema de autorización inválido. Use Bearer",
+                        headers={"WWW-Authenticate": "Bearer"}
+                    )
+                
+                if not token:
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Token no proporcionado",
+                        headers={"WWW-Authenticate": "Bearer"}
+                    )
+                
+                # Obtener sesión de base de datos
+                db_gen = get_db()
+                db = next(db_gen)
+                
+                try:
+                    # Verificar el token y obtener el usuario
+                    current_user = auth_service.get_current_user(db, token)
+                    
+                    # Verificar si necesita permisos de administrador
+                    if needs_admin and current_user.id_rol != 1:
+                        raise HTTPException(
+                            status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Se requieren permisos de administrador para acceder a este recurso"
+                        )
+                    
+                    # Agregar información del usuario a la request
+                    request.state.current_user = current_user
+                    
+                    logger.info(f"Usuario {current_user.email_usuario} accedió a {method} {path}")
+                    
+                finally:
+                    db.close()
+                    
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error(f"Error en middleware de autenticación: {str(e)}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Error interno del servidor"
+                )
+        
+        # Continuar con la siguiente función
+        response = await call_next(request)
+        return response
+
+class ProductMiddleware:
+    """
+    Middleware específico para operaciones de productos.
+    """
+    
+    def __init__(self):
+        """Inicializa el middleware de productos."""
+        pass
+    
+    async def __call__(self, request: Request, call_next: Callable):
+        """
+        Procesa solicitudes relacionadas con productos.
+        
+        Args:
+            request: Solicitud HTTP
+            call_next: Siguiente función en la cadena de middleware
+            
+        Returns:
+            Response: Respuesta HTTP
+        """
+        path = request.url.path
+        method = request.method
+        
+        # Verificar operaciones específicas de productos
+        if path.startswith("/api/products"):
+            # Solo administradores pueden crear, actualizar o eliminar productos
+            if method in ["POST", "PUT", "DELETE"]:
+                try:
+                    # Obtener el token del header Authorization
+                    authorization = request.headers.get("Authorization")
+                    if not authorization:
+                        raise HTTPException(
+                            status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Se requiere autenticación para esta operación",
+                            headers={"WWW-Authenticate": "Bearer"}
+                        )
+                    
+                    scheme, token = get_authorization_scheme_param(authorization)
+                    if scheme.lower() != "bearer" or not token:
+                        raise HTTPException(
+                            status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Token de autorización inválido",
+                            headers={"WWW-Authenticate": "Bearer"}
+                        )
+                    
+                    # Obtener sesión de base de datos
+                    db_gen = get_db()
+                    db = next(db_gen)
+                    
+                    try:
+                        # Verificar el token y obtener el usuario
+                        current_user = auth_service.get_current_user(db, token)
+                        
+                        # Verificar que sea administrador (rol ID = 1)
+                        if current_user.id_rol != 1:
+                            raise HTTPException(
+                                status_code=status.HTTP_403_FORBIDDEN,
+                                detail="Solo los administradores pueden realizar operaciones de escritura en productos"
+                            )
+                        
+                        # Agregar información del usuario a la request
+                        request.state.current_user = current_user
+                        
+                        logger.info(f"Admin {current_user.email_usuario} realizó {method} en productos: {path}")
+                        
+                    finally:
+                        db.close()
+                        
+                except HTTPException:
+                    raise
+                except Exception as e:
+                    logger.error(f"Error en middleware de productos: {str(e)}")
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Error interno del servidor"
+                    )
+        
+        # Continuar con la siguiente función
+        response = await call_next(request)
+        return response
+
+# Instancias de middlewares configurados
+auth_middleware = AuthMiddleware(
+    protected_paths=["/api/auth/me", "/api/auth/change-password", "/api/auth/logout"],
+    admin_only_paths=["/api/admin"]
+)
+
+product_middleware = ProductMiddleware()

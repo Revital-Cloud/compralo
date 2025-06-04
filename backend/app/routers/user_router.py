@@ -12,7 +12,9 @@ from typing import Optional, Dict, Any
 
 from core.database import get_db
 from schemas.user_schema import User, UserCreate, UserUpdate, ResponseMessage
+from schemas.auth_schema import UserInToken
 from services import user_service
+from core.jwt_utils import get_password_hash
 
 router = APIRouter()
 
@@ -52,6 +54,7 @@ async def create_users(
 ):
     """
     Crea un nuevo usuario en la base de datos.
+    La contraseña se hashea automáticamente antes de guardarla.
 
     Args:
         db (Session): Sesión de la base de datos inyectada por FastAPI.
@@ -59,7 +62,7 @@ async def create_users(
         nom_usuario (str): Nombre del usuario.
         ape_usuario (str): Apellido del usuario.
         email_usuario (str): Email del usuario.
-        password_usuario (str): Contraseña del usuario.
+        password_usuario (str): Contraseña del usuario (se hasheará automáticamente).
         des_direccion (str): Dirección del usuario.
         id_rol (Decimal): Identificador del rol del usuario.
         ind_genero (bool): Género del usuario.
@@ -67,20 +70,33 @@ async def create_users(
         fec_nacimiento (str): Fecha de nacimiento del usuario.
     """
     try:
+        # Verificar si el email ya existe
+        existing_user = user_service.get_user_by_email(db, email_usuario)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="El email ya está registrado"
+            )
+        
+        # Hashear la contraseña antes de crear el usuario
+        hashed_password = get_password_hash(password_usuario)
+        
         user_data = UserCreate(
             id_usuario=id_usuario,
             nom_usuario=nom_usuario,
             ape_usuario=ape_usuario,
             email_usuario=email_usuario,
-            password_usuario=password_usuario,
+            password_usuario=hashed_password,  # Usar la contraseña hasheada
             des_direccion=des_direccion,
             id_rol=id_rol,
             ind_genero=ind_genero,
             cel_usuario=cel_usuario,
             fec_nacimiento=fec_nacimiento
         )
-        user_service.create_users(db,user_data)
+        user_service.create_users(db, user_data)
         return ResponseMessage(message="Usuario creado exitosamente")
+    except HTTPException:
+        raise  # Re-lanzar HTTPExceptions específicas
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
@@ -115,19 +131,22 @@ async def update_user(
         fec_nacimiento (str): Fecha de nacimiento del usuario.
     """
     try:
+        # Hashear la contraseña si se proporciona
+        hashed_password = get_password_hash(password_usuario) if password_usuario else None
+        
         user_data = UserUpdate(
             id_usuario=id_usuario,
             nom_usuario=nom_usuario,
             ape_usuario=ape_usuario,
             email_usuario=email_usuario,
-            password_usuario=password_usuario,
+            password_usuario=hashed_password,  # Usar la contraseña hasheada
             des_direccion=des_direccion,
             id_rol=id_rol,
             ind_genero=ind_genero,
             cel_usuario=cel_usuario,
             fec_nacimiento=fec_nacimiento
         )
-        user_service.update_user(db,id_usuario,user_data)
+        user_service.update_user(db, id_usuario, user_data)
         return ResponseMessage(message="Usuario actualizado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -145,5 +164,4 @@ async def delete_user(id_usuario: Decimal, db: Session = Depends(get_db)):
         user_service.delete_user(db,id_usuario)
         return ResponseMessage(message="Usuario eliminado exitosamente")
     except Exception as e:
-        raise HTTPException(status_Code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
