@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import "@/app/globals.css";
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/providers/theme-provider"
+import EcommerceHeader from "@/components/layout/header";
+import { defaultMenuItems } from "@/lib/menu-config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,6 +37,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <EcommerceHeader 
+            menuItems={defaultMenuItems}
+            cartCount={0} // Aquí puedes conectar el estado real del carrito
+          />
           {children}
           <Toaster />
         </ThemeProvider>
