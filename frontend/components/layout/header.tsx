@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect} from "react"
+import Link from "next/link"
 import { motion } from "framer-motion"
 import { 
   Search, 
@@ -279,7 +280,9 @@ const UserMenu: React.FC<{
             }}
             className="w-full justify-start"
           >
-            Iniciar Sesión
+            <Link href="/login">
+              Iniciar Sesión
+            </Link>
           </Button>
         </div>
       )}
