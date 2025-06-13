@@ -21,7 +21,7 @@ const ProductActions: React.FC<ProductActionsProps> = ({
     <Button
       size="lg"
       onClick={onShopNow}
-      className="bg-white dark:bg-blue-600 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-blue-700 px-8 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+      className="bg-orange-500 dark:bg-blue-600 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-blue-700 px-8 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
     >
       {shopButtonText}
     </Button>
