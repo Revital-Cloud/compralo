@@ -4,10 +4,10 @@ Módulo de enrutador para la gestión de usuarios.
 Define las rutas y endpoints relacionados con la gestión de usuarios,
 incluyendo la creación, actualización y visualización de usuarios.
 """
-from fastapi import APIRouter, Depends, Form, HTTPException, status
+from fastapi import APIRouter, Depends, Form, HTTPException, status,Body
 from sqlalchemy.orm import Session
 from decimal import Decimal
-from typing import Optional, Dict, Any
+from typing import Optional
 
 
 from core.database import get_db
@@ -41,16 +41,7 @@ async def get_user(id_usuario: Decimal, db: Session = Depends(get_db)):
 @router.post("/users", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_users(
     db: Session = Depends(get_db),
-    id_usuario: Decimal = Form(...),
-    nom_usuario: str = Form(...),
-    ape_usuario: str = Form(...),
-    email_usuario: str = Form(...),
-    password_usuario: str = Form(...),
-    des_direccion: Optional[str] = Form(None),
-    id_rol: Decimal = Form(...),
-    ind_genero: bool = Form(...),
-    cel_usuario: str = Form(...),
-    fec_nacimiento: Optional[str] = Form(None)
+    user_data: UserCreate = Body(...)
 ):
     """
     Crea un nuevo usuario en la base de datos.
@@ -71,7 +62,7 @@ async def create_users(
     """
     try:
         # Verificar si el email ya existe
-        existing_user = user_service.get_user_by_email(db, email_usuario)
+        existing_user = user_service.get_user_by_email(db, user_data.email_usuario)
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
@@ -79,19 +70,19 @@ async def create_users(
             )
         
         # Hashear la contraseña antes de crear el usuario
-        hashed_password = get_password_hash(password_usuario)
+        hashed_password = get_password_hash(user_data.password_usuario)
         
         user_data = UserCreate(
-            id_usuario=id_usuario,
-            nom_usuario=nom_usuario,
-            ape_usuario=ape_usuario,
-            email_usuario=email_usuario,
+            id_usuario=user_data.id_usuario,
+            nom_usuario=user_data.nom_usuario,
+            ape_usuario=user_data.ape_usuario,
+            email_usuario=user_data.email_usuario,
             password_usuario=hashed_password,  # Usar la contraseña hasheada
-            des_direccion=des_direccion,
-            id_rol=id_rol,
-            ind_genero=ind_genero,
-            cel_usuario=cel_usuario,
-            fec_nacimiento=fec_nacimiento
+            des_direccion=user_data.des_direccion,
+            id_rol=user_data.id_rol,
+            ind_genero=user_data.ind_genero,
+            cel_usuario=user_data.cel_usuario,
+            fec_nacimiento=user_data.fec_nacimiento
         )
         user_service.create_users(db, user_data)
         return ResponseMessage(message="Usuario creado exitosamente")
