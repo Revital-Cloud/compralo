@@ -11,6 +11,7 @@ interface Feature {
 interface ProductFeaturesProps {
   features?: Feature[]
   textColor?: string
+  isMobile?: boolean
 }
 
 const defaultFeatures: Feature[] = [
@@ -26,13 +27,18 @@ const defaultFeatures: Feature[] = [
 
 const ProductFeatures: React.FC<ProductFeaturesProps> = ({ 
   features = defaultFeatures, 
-  textColor = "text-white dark:text-gray-300" 
+  textColor = "text-white dark:text-gray-300",
+  isMobile = false
 }) => (
-  <div className={`flex items-center space-x-6 pt-4 text-sm opacity-80 ${textColor}`}>
+  <div className={`flex items-center opacity-80 ${textColor} ${
+    isMobile 
+      ? 'space-x-4 text-sm justify-center pt-2' 
+      : 'space-x-6 pt-4 text-sm'
+  }`}>
     {features.map((feature, index) => (
       <div key={index} className="flex items-center space-x-2">
-        {feature.icon}
-        <span>{feature.text}</span>
+        <span className={isMobile ? 'text-xs' : ''}>{feature.icon}</span>
+        <span className={isMobile ? 'text-xs' : ''}>{feature.text}</span>
       </div>
     ))}
   </div>

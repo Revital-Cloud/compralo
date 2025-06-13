@@ -6,18 +6,28 @@ interface ProductInfoProps {
   name: string
   subtitle: string
   textColor?: string
+  isMobile?: boolean
 }
 
 const ProductInfo: React.FC<ProductInfoProps> = ({ 
   name, 
   subtitle, 
-  textColor = "text-white dark:text-white" 
+  textColor = "text-white dark:text-white",
+  isMobile = false
 }) => (
-  <div className={`space-y-4 ${textColor}`}>
-    <h1 className="text-5xl md:text-6xl lg:text-7xl font-black leading-tight tracking-tight">
+  <div className={`space-y-3 sm:space-y-4 ${textColor} ${isMobile ? 'text-center' : ''}`}>
+    <h1 className={`font-black leading-tight tracking-tight ${
+      isMobile 
+        ? "text-3xl sm:text-4xl md:text-5xl" 
+        : "text-5xl md:text-6xl lg:text-7xl"
+    }`}>
       {name}
     </h1>
-    <p className="text-lg md:text-xl opacity-90 max-w-lg leading-relaxed">
+    <p className={`opacity-90 leading-relaxed ${
+      isMobile 
+        ? "text-base sm:text-lg max-w-xs sm:max-w-sm mx-auto" 
+        : "text-lg md:text-xl max-w-lg"
+    }`}>
       {subtitle}
     </p>
   </div>

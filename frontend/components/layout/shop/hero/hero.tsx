@@ -61,10 +61,18 @@ const EcommerceHeroCarousel: React.FC<HeroCarouselProps> = ({
     setSelectedThumbnail(0)
   }
 
+  const handleThumbnailSelect = (index: number) => {
+    setSelectedThumbnail(index)
+    setIsAutoPlaying(false)
+    
+    setTimeout(() => setIsAutoPlaying(true), 3000)
+  }
+
   const currentProduct = customProducts[currentSlide]
+  const currentImage = currentProduct.images[selectedThumbnail] || currentProduct.mainImage
 
   return (
-    <section className={`relative w-full h-screen overflow-hidden ${className}`}>
+    <section className={`relative w-full min-h-screen overflow-hidden ${className}`}>
       {/* Main Carousel */}
       <div
         className={`absolute inset-0 bg-gradient-to-br ${currentProduct.backgroundColor} dark:from-gray-800 dark:via-gray-900 dark:to-black transition-all duration-1000 ease-in-out`}
@@ -80,11 +88,68 @@ const EcommerceHeroCarousel: React.FC<HeroCarouselProps> = ({
           ></div>
         </div>
 
-        <div className="relative h-full flex items-center">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center h-full">
-              {/* Product Content */}
-              <div className={`flex flex-col space-y-6 ${currentProduct.textColor} z-10`}>
+        <div className="relative h-full flex items-center min-h-screen">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Mobile/Tablet Layout (below lg) */}
+            <div className="lg:hidden flex flex-col items-center justify-center space-y-6 sm:space-y-8 py-8 sm:py-12">
+              {/* Product Image - Mobile First */}
+              <div className="relative flex flex-col items-center space-y-4 sm:space-y-6 order-1">
+                <ProductImage 
+                  src={currentImage}
+                  alt={`${currentProduct.name} - Vista ${selectedThumbnail + 1}`}
+                  className="w-64 h-64 sm:w-80 sm:h-80"
+                />
+                
+                {/* Product Thumbnails - Mobile */}
+                <ProductThumbnails 
+                  thumbnails={currentProduct.thumbnails}
+                  productName={currentProduct.name}
+                  selectedThumbnail={selectedThumbnail}
+                  onThumbnailSelect={handleThumbnailSelect}
+                  className="justify-center"
+                />
+              </div>
+
+              {/* Product Content - Mobile */}
+              <div className={`flex flex-col items-center text-center space-y-4 sm:space-y-6 ${currentProduct.textColor} z-10 order-2 w-full max-w-md sm:max-w-lg`}>
+                {/* Badge */}
+                <ProductBadge badge={currentProduct.badge} />
+
+                {/* Product Info */}
+                <ProductInfo 
+                  name={currentProduct.name}
+                  subtitle={currentProduct.subtitle}
+                  textColor={currentProduct.textColor}
+                  isMobile={true}
+                />
+
+                {/* Pricing */}
+                <ProductPricing 
+                  price={currentProduct.price}
+                  originalPrice={currentProduct.originalPrice}
+                  textColor={currentProduct.textColor}
+                  isMobile={true}
+                />
+
+                {/* Actions */}
+                <ProductActions 
+                  onShopNow={() => onShopNow?.(currentProduct)}
+                  onAddToWishlist={() => onAddToWishlist?.(currentProduct)}
+                  isMobile={true}
+                />
+
+                {/* Features */}
+                <ProductFeatures 
+                  textColor={currentProduct.textColor}
+                  isMobile={true}
+                />
+              </div>
+            </div>
+
+            {/* Desktop Layout (lg and up) */}
+            <div className="hidden lg:grid lg:grid-cols-2 gap-8 xl:gap-12 items-center h-full min-h-screen">
+              {/* Product Content - Desktop */}
+              <div className={`flex flex-col space-y-6 xl:space-y-8 ${currentProduct.textColor} z-10`}>
                 {/* Badge */}
                 <ProductBadge badge={currentProduct.badge} />
 
@@ -112,12 +177,12 @@ const EcommerceHeroCarousel: React.FC<HeroCarouselProps> = ({
                 <ProductFeatures textColor={currentProduct.textColor} />
               </div>
 
-              {/* Product Image & Thumbnails */}
-              <div className="relative flex flex-col items-center space-y-6">
+              {/* Product Image & Thumbnails - Desktop */}
+              <div className="relative flex flex-col items-center space-y-6 xl:space-y-8">
                 {/* Main Product Image */}
                 <ProductImage 
-                  src={currentProduct.mainImage}
-                  alt={currentProduct.name}
+                  src={currentImage}
+                  alt={`${currentProduct.name} - Vista ${selectedThumbnail + 1}`}
                 />
 
                 {/* Product Thumbnails */}
@@ -125,20 +190,22 @@ const EcommerceHeroCarousel: React.FC<HeroCarouselProps> = ({
                   thumbnails={currentProduct.thumbnails}
                   productName={currentProduct.name}
                   selectedThumbnail={selectedThumbnail}
-                  onThumbnailSelect={setSelectedThumbnail}
+                  onThumbnailSelect={handleThumbnailSelect}
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Navigation Buttons */}
-        <NavigationButtons 
-          onPrev={prevSlide}
-          onNext={nextSlide}
-          onMouseEnter={() => setIsAutoPlaying(false)}
-          onMouseLeave={() => setIsAutoPlaying(true)}
-        />
+        {/* Navigation Buttons - Hidden on mobile */}
+        <div className="hidden md:block">
+          <NavigationButtons 
+            onPrev={prevSlide}
+            onNext={nextSlide}
+            onMouseEnter={() => setIsAutoPlaying(false)}
+            onMouseLeave={() => setIsAutoPlaying(true)}
+          />
+        </div>
 
         {/* Slide Indicators */}
         <SlideIndicators 
