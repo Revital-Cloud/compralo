@@ -1,8 +1,9 @@
+import EcommerceHeroCarousel from "@/components/layout/shop/hero/hero";
 
 export default function Home() {
   return (
     <div>
-      <h1>Home</h1>
+      <EcommerceHeroCarousel />
     </div>
   );
 }
