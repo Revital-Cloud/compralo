@@ -30,7 +30,7 @@ Backend/
 1. Clonar el repositorio.
 2. Crear un entorno virtual:
    ```
-   cd Backend
+   cd backend
    python -m venv venv
    ```
 3. Activar el entorno virtual:

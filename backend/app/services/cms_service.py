@@ -9,12 +9,13 @@ utilizando funciones de base de datos (procedimientos almacenados o funciones SQ
 Las funciones aquí definidas son llamadas por los routers de la API
 y utilizan los esquemas Pydantic para la validación y transformación de datos.
 """
+import json
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from schemas.cms_schema import CmsCreate,CmsUpdate
 
-def get_cms_contents(db:Session):
+def get_contents(db:Session):
     """
     Obtiene todos los CMS Content registrados en la base de datos.
 
@@ -38,13 +39,12 @@ def get_cms_contents(db:Session):
         FROM tab_cms_content
         """)
         result = db.execute(query)
-
         return result.mappings().all()
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener CMS Content: {str(e)}")
 
-def get_cms_content(db:Session,id_cms_content:int):
+def get_content(db:Session,id_cms_content:int):
     """
     Obtiene un CMS Content específico de la base de datos.
 
@@ -93,6 +93,9 @@ def create_cms_content(db:Session,cms_content:CmsCreate):
     """
     try:
         params = cms_content.model_dump()
+        if 'des_cms_content' in params and isinstance(params['des_cms_content'], dict):
+            params['des_cms_content'] = json.dumps(params['des_cms_content'])
+            
         query = text("""
         SELECT fun_insert_content(
             :nom_cms_content,
@@ -128,6 +131,11 @@ def update_cms_content(db:Session,id_cms_content:int,cms_content:CmsUpdate):
     try:
         update_params = cms_content.model_dump(exclude_unset=True)
         update_params["id_cms_content"] = id_cms_content
+        
+        # Convertir des_cms_content de dict a JSON string si es necesario
+        if 'des_cms_content' in update_params and isinstance(update_params['des_cms_content'], dict):
+            update_params['des_cms_content'] = json.dumps(update_params['des_cms_content'])
+            
         query = text("""
         SELECT fun_update_content(
             :id_cms_content,

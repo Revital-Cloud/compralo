@@ -41,7 +41,16 @@ async def get_user(id_usuario: Decimal, db: Session = Depends(get_db)):
 @router.post("/users", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_users(
     db: Session = Depends(get_db),
-    user_data: UserCreate = Body(...)
+    id_usuario: Decimal = Form(...),
+    nom_usuario: str = Form(...),
+    ape_usuario: str = Form(...),
+    email_usuario: str = Form(...),
+    password_usuario: str = Form(...),
+    des_direccion: Optional[str] = Form(None),
+    id_rol: Decimal = Form(...),
+    ind_genero: bool = Form(...),
+    cel_usuario: str = Form(...),
+    fec_nacimiento: Optional[str] = Form(None)
 ):
     """
     Crea un nuevo usuario en la base de datos.
@@ -73,16 +82,16 @@ async def create_users(
         hashed_password = get_password_hash(user_data.password_usuario)
         
         user_data = UserCreate(
-            id_usuario=user_data.id_usuario,
-            nom_usuario=user_data.nom_usuario,
-            ape_usuario=user_data.ape_usuario,
-            email_usuario=user_data.email_usuario,
+            id_usuario=id_usuario,
+            nom_usuario=nom_usuario,
+            ape_usuario=ape_usuario,
+            email_usuario=email_usuario,
             password_usuario=hashed_password,  # Usar la contraseña hasheada
-            des_direccion=user_data.des_direccion,
-            id_rol=user_data.id_rol,
-            ind_genero=user_data.ind_genero,
-            cel_usuario=user_data.cel_usuario,
-            fec_nacimiento=user_data.fec_nacimiento
+            des_direccion=des_direccion,
+            id_rol=id_rol,
+            ind_genero=ind_genero,
+            cel_usuario=cel_usuario,
+            fec_nacimiento=fec_nacimiento
         )
         user_service.create_users(db, user_data)
         return ResponseMessage(message="Usuario creado exitosamente")
