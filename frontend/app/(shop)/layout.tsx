@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import EcommerceHeader from "@/components/layout/header";
+import EcommerceHeader from "@/components/layout/shop/header";
 import { defaultMenuItems } from "@/lib/menu-config";
 
 export const metadata: Metadata = {
