@@ -4,10 +4,10 @@ Módulo de enrutador para la gestión de usuarios.
 Define las rutas y endpoints relacionados con la gestión de usuarios,
 incluyendo la creación, actualización y visualización de usuarios.
 """
-from fastapi import APIRouter, Depends, Form, HTTPException, status
+from fastapi import APIRouter, Depends, Form, HTTPException, status,Body
 from sqlalchemy.orm import Session
 from decimal import Decimal
-from typing import Optional, Dict, Any
+from typing import Optional
 
 
 from core.database import get_db
@@ -71,7 +71,7 @@ async def create_users(
     """
     try:
         # Verificar si el email ya existe
-        existing_user = user_service.get_user_by_email(db, email_usuario)
+        existing_user = user_service.get_user_by_email(db, user_data.email_usuario)
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
@@ -79,7 +79,7 @@ async def create_users(
             )
         
         # Hashear la contraseña antes de crear el usuario
-        hashed_password = get_password_hash(password_usuario)
+        hashed_password = get_password_hash(user_data.password_usuario)
         
         user_data = UserCreate(
             id_usuario=id_usuario,
