@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
+from routers.cms_router import router as cms_router
 from routers.provider_router import router as provider_router
 from core.config import settings
 from routers.product_router import router as product_router
@@ -74,3 +75,5 @@ app.include_router(subline_router, prefix=settings.API_STR)
 app.include_router(category_router, prefix=settings.API_STR)
 
 app.include_router(lines_routers, prefix=settings.API_STR)
+
+app.include_router(cms_router, prefix=settings.API_STR)
