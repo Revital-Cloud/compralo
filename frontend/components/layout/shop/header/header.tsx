@@ -66,7 +66,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
           <div className="flex items-center">
             {logo || (
               <div className="text-xl font-bold text-foreground">
-                Synkro
+                Brillo Rosa
               </div>
             )}
           </div>

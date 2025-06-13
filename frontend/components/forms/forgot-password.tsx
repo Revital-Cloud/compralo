@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 
 export function ForgotPasswordForm({
   className,
@@ -19,30 +20,38 @@ export function ForgotPasswordForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Reset your password</CardTitle>
+          <div className="flex justify-start mb-4">
+            <Link href="/">
+              <Button variant="ghost" size="sm" className="flex items-center gap-2 cursor-pointer">
+                <ArrowLeft className="size-4" />
+                Volver
+              </Button>
+            </Link>
+          </div>
+          <CardTitle className="text-xl">Restablecer tu contraseña</CardTitle>
           <CardDescription>
-            Enter your email address and we'll send you a link to reset your password
+            Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form>
             <div className="grid gap-6">
               <div className="grid gap-3">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">Correo electrónico</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="correo@ejemplo.com"
                   required
                 />
               </div>
               <Button type="submit" className="w-full">
-                Send reset link
+                Enviar enlace de restablecimiento
               </Button>
               <div className="text-center text-sm">
-                Remember your password?{" "}
+                ¿Recordaste tu contraseña?{" "}
                 <Link href="/login" className="underline underline-offset-4">
-                  Back to login
+                  Volver al inicio de sesión
                 </Link>
               </div>
             </div>
@@ -51,8 +60,8 @@ export function ForgotPasswordForm({
       </Card>
       <div className="text-muted-foreground text-center text-xs text-balance">
         <p>
-          If you don't receive an email within a few minutes, please check your spam folder
-          or try again with a different email address.
+          Si no recibes un correo en unos minutos, por favor revisa tu carpeta de spam
+          o intenta nuevamente con otra dirección de correo.
         </p>
       </div>
     </div>

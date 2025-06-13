@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 
 export function RegisterForm({
   className,
@@ -19,9 +20,17 @@ export function RegisterForm({
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
-          <CardTitle className="text-xl">Create an account</CardTitle>
+          <div className="flex justify-start mb-4">
+            <Link href="/">
+              <Button variant="ghost" size="sm" className="flex items-center gap-2 cursor-pointer">
+                <ArrowLeft className="size-4" />
+                Volver
+              </Button>
+            </Link>
+          </div>
+          <CardTitle className="text-xl">Crear una cuenta</CardTitle>
           <CardDescription>
-            Create an account with your Apple or Google account
+            Crea una cuenta con tu cuenta de Apple o Google
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -35,7 +44,7 @@ export function RegisterForm({
                       fill="currentColor"
                     />
                   </svg>
-                  Register with Apple
+                  Registrarse con Apple
                 </Button>
                 <Button variant="outline" className="w-full">
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -44,44 +53,44 @@ export function RegisterForm({
                       fill="currentColor"
                     />
                   </svg>
-                  Register with Google
+                  Registrarse con Google
                 </Button>
               </div>
               <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                 <span className="bg-card text-muted-foreground relative z-10 px-2">
-                  Or continue with
+                  O continúa con
                 </span>
               </div>
               <div className="grid gap-6">
                 <div className="grid gap-3">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">Correo electrónico</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="m@example.com"
+                    placeholder="correo@ejemplo.com"
                     required
                   />
                 </div>
                 <div className="grid gap-3">
                   <div className="flex items-center">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password">Contraseña</Label>
                     <Link
                       href="/forgot-password"
                       className="ml-auto text-sm underline-offset-4 hover:underline"
                     >
-                      Forgot your password?
+                      ¿Olvidaste tu contraseña?
                     </Link>
                   </div>
                   <Input id="password" type="password" required />
                 </div>
                 <Button type="submit" className="w-full">
-                  Register
+                  Registrarse
                 </Button>
               </div>
               <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
+                ¿Ya tienes una cuenta?{" "}
                 <Link href="/login" className="underline underline-offset-4">
-                  Login
+                  Iniciar sesión
                 </Link>
               </div>
             </div>
@@ -89,8 +98,8 @@ export function RegisterForm({
         </CardContent>
       </Card>
       <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        By clicking register, you agree to our <Link href="#">Terms of Service</Link>{" "}
-        and <Link href="#">Privacy Policy</Link>.
+        Al hacer clic en registrarse, aceptas nuestros <Link href="#">Términos de Servicio</Link>{" "}
+        y <Link href="#">Política de Privacidad</Link>.
       </div>
     </div>
   )

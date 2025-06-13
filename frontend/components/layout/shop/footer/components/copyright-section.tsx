@@ -8,8 +8,8 @@ interface CopyrightSectionProps {
 }
 
 const CopyrightSection: React.FC<CopyrightSectionProps> = ({ 
-  companyName = "Synkro",
-  customMessage = "Hecho por synkro"
+  companyName = "Brillo Rosa",
+  customMessage = "Hecho por Synkro"
 }) => {
   const currentYear = new Date().getFullYear()
 
