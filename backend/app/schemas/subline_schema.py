@@ -34,7 +34,7 @@ class SublineCreate(SublineBase):
     """
     pass
 
-class SublineUpdate(BaseModel):
+class SublineUpdate(SublineBase):
     """
     Esquema para la Actualización de Sublineas.
 
