@@ -24,6 +24,7 @@ import {
   CartButton,
   UserMenu
 } from "./components"
+import Link from "next/link"
 
 interface EcommerceHeaderProps {
   logo?: React.ReactNode
@@ -66,7 +67,9 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
           <div className="flex items-center">
             {logo || (
               <div className="text-xl font-bold text-foreground">
-                Brillo Rosa
+                <Link href="/">
+                  Brillo Rosa
+                </Link>
               </div>
             )}
           </div>
