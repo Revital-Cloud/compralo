@@ -161,102 +161,272 @@ class RoleBasedAccessMiddleware:
         response = await call_next(request)
         return response
 
-class AdminOnlyMiddleware:
+class SmartAuthMiddleware:
     """
-    Middleware simple que solo permite acceso a administradores.
+    Middleware inteligente de autenticación que categoriza rutas automáticamente.
+    
+    Rutas PÚBLICAS (sin autenticación):
+    - GET: Todos los productos, categorías, marcas, líneas, etc. (catálogo público)
+    - POST: Login, registro de usuarios, verificación de email, refresh tokens
+    
+    Rutas PRIVADAS (con autenticación):
+    - GET: Información personal del usuario (/me, /favorites)
+    - POST/PUT/DELETE: Operaciones administrativas y de usuario autenticado
     """
     
-    def __init__(self, protected_paths: List[str] = None):
-        """
-        Inicializa el middleware de solo administradores.
+    def __init__(self):
+        """Inicializa el middleware inteligente."""
+        # Rutas completamente públicas (sin autenticación)
+        self.public_paths = [
+            "/",
+            "/docs",
+            "/openapi.json",
+            "/redoc",
+            # Autenticación
+            "/api/login",
+            "/api/refresh", 
+            "/api/verify-email",
+            # Registro público
+            "/api/users",  # Solo POST será público
+        ]
         
-        Args:
-            protected_paths: Lista de rutas que solo pueden acceder administradores
-        """
-        self.protected_paths = protected_paths or [
-            "/api/admin",
+        # Rutas de solo lectura públicas (GET sin autenticación)
+        self.public_read_paths = [
             "/api/products",
-            "/api/users"
+            "/api/categories", 
+            "/api/brands",
+            "/api/lines",
+            "/api/sublines",
+            "/api/providers",
+            "/api/cms",
+            "/api/email/config",
+            "/api/email/stats"
+        ]
+        
+        # Rutas que requieren autenticación pero cualquier usuario puede acceder
+        self.authenticated_paths = [
+            "/api/me",
+            "/api/verify-token",
+            "/api/change-password",
+            "/api/logout",
+            "/api/favorites",
+            "/api/send-verification-email"
+        ]
+        
+        # Rutas que solo pueden acceder administradores
+        self.admin_only_paths = [
+            "/api/users",      # GET, PUT, DELETE de usuarios
+            "/api/email/send", # Envío de emails
+            "/api/email/welcome",
+            "/api/email/verify", 
+            "/api/email/password-reset",
+            "/api/email/validate-config",
+            "/api/test"        # Endpoints de testing
+        ]
+        
+        # Recursos que solo admins pueden modificar pero todos pueden leer
+        self.admin_write_paths = [
+            "/api/products",
+            "/api/categories",
+            "/api/brands", 
+            "/api/lines",
+            "/api/sublines",
+            "/api/providers",
+            "/api/cms"
         ]
     
     async def __call__(self, request: Request, call_next: Callable):
         """
-        Procesa la solicitud y verifica que el usuario sea administrador.
-        
-        Args:
-            request: Solicitud HTTP
-            call_next: Siguiente función en la cadena de middleware
-            
-        Returns:
-            Response: Respuesta HTTP
+        Procesa la solicitud y aplica la autenticación según el tipo de ruta.
         """
         path = request.url.path
         method = request.method.upper()
         
-        # Verificar si la ruta necesita permisos de administrador
-        needs_admin = any(path.startswith(protected_path) for protected_path in self.protected_paths)
+        # 1. Rutas completamente públicas
+        if self._is_public_path(path):
+            return await call_next(request)
         
-        # Solo verificar en operaciones de escritura para productos
-        if path.startswith("/api/products") and method in ["POST", "PUT", "DELETE"]:
-            needs_admin = True
-        elif path.startswith("/api/products") and method == "GET":
-            needs_admin = False  # Permitir lectura a todos los usuarios autenticados
+        # 2. Registro de usuarios (POST público, resto privado)
+        if path.startswith("/api/users"):
+            if method == "POST":
+                return await call_next(request)  # Registro público
+            else:
+                # GET, PUT, DELETE requieren admin
+                await self._verify_admin(request)
         
-        if needs_admin:
-            try:
-                # Obtener el token del header Authorization
-                authorization = request.headers.get("Authorization")
-                if not authorization:
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Se requiere autenticación de administrador",
-                        headers={"WWW-Authenticate": "Bearer"}
-                    )
-                
-                scheme, token = get_authorization_scheme_param(authorization)
-                if scheme.lower() != "bearer" or not token:
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Token de autorización inválido",
-                        headers={"WWW-Authenticate": "Bearer"}
-                    )
-                
-                # Obtener sesión de base de datos
-                db_gen = get_db()
-                db = next(db_gen)
-                
-                try:
-                    # Verificar el token y obtener el usuario
-                    current_user = auth_service.get_current_user(db, token)
-                    
-                    # Verificar que sea administrador (rol ID = 1)
-                    if current_user.id_rol != 1:
-                        raise HTTPException(
-                            status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Se requieren permisos de administrador para realizar esta operación"
-                        )
-                    
-                    # Agregar información del usuario a la request
-                    request.state.current_user = current_user
-                    
-                    logger.info(f"Admin {current_user.email_usuario} realizó {method} en {path}")
-                    
-                finally:
-                    db.close()
-                    
-            except HTTPException:
-                raise
-            except Exception as e:
-                logger.error(f"Error en middleware de admin: {str(e)}")
+        # 3. Rutas de solo lectura públicas (GET sin auth, resto requiere admin)
+        elif any(path.startswith(public_path) for public_path in self.public_read_paths):
+            if method == "GET":
+                return await call_next(request)  # Lectura pública
+            else:
+                # POST, PUT, DELETE requieren admin
+                await self._verify_admin(request)
+        
+        # 4. Rutas que requieren cualquier usuario autenticado
+        elif any(path.startswith(auth_path) for auth_path in self.authenticated_paths):
+            await self._verify_authenticated_user(request)
+        
+        # 5. Rutas que solo pueden acceder administradores
+        elif any(path.startswith(admin_path) for admin_path in self.admin_only_paths):
+            await self._verify_admin(request)
+        
+        # 6. Recursos con escritura restringida a admin
+        elif any(path.startswith(write_path) for write_path in self.admin_write_paths):
+            if method == "GET":
+                return await call_next(request)  # Lectura pública
+            else:
+                await self._verify_admin(request)  # Escritura solo admin
+        
+        # 7. Por defecto, permitir acceso (para rutas no categorizadas)
+        else:
+            logger.warning(f"Ruta no categorizada: {method} {path}")
+        
+        return await call_next(request)
+    
+    def _is_public_path(self, path: str) -> bool:
+        """Verifica si una ruta es completamente pública."""
+        return any(path.startswith(public_path) for public_path in self.public_paths)
+    
+    async def _verify_authenticated_user(self, request: Request):
+        """Verifica que el usuario esté autenticado (cualquier rol)."""
+        try:
+            authorization = request.headers.get("Authorization")
+            if not authorization:
                 raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Error interno del servidor"
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Se requiere autenticación para acceder a este recurso",
+                    headers={"WWW-Authenticate": "Bearer"}
                 )
-        
-        # Continuar con la siguiente función
-        response = await call_next(request)
-        return response
+            
+            scheme, token = get_authorization_scheme_param(authorization)
+            if scheme.lower() != "bearer" or not token:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token de autorización inválido",
+                    headers={"WWW-Authenticate": "Bearer"}
+                )
+            
+            # Obtener sesión de base de datos
+            db_gen = get_db()
+            db = next(db_gen)
+            
+            try:
+                # Verificar el token y obtener el usuario
+                current_user = auth_service.get_current_user(db, token)
+                request.state.current_user = current_user
+                
+                logger.info(f"Usuario autenticado: {current_user.email_usuario} accedió a {request.method} {request.url.path}")
+                
+            finally:
+                db.close()
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error en autenticación: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error interno del servidor"
+            )
+    
+    async def _verify_admin(self, request: Request):
+        """Verifica que el usuario sea administrador."""
+        try:
+            authorization = request.headers.get("Authorization")
+            if not authorization:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Se requiere autenticación de administrador",
+                    headers={"WWW-Authenticate": "Bearer"}
+                )
+            
+            scheme, token = get_authorization_scheme_param(authorization)
+            if scheme.lower() != "bearer" or not token:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token de autorización inválido",
+                    headers={"WWW-Authenticate": "Bearer"}
+                )
+            
+            # Obtener sesión de base de datos
+            db_gen = get_db()
+            db = next(db_gen)
+            
+            try:
+                # Verificar el token y obtener el usuario
+                current_user = auth_service.get_current_user(db, token)
+                
+                # Verificar que sea administrador (rol ID = 1)
+                if current_user.id_rol != 1:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Se requieren permisos de administrador para realizar esta operación"
+                    )
+                
+                request.state.current_user = current_user
+                
+                logger.info(f"Admin {current_user.email_usuario} realizó {request.method} en {request.url.path}")
+                
+            finally:
+                db.close()
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Error en verificación de admin: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error interno del servidor"
+            )
 
 # Instancias de middlewares configurados
 role_based_middleware = RoleBasedAccessMiddleware()
-admin_only_middleware = AdminOnlyMiddleware() 
+smart_auth_middleware = SmartAuthMiddleware()
+
+# Función helper para verificar roles en endpoints específicos
+def require_role(required_role: str):
+    """
+    Dependency para verificar que el usuario tenga un rol específico.
+    
+    Args:
+        required_role (str): Rol requerido ("admin" o "user")
+        
+    Returns:
+        Callable: Dependency function para FastAPI
+    """
+    def role_dependency(current_user: dict):
+        """
+        Verifica que el usuario actual tenga el rol requerido.
+        
+        Args:
+            current_user (dict): Usuario actual obtenido del token
+            
+        Raises:
+            HTTPException: Si el usuario no tiene el rol requerido
+        """
+        user_role_id = current_user.get('id_rol', 0)
+        
+        # Mapeo de roles
+        role_mapping = {
+            "admin": 1,
+            "user": 2
+        }
+        
+        required_role_id = role_mapping.get(required_role.lower())
+        
+        if required_role_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Rol '{required_role}' no válido"
+            )
+        
+        if user_role_id != required_role_id:
+            role_names = {1: "Administrador", 2: "Usuario"}
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Se requiere rol de {role_names.get(required_role_id, required_role)} para acceder a este recurso"
+            )
+        
+        return current_user
+    
+    return role_dependency 

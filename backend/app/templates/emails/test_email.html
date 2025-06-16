@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Email de Prueba - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    🧪 Email de Prueba
+</div>
+
+<div class="content-block">
+    <h2>¡Funciona perfectamente!</h2>
+    <p>
+        Este es un email de prueba para verificar que el sistema de envío 
+        con Resend está funcionando correctamente.
+    </p>
+</div>
+
+<div class="alert alert-success">
+    <strong>✅ Sistema de Email Operativo</strong><br>
+    Si estás viendo este mensaje, significa que:
+    <ul style="margin-top: 10px; margin-left: 20px;">
+        <li>La configuración de Resend es correcta</li>
+        <li>Los templates HTML se renderizan bien</li>
+        <li>El servicio de email está funcionando</li>
+    </ul>
+</div>
+
+<div class="content-block">
+    <h3>Mensaje personalizado:</h3>
+    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; border-left: 4px solid #667eea;">
+        <p style="margin: 0; font-style: italic;">
+            "{{ message }}"
+        </p>
+    </div>
+</div>
+
+<div class="content-block">
+    <h3>Detalles técnicos:</h3>
+    <table class="table">
+        <tr>
+            <td><strong>Fecha de envío:</strong></td>
+            <td>{{ test_date | datetime }}</td>
+        </tr>
+        <tr>
+            <td><strong>Sistema:</strong></td>
+            <td>{{ app_name }} Email Service</td>
+        </tr>
+        <tr>
+            <td><strong>Proveedor:</strong></td>
+            <td>Resend</td>
+        </tr>
+        <tr>
+            <td><strong>Template:</strong></td>
+            <td>test_email.html</td>
+        </tr>
+    </table>
+</div>
+
+<div class="text-center">
+    <a href="{{ frontend_url }}" class="btn">
+        🏠 Ir al sitio web
+    </a>
+</div>
+
+<div class="divider"></div>
+
+<div class="text-center text-muted">
+    <p>
+        Este es un email automático generado para pruebas.<br>
+        No es necesario responder a este mensaje.
+    </p>
+</div>
+{% endblock %} 

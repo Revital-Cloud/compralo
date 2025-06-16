@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock bajo</title>   
+</head>
+<body>
+    <h1>Stock bajo</h1>
+    <p>El stock de los siguientes productos está bajo:</p>
+    <ul>
+        <li>ID del producto: {{ product.id }}</li>
+        <li>Nombre del producto: {{ product.name }}</li>
+        <li>Stock actual: {{ product.stock }}</li>
+        <li>Stock mínimo: {{ product.min_stock }}</li>
+        <li>Stock máximo: {{ product.max_stock }}</li>
+        <li>Stock recomendado: {{ product.recommended_stock }}</li>
+        <li>Stock crítico: {{ product.critical_stock }}</li>
+        <li>Stock en stock: {{ product.in_stock }}</li>
+        <li>Stock en pedido: {{ product.in_order }}</li>
+    </ul>
+</body>
+</html>

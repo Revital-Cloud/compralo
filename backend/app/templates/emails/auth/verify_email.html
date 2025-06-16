@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Verifica tu cuenta - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    ¡Hola {{ user_name }}! 👋
+</div>
+
+<div class="content-block">
+    <h2>Verifica tu dirección de email</h2>
+    <p>
+        Para completar tu registro en {{ app_name }} y acceder a todas las funcionalidades,
+        necesitamos verificar tu dirección de email.
+    </p>
+</div>
+
+<div class="alert alert-info">
+    <strong>🔐 Seguridad primero</strong><br>
+    La verificación de email nos ayuda a:
+    <ul style="margin-top: 10px; margin-left: 20px;">
+        <li>Proteger tu cuenta</li>
+        <li>Enviarte notificaciones importantes</li>
+        <li>Recuperar tu contraseña si es necesario</li>
+        <li>Mantener tu información segura</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{ verify_url }}" class="btn btn-success">
+        ✅ Verificar mi email
+    </a>
+</div>
+
+<div class="content-block">
+    <h3>Detalles importantes:</h3>
+    <ul style="margin-left: 20px;">
+        <li><strong>⏰ Tiempo límite:</strong> Este enlace expira en {{ expires_in_hours }} horas</li>
+        <li><strong>🔗 Un solo uso:</strong> El enlace solo funciona una vez</li>
+        <li><strong>📧 Email correcto:</strong> Verifica que este sea tu email correcto</li>
+    </ul>
+</div>
+
+<div class="alert alert-warning">
+    <strong>⚠️ ¿No puedes hacer clic en el botón?</strong><br>
+    Copia y pega este enlace en tu navegador:<br>
+    <code style="word-break: break-all; background-color: #f8f9fa; padding: 5px; border-radius: 3px;">
+        {{ verify_url }}
+    </code>
+</div>
+
+<div class="divider"></div>
+
+<div class="content-block">
+    <h3>¿No solicitaste esta verificación?</h3>
+    <p>
+        Si no creaste una cuenta en {{ app_name }}, puedes ignorar este email de forma segura.
+        Tu dirección de email no será agregada a nuestra base de datos.
+    </p>
+</div>
+
+<div class="content-block">
+    <h3>¿Necesitas ayuda?</h3>
+    <p>
+        Si tienes problemas con la verificación, nuestro equipo de soporte está aquí para ayudarte:
+    </p>
+    <ul style="margin-left: 20px;">
+        <li>📧 Email: {{ support_email }}</li>
+        <li>💬 Chat en vivo en nuestra web</li>
+        <li>📞 Teléfono: +1 (555) 123-4567</li>
+    </ul>
+</div>
+
+<div class="text-center text-muted">
+    <p>
+        Gracias por elegir {{ app_name }}.<br>
+        ¡Estamos emocionados de tenerte con nosotros!
+    </p>
+</div>
+{% endblock %}
