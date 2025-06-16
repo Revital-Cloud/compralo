@@ -29,8 +29,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Synkro Ecommerce API",
-    description="API para la plataforma de ecommerce Synkro",
+    title="Ecommerce API",
+    description="API para la plataforma de ecommerce",
     version="1.0.0"
 )
 
