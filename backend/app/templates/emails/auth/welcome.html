@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}¡Bienvenida a {{ company_name }}! ✨{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    ¡Hola {{ user_name }}! 💖
+</div>
+
+<div class="highlight-box">
+    <h2 style="margin: 0; color: #ff1493;">🌟 ¡Bienvenida a {{ company_name }}! 🌟</h2>
+    <p style="margin: 10px 0; font-size: 18px; color: #666;">
+        Tu viaje hacia la belleza perfecta comienza aquí
+    </p>
+</div>
+
+<div class="content-block">
+    <p>
+        Nos emociona muchísimo tenerte como parte de nuestra familia de belleza. 
+        Has dado el primer paso para descubrir productos únicos que realzarán tu 
+        belleza natural y te harán sentir radiante cada día.
+    </p>
+</div>
+
+<div class="content-block">
+    <h3>✨ ¿Qué te espera en {{ company_name }}?</h3>
+    <div class="product-grid">
+        <div class="product-card">
+            <div style="font-size: 30px; margin-bottom: 10px;">💄</div>
+            <strong>Maquillaje Premium</strong>
+            <p style="font-size: 12px; color: #888;">Las mejores marcas para ti</p>
+        </div>
+        <div class="product-card">
+            <div style="font-size: 30px; margin-bottom: 10px;">🧴</div>
+            <strong>Cuidado de la Piel</strong>
+            <p style="font-size: 12px; color: #888;">Productos naturales y efectivos</p>
+        </div>
+        <div class="product-card">
+            <div style="font-size: 30px; margin-bottom: 10px;">💅</div>
+            <strong>Nail Art</strong>
+            <p style="font-size: 12px; color: #888;">Colores que te harán brillar</p>
+        </div>
+    </div>
+</div>
+
+{% if verify_url %}
+<div class="alert alert-info">
+    <strong>🔐 ¡Un pasito más para brillar!</strong><br>
+    Para completar tu registro y acceder a nuestros descuentos exclusivos, 
+    verifica tu email haciendo clic en el botón de abajo.
+</div>
+
+<div class="text-center">
+    <a href="{{ verify_url }}" class="btn btn-success">
+        ✅ Verificar mi email ahora
+    </a>
+</div>
+{% endif %}
+
+<div class="content-block">
+    <h3>🎁 ¡Oferta especial de bienvenida!</h3>
+    <div class="highlight-box">
+        <div class="discount-badge">¡OFERTA LIMITADA!</div>
+        <div class="price">20% OFF</div>
+        <p style="margin: 15px 0; font-size: 18px;">
+            <strong>Código: BRILLOBIENVENIDA20</strong>
+        </p>
+        <p style="margin: 0; color: #888;">
+            Válido por los próximos 7 días en tu primera compra<br>
+            <small>*Mínimo de compra $50. No acumulable con otras ofertas</small>
+        </p>
+    </div>
+</div>
+
+<div class="text-center">
+    <a href="{{ frontend_url }}/productos?categoria=nuevos" class="btn">
+        🛒 Explorar productos nuevos
+    </a>
+    <a href="{{ frontend_url }}/ofertas" class="btn btn-secondary" style="margin-left: 10px;">
+        🎁 Ver todas las ofertas
+    </a>
+</div>
+
+<div class="divider"></div>
+
+<div class="content-block">
+    <h3>💄 Nuestras categorías más populares</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #fff0f5, #fce4ec); border-radius: 10px;">
+            <div style="font-size: 24px; margin-bottom: 5px;">💋</div>
+            <strong>Labiales</strong>
+            <p style="font-size: 12px; margin: 5px 0; color: #666;">Los tonos más trendy</p>
+            <a href="{{ frontend_url }}/productos/labiales" style="color: #ff1493; text-decoration: none; font-size: 12px;">Ver más →</a>
+        </div>
+        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #fff0f5, #fce4ec); border-radius: 10px;">
+            <div style="font-size: 24px; margin-bottom: 5px;">✨</div>
+            <strong>Iluminadores</strong>
+            <p style="font-size: 12px; margin: 5px 0; color: #666;">Para un glow natural</p>
+            <a href="{{ frontend_url }}/productos/iluminadores" style="color: #ff1493; text-decoration: none; font-size: 12px;">Ver más →</a>
+        </div>
+        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #fff0f5, #fce4ec); border-radius: 10px;">
+            <div style="font-size: 24px; margin-bottom: 5px;">👁️</div>
+            <strong>Sombras</strong>
+            <p style="font-size: 12px; margin: 5px 0; color: #666;">Paletas increíbles</p>
+            <a href="{{ frontend_url }}/productos/sombras" style="color: #ff1493; text-decoration: none; font-size: 12px;">Ver más →</a>
+        </div>
+        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #fff0f5, #fce4ec); border-radius: 10px;">
+            <div style="font-size: 24px; margin-bottom: 5px;">🌟</div>
+            <strong>Skincare</strong>
+            <p style="font-size: 12px; margin: 5px 0; color: #666;">Piel perfecta siempre</p>
+            <a href="{{ frontend_url }}/productos/skincare" style="color: #ff1493; text-decoration: none; font-size: 12px;">Ver más →</a>
+        </div>
+    </div>
+</div>
+
+<div class="content-block">
+    <h3>📱 Síguenos en redes sociales</h3>
+    <p style="text-align: center;">
+        Únete a nuestra comunidad de belleza y descubre tips, tutorials y las últimas tendencias
+    </p>
+    <div style="text-align: center; margin: 20px 0;">
+        <a href="https://instagram.com/brillorosa" style="text-decoration: none; margin: 0 10px; color: #ff1493;">
+            📷 Instagram
+        </a>
+        <a href="https://tiktok.com/@brillorosa" style="text-decoration: none; margin: 0 10px; color: #ff1493;">
+            🎵 TikTok
+        </a>
+        <a href="https://youtube.com/brillorosa" style="text-decoration: none; margin: 0 10px; color: #ff1493;">
+            📺 YouTube
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-success">
+    <strong>🎉 Beneficios exclusivos como miembro:</strong>
+    <ul style="margin: 10px 0 0 20px; padding: 0;">
+        <li>Envío gratis en compras mayores a $75</li>
+        <li>Descuentos exclusivos para miembros</li>
+        <li>Acceso anticipado a nuevos productos</li>
+        <li>Tutorial de maquillaje personalizado</li>
+        <li>Programa de puntos y recompensas</li>
+    </ul>
+</div>
+
+<div class="content-block">
+    <h3>💬 ¿Necesitas ayuda?</h3>
+    <p>
+        Nuestro equipo de beauty experts está aquí para ayudarte a encontrar 
+        los productos perfectos para ti. ¡No dudes en contactarnos!
+    </p>
+    <div style="text-align: center; margin: 20px 0;">
+        <a href="mailto:{{ support_email }}" style="color: #ff1493; text-decoration: none; margin: 0 15px;">
+            📧 {{ support_email }}
+        </a>
+        <a href="{{ frontend_url }}/chat" style="color: #ff1493; text-decoration: none; margin: 0 15px;">
+            💬 Chat en vivo
+        </a>
+        <a href="https://wa.me/+1234567890" style="color: #ff1493; text-decoration: none; margin: 0 15px;">
+            📱 WhatsApp
+        </a>
+    </div>
+</div>
+
+<div class="text-center" style="margin: 30px 0;">
+    <p style="font-size: 18px; color: #ff1493; font-weight: 600;">
+        ¡Gracias por elegir {{ company_name }}! ✨
+    </p>
+    <p style="color: #888;">
+        Esperamos que tengas una experiencia de belleza increíble con nosotros.
+        ¡Prepárate para brillar! 💎
+    </p>
+</div>
+{% endblock %}
