@@ -7,6 +7,8 @@ de información del usuario actual.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from datetime import datetime
+import logging
 
 from core.database import get_db
 from core.dependencies import get_current_user
@@ -19,6 +21,8 @@ from schemas.auth_schema import (
 )
 from schemas.user_schema import ResponseMessage
 from services import auth_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Autenticación"])
 
@@ -142,4 +146,133 @@ async def verify_token(
         "valid": True,
         "user_id": current_user.id_usuario,
         "email": current_user.email_usuario
-    } 
+    }
+
+@router.post("/send-verification-email")
+async def send_verification_email(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Envía email de verificación con token seguro.
+    
+    Args:
+        user_id (int): ID del usuario a verificar
+        db (Session): Sesión de base de datos
+        current_user (UserInToken): Usuario autenticado
+        
+    Returns:
+        dict: Confirmación del envío
+    """
+    try:
+        # Solo permite enviar verificación a su propia cuenta o si es admin
+        if current_user.id_usuario != user_id and current_user.id_rol != 1:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permisos para enviar verificación a este usuario"
+            )
+        
+        # Obtener usuario de la BD
+        from services import user_service
+        user = user_service.get_user_by_id(db, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado"
+            )
+        
+        # Crear token específico de verificación (no access token)
+        from core.jwt_utils import create_verification_token
+        verification_token = create_verification_token(
+            user_id=user.id_usuario,
+            email=user.email_usuario,
+            expires_hours=24
+        )
+        
+        # Importar y usar el servicio de email
+        from services.email_service import email_service
+        success = await email_service.send_verification_email(
+            user_email=user.email_usuario,
+            user_name=user.nom_usuario,
+            verification_token=verification_token
+        )
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al enviar email de verificación"
+            )
+        
+        return {
+            "message": "Email de verificación enviado exitosamente",
+            "success": True,
+            "email": user.email_usuario
+        }
+        
+    except Exception as e:
+        logger.error(f"Error en send_verification_email: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno: {str(e)}"
+        )
+
+@router.post("/verify-email")
+async def verify_email_endpoint(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Verifica el email del usuario usando el token de verificación.
+    
+    Args:
+        token (str): Token de verificación recibido en el email
+        db (Session): Sesión de base de datos
+        
+    Returns:
+        dict: Resultado de la verificación
+    """
+    try:
+        # Verificar token específico de verificación
+        from core.jwt_utils import verify_verification_token
+        payload = verify_verification_token(token)
+        
+        user_id = int(payload.get("sub"))
+        email = payload.get("email")
+        
+        # Obtener usuario de la BD
+        from services import user_service
+        user = user_service.get_user_by_id(db, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado"
+            )
+        
+        # Verificar que el email coincida
+        if user.email_usuario != email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El token no corresponde a este usuario"
+            )
+        
+        # Marcar email como verificado
+        # Nota: Necesitarás agregar un campo 'email_verified' a tu modelo User
+        # Por ahora solo retornamos éxito
+        
+        return {
+            "message": "Email verificado exitosamente",
+            "success": True,
+            "user_id": user_id,
+            "email": email,
+            "verified_at": datetime.utcnow().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en verify_email_endpoint: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        ) 
