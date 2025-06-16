@@ -17,7 +17,9 @@ from schemas.auth_schema import (
     TokenResponse, 
     RefreshTokenRequest, 
     UserInToken, 
-    ChangePasswordRequest
+    ChangePasswordRequest,
+    ResetPasswordRequest,
+    ResetPasswordConfirm
 )
 from schemas.user_schema import ResponseMessage
 from services import auth_service
@@ -272,6 +274,201 @@ async def verify_email_endpoint(
         raise
     except Exception as e:
         logger.error(f"Error en verify_email_endpoint: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno del servidor"
+        )
+
+@router.post("/test/create-verification-token")
+async def create_test_verification_token(
+    user_id: int,
+    current_user: UserInToken = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    🧪 ENDPOINT TEMPORAL PARA TESTING
+    Crea un token de verificación para testing en Postman.
+    
+    ⚠️ REMOVER EN PRODUCCIÓN
+    
+    Args:
+        user_id (int): ID del usuario
+        current_user (UserInToken): Usuario autenticado
+        db (Session): Sesión de base de datos
+        
+    Returns:
+        dict: Token de verificación para testing
+    """
+    try:
+        # Solo permite crear token para su propia cuenta o si es admin
+        if current_user.id_usuario != user_id and current_user.id_rol != 1:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permisos para crear token para este usuario"
+            )
+        
+        # Obtener usuario de la BD
+        from services import user_service
+        user = user_service.get_user_by_id(db, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado"
+            )
+        
+        # Crear token específico de verificación
+        from core.jwt_utils import create_verification_token
+        verification_token = create_verification_token(
+            user_id=user.id_usuario,
+            email=user.email_usuario,
+            expires_hours=24
+        )
+        
+        return {
+            "🧪": "TESTING ONLY - Remover en producción",
+            "verification_token": verification_token,
+            "user_id": user.id_usuario,
+            "email": user.email_usuario,
+            "expires_in_hours": 24,
+            "usage": "Usar este token en POST /auth/verify-email"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error en create_test_verification_token: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno: {str(e)}"
+        )
+
+@router.post("/forgot-password", response_model=ResponseMessage)
+async def forgot_password(
+    request: ResetPasswordRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    🔐 ENDPOINT DE PRODUCCIÓN
+    Solicita reset de contraseña. Público (sin autenticación requerida).
+    
+    Args:
+        request (ResetPasswordRequest): Email del usuario
+        db (Session): Sesión de base de datos
+        
+    Returns:
+        ResponseMessage: Siempre retorna éxito (por seguridad)
+        
+    Security:
+        - No revela si el email existe o no
+        - Rate limiting recomendado
+        - Logs de seguridad
+    """
+    try:
+        # Buscar usuario por email
+        from services import user_service
+        user = user_service.get_user_by_email(db, request.email)
+        
+        if user:
+            # Crear token de reset específico
+            from core.jwt_utils import create_password_reset_token
+            reset_token = create_password_reset_token(
+                user_id=user.id_usuario,
+                email=user.email_usuario,
+                expires_hours=1  # Token expira en 1 hora
+            )
+            
+            # Enviar email de reset
+            from services.email_service import email_service
+            await email_service.send_password_reset_email(
+                user_email=user.email_usuario,
+                user_name=user.nom_usuario,
+                reset_token=reset_token
+            )
+            
+            logger.info(f"Password reset requested for existing user: {request.email}")
+        else:
+            # Usuario no existe, pero no revelamos esta información
+            logger.warning(f"Password reset requested for non-existent user: {request.email}")
+        
+        # SIEMPRE retornamos éxito (no revelamos si el email existe)
+        return ResponseMessage(
+            message="Si el email existe en nuestro sistema, recibirás un enlace para restablecer tu contraseña",
+            success=True
+        )
+        
+    except Exception as e:
+        logger.error(f"Error en forgot_password: {str(e)}")
+        # En caso de error, también retornamos mensaje genérico
+        return ResponseMessage(
+            message="Si el email existe en nuestro sistema, recibirás un enlace para restablecer tu contraseña",
+            success=True
+        )
+
+@router.post("/reset-password", response_model=ResponseMessage)
+async def reset_password(
+    reset_data: ResetPasswordConfirm,
+    db: Session = Depends(get_db)
+):
+    """
+    🔐 ENDPOINT DE PRODUCCIÓN
+    Confirma el reset de contraseña usando el token del email.
+    
+    Args:
+        reset_data (ResetPasswordConfirm): Token y nueva contraseña
+        db (Session): Sesión de base de datos
+        
+    Returns:
+        ResponseMessage: Resultado del reset
+        
+    Security:
+        - Verifica token JWT específico de reset
+        - Token se usa una sola vez
+        - Hash seguro de la nueva contraseña
+        - Email de confirmación
+    """
+    try:
+        # Verificar token de reset
+        from core.jwt_utils import verify_password_reset_token
+        payload = verify_password_reset_token(reset_data.token)
+        
+        user_id = int(payload.get("sub"))
+        email = payload.get("email")
+        
+        # Obtener usuario
+        from services import user_service
+        user = user_service.get_user_by_id(db, user_id)
+        if not user or user.email_usuario != email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Token de reset inválido o expirado"
+            )
+        
+        # Cambiar contraseña
+        from core.jwt_utils import get_password_hash
+        hashed_password = get_password_hash(reset_data.new_password)
+        
+        # Actualizar contraseña en BD
+        user_service.update_password(db, user_id, hashed_password)
+        
+        # Enviar email de confirmación
+        from services.email_service import email_service
+        from fastapi import Request
+        # request: Request = None  # Obtener IP para logs
+        await email_service.send_password_changed_email(
+            user_email=user.email_usuario,
+            user_name=user.nom_usuario,
+            ip_address=None  # request.client.host if request else None
+        )
+        
+        logger.info(f"Password successfully reset for user: {email}")
+        
+        return ResponseMessage(
+            message="Contraseña restablecida exitosamente. Puedes iniciar sesión con tu nueva contraseña.",
+            success=True
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en reset_password: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor"

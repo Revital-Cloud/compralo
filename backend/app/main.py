@@ -22,16 +22,15 @@ from routers.favorites_router import router as favorites_router
 
 from routers.auth_router import router as auth_router
 from routers.email_router import router as email_router
-from middlewares.auth_middleware import product_middleware
-from middlewares.role_middleware import admin_only_middleware
+from middlewares.role_middleware import smart_auth_middleware
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Ecommerce API",
-    description="API para la plataforma de ecommerce",
+    title="Synkro SaaS E-commerce API",
+    description="API para la plataforma SaaS de e-commerce con deployment aislado",
     version="1.0.0"
 )
 
@@ -44,9 +43,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Agregar middlewares de autenticación y autorización
-app.middleware("http")(admin_only_middleware)
-app.middleware("http")(product_middleware)
+# Agregar el middleware inteligente de autenticación
+app.middleware("http")(smart_auth_middleware)
 
 @app.get("/")
 def read_root():

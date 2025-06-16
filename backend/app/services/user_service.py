@@ -253,4 +253,18 @@ def update_password(db: Session, id_usuario: Decimal, hashed_password: str):
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al actualizar contraseña: {str(e)}")
+
+# Alias para compatibilidad con diferentes nomenclaturas
+def get_user_by_id(db: Session, id_usuario: Decimal):
+    """
+    Alias para get_user para mantener compatibilidad.
+    
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        id_usuario (Decimal): ID del usuario.
+        
+    Returns:
+        dict or None: Un diccionario que representa el usuario o None si no se encuentra.
+    """
+    return get_user(db, id_usuario)
         
