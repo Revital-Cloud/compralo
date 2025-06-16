@@ -18,6 +18,7 @@ from routers.subline_router import router as subline_router
 from routers.brand_router import router as brand_router
 from routers.category_router import router as category_router
 from routers.lines_routers import router as lines_routers
+from routers.favorites_router import router as favorites_router
 
 from routers.auth_router import router as auth_router
 from routers.email_router import router as email_router
@@ -78,6 +79,8 @@ app.include_router(category_router, prefix=settings.API_STR)
 app.include_router(lines_routers, prefix=settings.API_STR)
 
 app.include_router(cms_router, prefix=settings.API_STR)
+
+app.include_router(favorites_router, prefix=settings.API_STR)
 
 # Incluye el router de emails con un prefijo de API.
 app.include_router(email_router, prefix=settings.API_STR)
