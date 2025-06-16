@@ -259,4 +259,52 @@ class AdminOnlyMiddleware:
 
 # Instancias de middlewares configurados
 role_based_middleware = RoleBasedAccessMiddleware()
-admin_only_middleware = AdminOnlyMiddleware() 
+admin_only_middleware = AdminOnlyMiddleware()
+
+# Función helper para verificar roles en endpoints específicos
+def require_role(required_role: str):
+    """
+    Dependency para verificar que el usuario tenga un rol específico.
+    
+    Args:
+        required_role (str): Rol requerido ("admin" o "user")
+        
+    Returns:
+        Callable: Dependency function para FastAPI
+    """
+    def role_dependency(current_user: dict):
+        """
+        Verifica que el usuario actual tenga el rol requerido.
+        
+        Args:
+            current_user (dict): Usuario actual obtenido del token
+            
+        Raises:
+            HTTPException: Si el usuario no tiene el rol requerido
+        """
+        user_role_id = current_user.get('id_rol', 0)
+        
+        # Mapeo de roles
+        role_mapping = {
+            "admin": 1,
+            "user": 2
+        }
+        
+        required_role_id = role_mapping.get(required_role.lower())
+        
+        if required_role_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Rol '{required_role}' no válido"
+            )
+        
+        if user_role_id != required_role_id:
+            role_names = {1: "Administrador", 2: "Usuario"}
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Se requiere rol de {role_names.get(required_role_id, required_role)} para acceder a este recurso"
+            )
+        
+        return current_user
+    
+    return role_dependency 

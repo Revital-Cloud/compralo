@@ -20,6 +20,7 @@ from routers.category_router import router as category_router
 from routers.lines_routers import router as lines_routers
 
 from routers.auth_router import router as auth_router
+from routers.email_router import router as email_router
 from middlewares.auth_middleware import product_middleware
 from middlewares.role_middleware import admin_only_middleware
 
@@ -77,3 +78,6 @@ app.include_router(category_router, prefix=settings.API_STR)
 app.include_router(lines_routers, prefix=settings.API_STR)
 
 app.include_router(cms_router, prefix=settings.API_STR)
+
+# Incluye el router de emails con un prefijo de API.
+app.include_router(email_router, prefix=settings.API_STR)
