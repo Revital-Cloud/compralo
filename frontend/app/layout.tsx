@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Synkro - Tienda Virtual",
-  description: "Plataforma de comercio electrónico moderna",
+  title: "Brillo Rosa",
+  description: "Brillo Rosa",
 };
 
 export default function RootLayout({

@@ -5,7 +5,7 @@
  * registro, cambio de contraseñas, etc.
  */
 
-import { get, post, storeTokens, clearTokens } from '@/utils/apiWrapper';
+import { post, storeTokens, clearTokens } from '@/utils/apiWrapper';
 import type {
   LoginRequest,
   TokenResponse,
