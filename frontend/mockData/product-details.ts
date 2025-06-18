@@ -2,40 +2,39 @@
 
 export const mockProductDetails = {
   id: 1,
-  name: "ADIDAS 4DFWD X PARLEY RUNNING SHOES",
-  price: 125.00,
-  originalPrice: 180.00,
-  rating: 4.5,
-  reviewCount: 248,
-  isNew: true,
+  name: "Smartphone Galaxy S24 Ultra",
+  price: 1199.99,
+  originalPrice: 1399.99,
+  rating: 4.8,
+  reviewCount: 256,
+  isNew: false,
   images: [
-    "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=800&fit=crop",
-    "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800&h=800&fit=crop",
-    "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800&h=800&fit=crop",
-    "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=800&h=800&fit=crop"
+    "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=800&fit=crop",
+    "https://images.unsplash.com/photo-1512499617640-c74ae3a79d37?w=800&h=800&fit=crop",
+    "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=800&h=800&fit=crop",
+    "https://images.unsplash.com/photo-1574944985070-8f3ebc6b79d2?w=800&h=800&fit=crop"
   ],
   colors: [
-    { name: "Negro", value: "#1a1a1a", available: true },
-    { name: "Azul Marino", value: "#1e3a8a", available: true },
-    { name: "Gris", value: "#6b7280", available: false }
+    { name: "Negro Titanio", value: "#2c2c2c", available: true },
+    { name: "Blanco", value: "#f8f8f8", available: true },
+    { name: "Morado", value: "#8b5cf6", available: true },
+    { name: "Verde", value: "#22c55e", available: false }
   ],
   sizes: [
-    { name: "38", available: true },
-    { name: "39", available: true },
-    { name: "40", available: true },
-    { name: "41", available: true },
-    { name: "42", available: true },
-    { name: "43", available: true },
-    { name: "44", available: false },
-    { name: "45", available: true },
-    { name: "46", available: true }
+    { name: "128GB", available: true },
+    { name: "256GB", available: true },
+    { name: "512GB", available: true },
+    { name: "1TB", available: false }
   ],
   description: {
     title: "ACERCA DEL PRODUCTO",
     features: [
-      "Diseño exclusivo para running/training outdoor",
-      "Sin Goma ni Aleación",
-      "Envío gratuito incluido para miembros del club"
+      "Cámara principal de 200MP con zoom óptico 100x",
+      "Pantalla Dynamic AMOLED 2X de 6.8 pulgadas",
+      "Procesador Snapdragon 8 Gen 3 para máximo rendimiento",
+      "Batería de 5000mAh con carga rápida 45W",
+      "S Pen integrado con funciones avanzadas",
+      "Resistente al agua IP68"
     ]
   }
 }
@@ -43,50 +42,50 @@ export const mockProductDetails = {
 export const mockRelatedProducts = [
   {
     id: 2,
-    name: "ADIDAS 4DFWD X PARLEY RUNNING SHOES",
-    price: 125.00,
-    originalPrice: 180.00,
-    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
+    name: "Auriculares Bluetooth Sony WH-1000XM5",
+    price: 349.99,
+    originalPrice: 399.99,
+    image: "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400&h=400&fit=crop",
     badge: "Oferta",
     badgeColor: "red"
   },
   {
     id: 3,
-    name: "ADIDAS 4DFWD X PARLEY RUNNING SHOES",
-    price: 140.00,
-    image: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400&h=400&fit=crop",
+    name: "Laptop MacBook Air M2",
+    price: 1299.99,
+    image: "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=400&h=400&fit=crop",
     badge: "Nuevo",
     badgeColor: "blue"
   },
   {
     id: 4,
-    name: "ADIDAS 4DFWD X PARLEY RUNNING SHOES",
-    price: 135.00,
-    image: "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&h=400&fit=crop",
+    name: "Smartwatch Apple Watch Series 9",
+    price: 399.99,
+    image: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=400&h=400&fit=crop",
     badge: "Oferta",
     badgeColor: "green"
   },
   {
     id: 5,
-    name: "ADIDAS 4DFWD X PARLEY RUNNING SHOES",
-    price: 155.00,
-    image: "https://images.unsplash.com/photo-1460353581641-37baddab0fa2?w=400&h=400&fit=crop",
+    name: "Tablet iPad Pro 12.9",
+    price: 1099.99,
+    image: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=400&h=400&fit=crop",
     badge: "Nuevo",
     badgeColor: "orange"
   },
   {
     id: 6,
-    name: "ADIDAS 4DFWD X PARLEY RUNNING SHOES",
-    price: 165.00,
-    image: "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?w=400&h=400&fit=crop",
+    name: "Cámara Canon EOS R6 Mark II",
+    price: 2499.99,
+    image: "https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=400&h=400&fit=crop",
     badge: "Oferta",
     badgeColor: "blue"
   },
   {
     id: 7,
-    name: "ADIDAS 4DFWD X PARLEY RUNNING SHOES",
-    price: 145.00,
-    image: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=400&h=400&fit=crop",
+    name: "Monitor Gaming ASUS ROG 27",
+    price: 599.99,
+    image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=400&h=400&fit=crop",
     badge: "Nuevo",
     badgeColor: "red"
   }

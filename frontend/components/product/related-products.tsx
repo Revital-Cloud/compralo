@@ -26,7 +26,16 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
   products
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
-  const itemsPerView = 4
+  
+  // Responsive items per view
+  const getItemsPerView = () => {
+    if (typeof window === 'undefined') return 2
+    if (window.innerWidth >= 1024) return 4 // lg
+    if (window.innerWidth >= 768) return 3  // md
+    return 2 // sm and below
+  }
+  
+  const [itemsPerView, setItemsPerView] = useState(getItemsPerView())
   const maxIndex = Math.max(0, products.length - itemsPerView)
 
   const nextSlide = () => {
@@ -55,8 +64,8 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
           {title}
         </h2>
         
-        {/* Navigation */}
-        <div className="flex gap-2">
+        {/* Navigation - Hidden on mobile */}
+        <div className="hidden sm:flex gap-2">
           <Button
             variant="outline"
             size="icon"
@@ -89,7 +98,7 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
           {products.map((product) => (
             <div
               key={product.id}
-              className="w-1/4 flex-shrink-0 px-2"
+              className="w-1/2 md:w-1/3 lg:w-1/4 flex-shrink-0 px-2"
             >
               <div className="group cursor-pointer">
                 {/* Product Image */}

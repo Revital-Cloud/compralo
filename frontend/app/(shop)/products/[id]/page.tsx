@@ -41,11 +41,11 @@ const ProductPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4 md:py-8">
         {/* Product Details Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 lg:gap-12 mb-8 md:mb-16">
           {/* Product Gallery */}
-          <div className="space-y-4">
+          <div className="w-full">
             <ProductGallery
               images={mockProductDetails.images}
               productName={mockProductDetails.name}
@@ -53,7 +53,7 @@ const ProductPage = () => {
           </div>
 
           {/* Product Information */}
-          <div className="space-y-6">
+          <div className="w-full mt-4 lg:mt-0">
             <ProductInfo
               name={mockProductDetails.name}
               price={mockProductDetails.price}
@@ -70,7 +70,7 @@ const ProductPage = () => {
         </div>
 
         {/* Related Products Section */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-16">
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-8 md:pt-16">
           <RelatedProducts
             title="También te puede gustar"
             products={mockRelatedProducts}

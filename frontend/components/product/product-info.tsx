@@ -141,19 +141,19 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       {sizes.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900 dark:text-white">TALLA</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">OPCIONES</h3>
             <button className="text-sm text-blue-600 hover:underline">
-              GUÍA DE TALLAS
+              VER DETALLES
             </button>
           </div>
-          <div className="grid grid-cols-6 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
             {sizes.map((size) => (
               <button
                 key={size.name}
                 onClick={() => size.available && setSelectedSize(size.name)}
                 disabled={!size.available}
                 className={cn(
-                  "py-2 px-3 border rounded-md text-sm font-medium transition-colors",
+                  "py-2 px-2 sm:px-3 border rounded-md text-xs sm:text-sm font-medium transition-colors",
                   selectedSize === size.name
                     ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-black"
                     : "border-gray-300 hover:border-gray-400",
@@ -214,9 +214,12 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
           ACERCA DEL PRODUCTO
         </h3>
         <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-          <p>• Diseño exclusivo para running/training outdoor</p>
-          <p>• Sin Goma ni Aleación</p>
-          <p>• Envío gratuito incluido para miembros del club</p>
+          <p>• Cámara principal de 200MP con zoom óptico 100x</p>
+          <p>• Pantalla Dynamic AMOLED 2X de 6.8 pulgadas</p>
+          <p>• Procesador Snapdragon 8 Gen 3 para máximo rendimiento</p>
+          <p>• Batería de 5000mAh con carga rápida 45W</p>
+          <p>• S Pen integrado con funciones avanzadas</p>
+          <p>• Resistente al agua IP68</p>
         </div>
       </div>
     </div>
