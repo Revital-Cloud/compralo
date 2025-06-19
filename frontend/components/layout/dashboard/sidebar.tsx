@@ -8,6 +8,14 @@ import {
   IconInnerShadowTop,
   IconSearch,
   IconSettings,
+  IconShoppingCart,
+  IconPackage,
+  IconUsers,
+  IconTruck,
+  IconMail,
+  IconHeart,
+  IconBrandGoogle,
+  IconCreditCard
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/layout/dashboard/nav-main"
@@ -25,13 +33,13 @@ import {
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Admin User",
+    email: "admin@synkro.com",
+    avatar: "/avatars/admin.jpg",
   },
   navMain: [
     {
-      title: "Home",
+      title: "Dashboard",
       url: "/admin",
       icon: IconDashboard,
     },
@@ -39,21 +47,61 @@ const data = {
       title: "Analytics",
       url: "/admin/analytics",
       icon: IconChartBar,
+    },
+    {
+      title: "Productos",
+      url: "/admin/products",
+      icon: IconPackage,
+    },
+    {
+      title: "Órdenes",
+      url: "/admin/orders",
+      icon: IconShoppingCart,
+    },
+    {
+      title: "Usuarios",
+      url: "/admin/users",
+      icon: IconUsers,
+    },
+    {
+      title: "Envíos",
+      url: "/admin/shipping",
+      icon: IconTruck,
     }
   ],
   navSecondary: [
     {
-      title: "Settings",
-      url: "#",
+      title: "Configuración",
+      url: "/admin/settings",
       icon: IconSettings,
     },
     {
-      title: "Get Help",
+      title: "Email Marketing",
+      url: "/admin/emails",
+      icon: IconMail,
+    },
+    {
+      title: "Favoritos",
+      url: "/admin/favorites",
+      icon: IconHeart,
+    },
+    {
+      title: "Pagos",
+      url: "/admin/payments",
+      icon: IconCreditCard,
+    },
+    {
+      title: "SEO & Marketing",
+      url: "/admin/seo",
+      icon: IconBrandGoogle,
+    },
+    {
+      title: "Ayuda",
       url: "#",
       icon: IconHelp,
     },
     {
-      title: "Search",
+      title: "Buscar",
       url: "#",
       icon: IconSearch,
     },
@@ -70,9 +118,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               asChild
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
-              <a href="#">
+              <a href="/admin">
                 <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Acme Inc.</span>
+                <span className="text-base font-semibold">Synkro Admin</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
