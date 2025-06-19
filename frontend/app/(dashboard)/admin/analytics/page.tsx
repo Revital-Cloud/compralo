@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -19,8 +21,11 @@ import {
   IconHeart,
   IconRefresh,
   IconMapPin,
-  IconClock
+  IconClock,
+  IconDownload
 } from "@tabler/icons-react"
+import { ExportDialog } from "@/components/excel"
+import { toast } from "sonner"
 
 // Mock data para analytics avanzados
 const analyticsData = {
@@ -273,6 +278,16 @@ const HourlyTrafficChart = () => {
 }
 
 const AnalyticsPage = () => {
+  const handleExport = async (options: any) => {
+    try {
+      // Simular exportación
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      toast.success(`¡Datos de analytics exportados exitosamente en formato ${options.format}!`);
+    } catch (error) {
+      toast.error('Error al exportar los datos de analytics');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -288,10 +303,18 @@ const AnalyticsPage = () => {
             <IconRefresh className="h-4 w-4 mr-2" />
             Actualizar
           </Button>
-          <Button size="sm">
-            <IconDeviceAnalytics className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
+          <ExportDialog
+            title="Exportar Analytics"
+            description="Descarga los datos de analytics en Excel o CSV"
+            defaultFilename="analytics-reporte"
+            onExport={handleExport}
+            trigger={
+              <Button size="sm">
+                <IconDownload className="h-4 w-4 mr-2" />
+                Exportar
+              </Button>
+            }
+          />
         </div>
       </div>
 

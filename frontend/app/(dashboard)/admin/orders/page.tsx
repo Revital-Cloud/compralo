@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -14,6 +16,8 @@ import {
   IconX
 } from "@tabler/icons-react"
 import Link from "next/link"
+import { ExportDialog } from "@/components/excel"
+import { toast } from "sonner"
 
 // Mock data para órdenes
 const ordersData = [
@@ -142,6 +146,16 @@ const getStatusIcon = (status: string) => {
 }
 
 const OrdersPage = () => {
+  const handleExport = async (options: any) => {
+    try {
+      // Simular exportación
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      toast.success(`¡Órdenes exportadas exitosamente en formato ${options.format}!`);
+    } catch (error) {
+      toast.error('Error al exportar las órdenes');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -152,10 +166,18 @@ const OrdersPage = () => {
             Gestiona todas las órdenes de tu tienda
           </p>
         </div>
-        <Button>
-          <IconDownload className="h-4 w-4 mr-2" />
-          Exportar
-        </Button>
+        <ExportDialog
+          title="Exportar Órdenes"
+          description="Descarga los datos de órdenes en Excel o CSV"
+          defaultFilename="ordenes"
+          onExport={handleExport}
+          trigger={
+            <Button>
+              <IconDownload className="h-4 w-4 mr-2" />
+              Exportar
+            </Button>
+          }
+        />
       </div>
 
       {/* Estadísticas */}

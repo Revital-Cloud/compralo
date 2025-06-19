@@ -1,15 +1,22 @@
-import React from 'react'
+'use client';
+
+import React, { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { 
   IconPlus,
   IconDotsVertical,
   IconShoppingCart,
   IconPackage,
-  IconTrendingUp
+  IconTrendingUp,
+  IconUpload,
+  IconDownload
 } from "@tabler/icons-react"
 import Link from "next/link"
+import { ImportWizard } from "@/components/excel"
+import { toast } from "sonner"
 
 // Mock data para productos
 const productsData = [
@@ -136,6 +143,14 @@ const Pagination = () => (
 )
 
 const ProductsPage = () => {
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+
+  const handleImportComplete = (result: any) => {
+    toast.success(`¡Importación completada! ${result.successfulRows} productos agregados`);
+    setImportDialogOpen(false);
+    // Aquí podrías refrescar la lista de productos
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -146,12 +161,39 @@ const ProductsPage = () => {
             Inicio &gt; Todos los Productos
           </p>
         </div>
-        <Link href="/admin/products/create">
-          <Button className="bg-black hover:bg-gray-800 text-white">
-            <IconPlus className="h-4 w-4 mr-2" />
-            AGREGAR NUEVO PRODUCTO
-          </Button>
-        </Link>
+        <div className="flex gap-3">
+          {/* Botón de Importar */}
+          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <IconUpload className="h-4 w-4 mr-2" />
+                IMPORTAR PRODUCTOS
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+              <DialogHeader>
+                <DialogTitle>Importar Productos desde Excel/CSV</DialogTitle>
+              </DialogHeader>
+              <ImportWizard
+                title="Importar Productos"
+                description="Sube un archivo Excel o CSV con los datos de tus productos para agregarlos masivamente"
+                templateType="products"
+                requiredFields={['nombre', 'precio', 'stock', 'categoria']}
+                onImportComplete={handleImportComplete}
+                onCancel={() => setImportDialogOpen(false)}
+                className="border-0 shadow-none"
+              />
+            </DialogContent>
+          </Dialog>
+          
+          {/* Botón de Agregar */}
+          <Link href="/admin/products/create">
+            <Button className="bg-black hover:bg-gray-800 text-white">
+              <IconPlus className="h-4 w-4 mr-2" />
+              AGREGAR NUEVO PRODUCTO
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Products Grid */}
