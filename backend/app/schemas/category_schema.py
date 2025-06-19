@@ -14,34 +14,41 @@ class CategoryBase(BaseModel):
 
     Atributos:
         nom_categoria (str): Nombre de la categoría.
+        ind_activo (bool): Indica si la categoría está activa.
     """
-    id_categoria: Decimal = Field(..., description="Identificador único para la categoría.") # Generalmente no se incluye en Create, se genera por la DB. Puede estar en el modelo de respuesta.
     nom_categoria: str = Field(..., description="Nombre de la categoría.")
+    ind_activo: bool = Field(..., description="Indica si la categoría está activa.")
     
     class Config:
         from_attributes = True
       
 # Esquema para la Creación de Categorías
-class CategoryCreate(BaseModel):
+class CategoryCreate(CategoryBase):
     """
     Esquema para la Creación de Categorías.
     Hereda de `CategoryBase` y se utiliza para validar los datos
-    al crear una nueva categoría. Puede incluir campos adicionales o
-    modificar el comportamiento de los campos heredados si es necesario
-    para la operación de creación.
+    al crear una nueva categoría.
     """ 
-    nom_categoria: str = Field(..., description="Nombre de la categoría.")
-    
+    pass
 
-#Esquema para la Actualización de Categorías
+# Esquema para la Actualización de Categorías
 class CategoryUpdate(BaseModel):
-    pass    
-#Esquema para llamar una sola categoría
+    """
+    Esquema para la Actualización de Categorías.
+    Permite actualizar campos opcionales de una categoría existente.
+    """
+    nom_categoria: Optional[str] = Field(None, description="Nombre de la categoría.")
+    ind_activo: Optional[bool] = Field(None, description="Indica si la categoría está activa.")
+
+# Esquema para llamar una sola categoría
 class Category(CategoryBase):
+    """
+    Esquema para la respuesta de una categoría.
+    Incluye el ID de la categoría junto con los campos base.
+    """
     id_categoria: Decimal = Field(..., description="Identificador único para la categoría.")
         
-        
-#Mensajitos para las respuesta api en categorias
+# Mensajitos para las respuesta api en categorias
 class ResponseMessage(BaseModel):
     """
     Esquema para Mensajes de Respuesta Genéricos.

@@ -51,11 +51,8 @@ async def create_subline(
     
 @router.put("/sublines/{id_categoria}-{id_linea}-{id_sublinea}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_subline(
-    id_categoria:Decimal,
-    id_linea:Decimal,
-    id_sublinea:Decimal,
     db:Session = Depends(get_db),
-    nom_sublinea:str = Form(...)
+    subline_data: SublineUpdate = Body(...)
 ):
     """
     Actualiza una sublinea existente en la base de datos.
@@ -68,8 +65,8 @@ async def update_subline(
         nom_sublinea (str): El nombre de la sublinea.
     """
     try:
-        subline_data = SublineUpdate(nom_sublinea=nom_sublinea)
-        subline_service.update_subline(db, id_sublinea, id_categoria, id_linea, subline_data)
+        subline_data = SublineUpdate(nom_sublinea=subline_data.nom_sublinea)
+        subline_service.update_subline(db, subline_data)
         return ResponseMessage(message="Sublinea actualizada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

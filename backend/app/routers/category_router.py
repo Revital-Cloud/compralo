@@ -3,7 +3,7 @@ En este archivo se definen las rutas para manejar las operaciones CRUD de catego
 """
 
 from decimal import Decimal
-from fastapi import APIRouter, Depends, Form, HTTPException, status
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 
@@ -33,7 +33,7 @@ async def get_categories(db: Session = Depends(get_db)):
 
 
 # Ruta para obtener una categoría específica por ID
-@router.get("/categories/{id_categoria}",response_model=Category)
+@router.get("/categories/{id_categoria}", response_model=Category)
 async def get_category(id_categoria: Decimal, db: Session = Depends(get_db)):
     """
     Obtiene una categoría específica por su ID.
@@ -51,11 +51,11 @@ async def get_category(id_categoria: Decimal, db: Session = Depends(get_db)):
     return category
 
 
-#ruta para crear una nueva categoría
+# Ruta para crear una nueva categoría
 @router.post("/categories", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_category(
     db: Session = Depends(get_db),
-    nom_categoria: str = Form(...)
+    category_data: CategoryCreate = Body(...)
 ):
     """
     Crea una nueva categoría en la base de datos.
@@ -68,7 +68,7 @@ async def create_category(
         ResponseMessage: Mensaje de confirmación de creación exitosa.
     """
     try:
-        category_data = CategoryCreate(nom_categoria=nom_categoria)
+        category_data = CategoryCreate(nom_categoria=category_data.nom_categoria, ind_activo=category_data.ind_activo)
         category_service.create_category(db, category_data)
         return ResponseMessage(message="Categoría creada exitosamente")
     except Exception as e:
@@ -79,45 +79,47 @@ async def create_category(
 @router.put("/categories/{id_categoria}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_category(
     id_categoria: Decimal,
-    db: Session = Depends(get_db),
-    nom_categoria: str = Form(...)
-    ):
+    category_data: CategoryUpdate = Body(...),
+    db: Session = Depends(get_db)
+):
     """
     Actualiza una categoría existente en la base de datos.
 
     Args:
         id_categoria (Decimal): ID de la categoría a actualizar.
+        category_data (CategoryUpdate): Datos actualizados de la categoría.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
-        nom_categoria (str): Nuevo nombre de la categoría.
 
     Returns:
         ResponseMessage: Mensaje de confirmación de actualización exitosa.
     """
     try:
-        category_data = CategoryUpdate(nom_categoria=nom_categoria)
+        category_data = CategoryUpdate(nom_categoria=category_data.nom_categoria, ind_activo=category_data.ind_activo)
         category_service.update_category(db, id_categoria, category_data)
         return ResponseMessage(message="Categoría actualizada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
 # Ruta para eliminar una categoría existente   
-@router.delete("/categories/{id_categoria}",
-               response_model=ResponseMessage, status_code=status.HTTP_200_OK)
-async def delete_category(
-    id_categoria: Decimal, 
-    db: Session = Depends(get_db)):
+@router.put("/categories/{id_categoria}/deactivate",
+            response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def deactivate_category(
+    id_categoria: Decimal,
+    db: Session = Depends(get_db),
+    ):
     """
-    Elimina una categoría existente de la base de datos.
+    Desactiva una categoría existente de la base de datos.
 
     Args:
-        id_categoria (Decimal): ID de la categoría a eliminar.
+        id_categoria (Decimal): ID de la categoría a desactivar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
 
     Returns:
         ResponseMessage: Mensaje de confirmación de eliminación exitosa.
     """
     try:
-        category_service.delete_category(db, id_categoria)
-        return ResponseMessage(message="Categoría eliminada exitosamente")
+        
+        category_service.deactivate_category(db, id_categoria)
+        return ResponseMessage(message="Categoría desactivada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
