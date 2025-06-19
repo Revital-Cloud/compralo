@@ -1,0 +1,8 @@
+export { default as NewsletterSection } from './newsletter-section'
+export { default as AboutSection } from './about-section'
+export { default as CategoriesSection } from './categories-section'
+export { default as SocialSection } from './social-section'
+export { default as FeaturesSection } from './features-section'
+export { default as PaymentMethods } from './payment-methods'
+export { default as LegalLinks } from './legal-links'
+export { default as CopyrightSection } from './copyright-section' 

@@ -1,0 +1,7 @@
+export { default as ProductCard } from './product-card'
+export { default as ProductGallery } from './product-gallery'
+export { default as ProductInfo } from './product-info'
+export { default as RelatedProducts } from './related-products'
+export { default as ProductFilters } from './product-filters'
+export { default as ProductGrid } from './product-grid'
+export { default as ProductList } from './product-list' 

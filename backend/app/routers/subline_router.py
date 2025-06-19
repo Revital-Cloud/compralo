@@ -5,7 +5,7 @@ Define las rutas y endpoints relacionados con la gestión de sublineas,
 incluyendo la creación, actualización y visualización de sublineas.
 """
 from decimal import Decimal
-from fastapi import APIRouter, Depends, Form, HTTPException, status
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 from schemas.subline_schema import SublineCreate, SublineUpdate, Subline, ResponseMessage
@@ -29,12 +29,11 @@ async def get_sublines(db:Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron sublineas")
     return sublines
 
+#ruta para crear una nueva sublinea con JSON body
 @router.post("/sublines", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_subline(
     db:Session = Depends(get_db),
-    id_categoria:Decimal = Form(...),
-    id_linea:Decimal = Form(...),
-    nom_sublinea:str = Form(...)
+    subline_data: SublineCreate = Body(...)
 ):
     """
     Crea una nueva sublinea en la base de datos.
@@ -46,7 +45,7 @@ async def create_subline(
         nom_sublinea (str): El nombre de la sublinea.
     """
     try:
-        subline_data = SublineCreate(id_categoria=id_categoria, id_linea=id_linea, nom_sublinea=nom_sublinea)
+        subline_data = SublineCreate(id_categoria=subline_data.id_categoria, id_linea=subline_data.id_linea, nom_sublinea=subline_data.nom_sublinea)
         subline_service.create_subline(db, subline_data)
         return ResponseMessage(message="Sublinea creada exitosamente")
     except Exception as e:
