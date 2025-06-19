@@ -40,9 +40,7 @@ async def create_subline(
 
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
-        id_categoria (Decimal): El ID de la categoría asociada.
-        id_linea (Decimal): El ID de la linea asociada.
-        nom_sublinea (str): El nombre de la sublinea.
+        subline_data (SublineCreate): Los datos de la sublinea a crear.
     """
     try:
         subline_data = SublineCreate(id_categoria=subline_data.id_categoria, id_linea=subline_data.id_linea, nom_sublinea=subline_data.nom_sublinea)
