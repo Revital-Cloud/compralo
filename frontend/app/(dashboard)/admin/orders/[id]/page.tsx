@@ -24,27 +24,27 @@ import Link from "next/link"
 // Mock data para la orden específica
 const orderDetails = {
   id: "#6743",
-  status: "Pending",
-  dateRange: "Feb 16,2022 - Feb 20,2022",
+  status: "Pendiente",
+  dateRange: "16 Feb, 2024 - 20 Feb, 2024",
   customer: {
-    fullName: "Jane Cooper",
-    email: "janecooper@gmail.com",
-    phone: "+900 231 7372"
+    fullName: "Carmen López",
+    email: "carmen.lopez@ejemplo.com",
+    phone: "+54 11 2345-6789"
   },
   orderInfo: {
-    shipping: "Next express",
-    paymentMethod: "Paypal",
-    status: "Pending"
+    shipping: "Envío Express",
+    paymentMethod: "Mercado Pago",
+    status: "Pendiente"
   },
   deliverTo: {
-    address: "Santa Ana, Illinois",
-    details: "62342 3456 Westminster Rd,",
+    address: "Buenos Aires, Argentina",
+    details: "Av. Corrientes 1234, CABA",
     blocks: 5
   },
   paymentInfo: {
-    card: "Master Card •••• •••• 4557",
-    businessName: "Jane Cooper",
-    phone: "+900 231 7372"
+    card: "Visa •••• •••• 4557",
+    businessName: "Carmen López",
+    phone: "+54 11 2345-6789"
   },
   products: [
     {
@@ -93,9 +93,9 @@ const OrderDetailsPage = ({ params }: { params: { id: string } }) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Orders Details</h1>
+          <h1 className="text-2xl font-bold">Detalles de la Orden</h1>
           <p className="text-muted-foreground">
-            Home &gt; Order List &gt; Order Details
+            Inicio &gt; Lista de Órdenes &gt; Detalles de la Orden
           </p>
         </div>
       </div>
@@ -104,7 +104,7 @@ const OrderDetailsPage = ({ params }: { params: { id: string } }) => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center space-x-4">
           <div>
-            <span className="text-sm text-muted-foreground">Orders ID: </span>
+            <span className="text-sm text-muted-foreground">ID de Orden: </span>
             <span className="font-bold">{orderDetails.id}</span>
           </div>
           <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">
@@ -119,21 +119,21 @@ const OrderDetailsPage = ({ params }: { params: { id: string } }) => {
           <div className="flex items-center space-x-2">
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger className="w-32">
-                <SelectValue placeholder="Change Status" />
+                <SelectValue placeholder="Cambiar Estado" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Pending">Pending</SelectItem>
-                <SelectItem value="Processing">Processing</SelectItem>
-                <SelectItem value="Shipped">Shipped</SelectItem>
-                <SelectItem value="Delivered">Delivered</SelectItem>
-                <SelectItem value="Canceled">Canceled</SelectItem>
+                <SelectItem value="Pendiente">Pendiente</SelectItem>
+                <SelectItem value="Procesando">Procesando</SelectItem>
+                <SelectItem value="Enviado">Enviado</SelectItem>
+                <SelectItem value="Entregado">Entregado</SelectItem>
+                <SelectItem value="Cancelado">Cancelado</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="outline" size="sm">
               <IconRefresh className="h-4 w-4" />
             </Button>
             <Button size="sm">
-              Save
+              Guardar
             </Button>
           </div>
         </div>
@@ -146,12 +146,12 @@ const OrderDetailsPage = ({ params }: { params: { id: string } }) => {
           <CardHeader className="pb-3">
             <div className="flex items-center space-x-2">
               <IconUser className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-base">Customer</CardTitle>
+              <CardTitle className="text-base">Cliente</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <p className="text-sm text-muted-foreground">Full Name:</p>
+              <p className="text-sm text-muted-foreground">Nombre Completo:</p>
               <p className="font-medium">{orderDetails.customer.fullName}</p>
             </div>
             <div>
@@ -159,11 +159,11 @@ const OrderDetailsPage = ({ params }: { params: { id: string } }) => {
               <p className="font-medium">{orderDetails.customer.email}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Phone:</p>
+              <p className="text-sm text-muted-foreground">Teléfono:</p>
               <p className="font-medium">{orderDetails.customer.phone}</p>
             </div>
             <Button variant="outline" size="sm" className="w-full mt-3">
-              View profile
+              Ver perfil
             </Button>
           </CardContent>
         </Card>
@@ -173,24 +173,24 @@ const OrderDetailsPage = ({ params }: { params: { id: string } }) => {
           <CardHeader className="pb-3">
             <div className="flex items-center space-x-2">
               <IconInfoCircle className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-base">Order Info</CardTitle>
+              <CardTitle className="text-base">Información de la Orden</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <p className="text-sm text-muted-foreground">Shipping:</p>
+              <p className="text-sm text-muted-foreground">Envío:</p>
               <p className="font-medium">{orderDetails.orderInfo.shipping}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Payment Method:</p>
+              <p className="text-sm text-muted-foreground">Método de Pago:</p>
               <p className="font-medium">{orderDetails.orderInfo.paymentMethod}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Status:</p>
+              <p className="text-sm text-muted-foreground">Estado:</p>
               <p className="font-medium">{orderDetails.orderInfo.status}</p>
             </div>
             <Button variant="outline" size="sm" className="w-full mt-3">
-              Download info
+              Descargar información
             </Button>
           </CardContent>
         </Card>
@@ -200,23 +200,23 @@ const OrderDetailsPage = ({ params }: { params: { id: string } }) => {
           <CardHeader className="pb-3">
             <div className="flex items-center space-x-2">
               <IconTruck className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-base">Deliver to</CardTitle>
+              <CardTitle className="text-base">Entregar a</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <p className="text-sm text-muted-foreground">Address:</p>
+              <p className="text-sm text-muted-foreground">Dirección:</p>
               <p className="font-medium">{orderDetails.deliverTo.address}</p>
             </div>
             <div>
               <p className="font-medium">{orderDetails.deliverTo.details}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Blocks:</p>
+              <p className="text-sm text-muted-foreground">Bloques:</p>
               <p className="font-medium">{orderDetails.deliverTo.blocks}</p>
             </div>
             <Button variant="outline" size="sm" className="w-full mt-3">
-              View profile
+              Ver perfil
             </Button>
           </CardContent>
         </Card>
@@ -227,7 +227,7 @@ const OrderDetailsPage = ({ params }: { params: { id: string } }) => {
         {/* Payment Info */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Payment Info</CardTitle>
+            <CardTitle className="text-base">Información de Pago</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center space-x-2">
@@ -237,11 +237,11 @@ const OrderDetailsPage = ({ params }: { params: { id: string } }) => {
               <span className="font-medium">{orderDetails.paymentInfo.card}</span>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Business Name:</p>
+              <p className="text-sm text-muted-foreground">Nombre del Negocio:</p>
               <p className="font-medium">{orderDetails.paymentInfo.businessName}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Phone:</p>
+              <p className="text-sm text-muted-foreground">Teléfono:</p>
               <p className="font-medium">{orderDetails.paymentInfo.phone}</p>
             </div>
           </CardContent>
@@ -250,13 +250,13 @@ const OrderDetailsPage = ({ params }: { params: { id: string } }) => {
         {/* Notes */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Note</CardTitle>
+            <CardTitle className="text-base">Notas</CardTitle>
           </CardHeader>
           <CardContent>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Type some notes"
+              placeholder="Escribe algunas notas"
               className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
           </CardContent>
@@ -266,7 +266,7 @@ const OrderDetailsPage = ({ params }: { params: { id: string } }) => {
       {/* Products */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Products</CardTitle>
+          <CardTitle>Productos</CardTitle>
           <Button variant="ghost" size="sm">
             <IconDotsVertical className="h-4 w-4" />
           </Button>
@@ -278,9 +278,9 @@ const OrderDetailsPage = ({ params }: { params: { id: string } }) => {
               {/* Table Header */}
               <div className="grid grid-cols-6 gap-4 pb-4 border-b font-medium text-sm text-muted-foreground">
                 <div></div>
-                <div>Product Name</div>
-                <div>Order ID</div>
-                <div>Quantity</div>
+                <div>Nombre del Producto</div>
+                <div>ID de Orden</div>
+                <div>Cantidad</div>
                 <div></div>
                 <div className="text-right">Total</div>
               </div>
@@ -341,11 +341,11 @@ const OrderDetailsPage = ({ params }: { params: { id: string } }) => {
               <span className="font-medium">${orderDetails.summary.subtotal}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Tax (20%)</span>
+              <span className="text-muted-foreground">Impuestos (20%)</span>
               <span className="font-medium">${orderDetails.summary.tax}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Discount</span>
+              <span className="text-muted-foreground">Descuento</span>
               <span className="font-medium">${orderDetails.summary.discount}</span>
             </div>
             <div className="flex justify-between items-center text-lg font-bold pt-2 border-t">

@@ -16,21 +16,21 @@ import Link from "next/link"
 const ProductCreatePage = () => {
   const [productData, setProductData] = useState({
     name: 'Adidas Ultra boost',
-    description: 'Long distance running requires a lot from athletes.',
-    category: 'Sneaker',
+    description: 'Las carreras de larga distancia requieren mucho de los atletas.',
+    category: 'Zapatillas',
     brand: 'Adidas',
     sku: '#37453',
     stockQuantity: '21',
     regularPrice: '$110.40',
     salePrice: '$450',
-    tags: ['Adidas', 'Shoes', 'Sneakers', 'Ultra boost']
+    tags: ['Adidas', 'Calzado', 'Zapatillas', 'Ultra boost']
   })
 
   const [images, setImages] = useState([
-    { id: 1, name: 'Product thumbnail.png', uploaded: true },
-    { id: 2, name: 'Product thumbnail.png', uploaded: true },
-    { id: 3, name: 'Product thumbnail.png', uploaded: true },
-    { id: 4, name: 'Product thumbnail.png', uploaded: true }
+    { id: 1, name: 'Miniatura del producto.png', uploaded: true },
+    { id: 2, name: 'Miniatura del producto.png', uploaded: true },
+    { id: 3, name: 'Miniatura del producto.png', uploaded: true },
+    { id: 4, name: 'Miniatura del producto.png', uploaded: true }
   ])
 
   const handleInputChange = (field: string, value: string) => {
@@ -56,9 +56,9 @@ const ProductCreatePage = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Product Details</h1>
+          <h1 className="text-2xl font-bold">Detalles del Producto</h1>
           <p className="text-muted-foreground">
-            Home &gt; All Products &gt; Product Details
+            Inicio &gt; Todos los Productos &gt; Detalles del Producto
           </p>
         </div>
       </div>
@@ -72,45 +72,45 @@ const ProductCreatePage = () => {
             <CardContent className="p-6 space-y-4">
               {/* Product Name */}
               <div className="space-y-2">
-                <Label htmlFor="productName">Product Name</Label>
+                <Label htmlFor="productName">Nombre del Producto</Label>
                 <Input
                   id="productName"
                   value={productData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="Enter product name"
+                  placeholder="Ingresa el nombre del producto"
                 />
               </div>
 
               {/* Description */}
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description">Descripción</Label>
                 <textarea
                   id="description"
                   value={productData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   className="w-full min-h-[120px] px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Enter product description"
+                  placeholder="Ingresa la descripción del producto"
                 />
               </div>
 
               {/* Category and Brand */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category">Categoría</Label>
                   <Input
                     id="category"
                     value={productData.category}
                     onChange={(e) => handleInputChange('category', e.target.value)}
-                    placeholder="Enter category"
+                    placeholder="Ingresa la categoría"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="brand">Brand Name</Label>
+                  <Label htmlFor="brand">Nombre de Marca</Label>
                   <Input
                     id="brand"
                     value={productData.brand}
                     onChange={(e) => handleInputChange('brand', e.target.value)}
-                    placeholder="Enter brand name"
+                    placeholder="Ingresa el nombre de la marca"
                   />
                 </div>
               </div>
@@ -123,16 +123,16 @@ const ProductCreatePage = () => {
                     id="sku"
                     value={productData.sku}
                     onChange={(e) => handleInputChange('sku', e.target.value)}
-                    placeholder="Enter SKU"
+                    placeholder="Ingresa el SKU"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="stockQuantity">Stock Quantity</Label>
+                  <Label htmlFor="stockQuantity">Cantidad en Stock</Label>
                   <Input
                     id="stockQuantity"
                     value={productData.stockQuantity}
                     onChange={(e) => handleInputChange('stockQuantity', e.target.value)}
-                    placeholder="Enter stock quantity"
+                    placeholder="Ingresa la cantidad en stock"
                   />
                 </div>
               </div>
@@ -140,28 +140,28 @@ const ProductCreatePage = () => {
               {/* Prices */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="regularPrice">Regular Price</Label>
+                  <Label htmlFor="regularPrice">Precio Regular</Label>
                   <Input
                     id="regularPrice"
                     value={productData.regularPrice}
                     onChange={(e) => handleInputChange('regularPrice', e.target.value)}
-                    placeholder="Enter regular price"
+                    placeholder="Ingresa el precio regular"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="salePrice">Sale Price</Label>
+                  <Label htmlFor="salePrice">Precio de Oferta</Label>
                   <Input
                     id="salePrice"
                     value={productData.salePrice}
                     onChange={(e) => handleInputChange('salePrice', e.target.value)}
-                    placeholder="Enter sale price"
+                    placeholder="Ingresa el precio de oferta"
                   />
                 </div>
               </div>
 
               {/* Tags */}
               <div className="space-y-2">
-                <Label>Tag</Label>
+                <Label>Etiquetas</Label>
                 <div className="flex flex-wrap gap-2">
                   {productData.tags.map((tag, index) => (
                     <Badge key={index} variant="secondary" className="flex items-center gap-1">
@@ -196,14 +196,14 @@ const ProductCreatePage = () => {
           {/* Product Gallery */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Product Gallery</CardTitle>
+              <CardTitle className="text-lg">Galería del Producto</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Upload Area */}
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                 <IconUpload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600 mb-1">Drop your images here, or browse</p>
-                <p className="text-xs text-gray-400">jpeg, png are allowed</p>
+                <p className="text-sm text-gray-600 mb-1">Arrastra tus imágenes aquí, o navega</p>
+                <p className="text-xs text-gray-400">jpeg, png están permitidos</p>
               </div>
 
               {/* Image List */}
@@ -237,26 +237,26 @@ const ProductCreatePage = () => {
       <div className="flex items-center justify-end space-x-4 pt-6 border-t">
         <Link href="/admin/products">
           <Button variant="outline">
-            CANCEL
+            CANCELAR
           </Button>
         </Link>
         <Button variant="destructive">
-          DELETE
+          ELIMINAR
         </Button>
         <Button className="bg-black hover:bg-gray-800 text-white">
-          UPDATE
+          ACTUALIZAR
         </Button>
       </div>
 
       {/* Footer */}
       <div className="border-t pt-4 mt-8">
         <div className="flex items-center justify-between text-sm text-gray-600">
-          <span>© 2023 - Joda Dashboard</span>
+          <span>© 2024 - Synkro Dashboard</span>
           <div className="flex space-x-4">
-            <a href="#" className="hover:text-gray-900">About</a>
-            <a href="#" className="hover:text-gray-900">Careers</a>
-            <a href="#" className="hover:text-gray-900">Policy</a>
-            <a href="#" className="hover:text-gray-900">Contact</a>
+            <a href="#" className="hover:text-gray-900">Acerca de</a>
+            <a href="#" className="hover:text-gray-900">Carreras</a>
+            <a href="#" className="hover:text-gray-900">Política</a>
+            <a href="#" className="hover:text-gray-900">Contacto</a>
           </div>
         </div>
       </div>

@@ -33,7 +33,7 @@ import {
 
 const data = {
   user: {
-    name: "Admin User",
+    name: "Usuario Admin",
     email: "admin@synkro.com",
     avatar: "/avatars/admin.jpg",
   },
@@ -44,7 +44,7 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "Analytics",
+      title: "Analíticas",
       url: "/admin/analytics",
       icon: IconChartBar,
     },
@@ -76,7 +76,7 @@ const data = {
       icon: IconSettings,
     },
     {
-      title: "Email Marketing",
+      title: "Marketing por Email",
       url: "/admin/emails",
       icon: IconMail,
     },
@@ -91,7 +91,7 @@ const data = {
       icon: IconCreditCard,
     },
     {
-      title: "SEO & Marketing",
+      title: "SEO y Marketing",
       url: "/admin/seo",
       icon: IconBrandGoogle,
     },

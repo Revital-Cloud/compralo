@@ -20,12 +20,12 @@ const ordersData = [
   {
     id: "#2456",
     customer: {
-      name: "Leo Goose",
-      email: "leo@example.com",
-      avatar: "/avatars/leo.jpg"
+      name: "Carlos Mendoza",
+      email: "carlos@ejemplo.com",
+      avatar: "/avatars/carlos.jpg"
     },
     product: "Adidas Ultra boost",
-    date: "Jan 8th, 2022",
+    date: "8 Ene, 2024",
     status: "delivered",
     amount: 200.00,
     items: 1
@@ -33,12 +33,12 @@ const ordersData = [
   {
     id: "#2455",
     customer: {
-      name: "Jaxson Korsgaard",
-      email: "jaxson@example.com",
-      avatar: "/avatars/jaxson.jpg"
+      name: "María González",
+      email: "maria@ejemplo.com",
+      avatar: "/avatars/maria.jpg"
     },
     product: "Adidas Ultra boost",
-    date: "Jan 7th, 2022",
+    date: "7 Ene, 2024",
     status: "canceled",
     amount: 200.00,
     items: 2
@@ -46,12 +46,12 @@ const ordersData = [
   {
     id: "#2454",
     customer: {
-      name: "Talon Bostosh",
-      email: "talon@example.com",
-      avatar: "/avatars/talon.jpg"
+      name: "Luis Rodríguez",
+      email: "luis@ejemplo.com",
+      avatar: "/avatars/luis.jpg"
     },
     product: "Adidas Ultra boost",
-    date: "Jan 6th, 2022",
+    date: "6 Ene, 2024",
     status: "delivered",
     amount: 200.00,
     items: 1
@@ -59,12 +59,12 @@ const ordersData = [
   {
     id: "#2453",
     customer: {
-      name: "Ryan Philips",
-      email: "ryan@example.com",
-      avatar: "/avatars/ryan.jpg"
+      name: "Ana Martínez",
+      email: "ana@ejemplo.com",
+      avatar: "/avatars/ana.jpg"
     },
     product: "Adidas Ultra boost",
-    date: "Jan 5th, 2022",
+    date: "5 Ene, 2024",
     status: "canceled",
     amount: 200.00,
     items: 3
@@ -72,12 +72,12 @@ const ordersData = [
   {
     id: "#2452",
     customer: {
-      name: "Emerson Baptista",
-      email: "emerson@example.com",
-      avatar: "/avatars/emerson.jpg"
+      name: "Diego López",
+      email: "diego@ejemplo.com",
+      avatar: "/avatars/diego.jpg"
     },
     product: "Adidas Ultra boost",
-    date: "Jan 4th, 2022",
+    date: "4 Ene, 2024",
     status: "delivered",
     amount: 200.00,
     items: 1
@@ -85,12 +85,12 @@ const ordersData = [
   {
     id: "#2451",
     customer: {
-      name: "Jaxson Galonil",
-      email: "jaxson.g@example.com",
-      avatar: "/avatars/jaxson2.jpg"
+      name: "Laura Fernández",
+      email: "laura@ejemplo.com",
+      avatar: "/avatars/laura.jpg"
     },
     product: "Adidas Ultra boost",
-    date: "Jan 3th, 2022",
+    date: "3 Ene, 2024",
     status: "pending",
     amount: 200.00,
     items: 2
@@ -110,15 +110,15 @@ const orderStats = {
 const getStatusBadge = (status: string) => {
   switch (status) {
     case 'delivered':
-      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Delivered</Badge>
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Entregado</Badge>
     case 'canceled':
-      return <Badge variant="destructive">Canceled</Badge>
+      return <Badge variant="destructive">Cancelado</Badge>
     case 'pending':
-      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pending</Badge>
+      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Pendiente</Badge>
     case 'processing':
-      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Processing</Badge>
+      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Procesando</Badge>
     case 'shipped':
-      return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Shipped</Badge>
+      return <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">Enviado</Badge>
     default:
       return <Badge variant="secondary">{status}</Badge>
   }
