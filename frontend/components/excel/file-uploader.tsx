@@ -6,7 +6,7 @@ import { Upload, FileSpreadsheet, FileText, X, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogDescription } from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription } from '@/components/ui/alert-dialog';
 
 import { cn } from '@/lib/utils';
 import { ImportOptions } from '@/types/data';
@@ -294,8 +294,12 @@ export function FileUploader({
       {/* Error */}
       {error && (
         <AlertDialog>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDialogDescription>{error}</AlertDialogDescription>
+          <AlertDialogContent>
+            <AlertDialogCancel>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDialogDescription>{error}</AlertDialogDescription>
+            </AlertDialogCancel>
+          </AlertDialogContent>
         </AlertDialog>
       )}
     </div>
