@@ -47,7 +47,11 @@ class EmailService:
             self.from_email = settings.RESEND_FROM_EMAIL
             self.from_name = settings.RESEND_FROM_NAME
             
-            logger.info("EmailService inicializado correctamente")
+            # Debug logging para verificar configuración
+            logger.info(f"EmailService inicializado correctamente")
+            logger.info(f"RESEND_FROM_EMAIL: '{self.from_email}'")
+            logger.info(f"RESEND_FROM_NAME: '{self.from_name}'")
+            logger.info(f"Formato final: '{self.from_name} <{self.from_email}>'")
             
         except Exception as e:
             logger.error(f"Error al inicializar EmailService: {str(e)}")
@@ -74,9 +78,16 @@ class EmailService:
                     **email_data.template_data
                 )
             
+            # Preparar el campo from
+            from_field = f"{self.from_name} <{self.from_email}>"
+            
+            # Debug logging
+            logger.info(f"Enviando email desde: '{from_field}'")
+            logger.info(f"Hacia: '{email_data.to}'")
+            
             # Enviar email con Resend
             response = resend.Emails.send({
-                "from": f"{self.from_name} <{self.from_email}>",
+                "from": from_field,
                 "to": email_data.to,
                 "subject": email_data.subject,
                 "html": html_content,
