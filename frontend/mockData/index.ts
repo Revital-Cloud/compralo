@@ -19,6 +19,18 @@ export {
   type Category 
 } from '@/components/layout/shop/categories/mockData';
 
+// Cart mock data
+export { 
+  mockCartItems,
+  mockRecommendedProducts,
+  cartConfig,
+  cartTexts,
+  calculateCartTotals,
+  type CartItem,
+  type RecommendedProduct,
+  type CartTexts
+} from './cart-data';
+
 // Configuración de mock data
 export const mockConfig = {
   useRealImages: false, // Si es true, usa imágenes reales de Unsplash
