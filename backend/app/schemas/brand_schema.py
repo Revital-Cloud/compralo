@@ -21,10 +21,21 @@ class BrandBase(BaseModel):
         nom_marca (str): Nombre de la marca.
     """
     nom_marca: str = Field(..., description="Nombre de la marca")
+    ind_activo: bool = Field(..., description="Indica si la marca está activa")
 
     
     class Config:
         from_attributes = True
+    
+class Brand(BrandBase):
+    """
+    Esquema para la Visualización de Marcas.
+    
+    Hereda de `BrandBase` y se utiliza como el modelo de respuesta
+    principal para los endpoints que devuelven información de marcas.
+    Incluye el `id_marca` y los campos de auditoría.
+    """
+    id_marca: Decimal
     
 class BrandCreate(BrandBase):
     """
@@ -43,17 +54,7 @@ class BrandUpdate(BrandBase):
     Todos los campos son opcionales, permitiendo actualizaciones parciales.
     """
     nom_marca: Optional[str] = None
-    
-class Brand(BrandBase):
-    """
-    Esquema para la Visualización de Marcas.
-    
-    Hereda de `BrandBase` y se utiliza como el modelo de respuesta
-    principal para los endpoints que devuelven información de marcas.
-    Incluye el `id_marca` y los campos de auditoría.
-    """
-    id_marca: Decimal
-    
+    ind_activo: Optional[bool] = None
     
 class ResponseMessage(BaseModel):
     """

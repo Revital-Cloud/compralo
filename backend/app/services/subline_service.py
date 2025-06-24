@@ -16,7 +16,8 @@ def get_sublines(db:Session):
             id_categoria,
             id_linea,
             id_sublinea,
-            nom_sublinea
+            nom_sublinea,
+            ind_activo
         FROM tab_sublineas
         """)
         result = db.execute(query)
@@ -42,7 +43,8 @@ def create_subline(db:Session, subline:SublineCreate):
         SELECT fun_insert_sublinea(
             :id_categoria,
             :id_linea,
-            :nom_sublinea
+            :nom_sublinea,
+            :ind_activo
         )
         """)
         result = db.execute(query, params)
@@ -53,7 +55,7 @@ def create_subline(db:Session, subline:SublineCreate):
         db.rollback()
         raise Exception(f"Error al crear sublinea: {str(e)}")
     
-def update_subline(db:Session, id_sublinea:Decimal, id_categoria:Decimal, id_linea:Decimal, subline:SublineUpdate):
+def update_subline(db:Session,  id_categoria:Decimal, id_linea:Decimal, id_sublinea:Decimal, subline:SublineUpdate):
     """
     Actualiza una sublinea existente en la base de datos.
 
@@ -68,20 +70,21 @@ def update_subline(db:Session, id_sublinea:Decimal, id_categoria:Decimal, id_lin
         subline (SublineUpdate): Un objeto Pydantic `SublineUpdate` con los datos a actualizar.
     """
     try:
-        update_params = subline.model_dump(exclude_unset=True)
-        update_params['id_categoria'] = id_categoria
-        update_params['id_linea'] = id_linea
-        update_params['id_sublinea'] = id_sublinea
+        params = subline.model_dump(exclude_unset=True)
+        params['id_categoria'] = id_categoria
+        params['id_linea'] = id_linea
+        params['id_sublinea'] = id_sublinea
         
         query = text("""
         SELECT fun_update_sublinea(
             :id_categoria,
             :id_linea,
             :id_sublinea,
-            :nom_sublinea
+            :nom_sublinea,
+            :ind_activo
         )
         """)
-        result = db.execute(query, update_params)
+        result = db.execute(query, params)
         fetched_result = result.fetchone()
         db.commit()
         return fetched_result[0] if fetched_result else None
@@ -89,16 +92,15 @@ def update_subline(db:Session, id_sublinea:Decimal, id_categoria:Decimal, id_lin
         db.rollback()
         raise Exception(f"Error al actualizar sublinea: {str(e)}")
     
-def delete_subline(db:Session, id_sublinea:Decimal, id_categoria:Decimal, id_linea:Decimal):
+def deactivate_subline(db: Session, id_categoria: Decimal, id_linea: Decimal, id_sublinea: Decimal):
     """
-    Elimina una sublinea existente en la base de datos.
-
-    Utiliza la función de base de datos `fun_delete_sublinea` para eliminar
+    Desactiva una sublinea existente en la base de datos.
+    Utiliza la función de base de datos `fun_delete_sublinea` para desactivar
     una sublinea existente, identificado por `id_sublinea`.
     """
     try:
         query = text("""
-        SELECT fun_delete_sublinea(
+        SELECT fun_deactivate_sublinea(
             :id_categoria,
             :id_linea,
             :id_sublinea
@@ -107,12 +109,9 @@ def delete_subline(db:Session, id_sublinea:Decimal, id_categoria:Decimal, id_lin
         result = db.execute(query, {'id_categoria': id_categoria, 'id_linea': id_linea, 'id_sublinea': id_sublinea})
         fetched_result = result.fetchone()
         db.commit()
-        if fetched_result and isinstance(fetched_result[0], str):
-            return {"message": fetched_result[0]}
-        else:
-            return {"message": "Sublinea eliminada correctamente"}
+        return  fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al eliminar sublinea: {str(e)}")
+        raise Exception(f"Error al desactivar sublinea: {str(e)}")
         
         

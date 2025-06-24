@@ -5,13 +5,13 @@ Define las rutas y endpoints relacionados con la gestión de marcas,
 incluyendo la creación, actualización y visualización de marcas.
 """
 from decimal import Decimal
-from fastapi import APIRouter, Depends, Form, HTTPException, status
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 from schemas.brand_schema import BrandCreate, BrandUpdate, Brand, ResponseMessage
 from services import brand_service
 
-router = APIRouter()
+router = APIRouter(tags=["Marcas"])
 
 @router.get("/brands", response_model=list[Brand])
 async def get_brands(db:Session = Depends(get_db)):
@@ -35,7 +35,7 @@ async def get_brands(db:Session = Depends(get_db)):
 @router.post("/brands", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_brand(
     db:Session = Depends(get_db),
-    nom_marca:str = Form(...),
+    brand_data:BrandCreate = Body(...)
 ):
     """
     Crea una nueva marca en la base de datos.
@@ -43,9 +43,10 @@ async def create_brand(
     Args:
         db (Session): Sesión de la base de datos inyectada por FastAPI.
         nom_marca (str): Nombre de la marca.
+        ind_activo (bool): Indica si la marca está activa.
     """
     try:
-        brand_data = BrandCreate(nom_marca=nom_marca)
+        brand_data = BrandCreate(nom_marca=brand_data.nom_marca, ind_activo=brand_data.ind_activo)
         brand_service.create_brand(db, brand_data)
         return ResponseMessage(message="Marca creada exitosamente")
     except Exception as e:
@@ -54,8 +55,8 @@ async def create_brand(
 @router.put("/brands/{id_marca}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_brand(
     id_marca:Decimal,
-    db:Session = Depends(get_db),
-    nom_marca:str = Form(...),
+    brand_data:BrandUpdate = Body(...),
+    db:Session = Depends(get_db)
 ):
     """
     Actualiza una marca existente en la base de datos.
@@ -66,23 +67,23 @@ async def update_brand(
         nom_marca (str): Nombre de la marca.
     """
     try:
-        brand_data = BrandUpdate(nom_marca=nom_marca)
+        brand_data = BrandUpdate(nom_marca=brand_data.nom_marca, ind_activo=brand_data.ind_activo)
         brand_service.update_brand(db, id_marca, brand_data)
         return ResponseMessage(message="Marca actualizada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
-@router.delete("/brands/{id_marca}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
-async def delete_brand(id_marca:Decimal, db:Session = Depends(get_db)):
+@router.put("/brands/{id_marca}/deactivate", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def deactivate_brand(id_marca:Decimal, db:Session = Depends(get_db)):
     """
-    Elimina una marca existente de la base de datos.
+    Desactiva una marca existente de la base de datos.
 
     Args:
-        id_marca (Decimal): ID de la marca a eliminar.
+        id_marca (Decimal): ID de la marca a desactivar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
     """
     try:
-        brand_service.delete_brand(db, id_marca)
-        return ResponseMessage(message="Marca eliminada exitosamente")
+        brand_service.deactivate_brand(db, id_marca)
+        return ResponseMessage(message="Marca desactivada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

@@ -12,7 +12,7 @@ from core.database import get_db
 from schemas.favorites_schema import FavoritesCreate, Favorites, ResponseMessage
 from services import favorites_service
 
-router = APIRouter()
+router = APIRouter(tags=["Favoritos"])
 
 @router.get("/favorites/{id_usuario}", response_model=list[Favorites])
 async def get_favorites(id_usuario: Decimal, 

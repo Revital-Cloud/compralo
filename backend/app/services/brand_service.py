@@ -13,7 +13,8 @@ def get_brands(db:Session):
         query = text("""
         SELECT 
             id_marca,
-            nom_marca
+            nom_marca,
+            ind_activo
         FROM tab_marcas
         """)
         result = db.execute(query)
@@ -42,7 +43,10 @@ def create_brand(db:Session, brand:BrandCreate):
         # Define la consulta SQL que ejecuta una función almacenada en PostgreSQL
         # :nom_marca es un parámetro nombrado que será reemplazado por el valor del diccionario params
         query = text("""
-        SELECT fun_insert_marca(:nom_marca)
+        SELECT fun_insert_marca(
+            :nom_marca,
+            :ind_activo
+        )
         """)
         
         # Ejecuta la consulta SQL pasando los parámetros de forma segura
@@ -82,7 +86,8 @@ def update_brand(db:Session, id_marca:Decimal, brand:BrandUpdate):
         query = text("""
         SELECT fun_update_marca(
             :id_marca,
-            :nom_marca
+            :nom_marca,
+            :ind_activo
         )
         """)
         result = db.execute(query, update_params)
@@ -93,9 +98,9 @@ def update_brand(db:Session, id_marca:Decimal, brand:BrandUpdate):
         db.rollback()
         raise Exception(f"Error al actualizar marca: {str(e)}")
     
-def delete_brand(db:Session, id_marca:Decimal):
+def deactivate_brand(db:Session, id_marca:Decimal):
     """
-    Elimina una marca existente de la base de datos.
+    Desactiva una marca existente de la base de datos.
     
     Utiliza la función de base de datos `fun_delete_marca` para eliminar
     una marca existente, identificado por `id_marca`.
@@ -103,7 +108,7 @@ def delete_brand(db:Session, id_marca:Decimal):
     try:
         params = {'id_marca': id_marca}
         query = text("""
-        SELECT fun_delete_marca(:id_marca)
+        SELECT fun_deactivate_marca(:id_marca)
         """)
         result = db.execute(query, params)
         fetched_result = result.fetchone()
@@ -111,9 +116,9 @@ def delete_brand(db:Session, id_marca:Decimal):
         if fetched_result and isinstance(fetched_result[0], str):
             return {"message": fetched_result[0]}
         else:
-            return {"message": "Marca eliminada correctamente"}
+            return {"message": "Marca desactivada correctamente"}
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al eliminar marca: {str(e)}")
+        raise Exception(f"Error al desactivar marca: {str(e)}")
     
     

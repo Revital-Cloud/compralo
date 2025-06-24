@@ -15,14 +15,30 @@ class SublineBase(BaseModel):
 
     Contiene los campos comunes para la creación y visualización de sublineas.
     Utilizado como base para otros esquemas de sublineas más específicos.
+    Atributos:
+        id_categoria (Decimal): Identificador de la categoría.
+        id_linea (Decimal): Identificador de la linea.
+        nom_sublinea (str): Nombre de la sublinea.
+        ind_activo (bool): Indica si la sublinea está activa.
     """
     id_categoria: Decimal = Field(..., description="Identificador de la categoría.")
     id_linea: Decimal = Field(..., description="Identificador de la linea.")
     nom_sublinea: str = Field(..., description = "Nombre de la sublinea.")
+    ind_activo: bool = Field(..., description = "Indica si la sublinea está activa.")
 
     class Config:
         from_attributes = True
         
+
+class Subline(SublineBase):
+    """
+    Esquema para la Visualización de Sublineas.
+
+    Hereda de `SublineBase` y se utiliza como el modelo de respuesta
+    principal para los endpoints que devuelven información de sublineas.
+    Incluye el `id_sublinea` y los campos de auditoría.
+    """
+    id_sublinea: Decimal
 class SublineCreate(SublineBase):
     """
     Esquema para la Creación de Sublineas.
@@ -33,7 +49,6 @@ class SublineCreate(SublineBase):
     para la operación de creación.
     """
     pass
-
 class SublineUpdate(SublineBase):
     """
     Esquema para la Actualización de Sublineas.
@@ -44,16 +59,8 @@ class SublineUpdate(SublineBase):
     id_categoria: Optional[Decimal] = None
     id_linea: Optional[Decimal] = None
     nom_sublinea: Optional[str] = None
+    ind_activo: Optional[bool] = None
     
-class Subline(SublineBase):
-    """
-    Esquema para la Visualización de Sublineas.
-
-    Hereda de `SublineBase` y se utiliza como el modelo de respuesta
-    principal para los endpoints que devuelven información de sublineas.
-    Incluye el `id_sublinea` y los campos de auditoría.
-    """
-    id_sublinea: Decimal
     
 class ResponseMessage(BaseModel):
     """
