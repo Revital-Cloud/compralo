@@ -99,4 +99,4 @@ def deactivate_category(db: Session, id_categoria: Decimal):
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al eliminar la categoría: {str(e)}")
+        raise Exception(f"Error al desactivar la categoría: {str(e)}")
