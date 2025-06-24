@@ -19,6 +19,7 @@ from schemas.product_schema import ProductCreate, ProductUpdate
 # No necesitamos importar el schema Product aquí si solo devolvemos mappings
 # y el router se encarga de la validación con el response_model.
 
+#all products
 def get_products(db: Session):
     """
     Obtiene todos los productos de la base de datos.
@@ -52,6 +53,7 @@ def get_products(db: Session):
             id_proveedor,
             id_marca,
             num_stock,
+            ind_activo,
             usr_insert,
             fec_insert,
             usr_update,
@@ -66,8 +68,14 @@ def get_products(db: Session):
         db.rollback()
         raise Exception(f"Error al obtener productos: {str(e)}")
 
-
-def get_product(db: Session, id_producto: Decimal):
+#single product
+def get_product(
+    id_categoria: Decimal,
+    id_linea: Decimal,
+    id_sublinea: Decimal,
+    id_producto: Decimal,
+    db: Session
+    ):
     """
     Obtiene un producto específico de la base de datos.
 
@@ -75,28 +83,46 @@ def get_product(db: Session, id_producto: Decimal):
     el resultado como un diccionario (RowMapping).
     """
     try:
-        query = text("""SELECT id_categoria,
-            id_linea,
-            id_sublinea,
-            id_producto,
-            nom_producto,
-            spcf_producto,
-            img_producto,
-            val_precio,
-            id_proveedor,
-            id_marca,
-            num_stock,
-            usr_insert,
-            fec_insert,
-            usr_update,
-            fec_update 
-            FROM tab_productos WHERE id_producto = :id_producto""")
-        result = db.execute(query, {"id_producto": id_producto})
+        query = text(
+            """SELECT 
+                id_categoria,
+                id_linea,
+                id_sublinea,
+                id_producto,
+                nom_producto,
+                spcf_producto,
+                img_producto,
+                val_precio,
+                id_proveedor,
+                id_marca,
+                num_stock,
+                ind_activo,
+                usr_insert,
+                fec_insert,
+                usr_update,
+                fec_update 
+            FROM tab_productos 
+            WHERE 
+                id_categoria = :id_categoria AND
+                id_linea = :id_linea AND 
+                id_sublinea = :id_sublinea AND
+                id_producto = :id_producto
+                """)
+        result = db.execute(
+            query, 
+            {
+                "id_categoria":id_categoria,
+                "id_linea":id_linea,
+                "id_sublinea":id_sublinea,
+                "id_producto":id_producto
+            }
+            )
         return result.mappings().first()
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener el producto: {str(e)}")
 
+#create product
 def create_product(db: Session, product: ProductCreate):
     """
     Crea un nuevo producto en la base de datos llamando a una función SQL.
@@ -120,9 +146,17 @@ def create_product(db: Session, product: ProductCreate):
             params['spcf_producto'] = json.dumps(params['spcf_producto'])
 
         query = text("""SELECT fun_insert_producto(
-            :id_categoria, :id_linea, :id_sublinea,:nom_producto, 
-            :spcf_producto, :img_producto, :val_precio, :id_proveedor, :id_marca, 
-            :num_stock
+            :id_categoria, 
+            :id_linea, 
+            :id_sublinea,
+            :nom_producto, 
+            :spcf_producto, 
+            :img_producto, 
+            :val_precio, 
+            :id_proveedor, 
+            :id_marca, 
+            :num_stock,
+            :ind_activo
         )""")
         result = db.execute(query, params)
         fetched_result = result.fetchone()
@@ -132,6 +166,7 @@ def create_product(db: Session, product: ProductCreate):
         db.rollback()
         raise Exception(f"Error al crear el producto: {str(e)}")
 
+#update product
 def update_product(db: Session, id_producto: int, product: ProductUpdate):
     """
     Actualiza un producto existente en la base de datos llamando a una función SQL.
@@ -164,10 +199,10 @@ def update_product(db: Session, id_producto: int, product: ProductUpdate):
         query = text("""SELECT fun_update_producto(
             :id_categoria, :id_linea, :id_sublinea, :id_producto, 
             :nom_producto, :spcf_producto, :img_producto, :val_precio, 
-            :id_proveedor, :id_marca, :num_stock
+            :id_proveedor, :id_marca, :num_stock, :ind_activo
         )""")
         
-        # Es crucial que fun_update_producto esté diseñada para tomar estos 11 parámetros
+        # Es crucial que fun_update_producto esté diseñada para tomar estos 12 parámetros
         # y que pueda manejar `None` o la ausencia de algunos de ellos (excepto id_producto).
         result = db.execute(query, update_params)
         fetched_result = result.fetchone()
@@ -177,11 +212,17 @@ def update_product(db: Session, id_producto: int, product: ProductUpdate):
         db.rollback()
         raise Exception(f"Error al actualizar el producto: {str(e)}")
 
-def delete_product(db: Session, product_id: int):
+def deactivate_product(
+    db: Session, 
+    category_id: Decimal,
+    line_id: Decimal,
+    subline_id: Decimal,
+    product_id: Decimal
+    ):
     """
     Elimina un producto de la base de datos llamando a una función SQL.
 
-    Utiliza la función de base de datos `fun_delete_producto` para eliminar
+    Utiliza la función de base de datos `fun_deactivate_producto` para eliminar
     un producto, identificado por `product_id`.
 
     Args:
@@ -194,15 +235,28 @@ def delete_product(db: Session, product_id: int):
               mensaje genérico si la función no proporciona uno específico.
     """
     try:
-        query = text("""SELECT fun_delete_producto(:id_producto)""")
-        result = db.execute(query, {"id_producto": product_id})
+        query = text("""SELECT fun_deactivate_producto(
+            :id_categoria,
+            :id_linea,
+            :id_sublinea,
+            :id_producto
+            )""")
+        
+        result = db.execute(
+            query, {
+                "id_categoria": category_id,
+                "id_linea": line_id,
+                "id_sublinea": subline_id,
+                "id_producto": product_id
+            }
+            )
         fetched_result = result.fetchone()
         db.commit()
         
         if fetched_result and isinstance(fetched_result[0], str):
             return {"message": fetched_result[0]}
         else:
-            return {"message": "Producto eliminado correctamente"}
+            return {"message": "Producto desactivado correctamente"}
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al eliminar el producto: {str(e)}")
+        raise Exception(f"Error al desactivar el producto: {str(e)}")
