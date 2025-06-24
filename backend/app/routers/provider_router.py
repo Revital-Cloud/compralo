@@ -11,7 +11,7 @@ from core.database import get_db
 from schemas.provider_schema import ProviderCreate, ProviderUpdate, Provider,ResponseMessage
 from services import provider_service
 
-router = APIRouter()
+router = APIRouter(tags=["Proveedores"])
 
 @router.get("/providers", response_model=list[Provider])
 async def get_providers(db:Session = Depends(get_db)):

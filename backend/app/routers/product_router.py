@@ -19,7 +19,7 @@ from schemas.product_schema import Product, ProductCreate, ProductUpdate, Respon
 from schemas.auth_schema import UserInToken
 from services import product_service
 
-router = APIRouter()
+router = APIRouter(tags=["Productos"])
 
 @router.get("/products", response_model=list[Product])
 async def get_products(db: Session = Depends(get_db)):

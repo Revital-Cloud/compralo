@@ -11,7 +11,7 @@ from core.database import get_db
 from schemas.category_schema import CategoryCreate, CategoryUpdate, Category, ResponseMessage
 from services import category_service
 
-router = APIRouter()
+router = APIRouter(tags=["Categorías"])
 
 
 # Ruta para obtener todas las categorías
@@ -63,6 +63,7 @@ async def create_category(
     Args:
         db (Session): Sesión de la base de datos inyectada por FastAPI.
         nom_categoria (str): Nombre de la categoría a crear.
+        ind_activo (bool): Indica si la categoría está activa.
 
     Returns:
         ResponseMessage: Mensaje de confirmación de creación exitosa.

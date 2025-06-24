@@ -16,7 +16,7 @@ from schemas.auth_schema import UserInToken
 from services import user_service
 from core.jwt_utils import get_password_hash
 
-router = APIRouter()
+router = APIRouter(tags=["Usuarios"])
 
 @router.get("/users", response_model=list[User])
 async def get_users(db: Session = Depends(get_db)):
