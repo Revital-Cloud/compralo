@@ -26,7 +26,7 @@ def get_providers(db:Session):
         raise Exception(f"Error al obtener proveedores: {str(e)}")
     
 #trae un solo proveedor    
-def get_providers(db: Session, id_proveedor: Decimal):  
+def get_provider(db: Session, id_proveedor: Decimal):  
     try:
         query = text("""
         SELECT
