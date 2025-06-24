@@ -183,13 +183,7 @@ DB_MAX_OVERFLOW=20
 REDIS_URL=redis://localhost:6379/0
 ```
 
-### 4. Ejecutar Migraciones
-```bash
-# Crear tablas en la base de datos dedicada
-alembic upgrade head
-```
-
-### 5. Iniciar Servidor de Desarrollo
+### 4. Iniciar Servidor de Desarrollo
 ```bash
 # Método recomendado (FastAPI CLI)
 fastapi dev app/main.py
