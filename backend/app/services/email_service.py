@@ -19,7 +19,7 @@ from schemas.email_schema import (
     PasswordResetEmailData, PasswordChangedEmailData, OrderConfirmationEmailData,
     OrderStatusEmailData, NewsletterEmailData, AbandonedCartEmailData,
     ProductRecommendationEmailData, NewOrderNotificationData,
-    LowStockNotificationData, NewUserNotificationData, TestEmailData
+    LowStockNotificationData, NewUserNotificationData
 )
 from services.email_templates import email_templates
 
@@ -470,47 +470,6 @@ class EmailService:
         except Exception as e:
             logger.error(f"Error al enviar notificación de usuario: {str(e)}")
             return False
-    
-    # ==================== MÉTODOS DE TESTING ====================
-    
-    async def send_test_email(self, test_data: TestEmailData) -> EmailResponse:
-        """
-        Envía email de prueba.
-        
-        Args:
-            test_data (TestEmailData): Datos del email de prueba
-            
-        Returns:
-            EmailResponse: Respuesta del envío
-        """
-        try:
-            if test_data.template_test:
-                html_content = email_templates.get_test_template(test_data.message)
-            else:
-                html_content = f"""
-                <html>
-                    <body>
-                        <h2>Email de Prueba - {settings.APP_NAME}</h2>
-                        <p>{test_data.message}</p>
-                        <p><small>Enviado el: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}</small></p>
-                    </body>
-                </html>
-                """
-            
-            email_data = EmailSend(
-                to=test_data.to,
-                subject=test_data.subject,
-                html_content=html_content
-            )
-            
-            return await self.send_email(email_data)
-            
-        except Exception as e:
-            logger.error(f"Error al enviar email de prueba: {str(e)}")
-            return EmailResponse(
-                success=False,
-                message=f"Error al enviar email de prueba: {str(e)}"
-            )
     
     # ==================== MÉTODOS DE UTILIDAD ====================
     
