@@ -53,7 +53,8 @@ class ProviderUpdate(BaseModel):
     email: Optional[str] = Field(None, description="Correo electrónico del proveedor.")
     tel_proveedor: Optional[Decimal] = Field(None , description="Teléfono del proveedor.")
     ind_activo: Optional[bool] = Field(None, description="Indica si el proveedor está activo.")
-    
+
+#llama un solo proveedor
 class Provider(ProviderBase):
     """
     Esquema para la Visualización de Proveedores.
@@ -62,7 +63,7 @@ class Provider(ProviderBase):
     principal para los endpoints que devuelven información de proveedores.
     Incluye el `id_proveedor` y los campos de auditoría.
     """
-    id_proveedor: Decimal
+    id_proveedor: Decimal = Field(..., description="Identificador único para el proveedor.")
 
 class ResponseMessage(BaseModel):
     """
