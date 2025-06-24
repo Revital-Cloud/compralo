@@ -110,9 +110,9 @@ def update_provider(db:Session, id_proveedor:Decimal, provider:ProviderUpdate):
     
 def deactivate_provider(db:Session, id_proveedor:Decimal):
     """
-    Elimina un proveedor existente de la base de datos.
+    Desactiva un proveedor existente de la base de datos.
 
-    Utiliza la función de base de datos `fun_delete_proveedores` para eliminar
+    Utiliza la función de base de datos `fun_deactivate_proveedores` para desactivar
     un proveedor existente, identificado por `id_proveedor`.
     
     """
