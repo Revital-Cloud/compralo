@@ -6,7 +6,7 @@ Utiliza FastAPI para definir las rutas y los servicios de la API.
 """
 import json
 from typing import Dict,Any
-from fastapi import APIRouter,Depends,HTTPException,status,Form
+from fastapi import APIRouter, Body,Depends,HTTPException,status,Form
 from sqlalchemy.orm import Session
 from schemas.cms_schema import Cms, CmsCreate,CmsUpdate,ResponseMessage
 from services.cms_service import get_contents,get_content,create_cms_content,update_cms_content,delete_cms_content
@@ -51,10 +51,7 @@ async def get_cms_content(id_cms_content:int,db:Session=Depends(get_db)):
 
 @router.post("/cms",response_model=ResponseMessage,status_code=status.HTTP_201_CREATED)
 async def create_cms_content_endpoint(
-    nom_cms_content:str=Form(...),
-    des_cms_content:str=Form(...,alias="des_cms_content"),
-    num_version:int=Form(...),
-    ind_publicado:bool=Form(...),
+    cms_content:CmsCreate = Body(...),
     db:Session=Depends(get_db)
 ):
     """
@@ -64,16 +61,11 @@ async def create_cms_content_endpoint(
         cms_content (CmsCreate): El CMS Content a crear.
     """
     try:
-        try:
-            des_cms_content_dict:Dict[str,Any] = json.loads(des_cms_content)
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=400,detail="El campo 'des_cms_content' debe ser una cadena JSON válida.")
-
         cms_content = CmsCreate(
-            nom_cms_content=nom_cms_content,
-            des_cms_content=des_cms_content_dict,
-            num_version=num_version,
-            ind_publicado=ind_publicado
+            nom_cms_content=cms_content.nom_cms_content,
+            des_cms_content=cms_content.des_cms_content,
+            num_version=cms_content.num_version,
+            ind_publicado=cms_content.ind_publicado
         )
         result = create_cms_content(db,cms_content)
         if not result:
@@ -85,25 +77,17 @@ async def create_cms_content_endpoint(
 @router.put("/cms/{id_cms_content}",response_model=ResponseMessage,status_code=status.HTTP_200_OK)
 async def update_cms_content_endpoint(
     id_cms_content:int,
-    nom_cms_content:str=Form(...),
-    des_cms_content:str=Form(...,alias="des_cms_content"),
-    num_version:int=Form(...),
-    ind_publicado:bool=Form(...),
+    cms_content:CmsUpdate = Body(...),
     db:Session=Depends(get_db)):
     """
     Actualiza un CMS Content específico en la base de datos.
     """
     try:
-        try:
-            des_cms_content_dict:Dict[str,Any] = json.loads(des_cms_content)
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=400,detail="El campo 'des_cms_content' debe ser una cadena JSON válida.")
-
         cms_content = CmsUpdate(
-            nom_cms_content=nom_cms_content,
-            des_cms_content=des_cms_content_dict,
-            num_version=num_version,
-            ind_publicado=ind_publicado
+            nom_cms_content=cms_content.nom_cms_content,
+            des_cms_content=cms_content.des_cms_content,
+            num_version=cms_content.num_version,
+            ind_publicado=cms_content.ind_publicado
         )
         result = update_cms_content(db,id_cms_content,cms_content)
         if not result:

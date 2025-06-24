@@ -200,17 +200,6 @@ class NewUserNotificationData(AdminNotificationEmailData):
     registration_date: datetime = Field(default_factory=datetime.now, description="Fecha de registro")
     user_id: str = Field(..., description="ID del usuario")
 
-# ==================== SCHEMAS DE TESTING ====================
-
-class TestEmailData(BaseModel):
-    """
-    Esquema para emails de testing.
-    """
-    to: EmailStr = Field(..., description="Email de destino")
-    subject: str = Field(default="Test Email from Synkro", description="Asunto del email")
-    message: str = Field(default="Este es un email de prueba", description="Mensaje del email")
-    template_test: bool = Field(default=False, description="Si probar con template")
-
 # ==================== SCHEMAS DE RESPUESTA ====================
 
 class EmailStats(BaseModel):

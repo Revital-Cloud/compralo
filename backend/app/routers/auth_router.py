@@ -279,67 +279,6 @@ async def verify_email_endpoint(
             detail="Error interno del servidor"
         )
 
-@router.post("/test/create-verification-token")
-async def create_test_verification_token(
-    user_id: int,
-    current_user: UserInToken = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    🧪 ENDPOINT TEMPORAL PARA TESTING
-    Crea un token de verificación para testing en Postman.
-    
-    ⚠️ REMOVER EN PRODUCCIÓN
-    
-    Args:
-        user_id (int): ID del usuario
-        current_user (UserInToken): Usuario autenticado
-        db (Session): Sesión de base de datos
-        
-    Returns:
-        dict: Token de verificación para testing
-    """
-    try:
-        # Solo permite crear token para su propia cuenta o si es admin
-        if current_user.id_usuario != user_id and current_user.id_rol != 1:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permisos para crear token para este usuario"
-            )
-        
-        # Obtener usuario de la BD
-        from services import user_service
-        user = user_service.get_user_by_id(db, user_id)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Usuario no encontrado"
-            )
-        
-        # Crear token específico de verificación
-        from core.jwt_utils import create_verification_token
-        verification_token = create_verification_token(
-            user_id=user.id_usuario,
-            email=user.email_usuario,
-            expires_hours=24
-        )
-        
-        return {
-            "🧪": "TESTING ONLY - Remover en producción",
-            "verification_token": verification_token,
-            "user_id": user.id_usuario,
-            "email": user.email_usuario,
-            "expires_in_hours": 24,
-            "usage": "Usar este token en POST /auth/verify-email"
-        }
-        
-    except Exception as e:
-        logger.error(f"Error en create_test_verification_token: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error interno: {str(e)}"
-        )
-
 @router.post("/forgot-password", response_model=ResponseMessage)
 async def forgot_password(
     request: ResetPasswordRequest,

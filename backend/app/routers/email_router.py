@@ -14,16 +14,14 @@ Endpoints disponibles:
 - GET /config: Obtener configuración del servicio
 """
 from fastapi import APIRouter, HTTPException, Depends, status
-from typing import List, Dict, Any
 import logging
 
 from schemas.email_schema import (
-    EmailSend, EmailResponse, TestEmailData, WelcomeEmailData,
+    EmailSend, EmailResponse, WelcomeEmailData,
     VerificationEmailData, PasswordResetEmailData, ResponseMessage
 )
 from services.email_service import email_service
 from core.dependencies import get_current_user
-from middlewares.role_middleware import require_role
 
 logger = logging.getLogger(__name__)
 
@@ -37,126 +35,6 @@ router = APIRouter(
     }
 )
 
-# ==================== ENDPOINTS DE TESTING ====================
-
-@router.post("/test-local", response_model=EmailResponse)
-async def send_test_email_local(
-    test_data: TestEmailData
-):
-    """
-    Envía un email de prueba SIN AUTENTICACIÓN (solo para testing local).
-    
-    ⚠️ IMPORTANTE: Este endpoint debe ser removido en producción.
-    
-    Args:
-        test_data (TestEmailData): Datos del email de prueba
-        
-    Returns:
-        EmailResponse: Resultado del envío
-        
-    Raises:
-        HTTPException: Si hay error en el envío
-    """
-    try:
-        logger.info(f"🧪 TESTING LOCAL: Enviando email de prueba a {test_data.to}")
-        
-        response = await email_service.send_test_email(test_data)
-        
-        if not response.success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=response.message
-            )
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error en send_test_email_local: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al enviar email de prueba: {str(e)}"
-        )
-
-@router.post("/test", response_model=EmailResponse)
-async def send_test_email(
-    test_data: TestEmailData,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Envía un email de prueba.
-    
-    Este endpoint permite enviar emails de prueba para verificar
-    que el sistema de envío está funcionando correctamente.
-    
-    Args:
-        test_data (TestEmailData): Datos del email de prueba
-        current_user (dict): Usuario autenticado (requerido)
-        
-    Returns:
-        EmailResponse: Resultado del envío
-        
-    Raises:
-        HTTPException: Si hay error en el envío
-    """
-    try:
-        logger.info(f"Enviando email de prueba a {test_data.to} por usuario {current_user.get('email')}")
-        
-        response = await email_service.send_test_email(test_data)
-        
-        if not response.success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=response.message
-            )
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error en send_test_email: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al enviar email de prueba: {str(e)}"
-        )
-
-@router.post("/send", response_model=EmailResponse)
-async def send_custom_email(
-    email_data: EmailSend,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Envía un email personalizado.
-    
-    Permite enviar emails con contenido personalizado o utilizando templates.
-    
-    Args:
-        email_data (EmailSend): Datos del email a enviar
-        current_user (dict): Usuario autenticado (requerido)
-        
-    Returns:
-        EmailResponse: Resultado del envío
-        
-    Raises:
-        HTTPException: Si hay error en el envío
-    """
-    try:
-        logger.info(f"Enviando email personalizado a {email_data.to} por usuario {current_user.get('email')}")
-        
-        response = await email_service.send_email(email_data)
-        
-        if not response.success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=response.message
-            )
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error en send_custom_email: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al enviar email personalizado: {str(e)}"
-        )
 
 # ==================== ENDPOINTS DE AUTENTICACIÓN ====================
 
