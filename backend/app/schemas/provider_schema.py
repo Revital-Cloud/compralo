@@ -25,6 +25,7 @@ class ProviderBase(BaseModel):
     nom_proveedor: str = Field(..., description="Nombre del proveedor.")
     email: str = Field(..., description="Correo electrónico del proveedor.")
     tel_proveedor: Decimal = Field(..., description="Teléfono del proveedor.")
+    ind_activo: bool = Field(..., description="True si el proveedor está activo, False si está inactivo.")
 
     class Config:
         from_attributes = True
@@ -48,9 +49,10 @@ class ProviderUpdate(BaseModel):
     Define los campos que pueden ser actualizados para un proveedor existente.
     Todos los campos son opcionales, permitiendo actualizaciones parciales.
     """
-    nom_proveedor: Optional[str] = None
-    email: Optional[str] = None
-    tel_proveedor: Optional[Decimal] = None
+    nom_proveedor: Optional[str] = Field(None, description="Nombre del proveedor.")
+    email: Optional[str] = Field(None, description="Correo electrónico del proveedor.")
+    tel_proveedor: Optional[Decimal] = Field(None , description="Teléfono del proveedor.")
+    ind_activo: Optional[bool] = Field(None, description="Indica si el proveedor está activo.")
     
 class Provider(ProviderBase):
     """
