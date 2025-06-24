@@ -69,7 +69,9 @@ async def create_category(
         ResponseMessage: Mensaje de confirmación de creación exitosa.
     """
     try:
-        category_data = CategoryCreate(nom_categoria=category_data.nom_categoria, ind_activo=category_data.ind_activo)
+        category_data = CategoryCreate(
+            nom_categoria=category_data.nom_categoria, ind_activo=category_data.ind_activo
+            )
         category_service.create_category(db, category_data)
         return ResponseMessage(message="Categoría creada exitosamente")
     except Exception as e:
@@ -95,15 +97,20 @@ async def update_category(
         ResponseMessage: Mensaje de confirmación de actualización exitosa.
     """
     try:
-        category_data = CategoryUpdate(nom_categoria=category_data.nom_categoria, ind_activo=category_data.ind_activo)
+        category_data = CategoryUpdate(
+            nom_categoria=category_data.nom_categoria, ind_activo=category_data.ind_activo
+            )
         category_service.update_category(db, id_categoria, category_data)
         return ResponseMessage(message="Categoría actualizada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
 # Ruta para eliminar una categoría existente   
-@router.put("/categories/{id_categoria}/deactivate",
-            response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+@router.put(
+    "/categories/{id_categoria}/deactivate",
+    response_model=ResponseMessage, 
+    status_code=status.HTTP_200_OK
+    )
 async def deactivate_category(
     id_categoria: Decimal,
     db: Session = Depends(get_db),
