@@ -47,7 +47,10 @@ async def create_subline(
         ResponseMessage: Mensaje de confirmación.
     """
     try:
-        subline_data = SublineCreate(id_categoria=subline_data.id_categoria, id_linea=subline_data.id_linea, nom_sublinea=subline_data.nom_sublinea, ind_activo=subline_data.ind_activo)
+        subline_data = SublineCreate(
+            id_categoria=subline_data.id_categoria, id_linea=subline_data.id_linea, 
+            nom_sublinea=subline_data.nom_sublinea, ind_activo=subline_data.ind_activo
+            )
         subline_service.create_subline(db, subline_data)
         return ResponseMessage(message="Sublinea creada exitosamente")
     except Exception as e:
