@@ -100,7 +100,11 @@ async def update_category(
         category_data = CategoryUpdate(
             nom_categoria=category_data.nom_categoria, ind_activo=category_data.ind_activo
             )
-        category_service.update_category(db, id_categoria, category_data)
+        category_service.update_category(
+            db, 
+            id_categoria, 
+            category_data
+            )
         return ResponseMessage(message="Categoría actualizada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

@@ -42,6 +42,7 @@ class ProductBase(BaseModel):
     id_linea: Decimal
     id_categoria: Decimal
     num_stock: int = Field(0, ge=0, description="Cantidad de unidades disponibles en inventario.")
+    ind_activo: bool = Field(True, description="Indica si el producto está activo.")
     
     class Config:
         from_attributes = True
@@ -81,16 +82,18 @@ class ProductUpdate(BaseModel):
         num_stock (Optional[int]): Nueva cantidad de unidades en inventario.
     """
     # Para las actualizaciones, a menudo todos los campos son opcionales
+    id_producto: Optional[Decimal] = None # Aunque generalmente no se actualiza, puede ser útil para identificar el producto
+    id_categoria: Optional[Decimal] = None
+    id_linea: Optional[Decimal] = None
+    id_sublinea: Optional[Decimal] = None
     nom_producto: Optional[str] = None
     spcf_producto: Optional[Dict[str, Any]] = None
     img_producto: Optional[str] = None
     val_precio: Optional[Decimal] = Field(None, gt=0)
     id_proveedor: Optional[Decimal] = None
     id_marca: Optional[Decimal] = None
-    id_sublinea: Optional[Decimal] = None
-    id_linea: Optional[Decimal] = None
-    id_categoria: Optional[Decimal] = None
     num_stock: Optional[int] = Field(None, ge=0)
+    ind_activo: Optional[bool] = None # Para activar/desactivar el producto
     # usr_update será gestionado por el backend
 
 class Product(ProductBase): # Este será el modelo de respuesta principal
