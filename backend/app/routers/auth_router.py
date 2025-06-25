@@ -285,7 +285,6 @@ async def forgot_password(
     db: Session = Depends(get_db)
 ):
     """
-    🔐 ENDPOINT DE PRODUCCIÓN
     Solicita reset de contraseña. Público (sin autenticación requerida).
     
     Args:
@@ -347,7 +346,6 @@ async def reset_password(
     db: Session = Depends(get_db)
 ):
     """
-    🔐 ENDPOINT DE PRODUCCIÓN
     Confirma el reset de contraseña usando el token del email.
     
     Args:
