@@ -9,7 +9,6 @@ para la lógica de negocio y del gestor de base de datos para las sesiones.
 # Definición de rutas (endpoints) de la API para productos
 from fastapi import APIRouter, Depends, Body, Form, HTTPException, status
 from sqlalchemy.orm import Session
-import json
 from decimal import Decimal
 from typing import Optional, Dict, Any
 
@@ -79,55 +78,27 @@ async def create_product(
     product_data: ProductCreate = Body(...) 
 ):
     """
-    Crear un nuevo producto (Solo Administradores).
+    Crear un nuevo producto.
 
     Este endpoint permite crear un nuevo producto en la base de datos
-    utilizando los datos proporcionados en el cuerpo de la solicitud como form-data.
-    El campo spcf_producto debe ser una cadena JSON válida.
+    utilizando los datos proporcionados en el cuerpo de la solicitud.
     
-    **Requiere autenticación de administrador.**
-
     Args:
-        nom_producto (str): Nombre del producto.
-        spcf_producto_str (str): Especificaciones del producto en formato de cadena JSON.
-        img_producto (Optional[str]): URL o ruta de la imagen del producto.
-        val_precio (Decimal): Precio de venta del producto.
-        id_proveedor (Decimal): Identificador del proveedor.
-        id_marca (Decimal): Identificador de la marca.
-        id_sublinea (Decimal): Identificador de la sublínea.
-        id_linea (Decimal): Identificador de la línea.
-        id_categoria (Decimal): Identificador de la categoría.
-        num_stock (int): Cantidad de unidades disponibles en inventario.
-        current_user (UserInToken): Usuario administrador autenticado.
+        product_data (ProductCreate): Datos del producto a crear.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
 
     Returns:
         ResponseMessage: Un mensaje indicando el resultado de la operación.
         
     Raises:
-        HTTPException: Si spcf_producto_str no es una cadena JSON válida.
-        HTTPException: Si el usuario no es administrador (403).
-        HTTPException: Si no se proporciona token de autenticación (401).
+        HTTPException: Si ocurre un error durante la creación del producto.
     """
     try:
-        spcf_producto_dict: Dict[str, Any] = json.loads(product_data.spcf_producto_str)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="El campo 'spcf_producto' debe ser una cadena JSON válida.")
-
-    try:
-        product_data = ProductCreate(
-            nom_producto=product_data.nom_producto,
-            spcf_producto=spcf_producto_dict,
-            img_producto=product_data.img_producto,
-            val_precio=product_data.val_precio,
-            id_proveedor=product_data.id_proveedor,
-            id_marca=product_data.id_marca,
-            id_sublinea=product_data.id_sublinea,
-            id_linea=product_data.id_linea,
-            id_categoria=product_data.id_categoria,
-            num_stock=product_data.num_stock,
-            ind_activo=product_data.ind_activo
-        )
+        print(f"spcf_producto recibido: {product_data.spcf_producto}")
+        print(f"Tipo de spcf_producto: {type(product_data.spcf_producto)}")
+        
+        # Ya no necesitamos json.loads() porque Pydantic ya convierte a dict
+        # El product_data ya viene validado y convertido desde el schema
         service_response_message = product_service.create_product(db, product_data)
         
         return ResponseMessage(message=service_response_message)
