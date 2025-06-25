@@ -76,7 +76,9 @@ async def update_subline(
         ind_activo (bool): Indica si la sublinea está activa.
     """
     try:
-        subline_data = SublineUpdate(nom_sublinea=subline_data.nom_sublinea, ind_activo=subline_data.ind_activo)
+        subline_data = SublineUpdate(
+            nom_sublinea=subline_data.nom_sublinea, ind_activo=subline_data.ind_activo
+            )
         subline_service.update_subline(db, id_categoria, id_linea, id_sublinea, subline_data)
         return ResponseMessage(message="Sublinea actualizada exitosamente")
     except Exception as e:
