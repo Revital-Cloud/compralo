@@ -6,7 +6,7 @@ incluyendo la creación, visualización y eliminación de favoritos.
 """
 from decimal import Decimal
 from datetime import datetime, date
-from fastapi import APIRouter, Depends, Form, HTTPException, status
+from fastapi import APIRouter, Depends, Body, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 from schemas.favorites_schema import FavoritesCreate, Favorites, ResponseMessage
@@ -39,11 +39,12 @@ async def get_favorites(id_usuario: Decimal,
 @router.post("/favorites", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_favorite(
     db:Session = Depends(get_db),
-    id_usuario:Decimal = Form(...),
-    id_categoria_producto:Decimal = Form(...),
-    id_linea_producto:Decimal = Form(...),
-    id_sublinea_producto:Decimal = Form(...),
-    id_producto:Decimal = Form(...)
+    favorite_data: FavoritesCreate = Body(...)
+    # id_usuario:Decimal = Form(...),
+    # id_categoria_producto:Decimal = Form(...),
+    # id_linea_producto:Decimal = Form(...),
+    # id_sublinea_producto:Decimal = Form(...),
+    # id_producto:Decimal = Form(...)
 ):
     """
     Crea un nuevo favorito en la base de datos.
@@ -58,11 +59,11 @@ async def create_favorite(
     """
     try:
         favorite_data = FavoritesCreate(
-            id_usuario=id_usuario,
-            id_categoria_producto=id_categoria_producto,
-            id_linea_producto=id_linea_producto,
-            id_sublinea_producto=id_sublinea_producto,
-            id_producto=id_producto,
+            id_usuario=favorite_data.id_usuario,
+            id_categoria_producto=favorite_data.id_categoria_producto,
+            id_linea_producto=favorite_data.id_linea_producto,
+            id_sublinea_producto=favorite_data.id_sublinea_producto,
+            id_producto=favorite_data.id_producto,
             fecha_agregado=date.today()
         )
         favorites_service.create_favorite(db, favorite_data)
@@ -70,7 +71,7 @@ async def create_favorite(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-@router.delete("/favorites/{id_usuario}-{id_categoria_producto}-{id_linea_producto}-{id_sublinea_producto}-{id_producto}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+@router.put("/favorites/{id_usuario}-{id_categoria_producto}-{id_linea_producto}-{id_sublinea_producto}-{id_producto}/deactivate", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def delete_favorite(
     id_usuario:Decimal,
     id_categoria_producto:Decimal,
@@ -91,6 +92,6 @@ async def delete_favorite(
     """
     try:
         favorites_service.delete_favorite(db, id_usuario, id_categoria_producto, id_linea_producto, id_sublinea_producto, id_producto)
-        return ResponseMessage(message="Favorito eliminado exitosamente")
+        return ResponseMessage(message="Favorito desactivado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
