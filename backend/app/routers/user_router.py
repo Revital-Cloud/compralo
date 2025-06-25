@@ -103,15 +103,7 @@ async def create_users(
 @router.put("/users/{id_usuario}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_user(
     id_usuario: Decimal,
-    nom_usuario: str = Form(...),
-    ape_usuario: str = Form(...),
-    email_usuario: str = Form(...),
-    password_usuario: str = Form(...),
-    des_direccion: Optional[str] = Form(None),
-    id_rol: Decimal = Form(...),
-    ind_genero: bool = Form(...),
-    cel_usuario: str = Form(...),
-    fec_nacimiento: Optional[str] = Form(None),
+    user: UserUpdate = Body(...),
     db: Session = Depends(get_db)
 ):     
     """
@@ -119,33 +111,25 @@ async def update_user(
 
     Args:
         id_usuario (Decimal): ID del usuario a actualizar.
+        user (UserUpdate): Datos del usuario a actualizar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
-        nom_usuario (str): Nombre del usuario.
-        ape_usuario (str): Apellido del usuario.
-        email_usuario (str): Email del usuario.
-        password_usuario (str): Contraseña del usuario.
-        des_direccion (str): Dirección del usuario.
-        id_rol (Decimal): Identificador del rol del usuario.
-        ind_genero (bool): Género del usuario.
-        cel_usuario (str): Número de celular del usuario.
-        fec_nacimiento (str): Fecha de nacimiento del usuario.
     """
     try:
         # Hashear la contraseña si se proporciona
-        hashed_password = get_password_hash(password_usuario) if password_usuario else None
+        hashed_password = get_password_hash(user.password_usuario) if user.password_usuario else None
         
         user_data = UserUpdate(
-            id_usuario=id_usuario,
-            nom_usuario=nom_usuario,
-            ape_usuario=ape_usuario,
-            email_usuario=email_usuario,
+            nom_usuario=user.nom_usuario,
+            ape_usuario=user.ape_usuario,
+            email_usuario=user.email_usuario,
             password_usuario=hashed_password,  # Usar la contraseña hasheada
-            des_direccion=des_direccion,
-            id_rol=id_rol,
-            ind_genero=ind_genero,
-            cel_usuario=cel_usuario,
-            fec_nacimiento=fec_nacimiento
+            des_direccion=user.des_direccion,
+            id_rol=user.id_rol,
+            ind_genero=user.ind_genero,
+            cel_usuario=user.cel_usuario,
+            fec_nacimiento=user.fec_nacimiento
         )
+
         user_service.update_user(db, id_usuario, user_data)
         return ResponseMessage(message="Usuario actualizado exitosamente")
     except Exception as e:
