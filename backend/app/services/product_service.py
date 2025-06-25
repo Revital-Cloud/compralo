@@ -167,7 +167,14 @@ def create_product(db: Session, product: ProductCreate):
         raise Exception(f"Error al crear el producto: {str(e)}")
 
 #update product
-def update_product(db: Session, id_producto: int, product: ProductUpdate):
+def update_product(
+    id_categoria: Decimal,
+    id_linea: Decimal,
+    id_sublinea: Decimal,         
+    id_producto: Decimal,
+    product: ProductUpdate,
+    db: Session
+    ):
     """
     Actualiza un producto existente en la base de datos llamando a una función SQL.
 
@@ -186,25 +193,54 @@ def update_product(db: Session, id_producto: int, product: ProductUpdate):
                       SQL no devuelve el resultado esperado.
     """
     try:
-        update_params = product.model_dump(exclude_unset=True) # Solo incluye campos que se proporcionaron
+        params = product.model_dump(exclude_unset=True) # Solo incluye campos que se proporcionaron
         
-        if 'spcf_producto' in update_params and isinstance(update_params['spcf_producto'], dict):
-            update_params['spcf_producto'] = json.dumps(update_params['spcf_producto'])
+        if 'spcf_producto' in params and isinstance(params['spcf_producto'], dict):
+            params['spcf_producto'] = json.dumps(params['spcf_producto'])
             
-        update_params['id_producto'] = id_producto # Añadir el id_producto del path
+        params['id_categoria'] = id_categoria
+        params['id_linea'] = id_linea
+        params['id_sublinea'] = id_sublinea
+        params['id_producto'] = id_producto # Añadir el id_producto del path
 
+        required_params = [
+            'id_categoria', 'id_linea', 'id_sublinea', 'id_producto',
+            'nom_producto', 'spcf_producto', 'img_producto', 'val_precio',
+            'id_proveedor', 'id_marca', 'num_stock', 'ind_activo'
+        ]
+        
+        # Verificar parámetros faltantes y asignar valores por defecto si es necesario
+        for param in required_params:
+            if param not in params:
+                if param == 'img_producto':
+                    params[param] = None
+                elif param == 'ind_activo':
+                    params[param] = True
+                    
         # La función SQL debe poder manejar que algunos de los otros parámetros no estén presentes
         # o sean NULL si product.model_dump(exclude_unset=True) los omite.
         # Asegúrate de que los nombres de los parámetros coincidan con los de tu función SQL.
-        query = text("""SELECT fun_update_producto(
-            :id_categoria, :id_linea, :id_sublinea, :id_producto, 
-            :nom_producto, :spcf_producto, :img_producto, :val_precio, 
-            :id_proveedor, :id_marca, :num_stock, :ind_activo
-        )""")
+        query = text(
+            """
+            SELECT fun_update_producto(
+            :id_categoria, 
+            :id_linea, 
+            :id_sublinea,  
+            :nom_producto, 
+            :spcf_producto, 
+            :img_producto, 
+            :val_precio, 
+            :id_proveedor, 
+            :id_marca, 
+            :num_stock, 
+            :ind_activo
+            )
+            """
+        )
         
         # Es crucial que fun_update_producto esté diseñada para tomar estos 12 parámetros
         # y que pueda manejar `None` o la ausencia de algunos de ellos (excepto id_producto).
-        result = db.execute(query, update_params)
+        result = db.execute(query, params)
         fetched_result = result.fetchone()
         db.commit()
         return fetched_result[0] if fetched_result else None

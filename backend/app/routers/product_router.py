@@ -137,7 +137,8 @@ async def create_product(
         
 #actualiza un producto
 @router.put(
-    "/products/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}", response_model=ResponseMessage, 
+    "/products/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}", 
+    response_model=ResponseMessage, 
     status_code=status.HTTP_200_OK
     )
 async def update_product(
@@ -145,9 +146,9 @@ async def update_product(
     id_linea: Decimal,
     id_sublinea: Decimal,
     id_producto: Decimal,
-    db: Session = Depends(get_db),
-    product_data: ProductUpdate = Body(...)
-):
+    product_data: ProductUpdate = Body(...),
+    db: Session = Depends(get_db)
+    ):
     """
     Actualizar un producto existente.
 
@@ -172,29 +173,26 @@ async def update_product(
         ResponseMessage: Un mensaje indicando el resultado de la operación de actualización.
     """
     # try:
-    #     spcf_producto_dict: Dict[str, Any] = json.loads(product_data.spcf_producto_str)
+    #     spcf_producto_dict: Dict[str, Any] = json.loads(product_data.spcf_producto)
     # except json.JSONDecodeError:
     #     raise HTTPException(status_code=400, detail="El campo 'spcf_producto' debe ser una cadena JSON válida.")
     
     try:
-        product_data = ProductUpdate(
-            id_producto=product_data.id_producto,
-            nom_producto=product_data.nom_producto,
-            spcf_producto=product_data.spcf_producto,  # Asumiendo que ya es un dict
-            img_producto=product_data.img_producto,
-            val_precio=product_data.val_precio,
-            id_proveedor=product_data.id_proveedor,
-            id_marca=product_data.id_marca,
-            id_sublinea=product_data.id_sublinea,
-            id_linea=product_data.id_linea,
-            id_categoria=product_data.id_categoria,
-            num_stock=product_data.num_stock
-        )
+        # product_data = ProductUpdate(
+        #     id_producto=product_data.id_producto,
+        #     nom_producto=product_data.nom_producto,
+        #     spcf_producto=product_data.spcf_producto,  # Asumiendo que ya es un dict
+        #     img_producto=product_data.img_producto,
+        #     val_precio=product_data.val_precio,
+        #     id_proveedor=product_data.id_proveedor,
+        #     id_marca=product_data.id_marca,
+        #     id_sublinea=product_data.id_sublinea,
+        #     id_linea=product_data.id_linea,
+        #     id_categoria=product_data.id_categoria,
+        #     num_stock=product_data.num_stock
+        # )
         
-        
-        product_service.update_product(db, product_data.id_producto, product_data)
-
-        
+        product_service.update_product(id_categoria, id_linea, id_sublinea, id_producto, product_data, db)
 
         return ResponseMessage(message="producto actualizada exitosamente")
     
