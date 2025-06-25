@@ -103,6 +103,7 @@ def create_users(db: Session, user: UserCreate):
     """
     try:
         params = user.model_dump()
+        
         query = text("""
             SELECT fun_insert_usuarios(
             :id_usuario,
@@ -116,9 +117,12 @@ def create_users(db: Session, user: UserCreate):
             :cel_usuario,
             :fec_nacimiento)
             """)
+        
         result = db.execute(query, params)
         fetched_result = result.fetchone()
+        
         db.commit()
+        
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
