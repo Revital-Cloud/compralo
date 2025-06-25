@@ -31,7 +31,7 @@ async def get_providers(db:Session = Depends(get_db)):
     
 #Ruta para obtener un proveedor específico por ID
 @router.get("/providers/{id_proveedor}", response_model=Provider)
-async def get_providers(id_proveedor:Decimal, db:Session = Depends(get_db)):
+async def get_provider(id_proveedor:Decimal, db:Session = Depends(get_db)):
     """
     Obtiene un proveedor específico por su ID.
 
@@ -42,7 +42,7 @@ async def get_providers(id_proveedor:Decimal, db:Session = Depends(get_db)):
     Returns:
         Provider: Detalles del proveedor solicitado.
     """
-    provider = provider_service.get_providers(db, id_proveedor)
+    provider = provider_service.get_provider(db, id_proveedor)
     if not provider:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proveedor no encontrado")   
     return provider
@@ -115,14 +115,14 @@ async def deactivate_provider(
     db:Session = Depends(get_db)
     ):
     """
-    Elimina un proveedor existente de la base de datos.
+    Desactiva un proveedor existente de la base de datos.
 
     Args:
-        id_proveedor (Decimal): ID del proveedor a eliminar.
+        id_proveedor (Decimal): ID del proveedor a desactivar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
     """
     try:
         provider_service.deactivate_provider(db, id_proveedor)
-        return ResponseMessage(message="Proveedor eliminado exitosamente")
+        return ResponseMessage(message="Proveedor desactivado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
