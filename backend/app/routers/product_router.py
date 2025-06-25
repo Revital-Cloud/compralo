@@ -148,7 +148,6 @@ async def update_product(
     # except json.JSONDecodeError:
     #     raise HTTPException(status_code=400, detail="El campo 'spcf_producto' debe ser una cadena JSON válida.")
     
-    try:
         # product_data = ProductUpdate(
         #     id_producto=product_data.id_producto,
         #     nom_producto=product_data.nom_producto,
@@ -163,13 +162,27 @@ async def update_product(
         #     num_stock=product_data.num_stock
         # )
         
-        product_service.update_product(id_categoria, id_linea, id_sublinea, id_producto, product_data, db)
+    try:
+        response_message = product_service.update_product(
+            id_categoria, 
+            id_linea, 
+            id_sublinea, 
+            id_producto, 
+            product_data, 
+            db
+            )
 
         return ResponseMessage(message="producto actualizada exitosamente")
     
     except Exception as e:
-         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-        
+        if response_message is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No se pudo desactivar el producto porque no se encontró."
+            )
+        else:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+               
 
 
 # desactiva una sublinea

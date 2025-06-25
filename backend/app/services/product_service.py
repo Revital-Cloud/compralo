@@ -204,7 +204,6 @@ def update_product(
         params['id_producto'] = id_producto # Añadir el id_producto del path
 
         required_params = [
-            'id_categoria', 'id_linea', 'id_sublinea', 'id_producto',
             'nom_producto', 'spcf_producto', 'img_producto', 'val_precio',
             'id_proveedor', 'id_marca', 'num_stock', 'ind_activo'
         ]
@@ -225,7 +224,8 @@ def update_product(
             SELECT fun_update_producto(
             :id_categoria, 
             :id_linea, 
-            :id_sublinea,  
+            :id_sublinea,
+            :id_producto,     
             :nom_producto, 
             :spcf_producto, 
             :img_producto, 
