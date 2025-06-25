@@ -92,6 +92,6 @@ async def delete_favorite(
     """
     try:
         favorites_service.delete_favorite(db, id_usuario, id_categoria_producto, id_linea_producto, id_sublinea_producto, id_producto)
-        return ResponseMessage(message="Favorito eliminado exitosamente")
+        return ResponseMessage(message="Favorito desactivado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
