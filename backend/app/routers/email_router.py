@@ -20,7 +20,13 @@ from schemas.email_schema import (
     EmailSend, EmailResponse, WelcomeEmailData,
     VerificationEmailData, PasswordResetEmailData, ResponseMessage
 )
-from services.email_service import email_service
+from services.email_service import (
+    send_welcome_email as send_welcome_email_func,
+    send_verification_email as send_verification_email_func,
+    send_password_reset_email as send_password_reset_email_func,
+    validate_email_config,
+    get_email_config_status
+)
 from core.dependencies import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -34,7 +40,6 @@ router = APIRouter(
         500: {"description": "Error interno del servidor"}
     }
 )
-
 
 # ==================== ENDPOINTS DE AUTENTICACIÓN ====================
 
@@ -60,7 +65,7 @@ async def send_welcome_email(
     try:
         logger.info(f"Enviando email de bienvenida a {welcome_data.user_email}")
         
-        success = await email_service.send_welcome_email(
+        success = await send_welcome_email_func(
             user_email=welcome_data.user_email,
             user_name=welcome_data.user_name,
             verify_url=welcome_data.verify_url
@@ -103,7 +108,7 @@ async def send_verification_email(
     try:
         logger.info(f"Enviando email de verificación a {verification_data.user_email}")
         
-        success = await email_service.send_verification_email(
+        success = await send_verification_email_func(
             user_email=verification_data.user_email,
             user_name=verification_data.user_name,
             verification_token=verification_data.verification_token
@@ -146,7 +151,7 @@ async def send_password_reset_email(
     try:
         logger.info(f"Enviando email de reset de contraseña a {reset_data.user_email}")
         
-        success = await email_service.send_password_reset_email(
+        success = await send_password_reset_email_func(
             user_email=reset_data.user_email,
             user_name=reset_data.user_name,
             reset_token=reset_data.reset_token
@@ -195,12 +200,13 @@ async def get_email_config(
                 detail="Se requieren permisos de administrador"
             )
         
-        config_valid = email_service.validate_email_config()
+        config_status = get_email_config_status()
+        config_valid = validate_email_config()
         
         return {
             "service": "Resend",
-            "from_email": email_service.from_email,
-            "from_name": email_service.from_name,
+            "from_email": config_status.get("from_email"),
+            "from_name": config_status.get("from_name"),
             "config_valid": config_valid,
             "templates_available": [
                 "auth/welcome.html",
@@ -241,7 +247,7 @@ async def validate_email_config(
                 detail="Se requieren permisos de administrador"
             )
         
-        is_valid = email_service.validate_email_config()
+        is_valid = validate_email_config()
         
         if is_valid:
             return ResponseMessage(
@@ -295,7 +301,7 @@ async def get_email_stats(
         return {
             "service_status": "active",
             "provider": "Resend",
-            "config_valid": email_service.validate_email_config(),
+            "config_valid": validate_email_config(),
             "note": "Estadísticas detalladas disponibles en versión futura"
         }
         

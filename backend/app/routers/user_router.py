@@ -14,7 +14,8 @@ from core.database import get_db
 from schemas.user_schema import User, UserCreate, UserUpdate, ResponseMessage
 from schemas.auth_schema import UserInToken
 from services import user_service
-from core.jwt_utils import get_password_hash
+from core.jwt_utils import get_password_hash, create_verification_token
+from services.email_service import send_welcome_email, send_verification_email
 
 router = APIRouter(tags=["Usuarios"])
 
@@ -93,7 +94,43 @@ async def create_users(
                 detail=result
             )
         
-        return ResponseMessage(message="Usuario creado exitosamente")
+        # Envío automático de emails tras registro exitoso
+        try:
+            # 1. Email de bienvenida
+            welcome_sent = await send_welcome_email(
+                user_email=user.email_usuario,
+                user_name=user.nom_usuario
+            )
+            
+            # 2. Email de verificación con token
+            verification_token = create_verification_token(
+                user_id=int(user.id_usuario),
+                email=user.email_usuario,
+                expires_hours=24
+            )
+            
+            verification_sent = await send_verification_email(
+                user_email=user.email_usuario,
+                user_name=user.nom_usuario,
+                verification_token=verification_token
+            )
+            
+            # Log del estado de envío
+            if welcome_sent:
+                print(f"✅ Email de bienvenida enviado a {user.email_usuario}")
+            else:
+                print(f"❌ Error enviando email de bienvenida a {user.email_usuario}")
+                
+            if verification_sent:
+                print(f"✅ Email de verificación enviado a {user.email_usuario}")
+            else:
+                print(f"❌ Error enviando email de verificación a {user.email_usuario}")
+                
+        except Exception as email_error:
+            # Los emails fallan pero no impiden el registro
+            print(f"⚠️ Error enviando emails al usuario {user.email_usuario}: {str(email_error)}")
+        
+        return ResponseMessage(message="Usuario creado exitosamente. Revisa tu email para verificar tu cuenta.")
             
     except HTTPException:
         raise  # Re-lanzar HTTPExceptions específicas

@@ -192,9 +192,9 @@ async def send_verification_email(
             expires_hours=24
         )
         
-        # Importar y usar el servicio de email
-        from services.email_service import email_service
-        success = await email_service.send_verification_email(
+        # Importar y usar la función de email
+        from services.email_service import send_verification_email
+        success = await send_verification_email(
             user_email=user.email_usuario,
             user_name=user.nom_usuario,
             verification_token=verification_token
@@ -314,8 +314,8 @@ async def forgot_password(
             )
             
             # Enviar email de reset
-            from services.email_service import email_service
-            await email_service.send_password_reset_email(
+            from services.email_service import send_password_reset_email
+            await send_password_reset_email(
                 user_email=user.email_usuario,
                 user_name=user.nom_usuario,
                 reset_token=reset_token
@@ -386,10 +386,10 @@ async def reset_password(
         user_service.update_password(db, user_id, hashed_password)
         
         # Enviar email de confirmación
-        from services.email_service import email_service
+        from services.email_service import send_password_changed_email
         from fastapi import Request
         # request: Request = None  # Obtener IP para logs
-        await email_service.send_password_changed_email(
+        await send_password_changed_email(
             user_email=user.email_usuario,
             user_name=user.nom_usuario,
             ip_address=None  # request.client.host if request else None
