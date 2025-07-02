@@ -73,7 +73,8 @@ async def create_users(
             des_direccion=user.des_direccion,
             ind_genero=user.ind_genero,
             cel_usuario=user.cel_usuario,
-            fec_nacimiento=user.fec_nacimiento
+            fec_nacimiento=user.fec_nacimiento,
+            ind_activo=user.ind_activo
         )
         
         # Crear el usuario
@@ -172,6 +173,13 @@ async def update_user(
                 detail="Usuario no encontrado"
             )
         
+        # Validación adicional: Solo admin puede cambiar ind_activo
+        if user.ind_activo is not None and current_user.id_rol != 1:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo los administradores pueden activar/desactivar usuarios"
+            )
+        
         # Hashear la contraseña si se proporciona
         hashed_password = get_password_hash(user.password_usuario) if user.password_usuario else None
         
@@ -206,4 +214,4 @@ async def delete_user(id_usuario: Decimal, db: Session = Depends(get_db)):
         user_service.delete_user(db,id_usuario)
         return ResponseMessage(message="Usuario eliminado exitosamente")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) 

@@ -112,7 +112,6 @@ def create_users(db: Session, user: UserCreate):
             :email_usuario,
             :password_usuario,
             :des_direccion,
-            :id_rol,
             :ind_genero,
             :cel_usuario,
             :fec_nacimiento)
@@ -153,7 +152,7 @@ def update_user(db: Session, id_usuario: Decimal, user: UserUpdate):
         
         query = text("""SELECT fun_update_usuarios(
             :id_usuario, :nom_usuario, :ape_usuario, :email_usuario, :password_usuario,
-            :des_direccion, :id_rol, :ind_genero, :cel_usuario, :fec_nacimiento
+            :des_direccion, :ind_genero, :cel_usuario, :fec_nacimiento
             )""")
         
         result = db.execute(query, update_params)
