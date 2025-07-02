@@ -232,6 +232,8 @@ def get_user_by_email(db: Session, email: str):
         db.rollback()
         raise Exception(f"Error al obtener usuario por email: {str(e)}")
 
+
+
 def update_password(db: Session, id_usuario: Decimal, hashed_password: str):
     """
     Actualiza solo la contraseña de un usuario.

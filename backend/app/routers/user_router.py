@@ -4,13 +4,11 @@ Módulo de enrutador para la gestión de usuarios.
 Define las rutas y endpoints relacionados con la gestión de usuarios,
 incluyendo la creación, actualización y visualización de usuarios.
 """
-from fastapi import APIRouter, Depends, Form, HTTPException, status,Body
+from fastapi import APIRouter, Depends,HTTPException, status,Body
 from sqlalchemy.orm import Session
 from decimal import Decimal
-from typing import Optional
-
-
 from core.database import get_db
+from core.dependencies import get_current_user
 from schemas.user_schema import User, UserCreate, UserUpdate, ResponseMessage
 from schemas.auth_schema import UserInToken
 from services import user_service
@@ -61,12 +59,7 @@ async def create_users(
                 detail="El email ya está registrado"
             )
         
-        # Validar que el id_rol sea válido (1 = admin, 2 = user)
-        if user.id_rol not in [1, 2]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="id_rol debe ser 1 (Administrador) o 2 (Usuario)"
-            )
+        # El FOREIGN KEY constraint en tab_usuarios se encarga de validar que el rol existe
         
         # Hashear la contraseña antes de crear el usuario
         hashed_password = get_password_hash(user.password_usuario)
@@ -78,7 +71,6 @@ async def create_users(
             email_usuario=user.email_usuario,
             password_usuario=hashed_password,  # Usar la contraseña hasheada
             des_direccion=user.des_direccion,
-            id_rol=user.id_rol,
             ind_genero=user.ind_genero,
             cel_usuario=user.cel_usuario,
             fec_nacimiento=user.fec_nacimiento
@@ -135,23 +127,51 @@ async def create_users(
     except HTTPException:
         raise  # Re-lanzar HTTPExceptions específicas
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        error_msg = str(e)
+        # Capturar errores de FOREIGN KEY constraint específicos
+        if "foreign key constraint" in error_msg.lower() or "violates foreign key" in error_msg.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"El rol especificado no existe en el sistema"
+            )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
     
 @router.put("/users/{id_usuario}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_user(
     id_usuario: Decimal,
     user: UserUpdate = Body(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
 ):     
     """
     Actualiza un usuario existente en la base de datos.
+    
+    - Usuario normal: Solo puede editar su propio perfil
+    - Admin (id_rol = 1): Puede editar cualquier perfil
 
     Args:
         id_usuario (Decimal): ID del usuario a actualizar.
         user (UserUpdate): Datos del usuario a actualizar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
+        current_user (UserInToken): Usuario autenticado actual.
     """
     try:
+        # Validación de seguridad: Usuario solo puede editar su propio perfil
+        # Excepción: Admin puede editar cualquier perfil
+        if current_user.id_rol != 1 and current_user.id_usuario != id_usuario:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permisos para editar este perfil"
+            )
+        
+        # Verificar que el usuario a actualizar existe
+        existing_user = user_service.get_user(db, id_usuario)
+        if not existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado"
+            )
+        
         # Hashear la contraseña si se proporciona
         hashed_password = get_password_hash(user.password_usuario) if user.password_usuario else None
         
@@ -161,7 +181,6 @@ async def update_user(
             email_usuario=user.email_usuario,
             password_usuario=hashed_password,  # Usar la contraseña hasheada
             des_direccion=user.des_direccion,
-            id_rol=user.id_rol,
             ind_genero=user.ind_genero,
             cel_usuario=user.cel_usuario,
             fec_nacimiento=user.fec_nacimiento
@@ -169,6 +188,8 @@ async def update_user(
 
         user_service.update_user(db, id_usuario, user_data)
         return ResponseMessage(message="Usuario actualizado exitosamente")
+    except HTTPException:
+        raise  # Re-lanzar HTTPExceptions específicas
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     

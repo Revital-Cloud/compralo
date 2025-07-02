@@ -129,6 +129,7 @@ class RoleBasedAccessMiddleware:
                     
                     # Verificar si el usuario tiene el rol requerido
                     if current_user.id_rol not in required_roles:
+                        # Usar nombres de roles fijos (más simple y rápido)
                         role_names = {1: "Administrador", 2: "Usuario"}
                         required_role_names = [role_names.get(role, f"Rol {role}") for role in required_roles]
                         
@@ -192,15 +193,12 @@ class SmartAuthMiddleware:
         
         # Rutas de solo lectura públicas (GET sin autenticación)
         self.public_read_paths = [
-            "/api/products",
-            "/api/categories", 
-            "/api/brands",
-            "/api/lines",
-            "/api/sublines",
-            "/api/providers",
-            "/api/cms",
-            "/api/email/config",
-            "/api/email/stats"
+            "/api/products",    # Catálogo público
+            "/api/categories",  # Categorías públicas
+            "/api/brands",      # Marcas públicas
+            "/api/lines",       # Líneas públicas
+            "/api/sublines",    # Sublíneas públicas
+            "/api/cms"          # Contenido público (páginas, banners, etc.)
         ]
         
         # Rutas que requieren autenticación pero cualquier usuario puede acceder
@@ -208,6 +206,7 @@ class SmartAuthMiddleware:
             "/api/me",
             "/api/verify-token",
             "/api/change-password",
+            "/api/users", #Put de users
             "/api/logout",
             "/api/favorites",
             "/api/send-verification-email"
@@ -215,24 +214,26 @@ class SmartAuthMiddleware:
         
         # Rutas que solo pueden acceder administradores
         self.admin_only_paths = [
-            "/api/users",      # GET, PUT, DELETE de usuarios
-            "/api/email/send", # Envío de emails
+            "/api/users",           # GET, PUT, DELETE de usuarios
+            "/api/providers",       # Gestión de proveedores (solo admin)
+            "/api/email/send",      # Envío de emails
             "/api/email/welcome",
             "/api/email/verify", 
             "/api/email/password-reset",
             "/api/email/validate-config",
-            "/api/test"        # Endpoints de testing
+            "/api/email/config",    # Configuración de emails
+            "/api/email/stats",     # Estadísticas de emails
+            "/api/test"             # Endpoints de testing
         ]
         
         # Recursos que solo admins pueden modificar pero todos pueden leer
         self.admin_write_paths = [
-            "/api/products",
-            "/api/categories",
-            "/api/brands", 
-            "/api/lines",
-            "/api/sublines",
-            "/api/providers",
-            "/api/cms"
+            "/api/products",    # Solo admin puede crear/editar productos
+            "/api/categories",  # Solo admin puede gestionar categorías
+            "/api/brands",      # Solo admin puede gestionar marcas
+            "/api/lines",       # Solo admin puede gestionar líneas
+            "/api/sublines",    # Solo admin puede gestionar sublíneas
+            "/api/cms"          # Solo admin puede gestionar contenido
         ]
     
     async def __call__(self, request: Request, call_next: Callable):
@@ -421,6 +422,7 @@ def require_role(required_role: str):
             )
         
         if user_role_id != required_role_id:
+            # Usar nombres de roles fijos
             role_names = {1: "Administrador", 2: "Usuario"}
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
