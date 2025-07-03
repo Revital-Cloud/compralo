@@ -175,10 +175,14 @@ async def update_user(
     try:
         # Validación de seguridad: Usuario solo puede editar su propio perfil
         # Excepción: Admin puede editar cualquier perfil
-        if current_user.id_rol != 1 and current_user.id_usuario != id_usuario:
+        # Convertir ambos a Decimal para comparación correcta
+        current_user_id = Decimal(str(current_user.id_usuario))
+        target_user_id = Decimal(str(id_usuario))
+        
+        if current_user.id_rol != 1 and current_user_id != target_user_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permisos para editar este perfil"
+                detail=f"No tienes permisos para editar este perfil. Tu ID: {current_user_id}, Target ID: {target_user_id}"
             )
         
         # Verificar que el usuario a actualizar existe

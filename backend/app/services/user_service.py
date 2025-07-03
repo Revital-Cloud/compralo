@@ -196,7 +196,7 @@ def delete_user(db: Session, id_usuario:Decimal):
 
 def get_user_by_email(db: Session, email: str):
     """
-    Obtiene un usuario por su email.
+    Obtiene un usuario por su email con los campos mínimos necesarios para autenticación.
 
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
@@ -213,15 +213,7 @@ def get_user_by_email(db: Session, email: str):
             ape_usuario,
             email_usuario,
             password_usuario,
-            des_direccion,
-            id_rol,
-            ind_genero,
-            cel_usuario,
-            fec_nacimiento,
-            usr_insert,
-            fec_insert,
-            usr_update,
-            fec_update
+            id_rol
         FROM tab_usuarios 
         WHERE email_usuario = :email
         """)
@@ -231,7 +223,31 @@ def get_user_by_email(db: Session, email: str):
         db.rollback()
         raise Exception(f"Error al obtener usuario por email: {str(e)}")
 
+def get_user_by_email_auth_only(db: Session, email: str):
+    """
+    Obtiene solo email y password para autenticación rápida.
+    Optimizada para validación de credenciales únicamente.
 
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        email (str): Email del usuario a buscar.
+
+    Returns:
+        dict or None: Diccionario con email y password o None si no se encuentra.
+    """
+    try:
+        query = text("""
+        SELECT 
+            email_usuario,
+            password_usuario
+        FROM tab_usuarios 
+        WHERE email_usuario = :email
+        """)
+        result = db.execute(query, {"email": email})
+        return result.mappings().first()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener credenciales: {str(e)}")
 
 def update_password(db: Session, id_usuario: Decimal, hashed_password: str):
     """
