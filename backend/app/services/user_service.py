@@ -127,7 +127,7 @@ def create_users(db: Session, user: UserCreate):
         db.rollback()
         raise Exception(f"Error al crear el usuario: {str(e)}")
     
-def update_user(db: Session, id_usuario: Decimal, user: UserUpdate):
+def update_user(db: Session, id_usuario: Decimal, user: UserUpdate, usr_update: str):
     """
     Actualiza un usuario existente en la base de datos llamando a una función SQL.
 
@@ -149,10 +149,11 @@ def update_user(db: Session, id_usuario: Decimal, user: UserUpdate):
     try:
         update_params = user.model_dump(exclude_unset=True)
         update_params["id_usuario"] = id_usuario
+        update_params["usr_update"] = usr_update
         
         query = text("""SELECT fun_update_usuarios(
             :id_usuario, :nom_usuario, :ape_usuario, :email_usuario, :password_usuario,
-            :des_direccion, :ind_genero, :cel_usuario, :fec_nacimiento
+            :des_direccion, :ind_genero, :cel_usuario, :fec_nacimiento, :usr_update
             )""")
         
         result = db.execute(query, update_params)

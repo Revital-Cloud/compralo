@@ -199,22 +199,25 @@ async def update_user(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Solo los administradores pueden activar/desactivar usuarios"
             )
-        
-        # Hashear la contraseña si se proporciona
-        hashed_password = get_password_hash(user.password_usuario) if user.password_usuario else None
-        
-        user_data = UserUpdate(
-            nom_usuario=user.nom_usuario,
-            ape_usuario=user.ape_usuario,
-            email_usuario=user.email_usuario,
-            password_usuario=hashed_password,  # Usar la contraseña hasheada
-            des_direccion=user.des_direccion,
-            ind_genero=user.ind_genero,
-            cel_usuario=user.cel_usuario,
-            fec_nacimiento=user.fec_nacimiento
+            
+        # Si hay contraseña nueva, hashearla
+        if user.password_usuario:
+            user.password_usuario = get_password_hash(user.password_usuario)
+            
+        # Actualizar el usuario usando el ID del usuario actual como usr_update
+        result = user_service.update_user(
+            db=db,
+            id_usuario=id_usuario,
+            user=user,
+            usr_update=str(current_user.id_usuario)
         )
-
-        user_service.update_user(db, id_usuario, user_data)
+        
+        if result and isinstance(result, str) and "Error:" in result:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result
+            )
+            
         return ResponseMessage(message="Usuario actualizado exitosamente")
     except HTTPException:
         raise  # Re-lanzar HTTPExceptions específicas
