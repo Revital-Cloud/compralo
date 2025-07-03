@@ -4,7 +4,7 @@ Módulo de enrutador para la gestión de usuarios.
 Define las rutas y endpoints relacionados con la gestión de usuarios,
 incluyendo la creación, actualización y visualización de usuarios.
 """
-from fastapi import APIRouter, Depends,HTTPException, status,Body
+from fastapi import APIRouter, Depends,HTTPException, status,Body, BackgroundTasks
 from sqlalchemy.orm import Session
 from decimal import Decimal
 from core.database import get_db
@@ -16,6 +16,49 @@ from core.jwt_utils import get_password_hash, create_verification_token
 from services.email_service import send_welcome_email, send_verification_email
 
 router = APIRouter(tags=["Usuarios"])
+
+async def send_user_registration_emails(user_email: str, user_name: str, user_id: int):
+    """
+    Función para enviar emails de registro en background.
+    
+    Args:
+        user_email (str): Email del usuario
+        user_name (str): Nombre del usuario
+        user_id (int): ID del usuario
+    """
+    try:
+        # 1. Email de bienvenida
+        welcome_sent = await send_welcome_email(
+            user_email=user_email,
+            user_name=user_name
+        )
+        
+        # 2. Email de verificación con token
+        verification_token = create_verification_token(
+            user_id=user_id,
+            email=user_email,
+            expires_hours=24
+        )
+        
+        verification_sent = await send_verification_email(
+            user_email=user_email,
+            user_name=user_name,
+            verification_token=verification_token
+        )
+        
+        # Log del estado de envío
+        if welcome_sent:
+            print(f"✅ Email de bienvenida enviado a {user_email}")
+        else:
+            print(f"❌ Error enviando email de bienvenida a {user_email}")
+            
+        if verification_sent:
+            print(f"✅ Email de verificación enviado a {user_email}")
+        else:
+            print(f"❌ Error enviando email de verificación a {user_email}")
+            
+    except Exception as email_error:
+        print(f"⚠️ Error enviando emails al usuario {user_email}: {str(email_error)}")
 
 @router.get("/users", response_model=list[User])
 async def get_users(db: Session = Depends(get_db)):
@@ -39,6 +82,7 @@ async def get_user(id_usuario: Decimal, db: Session = Depends(get_db)):
 
 @router.post("/users", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_users(
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: UserCreate = Body(...)
 ):
@@ -87,41 +131,13 @@ async def create_users(
                 detail=result
             )
         
-        # Envío automático de emails tras registro exitoso
-        try:
-            # 1. Email de bienvenida
-            welcome_sent = await send_welcome_email(
-                user_email=user.email_usuario,
-                user_name=user.nom_usuario
-            )
-            
-            # 2. Email de verificación con token
-            verification_token = create_verification_token(
-                user_id=int(user.id_usuario),
-                email=user.email_usuario,
-                expires_hours=24
-            )
-            
-            verification_sent = await send_verification_email(
-                user_email=user.email_usuario,
-                user_name=user.nom_usuario,
-                verification_token=verification_token
-            )
-            
-            # Log del estado de envío
-            if welcome_sent:
-                print(f"✅ Email de bienvenida enviado a {user.email_usuario}")
-            else:
-                print(f"❌ Error enviando email de bienvenida a {user.email_usuario}")
-                
-            if verification_sent:
-                print(f"✅ Email de verificación enviado a {user.email_usuario}")
-            else:
-                print(f"❌ Error enviando email de verificación a {user.email_usuario}")
-                
-        except Exception as email_error:
-            # Los emails fallan pero no impiden el registro
-            print(f"⚠️ Error enviando emails al usuario {user.email_usuario}: {str(email_error)}")
+        # Envío automático de emails en background (no bloquea la respuesta)
+        background_tasks.add_task(
+            send_user_registration_emails,
+            user_email=user.email_usuario,
+            user_name=user.nom_usuario,
+            user_id=int(user.id_usuario)
+        )
         
         return ResponseMessage(message="Usuario creado exitosamente. Revisa tu email para verificar tu cuenta.")
             
