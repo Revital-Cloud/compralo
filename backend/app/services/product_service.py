@@ -13,9 +13,12 @@ y utilizan los esquemas Pydantic para la validación y transformación de datos.
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from fastapi import UploadFile
+from typing import Optional
 import json
 
 from schemas.product_schema import ProductCreate, ProductUpdate
+from services import cloudinary_service
 # No necesitamos importar el schema Product aquí si solo devolvemos mappings
 # y el router se encarga de la validación con el response_model.
 
@@ -123,9 +126,10 @@ def get_product(
         raise Exception(f"Error al obtener el producto: {str(e)}")
 
 #create product
-def create_product(db: Session, product: ProductCreate):
+async def create_product(db: Session, product: ProductCreate, image_file: Optional[UploadFile] = None):
     """
     Crea un nuevo producto en la base de datos llamando a una función SQL.
+    Si se proporciona un archivo de imagen, lo sube a Cloudinary primero.
 
     Utiliza la función de base de datos `fun_insert_producto` para insertar
     un nuevo producto. Los datos del producto se toman del esquema `ProductCreate`.
@@ -133,6 +137,7 @@ def create_product(db: Session, product: ProductCreate):
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
         product (ProductCreate): Un objeto Pydantic `ProductCreate` con los datos del producto.
+        image_file (Optional[UploadFile]): Archivo de imagen opcional para subir a Cloudinary.
 
     Returns:
         dict or None: Un diccionario que representa el producto creado (generalmente el JSON
@@ -140,6 +145,11 @@ def create_product(db: Session, product: ProductCreate):
                       SQL no devuelve el resultado esperado.
     """
     try:
+        # Si hay una imagen, subirla a Cloudinary primero
+        if image_file:
+            image_url = await cloudinary_service.upload_image(image_file)
+            product.img_producto = image_url
+        
         # Asume que product.model_dump() tiene todas las claves que fun_insert_producto espera por nombre.
         params = product.model_dump()
         if 'spcf_producto' in params and isinstance(params['spcf_producto'], dict):
@@ -167,16 +177,18 @@ def create_product(db: Session, product: ProductCreate):
         raise Exception(f"Error al crear el producto: {str(e)}")
 
 #update product
-def update_product(
+async def update_product(
     id_categoria: Decimal,
     id_linea: Decimal,
     id_sublinea: Decimal,         
     id_producto: Decimal,
     product: ProductUpdate,
-    db: Session
+    db: Session,
+    image_file: Optional[UploadFile] = None
     ):
     """
     Actualiza un producto existente en la base de datos llamando a una función SQL.
+    Si se proporciona un archivo de imagen, lo sube a Cloudinary primero.
 
     Utiliza la función de base de datos `fun_update_producto` para actualizar
     un producto existente, identificado por `id_producto`. Los datos para la
@@ -186,6 +198,7 @@ def update_product(
         db (Session): La sesión de base de datos SQLAlchemy.
         id_producto (int): El ID del producto a actualizar.
         product (ProductUpdate): Un objeto Pydantic `ProductUpdate` con los datos a actualizar.
+        image_file (Optional[UploadFile]): Archivo de imagen opcional para subir a Cloudinary.
 
     Returns:
         dict or None: Un diccionario que representa el producto actualizado (generalmente el JSON
@@ -193,6 +206,11 @@ def update_product(
                       SQL no devuelve el resultado esperado.
     """
     try:
+        # Si hay una imagen, subirla a Cloudinary primero
+        if image_file:
+            image_url = await cloudinary_service.upload_image(image_file)
+            product.img_producto = image_url
+        
         params = product.model_dump(exclude_unset=True) # Solo incluye campos que se proporcionaron
         
         if 'spcf_producto' in params and isinstance(params['spcf_producto'], dict):

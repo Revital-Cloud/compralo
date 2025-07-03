@@ -50,9 +50,14 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int 
     ALGORITHM: str
     REFRESH_TOKEN_EXPIRE_DAYS: int 
-    RESEND_KEY: str
+    
+    # Cloudinary configuracion
+    CLOUDINARY_CLOUD_NAME: str
+    CLOUDINARY_API_KEY: str
+    CLOUDINARY_API_SECRET: str
     
     # Configuración de emails con Resend
+    RESEND_KEY: str
     RESEND_FROM_EMAIL: str
     RESEND_FROM_NAME: str = "Brillo Rosa"
     

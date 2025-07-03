@@ -7,10 +7,11 @@ Utiliza FastAPI para definir las rutas y depende del servicio de productos
 para la lógica de negocio y del gestor de base de datos para las sesiones.
 """
 # Definición de rutas (endpoints) de la API para productos
-from fastapi import APIRouter, Depends, Body, Form, HTTPException, status
+from fastapi import APIRouter, Depends, Body, Form, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from decimal import Decimal
 from typing import Optional, Dict, Any
+import json
 
 from core.database import get_db
 from core.dependencies import require_admin, get_current_user_optional
@@ -75,16 +76,38 @@ async def get_product(
 @router.post("/products", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_product(
     db: Session = Depends(get_db),
-    product_data: ProductCreate = Body(...) 
+    # Datos del producto como Form fields
+    id_categoria: Decimal = Form(...),
+    id_linea: Decimal = Form(...),
+    id_sublinea: Decimal = Form(...),
+    nom_producto: str = Form(...),
+    spcf_producto: str = Form(...),  # JSON como string
+    val_precio: Decimal = Form(...),
+    id_proveedor: Decimal = Form(...),
+    id_marca: Decimal = Form(...),
+    num_stock: int = Form(0),
+    ind_activo: bool = Form(True),
+    # Archivo de imagen opcional
+    image_file: Optional[UploadFile] = File(None)
 ):
     """
-    Crear un nuevo producto.
+    Crear un nuevo producto con opción de imagen.
 
     Este endpoint permite crear un nuevo producto en la base de datos
-    utilizando los datos proporcionados en el cuerpo de la solicitud.
+    utilizando form-data, incluyendo opcionalmente una imagen que se sube a Cloudinary.
     
     Args:
-        product_data (ProductCreate): Datos del producto a crear.
+        id_categoria (Decimal): ID de la categoría.
+        id_linea (Decimal): ID de la línea.
+        id_sublinea (Decimal): ID de la sublínea.
+        nom_producto (str): Nombre del producto.
+        spcf_producto (str): Especificaciones del producto en formato JSON string.
+        val_precio (Decimal): Precio del producto.
+        id_proveedor (Decimal): ID del proveedor.
+        id_marca (Decimal): ID de la marca.
+        num_stock (int): Stock inicial del producto.
+        ind_activo (bool): Si el producto está activo.
+        image_file (UploadFile): Archivo de imagen opcional.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
 
     Returns:
@@ -94,18 +117,38 @@ async def create_product(
         HTTPException: Si ocurre un error durante la creación del producto.
     """
     try:
+        # Convertir el JSON string a dict
+        try:
+            spcf_producto_dict = json.loads(spcf_producto)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="El campo 'spcf_producto' debe ser una cadena JSON válida.")
+        
+        # Crear el objeto ProductCreate
+        product_data = ProductCreate(
+            id_categoria=id_categoria,
+            id_linea=id_linea,
+            id_sublinea=id_sublinea,
+            nom_producto=nom_producto,
+            spcf_producto=spcf_producto_dict,
+            img_producto=None,  # Se asignará automáticamente si hay imagen
+            val_precio=val_precio,
+            id_proveedor=id_proveedor,
+            id_marca=id_marca,
+            num_stock=num_stock,
+            ind_activo=ind_activo
+        )
+        
         print(f"spcf_producto recibido: {product_data.spcf_producto}")
         print(f"Tipo de spcf_producto: {type(product_data.spcf_producto)}")
         
-        # Ya no necesitamos json.loads() porque Pydantic ya convierte a dict
-        # El product_data ya viene validado y convertido desde el schema
-        service_response_message = product_service.create_product(db, product_data)
+        # Llamar al servicio con la imagen opcional
+        service_response_message = await product_service.create_product(db, product_data, image_file)
         
         return ResponseMessage(message=service_response_message)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    
-        
+
+
 #actualiza un producto
 @router.put(
     "/products/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}", 
@@ -117,72 +160,82 @@ async def update_product(
     id_linea: Decimal,
     id_sublinea: Decimal,
     id_producto: Decimal,
-    product_data: ProductUpdate = Body(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    # Datos del producto como Form fields opcionales
+    nom_producto: Optional[str] = Form(None),
+    spcf_producto: Optional[str] = Form(None),  # JSON como string
+    val_precio: Optional[Decimal] = Form(None),
+    id_proveedor: Optional[Decimal] = Form(None),
+    id_marca: Optional[Decimal] = Form(None),
+    num_stock: Optional[int] = Form(None),
+    ind_activo: Optional[bool] = Form(None),
+    # Archivo de imagen opcional
+    image_file: Optional[UploadFile] = File(None)
     ):
     """
     Actualizar un producto existente.
 
     Este endpoint permite actualizar los datos de un producto específico,
-    identificado por su ID.
+    identificado por su clave compuesta, incluyendo opcionalmente una nueva imagen.
 
     Args:
-        id_producto (Decimal): ID del producto a actualizar.
         id_categoria (Decimal): Identificador de la categoría.
         id_linea (Decimal): Identificador de la línea.
         id_sublinea (Decimal): Identificador de la sublínea.
-        nom_producto (str): Nombre del producto.
-        spcf_producto_str (str): Especificaciones del producto en formato de cadena JSON.
-        img_producto (Optional[str]): URL o ruta de la imagen del producto.
-        val_precio (Decimal): Precio de venta del producto.
-        id_proveedor (Decimal): Identificador del proveedor.
-        id_marca (Decimal): Identificador de la marca.
-        num_stock (int): Cantidad de unidades disponibles en inventario.
+        id_producto (Decimal): ID del producto a actualizar.
+        nom_producto (Optional[str]): Nombre del producto.
+        spcf_producto (Optional[str]): Especificaciones del producto en formato JSON string.
+        val_precio (Optional[Decimal]): Precio de venta del producto.
+        id_proveedor (Optional[Decimal]): Identificador del proveedor.
+        id_marca (Optional[Decimal]): Identificador de la marca.
+        num_stock (Optional[int]): Cantidad de unidades disponibles en inventario.
+        ind_activo (Optional[bool]): Si el producto está activo.
+        image_file (Optional[UploadFile]): Archivo de imagen opcional.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
 
     Returns:
         ResponseMessage: Un mensaje indicando el resultado de la operación de actualización.
     """
-    # try:
-    #     spcf_producto_dict: Dict[str, Any] = json.loads(product_data.spcf_producto)
-    # except json.JSONDecodeError:
-    #     raise HTTPException(status_code=400, detail="El campo 'spcf_producto' debe ser una cadena JSON válida.")
-    
-        # product_data = ProductUpdate(
-        #     id_producto=product_data.id_producto,
-        #     nom_producto=product_data.nom_producto,
-        #     spcf_producto=product_data.spcf_producto,  # Asumiendo que ya es un dict
-        #     img_producto=product_data.img_producto,
-        #     val_precio=product_data.val_precio,
-        #     id_proveedor=product_data.id_proveedor,
-        #     id_marca=product_data.id_marca,
-        #     id_sublinea=product_data.id_sublinea,
-        #     id_linea=product_data.id_linea,
-        #     id_categoria=product_data.id_categoria,
-        #     num_stock=product_data.num_stock
-        # )
-        
     try:
-        response_message = product_service.update_product(
+        # Preparar el dict de datos para actualizar
+        update_data = {}
+        
+        if nom_producto is not None:
+            update_data['nom_producto'] = nom_producto
+        if spcf_producto is not None:
+            try:
+                update_data['spcf_producto'] = json.loads(spcf_producto)
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="El campo 'spcf_producto' debe ser una cadena JSON válida.")
+        if val_precio is not None:
+            update_data['val_precio'] = val_precio
+        if id_proveedor is not None:
+            update_data['id_proveedor'] = id_proveedor
+        if id_marca is not None:
+            update_data['id_marca'] = id_marca
+        if num_stock is not None:
+            update_data['num_stock'] = num_stock
+        if ind_activo is not None:
+            update_data['ind_activo'] = ind_activo
+            
+        # Crear el objeto ProductUpdate
+        product_data = ProductUpdate(**update_data)
+        
+        response_message = await product_service.update_product(
             id_categoria, 
             id_linea, 
             id_sublinea, 
             id_producto, 
             product_data, 
-            db
-            )
+            db,
+            image_file
+        )
 
-        return ResponseMessage(message="producto actualizada exitosamente")
+        return ResponseMessage(message="producto actualizado exitosamente")
     
     except Exception as e:
-        if response_message is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No se pudo desactivar el producto porque no se encontró."
-            )
-        else:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-               
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
 
 
 # desactiva una sublinea
@@ -237,6 +290,3 @@ async def deactivate_product(
             )
         else:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-        
-    
-        
