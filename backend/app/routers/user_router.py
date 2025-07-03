@@ -8,12 +8,13 @@ from fastapi import APIRouter, Depends,HTTPException, status,Body, BackgroundTas
 from sqlalchemy.orm import Session
 from decimal import Decimal
 from core.database import get_db
-from core.dependencies import get_current_user
+from core.dependencies import get_current_user, get_current_user_optional
 from schemas.user_schema import User, UserCreate, UserUpdate, ResponseMessage
 from schemas.auth_schema import UserInToken
 from services import user_service
 from core.jwt_utils import get_password_hash, create_verification_token
 from services.email_service import send_welcome_email, send_verification_email
+from typing import Optional
 
 router = APIRouter(tags=["Usuarios"])
 
@@ -121,8 +122,8 @@ async def create_users(
             ind_activo=user.ind_activo
         )
         
-        # Crear el usuario
-        result = user_service.create_users(db, user_data)
+        # Usar el ID del usuario que se está creando como usr_insert
+        result = user_service.create_users(db, user_data, str(user.id_usuario))
         
         # Verificar si la función SQL retornó un error
         if result and isinstance(result, str) and "Error:" in result:

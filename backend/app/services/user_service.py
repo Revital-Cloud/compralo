@@ -85,7 +85,7 @@ def get_user(db: Session, id_usuario: Decimal):
         db.rollback()
         raise Exception(f"Error al obtener el usuario: {str(e)}")
     
-def create_users(db: Session, user: UserCreate):
+def create_users(db: Session, user: UserCreate, usr_insert: str):
     """
     Crea un nuevo usuario en la base de datos llamando a una función SQL.
 
@@ -95,6 +95,7 @@ def create_users(db: Session, user: UserCreate):
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
         user (UserCreate): Un objeto Pydantic `UserCreate` con los datos del usuario.
+        usr_insert (str): ID del usuario que está creando el registro.
 
     Returns:
         dict or None: Un diccionario que representa el usuario creado (generalmente el JSON
@@ -103,6 +104,7 @@ def create_users(db: Session, user: UserCreate):
     """
     try:
         params = user.model_dump()
+        params["usr_insert"] = usr_insert
         
         query = text("""
             SELECT fun_insert_usuarios(
@@ -114,7 +116,8 @@ def create_users(db: Session, user: UserCreate):
             :des_direccion,
             :ind_genero,
             :cel_usuario,
-            :fec_nacimiento)
+            :fec_nacimiento,
+            :usr_insert)
             """)
         
         result = db.execute(query, params)
