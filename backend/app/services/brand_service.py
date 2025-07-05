@@ -45,7 +45,6 @@ def create_brand(db:Session, brand:BrandCreate, usr_insert: str):
         query = text("""
         SELECT fun_insert_marca(
             :nom_marca,
-            :ind_activo,
             :usr_insert
         )
         """)

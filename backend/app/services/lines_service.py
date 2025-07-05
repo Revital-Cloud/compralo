@@ -22,14 +22,15 @@ def get_lines(db: Session):
         raise Exception(f"Error al obtener líneas: {str(e)}")
     
 #crear una línea
-def create_line(db: Session, line: LineCreate):
+def create_line(db: Session, line: LineCreate, usr_insert: Decimal):
     try:
         params = line.model_dump()
+        params["usr_insert"] = usr_insert
         query = text("""
         SELECT fun_insert_linea(
             :id_categoria,
             :nom_linea,
-            :ind_activo
+            :usr_insert
         )
         """)
         result = db.execute(query, params)
@@ -42,7 +43,7 @@ def create_line(db: Session, line: LineCreate):
     
     
 #Actualizar una línea
-def update_line(db: Session, id_categoria: Decimal, id_linea: Decimal, line: LineUpdate):
+def update_line(db: Session, id_categoria: Decimal, id_linea: Decimal, line: LineUpdate, usr_update: Decimal):
     """
     Actualiza una línea existente en la base de datos.
     Utiliza la función de base de datos fun_update_linea para actualizar
@@ -58,12 +59,14 @@ def update_line(db: Session, id_categoria: Decimal, id_linea: Decimal, line: Lin
         params = line.model_dump(exclude_unset=True)  # Excluir campos no proporcionados
         params['id_categoria'] = id_categoria
         params['id_linea'] = id_linea  # Añadir el ID de la línea a actualizar
+        params['usr_update'] = usr_update
         query = text("""
         SELECT fun_update_linea(
             :id_categoria,
             :id_linea,
             :nom_linea,
-            :ind_activo
+            :ind_activo,
+            :usr_update
         )
         """)
         result = db.execute(query, params)

@@ -12,6 +12,7 @@ y utilizan los esquemas Pydantic para la validación y transformación de datos.
 import json
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from decimal import Decimal
 
 from schemas.cms_schema import CmsCreate,CmsUpdate
 
@@ -75,7 +76,7 @@ def get_content(db:Session,id_cms_content:int):
         db.rollback()
         raise Exception(f"Error al obtener CMS Content: {str(e)}")
 
-def create_cms_content(db:Session,cms_content:CmsCreate):
+def create_cms_content(db:Session,cms_content:CmsCreate, usr_insert: Decimal):
     """
     Crea un nuevo CMS Content en la base de datos.
 
@@ -93,6 +94,7 @@ def create_cms_content(db:Session,cms_content:CmsCreate):
     """
     try:
         params = cms_content.model_dump()
+        params["usr_insert"] = usr_insert
         if 'des_cms_content' in params and isinstance(params['des_cms_content'], dict):
             params['des_cms_content'] = json.dumps(params['des_cms_content'])
             
@@ -101,7 +103,7 @@ def create_cms_content(db:Session,cms_content:CmsCreate):
             :nom_cms_content,
             :des_cms_content,
             :num_version,
-            :ind_publicado
+            :usr_insert
         )
         """)
         result = db.execute(query,params)
@@ -112,7 +114,7 @@ def create_cms_content(db:Session,cms_content:CmsCreate):
         db.rollback()
         raise Exception(f"Error al crear CMS Content: {str(e)}")
     
-def update_cms_content(db:Session,id_cms_content:int,cms_content:CmsUpdate):
+def update_cms_content(db:Session,id_cms_content:int,cms_content:CmsUpdate, usr_update: Decimal):
     """
     Actualiza un CMS Content existente en la base de datos.
     Utiliza la función de base de datos `fun_update_content` para actualizar
@@ -131,6 +133,7 @@ def update_cms_content(db:Session,id_cms_content:int,cms_content:CmsUpdate):
     try:
         update_params = cms_content.model_dump(exclude_unset=True)
         update_params["id_cms_content"] = id_cms_content
+        update_params["usr_update"] = usr_update
         
         # Convertir des_cms_content de dict a JSON string si es necesario
         if 'des_cms_content' in update_params and isinstance(update_params['des_cms_content'], dict):
@@ -142,7 +145,8 @@ def update_cms_content(db:Session,id_cms_content:int,cms_content:CmsUpdate):
             :nom_cms_content,
             :des_cms_content,
             :num_version,
-            :ind_publicado
+            :ind_publicado,
+            :usr_update
         )
         """)
         result = db.execute(query,update_params)

@@ -123,7 +123,7 @@ def get_product(
         raise Exception(f"Error al obtener el producto: {str(e)}")
 
 #create product
-def create_product(db: Session, product: ProductCreate):
+def create_product(db: Session, product: ProductCreate, usr_insert: Decimal):
     """
     Crea un nuevo producto en la base de datos llamando a una función SQL.
 
@@ -142,6 +142,7 @@ def create_product(db: Session, product: ProductCreate):
     try:
         # Asume que product.model_dump() tiene todas las claves que fun_insert_producto espera por nombre.
         params = product.model_dump()
+        params["usr_insert"] = usr_insert
         if 'spcf_producto' in params and isinstance(params['spcf_producto'], dict):
             params['spcf_producto'] = json.dumps(params['spcf_producto'])
 
@@ -156,7 +157,7 @@ def create_product(db: Session, product: ProductCreate):
             :id_proveedor, 
             :id_marca, 
             :num_stock,
-            :ind_activo
+            :usr_insert
         )""")
         result = db.execute(query, params)
         fetched_result = result.fetchone()
@@ -173,7 +174,8 @@ def update_product(
     id_sublinea: Decimal,         
     id_producto: Decimal,
     product: ProductUpdate,
-    db: Session
+    db: Session,
+    usr_update: Decimal
     ):
     """
     Actualiza un producto existente en la base de datos llamando a una función SQL.
@@ -202,20 +204,8 @@ def update_product(
         params['id_linea'] = id_linea
         params['id_sublinea'] = id_sublinea
         params['id_producto'] = id_producto # Añadir el id_producto del path
+        params['usr_update'] = usr_update
 
-        required_params = [
-            'nom_producto', 'spcf_producto', 'img_producto', 'val_precio',
-            'id_proveedor', 'id_marca', 'num_stock', 'ind_activo'
-        ]
-        
-        # Verificar parámetros faltantes y asignar valores por defecto si es necesario
-        for param in required_params:
-            if param not in params:
-                if param == 'img_producto':
-                    params[param] = None
-                elif param == 'ind_activo':
-                    params[param] = True
-                    
         # La función SQL debe poder manejar que algunos de los otros parámetros no estén presentes
         # o sean NULL si product.model_dump(exclude_unset=True) los omite.
         # Asegúrate de que los nombres de los parámetros coincidan con los de tu función SQL.
@@ -233,7 +223,8 @@ def update_product(
             :id_proveedor, 
             :id_marca, 
             :num_stock, 
-            :ind_activo
+            :ind_activo,
+            :usr_update
             )
             """
         )

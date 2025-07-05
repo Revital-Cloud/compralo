@@ -37,7 +37,7 @@ def get_favorites(db:Session, id_usuario: Decimal):
         db.rollback()
         raise Exception(f"Error al obtener favoritos: {str(e)}")
     
-def create_favorite(db:Session, favorite:FavoritesCreate):
+def create_favorite(db:Session, favorite:FavoritesCreate, usr_insert: Decimal):
     """
     Crea un nuevo favorito en la base de datos.
     
@@ -50,13 +50,15 @@ def create_favorite(db:Session, favorite:FavoritesCreate):
     """
     try:
         params = favorite.model_dump()
+        params["usr_insert"] = usr_insert
         query = text("""
         SELECT fun_insert_favorito(
             :id_usuario,
             :id_categoria_producto,
             :id_linea_producto,
             :id_sublinea_producto,
-            :id_producto
+            :id_producto,
+            :usr_insert
         )
         """)
         result = db.execute(query, params)

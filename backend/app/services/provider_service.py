@@ -44,7 +44,7 @@ def get_provider(db: Session, id_proveedor: Decimal):
         db.rollback()
         raise Exception(f"Error al obtener el proveedor: {str(e)}")   
     
-def create_provider(db:Session, provider:ProviderCreate):
+def create_provider(db:Session, provider:ProviderCreate, usr_insert: Decimal):
     """
     Crea un nuevo proveedor en la base de datos.
 
@@ -58,12 +58,13 @@ def create_provider(db:Session, provider:ProviderCreate):
     """
     try:
         params = provider.model_dump()
+        params["usr_insert"] = usr_insert
         query = text("""
         SELECT fun_insert_proveedores(
             :nom_proveedor,
             :email,
             :tel_proveedor,
-            :ind_activo
+            :usr_insert
         )
         """)
         result = db.execute(query, params)
@@ -74,7 +75,7 @@ def create_provider(db:Session, provider:ProviderCreate):
         db.rollback()
         raise Exception(f"Error al crear proveedor: {str(e)}")
 
-def update_provider(db:Session, id_proveedor:Decimal, provider:ProviderUpdate):
+def update_provider(db:Session, id_proveedor:Decimal, provider:ProviderUpdate, usr_update: Decimal):
     """
     Actualiza un proveedor existente en la base de datos.
 
@@ -90,6 +91,7 @@ def update_provider(db:Session, id_proveedor:Decimal, provider:ProviderUpdate):
     try:
         params = provider.model_dump(exclude_unset=True)
         params['id_proveedor'] = id_proveedor
+        params['usr_update'] = usr_update
 
         query = text("""
         SELECT fun_update_proveedores(
@@ -97,7 +99,8 @@ def update_provider(db:Session, id_proveedor:Decimal, provider:ProviderUpdate):
             :nom_proveedor,
             :email,
             :tel_proveedor,
-            :ind_activo
+            :ind_activo,
+            :usr_update
         )
         """)
         result = db.execute(query, params)
