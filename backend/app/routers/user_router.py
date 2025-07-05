@@ -104,26 +104,12 @@ async def create_users(
                 detail="El email ya está registrado"
             )
         
-        # El FOREIGN KEY constraint en tab_usuarios se encarga de validar que el rol existe
-        
         # Hashear la contraseña antes de crear el usuario
         hashed_password = get_password_hash(user.password_usuario)
+        user.password_usuario = hashed_password
         
-        user_data = UserCreate(
-            id_usuario=user.id_usuario,
-            nom_usuario=user.nom_usuario,
-            ape_usuario=user.ape_usuario,
-            email_usuario=user.email_usuario,
-            password_usuario=hashed_password,  # Usar la contraseña hasheada
-            des_direccion=user.des_direccion,
-            ind_genero=user.ind_genero,
-            cel_usuario=user.cel_usuario,
-            fec_nacimiento=user.fec_nacimiento,
-            ind_activo=user.ind_activo
-        )
-        
-        # Usar el ID del usuario que se está creando como usr_insert
-        result = user_service.create_users(db, user_data, str(user.id_usuario))
+        # El servicio se encarga de asignar el usr_insert
+        result = user_service.create_users(db, user)
         
         # Verificar si la función SQL retornó un error
         if result and isinstance(result, str) and "Error:" in result:
@@ -150,7 +136,7 @@ async def create_users(
         if "foreign key constraint" in error_msg.lower() or "violates foreign key" in error_msg.lower():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"El rol especificado no existe en el sistema"
+                detail=f"Error de clave foránea. Verifique los datos de entrada."
             )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
     
@@ -210,7 +196,7 @@ async def update_user(
             db=db,
             id_usuario=id_usuario,
             user=user,
-            usr_update=str(current_user.id_usuario)
+            current_user_id=current_user_id
         )
         
         if result and isinstance(result, str) and "Error:" in result:

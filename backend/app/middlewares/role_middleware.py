@@ -8,6 +8,8 @@ from fastapi import Request, HTTPException, status
 from fastapi.security.utils import get_authorization_scheme_param
 from typing import Callable, Dict, List
 import logging
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.responses import Response
 
 from core.database import get_db
 from services import auth_service
@@ -162,7 +164,7 @@ class RoleBasedAccessMiddleware:
         response = await call_next(request)
         return response
 
-class SmartAuthMiddleware:
+class SmartAuthMiddleware(BaseHTTPMiddleware):
     """
     Middleware inteligente de autenticación que categoriza rutas automáticamente.
     
@@ -175,8 +177,9 @@ class SmartAuthMiddleware:
     - POST/PUT/DELETE: Operaciones administrativas y de usuario autenticado
     """
     
-    def __init__(self):
+    def __init__(self, app):
         """Inicializa el middleware inteligente."""
+        super().__init__(app)
         # Rutas completamente públicas (sin autenticación)
         self.public_paths = [
             "/",
@@ -236,7 +239,7 @@ class SmartAuthMiddleware:
             "/api/cms"          # Solo admin puede gestionar contenido
         ]
     
-    async def __call__(self, request: Request, call_next: Callable):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         """
         Procesa la solicitud y aplica la autenticación según el tipo de ruta.
         """
@@ -382,7 +385,7 @@ class SmartAuthMiddleware:
 
 # Instancias de middlewares configurados
 role_based_middleware = RoleBasedAccessMiddleware()
-smart_auth_middleware = SmartAuthMiddleware()
+# smart_auth_middleware = SmartAuthMiddleware()
 
 # Función helper para verificar roles en endpoints específicos
 def require_role(required_role: str):

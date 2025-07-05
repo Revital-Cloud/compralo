@@ -85,17 +85,18 @@ def get_user(db: Session, id_usuario: Decimal):
         db.rollback()
         raise Exception(f"Error al obtener el usuario: {str(e)}")
     
-def create_users(db: Session, user: UserCreate, usr_insert: str):
+def create_users(db: Session, user: UserCreate):
     """
     Crea un nuevo usuario en la base de datos llamando a una función SQL.
 
     Utiliza la función de base de datos `fun_insert_usuarios` para insertar
     un nuevo usuario. Los datos del usuario se toman del esquema `UserCreate`.
+    El `id_rol` se asigna con un valor por defecto en la base de datos.
+    El campo `usr_insert` se establece automáticamente con el `id_usuario` del nuevo usuario.
 
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
         user (UserCreate): Un objeto Pydantic `UserCreate` con los datos del usuario.
-        usr_insert (str): ID del usuario que está creando el registro.
 
     Returns:
         dict or None: Un diccionario que representa el usuario creado (generalmente el JSON
@@ -104,8 +105,10 @@ def create_users(db: Session, user: UserCreate, usr_insert: str):
     """
     try:
         params = user.model_dump()
-        params["usr_insert"] = usr_insert
+        params["usr_insert"] = Decimal(user.id_usuario)
         
+        # El id_rol ya no se pasa como parámetro, se asume que la función
+        # de base de datos le asigna un valor por defecto.
         query = text("""
             SELECT fun_insert_usuarios(
             :id_usuario,
@@ -130,18 +133,20 @@ def create_users(db: Session, user: UserCreate, usr_insert: str):
         db.rollback()
         raise Exception(f"Error al crear el usuario: {str(e)}")
     
-def update_user(db: Session, id_usuario: Decimal, user: UserUpdate, usr_update: str):
+def update_user(db: Session, id_usuario: Decimal, user: UserUpdate, current_user_id: Decimal):
     """
     Actualiza un usuario existente en la base de datos llamando a una función SQL.
 
     Utiliza la función de base de datos `fun_update_usuarios` para actualizar
     un usuario existente, identificado por `id_usuario`. Los datos para la
     actualización se toman del esquema `UserUpdate` (solo campos proporcionados).
+    El campo `usr_update` se establece con el ID del usuario que realiza la operación.
 
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
         id_usuario (Decimal): El ID del usuario a actualizar.
         user (UserUpdate): Un objeto Pydantic `UserUpdate` con los datos a actualizar.
+        current_user_id (Decimal): El ID del usuario que realiza la actualización.
 
     Returns:
         dict or None: Un diccionario que representa el usuario actualizado (generalmente el JSON
@@ -152,7 +157,7 @@ def update_user(db: Session, id_usuario: Decimal, user: UserUpdate, usr_update: 
     try:
         update_params = user.model_dump(exclude_unset=True)
         update_params["id_usuario"] = id_usuario
-        update_params["usr_update"] = usr_update
+        update_params["usr_update"] = str(current_user_id)
         
         query = text("""SELECT fun_update_usuarios(
             :id_usuario, :nom_usuario, :ape_usuario, :email_usuario, :password_usuario,
