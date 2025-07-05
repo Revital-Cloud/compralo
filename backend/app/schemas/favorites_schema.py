@@ -32,6 +32,15 @@ class FavoritesBase(BaseModel):
     id_linea_producto: Decimal = Field(..., description="Identificador de la linea del producto favorito")
     id_sublinea_producto: Decimal = Field(..., description="Identificador de la sublinea del producto favorito")
     id_producto: Decimal = Field(..., description="Identificador del producto favorito")
+    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
+    fec_insert: Optional[datetime] = Field(None, description="Fecha de inserción del registro.")
+
+class FavoritesPostBody(BaseModel):
+    """Esquema para el cuerpo de la solicitud de creación de favoritos."""
+    id_categoria_producto: Decimal = Field(..., description="Identificador del producto favorito")
+    id_linea_producto: Decimal = Field(..., description="Identificador de la linea del producto favorito")
+    id_sublinea_producto: Decimal = Field(..., description="Identificador de la sublinea del producto favorito")
+    id_producto: Decimal = Field(..., description="Identificador del producto favorito")
 
 class FavoritesCreate(BaseModel):
     """
@@ -44,21 +53,8 @@ class FavoritesCreate(BaseModel):
     id_linea_producto: Decimal = Field(..., description="Identificador de la linea del producto favorito")
     id_sublinea_producto: Decimal = Field(..., description="Identificador de la sublinea del producto favorito")
     id_producto: Decimal = Field(..., description="Identificador del producto favorito")
-    fecha_agregado: date = Field(..., description="Fecha de agregado del favorito")
+    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
 
-    
-class Favorites(FavoritesBase):
-    """
-    Esquema para la Visualización de Favoritos
-    
-    Hereda de 'FavoritesBase' y se utiliza como el modelo de respuesta
-    principal para los endpoints que devuelven información de favoritos.
-    Incluye la fecha de agregado como campo opcional.
-    """
-    fecha_agregado: Optional[date] = Field(None, description="Fecha de agregado del favorito")
-    
-    class Config:
-        from_attributes = True  # Para permitir crear desde objetos de SQLAlchemy o diccionarios
 
 class ResponseMessage(BaseModel):
     """
@@ -68,3 +64,15 @@ class ResponseMessage(BaseModel):
     desde la API.
     """
     message: str
+
+class FavoriteDetails(FavoritesBase):
+    """
+    Esquema para devolver los detalles de un favorito, incluyendo
+    información del producto obtenido a través de un JOIN.
+    """
+    nom_producto: str
+    img_producto: Optional[str]
+    val_precio: Decimal
+    
+    class Config:
+        from_attributes = True

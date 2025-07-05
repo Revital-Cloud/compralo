@@ -13,15 +13,15 @@ from decimal import Decimal
 from typing import Optional, Dict, Any
 
 from core.database import get_db
-from core.dependencies import require_admin, get_current_user_optional
-from schemas.product_schema import Product, ProductCreate, ProductUpdate, ResponseMessage
+from core.dependencies import require_admin, get_current_user, get_current_user_optional
+from schemas.product_schema import Product, ProductCreate, ProductUpdate, ResponseMessage, ProductBase
 from schemas.auth_schema import UserInToken
 from services import product_service
 
 router = APIRouter(tags=["Productos"])
 
 #todos los productos
-@router.get("/products", response_model=list[Product])
+@router.get("/products", response_model=list[ProductBase])
 async def get_products(db: Session = Depends(get_db)):
     """
     Obtener todos los productos.
@@ -75,7 +75,8 @@ async def get_product(
 @router.post("/products", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_product(
     db: Session = Depends(get_db),
-    product_data: ProductCreate = Body(...) 
+    product_data: ProductCreate = Body(...),
+    current_user: UserInToken = Depends(get_current_user) 
 ):
     """
     Crear un nuevo producto.
@@ -86,6 +87,7 @@ async def create_product(
     Args:
         product_data (ProductCreate): Datos del producto a crear.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
+        current_user (UserInToken): Usuario autenticado.
 
     Returns:
         ResponseMessage: Un mensaje indicando el resultado de la operación.
@@ -94,14 +96,12 @@ async def create_product(
         HTTPException: Si ocurre un error durante la creación del producto.
     """
     try:
-        print(f"spcf_producto recibido: {product_data.spcf_producto}")
-        print(f"Tipo de spcf_producto: {type(product_data.spcf_producto)}")
+        service_response = product_service.create_product(db, product_data, current_user.id_usuario)
         
-        # Ya no necesitamos json.loads() porque Pydantic ya convierte a dict
-        # El product_data ya viene validado y convertido desde el schema
-        service_response_message = product_service.create_product(db, product_data)
-        
-        return ResponseMessage(message=service_response_message)
+        if service_response and "Error" in str(service_response):
+             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(service_response))
+             
+        return ResponseMessage(message="Producto creado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
@@ -118,7 +118,8 @@ async def update_product(
     id_sublinea: Decimal,
     id_producto: Decimal,
     product_data: ProductUpdate = Body(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
     ):
     """
     Actualizar un producto existente.
@@ -139,29 +140,11 @@ async def update_product(
         id_marca (Decimal): Identificador de la marca.
         num_stock (int): Cantidad de unidades disponibles en inventario.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
+        current_user (UserInToken): Usuario autenticado.
 
     Returns:
         ResponseMessage: Un mensaje indicando el resultado de la operación de actualización.
     """
-    # try:
-    #     spcf_producto_dict: Dict[str, Any] = json.loads(product_data.spcf_producto)
-    # except json.JSONDecodeError:
-    #     raise HTTPException(status_code=400, detail="El campo 'spcf_producto' debe ser una cadena JSON válida.")
-    
-        # product_data = ProductUpdate(
-        #     id_producto=product_data.id_producto,
-        #     nom_producto=product_data.nom_producto,
-        #     spcf_producto=product_data.spcf_producto,  # Asumiendo que ya es un dict
-        #     img_producto=product_data.img_producto,
-        #     val_precio=product_data.val_precio,
-        #     id_proveedor=product_data.id_proveedor,
-        #     id_marca=product_data.id_marca,
-        #     id_sublinea=product_data.id_sublinea,
-        #     id_linea=product_data.id_linea,
-        #     id_categoria=product_data.id_categoria,
-        #     num_stock=product_data.num_stock
-        # )
-        
     try:
         response_message = product_service.update_product(
             id_categoria, 
@@ -169,19 +152,17 @@ async def update_product(
             id_sublinea, 
             id_producto, 
             product_data, 
-            db
+            db,
+            current_user.id_usuario
             )
 
-        return ResponseMessage(message="producto actualizada exitosamente")
+        if response_message and "Error" in str(response_message):
+             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(response_message))
+
+        return ResponseMessage(message="Producto actualizado exitosamente")
     
     except Exception as e:
-        if response_message is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No se pudo desactivar el producto porque no se encontró."
-            )
-        else:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
                
 
 
@@ -196,8 +177,8 @@ async def deactivate_product(
     id_linea: Decimal,  
     id_sublinea: Decimal,
     id_producto: Decimal, 
-    #current_user: UserInToken = Depends(require_admin()),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Eliminar un producto (Solo Administradores).
@@ -217,26 +198,24 @@ async def deactivate_product(
         
     Raises:
         HTTPException: Si el usuario no es administrador (403).
-        HTTPException: Si no se proporciona token de autenticación (401).
-        HTTPException: Si el producto no se encuentra (404).
     """
     try:
         response_message = product_service.deactivate_product(
             db, 
-            id_categoria,
+            id_categoria, 
             id_linea, 
             id_sublinea, 
-            id_producto
-        )
-        return ResponseMessage(message="Producto desactivado correctamente")
-    except Exception as e:
-        if response_message is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No se pudo desactivar el producto porque no se encontró."
+            id_producto,
+            current_user.id_usuario
             )
-        else:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        
+        if response_message and "Error" in str(response_message):
+             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(response_message))
+
+        return ResponseMessage(message="Producto desactivado exitosamente")
+
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
         
     
         

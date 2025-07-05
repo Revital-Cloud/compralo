@@ -123,7 +123,7 @@ def get_product(
         raise Exception(f"Error al obtener el producto: {str(e)}")
 
 #create product
-def create_product(db: Session, product: ProductCreate):
+def create_product(db: Session, product: ProductCreate, usr_insert: Decimal):
     """
     Crea un nuevo producto en la base de datos llamando a una función SQL.
 
@@ -142,6 +142,7 @@ def create_product(db: Session, product: ProductCreate):
     try:
         # Asume que product.model_dump() tiene todas las claves que fun_insert_producto espera por nombre.
         params = product.model_dump()
+        params["usr_insert"] = usr_insert
         if 'spcf_producto' in params and isinstance(params['spcf_producto'], dict):
             params['spcf_producto'] = json.dumps(params['spcf_producto'])
 
@@ -156,7 +157,7 @@ def create_product(db: Session, product: ProductCreate):
             :id_proveedor, 
             :id_marca, 
             :num_stock,
-            :ind_activo
+            :usr_insert
         )""")
         result = db.execute(query, params)
         fetched_result = result.fetchone()
@@ -173,7 +174,8 @@ def update_product(
     id_sublinea: Decimal,         
     id_producto: Decimal,
     product: ProductUpdate,
-    db: Session
+    db: Session,
+    usr_update: Decimal
     ):
     """
     Actualiza un producto existente en la base de datos llamando a una función SQL.
@@ -202,20 +204,8 @@ def update_product(
         params['id_linea'] = id_linea
         params['id_sublinea'] = id_sublinea
         params['id_producto'] = id_producto # Añadir el id_producto del path
+        params['usr_update'] = usr_update
 
-        required_params = [
-            'nom_producto', 'spcf_producto', 'img_producto', 'val_precio',
-            'id_proveedor', 'id_marca', 'num_stock', 'ind_activo'
-        ]
-        
-        # Verificar parámetros faltantes y asignar valores por defecto si es necesario
-        for param in required_params:
-            if param not in params:
-                if param == 'img_producto':
-                    params[param] = None
-                elif param == 'ind_activo':
-                    params[param] = True
-                    
         # La función SQL debe poder manejar que algunos de los otros parámetros no estén presentes
         # o sean NULL si product.model_dump(exclude_unset=True) los omite.
         # Asegúrate de que los nombres de los parámetros coincidan con los de tu función SQL.
@@ -233,7 +223,8 @@ def update_product(
             :id_proveedor, 
             :id_marca, 
             :num_stock, 
-            :ind_activo
+            :ind_activo,
+            :usr_update
             )
             """
         )
@@ -253,46 +244,47 @@ def deactivate_product(
     category_id: Decimal,
     line_id: Decimal,
     subline_id: Decimal,
-    product_id: Decimal
+    product_id: Decimal,
+    usr_update: Decimal
     ):
     """
-    Elimina un producto de la base de datos llamando a una función SQL.
-
+    Desactiva un producto existente de la base de datos.
+    
     Utiliza la función de base de datos `fun_deactivate_producto` para eliminar
-    un producto, identificado por `product_id`.
-
+    un producto existente, identificado por `id_producto`.
+    
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
-        product_id (int): El ID del producto a eliminar.
-
+        category_id (Decimal): El ID de la categoría del producto a desactivar.
+        line_id (Decimal): El ID de la línea del producto a desactivar.
+        subline_id (Decimal): El ID de la sublínea del producto a desactivar.
+        product_id (Decimal): El ID del producto a desactivar.
+    
     Returns:
-        dict: Un diccionario con un mensaje indicando el resultado de la operación.
-              El mensaje puede provenir directamente de la función SQL o ser un
-              mensaje genérico si la función no proporciona uno específico.
+        dict or None: Un diccionario con el mensaje de resultado o None si falla.
     """
     try:
-        query = text("""SELECT fun_deactivate_producto(
-            :id_categoria,
-            :id_linea,
-            :id_sublinea,
-            :id_producto
-            )""")
-        
-        result = db.execute(
-            query, {
-                "id_categoria": category_id,
-                "id_linea": line_id,
-                "id_sublinea": subline_id,
-                "id_producto": product_id
-            }
+        params = {
+            'p_id_categoria': category_id,
+            'p_id_linea': line_id,
+            'p_id_sublinea': subline_id,
+            'p_id_producto': product_id,
+            'p_usr_update': usr_update
+        }
+        query = text("""
+        SELECT fun_deactivate_producto(
+            :p_id_categoria, 
+            :p_id_linea, 
+            :p_id_sublinea, 
+            :p_id_producto,
+            :p_usr_update
             )
+        """)
+        
+        result = db.execute(query, params)
         fetched_result = result.fetchone()
         db.commit()
-        
-        if fetched_result and isinstance(fetched_result[0], str):
-            return {"message": fetched_result[0]}
-        else:
-            return {"message": "Producto desactivado correctamente"}
+        return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al desactivar el producto: {str(e)}")

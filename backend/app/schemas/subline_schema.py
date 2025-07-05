@@ -19,12 +19,12 @@ class SublineBase(BaseModel):
         id_categoria (Decimal): Identificador de la categoría.
         id_linea (Decimal): Identificador de la linea.
         nom_sublinea (str): Nombre de la sublinea.
-        ind_activo (bool): Indica si la sublinea está activa.
+        usr_insert (Optional[Decimal]): Usuario que insertó el registro.
     """
     id_categoria: Decimal = Field(..., description="Identificador de la categoría.")
     id_linea: Decimal = Field(..., description="Identificador de la linea.")
     nom_sublinea: str = Field(..., description = "Nombre de la sublinea.")
-    ind_activo: bool = Field(..., description = "Indica si la sublinea está activa.")
+    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
 
     class Config:
         from_attributes = True
@@ -49,17 +49,18 @@ class SublineCreate(SublineBase):
     para la operación de creación.
     """
     pass
-class SublineUpdate(SublineBase):
+class SublineUpdate(BaseModel):
     """
     Esquema para la Actualización de Sublineas.
 
     Define los campos que pueden ser actualizados para una sublinea existente.
     Todos los campos son opcionales, permitiendo actualizaciones parciales.
     """
-    id_categoria: Optional[Decimal] = None
-    id_linea: Optional[Decimal] = None
-    nom_sublinea: Optional[str] = None
-    ind_activo: Optional[bool] = None
+    id_categoria: Optional[Decimal] = Field(None, description="Identificador de la categoría.")
+    id_linea: Optional[Decimal] = Field(None, description="Identificador de la linea.")
+    nom_sublinea: Optional[str] = Field(None, description = "Nombre de la sublinea.")
+    ind_activo: Optional[bool] = Field(None, description = "Indica si la sublinea está activa.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
     
     
 class ResponseMessage(BaseModel):

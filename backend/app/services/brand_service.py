@@ -14,7 +14,11 @@ def get_brands(db:Session):
         SELECT 
             id_marca,
             nom_marca,
-            ind_activo
+            ind_activo,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
         FROM tab_marcas
         """)
         result = db.execute(query)
@@ -45,7 +49,6 @@ def create_brand(db:Session, brand:BrandCreate, usr_insert: str):
         query = text("""
         SELECT fun_insert_marca(
             :nom_marca,
-            :ind_activo,
             :usr_insert
         )
         """)
@@ -94,7 +97,7 @@ def update_brand(db:Session, id_marca:Decimal, brand:BrandUpdate, usr_update: st
         db.rollback()
         raise Exception(f"Error al actualizar marca: {str(e)}")
     
-def deactivate_brand(db:Session, id_marca:Decimal):
+def deactivate_brand(db:Session, id_marca:Decimal, usr_update: Decimal):
     """
     Desactiva una marca existente de la base de datos.
     
@@ -102,9 +105,9 @@ def deactivate_brand(db:Session, id_marca:Decimal):
     una marca existente, identificado por `id_marca`.
     """
     try:
-        params = {'id_marca': id_marca}
+        params = {'id_marca': id_marca, 'usr_update': usr_update}
         query = text("""
-        SELECT fun_deactivate_marca(:id_marca)
+        SELECT fun_deactivate_marca(:id_marca, :usr_update)
         """)
         result = db.execute(query, params)
         fetched_result = result.fetchone()

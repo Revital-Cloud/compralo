@@ -9,6 +9,7 @@ así como un esquema para mensajes de respuesta genéricos.
 """
 from pydantic import BaseModel, Field
 from typing import Optional,Dict,Any
+from decimal import Decimal
 
 class CmsBase(BaseModel):
     """
@@ -20,11 +21,13 @@ class CmsBase(BaseModel):
     Atributos:
         nom_cms_content (str): Nombre del pagina
         des_cms_content (Dict[str,Any]): Secciones con sus cambios
+        num_version (int): Número de versión
+        usr_insert (Optional[Decimal]): Usuario que insertó el registro.
     """
     nom_cms_content: str = Field(..., description="Nombre del pagina")
     des_cms_content: Dict[str,Any] = Field(...,description="Secciones con sus cambios")
     num_version: int = Field(...,description="numero de version")
-    ind_publicado: bool= Field(...,description="Indicador si esta publicado o no")
+    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
 
     class Config:
         from_attributes = True
@@ -38,17 +41,18 @@ class CmsCreate(CmsBase):
     """
     pass
 
-class CmsUpdate(CmsBase):
+class CmsUpdate(BaseModel):
     """
     Esquema para actualizar un CMS Content existente
 
     Define los campos que pueden ser actualizados para un CMS Content existente.
     Todos los campos son opcionales, permitiendo actualizaciones parciales.
     """
-    nom_cms_content: Optional[str] = None
-    des_cms_content: Optional[Dict[str,Any]] = None
-    num_version: Optional[int] = None
-    ind_publicado: Optional[bool] = None
+    nom_cms_content: Optional[str] = Field(None, description="Nombre del pagina")
+    des_cms_content: Optional[Dict[str,Any]] = Field(None, description="Secciones con sus cambios")
+    num_version: Optional[int] = Field(None, description="numero de version")
+    ind_publicado: Optional[bool] = Field(None, description="Indicador si esta publicado o no")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
 
 class Cms(CmsBase):
     """
