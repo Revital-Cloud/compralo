@@ -22,7 +22,11 @@ def get_categories(db: Session):
         SELECT 
             id_categoria,
             nom_categoria,
-            ind_activo
+            ind_activo,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
         FROM tab_categorias
         """)
         result = db.execute(query)
@@ -38,7 +42,11 @@ def get_category(db: Session, id_categoria: Decimal):
         SELECT 
             id_categoria,
             nom_categoria,
-            ind_activo
+            ind_activo,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
         FROM tab_categorias
         WHERE id_categoria = :id_categoria
         """)
@@ -91,12 +99,12 @@ def update_category(db: Session, id_categoria: Decimal, category: CategoryUpdate
         raise Exception(f"Error al actualizar la categoría: {str(e)}")
 
 #Desactivar una categoria
-def deactivate_category(db: Session, id_categoria: Decimal):
+def deactivate_category(db: Session, id_categoria: Decimal, usr_update: Decimal):
     try:
         query = text("""
-        SELECT fun_deactivate_categoria(:id_categoria)
+        SELECT fun_deactivate_categoria(:id_categoria, :usr_update)
         """)
-        result = db.execute(query, {"id_categoria": id_categoria})
+        result = db.execute(query, {"id_categoria": id_categoria, "usr_update": usr_update})
         fetched_result = result.fetchone()
         db.commit()
         return fetched_result[0] if fetched_result else None

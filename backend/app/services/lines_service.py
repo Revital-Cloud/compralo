@@ -12,7 +12,11 @@ def get_lines(db: Session):
             id_categoria,
             id_linea,
             nom_linea,
-            ind_activo
+            ind_activo,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
         FROM tab_lineas
         """)
         result = db.execute(query)
@@ -78,7 +82,7 @@ def update_line(db: Session, id_categoria: Decimal, id_linea: Decimal, line: Lin
         raise Exception(f"Error al actualizar la línea: {str(e)}")
     
 #Eliminar una línea
-def deactivate_line(db: Session, id_categoria: Decimal, id_linea: Decimal):
+def deactivate_line(db: Session, id_categoria: Decimal, id_linea: Decimal, usr_update: Decimal):
     """
     Elimina una línea existente en la base de datos.
     Utiliza la función de base de datos fun_deactivate_linea para desactivar
@@ -87,9 +91,9 @@ def deactivate_line(db: Session, id_categoria: Decimal, id_linea: Decimal):
     """
     try:
         query = text("""
-        SELECT fun_deactivate_linea(:id_categoria, :id_linea)
+        SELECT fun_deactivate_linea(:id_categoria, :id_linea, :usr_update)
         """)
-        result = db.execute(query,{"id_categoria": id_categoria, "id_linea": id_linea})
+        result = db.execute(query,{"id_categoria": id_categoria, "id_linea": id_linea, "usr_update": usr_update})
         fetched_result = result.fetchone()
         db.commit()
         return fetched_result[0] if fetched_result else None

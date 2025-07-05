@@ -86,7 +86,8 @@ async def deactivate_subline(
     id_categoria:Decimal, 
     id_linea:Decimal, 
     id_sublinea:Decimal, 
-    db:Session = Depends(get_db)):
+    db:Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)):
     """
     Desactiva una sublinea existente en la base de datos.
 
@@ -100,7 +101,7 @@ async def deactivate_subline(
         ResponseMessage: Mensaje de confirmación.
     """
     try:
-        subline_service.deactivate_subline(db, id_categoria, id_linea, id_sublinea)
+        subline_service.deactivate_subline(db, id_categoria, id_linea, id_sublinea, current_user.id_usuario)
         return ResponseMessage(message="Sublinea desactivada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

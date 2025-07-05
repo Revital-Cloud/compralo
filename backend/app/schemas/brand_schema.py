@@ -22,8 +22,6 @@ class BrandBase(BaseModel):
     """
     nom_marca: str = Field(..., description="Nombre de la marca")
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
-
-    
     class Config:
         from_attributes = True
     
@@ -36,6 +34,8 @@ class Brand(BrandBase):
     Incluye el `id_marca` y los campos de auditoría.
     """
     id_marca: Decimal
+    ind_activo: Optional[bool] = Field(None, description="Indica si la marca está activa.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
     
 class BrandCreate(BrandBase):
     """

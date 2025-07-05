@@ -49,7 +49,13 @@ async def create_brand(
         current_user (UserInToken): Usuario autenticado que realiza la creación.
     """
     try:
-        brand_service.create_brand(db, brand_data, str(current_user.id_usuario))
+        service_response = brand_service.create_brand(db, brand_data, current_user.id_usuario)
+        if not service_response:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error al crear la marca en la base de datos.")
+        
+        if "Error" in str(service_response):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(service_response))
+
         return ResponseMessage(message="Marca creada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) 
@@ -71,13 +77,23 @@ async def update_brand(
         current_user (UserInToken): Usuario autenticado que realiza la actualización.
     """
     try:
-        brand_service.update_brand(db, id_marca, brand_data, str(current_user.id_usuario))
+        service_response = brand_service.update_brand(db, id_marca, brand_data, current_user.id_usuario)
+        if not service_response:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error al actualizar la marca en la base de datos.")
+        
+        if "Error" in str(service_response):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(service_response))
+
         return ResponseMessage(message="Marca actualizada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
 @router.put("/brands/{id_marca}/deactivate", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
-async def deactivate_brand(id_marca:Decimal, db:Session = Depends(get_db)):
+async def deactivate_brand(
+    id_marca:Decimal, 
+    db:Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
     """
     Desactiva una marca existente de la base de datos.
 
@@ -86,7 +102,7 @@ async def deactivate_brand(id_marca:Decimal, db:Session = Depends(get_db)):
         db (Session): Sesión de la base de datos inyectada por FastAPI.
     """
     try:
-        brand_service.deactivate_brand(db, id_marca)
+        brand_service.deactivate_brand(db, id_marca, current_user.id_usuario)
         return ResponseMessage(message="Marca desactivada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

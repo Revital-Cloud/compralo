@@ -67,14 +67,16 @@ async def create_favorite(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-@router.put("/favorites/{id_usuario}-{id_categoria_producto}-{id_linea_producto}-{id_sublinea_producto}-{id_producto}/deactivate", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+@router.delete("/favorites/{id_usuario}-{id_categoria_producto}-{id_linea_producto}-{id_sublinea_producto}-{id_producto}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def delete_favorite(
     id_usuario:Decimal,
     id_categoria_producto:Decimal,
     id_linea_producto:Decimal,
     id_sublinea_producto:Decimal,
     id_producto:Decimal,
-    db:Session = Depends(get_db)):
+    db:Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
     """
     Elimina un favorito existente en la base de datos.
     
@@ -87,7 +89,12 @@ async def delete_favorite(
         db (Session): La sesión de base de datos SQLAlchemy.
     """
     try:
+        if id_usuario != current_user.id_usuario:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permisos para eliminar favoritos de otro usuario."
+            )
         favorites_service.delete_favorite(db, id_usuario, id_categoria_producto, id_linea_producto, id_sublinea_producto, id_producto)
-        return ResponseMessage(message="Favorito desactivado exitosamente")
+        return ResponseMessage(message="Favorito eliminado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

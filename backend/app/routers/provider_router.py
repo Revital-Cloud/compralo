@@ -104,7 +104,8 @@ async def update_provider(
     )
 async def deactivate_provider(
     id_proveedor:Decimal, 
-    db:Session = Depends(get_db)
+    db:Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
     ):
     """
     Desactiva un proveedor existente de la base de datos.
@@ -114,7 +115,7 @@ async def deactivate_provider(
         db (Session): Sesión de la base de datos inyectada por FastAPI.
     """
     try:
-        provider_service.deactivate_provider(db, id_proveedor)
+        provider_service.deactivate_provider(db, id_proveedor, current_user.id_usuario)
         return ResponseMessage(message="Proveedor desactivado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

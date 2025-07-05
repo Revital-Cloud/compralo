@@ -26,6 +26,8 @@ class ProviderBase(BaseModel):
     email: str = Field(..., description="Correo electrónico del proveedor.")
     tel_proveedor: Decimal = Field(..., description="Teléfono del proveedor.")
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
+    ind_activo: Optional[bool] = Field(None, description="Indica si el proveedor está activo.")
+
 
     class Config:
         from_attributes = True

@@ -244,46 +244,47 @@ def deactivate_product(
     category_id: Decimal,
     line_id: Decimal,
     subline_id: Decimal,
-    product_id: Decimal
+    product_id: Decimal,
+    usr_update: Decimal
     ):
     """
-    Elimina un producto de la base de datos llamando a una función SQL.
-
+    Desactiva un producto existente de la base de datos.
+    
     Utiliza la función de base de datos `fun_deactivate_producto` para eliminar
-    un producto, identificado por `product_id`.
-
+    un producto existente, identificado por `id_producto`.
+    
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
-        product_id (int): El ID del producto a eliminar.
-
+        category_id (Decimal): El ID de la categoría del producto a desactivar.
+        line_id (Decimal): El ID de la línea del producto a desactivar.
+        subline_id (Decimal): El ID de la sublínea del producto a desactivar.
+        product_id (Decimal): El ID del producto a desactivar.
+    
     Returns:
-        dict: Un diccionario con un mensaje indicando el resultado de la operación.
-              El mensaje puede provenir directamente de la función SQL o ser un
-              mensaje genérico si la función no proporciona uno específico.
+        dict or None: Un diccionario con el mensaje de resultado o None si falla.
     """
     try:
-        query = text("""SELECT fun_deactivate_producto(
-            :id_categoria,
-            :id_linea,
-            :id_sublinea,
-            :id_producto
-            )""")
-        
-        result = db.execute(
-            query, {
-                "id_categoria": category_id,
-                "id_linea": line_id,
-                "id_sublinea": subline_id,
-                "id_producto": product_id
-            }
+        params = {
+            'p_id_categoria': category_id,
+            'p_id_linea': line_id,
+            'p_id_sublinea': subline_id,
+            'p_id_producto': product_id,
+            'p_usr_update': usr_update
+        }
+        query = text("""
+        SELECT fun_deactivate_producto(
+            :p_id_categoria, 
+            :p_id_linea, 
+            :p_id_sublinea, 
+            :p_id_producto,
+            :p_usr_update
             )
+        """)
+        
+        result = db.execute(query, params)
         fetched_result = result.fetchone()
         db.commit()
-        
-        if fetched_result and isinstance(fetched_result[0], str):
-            return {"message": fetched_result[0]}
-        else:
-            return {"message": "Producto desactivado correctamente"}
+        return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al desactivar el producto: {str(e)}")

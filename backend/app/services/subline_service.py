@@ -17,7 +17,11 @@ def get_sublines(db:Session):
             id_linea,
             id_sublinea,
             nom_sublinea,
-            ind_activo
+            ind_activo,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
         FROM tab_sublineas
         """)
         result = db.execute(query)
@@ -95,7 +99,7 @@ def update_subline(db:Session,  id_categoria:Decimal, id_linea:Decimal, id_subli
         db.rollback()
         raise Exception(f"Error al actualizar sublinea: {str(e)}")
     
-def deactivate_subline(db: Session, id_categoria: Decimal, id_linea: Decimal, id_sublinea: Decimal):
+def deactivate_subline(db: Session, id_categoria: Decimal, id_linea: Decimal, id_sublinea: Decimal, usr_update: Decimal):
     """
     Desactiva una sublinea existente en la base de datos.
     Utiliza la función de base de datos `fun_delete_sublinea` para desactivar
@@ -106,10 +110,11 @@ def deactivate_subline(db: Session, id_categoria: Decimal, id_linea: Decimal, id
         SELECT fun_deactivate_sublinea(
             :id_categoria,
             :id_linea,
-            :id_sublinea
+            :id_sublinea,
+            :usr_update
         )
         """)
-        result = db.execute(query, {'id_categoria': id_categoria, 'id_linea': id_linea, 'id_sublinea': id_sublinea})
+        result = db.execute(query, {'id_categoria': id_categoria, 'id_linea': id_linea, 'id_sublinea': id_sublinea, 'usr_update': usr_update})
         fetched_result = result.fetchone()
         db.commit()
         return  fetched_result[0] if fetched_result else None

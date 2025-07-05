@@ -36,7 +36,11 @@ def get_contents(db:Session):
             nom_cms_content,
             des_cms_content,
             num_version,
-            ind_publicado
+            ind_publicado,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
         FROM tab_cms_content
         """)
         result = db.execute(query)
@@ -66,7 +70,11 @@ def get_content(db:Session,id_cms_content:int):
             nom_cms_content,
             des_cms_content,
             num_version,
-            ind_publicado
+            ind_publicado,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
         FROM tab_cms_content
         WHERE id_cms_content = :id_cms_content
         """)
@@ -157,7 +165,7 @@ def update_cms_content(db:Session,id_cms_content:int,cms_content:CmsUpdate, usr_
         db.rollback()
         raise Exception(f"Error al actualizar CMS Content: {str(e)}")
     
-def delete_cms_content(db:Session,id_cms_content:int):
+def delete_cms_content(db:Session,id_cms_content:int, usr_update: Decimal):
     """
     Elimina un CMS Content de la base de datos.
     Utiliza la función de base de datos `fun_delete_content` para eliminar
@@ -165,9 +173,9 @@ def delete_cms_content(db:Session,id_cms_content:int):
     """
     try:
         query = text("""
-        SELECT fun_delete_content(:id_cms_content)
+        SELECT fun_delete_content(:id_cms_content, :usr_update)
         """)
-        result = db.execute(query,{"id_cms_content":id_cms_content})
+        result = db.execute(query,{"id_cms_content":id_cms_content, "usr_update": usr_update})
         fetched_result = result.fetchone()
         db.commit()
         return fetched_result[0] if fetched_result else None

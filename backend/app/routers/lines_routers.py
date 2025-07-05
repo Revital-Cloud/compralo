@@ -89,7 +89,8 @@ async def update_line(
 async def deactivate_line(
     id_categoria: Decimal,
     id_linea: Decimal,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Desactiva una línea existente en la base de datos.
@@ -103,7 +104,7 @@ async def deactivate_line(
         ResponseMessage: Mensaje de confirmación.
     """
     try:
-        lines_service.deactivate_line(db, id_categoria, id_linea)
+        lines_service.deactivate_line(db, id_categoria, id_linea, current_user.id_usuario)
         return ResponseMessage(message="Línea desactivada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

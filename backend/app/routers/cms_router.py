@@ -89,13 +89,17 @@ async def update_cms_content_endpoint(
     except Exception as e:
         raise HTTPException(status_code=400,detail=str(e))
 
-@router.delete("/cms/{id_cms_content}",response_model=ResponseMessage,status_code=status.HTTP_200_OK)
-async def delete_cms_content_endpoint(id_cms_content:int,db:Session=Depends(get_db)):
+@router.put("/cms/{id_cms_content}/deactivate",response_model=ResponseMessage,status_code=status.HTTP_200_OK)
+async def delete_cms_content_endpoint(
+    id_cms_content:int,
+    db:Session=Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
     """
     Elimina un CMS Content específico de la base de datos.
     """
     try:
-        result = delete_cms_content(db,id_cms_content)
+        result = delete_cms_content(db,id_cms_content, current_user.id_usuario)
         if not result:
             raise HTTPException(status_code=500,detail="Error al eliminar CMS Content en la base de datos")
         return ResponseMessage(message="CMS Content eliminado exitosamente")

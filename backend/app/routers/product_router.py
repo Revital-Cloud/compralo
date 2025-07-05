@@ -177,8 +177,8 @@ async def deactivate_product(
     id_linea: Decimal,  
     id_sublinea: Decimal,
     id_producto: Decimal, 
-    #current_user: UserInToken = Depends(require_admin()),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Eliminar un producto (Solo Administradores).
@@ -198,26 +198,24 @@ async def deactivate_product(
         
     Raises:
         HTTPException: Si el usuario no es administrador (403).
-        HTTPException: Si no se proporciona token de autenticación (401).
-        HTTPException: Si el producto no se encuentra (404).
     """
     try:
         response_message = product_service.deactivate_product(
             db, 
-            id_categoria,
+            id_categoria, 
             id_linea, 
             id_sublinea, 
-            id_producto
-        )
-        return ResponseMessage(message="Producto desactivado correctamente")
-    except Exception as e:
-        if response_message is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No se pudo desactivar el producto porque no se encontró."
+            id_producto,
+            current_user.id_usuario
             )
-        else:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        
+        if response_message and "Error" in str(response_message):
+             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(response_message))
+
+        return ResponseMessage(message="Producto desactivado exitosamente")
+
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
         
     
         
