@@ -45,6 +45,7 @@ class FavoritesCreate(BaseModel):
     id_sublinea_producto: Decimal = Field(..., description="Identificador de la sublinea del producto favorito")
     id_producto: Decimal = Field(..., description="Identificador del producto favorito")
     fecha_agregado: date = Field(..., description="Fecha de agregado del favorito")
+    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
 
     
 class Favorites(FavoritesBase):
