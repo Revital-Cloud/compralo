@@ -49,7 +49,6 @@ async def create_brand(
         current_user (UserInToken): Usuario autenticado que realiza la creación.
     """
     try:
-        brand_data = BrandCreate(nom_marca=brand_data.nom_marca, ind_activo=brand_data.ind_activo)
         brand_service.create_brand(db, brand_data, str(current_user.id_usuario))
         return ResponseMessage(message="Marca creada exitosamente")
     except Exception as e:
@@ -72,7 +71,6 @@ async def update_brand(
         current_user (UserInToken): Usuario autenticado que realiza la actualización.
     """
     try:
-        brand_data = BrandUpdate(nom_marca=brand_data.nom_marca, ind_activo=brand_data.ind_activo)
         brand_service.update_brand(db, id_marca, brand_data, str(current_user.id_usuario))
         return ResponseMessage(message="Marca actualizada exitosamente")
     except Exception as e:

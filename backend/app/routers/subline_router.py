@@ -8,6 +8,8 @@ from decimal import Decimal
 from fastapi import APIRouter, Body, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
+from core.dependencies import get_current_user
+from schemas.auth_schema import UserInToken
 from schemas.subline_schema import SublineCreate, SublineUpdate, Subline, ResponseMessage
 from services import subline_service
 
@@ -33,7 +35,8 @@ async def get_sublines(db:Session = Depends(get_db)):
 @router.post("/sublines", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_subline(
     db:Session = Depends(get_db),
-    subline_data: SublineCreate = Body(...)
+    subline_data: SublineCreate = Body(...),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Crea una nueva sublinea en la base de datos.
@@ -47,11 +50,7 @@ async def create_subline(
         ResponseMessage: Mensaje de confirmación.
     """
     try:
-        subline_data = SublineCreate(
-            id_categoria=subline_data.id_categoria, id_linea=subline_data.id_linea, 
-            nom_sublinea=subline_data.nom_sublinea, ind_activo=subline_data.ind_activo
-            )
-        subline_service.create_subline(db, subline_data)
+        subline_service.create_subline(db, subline_data, current_user.id_usuario)
         return ResponseMessage(message="Sublinea creada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -62,7 +61,8 @@ async def update_subline(
     id_linea: Decimal,
     id_sublinea: Decimal,
     subline_data: SublineUpdate = Body(...),
-    db:Session = Depends(get_db)
+    db:Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Actualiza una sublinea existente en la base de datos.
@@ -76,10 +76,7 @@ async def update_subline(
         ind_activo (bool): Indica si la sublinea está activa.
     """
     try:
-        subline_data = SublineUpdate(
-            nom_sublinea=subline_data.nom_sublinea, ind_activo=subline_data.ind_activo
-            )
-        subline_service.update_subline(db, id_categoria, id_linea, id_sublinea, subline_data)
+        subline_service.update_subline(db, id_categoria, id_linea, id_sublinea, subline_data, current_user.id_usuario)
         return ResponseMessage(message="Sublinea actualizada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

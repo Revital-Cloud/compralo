@@ -8,6 +8,8 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, Form, Body, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
+from core.dependencies import get_current_user
+from schemas.auth_schema import UserInToken
 from schemas.provider_schema import ProviderCreate, ProviderUpdate, Provider,ResponseMessage
 from services import provider_service
 
@@ -51,7 +53,8 @@ async def get_provider(id_proveedor:Decimal, db:Session = Depends(get_db)):
 @router.post("/providers", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_provider(
     db:Session = Depends(get_db),
-    provider_data: ProviderCreate = Body(...)
+    provider_data: ProviderCreate = Body(...),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Crea un nuevo proveedor en la base de datos.
@@ -64,13 +67,7 @@ async def create_provider(
         ind_activo (bool): Indica si el proveedor está activo o no.
     """
     try:
-        provider_data = ProviderCreate(
-            nom_proveedor=provider_data.nom_proveedor,
-            email=provider_data.email, 
-            tel_proveedor=provider_data.tel_proveedor,
-            ind_activo=provider_data.ind_activo
-            )
-        provider_service.create_provider(db, provider_data)
+        provider_service.create_provider(db, provider_data, current_user.id_usuario)
         return ResponseMessage(message="Proveedor creado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -79,8 +76,9 @@ async def create_provider(
 @router.put("/providers/{id_proveedor}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_provider(
     id_proveedor:Decimal,
+    provider_data: ProviderUpdate = Body(...),
     db:Session = Depends(get_db),
-    provider_data: ProviderUpdate = Body(...)
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Actualiza un proveedor existente en la base de datos.
@@ -93,13 +91,7 @@ async def update_provider(
         tel_proveedor (str): Teléfono del proveedor.
     """
     try:
-        provider_data = ProviderUpdate(
-            nom_proveedor=provider_data.nom_proveedor, 
-            email=provider_data.email, 
-            tel_proveedor=provider_data.tel_proveedor,
-            ind_activo=provider_data.ind_activo
-            )
-        provider_service.update_provider(db, id_proveedor, provider_data)
+        provider_service.update_provider(db, id_proveedor, provider_data, current_user.id_usuario)
         return ResponseMessage(message="Proveedor actualizado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

@@ -9,6 +9,8 @@ from datetime import datetime, date
 from fastapi import APIRouter, Depends, Body, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
+from core.dependencies import get_current_user
+from schemas.auth_schema import UserInToken
 from schemas.favorites_schema import FavoritesCreate, Favorites, ResponseMessage
 from services import favorites_service
 
@@ -39,12 +41,8 @@ async def get_favorites(id_usuario: Decimal,
 @router.post("/favorites", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_favorite(
     db:Session = Depends(get_db),
-    favorite_data: FavoritesCreate = Body(...)
-    # id_usuario:Decimal = Form(...),
-    # id_categoria_producto:Decimal = Form(...),
-    # id_linea_producto:Decimal = Form(...),
-    # id_sublinea_producto:Decimal = Form(...),
-    # id_producto:Decimal = Form(...)
+    favorite_data: FavoritesCreate = Body(...),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Crea un nuevo favorito en la base de datos.
@@ -58,15 +56,13 @@ async def create_favorite(
         id_producto (Decimal): El ID del producto.
     """
     try:
-        favorite_data = FavoritesCreate(
-            id_usuario=favorite_data.id_usuario,
-            id_categoria_producto=favorite_data.id_categoria_producto,
-            id_linea_producto=favorite_data.id_linea_producto,
-            id_sublinea_producto=favorite_data.id_sublinea_producto,
-            id_producto=favorite_data.id_producto,
-            fecha_agregado=date.today()
-        )
-        favorites_service.create_favorite(db, favorite_data)
+        if favorite_data.id_usuario != current_user.id_usuario:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permisos para añadir favoritos a otro usuario."
+            )
+            
+        favorites_service.create_favorite(db, favorite_data, current_user.id_usuario)
         return ResponseMessage(message="Favorito creado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
