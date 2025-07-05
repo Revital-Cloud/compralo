@@ -44,6 +44,10 @@ class ProductBase(BaseModel):
     id_categoria: Decimal
     num_stock: int = Field(0, ge=0, description="Cantidad de unidades disponibles en inventario.")
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
+    fec_insert: Optional[datetime] = Field(None, description="Fecha y hora de la inserción del registro.")
+    ind_activo: Optional[bool] = Field(None, description="Indica si el producto está activo.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
+    fec_update: Optional[datetime] = Field(None, description="Fecha y hora de la última actualización del registro.")
     
     class Config:
         from_attributes = True
@@ -117,9 +121,9 @@ class Product(ProductBase): # Este será el modelo de respuesta principal
     id_producto: Decimal # El ID principal del producto, generalmente se incluye en la respuesta
     
     # Incluir campos de auditoría en la respuesta si se desea
-    usr_insert: str
+    usr_insert: Decimal
     fec_insert: datetime
-    usr_update: Optional[str] = None
+    usr_update: Optional[Decimal] = None
     fec_update: Optional[datetime] = None
 
 # Esquema para mensajes de respuesta genéricos
