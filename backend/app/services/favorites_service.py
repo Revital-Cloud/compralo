@@ -17,21 +17,10 @@ def get_favorites(db:Session, id_usuario: Decimal):
     """
     
     try:
-        # Consulta directa a la tabla de favoritos, similar a como se hace en product_service
         query = text("""
-        SELECT 
-            id_usuario,
-            id_categoria_producto,
-            id_linea_producto,
-            id_sublinea_producto,
-            id_producto,
-            fecha_agregado
-        FROM tab_favoritos 
-        WHERE id_usuario = :id_usuario
+        SELECT * FROM fun_select_favoritos_usuario_con_detalles(:id_usuario)
         """) 
         result = db.execute(query, {'id_usuario': id_usuario})
-        # .mappings() convierte cada fila en un objeto tipo dict (RowMapping)
-        # FastAPI puede usar esto para poblar el modelo Pydantic Favorites
         return result.mappings().all()
     except Exception as e:
         db.rollback()

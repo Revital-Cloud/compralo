@@ -5,18 +5,17 @@ Define las rutas y endpoints relacionados con la gestión de favoritos,
 incluyendo la creación, visualización y eliminación de favoritos.
 """
 from decimal import Decimal
-from datetime import datetime, date
-from fastapi import APIRouter, Depends, Body, Form, HTTPException, status
+from fastapi import APIRouter, Depends, Body, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user
 from schemas.auth_schema import UserInToken
-from schemas.favorites_schema import FavoritesCreate, Favorites, ResponseMessage
+from schemas.favorites_schema import FavoritesCreate, FavoritesBase, ResponseMessage, FavoritesPostBody, FavoriteDetails
 from services import favorites_service
 
 router = APIRouter(tags=["Favoritos"])
 
-@router.get("/favorites/{id_usuario}", response_model=list[Favorites])
+@router.get("/favorites/{id_usuario}", response_model=list[FavoriteDetails])
 async def get_favorites(id_usuario: Decimal, 
     db: Session = Depends(get_db)):
     """
@@ -41,7 +40,7 @@ async def get_favorites(id_usuario: Decimal,
 @router.post("/favorites", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_favorite(
     db:Session = Depends(get_db),
-    favorite_data: FavoritesCreate = Body(...),
+    favorite_data: FavoritesPostBody = Body(...),
     current_user: UserInToken = Depends(get_current_user)
 ):
     """
@@ -56,13 +55,13 @@ async def create_favorite(
         id_producto (Decimal): El ID del producto.
     """
     try:
-        if favorite_data.id_usuario != current_user.id_usuario:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permisos para añadir favoritos a otro usuario."
-            )
+        favorite_to_create = FavoritesCreate(
+            id_usuario=current_user.id_usuario,
+            usr_insert=current_user.id_usuario,
+            **favorite_data.model_dump()
+        )
             
-        favorites_service.create_favorite(db, favorite_data, current_user.id_usuario)
+        favorites_service.create_favorite(db, favorite_to_create, current_user.id_usuario)
         return ResponseMessage(message="Favorito creado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
