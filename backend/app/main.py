@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
+from middlewares.role_middleware import SmartAuthMiddleware
 from routers.cms_router import router as cms_router
 from routers.provider_router import router as provider_router
 from core.config import settings
@@ -22,7 +23,6 @@ from routers.favorites_router import router as favorites_router
 
 from routers.auth_router import router as auth_router
 from routers.email_router import router as email_router
-from middlewares.role_middleware import smart_auth_middleware
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -44,7 +44,7 @@ app.add_middleware(
 )
 
 # Agregar el middleware inteligente de autenticación
-app.middleware("http")(smart_auth_middleware)
+app.add_middleware(SmartAuthMiddleware)
 
 @app.get("/")
 def read_root():

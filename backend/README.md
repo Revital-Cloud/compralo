@@ -86,12 +86,10 @@ backend/
 ### Base de Datos
 - **PostgreSQL 15+** - Base de datos relacional dedicada
 - **SQLAlchemy 2.0+** - ORM con soporte async
-- **Alembic** - Migraciones de base de datos
-- **asyncpg** - Driver PostgreSQL asíncrono
 
 ### Autenticación y Seguridad
 - **JWT (PyJWT)** - Tokens de autenticación
-- **bcrypt** - Hashing de contraseñas
+- **argon2-cffi** - Hashing de contraseñas seguro
 - **python-multipart** - Manejo de formularios
 - **CORS** - Configuración de orígenes permitidos
 
