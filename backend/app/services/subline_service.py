@@ -73,6 +73,7 @@ def update_subline(db:Session,  id_categoria:Decimal, id_linea:Decimal, id_subli
         id_linea (Decimal): El ID de la linea asociada.
         id_sublinea (Decimal): El ID de la sublinea a actualizar.
         subline (SublineUpdate): Un objeto Pydantic `SublineUpdate` con los datos a actualizar.
+        usr_update (Decimal): Identificador del usuario que actualizó el registro.
     """
     try:
         params = subline.model_dump(exclude_unset=True)
