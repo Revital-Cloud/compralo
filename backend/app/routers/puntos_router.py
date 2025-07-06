@@ -4,7 +4,7 @@ from typing import Any
 
 from core.dependencies import get_db, require_admin
 from schemas.auth_schema import UserInToken
-from schemas.puntos_schema import PuntosConfigActivaUpdate
+from schemas.puntos_schema import PuntosConfigActivaUpdate, TipoMovimientoDescripcion
 from services import puntos_service
 
 router = APIRouter(
@@ -34,6 +34,27 @@ def update_active_points_configuration(
         config_update=config_update, 
         user_id=current_user.id_usuario
     )
+
+@router.get(
+    "/tipos-movimiento/{tipo_movimiento_id}",
+    response_model=TipoMovimientoDescripcion,
+    summary="Obtiene la descripción de un tipo de movimiento de puntos"
+)
+def get_points_movement_description(
+    tipo_movimiento_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene la descripción legible para un código de tipo de movimiento de puntos.
+    
+    **Códigos de movimiento:**
+    - `1`: Acumulación (puntos ganados por compras)
+    - `2`: Canje (puntos gastados por descuentos)
+    - `3`: Expiración (puntos perdidos por vencimiento)
+    
+    - **Endpoint público.**
+    """
+    return puntos_service.get_movimiento_descripcion(db=db, tipo_movimiento=tipo_movimiento_id)
 
 @router.get(
     "/tasa-activa",

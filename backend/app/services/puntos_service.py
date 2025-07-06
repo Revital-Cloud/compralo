@@ -83,4 +83,26 @@ def get_active_rate(db: Session):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail=f"Error al obtener la tasa de puntos activa: {str(e)}"
+        )
+
+def get_movimiento_descripcion(db: Session, tipo_movimiento: int):
+    """
+    Obtiene la descripción de un tipo de movimiento de puntos llamando a una función de BD.
+    """
+    try:
+        query = text("SELECT fun_obtener_descripcion_tipo_movimiento(:tipo)")
+        descripcion = db.scalar(query, {"tipo": tipo_movimiento})
+        
+        if descripcion is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="La función de base de datos no devolvió una descripción."
+            )
+            
+        return {"codigo": tipo_movimiento, "descripcion": descripcion}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener la descripción del movimiento: {str(e)}"
         ) 

@@ -26,6 +26,13 @@ class PuntosConfigActivaUpdate(BaseModel):
     nuevo_pesos_por_punto: float = Field(..., gt=0, description="Nuevo valor en pesos para ganar un punto.")
     descripcion: Optional[str] = Field(None, description="Nueva descripción opcional para la configuración.", max_length=255)
 
+class TipoMovimientoDescripcion(BaseModel):
+    """
+    Schema para la descripción de un tipo de movimiento de puntos.
+    """
+    codigo: int
+    descripcion: str
+
 class PuntosConfigCreate(PuntosConfigBase):
     """
     Schema para crear una nueva configuración de puntos.
