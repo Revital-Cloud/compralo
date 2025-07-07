@@ -9,6 +9,7 @@ así como un esquema para mensajes de respuesta genéricos.
 from pydantic import BaseModel, Field
 from typing import Optional
 from decimal import Decimal
+
 class PointsPerUserBase(BaseModel):
     """
     Esquema Base para Puntos por Usuario.
@@ -19,19 +20,13 @@ class PointsPerUserBase(BaseModel):
         id_usuario (Decimal): Identificador del usuario.
         usr_insert (Decimal): Identificador del usuario que insertó el registro.
     """
+
     id_usuario: Decimal = Field(..., description="Identificador del usuario.")
+    puntos_disponibles: Optional[int] = Field(None, description="Puntos disponibles.")
+    puntos_totales_ganados: Optional[int] = Field(None, description="Puntos totales ganados.")
+    puntos_totales_canjeados: Optional[int] = Field(None, description="Puntos totales canjeados.")
     usr_insert: Decimal = Field(..., description="Identificador del usuario que insertó el registro.")
+    usr_update: Optional[Decimal] = Field(None, description="Identificador del usuario que actualizó el registro.")
 
     class Config:
         from_attributes = True
-
-class PointsPerUser(PointsPerUserBase):
-    """
-    Esquema para la Visualización de Puntos por Usuario.
-
-    Hereda de `PointsPerUserBase` y se utiliza como el modelo de respuesta
-    principal para los endpoints que devuelven información de puntos por usuario.
-    Incluye el `id_usuario` y los campos de auditoría.
-    """
-
-class CalculatePointsPerShop(BaseModel):
