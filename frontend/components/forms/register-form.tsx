@@ -45,13 +45,17 @@ export function RegisterForm() {
 
   const onSubmit = async (values: z.infer<typeof registerSchema>) => {
     try {
-      // El backend espera `id_rol` y un booleano para `ind_genero`.
-      // Asumimos rol de cliente (2) por defecto para el registro.
+      // Correcciones según feedback:
+      // 1. `ind_genero` es `true` para femenino y `false` para masculino.
+      
+      // El backend espera un valor booleano para el género (true para femenino).
+      // Esta línea transforma el string del formulario ('femenino', 'masculino', 'otro')
+      // en el booleano correspondiente que la API necesita.
       const dataToSubmit = {
         ...values,
-        id_rol: 2,
-        ind_genero: values.ind_genero === "masculino", // true para masculino, false para los demás
+        ind_genero: values.ind_genero === "femenino",
       };
+      
       await registerUser(dataToSubmit);
       toast.success("¡Cuenta creada!", {
         description: "Hemos creado tu cuenta exitosamente. Serás redirigido.",
@@ -77,7 +81,7 @@ export function RegisterForm() {
           name="id_usuario"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Identificación (DNI/Cédula)</FormLabel>
+              <FormLabel>Identificación (Cédula)</FormLabel>
               <FormControl>
                 <Input placeholder="Tu número de identificación" {...field} />
               </FormControl>
@@ -171,7 +175,6 @@ export function RegisterForm() {
                   <SelectContent>
                     <SelectItem value="masculino">Masculino</SelectItem>
                     <SelectItem value="femenino">Femenino</SelectItem>
-                    <SelectItem value="otro">Otro</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
