@@ -35,7 +35,7 @@ class ExcelService {
   async readExcelFile(file: File, options: ImportOptions): Promise<ImportPreview> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-
+      
       reader.onload = async (e) => {
         try {
           const data = e.target?.result as ArrayBuffer;
@@ -66,7 +66,7 @@ class ExcelService {
           });
           
           const preview = jsonData.slice(0, 5);
-
+          
           const result: ImportPreview = {
             fileName: file.name,
             totalRows: worksheet.rowCount - (options.hasHeader ? 1 : 0),
@@ -164,7 +164,7 @@ class ExcelService {
    * Exporta datos a Excel
    */
   async exportToExcel(
-    data: DashboardExportData,
+    data: DashboardExportData, 
     options: ExportOptions = { format: 'excel' }
   ): Promise<void> {
     try {
@@ -187,7 +187,7 @@ class ExcelService {
       // Generar archivo
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
       });
 
       const fileName = options.filename || `dashboard_export_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -265,7 +265,7 @@ class ExcelService {
 
     if (format === 'excel') {
       await this.exportToExcel(
-        { [templateType]: template.sampleData },
+        { [templateType]: template.sampleData }, 
         { format: 'excel', filename: `${fileName}.xlsx` }
       );
     } else {

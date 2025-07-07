@@ -288,10 +288,10 @@ const AnalyticsPage = () => {
             defaultDataTypes={['analytics']}
             onExportComplete={handleExportComplete}
           >
-            <Button size="sm">
-              <IconDownload className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
+              <Button size="sm">
+                <IconDownload className="h-4 w-4 mr-2" />
+                Exportar
+              </Button>
           </ExportDialog>
         </div>
       </div>

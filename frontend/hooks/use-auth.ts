@@ -9,26 +9,26 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as authService from '@/services/auth.service';
 import * as userService from '@/services/user.service';
-import { isAuthenticated } from '@/utils/apiWrapper';
+import { isAuthenticated, clearTokens } from '@/utils/apiWrapper';
 import type {
   LoginRequest,
   TokenResponse,
   User,
-  RegisterRequest,
   ChangePasswordRequest,
   ResetPasswordRequest,
   ResetPasswordConfirm,
   UserUpdate,
+  RegisterRequest,
 } from '@/types';
 
 // Keys para las queries (para cache management)
 export const AUTH_KEYS = {
   currentUser: ['auth', 'currentUser'] as const,
-  isAuthenticated: ['auth', 'isAuthenticated'] as const,
 };
 
 /**
  * Hook principal de autenticación
+ * Combina el estado del usuario con las acciones de login/logout.
  */
 export function useAuth() {
   const queryClient = useQueryClient();
@@ -38,103 +38,73 @@ export function useAuth() {
     data: user,
     isLoading: isLoadingUser,
     error: userError,
-    refetch: refetchUser
   } = useQuery({
     queryKey: AUTH_KEYS.currentUser,
-    queryFn: () => userService.getCurrentUser(),
+    queryFn: authService.getCurrentUser,
     enabled: isAuthenticated(), // Solo ejecutar si hay token
-    retry: false, // No reintentar si falla (probablemente token inválido)
-    staleTime: 5 * 60 * 1000, // Considerar datos frescos por 5 minutos
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutos
   });
 
-  // Verificar si está autenticado
-  const isUserAuthenticated = isAuthenticated() && !!user;
+  // Mutación para login
+  const { mutate: login, isPending: isLoggingIn } = useMutation({
+    mutationFn: (credentials: LoginRequest) => authService.login(credentials),
+    onSuccess: async () => {
+      toast.success('¡Bienvenido! Has iniciado sesión correctamente');
+      // Refresca la query del usuario actual para obtener sus datos
+      const refreshedUser = await queryClient.fetchQuery<User>({ queryKey: AUTH_KEYS.currentUser });
+      
+      // Redirección basada en rol
+      if (typeof window !== 'undefined') {
+        // Rol 1: Admin -> /admin
+        // Otro rol -> / (tienda)
+        window.location.href = refreshedUser?.id_rol === 1 ? '/admin' : '/';
+      }
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Error al iniciar sesión. Verifica tus credenciales.';
+      toast.error(message);
+    },
+  });
+
+  // Mutación para logout
+  const { mutate: logout, isPending: isLoggingOut } = useMutation({
+    mutationFn: async () => {
+      // Idealmente, aquí se podría llamar a un endpoint de /logout del backend si lo hubiera
+      // Por ahora, es una operación del lado del cliente
+      clearTokens();
+    },
+    onSuccess: () => {
+      // Limpiar toda la cache de React Query para desloguear completamente
+      queryClient.clear();
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login'; // Redirigir siempre al login
+      }
+    },
+    onError: () => {
+      toast.error('Error al cerrar sesión. Inténtalo de nuevo.');
+    }
+  });
+
+  const registerMutation = useMutation({
+    mutationFn: authService.register,
+  });
+
+  const register = async (userData: RegisterRequest) => {
+    await registerMutation.mutateAsync(userData);
+  };
 
   return {
     user,
-    isAuthenticated: isUserAuthenticated,
+    isAuthenticated: isAuthenticated() && !!user,
     isLoadingUser,
+    isLoggingIn,
+    isLoggingOut,
     userError,
-    refetchUser,
+    login,
+    logout,
+    register,
   };
-}
-
-/**
- * Hook para operaciones de login
- */
-export function useLogin() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (credentials: LoginRequest) => authService.login(credentials),
-    onSuccess: (data: TokenResponse) => {
-      // Mostrar mensaje de éxito
-      toast.success('¡Bienvenido! Has iniciado sesión correctamente');
-      
-      // Invalidar queries relacionadas con auth para refrescar datos
-      queryClient.invalidateQueries({ queryKey: AUTH_KEYS.currentUser });
-      
-      // Opcional: redirigir a dashboard o página principal
-      if (typeof window !== 'undefined') {
-        // Puedes cambiar esta ruta según tu aplicación
-        window.location.href = '/dashboard';
-      }
-    },
-    onError: (error: any) => {
-      // Manejar errores de login
-      const message = error?.response?.data?.message || 'Error al iniciar sesión. Verifica tus credenciales.';
-      toast.error(message);
-    },
-  });
-}
-
-/**
- * Hook para registro de usuarios
- */
-export function useRegister() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (userData: RegisterRequest) => authService.register(userData),
-    onSuccess: (data: User) => {
-      toast.success('¡Cuenta creada exitosamente! Ya puedes iniciar sesión.');
-      
-      // Opcional: redirigir a login
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
-    },
-    onError: (error: any) => {
-      const message = error?.response?.data?.message || 'Error al crear la cuenta. Inténtalo de nuevo.';
-      toast.error(message);
-    },
-  });
-}
-
-/**
- * Hook para logout
- */
-export function useLogout() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: () => {
-      // El logout es una operación local (limpia tokens)
-      authService.logout();
-      return Promise.resolve();
-    },
-    onSuccess: () => {
-      // Limpiar toda la cache
-      queryClient.clear();
-      
-      toast.success('Has cerrado sesión correctamente');
-      
-      // Redirigir al login
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
-    },
-  });
 }
 
 /**
