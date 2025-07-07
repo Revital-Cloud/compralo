@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Heart } from 'lucide-react'
-import { cartTexts } from '@/mockData'
 
 interface ProductCardProps {
   id: string
@@ -35,7 +34,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
   isFavorite = false,
   className = ''
 }) => {
-  const texts = cartTexts.es
+  const texts = {
+    viewProduct: 'VER PRODUCTO'
+  }
 
   const badgeColorClasses = {
     blue: 'bg-blue-600 text-white',

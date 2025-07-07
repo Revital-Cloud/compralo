@@ -21,8 +21,10 @@ from schemas.auth_schema import (
     ResetPasswordRequest,
     ResetPasswordConfirm
 )
-from schemas.user_schema import ResponseMessage
+from schemas.user_schema import ResponseMessage, User, UserCreate, UserUpdate
 from services import auth_service
+from services import user_service
+from core.dependencies import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -68,20 +70,26 @@ async def refresh_token(
     """
     return auth_service.refresh_access_token(db, refresh_data.refresh_token)
 
-@router.get("/me", response_model=UserInToken)
+@router.get("/me", response_model=User)
 async def get_current_user_info(
-    current_user: UserInToken = Depends(get_current_user)
+    current_user: UserInToken = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """
-    Endpoint para obtener información del usuario actual.
+    Endpoint para obtener información completa del usuario actual.
     
     Args:
         current_user (UserInToken): Usuario autenticado (inyectado por dependencia)
+        db (Session): Sesión de la base de datos
         
     Returns:
-        UserInToken: Información del usuario actual
+        User: Información completa del usuario actual
     """
-    return current_user
+    # Obtener la información completa del usuario desde la base de datos
+    full_user = user_service.get_user(db, current_user.id_usuario)
+    if full_user is None:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return full_user
 
 @router.post("/change-password", response_model=ResponseMessage)
 async def change_password(
@@ -176,7 +184,6 @@ async def send_verification_email(
             )
         
         # Obtener usuario de la BD
-        from services import user_service
         user = user_service.get_user_by_id(db, user_id)
         if not user:
             raise HTTPException(
@@ -243,7 +250,6 @@ async def verify_email_endpoint(
         email = payload.get("email")
         
         # Obtener usuario de la BD
-        from services import user_service
         user = user_service.get_user_by_id(db, user_id)
         if not user:
             raise HTTPException(
@@ -301,7 +307,6 @@ async def forgot_password(
     """
     try:
         # Buscar usuario por email
-        from services import user_service
         user = user_service.get_user_by_email(db, request.email)
         
         if user:
@@ -370,7 +375,6 @@ async def reset_password(
         email = payload.get("email")
         
         # Obtener usuario
-        from services import user_service
         user = user_service.get_user_by_id(db, user_id)
         if not user or user.email_usuario != email:
             raise HTTPException(

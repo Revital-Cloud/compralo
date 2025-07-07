@@ -7,8 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { ProductFilters, ProductGrid, ProductList } from "@/components/product"
 import CartToast from "@/components/ui/cart-toast"
-import { mockProducts, mockFilters, sortOptions } from "@/mockData/products-listing"
 import { cn } from "@/lib/utils"
+
+const mockProducts: any[] = []
+const mockFilters: any[] = []
+const sortOptions: any[] = []
 
 const ProductsPage = () => {
   const [activeFilters, setActiveFilters] = useState<Record<string, string[]>>({})

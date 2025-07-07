@@ -1,75 +1,61 @@
 "use client"
 
-import * as React from "react"
-import { useState } from "react"
+import { useAuth } from "@/hooks/use-auth"
 import Link from "next/link"
-import { User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { getInitials } from "@/lib/utils"
 
-interface UserMenuProps {
-  onLogin?: () => void
-  onProfile?: () => void
-}
+export default function UserMenu() {
+  const { user, isAuthenticated, logout } = useAuth()
 
-const UserMenu: React.FC<UserMenuProps> = ({ onLogin, onProfile }) => {
-  const [isOpen, setIsOpen] = useState(false)
+  if (!isAuthenticated || !user) {
+    return (
+      <Button asChild variant="ghost" size="sm">
+        <Link href="/login">Iniciar Sesión</Link>
+      </Button>
+    )
+  }
 
   return (
-    <div className="relative">
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsOpen(!isOpen)}
-              className="p-2 hover:bg-muted"
-            >
-              <User className="h-5 w-5" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Menú de usuario</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      
-      {isOpen && (
-        <div className="absolute top-full right-0 mt-2 bg-background border border-border rounded-lg shadow-lg p-2 min-w-[150px] z-50">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              onProfile?.()
-              setIsOpen(false)
-            }}
-            className="w-full justify-start"
-          >
-            Mi Perfil
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              onLogin?.()
-              setIsOpen(false)
-            }}
-            className="w-full justify-start"
-          >
-            <Link href="/login">
-              Iniciar Sesión
-            </Link>
-          </Button>
-        </div>
-      )}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src="" alt={`@${user.nom_usuario}`} />
+            <AvatarFallback>{getInitials(user.nom_usuario)}</AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-56" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">{user.nom_usuario} {user.ape_usuario}</p>
+            <p className="text-xs leading-none text-muted-foreground">
+              {user.email_usuario}
+            </p>
+          </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/profile">Mi Perfil</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/orders">Mis Pedidos</Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => logout()}>
+          Cerrar Sesión
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
-}
-
-export default UserMenu 
+} 

@@ -5,17 +5,17 @@
  * registro, cambio de contraseñas, etc.
  */
 
-import { post, storeTokens, clearTokens } from '@/utils/apiWrapper';
+import { post, get, storeTokens, clearTokens } from '@/utils/apiWrapper';
 import type {
   LoginRequest,
   TokenResponse,
   User,
-  RegisterRequest,
   ChangePasswordRequest,
   ResetPasswordRequest,
   ResetPasswordConfirm,
   ApiResponse,
   RefreshTokenRequest,
+  RegisterRequest,
 } from '@/types';
 import { getStoredRefreshToken } from '@/utils/apiWrapper';
 
@@ -27,12 +27,19 @@ import { getStoredRefreshToken } from '@/utils/apiWrapper';
  * Login del usuario
  */
 export async function login(credentials: LoginRequest): Promise<TokenResponse> {
-  const tokens = await post<TokenResponse>('/auth/login', credentials);
+  const tokens = await post<TokenResponse>('/login', credentials);
   
   // Almacenar tokens automáticamente
   storeTokens(tokens.access_token, tokens.refresh_token);
   
   return tokens;
+}
+
+/**
+ * Obtener datos del usuario actual
+ */
+export async function getCurrentUser(): Promise<User> {
+  return await get<User>('/me');
 }
 
 /**
@@ -51,7 +58,7 @@ export async function refreshToken(): Promise<TokenResponse> {
     throw new Error('No refresh token available');
   }
 
-  const tokens = await post<TokenResponse>('/auth/refresh', {
+  const tokens = await post<TokenResponse>('/refresh', {
     refresh_token: refreshTokenValue
   } as RefreshTokenRequest);
   
@@ -61,10 +68,10 @@ export async function refreshToken(): Promise<TokenResponse> {
 }
 
 /**
- * Registrar nuevo usuario
+ * Verificar si el token actual es válido
  */
-export async function register(userData: RegisterRequest): Promise<User> {
-  return await post<User>('/auth/register', userData);
+export async function verifyToken(): Promise<{ valid: boolean; user_id?: number; email?: string }> {
+  return await get<{ valid: boolean; user_id?: number; email?: string }>('/verify-token');
 }
 
 /**
@@ -78,28 +85,22 @@ export async function changePassword(passwordData: ChangePasswordRequest): Promi
  * Solicitar reset de contraseña
  */
 export async function requestPasswordReset(resetData: ResetPasswordRequest): Promise<ApiResponse> {
-  return await post<ApiResponse>('/auth/reset-password', resetData);
+  return await post<ApiResponse>('/auth/forgot-password', resetData);
 }
 
 /**
  * Confirmar reset de contraseña
  */
 export async function confirmPasswordReset(confirmData: ResetPasswordConfirm): Promise<ApiResponse> {
-  return await post<ApiResponse>('/auth/reset-password/confirm', confirmData);
+  return await post<ApiResponse>('/auth/reset-password', confirmData);
 }
 
 /**
- * Verificar email
+ * Registro de un nuevo usuario
  */
-export async function verifyEmail(token: string): Promise<ApiResponse> {
-  return await post<ApiResponse>('/auth/verify-email', { token });
-}
-
-/**
- * Reenviar email de verificación
- */
-export async function resendVerificationEmail(email: string): Promise<ApiResponse> {
-  return await post<ApiResponse>('/auth/resend-verification', { email });
+export async function register(userData: RegisterRequest): Promise<ApiResponse> {
+  // El backend espera un objeto JSON directamente.
+  return await post<ApiResponse>('/users', userData);
 }
 
 // =============================================================================
@@ -107,15 +108,15 @@ export async function resendVerificationEmail(email: string): Promise<ApiRespons
 // =============================================================================
 
 const authService = {
+  register,
   login,
   logout,
   refreshToken,
-  register,
+  getCurrentUser,
   changePassword,
   requestPasswordReset,
   confirmPasswordReset,
-  verifyEmail,
-  resendVerificationEmail,
+  verifyToken,
 };
 
 export default authService; 

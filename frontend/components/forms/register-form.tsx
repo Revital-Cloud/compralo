@@ -1,106 +1,333 @@
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+"use client";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/use-auth";
+import { useState } from "react";
+import { ArrowLeft, Eye, EyeOff, Loader2, CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import Link from "next/link";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+} from "@/components/ui/card";
+import { useRouter } from "next/navigation";
+import { registerSchema } from "@/schemas/auth.schema";
+import type { RegisterRequest } from "@/types";
 
-export function RegisterForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+type FormValues = z.infer<typeof registerSchema>;
+
+export function RegisterForm() {
+  const { register: registerUser } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      id_usuario: "",
+      nom_usuario: "",
+      ape_usuario: "",
+      email_usuario: "",
+      password_usuario: "",
+      cel_usuario: "",
+      des_direccion: "",
+      ind_genero: "masculino",
+      fec_nacimiento: "",
+    },
+    mode: "onChange",
+  });
+
+  const onSubmit = async (values: FormValues) => {
+    try {
+      setIsLoading(true);
+      const dataToSubmit: RegisterRequest = {
+        ...values,
+        ind_genero: values.ind_genero === "masculino" ? false : true,
+      };
+      await registerUser(dataToSubmit);
+      router.push("/login");
+    } catch (error: any) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className="flex flex-col gap-6">
       <Card>
         <CardHeader className="text-center">
           <div className="flex justify-start mb-4">
-            <Link href="/">
+            <Link href="/login">
               <Button variant="ghost" size="sm" className="flex items-center gap-2 cursor-pointer">
                 <ArrowLeft className="size-4" />
                 Volver
               </Button>
             </Link>
           </div>
-          <CardTitle className="text-xl">Crear una cuenta</CardTitle>
+          <CardTitle className="text-xl">Crear cuenta</CardTitle>
           <CardDescription>
-            Crea una cuenta con tu cuenta de Apple o Google
+            Regístrate para comenzar a comprar en nuestra tienda
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
-            <div className="grid gap-6">
-              <div className="flex flex-col gap-4">
-                <Button variant="outline" className="w-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path
-                      d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  Registrarse con Apple
-                </Button>
-                <Button variant="outline" className="w-full">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                    <path
-                      d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  Registrarse con Google
-                </Button>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="id_usuario"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Identificación (Cédula)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Tu número de identificación"
+                        {...field}
+                        disabled={isLoading}
+                        type="number"
+                      />
+                    </FormControl>
+                    <FormMessage  />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="nom_usuario"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John" {...field} disabled={isLoading} type="text"/>
+                      </FormControl>
+                      <FormMessage className="min-h-[1.25rem]" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="ape_usuario"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Apellido</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Doe" {...field} disabled={isLoading} type="text"/>
+                      </FormControl>
+                      <FormMessage className="min-h-[1.25rem]" />
+                    </FormItem>
+                  )}
+                />
               </div>
-              <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
-                <span className="bg-card text-muted-foreground relative z-10 px-2">
-                  O continúa con
-                </span>
+              <FormField
+                control={form.control}
+                name="email_usuario"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="john.doe@example.com"
+                        {...field}
+                        type="email"
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage className="min-h-[1.25rem]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password_usuario"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contraseña</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                          disabled={isLoading}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage className="min-h-[1.25rem]" />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="cel_usuario"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Teléfono</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="+57 300 123 4567"
+                          {...field}
+                          disabled={isLoading}
+                          type="number"
+                        />
+                      </FormControl>
+                      <FormMessage className="min-h-[1.25rem]" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="ind_genero"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Género</FormLabel>
+                      <Select
+                        disabled={isLoading}
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="bg-background">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="masculino">Masculino</SelectItem>
+                          <SelectItem value="femenino">Femenino</SelectItem>
+                          <SelectItem value="otro">Otro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="min-h-[1.25rem]" />
+                    </FormItem>
+                  )}
+                />
               </div>
-              <div className="grid gap-6">
-                <div className="grid gap-3">
-                  <Label htmlFor="email">Correo electrónico</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="correo@ejemplo.com"
-                    required
-                  />
-                </div>
-                <div className="grid gap-3">
-                  <div className="flex items-center">
-                    <Label htmlFor="password">Contraseña</Label>
-                    <Link
-                      href="/forgot-password"
-                      className="ml-auto text-sm underline-offset-4 hover:underline"
-                    >
-                      ¿Olvidaste tu contraseña?
-                    </Link>
-                  </div>
-                  <Input id="password" type="password" required />
-                </div>
-                <Button type="submit" className="w-full">
-                  Registrarse
-                </Button>
-              </div>
+              <FormField
+                control={form.control}
+                name="des_direccion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Av. Siempre Viva 123"
+                        {...field}
+                        disabled={isLoading}
+                        type="text"
+                      />
+                    </FormControl>
+                    <FormMessage className="min-h-[1.25rem]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fec_nacimiento"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fecha de nacimiento (Opcional)</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            disabled={isLoading}
+                          >
+                            {field.value ? (
+                              format(new Date(field.value), "PPP", { locale: es })
+                            ) : (
+                              <span>Selecciona una fecha</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={(date) => {
+                            field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
+                          }}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                          locale={es}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage className="min-h-[1.25rem]" />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full mt-6" disabled={isLoading}>
+                {isLoading && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Crear cuenta
+              </Button>
               <div className="text-center text-sm">
                 ¿Ya tienes una cuenta?{" "}
                 <Link href="/login" className="underline underline-offset-4">
-                  Iniciar sesión
+                  Inicia sesión
                 </Link>
               </div>
-            </div>
-          </form>
+            </form>
+          </Form>
         </CardContent>
       </Card>
-      <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4">
-        Al hacer clic en registrarse, aceptas nuestros <Link href="#">Términos de Servicio</Link>{" "}
-        y <Link href="#">Política de Privacidad</Link>.
+      <div className="text-muted-foreground text-center text-xs text-balance">
+        Al hacer clic en continuar, aceptas nuestros{" "}
+        <Link href="#" className="underline underline-offset-4 hover:text-primary">
+          Términos de Servicio
+        </Link>{" "}
+        y{" "}
+        <Link href="#" className="underline underline-offset-4 hover:text-primary">
+          Política de Privacidad
+        </Link>
+        .
       </div>
     </div>
-  )
+  );
 }

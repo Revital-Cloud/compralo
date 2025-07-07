@@ -271,6 +271,9 @@ def update_password(db: Session, id_usuario: Decimal, hashed_password: str):
         bool: True si la actualización fue exitosa.
     """
     try:
+        """
+        Hace falta implementar la función de actualización de contraseña en la base de datos.
+        """
         query = text("""
         UPDATE tab_usuarios 
         SET password_usuario = :password, 

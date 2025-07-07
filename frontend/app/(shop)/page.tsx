@@ -1,6 +1,6 @@
 import EcommerceHeroCarousel from "@/components/layout/shop/hero/hero";
-import { NewDropsSection } from "@/components/layout/shop/new-drops";
-import { CategoriesSection } from "@/components/layout/shop/categories";
+import NewDropsSection from "@/components/layout/shop/new-drops/new-drops";
+import CategoriesSection from "@/components/layout/shop/categories/categories";
 import { shouldShowSection } from "@/lib/config";
 
 export default function Home() {
