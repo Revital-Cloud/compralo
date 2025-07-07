@@ -6,11 +6,13 @@ Utiliza FastAPI para definir las rutas y los servicios de la API.
 """
 import json
 from typing import Dict,Any
-from fastapi import APIRouter,Depends,HTTPException,status,Form
+from fastapi import APIRouter, Body,Depends,HTTPException,status,Form
 from sqlalchemy.orm import Session
 from schemas.cms_schema import Cms, CmsCreate,CmsUpdate,ResponseMessage
 from services.cms_service import get_contents,get_content,create_cms_content,update_cms_content,delete_cms_content
 from core.database import get_db
+from core.dependencies import get_current_user
+from schemas.auth_schema import UserInToken
 
 router = APIRouter(tags=["CMS Content"])
 
@@ -51,11 +53,9 @@ async def get_cms_content(id_cms_content:int,db:Session=Depends(get_db)):
 
 @router.post("/cms",response_model=ResponseMessage,status_code=status.HTTP_201_CREATED)
 async def create_cms_content_endpoint(
-    nom_cms_content:str=Form(...),
-    des_cms_content:str=Form(...,alias="des_cms_content"),
-    num_version:int=Form(...),
-    ind_publicado:bool=Form(...),
-    db:Session=Depends(get_db)
+    cms_content:CmsCreate = Body(...),
+    db:Session=Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Crea un nuevo CMS Content en la base de datos.
@@ -64,18 +64,7 @@ async def create_cms_content_endpoint(
         cms_content (CmsCreate): El CMS Content a crear.
     """
     try:
-        try:
-            des_cms_content_dict:Dict[str,Any] = json.loads(des_cms_content)
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=400,detail="El campo 'des_cms_content' debe ser una cadena JSON válida.")
-
-        cms_content = CmsCreate(
-            nom_cms_content=nom_cms_content,
-            des_cms_content=des_cms_content_dict,
-            num_version=num_version,
-            ind_publicado=ind_publicado
-        )
-        result = create_cms_content(db,cms_content)
+        result = create_cms_content(db,cms_content, current_user.id_usuario)
         if not result:
             raise HTTPException(status_code=500,detail="Error al crear CMS Content en la base de datos")
         return ResponseMessage(message="CMS Content creado exitosamente")
@@ -85,40 +74,32 @@ async def create_cms_content_endpoint(
 @router.put("/cms/{id_cms_content}",response_model=ResponseMessage,status_code=status.HTTP_200_OK)
 async def update_cms_content_endpoint(
     id_cms_content:int,
-    nom_cms_content:str=Form(...),
-    des_cms_content:str=Form(...,alias="des_cms_content"),
-    num_version:int=Form(...),
-    ind_publicado:bool=Form(...),
-    db:Session=Depends(get_db)):
+    cms_content:CmsUpdate = Body(...),
+    db:Session=Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
     """
     Actualiza un CMS Content específico en la base de datos.
     """
     try:
-        try:
-            des_cms_content_dict:Dict[str,Any] = json.loads(des_cms_content)
-        except json.JSONDecodeError:
-            raise HTTPException(status_code=400,detail="El campo 'des_cms_content' debe ser una cadena JSON válida.")
-
-        cms_content = CmsUpdate(
-            nom_cms_content=nom_cms_content,
-            des_cms_content=des_cms_content_dict,
-            num_version=num_version,
-            ind_publicado=ind_publicado
-        )
-        result = update_cms_content(db,id_cms_content,cms_content)
+        result = update_cms_content(db,id_cms_content,cms_content, current_user.id_usuario)
         if not result:
             raise HTTPException(status_code=500,detail="Error al actualizar CMS Content en la base de datos")
         return ResponseMessage(message="CMS Content actualizado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=400,detail=str(e))
 
-@router.delete("/cms/{id_cms_content}",response_model=ResponseMessage,status_code=status.HTTP_200_OK)
-async def delete_cms_content_endpoint(id_cms_content:int,db:Session=Depends(get_db)):
+@router.put("/cms/{id_cms_content}/deactivate",response_model=ResponseMessage,status_code=status.HTTP_200_OK)
+async def delete_cms_content_endpoint(
+    id_cms_content:int,
+    db:Session=Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
     """
     Elimina un CMS Content específico de la base de datos.
     """
     try:
-        result = delete_cms_content(db,id_cms_content)
+        result = delete_cms_content(db,id_cms_content, current_user.id_usuario)
         if not result:
             raise HTTPException(status_code=500,detail="Error al eliminar CMS Content en la base de datos")
         return ResponseMessage(message="CMS Content eliminado exitosamente")

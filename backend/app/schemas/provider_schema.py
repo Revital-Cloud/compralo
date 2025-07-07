@@ -25,6 +25,9 @@ class ProviderBase(BaseModel):
     nom_proveedor: str = Field(..., description="Nombre del proveedor.")
     email: str = Field(..., description="Correo electrónico del proveedor.")
     tel_proveedor: Decimal = Field(..., description="Teléfono del proveedor.")
+    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
+    ind_activo: Optional[bool] = Field(None, description="Indica si el proveedor está activo.")
+
 
     class Config:
         from_attributes = True
@@ -48,10 +51,13 @@ class ProviderUpdate(BaseModel):
     Define los campos que pueden ser actualizados para un proveedor existente.
     Todos los campos son opcionales, permitiendo actualizaciones parciales.
     """
-    nom_proveedor: Optional[str] = None
-    email: Optional[str] = None
-    tel_proveedor: Optional[Decimal] = None
-    
+    nom_proveedor: Optional[str] = Field(None, description="Nombre del proveedor.")
+    email: Optional[str] = Field(None, description="Correo electrónico del proveedor.")
+    tel_proveedor: Optional[Decimal] = Field(None , description="Teléfono del proveedor.")
+    ind_activo: Optional[bool] = Field(None, description="Indica si el proveedor está activo.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
+
+#llama un solo proveedor
 class Provider(ProviderBase):
     """
     Esquema para la Visualización de Proveedores.
@@ -60,7 +66,7 @@ class Provider(ProviderBase):
     principal para los endpoints que devuelven información de proveedores.
     Incluye el `id_proveedor` y los campos de auditoría.
     """
-    id_proveedor: Decimal
+    id_proveedor: Decimal = Field(..., description="Identificador único para el proveedor.")
 
 class ResponseMessage(BaseModel):
     """

@@ -1,14 +1,16 @@
 from decimal import Decimal
-from fastapi import APIRouter, Depends, Form, HTTPException, status
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
+from core.dependencies import get_current_user
+from schemas.auth_schema import UserInToken
 
 # Importar los esquemas de líneas
 from schemas.lines_schema import LineCreate, LineUpdate, Line, ResponseMessage
 
 from services import lines_service
 
-router = APIRouter()
+router = APIRouter(tags=["Líneas"])
 
 # Ruta para obtener todas las líneas
 @router.get("/lines", response_model=list[Line])
@@ -28,31 +30,12 @@ async def get_lines(db: Session = Depends(get_db)):
     return lines
 
 
-# Ruta para obtener una línea específica por ID
-@router.get("/lines/{id_linea}", response_model=Line)
-async def get_line(id_linea: Decimal, db: Session = Depends(get_db)):
-    """
-    Obtiene una línea específica por su ID.
-
-    Args:
-        id_linea (Decimal): ID de la línea a obtener.
-        db (Session): Sesión de la base de datos inyectada por FastAPI.
-
-    Returns:
-        Line: La línea solicitada.
-    """
-    line = lines_service.get_line(db, id_linea)
-    if not line:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Línea no encontrada")
-    return line
-
-
 # Ruta para crear una nueva línea
 @router.post("/lines", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_line(
     db: Session = Depends(get_db),
-    nom_linea: str = Form(...),
-    id_categoria: Decimal = Form(...)
+    line_data: LineCreate = Body(...),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Crea una nueva línea en la base de datos.
@@ -60,74 +43,68 @@ async def create_line(
     Args:
         db (Session): Sesión de la base de datos inyectada por FastAPI.
         nom_linea (str): Nombre de la línea a crear.
-        id_categoria (Decimal): ID de la categoría a la que pertenece la línea.
+        ind_activo (bool): Indica si la línea está activa.
+        current_user (UserInToken): Información del usuario actual.
 
     Returns:
         ResponseMessage: Mensaje de confirmación.
     """
     try:
-        new_line = LineCreate(nom_linea=nom_linea, id_categoria=id_categoria)
-        lines_service.create_line(db, new_line)
+        lines_service.create_line(db, line_data, current_user.id_usuario)
         return ResponseMessage(message="Línea creada con éxito")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Error al crear la línea: {str(e)}")
-    """
-    new_line = LineCreate(nom_linea=nom_linea, id_categoria=id_categoria)
-    created_line = lines_service.create_line(db, new_line)
-    if not created_line:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Error al crear la línea")
-    return ResponseMessage(message="Línea creada con éxito")
-    """
-
 
 
 # Ruta para actualizar una línea existente
-@router.put("/lines/{id_linea}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+@router.put("/lines/{id_categoria}-{id_linea}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_line(
-    id_linea: Decimal, 
-    nom_linea: str = Form(...),
-    id_categoria: Decimal = Form(...),
-    db: Session = Depends(get_db)
-    ):
+    id_categoria: Decimal,
+    id_linea: Decimal,
+    line_data: LineUpdate = Body(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
     """
     Actualiza una línea existente en la base de datos.
 
     Args:
+        id_categoria (Decimal): ID de la categoría a la que pertenece la línea.
         id_linea (Decimal): ID de la línea a actualizar.
-        line (LineUpdate): Datos actualizados de la línea.
+        line_data (LineUpdate): Datos actualizados de la línea.
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+        current_user (UserInToken): Información del usuario actual.
+
+    Returns:
+        ResponseMessage: Mensaje de confirmación.
+    """
+    try:
+        lines_service.update_line(db, id_categoria, id_linea, line_data, current_user.id_usuario)
+        return ResponseMessage(message="Línea actualizada exitosamente")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Error al actualizar la línea: {str(e)}")
+
+# Ruta para desactivar una línea existente
+@router.put("/lines/{id_categoria}-{id_linea}/deactivate", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def deactivate_line(
+    id_categoria: Decimal,
+    id_linea: Decimal,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Desactiva una línea existente en la base de datos.
+
+    Args:
+        id_categoria (Decimal): ID de la categoría a la que pertenece la línea.
+        id_linea (Decimal): ID de la línea a desactivar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
 
     Returns:
         ResponseMessage: Mensaje de confirmación.
     """
     try:
-        line = LineUpdate(nom_linea=nom_linea, id_categoria=id_categoria)
-        lines_service.update_line(db, id_linea, line)
-        return ResponseMessage(message="Línea actualizada con éxito")
+        lines_service.deactivate_line(db, id_categoria, id_linea, current_user.id_usuario)
+        return ResponseMessage(message="Línea desactivada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    
-
-# Ruta para eliminar una línea existente
-@router.delete("/lines/{id_linea}", 
-               response_model=ResponseMessage, status_code=status.HTTP_200_OK)
-async def delete_line(
-    id_linea: Decimal, 
-    db: Session = Depends(get_db)
-    ):
-    """
-    Elimina una línea existente en la base de datos.
-
-    Args:
-        id_linea (Decimal): ID de la línea a eliminar.
-        db (Session): Sesión de la base de datos inyectada por FastAPI.
-
-    Returns:
-        ResponseMessage: Mensaje de confirmación.
-    """
-    try: 
-        lines_service.delete_line(db, id_linea)# Verifica si la línea existe
-        return ResponseMessage(message="Línea eliminada con éxito")
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Error al eliminar la línea: {str(e)}")  
-    

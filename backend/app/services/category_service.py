@@ -21,7 +21,12 @@ def get_categories(db: Session):
         query = text("""
         SELECT 
             id_categoria,
-            nom_categoria
+            nom_categoria,
+            ind_activo,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
         FROM tab_categorias
         """)
         result = db.execute(query)
@@ -36,7 +41,12 @@ def get_category(db: Session, id_categoria: Decimal):
         query = text("""
         SELECT 
             id_categoria,
-            nom_categoria
+            nom_categoria,
+            ind_activo,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
         FROM tab_categorias
         WHERE id_categoria = :id_categoria
         """)
@@ -48,12 +58,14 @@ def get_category(db: Session, id_categoria: Decimal):
     
     
 #Crear una categoría
-def create_category(db: Session, category: CategoryCreate):
+def create_category(db: Session, category: CategoryCreate, usr_insert: Decimal):
     try:
         params = category.model_dump()
+        params["usr_insert"] = usr_insert
         query = text("""
         SELECT fun_insert_categoria(
-            :nom_categoria
+            :nom_categoria,
+            :usr_insert
         )
         """)
         result = db.execute(query, params)
@@ -65,14 +77,17 @@ def create_category(db: Session, category: CategoryCreate):
         raise Exception(f"Error al crear la categoría: {str(e)}")
     
 #Update una categoria
-def update_category(db: Session, id_categoria: Decimal, category: CategoryUpdate):
+def update_category(db: Session, id_categoria: Decimal, category: CategoryUpdate, usr_update: Decimal):
     try:
         params = category.model_dump(exclude_unset=True)  # Excluir campos no proporcionados
         params['id_categoria'] = id_categoria  # Añadir el ID de la categoría a actualizar
+        params['usr_update'] = usr_update
         query = text("""
         SELECT fun_update_categoria(
             :id_categoria,
-            :nom_categoria
+            :nom_categoria,
+            :ind_activo,
+            :usr_update
         )
         """)
         result = db.execute(query, params)
@@ -83,16 +98,16 @@ def update_category(db: Session, id_categoria: Decimal, category: CategoryUpdate
         db.rollback()
         raise Exception(f"Error al actualizar la categoría: {str(e)}")
 
-#Elimina una categoria
-def delete_category(db: Session, id_categoria: Decimal):
+#Desactivar una categoria
+def deactivate_category(db: Session, id_categoria: Decimal, usr_update: Decimal):
     try:
         query = text("""
-        SELECT fun_delete_categoria(:id_categoria)
+        SELECT fun_deactivate_categoria(:id_categoria, :usr_update)
         """)
-        result = db.execute(query, {"id_categoria": id_categoria})
+        result = db.execute(query, {"id_categoria": id_categoria, "usr_update": usr_update})
         fetched_result = result.fetchone()
         db.commit()
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al eliminar la categoría: {str(e)}")
+        raise Exception(f"Error al desactivar la categoría: {str(e)}")

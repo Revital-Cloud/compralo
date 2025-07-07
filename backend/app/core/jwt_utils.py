@@ -2,18 +2,20 @@
 Utilidades para manejo de JWT.
 
 Este módulo contiene funciones para crear, verificar y decodificar tokens JWT,
-así como para el hash y verificación de contraseñas.
+así como para el hash y verificación de contraseñas usando pwdlib con Argon2.
 """
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
 from fastapi import HTTPException, status
 
 from core.config import settings
 
-# Configuración para el hash de contraseñas
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Configuración moderna para el hash de contraseñas usando Argon2
+# Argon2 es más seguro que bcrypt y es el algoritmo recomendado actualmente
+# PasswordHash.recommended() usa Argon2 con configuración optimizada
+pwd_hasher = PasswordHash.recommended()
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
@@ -87,28 +89,28 @@ def verify_token(token: str, token_type: str = "access") -> dict:
 
 def get_password_hash(password: str) -> str:
     """
-    Genera un hash de la contraseña.
+    Genera un hash de la contraseña usando Argon2.
     
     Args:
         password (str): Contraseña en texto plano
         
     Returns:
-        str: Hash de la contraseña
+        str: Hash de la contraseña usando Argon2
     """
-    return pwd_context.hash(password)
+    return pwd_hasher.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
-    Verifica si una contraseña coincide con su hash.
+    Verifica si una contraseña coincide con su hash usando Argon2.
     
     Args:
         plain_password (str): Contraseña en texto plano
-        hashed_password (str): Hash de la contraseña
+        hashed_password (str): Hash de la contraseña (Argon2)
         
     Returns:
         bool: True si la contraseña es correcta, False en caso contrario
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    return pwd_hasher.verify(plain_password, hashed_password)
 
 def create_verification_token(user_id: int, email: str, expires_hours: int = 24) -> str:
     """

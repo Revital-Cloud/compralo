@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
+from middlewares.role_middleware import SmartAuthMiddleware
 from routers.cms_router import router as cms_router
 from routers.provider_router import router as provider_router
 from core.config import settings
@@ -19,10 +20,11 @@ from routers.brand_router import router as brand_router
 from routers.category_router import router as category_router
 from routers.lines_routers import router as lines_routers
 from routers.favorites_router import router as favorites_router
+from routers.comentary_router import router as comentary_router
+from routers.puntos_router import router as puntos_router
 
 from routers.auth_router import router as auth_router
 from routers.email_router import router as email_router
-from middlewares.role_middleware import smart_auth_middleware
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -44,7 +46,7 @@ app.add_middleware(
 )
 
 # Agregar el middleware inteligente de autenticación
-app.middleware("http")(smart_auth_middleware)
+app.add_middleware(SmartAuthMiddleware)
 
 @app.get("/")
 def read_root():
@@ -79,6 +81,11 @@ app.include_router(lines_routers, prefix=settings.API_STR)
 app.include_router(cms_router, prefix=settings.API_STR)
 
 app.include_router(favorites_router, prefix=settings.API_STR)
+
+app.include_router(comentary_router, prefix=settings.API_STR)
+
+# Incluye el router de puntos con un prefijo de API.
+app.include_router(puntos_router, prefix=settings.API_STR)
 
 # Incluye el router de emails con un prefijo de API.
 app.include_router(email_router, prefix=settings.API_STR)

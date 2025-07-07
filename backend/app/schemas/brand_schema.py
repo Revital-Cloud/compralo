@@ -21,28 +21,9 @@ class BrandBase(BaseModel):
         nom_marca (str): Nombre de la marca.
     """
     nom_marca: str = Field(..., description="Nombre de la marca")
-
-    
+    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
     class Config:
         from_attributes = True
-    
-class BrandCreate(BrandBase):
-    """
-    Esquema para la Creación de Marcas.
-    
-    Define los campos requeridos para crear una nueva marca.
-
-    """
-    pass
-    
-class BrandUpdate(BrandBase):
-    """
-    Esquema para la Actualización de Marcas.
-    
-    Define los campos que pueden ser actualizados para una marca existente.
-    Todos los campos son opcionales, permitiendo actualizaciones parciales.
-    """
-    nom_marca: Optional[str] = None
     
 class Brand(BrandBase):
     """
@@ -53,8 +34,29 @@ class Brand(BrandBase):
     Incluye el `id_marca` y los campos de auditoría.
     """
     id_marca: Decimal
+    ind_activo: Optional[bool] = Field(None, description="Indica si la marca está activa.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
     
+class BrandCreate(BrandBase):
+    """
+    Esquema para la Creación de Marcas.
     
+    Define los campos requeridos para crear una nueva marca.
+
+    """
+    pass
+    
+class BrandUpdate(BaseModel):
+    """
+    Esquema para la Actualización de Marcas.
+    
+    Define los campos que pueden ser actualizados para una marca existente.
+    Todos los campos son opcionales, permitiendo actualizaciones parciales.
+    """
+    nom_marca: Optional[str] = Field(None, description="Nombre de la marca.")
+    ind_activo: Optional[bool] = Field(None, description="Indica si la marca está activa.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
+
 class ResponseMessage(BaseModel):
     """
     Esquema para Mensajes de Respuesta Genéricos.

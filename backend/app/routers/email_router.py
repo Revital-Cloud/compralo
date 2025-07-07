@@ -14,16 +14,20 @@ Endpoints disponibles:
 - GET /config: Obtener configuración del servicio
 """
 from fastapi import APIRouter, HTTPException, Depends, status
-from typing import List, Dict, Any
 import logging
 
 from schemas.email_schema import (
-    EmailSend, EmailResponse, TestEmailData, WelcomeEmailData,
+    EmailSend, EmailResponse, WelcomeEmailData,
     VerificationEmailData, PasswordResetEmailData, ResponseMessage
 )
-from services.email_service import email_service
+from services.email_service import (
+    send_welcome_email as send_welcome_email_func,
+    send_verification_email as send_verification_email_func,
+    send_password_reset_email as send_password_reset_email_func,
+    validate_email_config,
+    get_email_config_status
+)
 from core.dependencies import get_current_user
-from middlewares.role_middleware import require_role
 
 logger = logging.getLogger(__name__)
 
@@ -36,127 +40,6 @@ router = APIRouter(
         500: {"description": "Error interno del servidor"}
     }
 )
-
-# ==================== ENDPOINTS DE TESTING ====================
-
-@router.post("/test-local", response_model=EmailResponse)
-async def send_test_email_local(
-    test_data: TestEmailData
-):
-    """
-    Envía un email de prueba SIN AUTENTICACIÓN (solo para testing local).
-    
-    ⚠️ IMPORTANTE: Este endpoint debe ser removido en producción.
-    
-    Args:
-        test_data (TestEmailData): Datos del email de prueba
-        
-    Returns:
-        EmailResponse: Resultado del envío
-        
-    Raises:
-        HTTPException: Si hay error en el envío
-    """
-    try:
-        logger.info(f"🧪 TESTING LOCAL: Enviando email de prueba a {test_data.to}")
-        
-        response = await email_service.send_test_email(test_data)
-        
-        if not response.success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=response.message
-            )
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error en send_test_email_local: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al enviar email de prueba: {str(e)}"
-        )
-
-@router.post("/test", response_model=EmailResponse)
-async def send_test_email(
-    test_data: TestEmailData,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Envía un email de prueba.
-    
-    Este endpoint permite enviar emails de prueba para verificar
-    que el sistema de envío está funcionando correctamente.
-    
-    Args:
-        test_data (TestEmailData): Datos del email de prueba
-        current_user (dict): Usuario autenticado (requerido)
-        
-    Returns:
-        EmailResponse: Resultado del envío
-        
-    Raises:
-        HTTPException: Si hay error en el envío
-    """
-    try:
-        logger.info(f"Enviando email de prueba a {test_data.to} por usuario {current_user.get('email')}")
-        
-        response = await email_service.send_test_email(test_data)
-        
-        if not response.success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=response.message
-            )
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error en send_test_email: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al enviar email de prueba: {str(e)}"
-        )
-
-@router.post("/send", response_model=EmailResponse)
-async def send_custom_email(
-    email_data: EmailSend,
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Envía un email personalizado.
-    
-    Permite enviar emails con contenido personalizado o utilizando templates.
-    
-    Args:
-        email_data (EmailSend): Datos del email a enviar
-        current_user (dict): Usuario autenticado (requerido)
-        
-    Returns:
-        EmailResponse: Resultado del envío
-        
-    Raises:
-        HTTPException: Si hay error en el envío
-    """
-    try:
-        logger.info(f"Enviando email personalizado a {email_data.to} por usuario {current_user.get('email')}")
-        
-        response = await email_service.send_email(email_data)
-        
-        if not response.success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=response.message
-            )
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Error en send_custom_email: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al enviar email personalizado: {str(e)}"
-        )
 
 # ==================== ENDPOINTS DE AUTENTICACIÓN ====================
 
@@ -182,7 +65,7 @@ async def send_welcome_email(
     try:
         logger.info(f"Enviando email de bienvenida a {welcome_data.user_email}")
         
-        success = await email_service.send_welcome_email(
+        success = await send_welcome_email_func(
             user_email=welcome_data.user_email,
             user_name=welcome_data.user_name,
             verify_url=welcome_data.verify_url
@@ -225,7 +108,7 @@ async def send_verification_email(
     try:
         logger.info(f"Enviando email de verificación a {verification_data.user_email}")
         
-        success = await email_service.send_verification_email(
+        success = await send_verification_email_func(
             user_email=verification_data.user_email,
             user_name=verification_data.user_name,
             verification_token=verification_data.verification_token
@@ -268,7 +151,7 @@ async def send_password_reset_email(
     try:
         logger.info(f"Enviando email de reset de contraseña a {reset_data.user_email}")
         
-        success = await email_service.send_password_reset_email(
+        success = await send_password_reset_email_func(
             user_email=reset_data.user_email,
             user_name=reset_data.user_name,
             reset_token=reset_data.reset_token
@@ -317,12 +200,13 @@ async def get_email_config(
                 detail="Se requieren permisos de administrador"
             )
         
-        config_valid = email_service.validate_email_config()
+        config_status = get_email_config_status()
+        config_valid = validate_email_config()
         
         return {
             "service": "Resend",
-            "from_email": email_service.from_email,
-            "from_name": email_service.from_name,
+            "from_email": config_status.get("from_email"),
+            "from_name": config_status.get("from_name"),
             "config_valid": config_valid,
             "templates_available": [
                 "auth/welcome.html",
@@ -363,7 +247,7 @@ async def validate_email_config(
                 detail="Se requieren permisos de administrador"
             )
         
-        is_valid = email_service.validate_email_config()
+        is_valid = validate_email_config()
         
         if is_valid:
             return ResponseMessage(
@@ -417,7 +301,7 @@ async def get_email_stats(
         return {
             "service_status": "active",
             "provider": "Resend",
-            "config_valid": email_service.validate_email_config(),
+            "config_valid": validate_email_config(),
             "note": "Estadísticas detalladas disponibles en versión futura"
         }
         

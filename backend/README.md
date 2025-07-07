@@ -86,12 +86,10 @@ backend/
 ### Base de Datos
 - **PostgreSQL 15+** - Base de datos relacional dedicada
 - **SQLAlchemy 2.0+** - ORM con soporte async
-- **Alembic** - Migraciones de base de datos
-- **asyncpg** - Driver PostgreSQL asíncrono
 
 ### Autenticación y Seguridad
 - **JWT (PyJWT)** - Tokens de autenticación
-- **bcrypt** - Hashing de contraseñas
+- **argon2-cffi** - Hashing de contraseñas seguro
 - **python-multipart** - Manejo de formularios
 - **CORS** - Configuración de orígenes permitidos
 
@@ -183,13 +181,7 @@ DB_MAX_OVERFLOW=20
 REDIS_URL=redis://localhost:6379/0
 ```
 
-### 4. Ejecutar Migraciones
-```bash
-# Crear tablas en la base de datos dedicada
-alembic upgrade head
-```
-
-### 5. Iniciar Servidor de Desarrollo
+### 4. Iniciar Servidor de Desarrollo
 ```bash
 # Método recomendado (FastAPI CLI)
 fastapi dev app/main.py

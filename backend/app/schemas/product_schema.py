@@ -30,6 +30,7 @@ class ProductBase(BaseModel):
         id_linea (Decimal): Identificador de la línea.
         id_categoria (Decimal): Identificador de la categoría.
         num_stock (int): Cantidad de unidades disponibles en inventario.
+        usr_insert (Optional[Decimal]): Usuario que insertó el registro.
     """
     # id_producto: Optional[Decimal] = Field(None, description="Identificador único para el producto.") # Generalmente no se incluye en Create, se genera por la DB. Puede estar en el modelo de respuesta.
     nom_producto: str = Field(..., description="Nombre del producto.")
@@ -42,6 +43,11 @@ class ProductBase(BaseModel):
     id_linea: Decimal
     id_categoria: Decimal
     num_stock: int = Field(0, ge=0, description="Cantidad de unidades disponibles en inventario.")
+    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
+    fec_insert: Optional[datetime] = Field(None, description="Fecha y hora de la inserción del registro.")
+    ind_activo: Optional[bool] = Field(None, description="Indica si el producto está activo.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
+    fec_update: Optional[datetime] = Field(None, description="Fecha y hora de la última actualización del registro.")
     
     class Config:
         from_attributes = True
@@ -79,19 +85,23 @@ class ProductUpdate(BaseModel):
         id_categoria (Optional[Decimal]): Nuevo identificador de la categoría.
         id_producto (Optional[Decimal]): Nuevo identificador del producto.
         num_stock (Optional[int]): Nueva cantidad de unidades en inventario.
+        ind_activo (Optional[bool]): Nuevo estado de activo del producto.
+        usr_update (Optional[Decimal]): Usuario que actualizó el registro.
     """
     # Para las actualizaciones, a menudo todos los campos son opcionales
+    id_producto: Optional[Decimal] = None # Aunque generalmente no se actualiza, puede ser útil para identificar el producto
+    id_categoria: Optional[Decimal] = None
+    id_linea: Optional[Decimal] = None
+    id_sublinea: Optional[Decimal] = None
     nom_producto: Optional[str] = None
     spcf_producto: Optional[Dict[str, Any]] = None
     img_producto: Optional[str] = None
     val_precio: Optional[Decimal] = Field(None, gt=0)
     id_proveedor: Optional[Decimal] = None
     id_marca: Optional[Decimal] = None
-    id_sublinea: Optional[Decimal] = None
-    id_linea: Optional[Decimal] = None
-    id_categoria: Optional[Decimal] = None
     num_stock: Optional[int] = Field(None, ge=0)
-    # usr_update será gestionado por el backend
+    ind_activo: Optional[bool] = None # Para activar/desactivar el producto
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
 
 class Product(ProductBase): # Este será el modelo de respuesta principal
     """
@@ -111,9 +121,9 @@ class Product(ProductBase): # Este será el modelo de respuesta principal
     id_producto: Decimal # El ID principal del producto, generalmente se incluye en la respuesta
     
     # Incluir campos de auditoría en la respuesta si se desea
-    usr_insert: str
+    usr_insert: Decimal
     fec_insert: datetime
-    usr_update: Optional[str] = None
+    usr_update: Optional[Decimal] = None
     fec_update: Optional[datetime] = None
 
 # Esquema para mensajes de respuesta genéricos

@@ -17,27 +17,16 @@ def get_favorites(db:Session, id_usuario: Decimal):
     """
     
     try:
-        # Consulta directa a la tabla de favoritos, similar a como se hace en product_service
         query = text("""
-        SELECT 
-            id_usuario,
-            id_categoria_producto,
-            id_linea_producto,
-            id_sublinea_producto,
-            id_producto,
-            fecha_agregado
-        FROM tab_favoritos 
-        WHERE id_usuario = :id_usuario
+        SELECT * FROM fun_select_favoritos_usuario_con_detalles(:id_usuario)
         """) 
         result = db.execute(query, {'id_usuario': id_usuario})
-        # .mappings() convierte cada fila en un objeto tipo dict (RowMapping)
-        # FastAPI puede usar esto para poblar el modelo Pydantic Favorites
         return result.mappings().all()
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener favoritos: {str(e)}")
     
-def create_favorite(db:Session, favorite:FavoritesCreate):
+def create_favorite(db:Session, favorite:FavoritesCreate, usr_insert: Decimal):
     """
     Crea un nuevo favorito en la base de datos.
     
@@ -50,13 +39,15 @@ def create_favorite(db:Session, favorite:FavoritesCreate):
     """
     try:
         params = favorite.model_dump()
+        params["usr_insert"] = usr_insert
         query = text("""
         SELECT fun_insert_favorito(
             :id_usuario,
             :id_categoria_producto,
             :id_linea_producto,
             :id_sublinea_producto,
-            :id_producto
+            :id_producto,
+            :usr_insert
         )
         """)
         result = db.execute(query, params)

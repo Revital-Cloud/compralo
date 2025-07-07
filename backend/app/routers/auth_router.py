@@ -192,9 +192,9 @@ async def send_verification_email(
             expires_hours=24
         )
         
-        # Importar y usar el servicio de email
-        from services.email_service import email_service
-        success = await email_service.send_verification_email(
+        # Importar y usar la función de email
+        from services.email_service import send_verification_email
+        success = await send_verification_email(
             user_email=user.email_usuario,
             user_name=user.nom_usuario,
             verification_token=verification_token
@@ -279,74 +279,12 @@ async def verify_email_endpoint(
             detail="Error interno del servidor"
         )
 
-@router.post("/test/create-verification-token")
-async def create_test_verification_token(
-    user_id: int,
-    current_user: UserInToken = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    🧪 ENDPOINT TEMPORAL PARA TESTING
-    Crea un token de verificación para testing en Postman.
-    
-    ⚠️ REMOVER EN PRODUCCIÓN
-    
-    Args:
-        user_id (int): ID del usuario
-        current_user (UserInToken): Usuario autenticado
-        db (Session): Sesión de base de datos
-        
-    Returns:
-        dict: Token de verificación para testing
-    """
-    try:
-        # Solo permite crear token para su propia cuenta o si es admin
-        if current_user.id_usuario != user_id and current_user.id_rol != 1:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permisos para crear token para este usuario"
-            )
-        
-        # Obtener usuario de la BD
-        from services import user_service
-        user = user_service.get_user_by_id(db, user_id)
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Usuario no encontrado"
-            )
-        
-        # Crear token específico de verificación
-        from core.jwt_utils import create_verification_token
-        verification_token = create_verification_token(
-            user_id=user.id_usuario,
-            email=user.email_usuario,
-            expires_hours=24
-        )
-        
-        return {
-            "🧪": "TESTING ONLY - Remover en producción",
-            "verification_token": verification_token,
-            "user_id": user.id_usuario,
-            "email": user.email_usuario,
-            "expires_in_hours": 24,
-            "usage": "Usar este token en POST /auth/verify-email"
-        }
-        
-    except Exception as e:
-        logger.error(f"Error en create_test_verification_token: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error interno: {str(e)}"
-        )
-
 @router.post("/forgot-password", response_model=ResponseMessage)
 async def forgot_password(
     request: ResetPasswordRequest,
     db: Session = Depends(get_db)
 ):
     """
-    🔐 ENDPOINT DE PRODUCCIÓN
     Solicita reset de contraseña. Público (sin autenticación requerida).
     
     Args:
@@ -376,8 +314,8 @@ async def forgot_password(
             )
             
             # Enviar email de reset
-            from services.email_service import email_service
-            await email_service.send_password_reset_email(
+            from services.email_service import send_password_reset_email
+            await send_password_reset_email(
                 user_email=user.email_usuario,
                 user_name=user.nom_usuario,
                 reset_token=reset_token
@@ -408,7 +346,6 @@ async def reset_password(
     db: Session = Depends(get_db)
 ):
     """
-    🔐 ENDPOINT DE PRODUCCIÓN
     Confirma el reset de contraseña usando el token del email.
     
     Args:
@@ -449,10 +386,10 @@ async def reset_password(
         user_service.update_password(db, user_id, hashed_password)
         
         # Enviar email de confirmación
-        from services.email_service import email_service
+        from services.email_service import send_password_changed_email
         from fastapi import Request
         # request: Request = None  # Obtener IP para logs
-        await email_service.send_password_changed_email(
+        await send_password_changed_email(
             user_email=user.email_usuario,
             user_name=user.nom_usuario,
             ip_address=None  # request.client.host if request else None
