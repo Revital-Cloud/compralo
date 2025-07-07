@@ -7,7 +7,7 @@ Incluye esquemas para la creación, actualización y visualización de sublineas
 así como un esquema para mensajes de respuesta genéricos.
 """
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import Optional
 from decimal import Decimal
 class SublineBase(BaseModel):
     """
