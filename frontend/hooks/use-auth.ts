@@ -90,8 +90,26 @@ export function useAuth() {
     mutationFn: authService.register,
   });
 
+  const updateProfileMutation = useMutation({
+    mutationFn: (userData: UserUpdate) => {
+      if (!user?.id_usuario) {
+        throw new Error("User not authenticated");
+      }
+      return userService.updateUser(user.id_usuario, userData);
+    },
+    onSuccess: () => {
+      // Si la actualización es exitosa, invalidamos la query de 'user'
+      // para que React Query la vuelva a fetchear automáticamente.
+      queryClient.invalidateQueries({ queryKey: AUTH_KEYS.currentUser });
+    },
+  });
+
   const register = async (userData: RegisterRequest) => {
     await registerMutation.mutateAsync(userData);
+  };
+
+  const updateProfile = async (userData: UserUpdate) => {
+    await updateProfileMutation.mutateAsync(userData);
   };
 
   return {
@@ -104,6 +122,7 @@ export function useAuth() {
     login,
     logout,
     register,
+    updateProfile,
   };
 }
 

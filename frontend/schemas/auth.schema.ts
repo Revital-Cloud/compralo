@@ -23,3 +23,12 @@ export const registerSchema = z.object({
   des_direccion: z.string().optional(),
   fec_nacimiento: z.string().optional(),
 }); 
+
+export const changePasswordSchema = z.object({
+  current_password: z.string().min(1, {
+    message: "La contraseña actual es requerida.",
+  }),
+  new_password: z.string().min(8, {
+    message: "La nueva contraseña debe tener al menos 8 caracteres.",
+  }),
+}).required(); 
