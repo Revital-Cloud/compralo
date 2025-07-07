@@ -30,3 +30,30 @@ class PointsPerUserBase(BaseModel):
 
     class Config:
         from_attributes = True
+
+class PointsPerUserCreate(PointsPerUserBase):
+    """
+    Esquema para la Creación de Puntos por Usuario.
+    """
+    usr_insert: Decimal = Field(..., description="Identificador del usuario que insertó el registro.")
+
+class PointsPerUserUpdate(BaseModel):
+    """
+    Esquema para la Actualización de Puntos por Usuario.
+    """
+    puntos_disponibles: Optional[int] = Field(None, description="Puntos disponibles.")
+    puntos_totales_ganados: Optional[int] = Field(None, description="Puntos totales ganados.")
+    puntos_totales_canjeados: Optional[int] = Field(None, description="Puntos totales canjeados.")
+    usr_update: Optional[Decimal] = Field(None, description="Identificador del usuario que actualizó el registro.")
+
+class PointsPerUser(PointsPerUserBase):
+    """
+    Esquema para la Visualización de Puntos por Usuario.
+    """
+    pass
+
+class ResponseMessage(BaseModel):
+    """
+    Esquema para Mensajes de Respuesta.
+    """
+    message: str = Field(..., description="Mensaje de respuesta.")

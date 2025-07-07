@@ -47,10 +47,13 @@ async def get_category(id_categoria: Decimal, db: Session = Depends(get_db)):
     Returns:
         Category: Detalles de la categoría solicitada.
     """
-    category = category_service.get_category(db, id_categoria)
-    if not category:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Categoría no encontrada")
-    return category
+    try:
+        category = category_service.get_category(db, id_categoria)
+        if not category:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Categoría no encontrada")
+        return category
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # Ruta para crear una nueva categoría

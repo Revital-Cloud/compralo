@@ -69,7 +69,6 @@ def get_user(db: Session, id_usuario: Decimal):
             ape_usuario,
             email_usuario,
             password_usuario,
-            des_direccion,
             id_rol,
             ind_genero,
             cel_usuario,
