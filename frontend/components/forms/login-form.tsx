@@ -17,7 +17,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useState } from "react"
-import { useLogin } from "@/hooks/use-auth"
+import { useAuth } from "@/hooks/use-auth"
 import type { LoginRequest } from "@/types"
 
 // Schema de validación con Zod
@@ -41,7 +41,7 @@ export function LoginForm({
   const [showPassword, setShowPassword] = useState(false);
 
   // Hook de autenticación
-  const { mutate: login, isPending } = useLogin();
+  const { login, isLoggingIn } = useAuth();
 
   // Configurar React Hook Form
   const {
@@ -121,7 +121,7 @@ export function LoginForm({
                     placeholder="correo@ejemplo.com"
                     {...register("email")}
                     className={errors.email ? "border-red-500" : ""}
-                    disabled={isPending}
+                    disabled={isLoggingIn}
                   />
                   {errors.email && (
                     <p className="text-sm text-red-500">{errors.email.message}</p>
@@ -146,7 +146,7 @@ export function LoginForm({
                       placeholder="Ingresa tu contraseña"
                       {...register("password")}
                       className={errors.password ? "border-red-500 pr-10" : "pr-10"}
-                      disabled={isPending}
+                      disabled={isLoggingIn}
                     />
                     <Button
                       type="button"
@@ -154,7 +154,7 @@ export function LoginForm({
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
-                      disabled={isPending}
+                      disabled={isLoggingIn}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -169,8 +169,8 @@ export function LoginForm({
                 </div>
 
                 {/* Botón Submit */}
-                <Button type="submit" className="w-full" disabled={isPending}>
-                  {isPending ? (
+                <Button type="submit" className="w-full" disabled={isLoggingIn}>
+                  {isLoggingIn ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Iniciando sesión...

@@ -1,11 +1,178 @@
-import React from 'react'
+"use client";
 
-const profilePage = () => {
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useAuth } from "@/hooks/use-auth";
+import { profileSchema } from "@/schemas/user.schema";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  CreditCard, 
+  Heart, 
+  MapPin, 
+  Package, 
+  Settings, 
+  User 
+} from "lucide-react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import {
+  ProfileHeader,
+  ProfileTab,
+  OrdersTab,
+  AddressesTab,
+  PaymentTab,
+  WishlistTab,
+  SettingsTab
+} from "@/components/layout/shop/profile";
+
+export default function ProfilePage() {
+  const { user, isAuthenticated, updateProfile, isLoadingUser } = useAuth();
+  const router = useRouter();
+  const [isEditing, setIsEditing] = useState(false);
+
+  const form = useForm<z.infer<typeof profileSchema>>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      nom_usuario: "",
+      ape_usuario: "",
+      email_usuario: "",
+      cel_usuario: "",
+      des_direccion: "",
+      fec_nacimiento: "",
+      password_usuario: "",
+    },
+  });
+
+  useEffect(() => {
+    if (isLoadingUser) return;
+    if (!isAuthenticated) {
+      router.push("/login");
+    } else if (user) {
+      form.reset({
+        nom_usuario: user.nom_usuario || "",
+        ape_usuario: user.ape_usuario || "",
+        email_usuario: user.email_usuario || "",
+        cel_usuario: user.cel_usuario || "",
+        des_direccion: user.des_direccion || "",
+        fec_nacimiento: user.fec_nacimiento ? new Date(user.fec_nacimiento).toISOString().split('T')[0] : "",
+        password_usuario: "",
+      });
+    }
+  }, [isAuthenticated, isLoadingUser, user, router, form]);
+
+  const onSubmit = async (values: z.infer<typeof profileSchema>) => {
+    const updatedValues = Object.fromEntries(
+      Object.entries(values).filter(([_, value]) => value !== "" && value !== null)
+    );
+
+    if (Object.keys(updatedValues).length === 0) {
+      toast.info("No hay cambios para guardar.");
+      return;
+    }
+
+    try {
+      await updateProfile(updatedValues);
+      toast.success("¡Perfil actualizado con éxito!");
+      setIsEditing(false);
+    } catch (error) {
+      toast.error("No se pudo actualizar el perfil. Inténtalo de nuevo.");
+    }
+  };
+
+  const handleEditToggle = async () => {
+    if (isEditing) {
+      // Si está editando, ejecutar la validación y guardar
+      const isValid = await form.trigger();
+      if (isValid) {
+        form.handleSubmit(onSubmit)();
+      }
+    } else {
+      // Si no está editando, activar modo edición
+      setIsEditing(true);
+    }
+  };
+
+  if (isLoadingUser || !isAuthenticated || !user) {
+    return <div className="min-h-screen bg-background flex items-center justify-center">Cargando...</div>;
+  }
+
   return (
-    <div>
-        <h1>Profile</h1>
-    </div>
-  )
-}
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <ProfileHeader 
+        user={user}
+        isEditing={isEditing}
+        onEditToggle={handleEditToggle}
+      />
 
-export default profilePage
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Tabs defaultValue="profile" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-6">
+            <TabsTrigger value="profile" className="flex items-center space-x-2">
+              <User className="w-4 h-4" />
+              <span className="hidden sm:inline">Perfil</span>
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="flex items-center space-x-2">
+              <Package className="w-4 h-4" />
+              <span className="hidden sm:inline">Órdenes</span>
+            </TabsTrigger>
+            <TabsTrigger value="addresses" className="flex items-center space-x-2">
+              <MapPin className="w-4 h-4" />
+              <span className="hidden sm:inline">Direcciones</span>
+            </TabsTrigger>
+            <TabsTrigger value="payment" className="flex items-center space-x-2">
+              <CreditCard className="w-4 h-4" />
+              <span className="hidden sm:inline">Pagos</span>
+            </TabsTrigger>
+            <TabsTrigger value="wishlist" className="flex items-center space-x-2">
+              <Heart className="w-4 h-4" />
+              <span className="hidden sm:inline">Favoritos</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center space-x-2">
+              <Settings className="w-4 h-4" />
+              <span className="hidden sm:inline">Configuración</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Profile Tab */}
+          <TabsContent value="profile">
+            <ProfileTab 
+              user={user}
+              form={form}
+              isEditing={isEditing}
+              onSubmit={onSubmit}
+            />
+          </TabsContent>
+
+          {/* Orders Tab */}
+          <TabsContent value="orders">
+            <OrdersTab />
+          </TabsContent>
+
+          {/* Addresses Tab */}
+          <TabsContent value="addresses">
+            <AddressesTab />
+          </TabsContent>
+
+          {/* Payment Tab */}
+          <TabsContent value="payment">
+            <PaymentTab />
+          </TabsContent>
+
+          {/* Wishlist Tab */}
+          <TabsContent value="wishlist">
+            <WishlistTab />
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings">
+            <SettingsTab />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}

@@ -14,7 +14,6 @@ from schemas.auth_schema import UserInToken
 from services import user_service
 from core.jwt_utils import get_password_hash, create_verification_token
 from services.email_service import send_welcome_email, send_verification_email
-from typing import Optional
 
 router = APIRouter(tags=["Usuarios"])
 
@@ -72,14 +71,6 @@ async def get_users(db: Session = Depends(get_db)):
     """
     users = user_service.get_users(db)
     return users
-
-@router.get("/users/{id_usuario}", response_model=User)
-async def get_user(id_usuario: Decimal, db: Session = Depends(get_db)):
-    
-    user = user_service.get_user(db, id_usuario)
-    if user is None:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    return user
 
 @router.post("/users", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_users(

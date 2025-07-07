@@ -260,7 +260,7 @@ export function useUpdateStock() {
           if (!old) return old;
           return {
             ...old,
-            stock_actual: stockData.nuevo_stock,
+            stock_actual: stockData.num_stock,
           };
         }
       );

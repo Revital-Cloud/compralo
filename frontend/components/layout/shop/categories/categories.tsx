@@ -5,7 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "next-themes";
-import { categories, type Category } from "./mockData";
+
+interface Category {
+  id: string;
+  name: string;
+  image: string;
+  productCount?: number;
+  featured?: boolean;
+}
+
+const categories: Category[] = [];
 
 const CategoriesSection = () => {
   const { theme } = useTheme();

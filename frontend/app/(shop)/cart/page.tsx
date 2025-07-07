@@ -8,13 +8,51 @@ import CartItem from '@/components/cart/cart-item'
 import { ProductCard } from '@/components/product/product-card'
 import { Badge } from '@/components/ui/badge'
 import { X, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react'
-import { 
-  mockCartItems as initialCartItems, 
-  mockRecommendedProducts, 
-  cartTexts, 
-  calculateCartTotals,
-  type CartItem as CartItemType
-} from '@/mockData'
+
+interface CartItemType {
+  id: string;
+  name: string;
+  brand: string;
+  color: string;
+  size: string;
+  price: number;
+  originalPrice?: number;
+  quantity: number;
+  image: string;
+  isFavorite?: boolean;
+}
+
+const initialCartItems: CartItemType[] = []
+const mockRecommendedProducts: any[] = []
+const cartTexts = {
+  es: {
+    title: 'Cesta de la compra',
+    subtitle: 'Revisa y gestiona los artículos de tu cesta.',
+    signInText: '¿Ya tienes una cuenta? Inicia sesión para una experiencia más rápida.',
+    yourBag: 'Tu Cesta',
+    bagSubtitle: 'Los artículos en tu cesta no están reservados.',
+    emptyCartTitle: 'Tu cesta está vacía',
+    emptyCartSubtitle: 'Parece que aún no has añadido nada.',
+    youMayAlsoLike: 'También te puede gustar',
+    orderSummary: 'Resumen del Pedido',
+    delivery: 'Envío',
+    salesTax: 'Impuestos',
+    total: 'Total',
+    checkout: 'Pagar',
+    promoCode: '¿Tienes un código promocional?',
+    size: 'Talla:',
+    quantity: 'Cantidad:'
+  }
+}
+
+const calculateCartTotals = (items: CartItemType[]) => {
+  const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0)
+  const shipping = subtotal > 50 || subtotal === 0 ? 0 : 10
+  const salesTax = subtotal * 0.08
+  const total = subtotal + shipping + salesTax
+  const itemCount = items.reduce((acc, item) => acc + item.quantity, 0)
+  return { subtotal, shipping, salesTax, total, itemCount }
+}
 
 const CartPage = () => {
   const [cartItems, setCartItems] = useState<CartItemType[]>(initialCartItems)
