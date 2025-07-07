@@ -1,8 +1,8 @@
 "use client";
 
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -14,22 +14,35 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
-import { registerSchema } from "@/schemas/auth.schema";
+import { useState } from "react";
+import { ArrowLeft, Eye, EyeOff, Loader2, CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import Link from "next/link";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { toast } from "sonner";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useRouter } from "next/navigation";
+import { registerSchema } from "@/schemas/auth.schema";
+import type { RegisterRequest } from "@/types";
+
+type FormValues = z.infer<typeof registerSchema>;
 
 export function RegisterForm() {
   const { register: registerUser } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
-  const form = useForm<z.infer<typeof registerSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       id_usuario: "",
@@ -39,179 +52,282 @@ export function RegisterForm() {
       password_usuario: "",
       cel_usuario: "",
       des_direccion: "",
+      ind_genero: "masculino",
       fec_nacimiento: "",
     },
+    mode: "onChange",
   });
 
-  const onSubmit = async (values: z.infer<typeof registerSchema>) => {
+  const onSubmit = async (values: FormValues) => {
     try {
-      // Correcciones según feedback:
-      // 1. `ind_genero` es `true` para femenino y `false` para masculino.
-      
-      // El backend espera un valor booleano para el género (true para femenino).
-      // Esta línea transforma el string del formulario ('femenino', 'masculino', 'otro')
-      // en el booleano correspondiente que la API necesita.
-      const dataToSubmit = {
+      setIsLoading(true);
+      const dataToSubmit: RegisterRequest = {
         ...values,
-        ind_genero: values.ind_genero === "femenino",
+        ind_genero: values.ind_genero === "masculino" ? false : true,
       };
-      
       await registerUser(dataToSubmit);
-      toast.success("¡Cuenta creada!", {
-        description: "Hemos creado tu cuenta exitosamente. Serás redirigido.",
-      });
-      
-      // Redirigir al inicio después de un breve retraso para que el toast sea visible
-      setTimeout(() => {
-        router.push('/');
-      }, 1000);
-
-    } catch (error) {
-      toast.error("Error en el registro", {
-        description: "No se pudo crear la cuenta. Por favor, revisa los datos.",
-      });
+      router.push("/login");
+    } catch (error: any) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="id_usuario"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Identificación (Cédula)</FormLabel>
-              <FormControl>
-                <Input placeholder="Tu número de identificación" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="nom_usuario"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nombre</FormLabel>
-                <FormControl>
-                  <Input placeholder="John" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="ape_usuario"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Apellido</FormLabel>
-                <FormControl>
-                  <Input placeholder="Doe" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <FormField
-          control={form.control}
-          name="email_usuario"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="john.doe@example.com" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="password_usuario"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Contraseña</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="••••••••" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="cel_usuario"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Celular</FormLabel>
-                <FormControl>
-                  <Input placeholder="987654321" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="ind_genero"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Género</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona tu género" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="masculino">Masculino</SelectItem>
-                    <SelectItem value="femenino">Femenino</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        <FormField
-          control={form.control}
-          name="des_direccion"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Dirección (Opcional)</FormLabel>
-              <FormControl>
-                <Input placeholder="Av. Siempre Viva 123" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="fec_nacimiento"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Fecha de Nacimiento (Opcional)</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" className="w-full">
-          Crear cuenta
-        </Button>
-      </form>
-    </Form>
+    <div className="flex flex-col gap-6">
+      <Card>
+        <CardHeader className="text-center">
+          <div className="flex justify-start mb-4">
+            <Link href="/login">
+              <Button variant="ghost" size="sm" className="flex items-center gap-2 cursor-pointer">
+                <ArrowLeft className="size-4" />
+                Volver
+              </Button>
+            </Link>
+          </div>
+          <CardTitle className="text-xl">Crear cuenta</CardTitle>
+          <CardDescription>
+            Regístrate para comenzar a comprar en nuestra tienda
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="id_usuario"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Identificación (Cédula)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Tu número de identificación"
+                        {...field}
+                        disabled={isLoading}
+                        type="number"
+                      />
+                    </FormControl>
+                    <FormMessage  />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="nom_usuario"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John" {...field} disabled={isLoading} type="text"/>
+                      </FormControl>
+                      <FormMessage className="min-h-[1.25rem]" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="ape_usuario"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Apellido</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Doe" {...field} disabled={isLoading} type="text"/>
+                      </FormControl>
+                      <FormMessage className="min-h-[1.25rem]" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="email_usuario"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="john.doe@example.com"
+                        {...field}
+                        type="email"
+                        disabled={isLoading}
+                      />
+                    </FormControl>
+                    <FormMessage className="min-h-[1.25rem]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password_usuario"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contraseña</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          onClick={() => setShowPassword(!showPassword)}
+                          disabled={isLoading}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage className="min-h-[1.25rem]" />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="cel_usuario"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Teléfono</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="+57 300 123 4567"
+                          {...field}
+                          disabled={isLoading}
+                          type="number"
+                        />
+                      </FormControl>
+                      <FormMessage className="min-h-[1.25rem]" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="ind_genero"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Género</FormLabel>
+                      <Select
+                        disabled={isLoading}
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="bg-background">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="masculino">Masculino</SelectItem>
+                          <SelectItem value="femenino">Femenino</SelectItem>
+                          <SelectItem value="otro">Otro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="min-h-[1.25rem]" />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="des_direccion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Dirección (Opcional)</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Av. Siempre Viva 123"
+                        {...field}
+                        disabled={isLoading}
+                        type="text"
+                      />
+                    </FormControl>
+                    <FormMessage className="min-h-[1.25rem]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fec_nacimiento"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fecha de nacimiento (Opcional)</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                            disabled={isLoading}
+                          >
+                            {field.value ? (
+                              format(new Date(field.value), "PPP", { locale: es })
+                            ) : (
+                              <span>Selecciona una fecha</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={(date) => {
+                            field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
+                          }}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                          locale={es}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage className="min-h-[1.25rem]" />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full mt-6" disabled={isLoading}>
+                {isLoading && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Crear cuenta
+              </Button>
+              <div className="text-center text-sm">
+                ¿Ya tienes una cuenta?{" "}
+                <Link href="/login" className="underline underline-offset-4">
+                  Inicia sesión
+                </Link>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+      <div className="text-muted-foreground text-center text-xs text-balance">
+        Al hacer clic en continuar, aceptas nuestros{" "}
+        <Link href="#" className="underline underline-offset-4 hover:text-primary">
+          Términos de Servicio
+        </Link>{" "}
+        y{" "}
+        <Link href="#" className="underline underline-offset-4 hover:text-primary">
+          Política de Privacidad
+        </Link>
+        .
+      </div>
+    </div>
   );
 }
