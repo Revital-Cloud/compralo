@@ -27,31 +27,6 @@ def get_user_discounts(db:Session):
         db.rollback()
         raise Exception(f"Error al obtener descuentos por usuario: {str(e)}")
 
-def register_discount_use(db:Session, register_discount_use_request:UserDiscounts, usr_insert: Decimal):
-    """
-    Registra el uso de un descuento por un usuario.
-
-    Utiliza la función de base de datos `fun_registrar_uso_descuento` para registrar
-    el uso de un descuento por un usuario. Los datos para la registro se toman
-    del esquema `UserDiscounts`.
-    """
-    try:
-        params = register_discount_use_request.model_dump()
-        params["usr_insert"] = usr_insert
-        query = text("""
-        SELECT fun_registrar_uso_descuento(
-            :id_descuento,
-            :id_usuario,
-            :usr_insert
-        )
-        """)
-        result = db.execute(query, params)
-        fetched_result = result.fetchone()
-        db.commit()
-        return fetched_result[0] if fetched_result else None
-    except Exception as e:
-        db.rollback()
-        raise Exception(f"Error al registrar uso de descuento: {str(e)}")
 
 def validate_discount(db:Session, validate_discount_request:ValidateDiscountRequest, usr_insert: Decimal):
     """

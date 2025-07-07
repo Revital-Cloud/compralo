@@ -5,6 +5,7 @@ Define las rutas y endpoints relacionados con la gestión de descuentos por usua
 incluyendo la visualización, validación y registro de descuentos por usuario.
 """
 from decimal import Decimal
+from backend.app.schemas.auth_schema import UserInToken
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
@@ -34,7 +35,8 @@ async def get_user_discounts(db:Session = Depends(get_db)):
 @router.post("/discounts/validate", response_model=ValidateDiscountResponse)
 async def validate_discount(
     payload: ValidateDiscountRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Valida si un descuento es aplicable para un usuario según las reglas configuradas.
@@ -51,7 +53,6 @@ async def validate_discount(
             }
         )
         aplicable = result.scalar()
-        mensaje = "Descuento aplicable" if aplicable else "El descuento no es aplicable según las restricciones configuradas."
-        return ValidateDiscountResponse(aplicable=aplicable, mensaje=mensaje)
+        return ResponseMessage(message="Descuento aplicable" if aplicable else "El descuento no es aplicable según las restricciones configuradas.")
     except Exception as e:
-        return ValidateDiscountResponse(aplicable=False, mensaje=f"Error al validar descuento: {str(e)}")
+        return ResponseMessage(message=f"Error al validar descuento: {str(e)}")

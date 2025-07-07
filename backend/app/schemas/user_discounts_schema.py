@@ -49,4 +49,5 @@ class ValidateDiscountResponse(BaseModel):
     mensaje: str = Field(..., description="Mensaje descriptivo del resultado de la validación")
 
 
-    
+class ResponseMessage(BaseModel):
+    message: str = Field(..., description="Mensaje descriptivo del resultado de la operación")
