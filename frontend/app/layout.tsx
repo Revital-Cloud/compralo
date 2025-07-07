@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/providers/theme-provider"
 import { AuthProvider } from "@/providers/auth-provider"
 import { cn } from "@/lib/utils";
+import { RefreshTokenProvider } from "@/components/providers/refresh-token-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,8 +43,10 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
-            <Toaster richColors />
+            <RefreshTokenProvider>
+              {children}
+              <Toaster richColors />
+            </RefreshTokenProvider>
           </ThemeProvider>
         </AuthProvider>
       </body>

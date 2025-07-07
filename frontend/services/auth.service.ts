@@ -58,13 +58,20 @@ export async function refreshToken(): Promise<TokenResponse> {
     throw new Error('No refresh token available');
   }
 
-  const tokens = await post<TokenResponse>('/auth/refresh', {
+  const tokens = await post<TokenResponse>('/refresh', {
     refresh_token: refreshTokenValue
   } as RefreshTokenRequest);
   
   storeTokens(tokens.access_token, tokens.refresh_token);
   
   return tokens;
+}
+
+/**
+ * Verificar si el token actual es válido
+ */
+export async function verifyToken(): Promise<{ valid: boolean; user_id?: number; email?: string }> {
+  return await get<{ valid: boolean; user_id?: number; email?: string }>('/verify-token');
 }
 
 /**
@@ -109,6 +116,7 @@ const authService = {
   changePassword,
   requestPasswordReset,
   confirmPasswordReset,
+  verifyToken,
 };
 
 export default authService; 
