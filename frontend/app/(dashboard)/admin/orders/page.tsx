@@ -19,96 +19,31 @@ import Link from "next/link"
 import { ExportDialog } from "@/components/excel"
 import { toast } from "sonner"
 
+interface Order {
+  id: string;
+  customer: {
+    name: string;
+    email: string;
+    avatar: string;
+  };
+  product: string;
+  date: string;
+  status: "delivered" | "canceled" | "pending" | "processing" | "shipped";
+  amount: number;
+  items: number;
+}
+
 // Mock data para órdenes
-const ordersData = [
-  {
-    id: "#2456",
-    customer: {
-      name: "Carlos Mendoza",
-      email: "carlos@ejemplo.com",
-      avatar: "/avatars/carlos.jpg"
-    },
-    product: "Adidas Ultra boost",
-    date: "8 Ene, 2024",
-    status: "delivered",
-    amount: 200.00,
-    items: 1
-  },
-  {
-    id: "#2455",
-    customer: {
-      name: "María González",
-      email: "maria@ejemplo.com",
-      avatar: "/avatars/maria.jpg"
-    },
-    product: "Adidas Ultra boost",
-    date: "7 Ene, 2024",
-    status: "canceled",
-    amount: 200.00,
-    items: 2
-  },
-  {
-    id: "#2454",
-    customer: {
-      name: "Luis Rodríguez",
-      email: "luis@ejemplo.com",
-      avatar: "/avatars/luis.jpg"
-    },
-    product: "Adidas Ultra boost",
-    date: "6 Ene, 2024",
-    status: "delivered",
-    amount: 200.00,
-    items: 1
-  },
-  {
-    id: "#2453",
-    customer: {
-      name: "Ana Martínez",
-      email: "ana@ejemplo.com",
-      avatar: "/avatars/ana.jpg"
-    },
-    product: "Adidas Ultra boost",
-    date: "5 Ene, 2024",
-    status: "canceled",
-    amount: 200.00,
-    items: 3
-  },
-  {
-    id: "#2452",
-    customer: {
-      name: "Diego López",
-      email: "diego@ejemplo.com",
-      avatar: "/avatars/diego.jpg"
-    },
-    product: "Adidas Ultra boost",
-    date: "4 Ene, 2024",
-    status: "delivered",
-    amount: 200.00,
-    items: 1
-  },
-  {
-    id: "#2451",
-    customer: {
-      name: "Laura Fernández",
-      email: "laura@ejemplo.com",
-      avatar: "/avatars/laura.jpg"
-    },
-    product: "Adidas Ultra boost",
-    date: "3 Ene, 2024",
-    status: "pending",
-    amount: 200.00,
-    items: 2
-  }
-]
+const ordersData: Order[] = []
 
 // Estadísticas de órdenes
 const orderStats = {
-  total: 1256,
-  pending: 89,
-  processing: 156,
-  shipped: 234,
-  delivered: 698,
-  canceled: 79
+  total: 0,
+  pending: 0,
+  processing: 0,
+  shipped: 0,
+  delivered: 0,
+  canceled: 0
 }
 
 const getStatusBadge = (status: string) => {
@@ -146,14 +81,8 @@ const getStatusIcon = (status: string) => {
 }
 
 const OrdersPage = () => {
-  const handleExport = async (options: any) => {
-    try {
-      // Simular exportación
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success(`¡Órdenes exportadas exitosamente en formato ${options.format}!`);
-    } catch (error) {
-      toast.error('Error al exportar las órdenes');
-    }
+  const handleExportComplete = (filename: string) => {
+    toast.success(`¡Órdenes exportadas exitosamente en ${filename}!`);
   };
 
   return (
@@ -167,17 +96,14 @@ const OrdersPage = () => {
           </p>
         </div>
         <ExportDialog
-          title="Exportar Órdenes"
-          description="Descarga los datos de órdenes en Excel o CSV"
-          defaultFilename="ordenes"
-          onExport={handleExport}
-          trigger={
-            <Button>
-              <IconDownload className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
-          }
-        />
+          defaultDataTypes={['orders']}
+          onExportComplete={handleExportComplete}
+        >
+          <Button>
+            <IconDownload className="h-4 w-4 mr-2" />
+            Exportar
+          </Button>
+        </ExportDialog>
       </div>
 
       {/* Estadísticas */}
@@ -369,7 +295,7 @@ const OrdersPage = () => {
       {/* Paginación */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Mostrando 1-6 de {orderStats.total} órdenes
+          Mostrando {ordersData.length} de {orderStats.total} órdenes
         </p>
         <div className="flex items-center space-x-2">
           <Button variant="outline" size="sm" disabled>

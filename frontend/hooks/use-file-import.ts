@@ -161,12 +161,12 @@ export const useFileImport = (options: UseFileImportOptions = {}) => {
   /**
    * Descarga template de ejemplo
    */
-  const downloadTemplate = useCallback((
+  const downloadTemplate = useCallback(async (
     format: 'csv' | 'excel' = 'excel',
     templateType: 'products' | 'users' = 'products'
   ) => {
     try {
-      excelService.downloadTemplate(format, templateType);
+      await excelService.downloadTemplate(format, templateType);
       toast.success(`Template ${format.toUpperCase()} descargado`);
     } catch (error) {
       toast.error('Error al descargar template');

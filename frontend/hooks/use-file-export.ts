@@ -58,25 +58,25 @@ export const useFileExport = (options: UseFileExportOptions = {}) => {
         if (data.dataTypes.includes('products')) {
           updateProgress(30);
           // Simular datos de productos
-          exportData.products = generateMockProductData();
+          exportData.products = [];
         }
 
         if (data.dataTypes.includes('orders')) {
           updateProgress(50);
           // Simular datos de pedidos
-          exportData.orders = generateMockOrderData();
+          exportData.orders = [];
         }
 
         if (data.dataTypes.includes('users')) {
           updateProgress(70);
           // Simular datos de usuarios
-          exportData.users = generateMockUserData();
+          exportData.users = [];
         }
 
         if (data.dataTypes.includes('analytics')) {
           updateProgress(80);
           // Simular datos de analytics
-          exportData.analytics = generateMockAnalyticsData();
+          exportData.analytics = [];
         }
 
         updateProgress(90);
@@ -89,7 +89,7 @@ export const useFileExport = (options: UseFileExportOptions = {}) => {
         };
 
         if (data.format === 'excel' || data.format === 'both') {
-          excelService.exportToExcel(exportData, exportOptions);
+          await excelService.exportToExcel(exportData, exportOptions);
         }
 
         if (data.format === 'csv') {
@@ -249,101 +249,6 @@ export const useFileExport = (options: UseFileExportOptions = {}) => {
     downloadTemplate: excelService.downloadTemplate
   };
 };
-
-// Funciones de utilidad para generar datos mock
-function generateMockProductData(): ProductExportData[] {
-  return [
-    {
-      id: '1',
-      name: 'Producto de Ejemplo 1',
-      price: 29.99,
-      stock: 100,
-      category: 'Electrónicos',
-      brand: 'Marca A',
-      createdAt: '2024-01-15',
-      updatedAt: '2024-01-20'
-    },
-    {
-      id: '2',
-      name: 'Producto de Ejemplo 2',
-      price: 49.99,
-      stock: 75,
-      category: 'Ropa',
-      brand: 'Marca B',
-      createdAt: '2024-01-16',
-      updatedAt: '2024-01-21'
-    }
-  ];
-}
-
-function generateMockOrderData(): OrderExportData[] {
-  return [
-    {
-      id: '1001',
-      customerName: 'Juan Pérez',
-      customerEmail: 'juan@ejemplo.com',
-      total: 89.97,
-      status: 'Completado',
-      items: 3,
-      createdAt: '2024-01-20',
-      shippingAddress: 'Calle 123, Ciudad'
-    },
-    {
-      id: '1002',
-      customerName: 'María García',
-      customerEmail: 'maria@ejemplo.com',
-      total: 129.99,
-      status: 'En proceso',
-      items: 2,
-      createdAt: '2024-01-21',
-      shippingAddress: 'Avenida 456, Ciudad'
-    }
-  ];
-}
-
-function generateMockUserData(): UserExportData[] {
-  return [
-    {
-      id: '1',
-      name: 'Admin Usuario',
-      email: 'admin@tienda.com',
-      role: 'Administrador',
-      status: 'Activo',
-      createdAt: '2024-01-01',
-      lastLogin: '2024-01-21'
-    },
-    {
-      id: '2',
-      name: 'Cliente Usuario',
-      email: 'cliente@email.com',
-      role: 'Cliente',
-      status: 'Activo',
-      createdAt: '2024-01-15',
-      lastLogin: '2024-01-20'
-    }
-  ];
-}
-
-function generateMockAnalyticsData(): AnalyticsExportData[] {
-  return [
-    {
-      date: '2024-01-20',
-      sales: 15,
-      orders: 12,
-      customers: 8,
-      revenue: 1289.50,
-      topProducts: ['Producto A', 'Producto B']
-    },
-    {
-      date: '2024-01-21',
-      sales: 22,
-      orders: 18,
-      customers: 14,
-      revenue: 1876.25,
-      topProducts: ['Producto C', 'Producto A']
-    }
-  ];
-}
 
 function calculateDataCount(data: DashboardExportData): number {
   let count = 0;

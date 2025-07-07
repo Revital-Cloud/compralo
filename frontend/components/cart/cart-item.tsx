@@ -2,7 +2,6 @@ import React from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Heart, Trash2, Minus, Plus } from 'lucide-react'
-import { cartTexts } from '@/mockData'
 
 interface CartItemProps {
   id: string
@@ -35,7 +34,10 @@ const CartItem: React.FC<CartItemProps> = ({
   onToggleFavorite,
   isFavorite = false
 }) => {
-  const texts = cartTexts.es
+  const texts = {
+    size: 'Talla:',
+    quantity: 'Cantidad:'
+  }
 
   const handleQuantityChange = (newQuantity: number) => {
     if (newQuantity >= 1) {

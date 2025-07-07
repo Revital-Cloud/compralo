@@ -22,65 +22,75 @@ import {
 import Link from "next/link"
 
 // Mock data para la orden específica
-const orderDetails = {
-  id: "#6743",
-  status: "Pendiente",
-  dateRange: "16 Feb, 2024 - 20 Feb, 2024",
+interface OrderDetails {
+  id: string;
+  status: string;
+  dateRange: string;
   customer: {
-    fullName: "Carmen López",
-    email: "carmen.lopez@ejemplo.com",
-    phone: "+54 11 2345-6789"
+    fullName: string;
+    email: string;
+    phone: string;
+  };
+  orderInfo: {
+    shipping: string;
+    paymentMethod: string;
+    status: string;
+  };
+  deliverTo: {
+    address: string;
+    details: string;
+    blocks: number;
+  };
+  paymentInfo: {
+    card: string;
+    businessName: string;
+    phone: string;
+  };
+  products: {
+    id: string;
+    name: string;
+    image: string;
+    quantity: number;
+    total: number;
+  }[];
+  summary: {
+    subtotal: number;
+    tax: number;
+    discount: number;
+    total: number;
+  };
+}
+
+const orderDetails: OrderDetails = {
+  id: "",
+  status: "",
+  dateRange: "",
+  customer: {
+    fullName: "",
+    email: "",
+    phone: ""
   },
   orderInfo: {
-    shipping: "Envío Express",
-    paymentMethod: "Mercado Pago",
-    status: "Pendiente"
+    shipping: "",
+    paymentMethod: "",
+    status: ""
   },
   deliverTo: {
-    address: "Buenos Aires, Argentina",
-    details: "Av. Corrientes 1234, CABA",
-    blocks: 5
+    address: "",
+    details: "",
+    blocks: 0
   },
   paymentInfo: {
-    card: "Visa •••• •••• 4557",
-    businessName: "Carmen López",
-    phone: "+54 11 2345-6789"
+    card: "",
+    businessName: "",
+    phone: ""
   },
-  products: [
-    {
-      id: "#25421",
-      name: "Adidas ultra boost",
-      image: "/products/adidas-1.jpg",
-      quantity: 2,
-      total: 800.40
-    },
-    {
-      id: "#25421", 
-      name: "Adidas ultra boost",
-      image: "/products/adidas-2.jpg",
-      quantity: 2,
-      total: 800.40
-    },
-    {
-      id: "#25421",
-      name: "Adidas ultra boost", 
-      image: "/products/adidas-3.jpg",
-      quantity: 2,
-      total: 800.40
-    },
-    {
-      id: "#25421",
-      name: "Adidas ultra boost",
-      image: "/products/adidas-4.jpg", 
-      quantity: 2,
-      total: 800.40
-    }
-  ],
+  products: [],
   summary: {
-    subtotal: 3201.6,
-    tax: 640.32,
+    subtotal: 0,
+    tax: 0,
     discount: 0,
-    total: 3841.92
+    total: 0
   }
 }
 

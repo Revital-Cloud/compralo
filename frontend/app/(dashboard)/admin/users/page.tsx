@@ -18,73 +18,29 @@ import {
 import { ExportDialog } from "@/components/excel"
 import { toast } from "sonner"
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  avatar: string;
+  role: string;
+  registrationDate: string;
+  totalOrders: number;
+  totalSpent: number;
+  status: string;
+}
+
 // Mock data para usuarios
-const usersData = [
-  {
-    id: 1,
-    name: "Carlos Mendoza",
-    email: "carlos@ejemplo.com",
-    avatar: "/avatars/carlos.jpg",
-    role: "customer",
-    registrationDate: "15 Dic, 2023",
-    totalOrders: 12,
-    totalSpent: 2400.00,
-    status: "active"
-  },
-  {
-    id: 2,
-    name: "María González", 
-    email: "maria@ejemplo.com",
-    avatar: "/avatars/maria.jpg",
-    role: "customer",
-    registrationDate: "20 Nov, 2023",
-    totalOrders: 8,
-    totalSpent: 1600.00,
-    status: "active"
-  },
-  {
-    id: 3,
-    name: "Admin Store",
-    email: "admin@tienda.com",
-    avatar: "/avatars/admin.jpg",
-    role: "admin",
-    registrationDate: "1 Oct, 2023",
-    totalOrders: 0,
-    totalSpent: 0,
-    status: "active"
-  },
-  {
-    id: 4,
-    name: "Luis Rodríguez",
-    email: "luis@ejemplo.com",
-    avatar: "/avatars/luis.jpg",
-    role: "customer",
-    registrationDate: "5 Ene, 2024",
-    totalOrders: 3,
-    totalSpent: 750.00,
-    status: "inactive"
-  },
-  {
-    id: 5,
-    name: "Ana Martínez",
-    email: "ana@ejemplo.com",
-    avatar: "/avatars/ana.jpg",
-    role: "employee",
-    registrationDate: "10 Dic, 2023",
-    totalOrders: 0,
-    totalSpent: 0,
-    status: "active"
-  }
-]
+const usersData: User[] = []
 
 // Estadísticas de usuarios
 const userStats = {
-  total: 1456,
-  customers: 1398,
-  employees: 5,
-  admins: 3,
-  active: 1289,
-  inactive: 167
+  total: 0,
+  customers: 0,
+  employees: 0,
+  admins: 0,
+  active: 0,
+  inactive: 0
 }
 
 const getRoleBadge = (role: string) => {
@@ -168,14 +124,8 @@ const UserCard = ({ user }: { user: any }) => (
 )
 
 const UsersPage = () => {
-  const handleExport = async (options: any) => {
-    try {
-      // Simular exportación
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success(`¡Usuarios exportados exitosamente en formato ${options.format}!`);
-    } catch (error) {
-      toast.error('Error al exportar los usuarios');
-    }
+  const handleExportComplete = (filename: string) => {
+    toast.success(`¡Usuarios exportados exitosamente en ${filename}!`);
   };
 
   return (
@@ -189,17 +139,14 @@ const UsersPage = () => {
           </p>
         </div>
         <ExportDialog
-          title="Exportar Usuarios"
-          description="Descarga los datos de usuarios en Excel o CSV"
-          defaultFilename="usuarios"
-          onExport={handleExport}
-          trigger={
-            <Button>
-              <IconDownload className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
-          }
-        />
+          defaultDataTypes={['users']}
+          onExportComplete={handleExportComplete}
+        >
+          <Button>
+            <IconDownload className="h-4 w-4 mr-2" />
+            Exportar
+          </Button>
+        </ExportDialog>
       </div>
 
       {/* Estadísticas */}

@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import Papa from 'papaparse';
 import { saveAs } from 'file-saver';
 import { 
@@ -35,29 +35,41 @@ class ExcelService {
   async readExcelFile(file: File, options: ImportOptions): Promise<ImportPreview> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target?.result as ArrayBuffer);
-          const workbook = XLSX.read(data, { type: 'array' });
-          
-          // Usar la primera hoja por defecto
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          
-          // Convertir a JSON
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-            header: options.hasHeader ? 1 : undefined,
-            defval: '', // Valor por defecto para celdas vacías
-            raw: false // Convertir todo a string
-          });
 
-          const headers = this.extractHeaders(worksheet, options.hasHeader);
-          const preview = (jsonData as Record<string, any>[]).slice(0, 5); // Primeras 5 filas para preview
+      reader.onload = async (e) => {
+        try {
+          const data = e.target?.result as ArrayBuffer;
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(data);
+
+          const worksheet = workbook.worksheets[0];
+          const headers = options.hasHeader ? (worksheet.getRow(1).values as string[]).slice(1) : [];
           
+          const jsonData: Record<string, any>[] = [];
+          const startRow = options.hasHeader ? 2 : 1;
+
+          worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber >= startRow) {
+              const rowData: Record<string, any> = {};
+              const values = row.values as any[];
+              if (options.hasHeader) {
+                headers.forEach((header, index) => {
+                  rowData[header] = values[index + 1] ?? '';
+                });
+              } else {
+                values.slice(1).forEach((value, index) => {
+                  rowData[`column_${index + 1}`] = value ?? '';
+                });
+              }
+              jsonData.push(rowData);
+            }
+          });
+          
+          const preview = jsonData.slice(0, 5);
+
           const result: ImportPreview = {
             fileName: file.name,
-            totalRows: jsonData.length,
+            totalRows: worksheet.rowCount - (options.hasHeader ? 1 : 0),
             headers,
             preview,
             detectedFormat: 'excel'
@@ -151,42 +163,31 @@ class ExcelService {
   /**
    * Exporta datos a Excel
    */
-  exportToExcel(
-    data: DashboardExportData, 
+  async exportToExcel(
+    data: DashboardExportData,
     options: ExportOptions = { format: 'excel' }
-  ): void {
+  ): Promise<void> {
     try {
-      const workbook = XLSX.utils.book_new();
+      const workbook = new ExcelJS.Workbook();
 
-      // Crear hojas según los datos disponibles
-      if (data.products) {
-        const productsSheet = XLSX.utils.json_to_sheet(data.products);
-        XLSX.utils.book_append_sheet(workbook, productsSheet, 'Productos');
-      }
-
-      if (data.orders) {
-        const ordersSheet = XLSX.utils.json_to_sheet(data.orders);
-        XLSX.utils.book_append_sheet(workbook, ordersSheet, 'Pedidos');
-      }
-
-      if (data.users) {
-        const usersSheet = XLSX.utils.json_to_sheet(data.users);
-        XLSX.utils.book_append_sheet(workbook, usersSheet, 'Usuarios');
-      }
-
-      if (data.analytics) {
-        const analyticsSheet = XLSX.utils.json_to_sheet(data.analytics);
-        XLSX.utils.book_append_sheet(workbook, analyticsSheet, 'Analytics');
-      }
+      const processSheet = (sheetName: string, sheetData: any[] | undefined) => {
+        if (sheetData && sheetData.length > 0) {
+          const worksheet = workbook.addWorksheet(sheetName);
+          const headers = Object.keys(sheetData[0]);
+          worksheet.columns = headers.map(header => ({ header, key: header, width: 20 }));
+          worksheet.addRows(sheetData);
+        }
+      };
+      
+      processSheet('Productos', data.products);
+      processSheet('Pedidos', data.orders);
+      processSheet('Usuarios', data.users);
+      processSheet('Analytics', data.analytics);
 
       // Generar archivo
-      const excelBuffer = XLSX.write(workbook, { 
-        bookType: 'xlsx', 
-        type: 'array' 
-      });
-
-      const blob = new Blob([excelBuffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
 
       const fileName = options.filename || `dashboard_export_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -223,7 +224,7 @@ class ExcelService {
   /**
    * Descarga template de importación
    */
-  downloadTemplate(format: 'csv' | 'excel', templateType: 'products' | 'users' = 'products'): void {
+  async downloadTemplate(format: 'csv' | 'excel', templateType: 'products' | 'users' = 'products'): Promise<void> {
     const templates = {
       products: {
         headers: ['nombre', 'precio', 'stock', 'categoria', 'marca', 'descripcion'],
@@ -263,8 +264,8 @@ class ExcelService {
     const fileName = `template_${templateType}_${format}`;
 
     if (format === 'excel') {
-      this.exportToExcel(
-        { [templateType]: template.sampleData }, 
+      await this.exportToExcel(
+        { [templateType]: template.sampleData },
         { format: 'excel', filename: `${fileName}.xlsx` }
       );
     } else {
@@ -320,26 +321,6 @@ class ExcelService {
     });
 
     return errors;
-  }
-
-  /**
-   * Extrae headers de una hoja Excel
-   */
-  private extractHeaders(worksheet: XLSX.WorkSheet, hasHeader: boolean): string[] {
-    if (!hasHeader) {
-      return [];
-    }
-
-    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-    const headers: string[] = [];
-
-    for (let col = range.s.c; col <= range.e.c; col++) {
-      const cellRef = XLSX.utils.encode_cell({ r: 0, c: col });
-      const cell = worksheet[cellRef];
-      headers.push(cell ? String(cell.v) : `Columna ${col + 1}`);
-    }
-
-    return headers;
   }
 
   /**

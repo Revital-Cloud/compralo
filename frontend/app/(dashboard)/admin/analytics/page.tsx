@@ -13,7 +13,6 @@ import {
   IconUsers, 
   IconCash,
   IconEye,
-  IconPercent,
   IconPackage,
   IconTruck,
   IconDeviceAnalytics,
@@ -27,72 +26,60 @@ import {
 import { ExportDialog } from "@/components/excel"
 import { toast } from "sonner"
 
+// Tipos para los datos de analytics
+interface ConversionMetric {
+  title: string;
+  value: string;
+  change: string;
+  icon: React.ElementType;
+}
+
+interface TrafficSource {
+  source: string;
+  visitors: number;
+  percentage: number;
+  change: number;
+}
+
+interface CustomerDemographic {
+  ageGroup: string;
+  percentage: number;
+  revenue: number;
+}
+
+interface ProductPerformanceData {
+  category: string;
+  sales: number;
+  growth: number;
+  percentage: number;
+}
+
+interface GeoData {
+  region: string;
+  orders: number;
+  revenue: number;
+}
+
+interface AnalyticsData {
+  conversionMetrics: ConversionMetric[];
+  trafficSources: TrafficSource[];
+  customerDemographics: CustomerDemographic[];
+  productPerformance: ProductPerformanceData[];
+  geoData: GeoData[];
+  hourlyTraffic: { hour: string; visitors: number }[];
+}
+
 // Mock data para analytics avanzados
-const analyticsData = {
-  conversionMetrics: [
-    {
-      title: 'Tasa de Conversión',
-      value: '3.24%',
-      change: '+12.5%',
-      icon: IconTarget
-    },
-    {
-      title: 'Valor Promedio Orden',
-      value: '$89.50',
-      change: '-2.1%',
-      icon: IconCash
-    },
-    {
-      title: 'Abandono de Carrito',
-      value: '68.2%',
-      change: '-5.3%',
-      icon: IconShoppingCart
-    },
-    {
-      title: 'Valor Vida Cliente',
-      value: '$245.80',
-      change: '+18.7%',
-      icon: IconHeart
-    }
-  ],
-  trafficSources: [
-    { source: 'Direct', visitors: 45231, percentage: 35.2, change: 8.1 },
-    { source: 'Google Organic', visitors: 32156, percentage: 25.0, change: 15.3 },
-    { source: 'Social Media', visitors: 18945, percentage: 14.7, change: -3.2 },
-    { source: 'Email Marketing', visitors: 16234, percentage: 12.6, change: 22.4 },
-    { source: 'Paid Ads', visitors: 9876, percentage: 7.7, change: -8.9 },
-    { source: 'Referral', visitors: 6234, percentage: 4.8, change: 5.6 }
-  ],
-  customerDemographics: [
-    { ageGroup: '18-24', percentage: 18.5, revenue: 12350 },
-    { ageGroup: '25-34', percentage: 32.1, revenue: 28940 },
-    { ageGroup: '35-44', percentage: 28.4, revenue: 35620 },
-    { ageGroup: '45-54', percentage: 15.2, revenue: 22180 },
-    { ageGroup: '55+', percentage: 5.8, revenue: 8950 }
-  ],
-  productPerformance: [
-    { category: 'Calzado Deportivo', sales: 15420, growth: 23.1, percentage: 45.2 },
-    { category: 'Ropa Casual', sales: 8930, growth: -5.3, percentage: 26.1 },
-    { category: 'Accesorios', sales: 5240, growth: 12.8, percentage: 15.3 },
-    { category: 'Equipamiento', sales: 4610, growth: 8.7, percentage: 13.4 }
-  ],
-  geoData: [
-    { region: 'Buenos Aires', orders: 2341, revenue: 125430 },
-    { region: 'Córdoba', orders: 1876, revenue: 98720 },
-    { region: 'Santa Fe', orders: 1542, revenue: 82150 },
-    { region: 'Mendoza', orders: 987, revenue: 54320 },
-    { region: 'Tucumán', orders: 654, revenue: 35890 }
-  ],
-  hourlyTraffic: [
-    { hour: '00', visitors: 45 }, { hour: '01', visitors: 32 }, { hour: '02', visitors: 28 },
-    { hour: '03', visitors: 21 }, { hour: '04', visitors: 18 }, { hour: '05', visitors: 25 },
-    { hour: '06', visitors: 42 }, { hour: '07', visitors: 68 }, { hour: '08', visitors: 95 },
-    { hour: '09', visitors: 125 }, { hour: '10', visitors: 156 }, { hour: '11', visitors: 178 },
-    { hour: '12', visitors: 195 }, { hour: '13', visitors: 189 }, { hour: '14', visitors: 172 },
-    { hour: '15', visitors: 165 }, { hour: '16', visitors: 158 }, { hour: '17', visitors: 142 },
-    { hour: '18', visitors: 135 }, { hour: '19', visitors: 148 }, { hour: '20', visitors: 162 },
-    { hour: '21', visitors: 152 }, { hour: '22', visitors: 128 }, { hour: '23', visitors: 85 }
-  ]
+const analyticsData: AnalyticsData = {
+  conversionMetrics: [],
+  trafficSources: [],
+  customerDemographics: [],
+  productPerformance: [],
+  geoData: [],
+  hourlyTraffic: Array.from({ length: 24 }, (_, i) => ({ 
+    hour: `${i}`.padStart(2, '0'), 
+    visitors: 0 
+  }))
 }
 
 // Componente para métricas de conversión
@@ -261,15 +248,15 @@ const HourlyTrafficChart = () => {
         <div className="mt-4 grid grid-cols-3 gap-4 text-center">
           <div>
             <p className="text-sm text-muted-foreground">Pico</p>
-            <p className="font-bold">12:00 - 195 visitas</p>
+            <p className="font-bold">N/A</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Valle</p>
-            <p className="font-bold">04:00 - 18 visitas</p>
+            <p className="font-bold">N/A</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Promedio</p>
-            <p className="font-bold">108 visitas/hora</p>
+            <p className="font-bold">0 visitas/hora</p>
           </div>
         </div>
       </CardContent>
@@ -278,14 +265,8 @@ const HourlyTrafficChart = () => {
 }
 
 const AnalyticsPage = () => {
-  const handleExport = async (options: any) => {
-    try {
-      // Simular exportación
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success(`¡Datos de analytics exportados exitosamente en formato ${options.format}!`);
-    } catch (error) {
-      toast.error('Error al exportar los datos de analytics');
-    }
+  const handleExportComplete = (filename: string) => {
+    toast.success(`¡Datos de analytics exportados exitosamente en ${filename}!`);
   };
 
   return (
@@ -304,17 +285,14 @@ const AnalyticsPage = () => {
             Actualizar
           </Button>
           <ExportDialog
-            title="Exportar Analytics"
-            description="Descarga los datos de analytics en Excel o CSV"
-            defaultFilename="analytics-reporte"
-            onExport={handleExport}
-            trigger={
-              <Button size="sm">
-                <IconDownload className="h-4 w-4 mr-2" />
-                Exportar
-              </Button>
-            }
-          />
+            defaultDataTypes={['analytics']}
+            onExportComplete={handleExportComplete}
+          >
+            <Button size="sm">
+              <IconDownload className="h-4 w-4 mr-2" />
+              Exportar
+            </Button>
+          </ExportDialog>
         </div>
       </div>
 

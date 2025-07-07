@@ -6,7 +6,18 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Eye, Star } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "next-themes";
-import { newDropsProducts, type Product } from "./mockData";
+
+interface Product {
+  id: string;
+  name: string;
+  image: string;
+  price: number;
+  originalPrice?: number;
+  rating?: number;
+  badge?: string;
+}
+
+const newDropsProducts: Product[] = [];
 
 const NewDropsSection = () => {
   const { theme } = useTheme();

@@ -15,23 +15,18 @@ import Link from "next/link"
 
 const ProductCreatePage = () => {
   const [productData, setProductData] = useState({
-    name: 'Adidas Ultra boost',
-    description: 'Las carreras de larga distancia requieren mucho de los atletas.',
-    category: 'Zapatillas',
-    brand: 'Adidas',
-    sku: '#37453',
-    stockQuantity: '21',
-    regularPrice: '$110.40',
-    salePrice: '$450',
-    tags: ['Adidas', 'Calzado', 'Zapatillas', 'Ultra boost']
+    name: '',
+    description: '',
+    category: '',
+    brand: '',
+    sku: '',
+    stockQuantity: '',
+    regularPrice: '',
+    salePrice: '',
+    tags: [] as string[]
   })
 
-  const [images, setImages] = useState([
-    { id: 1, name: 'Miniatura del producto.png', uploaded: true },
-    { id: 2, name: 'Miniatura del producto.png', uploaded: true },
-    { id: 3, name: 'Miniatura del producto.png', uploaded: true },
-    { id: 4, name: 'Miniatura del producto.png', uploaded: true }
-  ])
+  const [images, setImages] = useState<{ id: number, name: string, uploaded: boolean }[]>([])
 
   const handleInputChange = (field: string, value: string) => {
     setProductData(prev => ({

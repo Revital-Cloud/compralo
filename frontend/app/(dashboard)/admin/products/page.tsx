@@ -18,69 +18,19 @@ import Link from "next/link"
 import { ImportWizard } from "@/components/excel"
 import { toast } from "sonner"
 
+interface Product {
+  id: number;
+  name: string;
+  category: string;
+  price: number;
+  image: string;
+  summary: string;
+  sales: number;
+  remainingProducts: number;
+}
+
 // Mock data para productos
-const productsData = [
-  {
-    id: 1,
-    name: "Adidas Ultra boost",
-    category: "Zapatillas",
-    price: 110.40,
-    image: "/products/adidas-1.jpg",
-    summary: "Las carreras de larga distancia requieren mucho de los atletas.",
-    sales: 1269,
-    remainingProducts: 1269
-  },
-  {
-    id: 2,
-    name: "Adidas Ultra boost",
-    category: "Zapatillas", 
-    price: 500.40,
-    image: "/products/adidas-2.jpg",
-    summary: "Las carreras de larga distancia requieren mucho de los atletas.",
-    sales: 1269,
-    remainingProducts: 1269
-  },
-  {
-    id: 3,
-    name: "Adidas Ultra boost",
-    category: "Zapatillas",
-    price: 600.40,
-    image: "/products/adidas-3.jpg",
-    summary: "Las carreras de larga distancia requieren mucho de los atletas.",
-    sales: 1269,
-    remainingProducts: 1269
-  },
-  {
-    id: 4,
-    name: "ADIZERO SL RUNNING",
-    category: "Running",
-    price: 64.40,
-    image: "/products/adidas-4.jpg",
-    summary: "Las carreras de larga distancia requieren mucho de los atletas.",
-    sales: 1269,
-    remainingProducts: 1269
-  },
-  {
-    id: 5,
-    name: "ULTRABOOST CLEATS",
-    category: "Zapatillas",
-    price: 800.40,
-    image: "/products/adidas-5.jpg",
-    summary: "Las carreras de larga distancia requieren mucho de los atletas.",
-    sales: 1269,
-    remainingProducts: 1269
-  },
-  {
-    id: 6,
-    name: "FORUM EXHIBIT LOW",
-    category: "Zapatillas",
-    price: 74.00,
-    image: "/products/adidas-6.jpg",
-    summary: "Las carreras de larga distancia requieren mucho de los atletas.",
-    sales: 109,
-    remainingProducts: 1500
-  }
-]
+const productsData: Product[] = []
 
 // Componente para tarjeta de producto
 const ProductCard = ({ product }: { product: any }) => (
