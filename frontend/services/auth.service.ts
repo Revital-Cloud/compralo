@@ -27,7 +27,7 @@ import { getStoredRefreshToken } from '@/utils/apiWrapper';
  * Login del usuario
  */
 export async function login(credentials: LoginRequest): Promise<TokenResponse> {
-  const tokens = await post<TokenResponse>('/auth/login', credentials);
+  const tokens = await post<TokenResponse>('/login', credentials);
   
   // Almacenar tokens automáticamente
   storeTokens(tokens.access_token, tokens.refresh_token);
@@ -39,7 +39,7 @@ export async function login(credentials: LoginRequest): Promise<TokenResponse> {
  * Obtener datos del usuario actual
  */
 export async function getCurrentUser(): Promise<User> {
-  return await get<User>('/auth/me');
+  return await get<User>('/me');
 }
 
 /**
