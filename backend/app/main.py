@@ -26,6 +26,7 @@ from routers.discount_router import router as discount_router
 from routers.auth_router import router as auth_router
 from routers.email_router import router as email_router
 from routers.user_discounts_router import router as user_discounts_router
+from routers.address_router import router as address_router
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -92,6 +93,9 @@ app.include_router(discount_router, prefix=settings.API_STR)
 
 # Incluye el router de descuentos por usuario con un prefijo de API.
 app.include_router(user_discounts_router, prefix=settings.API_STR)
+
+# Incluye el router de direcciones con un prefijo de API.
+app.include_router(address_router, prefix=settings.API_STR)
 
 # Incluye el router de emails con un prefijo de API.
 app.include_router(email_router, prefix=settings.API_STR)
