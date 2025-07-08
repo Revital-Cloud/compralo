@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     RESEND_KEY: str
 
     # Configuración de Mercado Pago
-    MERCADOPAGO_ACCESS_TOKEN: str
+    ACCESS_TOKEN_MERCADOPAGO: str
     
     # Configuración de emails con Resend
     RESEND_FROM_EMAIL: str
