@@ -5,7 +5,6 @@ Define las rutas y endpoints relacionados con la gestión de descuentos por usua
 incluyendo la visualización, validación y registro de descuentos por usuario.
 """
 from decimal import Decimal
-from backend.app.schemas.auth_schema import UserInToken
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
@@ -36,7 +35,6 @@ async def get_user_discounts(db:Session = Depends(get_db)):
 async def validate_discount(
     payload: ValidateDiscountRequest,
     db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Valida si un descuento es aplicable para un usuario según las reglas configuradas.
