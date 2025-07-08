@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user
 from schemas.auth_schema import UserInToken
-from schemas.car_product_schemas import CarProductCreate, CarProduct, ResponseMessage
+from schemas.car_product_schemas import CarProductCreate, CarProduct, MigrateCarAnonymous, ResponseMessage
 from services import car_product_service
 
 router = APIRouter(tags=["Carrito Productos"])
@@ -74,3 +74,35 @@ async def delete_car_product(
         return ResponseMessage(message="Producto eliminado del carrito correctamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    
+@router.post("/carrito-productos/migrar-carrito-anonimo", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def migrate_car_anonymous(
+    migrate_data: MigrateCarAnonymous = Body(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Migra productos de un carrito anónimo al carrito del usuario autenticado.
+    
+    El carrito anónimo es identificado por su id_carrito (donde id_usuario = NULL y session_id != NULL).
+    Todos los productos del carrito anónimo se transfieren al carrito del usuario,
+    y el carrito anónimo se elimina después de la migración exitosa.
+    
+    Se ejecuta típicamente cuando:
+    - Un usuario anónimo se registra en el sistema
+    - Un usuario anónimo inicia sesión
+    
+    Args:
+        migrate_data (MigrateCarAnonymous): Contiene el id_carrito del carrito anónimo.
+        db (Session): La sesión de base de datos SQLAlchemy.
+        current_user (UserInToken): Usuario autenticado de destino.
+        
+    Returns:
+        ResponseMessage: Mensaje de confirmación de la migración.
+    """
+    try:
+        car_product_service.migrate_car_anonymous(db, migrate_data, current_user.id_usuario)
+        return ResponseMessage(message="Carrito anónimo migrado a usuario correctamente")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    

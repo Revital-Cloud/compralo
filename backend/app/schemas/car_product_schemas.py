@@ -27,7 +27,7 @@ class CarProductBase(BaseModel):
     id_producto: Decimal = Field(..., description="Identificador del producto.")
     cantidad: Decimal = Field(..., description="Cantidad del producto en el carrito.")
     precio_unitario_carrito: Decimal = Field(..., description="Precio unitario del producto en el carrito.")
-    usr_insert: Decimal = Field(..., description="Usuario que insertó el registro.")
+    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
     
     class Config:
         from_attributes = True
@@ -47,7 +47,25 @@ class CarProductCreate(CarProductBase):
     Hereda de `CarProductBase` y se utiliza para validar los datos
     al crear un nuevo producto en el carrito.
     """
+
+
+class CarProductDelete(CarProductBase):
+    """
+    Esquema para la Eliminación de Productos en el Carrito.
+    Hereda de `CarProductBase` y se utiliza para validar los datos
+    al eliminar un producto en el carrito.
+    """
+    usr_update: Decimal = Field(..., description="Usuario que actualizó el registro.")
     pass
+
+class MigrateCarAnonymous(BaseModel):
+    """
+    Esquema para la Migración de Carrito Anónimo a Usuario.
+    
+    Migra un carrito anónimo (donde id_usuario = NULL) al usuario autenticado.
+    El usuario de destino se obtiene del token de autenticación.
+    """
+    id_carrito: Decimal = Field(..., description="ID del carrito a migrar (debe ser un carrito anónimo donde id_usuario IS NULL)")
 
 class ResponseMessage(BaseModel):
     """
