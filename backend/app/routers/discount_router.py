@@ -12,6 +12,7 @@ from core.dependencies import get_current_user, require_admin
 from schemas.auth_schema import UserInToken
 from schemas.discount_schema import DiscountCreate, DiscountExchangeableResponse, DiscountUpdate, Discount, DiscountResponse, ResponseMessage
 from services import discount_service
+from schemas.user_discounts_schema import ValidateDiscountRequest, ValidateDiscountResponse
 
 router = APIRouter(tags=["Descuentos"])
 
@@ -121,3 +122,28 @@ async def deactivate_activate_discount(
             return ResponseMessage(message="Descuento desactivado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.post("/discounts/validate", response_model=ValidateDiscountResponse)
+async def validate_discount(
+    payload: ValidateDiscountRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Valida si un descuento es aplicable para un usuario según las reglas configuradas.
+    """
+    try:
+        # Llamada directa a la función SQL
+        result = db.execute(
+            "SELECT fun_validar_descuento_aplicable(:id_descuento, :id_usuario, :codigo_ingresado, :usr_insert)",
+            {
+                "id_descuento": payload.id_descuento,
+                "id_usuario": payload.id_usuario,
+                "codigo_ingresado": payload.codigo_ingresado,
+                "usr_insert": payload.usr_insert or payload.id_usuario
+            }
+        )
+        aplicable = result.scalar()
+        mensaje = "Descuento aplicable" if aplicable else "El descuento no es aplicable según las restricciones configuradas."
+        return ValidateDiscountResponse(aplicable=aplicable, mensaje=mensaje)
+    except Exception as e:
+        return ValidateDiscountResponse(aplicable=False, mensaje=f"Error al validar descuento: {str(e)}")

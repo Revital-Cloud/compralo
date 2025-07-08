@@ -38,7 +38,6 @@ def get_users(db: Session):
             ape_usuario,
             email_usuario,
             password_usuario,
-            des_direccion,
             id_rol,
             ind_genero,
             cel_usuario,
@@ -115,7 +114,6 @@ def create_users(db: Session, user: UserCreate):
             :ape_usuario,
             :email_usuario,
             :password_usuario,
-            :des_direccion,
             :ind_genero,
             :cel_usuario,
             :fec_nacimiento,
@@ -160,7 +158,7 @@ def update_user(db: Session, id_usuario: Decimal, user: UserUpdate, current_user
         
         query = text("""SELECT fun_update_usuarios(
             :id_usuario, :nom_usuario, :ape_usuario, :email_usuario, :password_usuario,
-            :des_direccion, :ind_genero, :cel_usuario, :fec_nacimiento, :usr_update
+            :ind_genero, :cel_usuario, :fec_nacimiento, :usr_update
             )""")
         
         result = db.execute(query, update_params)
@@ -270,18 +268,13 @@ def update_password(db: Session, id_usuario: Decimal, hashed_password: str):
         bool: True si la actualización fue exitosa.
     """
     try:
-        """
-        Hace falta implementar la función de actualización de contraseña en la base de datos.
-        """
         query = text("""
-        UPDATE tab_usuarios 
-        SET password_usuario = :password, 
-            fec_update = CURRENT_TIMESTAMP 
-        WHERE id_usuario = :id_usuario
+        SELECT fun_update_password_usuario(:id_usuario, :password)
         """)
-        db.execute(query, {"password": hashed_password, "id_usuario": id_usuario})
+        result = db.execute(query, {"password": hashed_password, "id_usuario": id_usuario})
+        fetched_result = result.fetchone()
         db.commit()
-        return True
+        return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al actualizar contraseña: {str(e)}")

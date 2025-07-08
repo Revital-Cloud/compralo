@@ -25,7 +25,6 @@ class UserBase(BaseModel):
         ape_usuario (str): Apellido del usuario.
         email_usuario (str): Email del usuario.
         password_usuario (str): Contraseña del usuario.
-        des_direccion (str): Dirección del usuario.
         id_rol (Decimal): Identificador del rol del usuario.
         ind_genero (bool): Género del usuario.
         cel_usuario (str): Número de celular del usuario.
@@ -36,7 +35,6 @@ class UserBase(BaseModel):
     ape_usuario: str = Field(..., description="Apellido del usuario.")
     email_usuario: str = Field(..., description="Email del usuario.")
     password_usuario: str = Field(..., description="Contraseña del usuario.")
-    des_direccion: Optional[str] = Field(None, description="Dirección del usuario.")
     ind_genero: bool = Field(..., description="Género del usuario.")
     cel_usuario: str = Field(..., description="Número de celular del usuario.")
     fec_nacimiento: Optional[str] = Field(None, description="Fecha de nacimiento del usuario.")
@@ -67,7 +65,6 @@ class UserUpdate(BaseModel):
     ape_usuario: Optional[str] = Field(None, description="Apellido del usuario.")
     email_usuario: Optional[str] = Field(None, description="Email del usuario.")
     password_usuario: Optional[str] = Field(None, description="Contraseña del usuario.")
-    des_direccion: Optional[str] = Field(None, description="Dirección del usuario.")
     ind_genero: Optional[bool] = Field(None, description="Género del usuario.")
     cel_usuario: Optional[str] = Field(None, description="Número de celular del usuario.")
     fec_nacimiento: Optional[str] = Field(None, description="Fecha de nacimiento del usuario.")

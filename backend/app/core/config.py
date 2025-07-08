@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     ALGORITHM: str
     REFRESH_TOKEN_EXPIRE_DAYS: int 
     RESEND_KEY: str
+
+    # Configuración de Mercado Pago
+    ACCESS_TOKEN_MERCADOPAGO: str
     
     # Configuración de emails con Resend
     RESEND_FROM_EMAIL: str

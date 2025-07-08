@@ -51,7 +51,6 @@ export function RegisterForm() {
       email_usuario: "",
       password_usuario: "",
       cel_usuario: "",
-      des_direccion: "",
       ind_genero: "masculino",
       fec_nacimiento: "",
     },
@@ -240,24 +239,6 @@ export function RegisterForm() {
               </div>
               <FormField
                 control={form.control}
-                name="des_direccion"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Dirección (Opcional)</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Av. Siempre Viva 123"
-                        {...field}
-                        disabled={isLoading}
-                        type="text"
-                      />
-                    </FormControl>
-                    <FormMessage className="min-h-[1.25rem]" />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
                 name="fec_nacimiento"
                 render={({ field }) => (
                   <FormItem>
@@ -289,11 +270,14 @@ export function RegisterForm() {
                           onSelect={(date) => {
                             field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
                           }}
+                          defaultMonth={field.value ? new Date(field.value) : undefined}
                           disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
+                            date > new Date()
                           }
-                          initialFocus
+                          autoFocus
                           locale={es}
+                          captionLayout="dropdown"
+                          startMonth={new Date(1940, 0)}
                         />
                       </PopoverContent>
                     </Popover>

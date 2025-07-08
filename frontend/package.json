@@ -13,6 +13,7 @@
     "@heroui/system": "^2.4.17",
     "@heroui/theme": "^2.4.17",
     "@hookform/resolvers": "^5.0.1",
+    "@mercadopago/sdk-react": "^1.0.3",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-checkbox": "^1.3.2",
     "@radix-ui/react-label": "^2.1.7",
