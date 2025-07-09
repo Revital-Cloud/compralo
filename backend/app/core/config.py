@@ -8,6 +8,7 @@ seguridad, la API y el servicio de emails con Resend.
 """
 # Carga de variables de entorno y configuraciones
 from pydantic_settings import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
     """
@@ -50,14 +51,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int 
     ALGORITHM: str
     REFRESH_TOKEN_EXPIRE_DAYS: int 
-    RESEND_KEY: str
-
-    # Configuración de Mercado Pago
-    ACCESS_TOKEN_MERCADOPAGO: str
     
     # Configuración de emails con Resend
+    RESEND_API_KEY: str
     RESEND_FROM_EMAIL: str
-    RESEND_FROM_NAME: str = "Brillo Rosa"
+    RESEND_FROM_NAME: str
     
     # URLs del frontend para links en emails
     FRONTEND_URL: str
@@ -68,6 +66,10 @@ class Settings(BaseSettings):
     API_STR: str = "/api"
     PROJECT_NAME: str = "Brillo Rosa API"
     
+
+    # MercadoPago
+    MERCADOPAGO_ACCESS_TOKEN: str
+
     class Config:
         env_file = ".env"
         case_sensitive = True
