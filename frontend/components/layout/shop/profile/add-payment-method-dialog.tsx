@@ -28,7 +28,7 @@ interface AddPaymentMethodDialogProps {
 }
 
 // Reemplaza esto con tu Public Key de prueba desde las variables de entorno
-const MERCADOPAGO_PUBLIC_KEY = process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY || "";
+const MERCADOPAGO_PUBLIC_KEY = process.env.NEXT_PUBLIC_MERCADOPAGO || "";
 
 export function AddPaymentMethodDialog({ open, onOpenChange }: AddPaymentMethodDialogProps) {
   const queryClient = useQueryClient();
