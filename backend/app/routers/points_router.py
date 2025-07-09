@@ -4,8 +4,8 @@ from typing import Any
 
 from core.dependencies import get_db, require_admin
 from schemas.auth_schema import UserInToken
-from schemas.puntos_schema import PuntosConfigActivaUpdate, TipoMovimientoDescripcion
-from services import puntos_service
+from backend.app.schemas.points_schema import PuntosConfigActivaUpdate, TipoMovimientoDescripcion
+from backend.app.services import points_service
 
 router = APIRouter(
     prefix="/puntos",
@@ -29,7 +29,7 @@ def update_active_points_configuration(
     
     - **Sólo accesible por administradores.**
     """
-    return puntos_service.update_active_config(
+    return points_service.update_active_config(
         db=db, 
         config_update=config_update, 
         user_id=current_user.id_usuario
@@ -54,7 +54,7 @@ def get_points_movement_description(
     
     - **Endpoint público.**
     """
-    return puntos_service.get_movimiento_descripcion(db=db, tipo_movimiento=tipo_movimiento_id)
+    return points_service.get_movimiento_descripcion(db=db, tipo_movimiento=tipo_movimiento_id)
 
 @router.get(
     "/tasa-activa",
@@ -67,4 +67,4 @@ def get_active_points_rate(db: Session = Depends(get_db)):
     
     - **Accesible públicamente.**
     """
-    return puntos_service.get_active_rate(db=db) 
+    return points_service.get_active_rate(db=db) 
