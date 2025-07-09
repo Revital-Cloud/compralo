@@ -11,6 +11,8 @@ from schemas.payment_schema import (
     CardTokenRequest, MetodoPagoUsuarioCreate, Pago, PagoCreate
 )
 from schemas.auth_schema import UserInToken
+from schemas.user_schema import User
+from .user_service import get_user_by_id  # Importar la función directamente
 
 
 class MercadoPagoService:
@@ -192,32 +194,61 @@ class PaymentService:
     # --- User Payment Methods Service ---
 
     def _get_or_create_mp_customer_id(self, user: UserInToken) -> str:
-        customers = self.mp_service.search_customer(user.email)
-        if customers:
-            return customers[0]["id"]
+        """
+        Obtiene el ID de cliente de MercadoPago para un usuario.
+        Si no existe, lo crea.
+        """
+        # Primero, buscar el customer_id en nuestra base de datos
+        db_user = get_user_by_id(self.db, user.id_usuario)
+        if not db_user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+
+        if hasattr(db_user, 'mp_usuario_id') and db_user.mp_usuario_id:
+            return db_user.mp_usuario_id
+
+        # Si no está en nuestra DB, buscar en MercadoPago por email
+        customers = self.mp_service.search_customer(db_user.email_usuario)
         
-        new_customer_data = {
-            "email": user.email,
-            "first_name": user.nom_usuario,
-            "last_name": user.ape_user,
+        if customers and len(customers) > 0:
+            customer_id = customers[0]['id']
+        else:
+            # Si no existe en MP, crearlo
+            customer_data = {
+                "email": db_user.email_usuario,
+                "first_name": db_user.nom_usuario,
+                "last_name": db_user.ape_usuario,
+            }
+            new_customer = self.mp_service.create_customer(customer_data)
+            customer_id = new_customer['id']
+        
+        # Guardar el nuevo customer_id en nuestra base de datos a través de una función
+        query = text("SELECT fun_update_mp_usuario_id(:p_id_usuario, :p_mp_usuario_id)")
+        params = {
+            "p_id_usuario": user.id_usuario,
+            "p_mp_usuario_id": customer_id
         }
-        customer = self.mp_service.create_customer(new_customer_data)
-        
-        # Opcional: Guardar customer['id'] en tab_usuarios
-        return customer["id"]
+        self.db.execute(query, params)
+        self.db.commit()
+
+        return customer_id
 
     def add_payment_method(self, user: UserInToken, card_token: str) -> Dict[str, Any]:
+        """
+        Agrega una nueva tarjeta como método de pago para el usuario en MercadoPago.
+        """
         customer_id = self._get_or_create_mp_customer_id(user)
-        card_info = self.mp_service.create_card(customer_id, card_token)
+
+        # Asociar el token de la tarjeta al cliente
+        new_card = self.mp_service.create_card(customer_id, card_token)
 
         params = {
             "p_id_usuario": user.id_usuario,
             "p_provider_name": "mercadopago",
-            "p_provider_card_id": card_info["id"],
-            "p_brand": card_info["payment_method"]["name"],
-            "p_last_four_digits": card_info["last_four_digits"],
-            "p_expiration_month": card_info["expiration_month"],
-            "p_expiration_year": card_info["expiration_year"],
+            "p_provider_card_id": new_card["id"],
+            "p_brand": new_card["payment_method"]["name"],
+            "p_last_four_digits": new_card["last_four_digits"],
+            "p_expiration_month": new_card["expiration_month"],
+            "p_expiration_year": new_card["expiration_year"],
             "p_usr_operacion": user.id_usuario
         }
         

@@ -42,6 +42,7 @@ def get_users(db: Session):
             ind_genero,
             cel_usuario,
             fec_nacimiento,
+            mp_customer_id,
             usr_insert,
             fec_insert,
             usr_update,
@@ -282,14 +283,22 @@ def update_password(db: Session, id_usuario: Decimal, hashed_password: str):
 # Alias para compatibilidad con diferentes nomenclaturas
 def get_user_by_id(db: Session, id_usuario: Decimal):
     """
-    Alias para get_user para mantener compatibilidad.
-    
-    Args:
-        db (Session): La sesión de base de datos SQLAlchemy.
-        id_usuario (Decimal): ID del usuario.
-        
-    Returns:
-        dict or None: Un diccionario que representa el usuario o None si no se encuentra.
+    Obtiene un usuario específico de la base de datos por su ID.
+    Ahora incluye el campo mp_customer_id.
     """
-    return get_user(db, id_usuario)
+    try:
+        query = text("""
+            SELECT 
+                id_usuario, nom_usuario, ape_usuario, email_usuario, 
+                password_usuario, id_rol, ind_genero, cel_usuario, 
+                fec_nacimiento, usr_insert, fec_insert, usr_update, fec_update,
+                mp_usuario_id
+            FROM tab_usuarios 
+            WHERE id_usuario = :id_usuario
+        """)
+        result = db.execute(query, {"id_usuario": id_usuario})
+        return result.mappings().first()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener el usuario por ID: {str(e)}")
         
