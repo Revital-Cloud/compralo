@@ -7,10 +7,9 @@ Utiliza FastAPI para definir las rutas y depende del servicio de productos
 para la lógica de negocio y del gestor de base de datos para las sesiones.
 """
 # Definición de rutas (endpoints) de la API para productos
-from fastapi import APIRouter, Depends, Body, Form, HTTPException, status
+from fastapi import APIRouter, Depends, Body, HTTPException, status
 from sqlalchemy.orm import Session
 from decimal import Decimal
-from typing import Optional, Dict, Any
 
 from core.database import get_db
 from core.dependencies import require_admin, get_current_user, get_current_user_optional

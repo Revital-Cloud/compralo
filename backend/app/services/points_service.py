@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import text, func
 from fastapi import HTTPException, status
-from schemas.puntos_schema import PuntosConfigActivaUpdate
+from backend.app.schemas.points_schema import PuntosConfigActivaUpdate
 
 def update_active_config(db: Session, config_update: PuntosConfigActivaUpdate, user_id: int):
     """
