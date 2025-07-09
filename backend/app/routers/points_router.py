@@ -4,8 +4,8 @@ from typing import Any
 
 from core.dependencies import get_db, require_admin
 from schemas.auth_schema import UserInToken
-from backend.app.schemas.points_schema import PuntosConfigActivaUpdate, TipoMovimientoDescripcion
-from backend.app.services import points_service
+from schemas.points_schema import PuntosConfigActivaUpdate, TipoMovimientoDescripcion
+from services import points_service
 
 router = APIRouter(
     prefix="/puntos",
