@@ -8,7 +8,7 @@ from schemas.payment_schema import (
     PaymentPreferenceRequest, PaymentPreferenceResponse, MetodoPagoUsuario, 
     CardTokenRequest
 )
-from services.payment_service import PaymentService
+from services import payment_service
 
 router = APIRouter(
     prefix="/payments",
@@ -34,9 +34,9 @@ def create_payment_preference(
 
     El endpoint asocia la preferencia con la orden y el usuario actual.
     """
-    payment_service = PaymentService(db)
     try:
         response = payment_service.create_payment_preference(
+            db=db,
             preference_request=preference_request,
             id_orden=id_orden,
             id_usuario=current_user.id_usuario
@@ -68,9 +68,7 @@ async def handle_mercadopago_webhook(
     **No requiere autenticación.**
     """
     notification = await request.json()
-    payment_service = PaymentService(db)
-    # The actual processing is async and handled by the service
-    await payment_service.handle_webhook(notification)
+    await payment_service.handle_webhook(db, notification)
     return {"status": "notification received"}
 
 
@@ -92,8 +90,7 @@ def add_card(
     El frontend debe primero obtener un `token` de un solo uso de la SDK de MercadoPago
     y enviarlo en esta petición.
     """
-    payment_service = PaymentService(db)
-    return payment_service.add_payment_method(current_user, card_token_request.token)
+    return payment_service.add_payment_method(db, current_user, card_token_request.token)
 
 @router.get(
     "/cards",
@@ -107,8 +104,7 @@ def list_cards(
     """
     Devuelve una lista de todos los métodos de pago (tarjetas) guardados por el usuario.
     """
-    payment_service = PaymentService(db)
-    return payment_service.list_payment_methods(current_user.id_usuario)
+    return payment_service.list_payment_methods(db, current_user.id_usuario)
 
 @router.delete(
     "/cards/{id_metodo_pago}",
@@ -123,8 +119,7 @@ def delete_card(
     """
     Elimina permanentemente una tarjeta de la cuenta del usuario.
     """
-    payment_service = PaymentService(db)
-    return payment_service.delete_payment_method(current_user, id_metodo_pago)
+    return payment_service.delete_payment_method(db, current_user, id_metodo_pago)
 
 @router.put(
     "/cards/{id_metodo_pago}/default",
@@ -139,5 +134,4 @@ def set_default_card(
     """
     Marca una tarjeta como el método de pago por defecto para futuras compras.
     """
-    payment_service = PaymentService(db)
-    return payment_service.set_default_payment_method(current_user, id_metodo_pago) 
+    return payment_service.set_default_payment_method(db, current_user, id_metodo_pago) 

@@ -37,6 +37,8 @@ const MERCADOPAGO_PUBLIC_KEY = process.env.NEXT_PUBLIC_MERCADOPAGO || "";
 // Schema de validación con Zod para el formulario de la tarjeta
 const cardSchema = z.object({
   cardholderName: z.string().min(3, "El nombre del titular es requerido"),
+  identificationType: z.string().min(2, "Selecciona un tipo de documento"),
+  identificationNumber: z.string().min(5, "El número de documento es requerido"),
   cardNumber: z.string()
     .min(15, "El número de tarjeta debe tener al menos 15 dígitos")
     .max(19, "El número de tarjeta es demasiado largo")
@@ -58,6 +60,8 @@ export function AddPaymentMethodDialog({ open, onOpenChange }: AddPaymentMethodD
       cardNumber: "",
       expirationDate: "",
       securityCode: "",
+      identificationType: "CC", // Default para Colombia
+      identificationNumber: "",
     },
   });
 
@@ -108,22 +112,25 @@ export function AddPaymentMethodDialog({ open, onOpenChange }: AddPaymentMethodD
     const [expirationMonth, expirationYear] = data.expirationDate.replace(/\s/g, '').split('/');
 
     try {
-      const { id: token } = await mp.createCardToken({
+      const response = await mp.createCardToken({
         cardholderName: data.cardholderName,
+        identificationType: data.identificationType,
+        identificationNumber: data.identificationNumber,
         cardNumber: data.cardNumber.replace(/\s/g, ''),
         securityCode: data.securityCode,
         expirationMonth,
         expirationYear: `20${expirationYear}`,
       });
       
-      if (token) {
-        addCardMutation.mutate(token);
+      if (response.id) {
+        addCardMutation.mutate(response.id);
       } else {
-        toast.error("Error de validación", { description: "No se pudo generar el token. Revisa los datos de la tarjeta." });
+        const errorMessage = response.error?.cause?.[0]?.description || "No se pudo procesar la tarjeta. Revisa los datos.";
+        toast.error("Error de validación", { description: errorMessage });
       }
     } catch (error: any) {
-      console.error(error);
-      const message = error.cause?.[0]?.description || "No se pudo procesar la tarjeta. Verifica los datos.";
+      console.error("Error inesperado al crear el token:", error);
+      const message = "Ocurrió un error inesperado al contactar con el servicio de pago.";
       toast.error("Error inesperado", { description: message });
     }
   };
@@ -153,6 +160,35 @@ export function AddPaymentMethodDialog({ open, onOpenChange }: AddPaymentMethodD
                 </FormItem>
               )}
             />
+             <div className="flex gap-4">
+              <FormField
+                control={form.control}
+                name="identificationType"
+                render={({ field }) => (
+                  <FormItem className="w-1/3">
+                    <FormLabel>Tipo</FormLabel>
+                    <FormControl>
+                      {/* En un caso real, esto sería un Select con más opciones */}
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="identificationNumber"
+                render={({ field }) => (
+                  <FormItem className="w-2/3">
+                    <FormLabel>Documento</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Número de documento" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="cardNumber"

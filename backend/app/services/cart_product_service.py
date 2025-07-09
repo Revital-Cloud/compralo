@@ -2,9 +2,9 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from schemas.car_product_schemas import CalculateTotalCar, CarProductCreate, CarProductDelete, MigrateCarAnonymous, GetCarUser
+from schemas.cart_product_schemas import CalculateTotalCar, CarProductCreate, CarProductDelete, MigrateCarAnonymous, GetCarUser
 
-def get_car_products(db:Session):
+def get_cart_products(db:Session):
     """
     Obtiene todos los productos en el carrito.
     """
@@ -31,7 +31,7 @@ def get_car_products(db:Session):
         db.rollback()
         raise Exception(f"Error al obtener productos en el carrito: {str(e)}")
 
-def get_car_detail(db:Session, id_usuario:Decimal):
+def get_cart_detail(db:Session, id_usuario:Decimal):
     """
     Obtiene a detalle el carrito de un usuario.
     """
@@ -45,7 +45,7 @@ def get_car_detail(db:Session, id_usuario:Decimal):
         db.rollback()
         raise Exception(f"Error al obtener detalle del carrito: {str(e)}")
     
-def create_car_product(db:Session, car_product:CarProductCreate, usr_insert:Decimal):
+def create_cart_product(db:Session, car_product:CarProductCreate, usr_insert:Decimal):
     """
     Crea un nuevo producto en el carrito.
     Utiliza la función de base de datos `fun_agregar_producto_carrito` para insertar
@@ -77,7 +77,7 @@ def create_car_product(db:Session, car_product:CarProductCreate, usr_insert:Deci
         db.rollback()
         raise Exception(f"Error al crear producto en el carrito: {str(e)}")
     
-def delete_car_product(db:Session, car_product:CarProductDelete, usr_update:Decimal):
+def delete_cart_product(db:Session, car_product:CarProductDelete, usr_update:Decimal):
     """
     Elimina un producto en el carrito.
     Utiliza la función de base de datos `fun_eliminar_producto_carrito` para eliminar
@@ -109,7 +109,7 @@ def delete_car_product(db:Session, car_product:CarProductDelete, usr_update:Deci
         db.rollback()
         raise Exception(f"Error al eliminar producto en el carrito: {str(e)}")
     
-def migrate_car_anonymous(db: Session, migrate_car_anonymous: MigrateCarAnonymous, usr_insert: Decimal):
+def migrate_cart_anonymous(db: Session, migrate_car_anonymous: MigrateCarAnonymous, usr_insert: Decimal):
     """
     Migra productos de un carrito anónimo a un usuario registrado.
     
@@ -142,7 +142,7 @@ def migrate_car_anonymous(db: Session, migrate_car_anonymous: MigrateCarAnonymou
         db.rollback()
         raise Exception(f"Error al migrar carrito anónimo a usuario: {str(e)}")
     
-def get_car_user(db:Session, get_car_user:GetCarUser):
+def get_cart_user(db:Session, get_car_user:GetCarUser):
     """
     Obtiene el carrito de un usuario.
     """
@@ -161,7 +161,7 @@ def get_car_user(db:Session, get_car_user:GetCarUser):
         db.rollback()
         raise Exception(f"Error al obtener carrito de usuario: {str(e)}")
     
-def calculate_total_car(db:Session, calculate_total_car:CalculateTotalCar):
+def calculate_total_cart(db:Session, calculate_total_car:CalculateTotalCar):
     """
     Calcula el total del carrito de un usuario.
     """
