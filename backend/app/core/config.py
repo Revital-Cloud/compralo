@@ -51,10 +51,6 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int 
     ALGORITHM: str
     REFRESH_TOKEN_EXPIRE_DAYS: int 
-    RESEND_KEY: str
-
-    # Configuración de Mercado Pago
-    ACCESS_TOKEN_MERCADOPAGO: str
     
     # Configuración de emails con Resend
     RESEND_FROM_EMAIL: str
@@ -71,12 +67,11 @@ class Settings(BaseSettings):
     
     # Email
     RESEND_API_KEY: str
-    FROM_EMAIL: str
-    FROM_NAME: str
+    RESEND_FROM_EMAIL: str
+    RESEND_FROM_NAME: str
 
     # MercadoPago
     MERCADOPAGO_ACCESS_TOKEN: str
-    MERCADOPAGO_WEBHOOK_SECRET: Optional[str] = None
 
     class Config:
         env_file = ".env"

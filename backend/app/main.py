@@ -111,4 +111,4 @@ app.include_router(email_router, prefix=settings.API_STR)
 app.include_router(points_per_user_router, prefix=settings.API_STR)
 
 # Incluye el router de pagos con un prefijo de API.
-app.include_router(payment_router.router, prefix=settings.API_STR, tags=["Payments"])
+app.include_router(payment_router, prefix=settings.API_STR, tags=["Payments"])

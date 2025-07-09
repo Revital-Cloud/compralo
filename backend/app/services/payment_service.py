@@ -1,5 +1,6 @@
 import mercadopago
-from sqlalchemy.orm import Session, text
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 from fastapi import HTTPException, status
 from typing import Dict, Any, List
 from decimal import Decimal
