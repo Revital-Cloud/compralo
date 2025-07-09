@@ -2,7 +2,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from schemas.car_product_schemas import CalculateTotalCar, CarProductCreate, CarProductDelete, MigrateCarAnonymous, GetCarUser
+from schemas.cart_product_schemas import CalculateTotalCar, CarProductCreate, CarProductDelete, MigrateCarAnonymous, GetCarUser
 
 def get_cart_products(db:Session):
     """
