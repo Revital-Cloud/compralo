@@ -53,8 +53,9 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int 
     
     # Configuración de emails con Resend
+    RESEND_API_KEY: str
     RESEND_FROM_EMAIL: str
-    RESEND_FROM_NAME: str = "Brillo Rosa"
+    RESEND_FROM_NAME: str
     
     # URLs del frontend para links en emails
     FRONTEND_URL: str
@@ -65,10 +66,6 @@ class Settings(BaseSettings):
     API_STR: str = "/api"
     PROJECT_NAME: str = "Brillo Rosa API"
     
-    # Email
-    RESEND_API_KEY: str
-    RESEND_FROM_EMAIL: str
-    RESEND_FROM_NAME: str
 
     # MercadoPago
     MERCADOPAGO_ACCESS_TOKEN: str
