@@ -9,13 +9,13 @@ from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user
 from schemas.auth_schema import UserInToken
-from schemas.car_product_schemas import CalculateTotalCar, CarProductCreate, CarProduct, GetCarUser, MigrateCarAnonymous, ResponseMessage, get_car_user
+from schemas.car_product_schemas import CalculateTotalCar, CarProductCreate, CarProduct, GetCarUser, MigrateCarAnonymous, ResponseMessage
 from services import car_product_service
 
 router = APIRouter(tags=["Carrito Productos"])
 
 @router.get("/carrito-productos", response_model=list[CarProduct])
-async def get_car_products(db:Session = Depends(get_db)):
+async def get_cart_products(db:Session = Depends(get_db)):
     """
     Obtiene todos los productos en el carrito.
     Args:
@@ -29,7 +29,7 @@ async def get_car_products(db:Session = Depends(get_db)):
     return car_products
 
 @router.post("/carrito-productos", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
-async def create_car_product(
+async def create_cart_product(
     db:Session = Depends(get_db),
     car_product_data: CarProductCreate = Body(...),
     current_user: UserInToken = Depends(get_current_user)
@@ -50,7 +50,7 @@ async def create_car_product(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.delete("/carrito-productos/{id_usuario}-{id_categoria_producto}-{id_linea_producto}-{id_sublinea_producto}-{id_producto}-{cantidad}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
-async def delete_car_product(
+async def delete_cart_product(
     id_usuario: Decimal,
     id_categoria_producto: Decimal,
     id_linea_producto: Decimal,
@@ -75,8 +75,8 @@ async def delete_car_product(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
-@router.post("/migrar-carrito-anonimo", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
-async def migrate_car_anonymous(
+@router.post("/migrar", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def migrate_cart_anonymous(
     migrate_data: MigrateCarAnonymous = Body(...),
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user)
@@ -107,7 +107,7 @@ async def migrate_car_anonymous(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.post("/carrito-usuario", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
-async def get_car_user(
+async def get_cart_user(
     get_car_user_data: GetCarUser = Body(...),
     db: Session = Depends(get_db)
 ):
@@ -127,7 +127,7 @@ async def get_car_user(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
 @router.post("/calcular-total", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
-async def calculate_total_car(
+async def calculate_total_cart(
     calculate_total_car_data: CalculateTotalCar = Body(...),
     db: Session = Depends(get_db)
 ):
