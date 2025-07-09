@@ -4,6 +4,8 @@ from sqlalchemy import text
 from fastapi import HTTPException, status
 from typing import Dict, Any, List
 from decimal import Decimal
+import random
+import string
 
 from core.config import settings
 from schemas.payment_schema import (
@@ -13,6 +15,9 @@ from schemas.auth_schema import UserInToken
 from .user_service import get_user_by_id
 
 # --- SDK Initialization ---
+print(f"--- INICIANDO SERVICIO DE PAGO ---")
+print(f"Cargando Access Token: '{settings.MERCADOPAGO_ACCESS_TOKEN}'")
+print(f"------------------------------------")
 sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
 
 
@@ -22,11 +27,27 @@ def _handle_mp_response(response, success_status=200):
     if response["status"] == success_status:
         return response["response"]
     
+    # Imprimir la respuesta completa para depuración
+    print("--- MERCADOPAGO ERROR RESPONSE ---")
+    try:
+        import json
+        print(json.dumps(response.get("response", response), indent=2))
+    except Exception:
+        print(response.get("response", response))
+    print("----------------------------------")
+
     error_message = response.get("response", {}).get("message", "Error desconocido de MercadoPago")
     if "cause" in response.get("response", {}):
         causes = response["response"]["cause"]
-        if isinstance(causes, list) and causes:
-            error_message = causes[0].get("description", error_message)
+        # MercadoPago a veces devuelve una lista de causas.
+        if isinstance(causes, list) and len(causes) > 0:
+            first_cause = causes[0]
+            if isinstance(first_cause, dict):
+                # Formato esperado: [{"description": "...", ...}]
+                error_message = first_cause.get("description", error_message)
+            else:
+                # Si el formato es inesperado (como una lista dentro de otra), lo mostramos como texto
+                error_message = str(first_cause)
 
     raise HTTPException(
         status_code=status.HTTP_400_BAD_REQUEST,
@@ -53,6 +74,10 @@ def mp_create_customer(user_data: Dict[str, Any]) -> Dict[str, Any]:
 def mp_create_card(customer_id: str, card_token: str) -> Dict[str, Any]:
     card_response = sdk.card().create(customer_id, {"token": card_token})
     return _handle_mp_response(card_response, success_status=201)
+
+def mp_update_customer(customer_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    response = sdk.customer().update(customer_id, data)
+    return _handle_mp_response(response)
 
 def mp_delete_card(customer_id: str, card_id: str) -> Dict[str, Any]:
     response = sdk.card().delete(customer_id, card_id)
@@ -187,25 +212,55 @@ def _get_or_create_mp_customer_id(db: Session, user: UserInToken) -> str:
     if not db_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
 
-    if hasattr(db_user, 'mp_usuario_id') and db_user.mp_usuario_id:
-        return db_user.mp_usuario_id
-
+    # Siempre verificamos con MercadoPago para evitar datos desactualizados.
     customers = mp_search_customer(db_user.email_usuario)
-    
+    customer_id = None
+
     if customers and len(customers) > 0:
-        customer_id = customers[0]['id']
-    else:
+        found_customer = customers[0]
+        customer_id = found_customer.get('id')
+
+        # Si el cliente existe pero está incompleto, lo actualizamos.
+        if not (found_customer.get('identification') and found_customer.get('identification').get('number')):
+            print(f"Cliente MP encontrado ({customer_id}), pero incompleto. Actualizándolo con documento.")
+            update_data = {
+                "identification": {
+                    "type": "CC",
+                    "number": str(db_user.id_usuario)
+                }
+            }
+            try:
+                mp_update_customer(customer_id, update_data)
+                print(f"Cliente MP {customer_id} actualizado con documento.")
+            except Exception as e:
+                print(f"FALLO LA ACTUALIZACIÓN DEL CLIENTE: {e}")
+                raise
+        else:
+             print(f"Cliente MP VÁLIDO encontrado vía API: {customer_id}")
+
+    if not customer_id:
+        print(f"No se encontró cliente MP. Creando uno nuevo con documento.")
         customer_data = {
             "email": db_user.email_usuario,
             "first_name": db_user.nom_usuario,
             "last_name": db_user.ape_usuario,
+            "identification": {
+                "type": "CC",
+                "number": str(db_user.id_usuario)
+            }
         }
-        print("--- Intentando crear cliente en MercadoPago con los siguientes datos: ---")
-        print(customer_data)
-        print("-------------------------------------------------------------------------")
-        new_customer = mp_create_customer(customer_data)
-        customer_id = new_customer['id']
-    
+        try:
+            new_customer = mp_create_customer(customer_data)
+            customer_id = new_customer.get('id')
+            print(f"Nuevo cliente MP creado con ID: {customer_id}")
+        except HTTPException as e:
+            print(f"Error al crear cliente en MP: {e.detail}")
+            raise e
+
+    if not customer_id:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="No se pudo obtener o crear un ID de cliente en MercadoPago.")
+
+    print(f"Actualizando usuario {user.id_usuario} en BD con el ID de cliente MP: {customer_id}")
     query = text("SELECT fun_update_mp_usuario_id(:p_id_usuario, :p_mp_usuario_id)")
     params = {
         "p_id_usuario": user.id_usuario,
