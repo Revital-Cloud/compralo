@@ -8,6 +8,7 @@ seguridad, la API y el servicio de emails con Resend.
 """
 # Carga de variables de entorno y configuraciones
 from pydantic_settings import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
     """
@@ -68,6 +69,15 @@ class Settings(BaseSettings):
     API_STR: str = "/api"
     PROJECT_NAME: str = "Brillo Rosa API"
     
+    # Email
+    RESEND_API_KEY: str
+    FROM_EMAIL: str
+    FROM_NAME: str
+
+    # MercadoPago
+    MERCADOPAGO_ACCESS_TOKEN: str
+    MERCADOPAGO_WEBHOOK_SECRET: Optional[str] = None
+
     class Config:
         env_file = ".env"
         case_sensitive = True
