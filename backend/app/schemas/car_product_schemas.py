@@ -67,6 +67,21 @@ class MigrateCarAnonymous(BaseModel):
     """
     id_carrito: Decimal = Field(..., description="ID del carrito a migrar (debe ser un carrito anónimo donde id_usuario IS NULL)")
 
+
+class GetCarUser(BaseModel):
+    """
+    Esquema para la Obtención de Productos en el Carrito.
+    """
+    id_usuario: Decimal = Field(..., description="ID del usuario a obtener.")
+    session_id: Optional[str] = Field(None, description="ID de la sesión a obtener.")
+
+class CalculateTotalCar(BaseModel):
+    """
+    Esquema para el Cálculo del Total del Carrito.
+    """
+    id_usuario: Decimal = Field(..., description="ID del usuario a obtener.")
+    id_canje_aplicar: Optional[Decimal] = Field(None, description="ID del canje a aplicar.")
+
 class ResponseMessage(BaseModel):
     """
     Esquema para Mensajes de Respuesta Genéricos.

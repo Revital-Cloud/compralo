@@ -2,7 +2,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from schemas.car_product_schemas import CarProductCreate, CarProductDelete, MigrateCarAnonymous
+from schemas.car_product_schemas import CalculateTotalCar, CarProductCreate, CarProductDelete, MigrateCarAnonymous, GetCarUser
 
 def get_car_products(db:Session):
     """
@@ -30,6 +30,20 @@ def get_car_products(db:Session):
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener productos en el carrito: {str(e)}")
+
+def get_car_detail(db:Session, id_usuario:Decimal):
+    """
+    Obtiene a detalle el carrito de un usuario.
+    """
+    try:
+        query = text("""
+        SELECT fun_obtener_carrito_detalle(:id_usuario)
+        """)
+        result = db.execute(query, {"id_usuario": id_usuario})
+        return result.mappings().all()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener detalle del carrito: {str(e)}")
     
 def create_car_product(db:Session, car_product:CarProductCreate, usr_insert:Decimal):
     """
@@ -95,7 +109,7 @@ def delete_car_product(db:Session, car_product:CarProductDelete, usr_update:Deci
         db.rollback()
         raise Exception(f"Error al eliminar producto en el carrito: {str(e)}")
     
-def migrate_car_anonymous(db: Session, migrate_data: MigrateCarAnonymous, usr_insert: Decimal):
+def migrate_car_anonymous(db: Session, migrate_car_anonymous: MigrateCarAnonymous, usr_insert: Decimal):
     """
     Migra productos de un carrito anónimo a un usuario registrado.
     
@@ -111,7 +125,7 @@ def migrate_car_anonymous(db: Session, migrate_data: MigrateCarAnonymous, usr_in
 
     """
     try:
-        params = migrate_data.model_dump()
+        params = migrate_car_anonymous.model_dump()
         params["usr_insert"] = usr_insert
         query = text("""
         SELECT fun_migrar_carrito_anonimo_a_usuario(
@@ -127,4 +141,39 @@ def migrate_car_anonymous(db: Session, migrate_data: MigrateCarAnonymous, usr_in
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al migrar carrito anónimo a usuario: {str(e)}")
+    
+def get_car_user(db:Session, get_car_user:GetCarUser):
+    """
+    Obtiene el carrito de un usuario.
+    """
+    try:
+        params = get_car_user.model_dump()
+        query = text("""
+        SELECT fun_obtener_carrito_usuario(
+            :id_usuario,
+            :session_id
+        )
+        """)
+        result = db.execute(query, params)
+        fetched_result = result.fetchone()
+        return fetched_result[0] if fetched_result else None
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener carrito de usuario: {str(e)}")
+    
+def calculate_total_car(db:Session, calculate_total_car:CalculateTotalCar):
+    """
+    Calcula el total del carrito de un usuario.
+    """
+    try:
+        params = calculate_total_car.model_dump()
+        query = text("""
+        SELECT fun_calcular_total_carrito(:id_usuario, :id_canje_aplicar)
+        """)
+        result = db.execute(query, params)
+        fetched_result = result.fetchone()
+        return fetched_result[0] if fetched_result else None
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al calcular total del carrito: {str(e)}")
     
