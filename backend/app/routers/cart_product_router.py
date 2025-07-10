@@ -1,7 +1,7 @@
 """
 Módulo de enrutador para la gestión de productos en el carrito.
 
-Define las rutas y endpoints relacionados con la gestión de productos en el carrito,
+Define las rutas y endpoints relacionados con la gestión de productos en el carrito.
 """
 from decimal import Decimal
 from fastapi import APIRouter, Body, Depends, HTTPException, status
