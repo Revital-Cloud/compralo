@@ -75,6 +75,24 @@ class RoleBasedAccessMiddleware:
                 "PUT": [1],       # Solo administradores
                 "DELETE": [1],    # Solo administradores
                 "GET": [1, 2]     # Administradores y usuarios
+            },
+            "/api/categories": {
+                "POST": [1],      # Solo administradores
+                "PUT": [1],       # Solo administradores
+                "DELETE": [1],    # Solo administradores
+                "GET": [1, 2]     # Administradores y usuarios
+            },
+            "/api/lines": {
+                "POST": [1],      # Solo administradores
+                "PUT": [1],       # Solo administradores
+                "DELETE": [1],    # Solo administradores
+                "GET": [1, 2]     # Administradores y usuarios
+            },
+            "/api/cms": {
+                "POST": [1],      # Solo administradores
+                "PUT": [1],       # Solo administradores
+                "DELETE": [1],    # Solo administradores
+                "GET": [1, 2]     # Administradores y usuarios
             }
         }
     
@@ -226,7 +244,13 @@ class SmartAuthMiddleware(BaseHTTPMiddleware):
             "/api/email/validate-config",
             "/api/email/config",    # Configuración de emails
             "/api/email/stats",     # Estadísticas de emails
-            "/api/test"             # Endpoints de testing
+            "/api/test",             # Endpoints de testing
+            "/api/products",
+            "/api/categories",
+            "/api/brands",
+            "/api/lines",
+            "/api/sublines",
+            "/api/cms"
         ]
         
         # Recursos que solo admins pueden modificar pero todos pueden leer

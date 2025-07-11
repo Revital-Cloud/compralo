@@ -9,7 +9,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 
-from middlewares.role_middleware import SmartAuthMiddleware
+from middlewares.auth_middleware import AuthMiddleware
+# from middlewares.role_middleware import SmartAuthMiddleware
 from routers.cms_router import router as cms_router
 from routers.provider_router import router as provider_router
 from core.config import settings
@@ -52,8 +53,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Agregar el middleware inteligente de autenticación
-app.add_middleware(SmartAuthMiddleware)
+# Agregar middleware de autenticación
+app.add_middleware(
+    AuthMiddleware,
+    protected_paths=[
+        "/api/auth/me", 
+        "/api/auth/change-password", 
+        "/api/auth/logout",
+        "/api/favorites",
+        "/api/cart",
+        "/api/orders",
+        "/api/profile",
+        "/api/user-discounts",
+        "/api/points-per-user"
+    ],
+    admin_only_paths=[
+        "/api/products",      # GET público, POST/PUT/DELETE admin
+        "/api/categories",    # GET público, POST/PUT/DELETE admin
+        "/api/brands",        # GET público, POST/PUT/DELETE admin
+        "/api/lines",         # GET público, POST/PUT/DELETE admin
+        "/api/sublines",      # GET público, POST/PUT/DELETE admin
+        "/api/providers",     # GET público, POST/PUT/DELETE admin
+        "/api/cms",          # GET público, POST/PUT/DELETE admin
+        "/api/users",        # GET/POST/PUT/DELETE solo admin
+        "/api/admin",        # Todo requiere admin
+        "/api/email",        # Todo requiere admin
+        "/api/points",       # Todo requiere admin
+        "/api/discounts"     # Todo requiere admin
+    ]
+)
 
 @app.get("/")
 def read_root():
