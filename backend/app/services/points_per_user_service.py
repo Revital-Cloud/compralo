@@ -7,10 +7,10 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
-from schemas.orders_schema import CalculatePointsPerOrder
+from schemas.order_schema import OrderBase
 
 
-def get_points_per_user(db: Session, CalculatePointsPerOrder: CalculatePointsPerOrder):
+def get_points_per_user(db: Session, order: OrderBase):
     """
     Obtiene los puntos por usuario.
     """
@@ -19,13 +19,13 @@ def get_points_per_user(db: Session, CalculatePointsPerOrder: CalculatePointsPer
             SELECT 
                 fun_calcular_puntos_por_compra(:val_total_pedido)
         """)
-        result = db.execute(query, {"val_total_pedido": CalculatePointsPerOrder.val_total_pedido})
+        result = db.execute(query, {"val_total_pedido": order.val_total_pedido})
         return result.fetchone()[0]
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener puntos por orden de usuario: {str(e)}")
 
-def add_points_per_user(db: Session, CalculatePointsPerOrder: CalculatePointsPerOrder):
+def add_points_per_user(db: Session, order: OrderBase):
     """
     Agrega puntos por orden de usuario.
     """
@@ -34,7 +34,7 @@ def add_points_per_user(db: Session, CalculatePointsPerOrder: CalculatePointsPer
             SELECT 
                 fun_acumular_puntos_compra(:id_usuario, :id_orden, :val_total_pedido, :usr_insert)
         """)
-        result = db.execute(query, {"id_usuario": CalculatePointsPerOrder.id_usuario, "id_orden": CalculatePointsPerOrder.id_orden, "val_total_pedido": CalculatePointsPerOrder.val_total_pedido, "usr_insert": CalculatePointsPerOrder.usr_insert})
+        result = db.execute(query, {"id_usuario": order.id_usuario, "id_orden": order.id_orden, "val_total_pedido": order.val_total_pedido, "usr_insert": order.usr_insert})
         return result.fetchone()[0]
     except Exception as e:
         db.rollback()
