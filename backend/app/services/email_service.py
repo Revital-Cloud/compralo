@@ -23,7 +23,7 @@ def _configure_resend():
     Configura el cliente de Resend con la API key.
     Función auxiliar para inicializar Resend en cada envío.
     """
-    resend.api_key = settings.RESEND_KEY
+    resend.api_key = settings.RESEND_API_KEY
 
 def _get_from_field() -> str:
     """
