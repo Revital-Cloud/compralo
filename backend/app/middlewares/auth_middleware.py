@@ -49,13 +49,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         """
         Procesa la solicitud y verifica la autenticación si es necesaria.
-        
-        Args:
-            request: Solicitud HTTP
-            call_next: Siguiente función en la cadena de middleware
-            
-        Returns:
-            Response: Respuesta HTTP
         """
         path = request.url.path
         method = request.method
@@ -65,7 +58,15 @@ class AuthMiddleware(BaseHTTPMiddleware):
         
         # Para rutas administrativas, solo requerir admin en métodos de escritura
         needs_admin = False
-        if any(path.startswith(admin_path) for admin_path in self.admin_only_paths):
+        
+        # Caso especial: POST a /api/users es público (registro)
+        if path.startswith("/api/users"):
+            if method == "POST":
+                return await call_next(request)  # Permitir registro público
+            elif method in ["GET", "PUT", "DELETE", "PATCH"]:
+                needs_admin = True  # Otras operaciones de usuarios son admin-only
+        # Para el resto de rutas admin
+        elif any(path.startswith(admin_path) for admin_path in self.admin_only_paths):
             if method in ["POST", "PUT", "DELETE", "PATCH"]:
                 needs_admin = True
             # Para GET, no requerimos ser admin

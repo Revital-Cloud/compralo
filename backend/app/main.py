@@ -75,7 +75,7 @@ app.add_middleware(
         "/api/sublines",      # GET público, POST/PUT/DELETE admin
         "/api/providers",     # GET público, POST/PUT/DELETE admin
         "/api/cms",          # GET público, POST/PUT/DELETE admin
-        "/api/users",        # GET/POST/PUT/DELETE solo admin
+        "/api/users",        # POST público (registro), resto admin-only
         "/api/admin",        # Todo requiere admin
         "/api/email",        # Todo requiere admin
         "/api/points",       # Todo requiere admin
