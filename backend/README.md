@@ -117,7 +117,7 @@ python -m venv venv
 # Windows
 .\venv\Scripts\activate
 # Linux/Mac
-source venv/bin/activate
+source venv/Scripts/activate
 
 # Instalar dependencias
 pip install -r requirements.txt
@@ -186,8 +186,8 @@ REDIS_URL=redis://localhost:6379/0
 # Método recomendado (FastAPI CLI)
 fastapi dev app/main.py
 
-# Método alternativo (Uvicorn)
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Método alternativo (Uvicorn) --Linux
+python3 -m uvicorn main:app --host 10.5.213.111 --port 8000
 ```
 
 ## 🔐 Sistema de Autenticación Simplificado
