@@ -33,6 +33,7 @@ from routers.points_per_user_router import router as points_per_user_router
 from routers.payment_router import router as payment_router
 from routers.exchange_router import router as exchange_router
 from routers.order_router import router as order_router
+from routers.order_buy_provider_router import router as order_buy_provider_router
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -145,6 +146,9 @@ app.include_router(exchange_router, prefix=settings.API_STR)
 
 # Incluye el router de órdenes con un prefijo de API.
 app.include_router(order_router, prefix=settings.API_STR)
+
+# Incluye el router de ordenes de compra a proveedores con un prefijo de API.
+app.include_router(order_buy_provider_router, prefix=settings.API_STR)
 
 # Incluye el router de pagos con un prefijo de API.
 app.include_router(payment_router, prefix=settings.API_STR, tags=["Payments"])

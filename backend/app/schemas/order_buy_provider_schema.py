@@ -54,6 +54,15 @@ class OrderBuyProviderBase(BaseModel):
     observaciones_producto: Optional[str] = Field(None, description="Observaciones específicas del producto.")
     usr_insert: Decimal = Field(..., description="Usuario que insertó el registro.")
     
+class OrderBuyProvider(OrderBuyProviderBase):
+    """
+    Esquema para la Visualización de Ordenes de Compra a Proveedores.
+    Hereda de `OrderBuyProviderBase` y se utiliza como el modelo de respuesta
+    principal para los endpoints que devuelven información de ordenes de compra a proveedores.
+
+    """
+
+
 class OrderBuyProviderCreate(BaseModel):
     """
     Esquema para la Creación de Ordenes de Compra a Proveedores.
