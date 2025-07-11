@@ -1,0 +1,2408 @@
+{
+	"info": {
+		"_postman_id": "946c201f-dc99-4bc2-8766-905edfe53ed0",
+		"name": "Synkro - Complete API Collection",
+		"description": "Colección completa de endpoints para la API de Synkro SaaS E-commerce Platform",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "45178533",
+		"_collection_link": "https://kevinbermudez.postman.co/workspace/Kevin-Bermudez's-Workspace~95bcac9a-166e-4afe-8f34-0f13dae6fde9/collection/45178752-946c201f-dc99-4bc2-8766-905edfe53ed0?action=share&source=collection_link&creator=45178533"
+	},
+	"item": [
+		{
+			"name": "🔐 Authentication",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@test.com\",\n    \"password\": \"admin123\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/login",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh_token\": \"{{REFRESH_TOKEN}}\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/auth/refresh",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"auth",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Current User Info",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}",
+								"disabled": true
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/me",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Token",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/auth/verify-token",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"auth",
+								"verify-token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/auth/logout",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"current_password\": \"anmakalake10\",\n    \"new_password\": \"nueva_contraseña123\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/auth/change-password",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"auth",
+								"change-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Forgot Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"kevinbermudezc@gmail.com\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/auth/forgot-password",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"auth",
+								"forgot-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Reset Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"reset_token_aqui\",\n    \"new_password\": \"nueva_contraseña123\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/auth/reset-password",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"auth",
+								"reset-password"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send Verification Email",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": 1005553190\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/auth/send-verification-email",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"auth",
+								"send-verification-email"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Email",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"verification_token_aqui\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/auth/verify-email",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"auth",
+								"verify-email"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "👥 Users",
+			"item": [
+				{
+					"name": "Get All Users",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/users",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id_usuario\": 1234567890,\n  \"nom_usuario\": \"admin\",\n  \"ape_usuario\": \"test\",\n  \"email_usuario\": \"admin@test.com\",\n  \"password_usuario\": \"admin123\",\n  \"des_direccion\": \"calle 20 #32-41\",\n  \"ind_genero\": false,\n  \"cel_usuario\": \"3115237212\",\n  \"fec_nacimiento\": \"2004-04-20\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/users",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id_usuario\": 1005553190,\n  \"nom_usuario\": \"Kevin\",\n  \"ape_usuario\": \"Bermudez\",\n  \"email_usuario\": \"kevinbermudezc@gmail.com\",\n  \"password_usuario\": \"kevin1234\",\n  \"des_direccion\": \"Calle 111 #22b-52\",\n  \"ind_genero\": false,\n  \"cel_usuario\": \"3153083728\",\n  \"fec_nacimiento\": \"2001-04-26\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/users/1005553190",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"users",
+								"1005553190"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete User",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/users/1005553191",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"users",
+								"1005553191"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🛍️ Products",
+			"item": [
+				{
+					"name": "Get All Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/products",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"products"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/products/1-1-1-1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"products",
+								"1-1-1-1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom_producto\": \"Lavadora LG \",\n  \"spcf_producto\": {\n    \"Color\": \"Azul\",\n    \"Material\": \"Plástico\",\n    \"Garantía\": \"1 año\"\n  },\n  \"img_producto\": \"https://example.com/image.jpg\",\n  \"val_precio\": 99.99,\n  \"id_proveedor\": 2,\n  \"id_marca\": 1,\n  \"id_sublinea\": 1,\n  \"id_linea\": 1,\n  \"id_categoria\": 1,\n  \"num_stock\": 50\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/products",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"products"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom_producto\": \"Producto Actualizado\",\n  \"spcf_producto\": {\n    \"Color\": \"Rojo\",\n    \"Material\": \"Metal\",\n    \"Garantía\": \"2 años\"\n  },\n  \"img_producto\": \"https://example.com/updated-image.jpg\",\n  \"val_precio\": 149.99,\n  \"id_proveedor\": 1,\n  \"id_marca\": 1,\n  \"num_stock\": 25,\n  \"ind_activo\": true\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/products/1-1-1-1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"products",
+								"1-1-1-1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deactivate Product",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/products/1-1-1-1/deactivate",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"products",
+								"1-1-1-1",
+								"deactivate"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📂 Categories",
+			"item": [
+				{
+					"name": "Get All Categories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/categories",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"categories"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Category by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/categories/1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"categories",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom_categoria\": \"Tecnologia\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/categories",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"categories"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Category",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom_categoria\": \"Categoría Actualizada\",\n  \"ind_activo\": true\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/categories/1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"categories",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deactivate Category",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/categories/1/deactivate",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"categories",
+								"1",
+								"deactivate"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📄 Lines",
+			"item": [
+				{
+					"name": "Get All Lines",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/lines",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"lines"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Line",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id_categoria\": 1,\n  \"nom_linea\": \"Linea Blanca\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/lines",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"lines"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Line",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom_linea\": \"Línea Actualizada\",\n  \"ind_activo\": true\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/lines/1-1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"lines",
+								"1-1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deactivate Line",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/lines/1-1/deactivate",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"lines",
+								"1-1",
+								"deactivate"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📋 Sublines",
+			"item": [
+				{
+					"name": "Get All Sublines",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/sublines",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"sublines"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Subline",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id_categoria\": 1,\n  \"id_linea\": 1,\n  \"nom_sublinea\": \"Lavadoras\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/sublines",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"sublines"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Subline",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom_sublinea\": \"Sublínea Actualizada\",\n  \"ind_activo\": true\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/sublines/1-1-1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"sublines",
+								"1-1-1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deactivate Subline",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/sublines/1-1-1/deactivate",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"sublines",
+								"1-1-1",
+								"deactivate"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🏷️ Brands",
+			"item": [
+				{
+					"name": "Get All Brands",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/brands",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"brands"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Brand",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom_marca\": \"LG\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/brands",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"brands"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Brand",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom_marca\": \"LG\",\n  \"ind_activo\": true\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/brands/1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"brands",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deactivate Brand",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/brands/1/deactivate",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"brands",
+								"1",
+								"deactivate"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🏢 Providers",
+			"item": [
+				{
+					"name": "Get All Providers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/providers",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"providers"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Provider by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/providers/1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"providers",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Provider",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom_proveedor\": \"Homecenter\",\n  \"email\": \"homecenter@homecenter.com\",\n  \"tel_proveedor\": 1234567890\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/providers",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"providers"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Provider",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom_proveedor\": \"Shein\",\n  \"email\": \"shein@shein.com\",\n  \"tel_proveedor\": 3009876543,\n  \"ind_activo\": true\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/providers/1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"providers",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deactivate Provider",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/providers/1/deactivate",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"providers",
+								"1",
+								"deactivate"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "❤️ Favorites",
+			"item": [
+				{
+					"name": "Get User Favorites",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/favorites/{{USER_ID}}",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"favorites",
+								"{{USER_ID}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add to Favorites",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id_usuario\": 1,\r\n    \"id_categoria_producto\": 1,\r\n    \"id_linea_producto\": 1,\r\n    \"id_sublinea_producto\": 1,\r\n    \"id_producto\": 1\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/favorites",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"favorites"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove from Favorites",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/favorites/{{USER_ID}}-1-1-1-1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"favorites",
+								"{{USER_ID}}-1-1-1-1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📧 Emails",
+			"item": [
+				{
+					"name": "Send Welcome Email",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_email\": \"test@example.com\",\n  \"user_name\": \"Test User\",\n  \"verify_url\": \"{{API_URL}}/auth/verify-email?token=verification_token\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/emails/welcome",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"emails",
+								"welcome"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send Verification Email",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_email\": \"test@example.com\",\n  \"user_name\": \"Test User\",\n  \"reset_token\": \"verification_token\",\n  \"expires_in_hours\": 24\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/emails/verify",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"emails",
+								"verify"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Send Password Reset Email",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_email\": \"test@example.com\",\n  \"user_name\": \"Test User\",\n  \"reset_token\": \"password_reset_token\",\n  \"expires_in_hours\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/emails/password-reset",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"emails",
+								"password-reset"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Test Email Configuration",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/emails/test",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"emails",
+								"test"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Validate Email Config",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/emails/validate-config",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"emails",
+								"validate-config"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📝 Headless CMS",
+			"item": [
+				{
+					"name": "Get All CMS Content",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/cms",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"cms"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get CMS Content by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/cms/1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"cms",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create CMS Content",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom_cms_content\": \"Homepage Hero\",\n  \"des_cms_content\": {\n    \"title\": \"Bienvenido a Synkro\",\n    \"subtitle\": \"La mejor plataforma de e-commerce\",\n    \"cta_button\": {\n      \"text\": \"Empezar Ahora\",\n      \"link\": \"/products\"\n    },\n    \"background_image\": \"/images/hero-bg.jpg\"\n  },\n  \"num_version\": 1,\n  \"ind_publicado\": true\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/cms",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"cms"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update CMS Content",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nom_cms_content\": \"Homepage Hero - Updated\",\n  \"des_cms_content\": {\n    \"title\": \"¡Nueva versión de Synkro!\",\n    \"subtitle\": \"Ahora con más funcionalidades\",\n    \"cta_button\": {\n      \"text\": \"Descubrir\",\n      \"link\": \"/new-features\"\n    },\n    \"background_image\": \"/images/hero-new-bg.jpg\"\n  },\n  \"num_version\": 2,\n  \"ind_publicado\": true\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/cms/1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"cms",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete CMS Content",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/cms/1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"cms",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Comentaries",
+			"item": [
+				{
+					"name": "Get comentaries",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/comentaries",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"comentaries"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create comentary",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"id_categoria\": 1,\r\n  \"id_linea\": 1,\r\n  \"id_sublinea\": 1,\r\n  \"id_producto\": 1,\r\n  \"comentario\": \"Muy bueno\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/comentaries",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"comentaries"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deactivate comentary",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/comentaries/1-1-1-1-1099735378-2",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"comentaries",
+								"1-1-1-1-1099735378-2"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Puntos",
+			"item": [
+				{
+					"name": "Tasa Activa",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/puntos/tasa-activa",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"puntos",
+								"tasa-activa"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Actualizar Tasa Activa",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "        {\r\n            \"nuevo_pesos_por_punto\": 750,\r\n            \"descripcion\": \"Nueva promo: 1 punto por cada $750 pesos\"\r\n        }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/puntos/configuracion/activa",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"puntos",
+								"configuracion",
+								"activa"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Movimiento",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/puntos/tipos-movimientos/1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"puntos",
+								"tipos-movimientos",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Discounts",
+			"item": [
+				{
+					"name": "Get discounts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/discounts",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"discounts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create discounts",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"nom_descuento\": \"Descuento por Puntos\",\r\n  \"des_descuento\": \"Descuento del 20% canjeable por 500 puntos\",\r\n  \"tipo_calculo\": true,\r\n  \"val_porce_descuento\": 20.00,\r\n  \"val_monto_descuento\": 0,\r\n  \"aplica_a\": \"categoria_especifica\",\r\n  \"id_categoria\": 1,\r\n  \"id_linea\": 1,\r\n  \"id_sublinea\": 1,\r\n  \"id_producto_aplica\": null,\r\n  \"id_categoria_aplica\": 1,\r\n  \"id_marca_aplica\": null,\r\n  \"id_linea_aplica\": null,\r\n  \"id_sublinea_aplica\": null,\r\n  \"fec_inicio\": \"2024-12-01\",\r\n  \"fec_fin\": \"2025-01-31\",\r\n  \"max_usos_total\": 200,\r\n  \"costo_puntos_canje\": 500,\r\n  \"codigo_descuento\": \"PUNTOS20\",\r\n  \"max_usos_por_usuario\": 1,\r\n  \"dias_semana_aplica\": null,\r\n  \"horas_inicio\": null,\r\n  \"horas_fin\": null,\r\n  \"usr_insert\": 1\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/discounts",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"discounts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deactivate-activate discounts",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/discounts/1/true/deactivate-activate",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"discounts",
+								"1",
+								"true",
+								"deactivate-activate"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update discounts",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "    {\r\n        \"nom_descuento\": \"Descuento por Puntos\",\r\n        \"des_descuento\": \"Descuento del 20% canjeable por 500 puntos\",\r\n        \"tipo_calculo\": true,\r\n        \"val_porce_descuento\": \"20.00\",\r\n        \"val_monto_descuento\": \"0\",\r\n        \"aplica_a\": \"categoria_especifica\",\r\n        \"id_categoria\": \"1\",\r\n        \"id_linea\": \"1\",\r\n        \"id_sublinea\": \"1\",\r\n        \"id_producto_aplica\": null,\r\n        \"id_categoria_aplica\": \"1\",\r\n        \"id_marca_aplica\": null,\r\n        \"id_linea_aplica\": null,\r\n        \"id_sublinea_aplica\": null,\r\n        \"min_valor_pedido\": \"0.00\",\r\n        \"ind_es_para_cumpleanos\": false,\r\n        \"fec_inicio\": \"2025-07-01\",\r\n        \"fec_fin\": \"2025-12-31\",\r\n        \"ind_activo\": true,\r\n        \"max_usos_total\": 200,\r\n        \"usos_actuales_total\": 0,\r\n        \"costo_puntos_canje\": 500,\r\n        \"ind_canjeable_puntos\": true,\r\n        \"codigo_descuento\": \"PUNTOS20\",\r\n        \"max_usos_por_usuario\": 1,\r\n        \"dias_semana_aplica\": null,\r\n        \"horas_inicio\": null,\r\n        \"horas_fin\": null,\r\n        \"solo_primera_compra\": false,\r\n        \"monto_minimo_producto\": \"0.00\",\r\n        \"cantidad_minima_producto\": 1,\r\n        \"requiere_codigo\": false,\r\n        \"usr_insert\": \"1234567890\",\r\n        \"usr_update\": null,\r\n        \"fec_insert\": \"2025-07-06T20:35:57.111079\",\r\n        \"fec_update\": null\r\n    }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/discounts/3",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"discounts",
+								"3"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get discounts exchangeables",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/discounts/exchangeable/1099735379",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"discounts",
+								"exchangeable",
+								"1099735379"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Address",
+			"item": [
+				{
+					"name": "Get address",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/addresses",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"addresses"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create address",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id_usuario\": 1234567890,\n  \"nombre_direccion\": \"casa\",\n  \"calle_direccion\": \"calle 21 #32-41\",\n  \"ciudad\": \"Bucaramanga\",\n  \"departamento\": \"Santander\",\n  \"codigo_postal\": \"60880\",\n  \"barrio\": \"San Alonso\",\n  \"referencias\": \"Casa Azul\",\n  \"complemento\": \"Apartamentos\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/address",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"address"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update address",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "    {\r\n        \"id_usuario\": \"1234567890\",\r\n        \"nombre_direccion\": \"casa2\",\r\n        \"calle_direccion\": \"calle 21 #32-41\",\r\n        \"ciudad\": \"Bucaramanga\",\r\n        \"departamento\": \"Santander\",\r\n        \"codigo_postal\": \"60880\",\r\n        \"barrio\": \"San Alonso\",\r\n        \"referencias\": \"Casa Azul\",\r\n        \"complemento\": \"Apartamentos\",\r\n        \"ind_principal\": false,\r\n        \"ind_activa\": true,\r\n        \"usr_insert\": \"1234567890\",\r\n        \"usr_update\": null,\r\n        \"id_direccion\": \"2\",\r\n        \"fec_insert\": \"2025-07-07T22:19:53.275562\",\r\n        \"fec_update\": null\r\n    }",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{API_URL}}/address/2",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"address",
+								"2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Deactivate address",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/address/deactivate",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"address",
+								"deactivate"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payments",
+			"item": [
+				{
+					"name": "Add Card",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"f69ca10b3eedefb41a7666a8da26efcc\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/payments/cards",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"payments",
+								"cards"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📦 Orders",
+			"item": [
+				{
+					"name": "Get All Orders",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/orders",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"orders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/orders/1/10",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"orders",
+								"1",
+								"10"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id_usuario\": 1234567890,\n  \"id_direccion\": 1,\n  \"metodo_pago\": \"mercadopago\",\n  \"subtotal\": 100.00,\n  \"total_descuentos\": 10.00,\n  \"total_puntos_utilizados\": 0,\n  \"total_final\": 90.00\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/orders",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"orders"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🛒 Cart",
+			"item": [
+				{
+					"name": "Get All Cart Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/carrito-productos",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"carrito-productos"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Product to Cart",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id_categoria_producto\": 1,\n  \"id_linea_producto\": 1,\n  \"id_sublinea_producto\": 1,\n  \"id_producto\": 1,\n  \"cantidad\": 2,\n  \"session_id\": \"session_12345\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/carrito-productos",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"carrito-productos"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Product from Cart",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/carrito-productos/{{USER_ID}}-1-1-1-1-2",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"carrito-productos",
+								"{{USER_ID}}-1-1-1-1-2"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Migrate Anonymous Cart",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id_carrito\": 123\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/migrar",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"migrar"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Cart",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id_usuario\": {{USER_ID}},\n  \"session_id\": \"session_12345\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/carrito-usuario",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"carrito-usuario"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Calculate Cart Total",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id_usuario\": {{USER_ID}},\n  \"session_id\": \"session_12345\",\n  \"canje_puntos\": false,\n  \"puntos_a_canjear\": 0\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/calcular-total",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"calcular-total"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📊 Statistics",
+			"item": [
+				{
+					"name": "Get Products Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/estadisticas-productos",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"estadisticas-productos"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Categories Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/estadisticas-categorias",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"estadisticas-categorias"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🔄 Exchanges",
+			"item": [
+				{
+					"name": "Get All Exchanges",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/canjes",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"canjes"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Exchange Points for Discount",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id_descuento\": 1,\n  \"id_usuario\": {{USER_ID}}\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/canjes-puntos-descuento",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"canjes-puntos-descuento"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Apply Exchange to Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id_canje\": 1,\n  \"id_orden\": 1\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/aplicar-canje-orden",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"aplicar-canje-orden"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🏆 Points Per User",
+			"item": [
+				{
+					"name": "Get User Points",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							}
+						],
+						"url": {
+							"raw": "{{API_URL}}/points-per-user",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"points-per-user"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🎫 User Discounts",
+			"item": [
+				{
+					"name": "Get User Discounts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/user-discounts",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"user-discounts"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Validate Discount",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id_descuento\": 1,\n  \"id_usuario\": {{USER_ID}},\n  \"codigo_ingresado\": \"PUNTOS20\",\n  \"usr_insert\": {{USER_ID}}\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/discounts/validate",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"discounts",
+								"validate"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🏭 Order Buy Provider",
+			"item": [
+				{
+					"name": "Get All Order Buy Providers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{API_URL}}/orderbuyproviders",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"orderbuyproviders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Order Buy Provider",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id_proveedor\": 1,\n  \"fec_orden_compra\": \"2024-12-15\",\n  \"estado_orden\": \"pendiente\",\n  \"total_orden\": 1500.00,\n  \"observaciones\": \"Orden de compra para inventario de diciembre\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/orderbuyproviders",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"orderbuyproviders"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Order Buy Provider",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{TOKEN}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"estado_orden\": \"completada\",\n  \"total_orden\": 1750.00,\n  \"observaciones\": \"Orden completada y productos recibidos\"\n}"
+						},
+						"url": {
+							"raw": "{{API_URL}}/orderbuyproviders/1",
+							"host": [
+								"{{API_URL}}"
+							],
+							"path": [
+								"orderbuyproviders",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{TOKEN}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					"// Auto-refresh token if expired",
+					"if (pm.globals.get('TOKEN')) {",
+					"    // You can add token refresh logic here",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					"// Auto-extract tokens from login response",
+					"if (pm.request.url.path.includes('login') && pm.response.code === 200) {",
+					"    const response = pm.response.json();",
+					"    if (response.access_token) {",
+					"        pm.globals.set('TOKEN', response.access_token);",
+					"        pm.globals.set('REFRESH_TOKEN', response.refresh_token);",
+					"        console.log('Tokens updated automatically');",
+					"    }",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "API_URL",
+			"value": "http://127.0.0.1:8000/api",
+			"type": "string"
+		},
+		{
+			"key": "TOKEN",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "REFRESH_TOKEN",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "USER_ID",
+			"value": "1005553190",
+			"type": "string"
+		}
+	]
+}
