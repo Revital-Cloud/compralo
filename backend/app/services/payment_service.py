@@ -1,352 +1,201 @@
-import mercadopago
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from fastapi import HTTPException, status
 from typing import Dict, Any, List
 from decimal import Decimal
-import random
-import string
 
 from core.config import settings
-from schemas.payment_schema import (
-    PaymentPreferenceRequest, PaymentPreferenceResponse, MetodoPagoUsuario
-)
+from schemas.payment_schema import MetodoPagoUsuario
 from schemas.auth_schema import UserInToken
 from .user_service import get_user_by_id
+from services.wompi_service import wompi_service
 
-# --- SDK Initialization ---
-print(f"--- INICIANDO SERVICIO DE PAGO ---")
-print(f"Cargando Access Token: '{settings.MERCADOPAGO_ACCESS_TOKEN}'")
-print(f"------------------------------------")
-sdk = mercadopago.SDK(settings.MERCADOPAGO_ACCESS_TOKEN)
-
-
-# --- MercadoPago API Wrapper Functions ---
-
-def _handle_mp_response(response, success_status=200):
-    if response["status"] == success_status:
-        return response["response"]
+async def add_payment_method(db: Session, user: UserInToken, card_token: str) -> Dict[str, Any]:
+    """
+    Agrega un nuevo método de pago para el usuario usando Wompi como proveedor.
     
-    # Imprimir la respuesta completa para depuración
-    print("--- MERCADOPAGO ERROR RESPONSE ---")
+    Args:
+        db (Session): Sesión de base de datos
+        user (UserInToken): Usuario autenticado
+        card_token (str): Token de la tarjeta generado por Wompi
+        
+    Returns:
+        Dict[str, Any]: Respuesta con los datos del método de pago agregado
+        
+    Raises:
+        HTTPException: Si hay errores en la validación o en el proceso
+    """
     try:
-        import json
-        print(json.dumps(response.get("response", response), indent=2))
-    except Exception:
-        print(response.get("response", response))
-    print("----------------------------------")
-
-    error_message = response.get("response", {}).get("message", "Error desconocido de MercadoPago")
-    if "cause" in response.get("response", {}):
-        causes = response["response"]["cause"]
-        # MercadoPago a veces devuelve una lista de causas.
-        if isinstance(causes, list) and len(causes) > 0:
-            first_cause = causes[0]
-            if isinstance(first_cause, dict):
-                # Formato esperado: [{"description": "...", ...}]
-                error_message = first_cause.get("description", error_message)
-            else:
-                # Si el formato es inesperado (como una lista dentro de otra), lo mostramos como texto
-                error_message = str(first_cause)
-
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail=f"Error en MercadoPago: {error_message}"
-    )
-
-def mp_create_preference(preference_data: Dict[str, Any]) -> Dict[str, Any]:
-    preference_response = sdk.preference().create(preference_data)
-    return _handle_mp_response(preference_response, success_status=201)
-
-def mp_get_payment_info(payment_id: str) -> Dict[str, Any]:
-    payment_info = sdk.payment().get(payment_id)
-    return _handle_mp_response(payment_info)
-
-def mp_search_customer(email: str) -> List[Dict[str, Any]]:
-    customers_response = sdk.customer().search(filters={"email": email})
-    customers = _handle_mp_response(customers_response)
-    return customers.get("results", [])
-
-def mp_create_customer(user_data: Dict[str, Any]) -> Dict[str, Any]:
-    customer_response = sdk.customer().create(user_data)
-    return _handle_mp_response(customer_response, success_status=201)
-
-def mp_create_card(customer_id: str, card_token: str) -> Dict[str, Any]:
-    card_response = sdk.card().create(customer_id, {"token": card_token})
-    return _handle_mp_response(card_response, success_status=201)
-
-def mp_update_customer(customer_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    response = sdk.customer().update(customer_id, data)
-    return _handle_mp_response(response)
-
-def mp_delete_card(customer_id: str, card_id: str) -> Dict[str, Any]:
-    response = sdk.card().delete(customer_id, card_id)
-    return _handle_mp_response(response)
-
-def mp_update_customer_default_card(customer_id: str, card_id: str) -> Dict[str, Any]:
-    response = sdk.customer().update(customer_id, {"default_card": card_id})
-    return _handle_mp_response(response)
-
-
-# --- Business Logic Functions ---
-
-def create_payment_preference(
-    db: Session,
-    preference_request: PaymentPreferenceRequest,
-    id_orden: int,
-    id_usuario: int
-) -> PaymentPreferenceResponse:
-    
-    items_list = [item.model_dump() for item in preference_request.items]
-    total_amount = sum(item['quantity'] * item['unit_price'] for item in items_list)
-    
-    for item in items_list:
-        item['unit_price'] = float(item['unit_price'])
-
-    payer_data = preference_request.payer.model_dump()
-    back_urls_data = preference_request.back_urls.model_dump()
-
-    preference_payload = {
-        "items": items_list,
-        "payer": payer_data,
-        "back_urls": back_urls_data,
-        "notification_url": preference_request.notification_url,
-        "external_reference": str(id_orden),
-        "metadata": {"id_orden": id_orden, "id_usuario": id_usuario}
-    }
-
-    mp_preference = mp_create_preference(preference_payload)
-    
-    params_crear_pago = {
-        "p_id_orden": id_orden,
-        "p_provider_name": "mercadopago",
-        "p_provider_preference_id": mp_preference["id"],
-        "p_amount": total_amount,
-        "p_status": "pending",
-        "p_usr_operacion": id_usuario
-    }
-    query_crear = text("""
-        SELECT fun_crear_pago(
-            :p_id_orden, :p_provider_name, :p_provider_preference_id, 
-            :p_amount, :p_status, :p_usr_operacion
+        # Crear fuente de pago en Wompi
+        wompi_response = await wompi_service.create_payment_source(
+            user_email=user.email_usuario,
+            card_token=card_token
         )
-    """)
-    result = db.execute(query_crear, params_crear_pago).fetchone()
-    db.commit()
+        
+        # Validar la respuesta de Wompi
+        wompi_data = wompi_response.get("data")
+        if not wompi_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Wompi no devolvió datos para la fuente de pago"
+            )
 
-    if not result or not result[0]['success']:
-            raise HTTPException(status_code=400, detail=result[0]['message'] if result else "Error al registrar el intento de pago.")
+        # Obtener los datos públicos de la tarjeta
+        public_data = wompi_data.get("public_data")
+        if not public_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La respuesta de Wompi no contiene los datos de la tarjeta"
+            )
 
-    return PaymentPreferenceResponse(id=mp_preference["id"], init_point=mp_preference["init_point"])
+        # Validar datos requeridos
+        provider_source_id = wompi_data.get("id")
+        last_four = public_data.get("last_four")
+        if not provider_source_id or not last_four:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Faltan datos requeridos de la tarjeta"
+            )
 
-async def handle_webhook(db: Session, notification: Dict[str, Any]):
-    if notification.get("type") != "payment":
-        return {"status": "notification not related to payment"}
-    
-    payment_id = notification.get("data", {}).get("id")
-    if not payment_id: 
-        return {"status": "no payment id in notification"}
-
-    try:
-        payment_info = mp_get_payment_info(payment_id)
-        if not payment_info: return {"status": f"payment info for {payment_id} not found"}
-
-        id_orden = payment_info.get("metadata", {}).get("id_orden")
-        id_usuario = payment_info.get("metadata", {}).get("id_usuario")
-
-        if not id_orden or not id_usuario:
-                return {"status": "error, metadata missing in payment info"}
-
-        fee_details = payment_info.get('fee_details', [])
-        fee_amount = sum(Decimal(fee['amount']) for fee in fee_details if fee.get('type') == 'mercadopago_fee')
-
-        params_actualizar = {
-            "p_provider_payment_id": payment_info['id'],
-            "p_status": payment_info['status'],
-            "p_status_detail": payment_info['status_detail'],
-            "p_payment_method_id": payment_info['payment_method_id'],
-            "p_payment_type_id": payment_info['payment_type_id'],
-            "p_fee_amount": fee_amount,
-            "p_net_received_amount": Decimal(payment_info['transaction_details']['net_received_amount']),
-            "p_provider_date_approved": payment_info.get('date_approved'),
-            "p_raw_response": payment_info,
-            "p_usr_operacion": id_usuario
-        }
-        query_actualizar = text("""
-            SELECT fun_actualizar_pago(
-                :p_provider_payment_id, :p_status, :p_status_detail, :p_payment_method_id,
-                :p_payment_type_id, :p_fee_amount, :p_net_received_amount, 
-                :p_provider_date_approved, :p_raw_response, :p_usr_operacion
+        # Extraer y convertir los datos necesarios
+        exp_month = int(public_data.get("exp_month", 0))
+        exp_year = int(public_data.get("exp_year", 0))
+        
+        # Llamar a la función de base de datos usando el formato que funciona
+        query = text("""
+            SELECT fun_agregar_metodo_pago(
+                :id_usuario,
+                :provider_name,
+                :provider_source_id,
+                :brand,
+                :last_four_digits,
+                :expiration_month,
+                :expiration_year,
+                :card_holder,
+                :usr_operacion
             )
         """)
-        db.execute(query_actualizar, params_actualizar)
         
-        if payment_info['status'] == 'approved':
-            params_marcar = {
-                "p_id_orden": id_orden,
-                "p_metodo_pago": "mercadopago",
-                "p_referencia_pago": payment_info['id'],
-                "p_monto_pagado": Decimal(payment_info['transaction_amount']),
-                "p_observaciones": f"Pago via MP. Detalle: {payment_info['status_detail']}",
-                "p_usr_operacion": id_usuario
+        result = db.execute(
+            query,
+            {
+                "id_usuario": str(user.id_usuario),  # Convertir a string para que PostgreSQL lo maneje
+                "provider_name": "wompi",
+                "provider_source_id": str(provider_source_id),  # Convertir a string
+                "brand": public_data.get("brand"),
+                "last_four_digits": last_four,
+                "expiration_month": exp_month,
+                "expiration_year": exp_year,
+                "card_holder": public_data.get("card_holder"),
+                "usr_operacion": str(user.id_usuario)  # Convertir a string
             }
-            query_marcar = text("""
-                SELECT FROM fun_marcar_orden_pagada(
-                    :p_id_orden, :p_metodo_pago, :p_referencia_pago, :p_monto_pagado,
-                    :p_observaciones, :p_usr_operacion
-                )
-            """)
-            db.execute(query_marcar, params_marcar)
+        ).fetchone()
+
+        if not result or not result[0]:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al procesar la respuesta de la base de datos"
+            )
+
+        db_response = result[0]
+        
+        # Validar la respuesta de la función
+        if not db_response.get("success"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=db_response.get("message", "Error al agregar método de pago")
+            )
 
         db.commit()
+        return db_response
+
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"Error inesperado al agregar método de pago: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error inesperado al agregar método de pago"
+        )
+
+def list_payment_methods(db: Session, id_usuario: int) -> List[MetodoPagoUsuario]:
+    """
+    Lista los métodos de pago guardados de un usuario.
+    
+    Args:
+        db (Session): Sesión de base de datos
+        id_usuario (int): ID del usuario
+        
+    Returns:
+        List[MetodoPagoUsuario]: Lista de métodos de pago del usuario
+    """
+    try:
+        query = text("""
+            SELECT 
+                id_metodo_pago,
+                id_usuario,
+                provider_name,
+                provider_source_id,
+                brand,
+                last_four_digits,
+                expiration_month,
+                expiration_year,
+                card_holder,
+                is_default,
+                usr_insert,
+                fec_insert,
+                usr_update,
+                fec_update
+            FROM tab_metodos_pago_usuario
+            WHERE id_usuario = :id_usuario
+            ORDER BY is_default DESC, id_metodo_pago DESC
+        """)
+        
+        result = db.execute(query, {"id_usuario": id_usuario})
+        return [MetodoPagoUsuario(**row._mapping) for row in result]
+        
+    except Exception as e:
+        print(f"Error al listar métodos de pago: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al listar métodos de pago: {str(e)}"
+        )
+
+def delete_payment_method(db: Session, user: UserInToken, id_metodo_pago: int):
+    try:
+        query = text("SELECT fun_eliminar_metodo_pago(:id_usuario, :id_metodo_pago)")
+        result = db.execute(query, {
+            "id_usuario": user.id_usuario,
+            "id_metodo_pago": id_metodo_pago
+        }).fetchone()
+        
+        if not result or not result[0]:
+            raise HTTPException(status_code=404, detail="Método de pago no encontrado.")
+        
+        db.commit()
+        return result[0]
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error al eliminar método de pago: {str(e)}")
+
+def set_default_payment_method(db: Session, user: UserInToken, id_metodo_pago: int) -> Dict[str, Any]:
+    try:
+        query = text("SELECT fun_actualizar_metodo_pago_default(:id_usuario, :id_metodo_pago, :usr_operacion)")
+        result = db.execute(query, {
+            "id_usuario": user.id_usuario,
+            "id_metodo_pago": id_metodo_pago,
+            "usr_operacion": user.id_usuario
+        }).fetchone()
+
+        if not result or not result[0]:
+            raise HTTPException(status_code=404, detail="Método de pago no encontrado.")
+
+        db.commit()
+        return result[0]
 
     except Exception as e:
         db.rollback()
-        print(f"Error handling webhook: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error processing webhook")
-
-    return {"status": "webhook processed successfully"}
-    
-def _get_or_create_mp_customer_id(db: Session, user: UserInToken) -> str:
-    db_user = get_user_by_id(db, user.id_usuario)
-    if not db_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
-
-    # Siempre verificamos con MercadoPago para evitar datos desactualizados.
-    customers = mp_search_customer(db_user.email_usuario)
-    customer_id = None
-
-    if customers and len(customers) > 0:
-        found_customer = customers[0]
-        customer_id = found_customer.get('id')
-
-        # Si el cliente existe pero está incompleto, lo actualizamos.
-        if not (found_customer.get('identification') and found_customer.get('identification').get('number')):
-            print(f"Cliente MP encontrado ({customer_id}), pero incompleto. Actualizándolo con documento.")
-            update_data = {
-                "identification": {
-                    "type": "CC",
-                    "number": str(db_user.id_usuario)
-                }
-            }
-            try:
-                mp_update_customer(customer_id, update_data)
-                print(f"Cliente MP {customer_id} actualizado con documento.")
-            except Exception as e:
-                print(f"FALLO LA ACTUALIZACIÓN DEL CLIENTE: {e}")
-                raise
-        else:
-             print(f"Cliente MP VÁLIDO encontrado vía API: {customer_id}")
-
-    if not customer_id:
-        print(f"No se encontró cliente MP. Creando uno nuevo con documento.")
-        customer_data = {
-            "email": db_user.email_usuario,
-            "first_name": db_user.nom_usuario,
-            "last_name": db_user.ape_usuario,
-            "identification": {
-                "type": "CC",
-                "number": str(db_user.id_usuario)
-            }
-        }
-        try:
-            new_customer = mp_create_customer(customer_data)
-            customer_id = new_customer.get('id')
-            print(f"Nuevo cliente MP creado con ID: {customer_id}")
-        except HTTPException as e:
-            print(f"Error al crear cliente en MP: {e.detail}")
-            raise e
-
-    if not customer_id:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="No se pudo obtener o crear un ID de cliente en MercadoPago.")
-
-    print(f"Actualizando usuario {user.id_usuario} en BD con el ID de cliente MP: {customer_id}")
-    query = text("SELECT fun_update_mp_usuario_id(:p_id_usuario, :p_mp_usuario_id)")
-    params = {
-        "p_id_usuario": user.id_usuario,
-        "p_mp_usuario_id": customer_id
-    }
-    db.execute(query, params)
-    db.commit()
-
-    return customer_id
-
-def add_payment_method(db: Session, user: UserInToken, card_token: str) -> Dict[str, Any]:
-    customer_id = _get_or_create_mp_customer_id(db, user)
-
-    new_card = mp_create_card(customer_id, card_token)
-
-    params = {
-        "p_id_usuario": user.id_usuario,
-        "p_provider_name": "mercadopago",
-        "p_provider_card_id": new_card["id"],
-        "p_brand": new_card["payment_method"]["name"],
-        "p_last_four_digits": new_card["last_four_digits"],
-        "p_expiration_month": new_card["expiration_month"],
-        "p_expiration_year": new_card["expiration_year"],
-        "p_usr_operacion": user.id_usuario
-    }
-    
-    query = text("""
-        SELECT fun_agregar_metodo_pago(
-            :p_id_usuario, :p_provider_name, :p_provider_card_id, :p_brand, 
-            :p_last_four_digits, :p_expiration_month, :p_expiration_year, :p_usr_operacion
-        )
-    """)
-    result = db.execute(query, params).fetchone()
-    db.commit()
-
-    if not result or not result[0]['success']:
-        raise HTTPException(status_code=400, detail=result[0]['message'] if result else "Error al guardar el método de pago.")
-    
-    return result[0]
-
-def list_payment_methods(db: Session, id_usuario: int) -> List[MetodoPagoUsuario]:
-    query = text("SELECT fun_listar_metodos_pago(:p_id_usuario)")
-    results = db.execute(query, {"p_id_usuario": id_usuario}).fetchall()
-    return [MetodoPagoUsuario.model_validate(row, from_attributes=True) for row in results]
-
-def delete_payment_method(db: Session, user: UserInToken, id_metodo_pago: int):
-    query_get_card = text("SELECT provider_card_id FROM tab_metodos_pago_usuario WHERE id_metodo_pago = :id AND id_usuario = :uid")
-    card_to_delete = db.execute(query_get_card, {"id": id_metodo_pago, "uid": user.id_usuario}).fetchone()
-    
-    if not card_to_delete:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Método de pago no encontrado para este usuario.")
-
-    provider_card_id = card_to_delete[0]
-    customer_id = _get_or_create_mp_customer_id(db, user)
-    mp_delete_card(customer_id, provider_card_id)
-
-    query = text("SELECT fun_eliminar_metodo_pago(:p_id_usuario, :p_id_metodo_pago)")
-    result = db.execute(query, {"p_id_usuario": user.id_usuario, "p_id_metodo_pago": id_metodo_pago}).fetchone()
-    db.commit()
-
-    if not result or not result[0]['success']:
-        raise HTTPException(status_code=400, detail=result[0]['message'] if result else "Error al eliminar el método de pago.")
-    
-    return result[0]
-
-def set_default_payment_method(db: Session, user: UserInToken, id_metodo_pago: int) -> Dict[str, Any]:
-    query_get_card = text("SELECT provider_card_id FROM tab_metodos_pago_usuario WHERE id_metodo_pago = :id AND id_usuario = :uid")
-    card_to_set = db.execute(query_get_card, {"id": id_metodo_pago, "uid": user.id_usuario}).fetchone()
-    
-    if not card_to_set:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Método de pago no encontrado.")
-
-    provider_card_id = card_to_set[0]
-    customer_id = _get_or_create_mp_customer_id(db, user)
-    mp_update_customer_default_card(customer_id, provider_card_id)
-
-    query = text("SELECT fun_actualizar_metodo_pago_default(:p_id_usuario, :p_id_metodo_pago, :p_usr_operacion)")
-    params = {
-        "p_id_usuario": user.id_usuario,
-        "p_id_metodo_pago": id_metodo_pago,
-        "p_usr_operacion": user.id_usuario
-    }
-    result = db.execute(query, params).fetchone()
-    db.commit()
-
-    if not result or not result[0]['success']:
-        raise HTTPException(status_code=400, detail=result[0]['message'] if result else "Error al actualizar el método de pago.")
-        
-    return result[0] 
+        raise HTTPException(status_code=500, detail=f"Error al establecer método de pago por defecto: {str(e)}") 

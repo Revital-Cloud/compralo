@@ -5,7 +5,7 @@ Define los endpoints relacionados con la autenticación de usuarios,
 incluyendo login, refresh de tokens, cambio de contraseña y obtención
 de información del usuario actual.
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
@@ -161,6 +161,7 @@ async def verify_token(
 @router.post("/send-verification-email")
 async def send_verification_email(
     user_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user)
 ):
@@ -201,17 +202,12 @@ async def send_verification_email(
         
         # Importar y usar la función de email
         from services.email_service import send_verification_email
-        success = await send_verification_email(
+        background_tasks.add_task(
+            send_verification_email,
             user_email=user.email_usuario,
             user_name=user.nom_usuario,
             verification_token=verification_token
         )
-        
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Error al enviar email de verificación"
-            )
         
         return {
             "message": "Email de verificación enviado exitosamente",
@@ -288,6 +284,7 @@ async def verify_email_endpoint(
 @router.post("/forgot-password", response_model=ResponseMessage)
 async def forgot_password(
     request: ResetPasswordRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -320,7 +317,8 @@ async def forgot_password(
             
             # Enviar email de reset
             from services.email_service import send_password_reset_email
-            await send_password_reset_email(
+            background_tasks.add_task(
+                send_password_reset_email,
                 user_email=user.email_usuario,
                 user_name=user.nom_usuario,
                 reset_token=reset_token
@@ -348,6 +346,7 @@ async def forgot_password(
 @router.post("/reset-password", response_model=ResponseMessage)
 async def reset_password(
     reset_data: ResetPasswordConfirm,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -391,12 +390,11 @@ async def reset_password(
         
         # Enviar email de confirmación
         from services.email_service import send_password_changed_email
-        from fastapi import Request
-        # request: Request = None  # Obtener IP para logs
-        await send_password_changed_email(
+        background_tasks.add_task(
+            send_password_changed_email,
             user_email=user.email_usuario,
             user_name=user.nom_usuario,
-            ip_address=None  # request.client.host if request else None
+            ip_address=None
         )
         
         logger.info(f"Password successfully reset for user: {email}")

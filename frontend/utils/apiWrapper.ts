@@ -51,6 +51,7 @@ function setupInterceptors(instance: AxiosInstance): void {
   // Interceptor de REQUEST: Agregar token de autenticación automáticamente
   instance.interceptors.request.use(
     (config) => {
+      // Leer el token en cada petición para asegurar que siempre esté actualizado
       const token = getStoredToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;

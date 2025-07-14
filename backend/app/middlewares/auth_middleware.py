@@ -53,6 +53,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         method = request.method
         
+        # Permitir que las solicitudes OPTIONS de pre-vuelo de CORS pasen sin autenticación
+        if method == "OPTIONS":
+            return await call_next(request)
+
         # Verificar si la ruta necesita protección
         needs_auth = any(path.startswith(protected_path) for protected_path in self.protected_paths)
         

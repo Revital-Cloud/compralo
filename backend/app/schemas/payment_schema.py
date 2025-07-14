@@ -6,6 +6,8 @@ relacionadas con la pasarela de pago (Wompi) y la gestión de tarjetas.
 """
 from pydantic import BaseModel, Field
 from typing import Optional
+from decimal import Decimal
+from datetime import datetime
 
 # ==============================================================================
 # SCHEMAS PARA MÉTODOS DE PAGO (GUARDAR TARJETA)
@@ -30,6 +32,38 @@ class PaymentMethodResponse(BaseModel):
     last_four_digits: str = Field(..., description="Últimos cuatro dígitos de la tarjeta.")
     card_holder: Optional[str] = Field(None, description="Nombre del titular de la tarjeta.")
     is_default: bool = Field(..., description="Indica si es el método de pago por defecto.")
+
+    class Config:
+        from_attributes = True
+
+class MetodoPagoUsuario(BaseModel):
+    """
+    Esquema para representar un método de pago guardado en la base de datos.
+    Corresponde a la tabla tab_metodos_pago_usuario.
+    """
+    # Campos de identificación
+    id_metodo_pago: int = Field(..., description="ID interno del método de pago")
+    id_usuario: Decimal = Field(..., description="ID del usuario dueño del método de pago")
+
+    # Información del proveedor
+    provider_name: str = Field(default="wompi", description="Nombre del proveedor de pagos (por defecto: 'wompi')")
+    provider_source_id: str = Field(..., description="ID de la fuente de pago en el proveedor")
+
+    # Detalles de la tarjeta
+    brand: Optional[str] = Field(None, description="Marca de la tarjeta (ej. VISA, MASTERCARD)")
+    last_four_digits: Optional[str] = Field(None, description="Últimos 4 dígitos de la tarjeta")
+    expiration_month: Optional[int] = Field(None, description="Mes de expiración")
+    expiration_year: Optional[int] = Field(None, description="Año de expiración")
+    card_holder: Optional[str] = Field(None, description="Nombre del titular de la tarjeta")
+
+    # Control y Estado
+    is_default: bool = Field(default=False, description="Indica si es el método de pago por defecto")
+
+    # Campos de auditoría
+    usr_insert: Decimal = Field(..., description="Usuario que insertó el registro")
+    fec_insert: datetime = Field(default_factory=datetime.now, description="Fecha de inserción del registro")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro")
+    fec_update: Optional[datetime] = Field(None, description="Fecha de actualización del registro")
 
     class Config:
         from_attributes = True

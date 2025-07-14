@@ -39,7 +39,6 @@ class UserBase(BaseModel):
     cel_usuario: str = Field(..., description="Número de celular del usuario.")
     fec_nacimiento: Optional[str] = Field(None, description="Fecha de nacimiento del usuario.")
     ind_activo: Optional[bool] = Field(None, description="Indica si el usuario está activo.")
-    mp_usuario_id: Optional[str] = Field(None, description="Identificador de usuario en Mercado Pago.")
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
     
     class Config:
