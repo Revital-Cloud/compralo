@@ -36,21 +36,21 @@ const NewDropsSection = () => {
   const visibleProducts = newDropsProducts.slice(currentIndex, currentIndex + itemsPerPage);
 
   return (
-    <section className="bg-gray-50 dark:bg-gray-900 py-16 px-4 transition-colors duration-300">
+    <section className="bg-secondary py-16 px-4 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 transition-colors duration-300">
+            <h2 className="text-4xl font-bold text-foreground mb-2 transition-colors duration-300">
               DON'T MISS OUT
             </h2>
-            <h3 className="text-4xl font-bold text-gray-900 dark:text-white transition-colors duration-300">
+            <h3 className="text-4xl font-bold text-foreground transition-colors duration-300">
               NEW DROPS
             </h3>
           </div>
           <Button 
             variant="default"
-            className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-6 py-2 rounded-md transition-all duration-300"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-md transition-all duration-300"
           >
             SHOP NEW DROPS
           </Button>
@@ -60,19 +60,19 @@ const NewDropsSection = () => {
         <div className="relative">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {visibleProducts.map((product, index) => (
-              <Card key={product.id} className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-sm hover:shadow-md dark:shadow-gray-900/25 transition-all duration-300 border border-gray-200 dark:border-gray-700">
+              <Card key={product.id} className="bg-card rounded-2xl overflow-hidden shadow-sm hover:shadow-md dark:shadow-gray-900/25 transition-all duration-300 border-border">
                 <CardContent className="p-6">
                   {/* Product Badge */}
                   {product.badge && (
                     <div className="flex justify-start mb-4">
-                      <Badge className="bg-blue-600 dark:bg-blue-500 text-white text-xs px-3 py-1 rounded-full transition-colors duration-300">
+                      <Badge className="bg-primary text-primary-foreground text-xs px-3 py-1 rounded-full transition-colors duration-300">
                         {product.badge}
                       </Badge>
                     </div>
                   )}
 
                   {/* Product Image */}
-                  <div className="relative mb-6 bg-gray-100 dark:bg-gray-700 rounded-xl aspect-square flex items-center justify-center transition-colors duration-300">
+                  <div className="relative mb-6 bg-secondary rounded-xl aspect-square flex items-center justify-center transition-colors duration-300">
                     <img
                       src={product.image}
                       alt={product.name}
@@ -82,7 +82,7 @@ const NewDropsSection = () => {
 
                   {/* Product Info */}
                   <div className="space-y-3">
-                    <h4 className="font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wide leading-tight transition-colors duration-300">
+                    <h4 className="font-bold text-sm text-foreground uppercase tracking-wide leading-tight transition-colors duration-300">
                       {product.name}
                     </h4>
                     
@@ -95,11 +95,11 @@ const NewDropsSection = () => {
                             className={`w-4 h-4 ${
                               i < Math.floor(product.rating!)
                                 ? "text-yellow-400 fill-current"
-                                : "text-gray-300"
+                                : "text-muted-foreground"
                             }`}
                           />
                         ))}
-                        <span className="text-sm text-gray-600 dark:text-gray-300 ml-1 transition-colors duration-300">
+                        <span className="text-sm text-muted-foreground ml-1 transition-colors duration-300">
                           ({product.rating})
                         </span>
                       </div>
@@ -107,11 +107,11 @@ const NewDropsSection = () => {
 
                     {/* Pricing */}
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-lg text-gray-900 dark:text-white transition-colors duration-300">
+                      <span className="font-bold text-lg text-foreground transition-colors duration-300">
                         ${product.price}
                       </span>
                       {product.originalPrice && (
-                        <span className="text-sm text-gray-500 dark:text-gray-400 line-through transition-colors duration-300">
+                        <span className="text-sm text-muted-foreground line-through transition-colors duration-300">
                           ${product.originalPrice}
                         </span>
                       )}
@@ -122,7 +122,7 @@ const NewDropsSection = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 p-0 h-auto font-medium transition-colors duration-300"
+                        className="text-primary hover:text-primary/90 p-0 h-auto font-medium transition-colors duration-300"
                       >
                         <Eye className="w-4 h-4 mr-2" />
                         VIEW PRODUCT - ${product.price}
@@ -140,17 +140,17 @@ const NewDropsSection = () => {
               <button
                 onClick={prevSlide}
                 disabled={currentIndex === 0}
-                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-white dark:bg-gray-800 rounded-full shadow-lg dark:shadow-gray-900/25 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 border border-gray-200 dark:border-gray-600"
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 w-10 h-10 bg-card rounded-full shadow-lg dark:shadow-gray-900/25 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-card/80 transition-all duration-300 border-border"
               >
-                <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300 transition-colors duration-300" />
+                <ChevronLeft className="w-5 h-5 text-foreground/80 transition-colors duration-300" />
               </button>
               
               <button
                 onClick={nextSlide}
                 disabled={currentIndex >= maxIndex}
-                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-white dark:bg-gray-800 rounded-full shadow-lg dark:shadow-gray-900/25 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 border border-gray-200 dark:border-gray-600"
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 w-10 h-10 bg-card rounded-full shadow-lg dark:shadow-gray-900/25 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-card/80 transition-all duration-300 border-border"
               >
-                <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300 transition-colors duration-300" />
+                <ChevronRight className="w-5 h-5 text-foreground/80 transition-colors duration-300" />
               </button>
             </>
           )}

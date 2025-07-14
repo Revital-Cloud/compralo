@@ -15,7 +15,7 @@ const CopyrightSection: React.FC<CopyrightSectionProps> = ({
 
   return (
     <div className="text-center text-sm">
-      <p className="leading-relaxed text-gray-300 dark:text-gray-400">
+      <p className="leading-relaxed text-secondary-foreground/80">
         &copy; {currentYear} {companyName}. Todos los derechos reservados.
         <span className="block sm:inline sm:ml-2 mt-1 sm:mt-0">{customMessage}</span>
       </p>

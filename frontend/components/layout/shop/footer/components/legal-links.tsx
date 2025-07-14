@@ -26,7 +26,7 @@ const LegalLinks: React.FC<LegalLinksProps> = ({ links = defaultLegalLinks }) =>
         <Link 
           key={index}
           href={link.href} 
-          className="text-gray-300 dark:text-gray-400 hover:text-blue-400 dark:hover:text-white transition-colors py-1"
+          className="text-secondary-foreground/80 hover:text-primary transition-colors py-1"
         >
           {link.label}
         </Link>

@@ -5,17 +5,15 @@ import * as React from "react"
 interface ProductInfoProps {
   name: string
   subtitle: string
-  textColor?: string
   isMobile?: boolean
 }
 
 const ProductInfo: React.FC<ProductInfoProps> = ({ 
   name, 
   subtitle, 
-  textColor = "text-white dark:text-white",
   isMobile = false
 }) => (
-  <div className={`space-y-3 sm:space-y-4 ${textColor} ${isMobile ? 'text-center' : ''}`}>
+  <div className={`space-y-3 sm:space-y-4 ${isMobile ? 'text-center' : ''}`}>
     <h1 className={`font-black leading-tight tracking-tight ${
       isMobile 
         ? "text-3xl sm:text-4xl md:text-5xl" 
