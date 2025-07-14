@@ -23,6 +23,43 @@ backend/
 
 A continuación, se detalla el contenido y la función de cada parte del proyecto.
 
+## Arquitectura de Alto Nivel y Flujo de Datos
+
+Antes de sumergirnos en cada carpeta, es importante entender la arquitectura general del backend y cómo fluyen los datos en una petición típica. Esto nos dará un mapa mental para navegar el resto del código.
+
+### El Punto de Entrada: `main.py`
+Todo comienza en el archivo `main.py`. Este es el corazón de la aplicación, donde todas las piezas se unen:
+1.  **Se crea la instancia de FastAPI:** `app = FastAPI(...)`.
+2.  **Se añaden los Middlewares:** Se registran los middlewares globales, como `CORSMiddleware` (para permitir que el frontend se comunique con el backend) y nuestro `AuthMiddleware` (la primera capa de seguridad).
+3.  **Se incluyen los Routers:** Cada archivo de la carpeta `routers` (ej: `product_router`, `user_router`) se importa y se incluye en la aplicación principal con `app.include_router(...)`. Aquí es donde la API cobra vida, registrando todos los endpoints.
+
+### Arquitectura en Capas (El Flujo de una Petición)
+Seguimos un patrón de **arquitectura en capas**, que es un estándar en el desarrollo de software por su organización y claridad. Una petición del usuario atraviesa estas capas en orden:
+
+`Cliente (Navegador)  ->  Router  ->  Servicio  ->  Base de Datos`
+
+1.  **Capa de Routers (`app/routers`):**
+    -   **Responsabilidad:** Gestionar las peticiones y respuestas HTTP. Es la "cara" pública de la API.
+    -   **Tareas:** Define las rutas (`/products/{id}`), los métodos (`GET`, `POST`), valida los datos de entrada usando los **Esquemas Pydantic** (`app/schemas`) y gestiona la seguridad a nivel de endpoint usando **Dependencias** (`app/core/dependencies.py`).
+    -   **NO contiene lógica de negocio.** Un router es un "controlador de tráfico": recibe una petición, la valida y la pasa a la capa de servicio adecuada.
+
+2.  **Capa de Servicios (`app/services`):**
+    -   **Responsabilidad:** Contener toda la **lógica de negocio**. Es el "cerebro" de la aplicación.
+    -   **Tareas:** Orquesta las operaciones. Por ejemplo, un `order_service` no solo crea una orden, sino que también verifica el stock, aplica descuentos, llama al `email_service` para enviar una confirmación, etc. Es aquí donde se toman las decisiones.
+
+3.  **Capa de Acceso a Datos (SQLAlchemy y Funciones de la Base de Datos):**
+    -   **Responsabilidad:** Interactuar con la base de datos PostgreSQL.
+    -   **Tareas:** Los servicios utilizan **SQLAlchemy** (nuestro ORM) para ejecutar consultas. Un patrón muy importante en nuestro proyecto es que la lógica transaccional más compleja (como crear una orden o un descuento) no se escribe en Python, sino que se delega a **Funciones Almacenadas en PostgreSQL** (ej: `fun_crear_orden_desde_carrito`). El servicio simplemente llama a esta función, lo que garantiza que operaciones de múltiples pasos sean **atómicas** (o todo tiene éxito, o todo se revierte) y eficientes.
+
+### El Modelo SaaS: Instancia Aislada
+Es crucial recordar que esta arquitectura está diseñada para un modelo SaaS de **deployment aislado**.
+-   **Sin `tenant_id`:** No verás lógica de "tenants" o inquilinos en el código. No hay `WHERE tenant_id = '...'`.
+-   **Configuración por Instancia:** Toda la personalización de un cliente (nombre de la tienda, claves de API de Wompi, etc.) se gestiona a través de variables de entorno cargadas por `config.py` desde un archivo `.env`.
+-   **Base de Datos Dedicada:** Cada cliente tiene su propia base de datos, definida en la variable `DATABASE_URL` de su `.env`.
+-   **Consecuencia:** Esto simplifica enormemente el desarrollo. Podemos escribir el código como si fuera para una única aplicación, y la separación entre clientes se logra a nivel de infraestructura, no de código.
+
+Con este mapa en mente, ahora podemos explorar cada carpeta sabiendo qué rol juega en el gran esquema de la aplicación.
+
 ## 1. Carpeta `app/core`
 
 Esta carpeta es el corazón de la configuración de nuestra aplicación FastAPI. Define los parámetros esenciales que permiten que el resto de la aplicación funcione correctamente.
@@ -543,4 +580,178 @@ Este es el sistema de comunicaciones de la aplicación. Su responsabilidad es en
 5.  `email_service` toma ese HTML, lo empaqueta en un `EmailSend` y llama a `send_basic_email()`.
 6.  `send_basic_email` se conecta a la API de Resend y envía el correo.
 
-Esta arquitectura es muy robusta: la lógica de presentación (HTML) está separada de la lógica de envío, y ambas están separadas de la lógica de negocio que decide *cuándo* enviar el correo. 
+Esta arquitectura es muy robusta: la lógica de presentación (HTML) está separada de la lógica de envío, y ambas están separadas de la lógica de negocio que decide *cuándo* enviar el correo.
+
+---
+
+### 5.3. Servicio Detallado: `payment_service.py` y `wompi_service.py`
+
+Este es el sistema encargado de todo lo relacionado con los pagos. Al igual que el servicio de email, está dividido en dos capas:
+-   **`wompi_service.py`**: Una capa de bajo nivel que se comunica **directamente** con la API de la pasarela de pagos Wompi.
+-   **`payment_service.py`**: Una capa de lógica de negocio que utiliza el `wompi_service` y se comunica con nuestra base de datos para gestionar los métodos de pago del usuario.
+
+#### **`wompi_service.py`: El Adaptador de Wompi**
+
+**Propósito:** Encapsular toda la complejidad de la comunicación con la API de Wompi. Si en el futuro quisiéramos añadir otra pasarela de pago como Mercado Pago, solo tendríamos que crear un `mercadopago_service.py` similar, y el resto de la aplicación no se vería afectada.
+
+**Clase `WompiService`:**
+-   **`__init__(self)`:** En el constructor, inicializa la URL base de la API de Wompi (usando el entorno `sandbox` o `producción` desde la configuración) y las cabeceras HTTP necesarias, incluyendo la `WOMPI_PRIVATE_KEY` para la autenticación.
+-   **`_request(...)`:** Una función auxiliar privada y genérica para realizar peticiones a Wompi. Centraliza el manejo de errores, el logging y la construcción de URLs, manteniendo el resto del código limpio.
+-   **`get_acceptance_token()`:** Una función crucial. Para poder guardar una tarjeta (tokenizarla), Wompi exige un "token de aceptación" que certifica que el usuario ha aceptado los términos y condiciones. Esta función obtiene dicho token consultando los datos del comercio.
+-   **`create_payment_source(...)`:** Esta es la función para **guardar una tarjeta de forma segura**.
+    1.  Primero, llama a `get_acceptance_token()` para obtener el permiso necesario.
+    2.  Luego, hace una petición a Wompi para crear una "fuente de pago". Le envía el `card_token` (un token de un solo uso que el frontend de Wompi genera), el email del cliente y el token de aceptación.
+    3.  Wompi procesa esto, guarda la tarjeta en su bóveda segura y nos devuelve un ID permanente para esa tarjeta (ej: `src_prod_123abc`). **Nosotros nunca vemos ni almacenamos el número de tarjeta completo.**
+-   **`create_transaction(...)`:** Esta función se usaría para realizar un cobro. Toma el monto, el email, la referencia del pedido y, lo más importante, el `payment_source_id` que obtuvimos al guardar la tarjeta. Le dice a Wompi: "Cobra X cantidad a la tarjeta asociada con este ID".
+
+#### **`payment_service.py`: El Gestor de Pagos del Usuario**
+
+**Propósito:** Orquestar el proceso de añadir y gestionar los métodos de pago de un usuario, conectando la lógica de Wompi con nuestra base de datos.
+
+**Funciones Principales:**
+-   **`add_payment_method(db, user, card_token, brand)`:**
+    1.  Llama a `wompi_service.create_payment_source()` para guardar la tarjeta en Wompi.
+    2.  Si Wompi responde con éxito, extrae los datos importantes: el `provider_source_id` (el ID de la tarjeta en Wompi), los últimos 4 dígitos, el mes/año de expiración, etc.
+    3.  Llama a una **función de la base de datos** (`fun_agregar_metodo_pago`) pasándole estos datos. Esta es una decisión de diseño interesante: en lugar de escribir la lógica SQL con SQLAlchemy en el servicio, se delega a una función almacenada en PostgreSQL. Esto puede ser útil para centralizar lógica de base de datos compleja.
+    4.  La función de la base de datos inserta el nuevo método de pago en la tabla `tab_metodos_pago_usuario`, asociándolo al `id_usuario`.
+    5.  Si todo es correcto, hace un `db.commit()` para guardar los cambios. Si algo falla (ya sea en Wompi o en la DB), hace un `db.rollback()` para deshacer todo y mantener la consistencia.
+-   **`list_payment_methods(db, id_usuario)`:** Realiza una consulta `SELECT` simple a la tabla `tab_metodos_pago_usuario` para devolver todas las tarjetas que un usuario tiene guardadas.
+-   **`delete_payment_method(...)` y `set_default_payment_method(...)`:** Al igual que `add_payment_method`, llaman a funciones almacenadas en la base de datos (`fun_eliminar_metodo_pago` y `fun_actualizar_metodo_pago_default`) para realizar estas operaciones.
+
+**Flujo Completo (Añadir una tarjeta):**
+1.  El usuario, en el frontend, rellena el formulario de tarjeta de Wompi.
+2.  El frontend de Wompi se comunica con la API de Wompi y recibe un `card_token` temporal.
+3.  El frontend envía este `card_token` a nuestro endpoint (`/api/payment-methods`).
+4.  El `payment_router` llama a `payment_service.add_payment_method()`.
+5.  `payment_service` llama a `wompi_service.create_payment_source()` para validar el token y guardar la tarjeta en Wompi.
+6.  `wompi_service` devuelve el ID permanente de la tarjeta.
+7.  `payment_service` llama a la función `fun_agregar_metodo_pago` en nuestra base de datos para guardar una referencia a esa tarjeta (últimos 4 dígitos, marca, y el ID de Wompi).
+8.  El servicio devuelve una respuesta de éxito al frontend.
+
+---
+
+### 5.4. Servicio Detallado: `order_service.py`
+
+Este servicio gestiona toda la lógica de negocio relacionada con los pedidos de los clientes, desde su creación hasta su consulta. Representa uno de los flujos más críticos de una plataforma de e-commerce.
+
+**Patrón de Diseño: Lógica en la Base de Datos**
+Al igual que el servicio de pagos, `order_service.py` sigue un patrón en el que la lógica de negocio más compleja y crítica se delega a una **función almacenada en la base de datos** (`fun_crear_orden_desde_carrito`).
+
+**¿Por qué hacer esto?**
+-   **Atomicidad y Transacciones:** La creación de una orden implica múltiples pasos (verificar el carrito, validar el stock de cada producto, aplicar descuentos, crear el registro de la orden, crear los registros de los detalles de la orden, vaciar el carrito). Agrupar toda esta lógica en una única función de base de datos asegura que la operación sea **atómica**: o todos los pasos se completan con éxito, o ninguno lo hace. Esto previene estados inconsistentes, como que se descuente el stock de un producto pero no se cree la orden.
+-   **Rendimiento:** Las operaciones dentro de la base de datos suelen ser más rápidas que hacer múltiples viajes de ida y vuelta entre la aplicación y la base de datos.
+-   **Centralización:** La "verdad" sobre cómo se crea una orden reside en un único lugar (la función SQL), lo que facilita su mantenimiento.
+
+**Funciones Principales:**
+-   **`create_order(db, order, usr_insert)`:**
+    1.  **Rol Principal:** Su función no es construir la orden paso a paso, sino **invocar de forma segura la función de la base de datos**.
+    2.  Recibe los datos validados del router (un esquema `OrderCreate` que contiene el `id_carrito` a procesar, la dirección de envío, un posible código de descuento y observaciones).
+    3.  Prepara los parámetros y ejecuta la llamada a `SELECT fun_crear_orden_desde_carrito(...)`.
+    4.  **Lógica dentro de `fun_crear_orden_desde_carrito` (lo que realmente pasa):**
+        -   Inicia una transacción.
+        -   Recupera todos los productos del carrito especificado.
+        -   Verifica que haya stock suficiente para cada producto. Si no, falla y revierte todo.
+        -   Calcula los subtotales y el total.
+        -   Si se proporcionó un `codigo_descuento`, lo valida y aplica el descuento al total.
+        -   Inserta la cabecera de la orden en la tabla `tab_ordenes`.
+        -   Inserta cada producto del carrito como una línea de detalle en la tabla `tab_detalle_orden`.
+        -   Llama a otra función, `fun_actualizar_stock_automatico`, para restar las cantidades compradas del inventario.
+        -   Elimina los productos del carrito del usuario.
+        -   Si todo fue exitoso, confirma la transacción (`COMMIT`).
+    5.  El servicio de FastAPI recibe el resultado de la función de la base de datos (que es un diccionario con todos los datos de la orden recién creada) y lo devuelve al router.
+    6.  Maneja los `commit` y `rollback` de la sesión de SQLAlchemy y propaga los errores que puedan ocurrir dentro de la base de datos.
+-   **`get_orders(db)`**, **`get_orders_by_user(db, id_usuario)`**, **`get_order_by_id(db, id_orden)`:**
+    -   Estas son funciones de lectura más tradicionales.
+    -   Ejecutan consultas `SELECT` directas (usando `sqlalchemy.text` para SQL plano) sobre la tabla `tab_ordenes` para recuperar la información de los pedidos.
+    -   Devuelven los resultados para que el router los envíe al cliente.
+
+---
+
+### 5.5. Servicio Detallado: `cart_product_service.py`
+
+Este servicio es el corazón de la experiencia de compra antes del checkout. Gestiona todas las interacciones con el carrito de compras del usuario, con la particularidad de que debe funcionar tanto para usuarios autenticados como para visitantes anónimos.
+
+**Concepto Clave: Carritos Anónimos y Registrados**
+-   **Usuario Anónimo:** Un visitante que aún no ha iniciado sesión. Se le identifica mediante un `session_id` único, que el frontend debe generar y mantener (por ejemplo, en el `localStorage` del navegador). El carrito de este usuario está asociado a ese `session_id`.
+-   **Usuario Registrado:** Un usuario que ha iniciado sesión. Su carrito está directamente asociado a su `id_usuario`.
+-   Esta dualidad permite que cualquier persona pueda empezar a añadir productos a un carrito y, si decide registrarse o iniciar sesión, que no pierda su selección.
+
+**Patrón de Diseño: Lógica en la Base de Datos (de nuevo)**
+Siguiendo el patrón de `order_service`, este servicio también delega la lógica compleja a funciones almacenadas en la base de datos para garantizar la integridad y el rendimiento.
+
+**Funciones Principales:**
+-   **`create_cart_product(db, cart_product, ...)`:**
+    -   Llama a la función `fun_agregar_producto_carrito`.
+    -   **Lógica en la DB:** Esta función es inteligente. Primero, comprueba si ya existe un carrito para el `id_usuario` o el `session_id` proporcionado. Si no existe, lo crea. Luego, añade el producto especificado al carrito correspondiente. Si el producto ya estaba en el carrito, simplemente actualiza la cantidad.
+-   **`delete_cart_product(db, ...)`:**
+    -   Llama a `fun_eliminar_producto_carrito`.
+    -   **Lógica en la DB:** Busca el producto en el carrito del usuario/sesión y reduce su cantidad. Si la cantidad llega a cero, elimina la fila por completo.
+-   **`get_cart_user(db, ...)`:**
+    -   Llama a `fun_obtener_carrito_usuario`.
+    -   **Lógica en la DB:** Devuelve el ID del carrito para un usuario o sesión. Si no existe, lo crea sobre la marcha. Esto asegura que siempre tengamos un carrito al que añadir productos.
+-   **`get_cart_detail(db, ...)`:**
+    -   Llama a `fun_obtener_carrito_detalle`.
+    -   **Lógica en la DB:** Esta función es más compleja. Realiza un `JOIN` entre la tabla de carritos, la de productos del carrito y la de productos para devolver una lista completa de los artículos en el carrito, incluyendo nombre, imagen, cantidad, precio, etc.
+-   **`calculate_total_cart(db, ...)`:**
+    -   Llama a `fun_calcular_total_carrito`.
+    -   **Lógica en la DB:** Itera sobre todos los productos en el carrito, multiplica la cantidad por el precio unitario de cada uno y devuelve los totales (subtotal, descuentos, total final). Puede incluir lógica para aplicar descuentos a nivel de carrito.
+-   **`migrate_cart_anonymous(db, ...)`:**
+    -   **¡Función Clave del Flujo de Usuario!**
+    -   Se llama cuando un usuario con un carrito anónimo (`session_id`) inicia sesión o se registra.
+    -   Llama a la función de base de datos `fun_migrar_carrito_anonimo_a_usuario`.
+    -   **Lógica en la DB:**
+        1.  Busca los productos en el carrito del `session_id` anónimo.
+        2.  Busca el carrito del `id_usuario` recién autenticado (o lo crea si no existe).
+        3.  Mueve/copia los productos del carrito anónimo al carrito del usuario. Si un producto ya existía en ambos, puede fusionar las cantidades.
+        4.  Elimina el carrito anónimo original.
+        5.  Todo esto ocurre dentro de una única transacción para garantizar que no se pierdan productos en el proceso.
+
+---
+
+### 5.6. Servicio Detallado: `discount_service.py`
+
+Este es el servicio que gestiona el motor de promociones y descuentos de la tienda, una de las herramientas más potentes para el marketing y las ventas. Su complejidad radica en la gran cantidad de reglas y condiciones que se pueden aplicar para definir cuándo y cómo se otorga un descuento.
+
+**Patrón de Diseño: Motor de Reglas en la Base de Datos**
+Una vez más, la lógica de negocio más crítica y compleja reside en funciones almacenadas en la base de datos (`fun_insert_descuento`, `fun_update_descuento`, etc.). El servicio de FastAPI actúa como una capa de acceso que valida los datos de entrada a través de los esquemas Pydantic (`DiscountCreate`, `DiscountUpdate`) y llama a la función correspondiente.
+
+**Anatomía de un Descuento**
+Analizando los parámetros que reciben las funciones de la base de datos, podemos deducir la flexibilidad del motor de descuentos. Un descuento puede ser configurado con múltiples condiciones y tipos de aplicación:
+
+-   **Tipo de Cálculo:**
+    -   `val_porce_descuento`: Un porcentaje sobre el precio (ej. 15% de descuento).
+    -   `val_monto_descuento`: Un monto fijo (ej. $5 de descuento).
+
+-   **Ámbito de Aplicación (`aplica_a`):**
+    -   Puede aplicar a toda la orden.
+    -   Puede aplicar a un `id_producto` específico.
+    -   Puede aplicar a todos los productos de una `id_categoria`, `id_linea`, `id_sublinea` o `id_marca`.
+
+-   **Condiciones para la Activación:**
+    -   `min_valor_pedido`: El carrito debe superar un monto mínimo.
+    -   `monto_minimo_producto` / `cantidad_minima_producto`: Se debe comprar una cantidad o un valor mínimo de un producto específico.
+    -   `solo_primera_compra`: El descuento solo es válido para clientes nuevos.
+    -   `requiere_codigo`: El usuario debe introducir un `codigo_descuento` específico. Si es falso, el descuento puede aplicarse automáticamente si se cumplen las demás condiciones.
+
+-   **Condiciones de Tiempo:**
+    -   `fec_inicio` y `fec_fin`: Rango de fechas de validez de la promoción.
+    -   `dias_semana_aplica`: Puede ser válido solo ciertos días (ej. "Lunes,Miércoles,Viernes").
+    -   `horas_inicio` y `horas_fin`: Puede ser válido solo en un horario específico (ej. "Happy Hour").
+
+-   **Límites de Uso:**
+    -   `max_usos_total`: Límite de veces que el descuento puede ser usado en total por todos los clientes.
+    -   `max_usos_por_usuario`: Límite de veces que un mismo cliente puede usar el descuento.
+
+-   **Sistema de Puntos (Fidelización):**
+    -   `ind_canjeable_puntos`: Indica si este descuento se puede "comprar" con puntos de fidelidad.
+    -   `costo_puntos_canje`: Cuántos puntos cuesta canjear este descuento.
+
+-   **Descuentos Especiales:**
+    -   `ind_es_para_cumpleanos`: Un descuento que se activa automáticamente para el cumpleaños del usuario.
+
+**Funciones Principales:**
+-   **`create_discount(db, discount, ...)` y `update_discount(db, ...)`:** Toman los datos del esquema Pydantic, los empaquetan y llaman a las funciones `fun_insert_descuento` o `fun_update_descuento` en la base de datos para crear o modificar la regla de descuento.
+-   **`get_discount_exchangeable(db, ...)`:** Llama a la función `fun_listar_descuentos_canjeables`, que contiene la lógica para mostrar a un usuario qué descuentos puede "comprar" con su saldo de puntos actual.
+-   **`deactivate_activate_discount(db, ...)`:** Llama a `fun_activar_desactivar_descuento` para cambiar el estado de una promoción sin borrarla.
+
+La lógica de **aplicación** de estos descuentos (el cálculo final) probablemente resida en la función `fun_crear_orden_desde_carrito` o `fun_calcular_total_carrito`, que tomarán el `codigo_descuento` o verificarán los descuentos automáticos aplicables en el momento del checkout. 
