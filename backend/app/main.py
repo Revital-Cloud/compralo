@@ -66,7 +66,8 @@ app.add_middleware(
         "/api/orders",
         "/api/profile",
         "/api/user-discounts",
-        "/api/points-per-user"
+        "/api/points-per-user",
+        "/api/payment-methods"
     ],
     admin_only_paths=[
         "/api/products",      # GET público, POST/PUT/DELETE admin

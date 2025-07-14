@@ -1,10 +1,7 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -13,234 +10,375 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogClose,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { addPaymentMethod } from '@/services/payment.service';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
-
-// Tipado para el SDK de MercadoPago
-declare global {
-  interface Window {
-    MercadoPago: any;
-  }
-}
+import { Loader2, CreditCard, Calendar, User, Lock } from 'lucide-react';
+import axios from 'axios';
+import { cn } from '@/lib/utils';
 
 interface AddPaymentMethodDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const MERCADOPAGO_PUBLIC_KEY = process.env.NEXT_PUBLIC_MERCADOPAGO || "";
+const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || "";
+const WOMPI_API_BASE_URL = WOMPI_PUBLIC_KEY.startsWith('pub_prod_')
+  ? 'https://production.wompi.co/v1'
+  : 'https://sandbox.wompi.co/v1';
 
-// Schema de validación con Zod para el formulario de la tarjeta
-const cardSchema = z.object({
-  cardholderName: z.string().min(3, "El nombre del titular es requerido"),
-  identificationType: z.string().min(2, "Selecciona un tipo de documento"),
-  identificationNumber: z.string().min(5, "El número de documento es requerido"),
-  cardNumber: z.string()
-    .min(15, "El número de tarjeta debe tener al menos 15 dígitos")
-    .max(19, "El número de tarjeta es demasiado largo")
-    .regex(/^\d+$/, "El número de tarjeta solo debe contener dígitos"),
-  expirationDate: z.string().regex(/^(0[1-9]|1[0-2])\s*\/\s*([0-9]{2})$/, "La fecha debe tener el formato MM/YY"),
-  securityCode: z.string().min(3, "El CVC debe tener 3 o 4 dígitos").max(4, "El CVC debe tener 3 o 4 dígitos"),
-});
+// Función para formatear número de tarjeta
+const formatCardNumber = (value: string) => {
+  const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+  const matches = v.match(/\d{4,16}/g);
+  const match = (matches && matches[0]) || '';
+  const parts = [];
 
-type CardFormData = z.infer<typeof cardSchema>;
+  for (let i = 0, len = match.length; i < len; i += 4) {
+    parts.push(match.substring(i, i + 4));
+  }
+
+  if (parts.length) {
+    return parts.join(' ');
+  } else {
+    return value;
+  }
+};
+
+// Función para detectar tipo de tarjeta
+const getCardType = (number: string) => {
+  const re = {
+    visa: /^4/,
+    mastercard: /^5[1-5]/,
+    amex: /^3[47]/,
+  };
+  
+  const cleanNumber = number.replace(/\D/g, '');
+  
+  if (re.visa.test(cleanNumber)) return 'Visa';
+  if (re.mastercard.test(cleanNumber)) return 'Mastercard';
+  if (re.amex.test(cleanNumber)) return 'American Express';
+  return 'Desconocida';
+};
 
 export function AddPaymentMethodDialog({ open, onOpenChange }: AddPaymentMethodDialogProps) {
   const queryClient = useQueryClient();
-  const [mp, setMp] = useState<any>(null);
-
-  const form = useForm<CardFormData>({
-    resolver: zodResolver(cardSchema),
-    defaultValues: {
-      cardholderName: "",
-      cardNumber: "",
-      expirationDate: "",
-      securityCode: "",
-      identificationType: "CC", // Default para Colombia
-      identificationNumber: "",
-    },
+  const [isLoading, setIsLoading] = useState(false);
+  const [cardType, setCardType] = useState('');
+  const [errors, setErrors] = useState({
+    card_holder: '',
+    number: '',
+    exp_month: '',
+    exp_year: '',
+    cvc: '',
   });
-
-  // Cargar el SDK de MercadoPago
-  useEffect(() => {
-    if (open) {
-      if (!MERCADOPAGO_PUBLIC_KEY) {
-        console.error("La Public Key de MercadoPago no está configurada.");
-        toast.error("Error de configuración", { description: "La pasarela de pago no está disponible." });
-        return;
-      }
-
-      if (window.MercadoPago) {
-          setMp(new window.MercadoPago(MERCADOPAGO_PUBLIC_KEY));
-          return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://sdk.mercadopago.com/js/v2';
-      script.async = true;
-      script.onload = () => {
-        setMp(new window.MercadoPago(MERCADOPAGO_PUBLIC_KEY));
-      };
-      document.body.appendChild(script);
-    }
-  }, [open]);
+  
+  const [cardData, setCardData] = useState({
+    number: '',
+    exp_month: '',
+    exp_year: '',
+    cvc: '',
+    card_holder: '',
+  });
 
   const addCardMutation = useMutation({
     mutationFn: addPaymentMethod,
     onSuccess: () => {
-      toast.success('¡Tarjeta agregada!', { description: 'Tu método de pago se guardó correctamente.' });
-      queryClient.invalidateQueries({ queryKey: ['paymentMethods'] });
+      toast.success('¡Tarjeta agregada exitosamente!', {
+        description: 'Tu nuevo método de pago ha sido guardado.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['payment-methods'] });
       onOpenChange(false);
-      form.reset();
+      // Limpiar el formulario
+      setCardData({
+        number: '',
+        exp_month: '',
+        exp_year: '',
+        cvc: '',
+        card_holder: '',
+      });
     },
     onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'No se pudo guardar la tarjeta.';
-      toast.error('Error al guardar', { description: message });
+      const errorMessage = error.response?.data?.message || 'Error al agregar la tarjeta.';
+      toast.error('No se pudo agregar la tarjeta', {
+        description: errorMessage,
+      });
+    },
+    onSettled: () => {
+      setIsLoading(false);
     }
   });
 
-  const onSubmit = async (data: CardFormData) => {
-    if (!mp) {
-      toast.error("Error", { description: "La pasarela de pago no está lista. Intenta de nuevo." });
-      return;
+  // Validación en tiempo real
+  useEffect(() => {
+    const newErrors = { ...errors };
+    
+    // Validar nombre
+    if (cardData.card_holder && !/^[a-zA-Z\s]{2,}$/.test(cardData.card_holder)) {
+      newErrors.card_holder = 'Ingresa un nombre válido';
+    } else {
+      newErrors.card_holder = '';
+    }
+    
+    // Validar número de tarjeta
+    if (cardData.number && cardData.number.replace(/\s/g, '').length < 15) {
+      newErrors.number = 'Número de tarjeta inválido';
+    } else {
+      newErrors.number = '';
+    }
+    
+    // Validar mes
+    const month = parseInt(cardData.exp_month);
+    if (cardData.exp_month && (isNaN(month) || month < 1 || month > 12)) {
+      newErrors.exp_month = 'Mes inválido';
+    } else {
+      newErrors.exp_month = '';
+    }
+    
+    // Validar año
+    const currentYear = new Date().getFullYear() % 100;
+    const year = parseInt(cardData.exp_year);
+    if (cardData.exp_year && (isNaN(year) || year < currentYear)) {
+      newErrors.exp_year = 'Año inválido';
+    } else {
+      newErrors.exp_year = '';
+    }
+    
+    // Validar CVC
+    if (cardData.cvc && (cardData.cvc.length < 3 || cardData.cvc.length > 4)) {
+      newErrors.cvc = 'CVC inválido';
+    } else {
+      newErrors.cvc = '';
+    }
+    
+    setErrors(newErrors);
+  }, [cardData]);
+
+  // Detectar tipo de tarjeta
+  useEffect(() => {
+    if (cardData.number) {
+      setCardType(getCardType(cardData.number));
+    } else {
+      setCardType('');
+    }
+  }, [cardData.number]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    let formattedValue = value;
+
+    // Formatear número de tarjeta
+    if (name === 'number') {
+      formattedValue = formatCardNumber(value);
+    }
+    
+    // Limitar longitud de campos
+    if (name === 'exp_month' && value.length > 2) return;
+    if (name === 'exp_year' && value.length > 2) return;
+    if (name === 'cvc' && value.length > 4) return;
+    
+    // Solo números para campos numéricos
+    if (['number', 'exp_month', 'exp_year', 'cvc'].includes(name)) {
+      if (!/^\d*$/.test(value.replace(/\s/g, ''))) return;
     }
 
-    const [expirationMonth, expirationYear] = data.expirationDate.replace(/\s/g, '').split('/');
+    setCardData(prev => ({ ...prev, [name]: formattedValue }));
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
+    // Validar que no haya errores
+    if (Object.values(errors).some(error => error !== '')) {
+      toast.error('Por favor, corrige los errores del formulario');
+      return;
+    }
+    
+    setIsLoading(true);
 
     try {
-      const response = await mp.createCardToken({
-        cardholderName: data.cardholderName,
-        identificationType: data.identificationType,
-        identificationNumber: data.identificationNumber,
-        cardNumber: data.cardNumber.replace(/\s/g, ''),
-        securityCode: data.securityCode,
-        expirationMonth,
-        expirationYear: `20${expirationYear}`,
-      });
-      
-      if (response.id) {
-        addCardMutation.mutate(response.id);
+      const wompiResponse = await axios.post(
+        `${WOMPI_API_BASE_URL}/tokens/cards`,
+        {
+          number: cardData.number.replace(/\s/g, ''),
+          cvc: cardData.cvc,
+          exp_month: cardData.exp_month,
+          exp_year: cardData.exp_year,
+          card_holder: cardData.card_holder,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${WOMPI_PUBLIC_KEY}`,
+          },
+        }
+      );
+
+      if (wompiResponse.data?.data?.id) {
+        addCardMutation.mutate(wompiResponse.data.data.id);
       } else {
-        const errorMessage = response.error?.cause?.[0]?.description || "No se pudo procesar la tarjeta. Revisa los datos.";
-        toast.error("Error de validación", { description: errorMessage });
+        throw new Error("Error al procesar la tarjeta");
       }
     } catch (error: any) {
-      console.error("Error inesperado al crear el token:", error);
-      const message = "Ocurrió un error inesperado al contactar con el servicio de pago.";
-      toast.error("Error inesperado", { description: message });
+      const errorMessage = error.response?.data?.error?.messages?.number?.[0] 
+        || error.response?.data?.error?.message
+        || 'Error al procesar la tarjeta. Verifica los datos.';
+      toast.error('Error de validación', {
+        description: errorMessage,
+      });
+      setIsLoading(false);
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Agregar nuevo método de pago</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <CreditCard className="h-5 w-5" />
+            Agregar Nueva Tarjeta
+          </DialogTitle>
           <DialogDescription>
-            Tu información de pago es procesada de forma segura por MercadoPago.
+            Ingresa los datos de tu tarjeta de forma segura
+            {cardType && <span className="ml-2 font-medium text-foreground">• {cardType}</span>}
           </DialogDescription>
         </DialogHeader>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="cardholderName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre del titular</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nombre como aparece en la tarjeta" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            <div className="relative">
+              <Label htmlFor="card_holder" className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Nombre en la tarjeta
+              </Label>
+              <Input
+                id="card_holder"
+                name="card_holder"
+                value={cardData.card_holder}
+                onChange={handleInputChange}
+                className={cn(
+                  "mt-1",
+                  errors.card_holder && "border-red-500 focus-visible:ring-red-500"
+                )}
+                placeholder="NOMBRE APELLIDO"
+                required
+              />
+              {errors.card_holder && (
+                <p className="mt-1 text-sm text-red-500">{errors.card_holder}</p>
               )}
-            />
-             <div className="flex gap-4">
-              <FormField
-                control={form.control}
-                name="identificationType"
-                render={({ field }) => (
-                  <FormItem className="w-1/3">
-                    <FormLabel>Tipo</FormLabel>
-                    <FormControl>
-                      {/* En un caso real, esto sería un Select con más opciones */}
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="identificationNumber"
-                render={({ field }) => (
-                  <FormItem className="w-2/3">
-                    <FormLabel>Documento</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Número de documento" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
-            <FormField
-              control={form.control}
-              name="cardNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Número de tarjeta</FormLabel>
-                  <FormControl>
-                    <Input placeholder="0000 0000 0000 0000" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+
+            <div className="relative">
+              <Label htmlFor="number" className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Número de tarjeta
+              </Label>
+              <Input
+                id="number"
+                name="number"
+                value={cardData.number}
+                onChange={handleInputChange}
+                className={cn(
+                  "mt-1",
+                  errors.number && "border-red-500 focus-visible:ring-red-500"
+                )}
+                placeholder="0000 0000 0000 0000"
+                required
+              />
+              {errors.number && (
+                <p className="mt-1 text-sm text-red-500">{errors.number}</p>
               )}
-            />
-            <div className="flex gap-4">
-              <FormField
-                control={form.control}
-                name="expirationDate"
-                render={({ field }) => (
-                  <FormItem className="w-1/2">
-                    <FormLabel>Vencimiento</FormLabel>
-                    <FormControl>
-                      <Input placeholder="MM / YY" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="securityCode"
-                render={({ field }) => (
-                  <FormItem className="w-1/2">
-                    <FormLabel>CVC</FormLabel>
-                    <FormControl>
-                      <Input placeholder="123" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={addCardMutation.isPending}>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="col-span-2">
+                <Label htmlFor="exp_month" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Fecha de expiración
+                </Label>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  <div>
+                    <Input
+                      id="exp_month"
+                      name="exp_month"
+                      value={cardData.exp_month}
+                      onChange={handleInputChange}
+                      className={cn(
+                        errors.exp_month && "border-red-500 focus-visible:ring-red-500"
+                      )}
+                      placeholder="MM"
+                      required
+                    />
+                    {errors.exp_month && (
+                      <p className="mt-1 text-sm text-red-500">{errors.exp_month}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Input
+                      id="exp_year"
+                      name="exp_year"
+                      value={cardData.exp_year}
+                      onChange={handleInputChange}
+                      className={cn(
+                        errors.exp_year && "border-red-500 focus-visible:ring-red-500"
+                      )}
+                      placeholder="AA"
+                      required
+                    />
+                    {errors.exp_year && (
+                      <p className="mt-1 text-sm text-red-500">{errors.exp_year}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="cvc" className="flex items-center gap-2">
+                  <Lock className="h-4 w-4" />
+                  CVC
+                </Label>
+                <Input
+                  id="cvc"
+                  name="cvc"
+                  value={cardData.cvc}
+                  onChange={handleInputChange}
+                  className={cn(
+                    "mt-1",
+                    errors.cvc && "border-red-500 focus-visible:ring-red-500"
+                  )}
+                  placeholder="123"
+                  required
+                />
+                {errors.cvc && (
+                  <p className="mt-1 text-sm text-red-500">{errors.cvc}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={isLoading}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={addCardMutation.isPending || !mp}>
-                {addCardMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Guardar Tarjeta
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+            </DialogClose>
+            <Button 
+              type="submit" 
+              disabled={isLoading || Object.values(errors).some(error => error !== '')}
+              className="min-w-[120px]"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Procesando...
+                </>
+              ) : (
+                'Guardar Tarjeta'
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

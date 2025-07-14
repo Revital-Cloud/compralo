@@ -1,137 +1,84 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Body, Path
+"""
+Router para la gestión de pagos y métodos de pago con Wompi.
+"""
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
-from typing import Any, Dict, List
+from typing import List
+import json
+import hmac
+import hashlib
 
-from core.dependencies import get_db, get_current_user
-from schemas.auth_schema import UserInToken
-from schemas.payment_schema import (
-    PaymentPreferenceRequest, PaymentPreferenceResponse, MetodoPagoUsuario, 
-    CardTokenRequest
-)
-from services import payment_service
+from core.database import get_db
+from core.dependencies import get_current_user
+from schemas.user_schema import User
+from schemas.payment_schema import CreatePaymentMethodPayload, PaymentMethodResponse
+from services.payment_service import add_payment_method, list_payment_methods, delete_payment_method, set_default_payment_method
+from core.config import settings
 
 router = APIRouter(
-    prefix="/payments",
-    tags=["Payments"]
+    prefix="/payment-methods",
+    tags=["Payment Methods"],
+    responses={404: {"description": "Not found"}},
 )
 
 @router.post(
-    "/preference",
-    response_model=PaymentPreferenceResponse,
-    summary="Crear una Preferencia de Pago en MercadoPago"
+    "/",
+    response_model=PaymentMethodResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Guardar un nuevo método de pago (tarjeta)",
+    description="Recibe un token de tarjeta de Wompi, crea una fuente de pago y la guarda en la base de datos para el usuario autenticado."
 )
-def create_payment_preference(
-    id_orden: int = Body(..., embed=True, description="ID de la orden para la cual se crea la preferencia"),
-    preference_request: PaymentPreferenceRequest = Body(...),
+async def create_payment_method(
+    payload: CreatePaymentMethodPayload,
     db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
-    """
-    Crea una preferencia de pago en MercadoPago para una orden existente.
-
-    - **id_orden**: El ID de la orden generada previamente en el sistema.
-    - **preference_request**: Los detalles del pago, incluyendo items y URLs de redirección.
-
-    El endpoint asocia la preferencia con la orden y el usuario actual.
-    """
     try:
-        response = payment_service.create_payment_preference(
-            db=db,
-            preference_request=preference_request,
-            id_orden=id_orden,
-            id_usuario=current_user.id_usuario
-        )
-        return response
-    except HTTPException as e:
-        raise e
+        result = await add_payment_method(db, current_user, payload.card_token)
+        return PaymentMethodResponse(**result.get("data", {}))
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Ocurrió un error inesperado al crear la preferencia de pago: {str(e)}"
-        )
+        print(f"Error en create_payment_method: {str(e)}")
+        raise
 
-@router.post(
-    "/webhook/mercadopago",
-    status_code=status.HTTP_200_OK,
-    summary="Recibir notificaciones de webhook de MercadoPago"
-)
-async def handle_mercadopago_webhook(
-    request: Request,
-    db: Session = Depends(get_db)
-):
+@router.get("/", response_model=List[PaymentMethodResponse], summary="Listar los métodos de pago guardados")
+def get_payment_methods(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return list_payment_methods(db, current_user.id_usuario)
+
+@router.delete("/{payment_method_id}", summary="Eliminar un método de pago guardado")
+def remove_payment_method(payment_method_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    result = delete_payment_method(db, current_user, payment_method_id)
+    return {"message": result.get("message")}
+
+@router.put("/{payment_method_id}/default", summary="Establecer un método de pago como predeterminado")
+def update_default_payment_method(payment_method_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    result = set_default_payment_method(db, current_user, payment_method_id)
+    return {"message": result.get("message")}
+
+@router.post("/webhook", include_in_schema=False)
+async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
     """
-    Endpoint para recibir y procesar notificaciones de MercadoPago.
-
-    Este endpoint es llamado por MercadoPago para informar sobre eventos,
-    principalmente actualizaciones en el estado de los pagos.
-
-    **No requiere autenticación.**
+    Endpoint para recibir y procesar notificaciones (webhooks) de Wompi.
     """
-    notification = await request.json()
-    await payment_service.handle_webhook(db, notification)
-    return {"status": "notification received"}
-
-
-# --- User Payment Methods Routes ---
-
-@router.post(
-    "/cards",
-    summary="Agregar un nuevo método de pago (tarjeta)",
-    status_code=status.HTTP_201_CREATED
-)
-def add_card(
-    card_token_request: CardTokenRequest,
-    db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user)
-):
-    """
-    Agrega una nueva tarjeta a la cuenta del usuario.
+    request_body = await request.body()
+    signature_header = request.headers.get("x-wompi-signature")
     
-    El frontend debe primero obtener un `token` de un solo uso de la SDK de MercadoPago
-    y enviarlo en esta petición.
-    """
-    return payment_service.add_payment_method(db, current_user, card_token_request.token)
-
-@router.get(
-    "/cards",
-    response_model=List[MetodoPagoUsuario],
-    summary="Listar los métodos de pago guardados del usuario"
-)
-def list_cards(
-    db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user)
-):
-    """
-    Devuelve una lista de todos los métodos de pago (tarjetas) guardados por el usuario.
-    """
-    return payment_service.list_payment_methods(db, current_user.id_usuario)
-
-@router.delete(
-    "/cards/{id_metodo_pago}",
-    summary="Eliminar un método de pago guardado",
-    status_code=status.HTTP_200_OK
-)
-def delete_card(
-    id_metodo_pago: int = Path(..., title="ID del método de pago a eliminar"),
-    db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user)
-):
-    """
-    Elimina permanentemente una tarjeta de la cuenta del usuario.
-    """
-    return payment_service.delete_payment_method(db, current_user, id_metodo_pago)
-
-@router.put(
-    "/cards/{id_metodo_pago}/default",
-    summary="Establecer un método de pago como predeterminado",
-    status_code=status.HTTP_200_OK
-)
-def set_default_card(
-    id_metodo_pago: int = Path(..., title="ID del método de pago a establecer como predeterminado"),
-    db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user)
-):
-    """
-    Marca una tarjeta como el método de pago por defecto para futuras compras.
-    """
-    return payment_service.set_default_payment_method(db, current_user, id_metodo_pago) 
+    if not signature_header:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Firma de webhook faltante.")
+        
+    # Verificar la firma del webhook
+    expected_signature = hmac.new(
+        settings.WOMPI_EVENTS_SECRET.encode(),
+        request_body,
+        hashlib.sha256
+    ).hexdigest()
+    
+    if signature_header != expected_signature:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Firma de webhook inválida.")
+    
+    try:
+        payload = json.loads(request_body)
+        # Aquí implementaremos la lógica del webhook cuando sea necesario
+        return {"status": "webhook received"}
+    except Exception as e:
+        print(f"Error procesando webhook de Wompi: {e}")
+        raise HTTPException(status_code=500, detail="Error al procesar el webhook.") 
