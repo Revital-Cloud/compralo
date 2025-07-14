@@ -44,7 +44,7 @@ class PuntosConfig(PuntosConfigBase):
     fec_update: Optional[datetime] = None
 
     class Config:
-        orm_mode = True 
+        from_attributes = True 
         
 class ResponseMessage(BaseModel):
     """

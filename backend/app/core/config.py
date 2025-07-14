@@ -67,9 +67,12 @@ class Settings(BaseSettings):
     API_STR: str = "/api"
     PROJECT_NAME: str = "Brillo Rosa API"
     
+    # Configuración de Wompi
+    WOMPI_PUBLIC_KEY: str
+    WOMPI_PRIVATE_KEY: str
+    WOMPI_EVENTS_SECRET: str
+    WOMPI_INTEGRITY_SECRET: str
 
-    # MercadoPago
-    MERCADOPAGO_ACCESS_TOKEN: str
 
     class Config:
         env_file = ".env"

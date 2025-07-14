@@ -1,10 +1,7 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,15 +12,14 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { addPaymentMethod } from '@/services/payment.service';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
-// Tipado para el SDK de MercadoPago
 declare global {
   interface Window {
-    MercadoPago: any;
+    Wompi: any;
   }
 }
 
@@ -32,62 +28,30 @@ interface AddPaymentMethodDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const MERCADOPAGO_PUBLIC_KEY = process.env.NEXT_PUBLIC_MERCADOPAGO || "";
-
-// Schema de validación con Zod para el formulario de la tarjeta
-const cardSchema = z.object({
-  cardholderName: z.string().min(3, "El nombre del titular es requerido"),
-  identificationType: z.string().min(2, "Selecciona un tipo de documento"),
-  identificationNumber: z.string().min(5, "El número de documento es requerido"),
-  cardNumber: z.string()
-    .min(15, "El número de tarjeta debe tener al menos 15 dígitos")
-    .max(19, "El número de tarjeta es demasiado largo")
-    .regex(/^\d+$/, "El número de tarjeta solo debe contener dígitos"),
-  expirationDate: z.string().regex(/^(0[1-9]|1[0-2])\s*\/\s*([0-9]{2})$/, "La fecha debe tener el formato MM/YY"),
-  securityCode: z.string().min(3, "El CVC debe tener 3 o 4 dígitos").max(4, "El CVC debe tener 3 o 4 dígitos"),
-});
-
-type CardFormData = z.infer<typeof cardSchema>;
+const WOMPI_PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY || "";
 
 export function AddPaymentMethodDialog({ open, onOpenChange }: AddPaymentMethodDialogProps) {
   const queryClient = useQueryClient();
-  const [mp, setMp] = useState<any>(null);
+  const [isWompiReady, setIsWompiReady] = useState(false);
 
-  const form = useForm<CardFormData>({
-    resolver: zodResolver(cardSchema),
-    defaultValues: {
-      cardholderName: "",
-      cardNumber: "",
-      expirationDate: "",
-      securityCode: "",
-      identificationType: "CC", // Default para Colombia
-      identificationNumber: "",
-    },
-  });
+  // Estados para el formulario no controlado
+  const [cardNumber, setCardNumber] = useState('');
+  const [expMonth, setExpMonth] = useState('');
+  const [expYear, setExpYear] = useState('');
+  const [cvc, setCvc] = useState('');
 
-  // Cargar el SDK de MercadoPago
+  // Cargar el SDK de Wompi para tokenización
   useEffect(() => {
-    if (open) {
-      if (!MERCADOPAGO_PUBLIC_KEY) {
-        console.error("La Public Key de MercadoPago no está configurada.");
-        toast.error("Error de configuración", { description: "La pasarela de pago no está disponible." });
-        return;
-      }
-
-      if (window.MercadoPago) {
-          setMp(new window.MercadoPago(MERCADOPAGO_PUBLIC_KEY));
-          return;
-      }
-
-      const script = document.createElement('script');
-      script.src = 'https://sdk.mercadopago.com/js/v2';
-      script.async = true;
-      script.onload = () => {
-        setMp(new window.MercadoPago(MERCADOPAGO_PUBLIC_KEY));
-      };
-      document.body.appendChild(script);
+    if (document.querySelector('script[src="https://sdk.wompi.co/v1/wompi.js"]')) {
+      setIsWompiReady(true);
+      return;
     }
-  }, [open]);
+    const script = document.createElement('script');
+    script.src = 'https://sdk.wompi.co/v1/wompi.js';
+    script.async = true;
+    script.onload = () => setIsWompiReady(true);
+    document.body.appendChild(script);
+  }, []);
 
   const addCardMutation = useMutation({
     mutationFn: addPaymentMethod,
@@ -95,7 +59,6 @@ export function AddPaymentMethodDialog({ open, onOpenChange }: AddPaymentMethodD
       toast.success('¡Tarjeta agregada!', { description: 'Tu método de pago se guardó correctamente.' });
       queryClient.invalidateQueries({ queryKey: ['paymentMethods'] });
       onOpenChange(false);
-      form.reset();
     },
     onError: (error: any) => {
       const message = error?.response?.data?.detail || 'No se pudo guardar la tarjeta.';
@@ -103,35 +66,32 @@ export function AddPaymentMethodDialog({ open, onOpenChange }: AddPaymentMethodD
     }
   });
 
-  const onSubmit = async (data: CardFormData) => {
-    if (!mp) {
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!isWompiReady || !WOMPI_PUBLIC_KEY) {
       toast.error("Error", { description: "La pasarela de pago no está lista. Intenta de nuevo." });
       return;
     }
 
-    const [expirationMonth, expirationYear] = data.expirationDate.replace(/\s/g, '').split('/');
+    const wompi = new window.Wompi({ publicKey: WOMPI_PUBLIC_KEY });
 
     try {
-      const response = await mp.createCardToken({
-        cardholderName: data.cardholderName,
-        identificationType: data.identificationType,
-        identificationNumber: data.identificationNumber,
-        cardNumber: data.cardNumber.replace(/\s/g, ''),
-        securityCode: data.securityCode,
-        expirationMonth,
-        expirationYear: `20${expirationYear}`,
+      const result = await wompi.tokenizeCard({
+        number: cardNumber.replace(/\s/g, ''),
+        cvc: cvc,
+        exp_month: expMonth,
+        exp_year: expYear,
       });
-      
-      if (response.id) {
-        addCardMutation.mutate(response.id);
+
+      if (result.status === 'SUCCESS' && result.data.id) {
+        addCardMutation.mutate(result.data.id);
       } else {
-        const errorMessage = response.error?.cause?.[0]?.description || "No se pudo procesar la tarjeta. Revisa los datos.";
+        const errorMessage = result.error?.messages?.[0] || "No se pudo procesar la tarjeta. Revisa los datos.";
         toast.error("Error de validación", { description: errorMessage });
       }
-    } catch (error: any) {
-      console.error("Error inesperado al crear el token:", error);
-      const message = "Ocurrió un error inesperado al contactar con el servicio de pago.";
-      toast.error("Error inesperado", { description: message });
+    } catch (error) {
+        console.error("Error inesperado al tokenizar:", error);
+        toast.error("Error inesperado", { description: "Ocurrió un error al contactar el servicio de pago." });
     }
   };
 
@@ -141,106 +101,39 @@ export function AddPaymentMethodDialog({ open, onOpenChange }: AddPaymentMethodD
         <DialogHeader>
           <DialogTitle>Agregar nuevo método de pago</DialogTitle>
           <DialogDescription>
-            Tu información de pago es procesada de forma segura por MercadoPago.
+            Tu información es tokenizada de forma segura por Wompi.
           </DialogDescription>
         </DialogHeader>
         
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="cardholderName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre del titular</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nombre como aparece en la tarjeta" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <div className="flex gap-4">
-              <FormField
-                control={form.control}
-                name="identificationType"
-                render={({ field }) => (
-                  <FormItem className="w-1/3">
-                    <FormLabel>Tipo</FormLabel>
-                    <FormControl>
-                      {/* En un caso real, esto sería un Select con más opciones */}
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="identificationNumber"
-                render={({ field }) => (
-                  <FormItem className="w-2/3">
-                    <FormLabel>Documento</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Número de documento" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+            <div>
+                <Label htmlFor="cardNumber">Número de tarjeta</Label>
+                <Input id="cardNumber" placeholder="0000 0000 0000 0000" value={cardNumber} onChange={e => setCardNumber(e.target.value)} required />
             </div>
-            <FormField
-              control={form.control}
-              name="cardNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Número de tarjeta</FormLabel>
-                  <FormControl>
-                    <Input placeholder="0000 0000 0000 0000" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <div className="flex gap-4">
-              <FormField
-                control={form.control}
-                name="expirationDate"
-                render={({ field }) => (
-                  <FormItem className="w-1/2">
-                    <FormLabel>Vencimiento</FormLabel>
-                    <FormControl>
-                      <Input placeholder="MM / YY" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="securityCode"
-                render={({ field }) => (
-                  <FormItem className="w-1/2">
-                    <FormLabel>CVC</FormLabel>
-                    <FormControl>
-                      <Input placeholder="123" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                <div className="w-1/3">
+                    <Label htmlFor="expMonth">Mes Exp.</Label>
+                    <Input id="expMonth" placeholder="MM" value={expMonth} onChange={e => setExpMonth(e.target.value)} required />
+                </div>
+                <div className="w-1/3">
+                    <Label htmlFor="expYear">Año Exp.</Label>
+                    <Input id="expYear" placeholder="YY" value={expYear} onChange={e => setExpYear(e.target.value)} required />
+                </div>
+                <div className="w-1/3">
+                    <Label htmlFor="cvc">CVC</Label>
+                    <Input id="cvc" placeholder="123" value={cvc} onChange={e => setCvc(e.target.value)} required />
+                </div>
             </div>
-            <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={addCardMutation.isPending}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={addCardMutation.isPending || !mp}>
-                {addCardMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Guardar Tarjeta
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+          <DialogFooter className="pt-4">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={addCardMutation.isPending}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={addCardMutation.isPending || !isWompiReady}>
+              {addCardMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Guardar Tarjeta
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
