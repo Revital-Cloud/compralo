@@ -67,9 +67,9 @@ def create_order(db:Session, order:OrderCreate, usr_insert: Decimal):
         params["usr_insert"] = usr_insert
         query = text("""
         SELECT fun_crear_orden_desde_carrito(
-            :id_usuario,
-            :metodo_pago,
-            :id_canje,
+            :id_carrito,
+            :id_direccion,
+            :codigo_descuento,
             :des_observaciones,
             :usr_insert
         )

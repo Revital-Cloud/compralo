@@ -9,7 +9,7 @@ así como un esquema para mensajes de respuesta genéricos.
 
 from datetime import date, datetime
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any
+from typing import List, Optional, Dict, Any
 from decimal import Decimal
 
 class OrderBase(BaseModel):
@@ -32,12 +32,15 @@ class OrderBase(BaseModel):
     val_total_productos: Decimal = Field(..., description="Valor total de los productos antes de descuentos.")
     val_total_descuentos: Decimal = Field(default=Decimal('0'), description="Valor total de los descuentos aplicados.")
     val_total_pedido: Decimal = Field(..., description="Valor final de la orden (productos - descuentos).")
-    ind_estado: int = Field(default=1, description="Estado de la orden (1: Pendiente, 2: Procesada, 3: Enviada/Cancelada).", ge=1, le=3)
-    metodo_pago: int = Field(default=1, description="Método de pago (1: Tarjeta, 2: Transferencia, 3: Otro).", ge=1, le=3)
+    ind_estado: int = Field(..., description="Estado de la orden (1: Pendiente, 2: Procesada, 3: Enviada, 4:Cancelada).")
+    metodo_pago: Optional[str] = Field(None, description="Método de pago" )
     id_descuento: Optional[int] = Field(None, description="Identificador del descuento principal aplicado (legacy).")
-    detalle_descuentos_aplicados: Optional[Dict[str, Any]] = Field(None, description="JSON con el detalle de todos los descuentos aplicados.")
+    detalle_descuentos_aplicados: Optional[List[Dict[str, Any]]] = Field(None, description="JSON con el detalle de todos los descuentos aplicados.")
     des_observaciones: Optional[str] = Field(None, description="Observaciones adicionales sobre la orden.")
     usr_insert: Optional[Decimal] = Field(None, description="Identificador del usuario que insertó la orden.")
+    fec_insert: Optional[datetime] = Field(None, description="Fecha y hora de inserción del registro.")
+    usr_update: Optional[Decimal] = Field(None, description="Identificador del usuario que actualizó el registro.")
+    fec_update: Optional[datetime] = Field(None, description="Fecha y hora de la última actualización.")
     
     class Config:
         from_attributes = True
@@ -58,15 +61,15 @@ class OrderCreate(BaseModel):
     Esquema para la Creación de Órdenes.
     
     Atributos:
-        id_usuario: Identificador del usuario que realiza la orden.
-        metodo_pago: Método de pago.
-        id_canje: Identificador del canje de puntos a aplicar.
+        id_carrito: Identificador del carrito que realiza la orden.
+        id_direccion: Identificador de la dirección de envío.
+        codigo_descuento: Código de descuento a aplicar.
         des_observaciones: Observaciones adicionales sobre la orden.
         usr_insert: Identificador del usuario que insertó la orden.
     """
-    id_usuario: Decimal = Field(..., description="Identificador del usuario que realiza la orden.")
-    metodo_pago: str = Field(..., description="Método de pago")
-    id_canje: Optional[int] = Field(None, description="Identificador del canje de puntos a aplicar.")
+    id_carrito: Decimal = Field(..., description="Identificador del carrito que realiza la orden.")
+    id_direccion: Decimal = Field(..., description="Identificador de la dirección de envío.")
+    codigo_descuento: str = Field(..., description="Código de descuento a aplicar.")
     des_observaciones: Optional[str] = Field(None, description="Observaciones adicionales sobre la orden.")
     usr_insert: Optional[Decimal] = Field(None, description="Identificador del usuario que insertó la orden.")
 

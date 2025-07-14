@@ -156,7 +156,6 @@ class CartTotalResponse(BaseModel):
     resumen: Dict[str, Any] = Field(..., description="Resumen detallado de totales.")
     
     # === DETALLES DE DESCUENTOS ===
-    descuentos_aplicados: Optional[List[Dict[str, Any]]] = Field(default=None, description="Array detallado de todos los descuentos.")
     descuentos_automaticos: Optional[List[Dict[str, Any]]] = Field(default=None, description="Array de descuentos automáticos de empresa.")
     descuento_canjeado: Optional[Dict[str, Any]] = Field(None, description="Descuento canjeado por puntos.")
     total_desc_automaticos: Decimal = Field(..., description="Total de descuentos automáticos.")
