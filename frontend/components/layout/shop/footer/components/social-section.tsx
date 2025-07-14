@@ -19,39 +19,34 @@ interface SocialLink {
 
 interface SocialSectionProps {
   title?: string
-  links?: SocialLink[]
+  links?: Omit<SocialLink, 'hoverColor'>[]
 }
 
-const defaultSocialLinks: SocialLink[] = [
+const defaultSocialLinks: Omit<SocialLink, 'hoverColor'>[] = [
   {
     platform: "Facebook",
     href: "#",
     icon: <Facebook className="h-5 w-5" />,
-    hoverColor: "hover:bg-blue-600"
   },
   {
     platform: "Instagram", 
     href: "#",
     icon: <Instagram className="h-5 w-5" />,
-    hoverColor: "hover:bg-pink-600"
   },
   {
     platform: "Twitter",
     href: "#", 
     icon: <Twitter className="h-5 w-5" />,
-    hoverColor: "hover:bg-blue-400"
   },
   {
     platform: "YouTube",
     href: "#",
     icon: <Youtube className="h-5 w-5" />,
-    hoverColor: "hover:bg-red-600"
   },
   {
     platform: "LinkedIn",
     href: "#",
     icon: <Linkedin className="h-5 w-5" />,
-    hoverColor: "hover:bg-blue-700"
   }
 ]
 
@@ -61,13 +56,13 @@ const SocialSection: React.FC<SocialSectionProps> = ({
 }) => {
   return (
     <div className="space-y-4">
-      <h3 className="text-blue-400 dark:text-blue-300 text-lg font-semibold">{title}</h3>
+      <h3 className="text-primary text-lg font-semibold">{title}</h3>
       <div className="flex flex-wrap gap-3">
         {links.map((link, index) => (
           <Link
             key={index}
             href={link.href}
-            className={`p-3 bg-gray-800 dark:bg-gray-700 rounded-full ${link.hoverColor} transition-colors touch-manipulation text-gray-300 dark:text-gray-400`}
+            className="p-3 bg-secondary-foreground/10 rounded-full hover:bg-primary transition-colors touch-manipulation text-secondary-foreground/80 hover:text-primary-foreground"
             aria-label={link.platform}
           >
             {link.icon}

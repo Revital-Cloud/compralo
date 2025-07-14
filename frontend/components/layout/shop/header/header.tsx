@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useTheme } from "next-themes"
 import { 
   Menu, 
   X, 
@@ -39,28 +40,15 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
   cartCount = 0,
   className = ""
 }) => {
-  const [isDarkMode, setIsDarkMode] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-
-  useEffect(() => {
-    const root = document.documentElement
-    if (isDarkMode) {
-      root.classList.add('dark')
-    } else {
-      root.classList.remove('dark')
-    }
-  }, [isDarkMode])
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode)
-  }
+  const { theme } = useTheme()
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen)
   }
 
   return (
-    <header className={`sticky top-0 z-40 w-full bg-background/80 backdrop-blur-md border-b border-border ${className}`}>
+    <header className={`sticky top-0 z-40 w-full bg-secondary/80 backdrop-blur-md border-b border-border ${className}`}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -77,7 +65,6 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
           {/* Navigation */}
           <Navigation 
             items={menuItems} 
-            isDarkMode={isDarkMode}
             onItemClick={() => setIsMobileMenuOpen(false)}
           />
 
@@ -95,7 +82,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="hidden sm:flex p-2 hover:bg-muted"
+                    className="hidden sm:flex p-2"
                   >
                     <Heart className="h-5 w-5" />
                   </Button>
@@ -113,10 +100,10 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="hidden sm:flex p-2 hover:bg-muted relative"
+                    className="hidden sm:flex p-2 relative"
                   >
                     <Bell className="h-5 w-5" />
-                    <div className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></div>
+                    <div className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full"></div>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -126,7 +113,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
             </TooltipProvider>
 
             {/* Theme Toggle */}
-            <ThemeToggle isDarkMode={isDarkMode} onToggle={toggleTheme} />
+            <ThemeToggle />
 
             {/* Cart */}
             <CartButton count={cartCount} />
@@ -139,7 +126,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
               variant="ghost"
               size="sm"
               onClick={toggleMobileMenu}
-              className="lg:hidden p-2 hover:bg-muted"
+              className="lg:hidden p-2"
             >
               {isMobileMenuOpen ? (
                 <X className="h-5 w-5" />
@@ -161,7 +148,6 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         items={menuItems}
-        isDarkMode={isDarkMode}
       />
     </header>
   )

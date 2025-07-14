@@ -16,13 +16,13 @@ interface CategoriesSectionProps {
 const CategoriesSection: React.FC<CategoriesSectionProps> = ({ title, categories }) => {
   return (
     <div className="space-y-4">
-      <h3 className="text-blue-400 dark:text-blue-300 text-lg font-semibold">{title}</h3>
+      <h3 className="text-primary text-lg font-semibold">{title}</h3>
       <ul className="space-y-2.5">
         {categories.map((category, index) => (
           <li key={index}>
             <Link 
               href={category.href} 
-              className="text-sm text-gray-300 dark:text-gray-400 hover:text-blue-400 dark:hover:text-white transition-colors block py-1"
+              className="text-sm text-secondary-foreground/80 hover:text-primary transition-colors block py-1"
             >
               {category.label}
             </Link>

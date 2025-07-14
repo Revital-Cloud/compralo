@@ -10,7 +10,6 @@ interface Feature {
 
 interface ProductFeaturesProps {
   features?: Feature[]
-  textColor?: string
   isMobile?: boolean
 }
 
@@ -27,10 +26,9 @@ const defaultFeatures: Feature[] = [
 
 const ProductFeatures: React.FC<ProductFeaturesProps> = ({ 
   features = defaultFeatures, 
-  textColor = "text-white dark:text-gray-300",
   isMobile = false
 }) => (
-  <div className={`flex items-center opacity-80 ${textColor} ${
+  <div className={`flex items-center opacity-80 ${
     isMobile 
       ? 'space-x-4 text-sm justify-center pt-2' 
       : 'space-x-6 pt-4 text-sm'

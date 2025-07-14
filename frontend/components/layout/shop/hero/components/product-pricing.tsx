@@ -6,14 +6,12 @@ import { Badge } from "@/components/ui/badge"
 interface ProductPricingProps {
   price: string
   originalPrice: string
-  textColor?: string
   isMobile?: boolean
 }
 
 const ProductPricing: React.FC<ProductPricingProps> = ({ 
   price, 
   originalPrice, 
-  textColor = "text-white dark:text-white",
   isMobile = false
 }) => {
   const calculateDiscount = () => {
@@ -23,7 +21,7 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
   }
 
   return (
-    <div className={`flex items-center space-x-3 sm:space-x-4 ${textColor} ${isMobile ? 'justify-center flex-wrap gap-2' : ''}`}>
+    <div className={`flex items-center space-x-3 sm:space-x-4 ${isMobile ? 'justify-center flex-wrap gap-2' : ''}`}>
       <span className={`font-bold ${
         isMobile 
           ? "text-2xl sm:text-3xl" 
@@ -31,14 +29,14 @@ const ProductPricing: React.FC<ProductPricingProps> = ({
       }`}>
         {price}
       </span>
-      <span className={`text-white/60 dark:text-gray-400/60 line-through ${
+      <span className={`opacity-60 line-through ${
         isMobile 
           ? "text-lg sm:text-xl" 
           : "text-xl"
       }`}>
         {originalPrice}
       </span>
-      <Badge variant="destructive" className={`bg-red-500 dark:bg-red-600 text-white ${
+      <Badge variant="destructive" className={`${
         isMobile ? 'text-xs px-2 py-1' : ''
       }`}>
         SAVE {calculateDiscount()}%

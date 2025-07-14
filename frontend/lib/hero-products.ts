@@ -13,7 +13,7 @@ export const products = [
       ],
       get mainImage() { return this.images[0] },
       get thumbnails() { return this.images },
-      backgroundColor: "from-red-600 via-red-500 to-orange-500",
+      backgroundColor: "from-fuchsia-400 via-pink-400 to-rose-400 dark:from-fuchsia-800 dark:via-pink-800 dark:to-rose-900",
       textColor: "text-white",
     },
     {
@@ -30,7 +30,7 @@ export const products = [
       ],
       get mainImage() { return this.images[0] },
       get thumbnails() { return this.images },
-      backgroundColor: "from-blue-600 via-blue-500 to-cyan-500",
+      backgroundColor: "from-purple-400 via-fuchsia-400 to-pink-400 dark:from-purple-800 dark:via-fuchsia-800 dark:to-pink-900",
       textColor: "text-white",
     },
     {

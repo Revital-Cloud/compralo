@@ -72,6 +72,7 @@ class Settings(BaseSettings):
     WOMPI_PRIVATE_KEY: str
     WOMPI_EVENTS_SECRET: str
     WOMPI_INTEGRITY_SECRET: str
+    WOMPI_ENVIRONMENT: str = "sandbox"
 
 
     class Config:
