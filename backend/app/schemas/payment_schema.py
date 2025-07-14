@@ -20,6 +20,9 @@ class CreatePaymentMethodPayload(BaseModel):
     card_token: str = Field(..., 
                             description="Token de la tarjeta generado por el widget de Wompi en el frontend.",
                             example="tok_test_12345_ABCDE")
+    brand: str = Field(...,
+                       description="Marca de la tarjeta (VISA, MASTERCARD, etc.) obtenida del token de Wompi.",
+                       example="VISA")
 
 class PaymentMethodResponse(BaseModel):
     """
@@ -31,6 +34,8 @@ class PaymentMethodResponse(BaseModel):
     brand: str = Field(..., description="Marca de la tarjeta (ej. VISA, MASTERCARD).")
     last_four_digits: str = Field(..., description="Últimos cuatro dígitos de la tarjeta.")
     card_holder: Optional[str] = Field(None, description="Nombre del titular de la tarjeta.")
+    expiration_month: Optional[int] = Field(None, description="Mes de expiración")
+    expiration_year: Optional[int] = Field(None, description="Año de expiración")
     is_default: bool = Field(..., description="Indica si es el método de pago por defecto.")
 
     class Config:

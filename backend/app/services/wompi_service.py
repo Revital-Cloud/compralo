@@ -6,53 +6,71 @@ incluyendo la creación de fuentes de pago (tokenización de tarjetas),
 la generación de transacciones y el manejo de webhooks.
 """
 import httpx
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+from fastapi import HTTPException
 
 from core.config import settings
 
 class WompiService:
     def __init__(self):
-        self.base_url = "https://sandbox.wompi.co/v1"
+        self.base_url = f"https://{settings.WOMPI_ENVIRONMENT}.wompi.co/v1"
         self.headers = {
             "Authorization": f"Bearer {settings.WOMPI_PRIVATE_KEY}",
             "Content-Type": "application/json"
         }
+        self.private_key = settings.WOMPI_PRIVATE_KEY
+
+    async def _request(self, method: str, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        url = f"{self.base_url}/{endpoint}"
+        headers = {"Authorization": f"Bearer {self.private_key}"}
+        
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.request(method, url, json=data, headers=headers)
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                print(f"Error de Wompi: {e.response.status_code} - {e.response.text}")
+                raise HTTPException(
+                    status_code=e.response.status_code,
+                    detail=f"Error en la API de Wompi: {e.response.text}"
+                )
+            except Exception as e:
+                print(f"Error inesperado en Wompi Service: {str(e)}")
+                raise HTTPException(
+                    status_code=500,
+                    detail="Error interno al comunicarse con Wompi"
+                )
 
     async def create_payment_source(self, user_email: str, card_token: str) -> Dict[str, Any]:
         """
-        Crea una fuente de pago (guarda una tarjeta) para un cliente en Wompi.
-
-        Args:
-            user_email: El email del usuario, que Wompi usa para identificar al cliente.
-            card_token: El token de la tarjeta generado por el frontend.
-
-        Returns:
-            Un diccionario con la respuesta de la API de Wompi.
+        Crea una fuente de pago (tarjeta) para un cliente en Wompi.
         """
-        endpoint = f"{self.base_url}/payment_sources"
-        payload = {
-            "type": "CARD",
-            "token": card_token,
-            "customer_email": user_email,
-            "acceptance_token": await self.get_acceptance_token() # Es requerido por Wompi
-        }
+        acceptance_token_data = await self.get_acceptance_token()
+        acceptance_token = acceptance_token_data["data"]["presigned_acceptance"]["acceptance_token"]
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(endpoint, json=payload, headers=self.headers)
-            response.raise_for_status()  # Lanza una excepción si la respuesta es un error HTTP
-            return response.json()
+        return await self._request(
+            method="post",
+            endpoint=f"payment_sources",
+            data={
+                "type": "CARD",
+                "token": card_token,
+                "customer_email": user_email,
+                "acceptance_token": acceptance_token,
+            },
+        )
 
-    async def get_acceptance_token(self) -> str:
+    async def get_acceptance_token(self) -> Dict[str, Any]:
         """
-        Obtiene el token de aceptación necesario para crear fuentes de pago.
+        Obtiene un token de aceptación necesario para crear fuentes de pago.
         Este token se obtiene consultando las llaves del comercio.
         """
-        endpoint = f"{self.base_url}/merchants/{settings.WOMPI_PUBLIC_KEY}"
+        endpoint = f"merchants/{settings.WOMPI_PUBLIC_KEY}"
         async with httpx.AsyncClient() as client:
-            response = await client.get(endpoint)
+            url = f"{self.base_url}/{endpoint}"
+            response = await client.get(url)
             response.raise_for_status()
-            data = response.json()
-            return data.get("data", {}).get("presigned_acceptance", {}).get("acceptance_token")
+            return response.json()
 
     async def create_transaction(
         self,

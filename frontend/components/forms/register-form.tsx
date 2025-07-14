@@ -105,6 +105,10 @@ export function RegisterForm() {
                         {...field}
                         disabled={isLoading}
                         type="number"
+                        maxLength={11}
+                        minLength={10}
+                        pattern="\d*"
+                        inputMode="numeric"
                       />
                     </FormControl>
                     <FormMessage  />

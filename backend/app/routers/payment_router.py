@@ -16,13 +16,13 @@ from services.payment_service import add_payment_method, list_payment_methods, d
 from core.config import settings
 
 router = APIRouter(
-    prefix="/payment-methods",
+    prefix="/payment",
     tags=["Payment Methods"],
     responses={404: {"description": "Not found"}},
 )
 
 @router.post(
-    "/",
+    "/add-method",
     response_model=PaymentMethodResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Guardar un nuevo método de pago (tarjeta)",
@@ -34,24 +34,42 @@ async def create_payment_method(
     current_user: User = Depends(get_current_user)
 ):
     try:
-        result = await add_payment_method(db, current_user, payload.card_token)
-        return PaymentMethodResponse(**result.get("data", {}))
+        # El servicio ahora devuelve un diccionario plano
+        result = await add_payment_method(db, current_user, payload.card_token, payload.brand)
+        
+        if not result.get("success"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result.get("message", "Error al agregar el método de pago")
+            )
+            
+        # Pasamos el resultado directamente, ya que coincide con el schema
+        return PaymentMethodResponse(**result)
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Error en create_payment_method: {str(e)}")
-        raise
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error interno al procesar el método de pago"
+        )
 
-@router.get("/", response_model=List[PaymentMethodResponse], summary="Listar los métodos de pago guardados")
+@router.get("/list-methods", response_model=List[PaymentMethodResponse], summary="Listar los métodos de pago guardados")
 def get_payment_methods(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return list_payment_methods(db, current_user.id_usuario)
 
-@router.delete("/{payment_method_id}", summary="Eliminar un método de pago guardado")
+@router.delete("/delete-method/{payment_method_id}", summary="Eliminar un método de pago guardado")
 def remove_payment_method(payment_method_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     result = delete_payment_method(db, current_user, payment_method_id)
+    if not result.get("success"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.get("message"))
     return {"message": result.get("message")}
 
-@router.put("/{payment_method_id}/default", summary="Establecer un método de pago como predeterminado")
+@router.put("/set-default-method/{payment_method_id}", summary="Establecer un método de pago como predeterminado")
 def update_default_payment_method(payment_method_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     result = set_default_payment_method(db, current_user, payment_method_id)
+    if not result.get("success"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.get("message"))
     return {"message": result.get("message")}
 
 @router.post("/webhook", include_in_schema=False)

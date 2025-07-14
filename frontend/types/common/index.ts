@@ -7,8 +7,9 @@ export interface ResponseMessage {
 }
 
 export interface ApiResponse<T = any> {
+  success: boolean;
   data?: T;
-  message?: string;
+  message: string;
   error?: string;
 }
 

@@ -10,7 +10,7 @@ from schemas.auth_schema import UserInToken
 from .user_service import get_user_by_id
 from services.wompi_service import wompi_service
 
-async def add_payment_method(db: Session, user: UserInToken, card_token: str) -> Dict[str, Any]:
+async def add_payment_method(db: Session, user: UserInToken, card_token: str, brand: str) -> Dict[str, Any]:
     """
     Agrega un nuevo método de pago para el usuario usando Wompi como proveedor.
     
@@ -18,6 +18,7 @@ async def add_payment_method(db: Session, user: UserInToken, card_token: str) ->
         db (Session): Sesión de base de datos
         user (UserInToken): Usuario autenticado
         card_token (str): Token de la tarjeta generado por Wompi
+        brand (str): Marca de la tarjeta (ej. VISA) obtenida del frontend
         
     Returns:
         Dict[str, Any]: Respuesta con los datos del método de pago agregado
@@ -79,15 +80,15 @@ async def add_payment_method(db: Session, user: UserInToken, card_token: str) ->
         result = db.execute(
             query,
             {
-                "id_usuario": str(user.id_usuario),  # Convertir a string para que PostgreSQL lo maneje
+                "id_usuario": user.id_usuario,
                 "provider_name": "wompi",
-                "provider_source_id": str(provider_source_id),  # Convertir a string
-                "brand": public_data.get("brand"),
+                "provider_source_id": str(provider_source_id),
+                "brand": brand,
                 "last_four_digits": last_four,
                 "expiration_month": exp_month,
                 "expiration_year": exp_year,
                 "card_holder": public_data.get("card_holder"),
-                "usr_operacion": str(user.id_usuario)  # Convertir a string
+                "usr_operacion": user.id_usuario
             }
         ).fetchone()
 
@@ -107,7 +108,19 @@ async def add_payment_method(db: Session, user: UserInToken, card_token: str) ->
             )
 
         db.commit()
-        return db_response
+        
+        # Combinar el mensaje de éxito con los detalles del método de pago
+        payment_details = db_response.get("data", {})
+        
+        # Crear la respuesta final
+        final_response = {
+            "success": True,
+            "message": db_response.get("message", "Método de pago agregado con éxito."),
+            **payment_details
+        }
+        
+        # La respuesta ahora es un solo diccionario plano
+        return final_response
 
     except HTTPException:
         db.rollback()
@@ -138,7 +151,7 @@ def list_payment_methods(db: Session, id_usuario: int) -> List[MetodoPagoUsuario
                 id_usuario,
                 provider_name,
                 provider_source_id,
-                brand,
+                COALESCE(brand, '') as brand,
                 last_four_digits,
                 expiration_month,
                 expiration_year,
@@ -154,7 +167,12 @@ def list_payment_methods(db: Session, id_usuario: int) -> List[MetodoPagoUsuario
         """)
         
         result = db.execute(query, {"id_usuario": id_usuario})
-        return [MetodoPagoUsuario(**row._mapping) for row in result]
+        payment_methods = [dict(row._mapping) for row in result]
+
+        # Depuración: Imprimir los datos antes de la validación de Pydantic
+        # print("Payment methods from DB:", payment_methods)
+
+        return [MetodoPagoUsuario(**pm) for pm in payment_methods]
         
     except Exception as e:
         print(f"Error al listar métodos de pago: {str(e)}")
