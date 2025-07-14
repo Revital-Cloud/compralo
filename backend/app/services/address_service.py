@@ -70,6 +70,8 @@ def create_address(db:Session, address:AddressCreate, usr_insert:Decimal):
             :barrio,
             :referencias,
             :complemento,
+            :ind_principal,
+            :ind_activa,
             :usr_insert
         )
         """)

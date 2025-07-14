@@ -1,8 +1,31 @@
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from typing import Optional
 
-from schemas.cart_product_schemas import CalculateTotalCar, CarProductCreate, CarProductDelete, MigrateCarAnonymous, GetCarUser
+from schemas.cart_product_schemas import CalculateTotalCart, CartProductCreate, CartProductDelete, GetCartDetail, MigrateCartAnonymous, GetCartUser
+
+def get_cart(db:Session):
+    """
+    Obtiene todos los carritos.
+    """
+    try:
+        query = text("""
+        SELECT 
+            id_carrito,
+            id_usuario,
+            session_id,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
+        FROM tab_carritos
+        """)
+        result = db.execute(query)
+        return result.mappings().all()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener carritos: {str(e)}")
 
 def get_cart_products(db:Session):
     """
@@ -31,36 +54,30 @@ def get_cart_products(db:Session):
         db.rollback()
         raise Exception(f"Error al obtener productos en el carrito: {str(e)}")
 
-def get_cart_detail(db:Session, id_usuario:Decimal):
-    """
-    Obtiene a detalle el carrito de un usuario.
-    """
-    try:
-        query = text("""
-        SELECT fun_obtener_carrito_detalle(:id_usuario)
-        """)
-        result = db.execute(query, {"id_usuario": id_usuario})
-        return result.mappings().all()
-    except Exception as e:
-        db.rollback()
-        raise Exception(f"Error al obtener detalle del carrito: {str(e)}")
     
-def create_cart_product(db:Session, car_product:CarProductCreate, usr_insert:Decimal):
+def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert: Optional[Decimal]):
     """
     Crea un nuevo producto en el carrito.
     Utiliza la función de base de datos `fun_agregar_producto_carrito` para insertar
-    un nuevo producto en el carrito, identificado por `id_carrito_producto`.
+    un nuevo producto en el carrito.
+    
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
-        car_product (CarProductCreate): Un objeto Pydantic `CarProductCreate` con los datos a insertar.
-        usr_insert (Decimal): El usuario que insertó el registro.
+        cart_product (CartProductCreate): Un objeto Pydantic `CartProductCreate` con los datos a insertar.
+        Debe contener id_usuario (para usuarios autenticados) O session_id (para usuarios anónimos).
+        usr_insert (Optional[Decimal]): El usuario que insertó el registro.
+    
+    Raises:
+        Exception: Si no se proporciona ni id_usuario ni session_id en cart_product.
     """
-    try:
-        params = car_product.model_dump()
+    try:      
+        params = cart_product.model_dump()
         params["usr_insert"] = usr_insert
+        
         query = text("""
         SELECT fun_agregar_producto_carrito(
             :id_usuario,
+            :session_id,
             :id_categoria_producto,
             :id_linea_producto,
             :id_sublinea_producto,
@@ -77,22 +94,31 @@ def create_cart_product(db:Session, car_product:CarProductCreate, usr_insert:Dec
         db.rollback()
         raise Exception(f"Error al crear producto en el carrito: {str(e)}")
     
-def delete_cart_product(db:Session, car_product:CarProductDelete, usr_update:Decimal):
+def delete_cart_product(db: Session, id_usuario: Optional[Decimal], session_id: Optional[Decimal], id_categoria_producto: Decimal, id_linea_producto: Decimal, id_sublinea_producto: Decimal, id_producto: Decimal, cantidad: Decimal, usr_update: Decimal):
     """
     Elimina un producto en el carrito.
     Utiliza la función de base de datos `fun_eliminar_producto_carrito` para eliminar
-    un producto en el carrito, identificado por `id_carrito_producto`.
+    un producto en el carrito.
+    
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
-        id_carrito_producto (Decimal): El identificador del producto en el carrito.
+        id_usuario (Optional[Decimal]): ID del usuario (para usuarios autenticados).
+        session_id (Optional[Decimal]): ID de la sesión (para usuarios anónimos).
+        id_categoria_producto (Decimal): ID de la categoría del producto.
+        id_linea_producto (Decimal): ID de la línea del producto.
+        id_sublinea_producto (Decimal): ID de la sublínea del producto.
+        id_producto (Decimal): ID del producto.
+        cantidad (Decimal): Cantidad del producto.
         usr_update (Decimal): El usuario que actualizó el registro.
+    
+    Raises:
+        Exception: Si no se proporciona ni id_usuario ni session_id.
     """
     try:
-        params = car_product.model_dump()
-        params["usr_update"] = usr_update
         query = text("""
         SELECT fun_eliminar_producto_carrito(
             :id_usuario,
+            :session_id,
             :id_categoria_producto,
             :id_linea_producto,
             :id_sublinea_producto,
@@ -101,7 +127,16 @@ def delete_cart_product(db:Session, car_product:CarProductDelete, usr_update:Dec
             :usr_update
         )
         """)
-        result = db.execute(query, params)
+        result = db.execute(query, {
+            'id_usuario': id_usuario,
+            'session_id': session_id,
+            'id_categoria_producto': id_categoria_producto,
+            'id_linea_producto': id_linea_producto,
+            'id_sublinea_producto': id_sublinea_producto,
+            'id_producto': id_producto,
+            'cantidad': cantidad,
+            'usr_update': usr_update
+        })
         fetched_result = result.fetchone()
         db.commit()
         return fetched_result[0] if fetched_result else None
@@ -109,7 +144,7 @@ def delete_cart_product(db:Session, car_product:CarProductDelete, usr_update:Dec
         db.rollback()
         raise Exception(f"Error al eliminar producto en el carrito: {str(e)}")
     
-def migrate_cart_anonymous(db: Session, migrate_car_anonymous: MigrateCarAnonymous, usr_insert: Decimal):
+def migrate_cart_anonymous(db: Session, migrate_cart_anonymous: MigrateCartAnonymous, usr_insert: Decimal):
     """
     Migra productos de un carrito anónimo a un usuario registrado.
     
@@ -125,7 +160,7 @@ def migrate_cart_anonymous(db: Session, migrate_car_anonymous: MigrateCarAnonymo
 
     """
     try:
-        params = migrate_car_anonymous.model_dump()
+        params = migrate_cart_anonymous.model_dump()
         params["usr_insert"] = usr_insert
         query = text("""
         SELECT fun_migrar_carrito_anonimo_a_usuario(
@@ -142,12 +177,19 @@ def migrate_cart_anonymous(db: Session, migrate_car_anonymous: MigrateCarAnonymo
         db.rollback()
         raise Exception(f"Error al migrar carrito anónimo a usuario: {str(e)}")
     
-def get_cart_user(db:Session, get_car_user:GetCarUser):
+def get_cart_user(db:Session, get_cart_user:GetCartUser):
     """
-    Obtiene el carrito de un usuario.
+    Obtiene o crea el carrito de un usuario registrado o anónimo.
+    
+    Args:
+        db (Session): Sesión de base de datos.
+        get_car_user (GetCarUser): Datos del usuario (id_usuario o session_id).
+    
+    Returns:
+        int: ID del carrito obtenido o creado.
     """
     try:
-        params = get_car_user.model_dump()
+        params = get_cart_user.model_dump()
         query = text("""
         SELECT fun_obtener_carrito_usuario(
             :id_usuario,
@@ -156,19 +198,48 @@ def get_cart_user(db:Session, get_car_user:GetCarUser):
         """)
         result = db.execute(query, params)
         fetched_result = result.fetchone()
-        return fetched_result[0] if fetched_result else None
+        id_carrito = fetched_result[0] if fetched_result else None
+        
+        if id_carrito is None:
+            raise Exception("No se pudo obtener o crear el carrito")
+        
+        db.commit()
+        return int(id_carrito)
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener carrito de usuario: {str(e)}")
     
-def calculate_total_cart(db:Session, calculate_total_car:CalculateTotalCar):
+def get_cart_detail(db:Session, get_cart_detail:GetCartDetail):
     """
-    Calcula el total del carrito de un usuario.
+    Obtiene a detalle el carrito de un usuario.
+    Args:
+        db (Session): Sesión de base de datos.
+        get_cart_detail (GetCartDetail): Datos del usuario (id_usuario o session_id).
+    Returns:
+        list[CartProduct]: Lista de productos en el carrito.
     """
     try:
-        params = calculate_total_car.model_dump()
+        params = get_cart_detail.model_dump()
         query = text("""
-        SELECT fun_calcular_total_carrito(:id_usuario, :id_canje_aplicar)
+        SELECT fun_obtener_carrito_detalle(:id_usuario, :session_id)
+        """)
+        result = db.execute(query, params)
+        fetched_result = result.fetchone()
+        db.commit()
+        return fetched_result[0] if fetched_result else None
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener detalle del carrito: {str(e)}")
+    
+def calculate_total_cart(db:Session, calculate_total_cart:CalculateTotalCart):
+    """
+    Calcula el total del carrito de un usuario.
+    Soporta tanto usuarios registrados (id_usuario) como anónimos (session_id).
+    """
+    try:
+        params = calculate_total_cart.model_dump()
+        query = text("""
+        SELECT fun_calcular_total_carrito(:id_usuario, :session_id, :id_canje_aplicar)
         """)
         result = db.execute(query, params)
         fetched_result = result.fetchone()

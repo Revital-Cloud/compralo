@@ -17,7 +17,11 @@ class CategoryBase(BaseModel):
         usr_insert (Optional[Decimal]): Usuario que insertó el registro.
     """
     nom_categoria: str = Field(..., description="Nombre de la categoría.")
+    ind_activo: Optional[bool] = Field(None, description="Indica si la categoría está activa.")
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
+    fec_insert: Optional[datetime] = Field(None, description="Fecha de inserción del registro.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
+    fec_update: Optional[datetime] = Field(None, description="Fecha de actualización del registro.")
     
     class Config:
         from_attributes = True

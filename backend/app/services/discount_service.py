@@ -101,15 +101,23 @@ def create_discount(db:Session, discount:DiscountCreate, usr_insert:Decimal):
             :id_marca_aplica,
             :id_linea_aplica,
             :id_sublinea_aplica,     
+            :min_valor_pedido,
+            :ind_es_para_cumpleanos,
             :fec_inicio,
             :fec_fin,
+            :ind_activo,
             :max_usos_total,
             :costo_puntos_canje,
+            :ind_canjeable_puntos,
             :codigo_descuento,
             :max_usos_por_usuario,
             :dias_semana_aplica,
             :horas_inicio,
             :horas_fin,
+            :solo_primera_compra,
+            :monto_minimo_producto,
+            :cantidad_minima_producto,
+            :requiere_codigo,
             :usr_insert
         )
         """)

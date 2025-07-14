@@ -35,6 +35,7 @@ class Settings(BaseSettings):
         FRONTEND_URL (str): URL del frontend para links en emails.
         VERIFY_EMAIL_URL (str): URL para verificación de email.
         RESET_PASSWORD_URL (str): URL para reset de contraseña.
+        
     """
     # Configuración de la base de datos
     DATABASE_URL: str

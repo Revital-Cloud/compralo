@@ -65,7 +65,7 @@ class OrderCreate(BaseModel):
         usr_insert: Identificador del usuario que insertó la orden.
     """
     id_usuario: Decimal = Field(..., description="Identificador del usuario que realiza la orden.")
-    metodo_pago: int = Field(default=1, description="Método de pago (1: Tarjeta, 2: Transferencia, 3: Otro).", ge=1, le=3)
+    metodo_pago: str = Field(..., description="Método de pago")
     id_canje: Optional[int] = Field(None, description="Identificador del canje de puntos a aplicar.")
     des_observaciones: Optional[str] = Field(None, description="Observaciones adicionales sobre la orden.")
     usr_insert: Optional[Decimal] = Field(None, description="Identificador del usuario que insertó la orden.")

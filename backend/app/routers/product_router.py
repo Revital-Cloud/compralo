@@ -13,14 +13,14 @@ from decimal import Decimal
 
 from core.database import get_db
 from core.dependencies import require_admin, get_current_user, get_current_user_optional
-from schemas.product_schema import Product, ProductCreate, ProductUpdate, ResponseMessage, ProductBase
+from schemas.product_schema import Product, ProductCreate, ProductUpdate, ResponseMessage
 from schemas.auth_schema import UserInToken
 from services import product_service
 
 router = APIRouter(tags=["Productos"])
 
 #todos los productos
-@router.get("/products", response_model=list[ProductBase])
+@router.get("/products", response_model=list[Product])
 async def get_products(db: Session = Depends(get_db)):
     """
     Obtener todos los productos.

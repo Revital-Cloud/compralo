@@ -6,6 +6,7 @@ las operaciones de creación, actualización y visualización.
 Incluye esquemas para la creación, actualización y visualización de marcas,
 así como un esquema para mensajes de respuesta genéricos.
 """
+from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import Optional
 from decimal import Decimal
@@ -19,6 +20,7 @@ class BrandBase(BaseModel):
 
     Atributos:
         nom_marca (str): Nombre de la marca.
+        ind_activo (Optional[bool]): Indica si la marca está activa.
     """
     nom_marca: str = Field(..., description="Nombre de la marca")
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
@@ -35,7 +37,10 @@ class Brand(BrandBase):
     """
     id_marca: Decimal
     ind_activo: Optional[bool] = Field(None, description="Indica si la marca está activa.")
+    fec_insert: Optional[datetime] = Field(None, description="Fecha de inserción del registro.")
     usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
+    fec_update: Optional[datetime] = Field(None, description="Fecha de actualización del registro.")
+    
     
 class BrandCreate(BrandBase):
     """

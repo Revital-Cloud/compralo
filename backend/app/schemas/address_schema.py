@@ -45,7 +45,9 @@ class AddressBase(BaseModel):
     ind_principal: Optional[bool] = Field(None, description="Indica si la dirección es principal.")
     ind_activa: Optional[bool] = Field(None, description="Indica si la dirección está activa.")
     usr_insert: Decimal = Field(..., description="Identificador del usuario que insertó la dirección.")
+    fec_insert: Optional[datetime] = Field(None, description="Fecha de inserción del registro.")
     usr_update: Optional[Decimal] = Field(None, description="Identificador del usuario que actualizó la dirección.")
+    fec_update: Optional[datetime] = Field(None, description="Fecha de última actualización del registro.")
     
     class Config:
         from_attributes = True
@@ -59,9 +61,6 @@ class Address(AddressBase):
     Incluye el `id_direccion` y los campos de auditoría.
     """
     id_direccion: Decimal
-    fec_insert: Optional[datetime] = Field(None, description="Fecha de inserción del registro.")
-    fec_update: Optional[datetime] = Field(None, description="Fecha de última actualización del registro.")
-
 class AddressCreate(BaseModel):
     """
     Esquema para la Creación de Direcciones.
@@ -78,6 +77,8 @@ class AddressCreate(BaseModel):
     barrio: str = Field(..., description="Barrio/Sector de la dirección.")
     referencias: Optional[str] = Field(None, description="Referencias para el domiciliario.")
     complemento: Optional[str] = Field(None, description="Información adicional.")
+    ind_principal: Optional[bool] = Field(True, description="Indica si la dirección es principal.")
+    ind_activa: Optional[bool] = Field(True, description="Indica si la dirección está activa.")
     
     class Config:
         from_attributes = True

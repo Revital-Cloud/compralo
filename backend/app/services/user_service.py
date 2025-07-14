@@ -42,7 +42,7 @@ def get_users(db: Session):
             ind_genero,
             cel_usuario,
             fec_nacimiento,
-            mp_customer_id,
+            mp_usuario_id,
             usr_insert,
             fec_insert,
             usr_update,
@@ -73,6 +73,7 @@ def get_user(db: Session, id_usuario: Decimal):
             ind_genero,
             cel_usuario,
             fec_nacimiento,
+            mp_usuario_id,
             usr_insert,
             fec_insert,
             usr_update,
@@ -284,7 +285,7 @@ def update_password(db: Session, id_usuario: Decimal, hashed_password: str):
 def get_user_by_id(db: Session, id_usuario: Decimal):
     """
     Obtiene un usuario específico de la base de datos por su ID.
-    Ahora incluye el campo mp_customer_id.
+    Ahora incluye el campo mp_usuario_id.
     """
     try:
         query = text("""

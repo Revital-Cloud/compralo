@@ -16,11 +16,19 @@ class LineBase(BaseModel):
         id_categoria (Decimal): Identificador de la categoría a la que pertenece la línea.
         id_linea (Decimal): Identificador único para la línea.
         nom_linea (str): Nombre de la línea.
+        ind_activo (Optional[bool]): Indica si la línea está activa.
         usr_insert (Optional[Decimal]): Usuario que insertó el registro.
+        fec_insert (Optional[datetime]): Fecha de inserción del registro.
+        usr_update (Optional[Decimal]): Usuario que actualizó el registro.
+        fec_update (Optional[datetime]): Fecha de actualización del registro.
     """
     id_categoria: Decimal = Field(..., description="Identificador de la categoría a la que pertenece la línea.")
     nom_linea: str = Field(..., description="Nombre de la línea.")
+    ind_activo: Optional[bool] = Field(None, description="Indica si la línea está activa.")
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
+    fec_insert: Optional[datetime] = Field(None, description="Fecha de inserción del registro.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
+    fec_update: Optional[datetime] = Field(None, description="Fecha de actualización del registro.")
     
     class Config:
         from_attributes = True

@@ -1,70 +1,59 @@
-from fastapi import APIRouter, Depends, status
+from decimal import Decimal
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Any
 
 from core.dependencies import get_db, require_admin
 from schemas.auth_schema import UserInToken
-from schemas.points_schema import PuntosConfigActivaUpdate, TipoMovimientoDescripcion
+from schemas.points_schema import PuntosConfig, PuntosConfigUpdate, ResponseMessage, PuntosConfigCreate
 from services import points_service
 
-router = APIRouter(
-    prefix="/puntos",
-    tags=["Puntos"]
-)
+router = APIRouter(tags=["Puntos"])
 
-@router.put(
-    "/configuracion/activa",
-    response_model=Any,
-    status_code=status.HTTP_200_OK,
-    summary="Actualiza la configuración de puntos activa (Admin)"
-)
-def update_active_points_configuration(
-    config_update: PuntosConfigActivaUpdate,
+
+@router.post("/config",response_model=Any,status_code=status.HTTP_200_OK,summary="Crea una nueva configuración de puntos (Admin)")
+async def create_points_config(
+    db: Session = Depends(get_db),
+    config_data: PuntosConfigCreate = Body(...),
+    current_user: UserInToken = Depends(require_admin())
+):
+    """
+    Crea una nueva configuración de puntos llamando a la función de base de datos.
+    """
+    try:
+        points_service.create_points_config(db, config_data, current_user.id_usuario)
+        return ResponseMessage(message="Configuración de puntos creada exitosamente")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.put("/configuracion/{id_config_puntos}",response_model=Any,status_code=status.HTTP_200_OK,summary="Actualiza la configuración de puntos activa (Admin)")
+async def update_points_config(
+    id_config_puntos: Decimal,
+    config_data: PuntosConfigUpdate = Body(...),
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(require_admin())
 ):
     """
-    Actualiza la configuración de puntos activa llamando a la función 
-    `fun_actualizar_config_puntos_empresa` en la base de datos.
+    Crea una nueva configuración de puntos llamando a la función de base de datos.
     
-    - **Sólo accesible por administradores.**
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        config_data (PuntosConfigCreate): Los datos de la configuración de puntos a crear.
+        current_user (UserInToken): El usuario autenticado.
     """
-    return points_service.update_active_config(
-        db=db, 
-        config_update=config_update, 
-        user_id=current_user.id_usuario
-    )
+    try:
+        points_service.update_active_config(db, id_config_puntos, config_data, current_user.id_usuario)
+        return ResponseMessage(message="Configuración de puntos creada exitosamente")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    
+@router.get("/tasa-activa",response_model=list[PuntosConfig],summary="Obtiene la tasa de conversión de puntos activa")
+async def get_active_rate(db: Session = Depends(get_db)):
+    """
+    Obtiene la tasa de conversión de puntos activa llamando a la función de base de datos.
+    """
+    points = points_service.get_active_rate(db)
+    if points is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró la tasa de conversión de puntos activa")
+    return points
 
-@router.get(
-    "/tipos-movimiento/{tipo_movimiento_id}",
-    response_model=TipoMovimientoDescripcion,
-    summary="Obtiene la descripción de un tipo de movimiento de puntos"
-)
-def get_points_movement_description(
-    tipo_movimiento_id: int,
-    db: Session = Depends(get_db)
-):
-    """
-    Obtiene la descripción legible para un código de tipo de movimiento de puntos.
-    
-    **Códigos de movimiento:**
-    - `1`: Acumulación (puntos ganados por compras)
-    - `2`: Canje (puntos gastados por descuentos)
-    - `3`: Expiración (puntos perdidos por vencimiento)
-    
-    - **Endpoint público.**
-    """
-    return points_service.get_movimiento_descripcion(db=db, tipo_movimiento=tipo_movimiento_id)
-
-@router.get(
-    "/tasa-activa",
-    summary="Obtiene la tasa de conversión de puntos activa"
-)
-def get_active_points_rate(db: Session = Depends(get_db)):
-    """
-    Obtiene el valor de "pesos por punto" de la configuración activa actualmente,
-    llamando a la función `fun_obtener_config_puntos_activa()` en la base de datos.
-    
-    - **Accesible públicamente.**
-    """
-    return points_service.get_active_rate(db=db) 

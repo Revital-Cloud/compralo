@@ -6,6 +6,7 @@ en las solicitudes y respuestas de la API relacionadas con los proveedores.
 Incluye esquemas para la creación, actualización y visualización de proveedores,
 así como un esquema para mensajes de respuesta genéricos.
 """
+from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import Optional
 from decimal import Decimal
@@ -27,6 +28,9 @@ class ProviderBase(BaseModel):
     tel_proveedor: Decimal = Field(..., description="Teléfono del proveedor.")
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
     ind_activo: Optional[bool] = Field(None, description="Indica si el proveedor está activo.")
+    fec_insert: Optional[datetime] = Field(None, description="Fecha de inserción del registro.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
+    fec_update: Optional[datetime] = Field(None, description="Fecha de actualización del registro.")
 
 
     class Config:

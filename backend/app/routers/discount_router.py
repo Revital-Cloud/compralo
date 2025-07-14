@@ -10,13 +10,13 @@ from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user, require_admin
 from schemas.auth_schema import UserInToken
-from schemas.discount_schema import DiscountCreate, DiscountExchangeableResponse, DiscountUpdate, Discount, DiscountResponse, ResponseMessage
+from schemas.discount_schema import DiscountCreate, DiscountExchangeableResponse, DiscountUpdate, Discount, ResponseMessage
 from services import discount_service
 from schemas.user_discounts_schema import ValidateDiscountRequest, ValidateDiscountResponse
 
 router = APIRouter(tags=["Descuentos"])
 
-@router.get("/discounts", response_model=list[DiscountResponse])
+@router.get("/discounts")
 async def get_discounts(db:Session = Depends(get_db)):
     """
     Obtiene todos los descuentos registrados en la base de datos.
