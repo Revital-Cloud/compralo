@@ -243,7 +243,77 @@ def calculate_total_cart(db:Session, calculate_total_cart:CalculateTotalCart):
         """)
         result = db.execute(query, params)
         fetched_result = result.fetchone()
-        return fetched_result[0] if fetched_result else None
+        response_data = fetched_result[0] if fetched_result else None
+        
+        if response_data is None:
+            return {
+                "success": False,
+                "total_final": 0,
+                "total_productos": 0,
+                "total_descuentos": 0,
+                "ahorro_total": 0,
+                "resumen": {},
+                "descuentos_automaticos": [],
+                "descuento_canjeado": None,
+                "total_desc_automaticos": 0,
+                "total_desc_canjeado": 0,
+                "es_primera_compra": False,
+                "puntos_a_ganar": 0,
+                "id_canje_aplicado": None,
+                "mensaje": "Error al calcular total del carrito",
+                "mensaje_puntos": "",
+                "mensaje_resumen": ""
+            }
+        
+        # Si la respuesta ya tiene todos los campos necesarios, devolverla tal como está
+        if isinstance(response_data, dict) and "success" in response_data:
+            return response_data
+        
+        # Si la respuesta es un diccionario simple (carrito vacío), mapear a la estructura completa
+        if isinstance(response_data, dict):
+            return {
+                "success": True,
+                "total_final": response_data.get("total_final", 0),
+                "total_productos": response_data.get("total_productos", 0),
+                "total_descuentos": response_data.get("total_descuentos", 0),
+                "ahorro_total": response_data.get("total_descuentos", 0),  # El ahorro es igual a los descuentos
+                "resumen": {
+                    "subtotal": response_data.get("total_productos", 0),
+                    "descuentos": response_data.get("total_descuentos", 0),
+                    "total": response_data.get("total_final", 0)
+                },
+                "descuentos_automaticos": response_data.get("descuentos_automaticos", []),
+                "descuento_canjeado": response_data.get("descuento_canjeado"),
+                "total_desc_automaticos": 0,  # Extraer de descuentos_automaticos si está disponible
+                "total_desc_canjeado": 0,     # Extraer de descuento_canjeado si está disponible
+                "es_primera_compra": False,   # Se determinaría con más lógica si es necesario
+                "puntos_a_ganar": 0,          # Se calcularía basado en el total
+                "id_canje_aplicado": None,
+                "mensaje": response_data.get("message", "Carrito calculado exitosamente"),
+                "mensaje_puntos": "Ganarás 0 puntos con esta compra" if response_data.get("total_final", 0) == 0 else f"Ganarás puntos con esta compra",
+                "mensaje_resumen": f"Total a pagar: ${response_data.get('total_final', 0)}"
+            }
+        
+        # Si no es un diccionario, devolver estructura por defecto
+        return {
+            "success": False,
+            "total_final": 0,
+            "total_productos": 0,
+            "total_descuentos": 0,
+            "ahorro_total": 0,
+            "resumen": {},
+            "descuentos_automaticos": [],
+            "descuento_canjeado": None,
+            "total_desc_automaticos": 0,
+            "total_desc_canjeado": 0,
+            "es_primera_compra": False,
+            "puntos_a_ganar": 0,
+            "id_canje_aplicado": None,
+            "mensaje": "Formato de respuesta no válido",
+            "mensaje_puntos": "",
+            "mensaje_resumen": ""
+        }
+        
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al calcular total del carrito: {str(e)}")

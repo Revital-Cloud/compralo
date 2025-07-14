@@ -3,7 +3,7 @@ Módulo de enrutador para la gestión de órdenes.
 Define las rutas y endpoints relacionados con la gestión de órdenes,
 incluyendo la creación y visualización de órdenes.
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List
@@ -14,26 +14,45 @@ from decimal import Decimal
 
 from core.database import get_db
 from core.dependencies import get_current_user
-from schemas.user_schema import User
-from schemas.order_schema import Order as OrderResponse # Renombramos en la importación
+from schemas.auth_schema import UserInToken
+from schemas.order_schema import Order, OrderCreate, ResponseMessage # Renombramos en la importación
 from schemas.payment_schema import PayOrderPayload
 from services.wompi_service import wompi_service
+from services import order_service
 
 router = APIRouter(
-    prefix="/orders",
     tags=["Orders"],
     responses={404: {"description": "Not found"}},
 )
 
+@router.get("/orders", response_model=List[Order])
+async def get_orders(
+    db:Session = Depends(get_db),
+):
+    """
+    Obtiene todas las órdenes del usuario autenticado.
+    
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        current_user (UserInToken): El usuario autenticado.
+
+    Returns:
+        List[Order]: Lista de órdenes del usuario.
+    """
+    orders = order_service.get_orders(db)
+    if orders is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron órdenes")
+    return orders
+
 @router.get(
     "/",
-    response_model=List[OrderResponse],
+    response_model=List[Order],
     summary="Obtener el historial de órdenes del usuario"
 )
 def get_user_orders(
     limit: int = 10,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserInToken = Depends(get_current_user)
 ):
     # Asumiendo que tienes una función `fun_obtener_ordenes_usuario`
     # Si no, esta parte necesitará una query directa
@@ -42,6 +61,34 @@ def get_user_orders(
     
     result = db.execute(query, params).fetchall()
     return result
+
+
+@router.post("/order", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
+async def create_order(
+    db:Session = Depends(get_db),
+    order_data: OrderCreate = Body(...),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Crea una nueva orden en la base de datos.
+
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        order_data (OrderCreate): Un objeto Pydantic `OrderCreate` con los datos a insertar.
+        current_user (UserInToken): El usuario autenticado.
+
+    Returns:
+        OrderResponse: La orden creada.
+        
+    """
+    try:
+        order_service.create_order(db, order_data, current_user.id_usuario)
+        return ResponseMessage(message="Orden creada exitosamente")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+
 
 @router.post(
     "/{order_id}/pay",
@@ -52,8 +99,14 @@ async def pay_order(
     order_id: int,
     payload: PayOrderPayload,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: UserInToken = Depends(get_current_user)
 ):
+    """
+    Paga una orden existente con una tarjeta guardada.
+
+    Args:
+        order_id (int): El identificador de la orden a pagar.
+    """
     query = text("""
         SELECT o.val_total_pedido, o.ind_estado, mpu.provider_source_id
         FROM tab_ordenes o

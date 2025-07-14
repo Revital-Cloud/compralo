@@ -69,7 +69,7 @@ class OrderCreate(BaseModel):
     """
     id_carrito: Decimal = Field(..., description="Identificador del carrito que realiza la orden.")
     id_direccion: Decimal = Field(..., description="Identificador de la dirección de envío.")
-    codigo_descuento: str = Field(..., description="Código de descuento a aplicar.")
+    codigo_descuento: Optional[str] = Field(None, description="Código de descuento a aplicar.")
     des_observaciones: Optional[str] = Field(None, description="Observaciones adicionales sobre la orden.")
     usr_insert: Optional[Decimal] = Field(None, description="Identificador del usuario que insertó la orden.")
 
