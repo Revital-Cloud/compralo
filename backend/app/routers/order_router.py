@@ -6,7 +6,7 @@ incluyendo la creación y visualización de órdenes.
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import List
+from typing import List, Dict, Any
 import json
 import httpx
 import uuid
@@ -15,7 +15,7 @@ from decimal import Decimal
 from core.database import get_db
 from core.dependencies import get_current_user
 from schemas.auth_schema import UserInToken
-from schemas.order_schema import Order, OrderCreate, ResponseMessage # Renombramos en la importación
+from schemas.order_schema import Order, OrderCreate, ResponseMessage, CreateOrderResponse 
 from schemas.payment_schema import PayOrderPayload
 from services.wompi_service import wompi_service
 from services import order_service
@@ -63,7 +63,7 @@ def get_user_orders(
     return result
 
 
-@router.post("/order", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
+@router.post("/order", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
 async def create_order(
     db:Session = Depends(get_db),
     order_data: OrderCreate = Body(...),
@@ -78,12 +78,22 @@ async def create_order(
         current_user (UserInToken): El usuario autenticado.
 
     Returns:
-        OrderResponse: La orden creada.
+        Dict[str, Any]: La respuesta completa de la función SQL con toda la información de la orden tal como la devuelve fun_crear_orden_desde_carrito.
         
     """
     try:
-        order_service.create_order(db, order_data, current_user.id_usuario)
-        return ResponseMessage(message="Orden creada exitosamente")
+        result = order_service.create_order(db, order_data, current_user.id_usuario)
+        
+        # Si la función SQL devolvió un diccionario completo, devolverlo tal como está
+        if result and isinstance(result, dict):
+            return result
+        
+        # Si no hay resultado o es None, devolver respuesta de error
+        return {
+            "success": False,
+            "message": "No se pudo crear la orden",
+            "error": "La función SQL no devolvió una respuesta válida"
+        }
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

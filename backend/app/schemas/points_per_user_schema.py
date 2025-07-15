@@ -9,6 +9,7 @@ así como un esquema para mensajes de respuesta genéricos.
 from pydantic import BaseModel, Field
 from typing import Optional
 from decimal import Decimal
+from datetime import datetime
 
 class PointsPerUserBase(BaseModel):
     """
@@ -31,20 +32,6 @@ class PointsPerUserBase(BaseModel):
     class Config:
         from_attributes = True
 
-class PointsPerUserCreate(PointsPerUserBase):
-    """
-    Esquema para la Creación de Puntos por Usuario.
-    """
-    usr_insert: Decimal = Field(..., description="Identificador del usuario que insertó el registro.")
-
-class PointsPerUserUpdate(BaseModel):
-    """
-    Esquema para la Actualización de Puntos por Usuario.
-    """
-    puntos_disponibles: Optional[int] = Field(None, description="Puntos disponibles.")
-    puntos_totales_ganados: Optional[int] = Field(None, description="Puntos totales ganados.")
-    puntos_totales_canjeados: Optional[int] = Field(None, description="Puntos totales canjeados.")
-    usr_update: Optional[Decimal] = Field(None, description="Identificador del usuario que actualizó el registro.")
 
 class PointsPerUser(PointsPerUserBase):
     """
@@ -57,3 +44,33 @@ class ResponseMessage(BaseModel):
     Esquema para Mensajes de Respuesta.
     """
     message: str = Field(..., description="Mensaje de respuesta.")
+
+class PointsMovement(BaseModel):
+    """
+    Esquema para un único movimiento en el historial de puntos.
+    """
+    id_movimiento_puntos: int
+    tipo_movimiento_codigo: int
+    tipo_movimiento_descripcion: str
+    cantidad_puntos: Decimal
+    puntos_disponibles_anterior: Decimal
+    puntos_disponibles_actual: Decimal
+    descripcion: str
+    fec_movimiento: datetime
+    id_orden_origen: Optional[int] = None
+    id_descuento_canjeado: Optional[int] = None
+    nombre_descuento: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+class PointsHistoryResponse(BaseModel):
+    """
+    Esquema para la respuesta del historial de puntos de un usuario.
+    """
+    success: bool
+    id_usuario: Decimal
+    historial: list[PointsMovement]
+
+    class Config:
+        from_attributes = True

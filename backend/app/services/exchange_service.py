@@ -29,6 +29,8 @@ def get_exchanges(db:Session):
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener canjes: {str(e)}")
+
+
     
 def exchange_points_discount(db:Session, exchange_points_discount:ExchangePointsDiscount, usr_insert:Decimal):
     """

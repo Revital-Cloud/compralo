@@ -117,13 +117,14 @@ def create_order(db:Session, order:OrderCreate, usr_insert: Decimal):
             :id_direccion,
             :codigo_descuento,
             :des_observaciones,
-            :usr_insert
+            :usr_insert,
+            :id_canje
         )
         """)
         result = db.execute(query, params)
         fetched_result = result.fetchone()
         db.commit()
-                 # La función devuelve un diccionario completo con toda la información
+                # La función devuelve un diccionario completo con toda la información
         if fetched_result and fetched_result[0]:
             response_data = fetched_result[0]
             # Devolver todo el diccionario con la información completa

@@ -7,8 +7,8 @@ from sqlalchemy.orm import Session
 from decimal import Decimal
 
 from core.database import get_db
-from core.dependencies import require_admin, get_current_user, get_current_user_optional
-from schemas.points_per_user_schema import PointsPerUser, PointsPerUserCreate, PointsPerUserUpdate, ResponseMessage, PointsPerUserBase
+from core.dependencies import  get_current_user 
+from schemas.points_per_user_schema import PointsPerUser, PointsHistoryResponse
 from schemas.auth_schema import UserInToken
 from services import points_per_user_service
 
@@ -27,3 +27,11 @@ async def get_points_per_user(db: Session = Depends(get_db),current_user: UserIn
         return points_per_user
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    
+@router.get("/historial-puntos", response_model=PointsHistoryResponse, status_code=status.HTTP_200_OK)
+async def get_history_exchanges(db:Session = Depends(get_db), current_user: UserInToken = Depends(get_current_user)):
+    """
+    Obtiene el historial de canjes de puntos y descuentos.
+    """
+    exchanges = points_per_user_service.get_points_per_user_history(db, current_user.id_usuario)
+    return exchanges

@@ -9,7 +9,7 @@ así como un esquema para mensajes de respuesta genéricos.
 
 from datetime import date, datetime
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from decimal import Decimal
 
 class OrderBase(BaseModel):
@@ -34,7 +34,8 @@ class OrderBase(BaseModel):
     val_total_pedido: Decimal = Field(..., description="Valor final de la orden (productos - descuentos).")
     ind_estado: int = Field(..., description="Estado de la orden (1: Pendiente, 2: Procesada, 3: Enviada, 4:Cancelada).")
     metodo_pago: Optional[str] = Field(None, description="Método de pago" )
-    id_descuento: Optional[int] = Field(None, description="Identificador del descuento principal aplicado (legacy).")
+    id_descuento: Optional[int] = Field(None, description="Identificador del descuento principal aplicado.")
+    id_canje: Optional[int] = Field(None, description="Identificador del canje de puntos aplicado.")
     detalle_descuentos_aplicados: Optional[List[Dict[str, Any]]] = Field(None, description="JSON con el detalle de todos los descuentos aplicados.")
     des_observaciones: Optional[str] = Field(None, description="Observaciones adicionales sobre la orden.")
     usr_insert: Optional[Decimal] = Field(None, description="Identificador del usuario que insertó la orden.")
@@ -72,6 +73,7 @@ class OrderCreate(BaseModel):
     codigo_descuento: Optional[str] = Field(None, description="Código de descuento a aplicar.")
     des_observaciones: Optional[str] = Field(None, description="Observaciones adicionales sobre la orden.")
     usr_insert: Optional[Decimal] = Field(None, description="Identificador del usuario que insertó la orden.")
+    id_canje: Optional[Decimal] = Field(None, description="Identificador del canje de puntos a aplicar.")
 
     class Config:
         from_attributes = True
@@ -81,3 +83,17 @@ class ResponseMessage(BaseModel):
     Esquema para mensajes de respuesta genéricos.
     """
     message: str = Field(..., description="Mensaje de respuesta.")
+
+class CreateOrderResponse(BaseModel):
+    """
+    Esquema de respuesta para la creación de órdenes.
+    Captura la respuesta completa que devuelve la función SQL fun_crear_orden_desde_carrito.
+    """
+    success: Optional[bool] = Field(None, description="Indica si la operación fue exitosa")
+    message: Optional[str] = Field(None, description="Mensaje descriptivo de la operación")
+    error: Optional[str] = Field(None, description="Mensaje de error si la operación falló")
+    id_orden: Optional [Decimal] = Field(None, description="ID de la orden creada")
+    datos: Optional[Dict[str, Any]] = Field(None, description="Información adicional de la orden")
+    
+    class Config:
+        from_attributes = True

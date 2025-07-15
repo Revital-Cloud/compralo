@@ -49,8 +49,24 @@ class ExchangePointsDiscount(BaseModel):
     """
     id_usuario: Decimal = Field(..., description="Identificador del usuario.")
     id_descuento: Decimal = Field(..., description="Identificador del descuento.")
-    usr_insert: Decimal = Field(..., description="Identificador del usuario que realizó el canje.")
-    
+
+
+class ExchangePointsDiscountResponse(BaseModel):
+    """
+    Esquema para la respuesta del canje de puntos por descuento.
+    """
+    success: bool = Field(..., description="Indica si el canje fue exitoso.")
+    message: str = Field(..., description="Mensaje descriptivo del resultado.")
+    id_canje: Optional[int] = Field(None, description="ID del canje creado.")
+    descuento: Optional[str] = Field(None, description="Nombre del descuento canjeado.")
+    puntos_utilizados: Optional[Decimal] = Field(None, description="Puntos utilizados en el canje.")
+    puntos_restantes: Optional[Decimal] = Field(None, description="Puntos restantes del usuario.")
+    puntos_necesarios: Optional[Decimal] = Field(None, description="Puntos necesarios para el canje, en caso de error.")
+    puntos_disponibles: Optional[Decimal] = Field(None, description="Puntos disponibles del usuario, en caso de error.")
+
+    class Config:
+        from_attributes = True
+        
     
 class ApplyExchangeOrder(BaseModel):
     """
@@ -59,7 +75,6 @@ class ApplyExchangeOrder(BaseModel):
     id_canje: Decimal = Field(..., description="Identificador del canje.")
     id_orden: Decimal = Field(..., description="Identificador de la orden.")
     id_usuario: Decimal = Field(..., description="Identificador del usuario.")
-    usr_update: Decimal = Field(..., description="Identificador del usuario que actualizó el registro.")
     
     
 class ResponseMessage(BaseModel):
@@ -67,4 +82,5 @@ class ResponseMessage(BaseModel):
     Esquema para la Respuesta de Mensajes.
     """
     message: str = Field(..., description="Mensaje de la respuesta.")
+    
     

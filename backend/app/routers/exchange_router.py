@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user
 from schemas.auth_schema import UserInToken
-from schemas.exchange_schema import ApplyExchangeOrder, ExchangePointsDiscount, Exchange, ResponseMessage
+from schemas.exchange_schema import ApplyExchangeOrder, ExchangePointsDiscount, Exchange, ResponseMessage, ExchangePointsDiscountResponse
 from services import exchange_service
 
 router = APIRouter(tags=["Canjes"])
@@ -26,7 +26,8 @@ async def get_exchanges(db:Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
-@router.post("/canjes-puntos-descuento", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+    
+@router.post("/canjes-puntos-descuento", response_model=ExchangePointsDiscountResponse, status_code=status.HTTP_200_OK)
 async def exchange_points_discount(
     exchange_points_discount_data: ExchangePointsDiscount = Body(...),
     db: Session = Depends(get_db),
@@ -35,11 +36,23 @@ async def exchange_points_discount(
     """
     Realiza un canje de puntos por descuento.
     """
-    try:
-        exchange_service.exchange_points_discount(db, exchange_points_discount_data, current_user.id_usuario)
-        return ResponseMessage(message="Canje de puntos por descuento realizado correctamente")
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    result = exchange_service.exchange_points_discount(
+        db, exchange_points_discount_data, current_user.id_usuario
+    )
+    
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al procesar el canje: la operación no devolvió un resultado."
+        )
+
+    if not result.get('success'):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail=result
+        )
+    
+    return result
     
 @router.post("/aplicar-canje-orden", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def apply_exchange_order(
