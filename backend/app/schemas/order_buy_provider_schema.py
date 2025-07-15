@@ -52,7 +52,7 @@ class OrderBuyProviderBase(BaseModel):
     ind_estado_producto: Optional[Decimal] = Field(None, description="Estado del producto.")
     fec_recepcion_completa: Optional[datetime] = Field(None, description="Fecha de recepción completa.")
     observaciones_producto: Optional[str] = Field(None, description="Observaciones específicas del producto.")
-    usr_insert: Decimal = Field(..., description="Usuario que insertó el registro.")
+    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
     
 class OrderBuyProvider(OrderBuyProviderBase):
     """
@@ -80,7 +80,7 @@ class OrderBuyProviderCreate(BaseModel):
     costo_unitario: Decimal = Field(..., description="Costo unitario.")
     ind_estado_producto: Optional[Decimal] = Field(None, description="Estado del producto.")
     observaciones_producto: Optional[str] = Field(None, description="Observaciones específicas del producto.")
-    usr_insert: Decimal = Field(..., description="Usuario que insertó el registro.")
+    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
     
 class OrderBuyProviderUpdate(BaseModel):
     """

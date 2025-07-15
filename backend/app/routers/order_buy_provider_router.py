@@ -46,7 +46,7 @@ async def create_order_buy_provider(
         ResponseMessage: Un mensaje de respuesta indicando el resultado de la operación.
     """
     try:
-        order_buy_provider_services.create_order_buy_provider(db, order_buy_provider_data, current_user.id)
+        order_buy_provider_services.create_order_buy_provider(db, order_buy_provider_data, current_user.id_usuario)
         return ResponseMessage(message="Orden de compra a proveedor creada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
