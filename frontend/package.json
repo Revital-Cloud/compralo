@@ -32,7 +32,6 @@
     "@tanstack/react-query": "^5.80.2",
     "@tanstack/react-query-devtools": "^5.80.7",
     "@tanstack/react-table": "^8.21.3",
-    "@types/file-saver": "^2.0.7",
     "@types/papaparse": "^5.3.16",
     "axios": "^1.9.0",
     "class-variance-authority": "^0.7.1",
@@ -62,7 +61,9 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/estree": "^1.0.8",
+    "@types/file-saver": "^2.0.7",
+    "@types/node": "^20.19.9",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "tailwindcss": "^4",
