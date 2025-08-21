@@ -62,12 +62,20 @@ export function RegisterForm() {
       setIsLoading(true);
       const dataToSubmit: RegisterRequest = {
         ...values,
+        // Convertir id_usuario a número (Decimal en backend)
+        id_usuario: Number(values.id_usuario),
         ind_genero: values.ind_genero === "masculino" ? false : true,
+        // Asignar rol por defecto de cliente
+        id_rol: 2,
       };
+      
       await registerUser(dataToSubmit);
+      // Solo redirigir si el registro fue exitoso
       router.push("/login");
     } catch (error: any) {
-      console.error(error);
+      console.error('Error en registro:', error);
+      // El error ya se maneja en el hook useAuth con toast
+      // Aquí podríamos agregar manejo adicional si es necesario
     } finally {
       setIsLoading(false);
     }

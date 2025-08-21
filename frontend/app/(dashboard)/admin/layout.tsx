@@ -1,36 +1,21 @@
 'use client';
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/use-auth";
-import type { Metadata } from "next";
+import { useAdminRedirect } from "@/hooks/use-role-redirect";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/dashboard/sidebar";
 import AdminHeader from "@/components/layout/dashboard/admin-header";
 import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
 
 export default function AdminLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const router = useRouter();
-  const { user, isAuthenticated, isLoadingUser } = useAuth();
+  const { isLoading, hasRequiredRole } = useAdminRedirect();
 
-  useEffect(() => {
-    // No hacer nada mientras carga
-    if (isLoadingUser) return;
-
-    // Si no está autenticado o no es admin, redirigir
-    if (!isAuthenticated || user?.id_rol !== 1) {
-      toast.error("Acceso denegado. Debes ser administrador.");
-      router.replace("/login");
-    }
-  }, [isLoadingUser, isAuthenticated, user, router]);
-
-  // Mostrar un loader a pantalla completa mientras se verifica
-  if (isLoadingUser || !isAuthenticated || user?.id_rol !== 1) {
+  // Mostrar un loader a pantalla completa mientras se verifica la autenticación y permisos
+  // Esto evita que se muestre contenido del admin a usuarios no autorizados
+  if (isLoading || !hasRequiredRole) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -38,7 +23,7 @@ export default function AdminLayout({
     );
   }
 
-  // Si es admin, mostrar el layout
+  // Si el usuario es admin y está autenticado, mostrar el layout del dashboard
   return (
     <SidebarProvider
       style={

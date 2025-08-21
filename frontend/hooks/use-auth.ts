@@ -51,14 +51,22 @@ export function useAuth() {
     mutationFn: (credentials: LoginRequest) => authService.login(credentials),
     onSuccess: async () => {
       toast.success('¡Bienvenido! Has iniciado sesión correctamente');
+      
       // Refresca la query del usuario actual para obtener sus datos
+      // Esto es necesario porque el login solo devuelve tokens, no datos del usuario
       const refreshedUser = await queryClient.fetchQuery<User>({ queryKey: AUTH_KEYS.currentUser });
       
-      // Redirección basada en rol
+      // Redirección basada en rol del usuario
       if (typeof window !== 'undefined') {
-        // Rol 1: Admin -> /admin
-        // Otro rol -> / (tienda)
-        window.location.href = refreshedUser?.id_rol === 1 ? '/admin' : '/';
+        // Convertir id_rol a number para asegurar comparación correcta
+        const userRole = Number(refreshedUser?.id_rol);
+        
+        // Lógica de redireccionamiento:
+        // - Rol 1 (Admin): Redirigir al dashboard de administración (/admin)
+        // - Rol 2 (Cliente): Redirigir a la tienda principal (/)
+        const redirectUrl = userRole === 1 ? '/admin' : '/';
+        
+        window.location.href = redirectUrl;
       }
     },
     onError: (error: any) => {
@@ -88,6 +96,14 @@ export function useAuth() {
 
   const registerMutation = useMutation({
     mutationFn: authService.register,
+    onSuccess: () => {
+      toast.success('¡Cuenta creada exitosamente! Ya puedes iniciar sesión.');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Error al crear la cuenta. Inténtalo de nuevo.';
+      toast.error(message);
+      throw error; // Re-lanzar el error para que el componente lo pueda manejar
+    },
   });
 
   const updateProfileMutation = useMutation({
@@ -105,7 +121,7 @@ export function useAuth() {
   });
 
   const register = async (userData: RegisterRequest) => {
-    await registerMutation.mutateAsync(userData);
+    return await registerMutation.mutateAsync(userData);
   };
 
   const updateProfile = async (userData: UserUpdate) => {
