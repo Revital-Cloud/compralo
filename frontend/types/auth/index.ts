@@ -49,10 +49,12 @@ export interface ResetPasswordConfirm {
 // =============================================================================
 
 export interface RegisterRequest {
+  id_usuario: number;
   nom_usuario: string;
   ape_usuario: string;
   email_usuario: string;
   password_usuario: string;
+  id_rol: number;
   cel_usuario: string;
   ind_genero: boolean;
   des_direccion?: string;

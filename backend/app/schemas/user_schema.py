@@ -35,6 +35,7 @@ class UserBase(BaseModel):
     ape_usuario: str = Field(..., description="Apellido del usuario.")
     email_usuario: str = Field(..., description="Email del usuario.")
     password_usuario: str = Field(..., description="Contraseña del usuario.")
+    id_rol: Decimal = Field(..., description="Identificador del rol del usuario.")
     ind_genero: bool = Field(..., description="Género del usuario.")
     cel_usuario: str = Field(..., description="Número de celular del usuario.")
     fec_nacimiento: Optional[str] = Field(None, description="Fecha de nacimiento del usuario.")
