@@ -18,7 +18,9 @@ const nextConfig: NextConfig = {
   // Configuración para optimizar el renderizado de componentes
   experimental: {
     optimizeCss: true,
+    ppr: 'incremental',
   },
+
 };
 
 export default nextConfig;

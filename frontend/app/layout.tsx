@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Brillo Rosa",
-  description: "Brillo Rosa",
+  title: "Compralo",
+  description: "Compralo",
 };
 
 export default function RootLayout({
