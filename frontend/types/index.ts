@@ -165,6 +165,7 @@ export interface User extends UserBase {
 // =============================================================================
 
 export interface ProductBase {
+  id_producto: number;
   nom_producto: string;
   spcf_producto: Record<string, any>; // Equivalente a Dict[str, Any] de Python
   img_producto?: string;

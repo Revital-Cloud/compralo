@@ -35,10 +35,25 @@ export async function getProducts(params?: ProductFilters): Promise<PaginatedRes
 }
 
 /**
- * Obtener producto por ID
+ * Obtener producto por ID compuesto
+ * Formato esperado: "{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}"
  */
-export async function getProductById(id: number): Promise<Product> {
-  return await get<Product>(`/products/${id}`);
+export async function getProductByIds(
+  ids:
+    | string
+    | {
+        id_categoria: string | number
+        id_linea: string | number
+        id_sublinea: string | number
+        id_producto: string | number
+      }
+): Promise<Product> {
+  const slug =
+    typeof ids === 'string'
+      ? ids
+      : `${ids.id_categoria}-${ids.id_linea}-${ids.id_sublinea}-${ids.id_producto}`
+
+  return await get<Product>(`/products/${slug}`)
 }
 
 /**
@@ -279,7 +294,7 @@ export async function getSublinesByLine(lineId: number): Promise<ProductSubline[
 const productService = {
   // Productos
   getProducts,
-  getProductById,
+  getProductByIds,
   createProduct,
   updateProduct,
   deleteProduct,

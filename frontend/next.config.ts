@@ -9,13 +9,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'via.placeholder.com',
+        hostname: '**',
       },
     ],
+    // Alternativa: deshabilitar completamente la validación de dominios
+    // unoptimized: true,
   },
   // Configuración para optimizar el renderizado de componentes
   experimental: {

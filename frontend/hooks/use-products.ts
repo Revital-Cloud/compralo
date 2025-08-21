@@ -32,7 +32,7 @@ export const PRODUCT_KEYS = {
   lists: () => [...PRODUCT_KEYS.all, 'list'] as const,
   list: (filters?: ProductFilters) => [...PRODUCT_KEYS.lists(), { filters }] as const,
   details: () => [...PRODUCT_KEYS.all, 'detail'] as const,
-  detail: (id: number) => [...PRODUCT_KEYS.details(), id] as const,
+  detail: (id: string | number) => [...PRODUCT_KEYS.details(), id] as const,
   categories: ['categories'] as const,
   brands: ['brands'] as const,
   providers: ['providers'] as const,
@@ -49,12 +49,24 @@ export const PRODUCT_KEYS = {
  * Hook para obtener lista paginada de productos
  */
 export function useProducts(params?: ProductFilters) {
-  return useQuery({
+  const query = useQuery({
     queryKey: PRODUCT_KEYS.list(params),
-    queryFn: () => productService.getProducts(params),
+    queryFn: () => {
+      console.log('🔍 useProducts: Llamando a getProducts con params:', params);
+      return productService.getProducts(params);
+    },
     staleTime: 5 * 60 * 1000, // 5 minutos
     gcTime: 10 * 60 * 1000, // 10 minutos
   });
+
+  console.log('🔍 useProducts: Estado actual:', {
+    isLoading: query.isLoading,
+    isError: query.isError,
+    data: query.data,
+    error: query.error
+  });
+
+  return query;
 }
 
 /**
@@ -67,7 +79,7 @@ export function useInfiniteProducts(filters?: ProductFilters) {
       productService.getProducts({ ...filters, page: pageParam }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {
-      const hasNextPage = lastPage.page < lastPage.total_pages;
+      const hasNextPage = lastPage.page < lastPage.pages;
       return hasNextPage ? lastPage.page + 1 : undefined;
     },
     staleTime: 5 * 60 * 1000,
@@ -77,11 +89,22 @@ export function useInfiniteProducts(filters?: ProductFilters) {
 /**
  * Hook para obtener un producto específico
  */
-export function useProduct(id: number, enabled = true) {
+export function useProductByIds(
+  ids:
+    | string
+    | {
+        id_categoria: string | number
+        id_linea: string | number
+        id_sublinea: string | number
+        id_producto: string | number
+      },
+  enabled = true
+) {
+  const key = typeof ids === 'string' ? ids : `${ids.id_categoria}-${ids.id_linea}-${ids.id_sublinea}-${ids.id_producto}`
   return useQuery({
-    queryKey: PRODUCT_KEYS.detail(id),
-    queryFn: () => productService.getProductById(id),
-    enabled: enabled && !!id,
+    queryKey: PRODUCT_KEYS.detail(key),
+    queryFn: () => productService.getProductByIds(ids),
+    enabled: enabled && !!key,
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -160,7 +183,7 @@ export function useCreateProduct() {
       // Invalidar listas de productos
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
       
-      toast.success(`Producto "${newProduct.nombre}" creado exitosamente`);
+      toast.success(`Producto "${newProduct.nom_producto}" creado exitosamente`);
     },
     onError: (error: any) => {
       const message = error?.response?.data?.message || 'Error al crear el producto';
@@ -188,7 +211,7 @@ export function useUpdateProduct() {
       // Invalidar listas de productos
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
       
-      toast.success(`Producto "${updatedProduct.nombre}" actualizado exitosamente`);
+      toast.success(`Producto "${updatedProduct.nom_producto}" actualizado exitosamente`);
     },
     onError: (error: any) => {
       const message = error?.response?.data?.message || 'Error al actualizar el producto';
@@ -351,10 +374,10 @@ export function useInventoryReport() {
 export function usePrefetchProduct() {
   const queryClient = useQueryClient();
 
-  return (id: number) => {
+  return (ids: string | { id_categoria: string | number; id_linea: string | number; id_sublinea: string | number; id_producto: string | number; }) => {
     queryClient.prefetchQuery({
-      queryKey: PRODUCT_KEYS.detail(id),
-      queryFn: () => productService.getProductById(id),
+      queryKey: PRODUCT_KEYS.detail(typeof ids === 'string' ? ids : `${ids.id_categoria}-${ids.id_linea}-${ids.id_sublinea}-${ids.id_producto}`),
+      queryFn: () => productService.getProductByIds(ids),
       staleTime: 5 * 60 * 1000,
     });
   };

@@ -6,12 +6,12 @@ export interface ProductBase {
   nom_producto: string;
   spcf_producto: Record<string, any>; // Equivalente a Dict[str, Any] de Python
   img_producto?: string;
-  val_precio: number; // Convertimos Decimal a number para TS
-  id_proveedor: number;
-  id_marca: number;
-  id_sublinea: number;
-  id_linea: number;
-  id_categoria: number;
+  val_precio: string; // Cambiado a string porque el API devuelve string
+  id_proveedor: string; // Cambiado a string porque el API devuelve string
+  id_marca: string; // Cambiado a string porque el API devuelve string
+  id_sublinea: string; // Cambiado a string porque el API devuelve string
+  id_linea: string; // Cambiado a string porque el API devuelve string
+  id_categoria: string; // Cambiado a string porque el API devuelve string
   num_stock: number;
 }
 
@@ -31,11 +31,12 @@ export interface ProductUpdate {
 }
 
 export interface Product extends ProductBase {
-  id_producto: number;
+  id_producto: string; // Cambiado a string porque el API devuelve string
   usr_insert: string;
   fec_insert: string; // Fecha como string, ya que viene del JSON
   usr_update?: string;
   fec_update?: string;
+  ind_activo: boolean; // Agregado campo que viene del API
 }
 
 // =============================================================================
