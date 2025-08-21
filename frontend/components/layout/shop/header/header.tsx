@@ -54,6 +54,16 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
     setTheme(theme === "light" ? "dark" : "light")
   }
 
+  // Navegación por defecto si no se proporcionan menuItems
+  const defaultMenuItems: NavItem[] = [
+    { text: "Home", href: "/" },
+    { text: "All products", href: "/products" },
+    { text: "Categories", href: "/categories" },
+    { text: "Contact", href: "/contact" }
+  ]
+
+  const navigationItems = menuItems.length > 0 ? menuItems : defaultMenuItems
+
   return (
     <header className={`sticky top-0 z-40 w-full ${className}`}>
       {/* Main Navigation Header */}
@@ -73,10 +83,17 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
               
               {/* Navigation */}
               <nav className="hidden lg:flex items-center space-x-8 ml-8">
-                <a href="#" className="text-[#FF0000] font-semibold border-b-2 border-[#FF0000] pb-2">Home</a>
-                <a href="#" className="text-black hover:text-[#FF0000]">All products</a>
-                <a href="#" className="text-black hover:text-[#FF0000]">Categories</a>
-                <a href="#" className="text-black hover:text-[#FF0000]">Contact</a>
+                {navigationItems.map((item, index) => (
+                  <Link
+                    key={index}
+                    href={item.href || "#"}
+                    className={`text-sm font-medium transition-colors hover:text-[#FF0000] ${
+                      item.href === "/" ? "text-[#FF0000] border-b-2 border-[#FF0000] pb-2" : "text-black"
+                    }`}
+                  >
+                    {item.text}
+                  </Link>
+                ))}
               </nav>
             </div>
             
@@ -146,10 +163,13 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                   </span>
                 </div>
 
-                {/* Login */}
-                <span className="text-gray-700 cursor-pointer hover:text-[#FF0000]">Iniciar sesión</span>
-                
-                {/* Help */}
+                {/* Login - Ahora conectado */}
+                <Link 
+                  href="/login" 
+                  className="text-gray-700 cursor-pointer hover:text-[#FF0000] transition-colors duration-200 font-medium"
+                >
+                  Iniciar sesión
+                </Link>
               </div>
 
               {/* Mobile Menu Button */}
@@ -179,7 +199,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
       <MobileMenu
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
-        items={menuItems}
+        items={navigationItems}
       />
     </header>
   )
