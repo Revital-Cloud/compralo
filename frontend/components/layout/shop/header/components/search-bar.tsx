@@ -20,19 +20,19 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, placeholder = "Buscar p
   }
 
   return (
-    <form onSubmit={handleSubmit} className="relative flex-1 max-w-md">
+    <form onSubmit={handleSubmit} className="relative flex-1 max-w-full sm:max-w-md">
       <Input
         type="text"
         placeholder={placeholder}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="pr-10 bg-muted/50 border-border focus:bg-background"
+        className="pr-10 bg-muted/50 border-border focus:bg-background text-sm"
       />
       <Button
         type="submit"
         variant="ghost"
         size="sm"
-        className="absolute right-1 top-1/2 -translate-y-1/2 p-2 hover:bg-muted"
+        className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 hover:bg-muted"
       >
         <Search className="h-4 w-4" />
       </Button>

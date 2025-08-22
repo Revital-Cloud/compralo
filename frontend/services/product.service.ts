@@ -104,7 +104,7 @@ export async function getProductsByBrand(brandId: number, params?: PaginationPar
  * Obtener productos destacados
  */
 export async function getFeaturedProducts(limit?: number): Promise<Product[]> {
-  return await get<Product[]>('/products/featured', { params: { limit } });
+  return await get<Product[]>('/products', { params: { limit } });
 }
 
 /**

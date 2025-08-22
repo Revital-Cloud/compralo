@@ -29,6 +29,7 @@ import {
   UserMenu
 } from "./components"
 import Link from "next/link"
+import { defaultMenuItems } from "@/lib/menu-config"
 
 interface EcommerceHeaderProps {
   logo?: React.ReactNode
@@ -54,13 +55,6 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
     setTheme(theme === "light" ? "dark" : "light")
   }
 
-  // Navegación por defecto si no se proporcionan menuItems
-  const defaultMenuItems: NavItem[] = [
-    { text: "Home", href: "/" },
-    { text: "All products", href: "/products" },
-    { text: "Categories", href: "/categories" },
-    { text: "Contact", href: "/contact" }
-  ]
 
   const navigationItems = menuItems.length > 0 ? menuItems : defaultMenuItems
 
@@ -68,27 +62,32 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
     <header className={`sticky top-0 z-40 w-full ${className}`}>
       {/* Main Navigation Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
+        <div className="container mx-auto px-3 sm:px-4">
+          <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo */}
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               {logo || (
                 <div className="flex items-center space-x-2">
-                  <div className="w-10 h-10 bg-[#FF0000] rounded-lg flex items-center justify-center">
-                    <ShoppingCart className="w-6 h-6 text-white" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
+                    <svg className="w-8 h-8 sm:w-10 sm:h-10" viewBox="0 0 680 680" xmlns="http://www.w3.org/2000/svg">
+                      <circle className="fill-[#ec2538]" cx="280.42" cy="568.76" r="43.83"/>
+                      <circle className="fill-[#ec2538]" cx="495.94" cy="568.76" r="43.83"/>
+                      <path className="fill-[#ec2538]" d="M53.48,164.04h82.2c3.44,0,6.42,2.37,7.2,5.73l67.48,292.67c4.66,20.22,22.67,34.55,43.42,34.55h267.95c34.64,0,64.96-23.25,73.96-56.7l57.12-212.33c4.52-16.79-8.13-33.28-25.51-33.28h-61.44c4.92,71.77-21.63,132.81-63.82,188.53,19.19,12.32,33.63,26.23,32.64,45.31,1.55,34.12-48.73,38.39-108.03,37.47h-119.7c-17.42,0-31.54-14.12-31.54-31.54v-145.6c0-22.14,23.66-36.25,43.14-25.72l27.7,14.97c23.19-21.34,40.1-48.75,49.78-83.14h-190.56c-3.24,0-6.04-2.25-6.75-5.41l-8.66-38.78c-4.94-22.13-24.58-37.87-47.26-37.87H53.47c-5.82,0-11.59,1.55-16.4,4.82-7.04,4.79-10.7,11.74-10.71,21.02-.71,10.34,3.81,17.17,11.9,21.61,4.64,2.55,9.93,3.69,15.22,3.69Z"/>
+                      <path className="fill-[#fec806]" d="M441.83,75.06c-4.32,118.31-38.28,185.28-84.47,231.11-3.22,3.2-8.23,3.71-12.07,1.3l-35.57-22.4c-4.62-2.91-10.64.41-10.64,5.87v140.38c0,5.26,4.25,9.53,9.51,9.56,78.36.44,153.52.47,192.25-4.16,9.85-1.18,13.22-13.75,5.29-19.7l-35.17-26.37c-3.1-2.33-3.57-6.8-1.02-9.72,103.04-118.15,93.62-227.41-15.41-311.86-5.07-3.93-12.48-.42-12.71,5.99Z"/>
+                    </svg>
                   </div>
-                  <span className="text-3xl font-bold text-[#FF0000]">Compralo</span>
+                  <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#ec2538]">Compralo</span>
                 </div>
               )}
               
-              {/* Navigation */}
+              {/* Navigation - Solo visible en desktop */}
               <nav className="hidden lg:flex items-center space-x-8 ml-8">
                 {navigationItems.map((item, index) => (
                   <Link
                     key={index}
                     href={item.href || "#"}
-                    className={`text-sm font-medium transition-colors hover:text-[#FF0000] ${
-                      item.href === "/" ? "text-[#FF0000] border-b-2 border-[#FF0000] pb-2" : "text-black"
+                    className={`text-sm font-medium transition-colors hover:text-[#ec2538] ${
+                      item.href === "/" ? "text-[#ec2538] border-b-2 border-[#ec2538] pb-2" : "text-black"
                     }`}
                   >
                     {item.text}
@@ -98,55 +97,59 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
             </div>
             
             {/* Right Side */}
-            <div className="flex items-center space-x-6">
-              {/* Search Bar */}
-              <div className="relative hidden md:block">
+            <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-6">
+              {/* Search Bar - Oculto en móvil, visible en tablet y desktop */}
+              <div className="relative hidden sm:block">
                 <input
                   type="text"
-                  placeholder="Search"
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#FF0000] w-64"
+                  placeholder="Buscar productos..."
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ec2538] w-40 sm:w-48 lg:w-64 text-sm"
                 />
-                <Search className="absolute right-3 top-2.5 w-5 h-5 text-gray-400" />
+                <Search className="absolute right-3 top-2.5 w-4 h-4 text-gray-400" />
               </div>
               
-              {/* Actions */}
-              <div className="flex items-center space-x-4">
-                {/* Wishlist */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="sm" className="p-2 text-gray-700 hover:text-[#FF0000]">
-                        <Heart className="w-5 h-5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Lista de deseos</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+              {/* Actions - Responsive con diferentes breakpoints */}
+              <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4">
+                {/* Wishlist - Oculto en móvil muy pequeño */}
+                <div className="hidden sm:block">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="sm" className="p-1.5 sm:p-2 text-gray-700 hover:text-[#ec2538]">
+                          <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Lista de deseos</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
 
-                {/* Notifications */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="sm" className="p-2 text-gray-700 hover:text-[#FF0000] relative">
-                        <Bell className="w-5 h-5" />
-                        <div className="absolute top-1 right-1 w-2 h-2 bg-[#FF0000] rounded-full"></div>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Notificaciones</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                {/* Notifications - Oculto en móvil muy pequeño */}
+                <div className="hidden sm:block">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="sm" className="p-1.5 sm:p-2 text-gray-700 hover:text-[#ec2538] relative">
+                          <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+                          <div className="absolute top-1 right-1 w-2 h-2 bg-[#ec2538] rounded-full"></div>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Notificaciones</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
 
-                {/* Theme Toggle */}
+                {/* Theme Toggle - Siempre visible */}
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="ghost" size="sm" className="p-2 text-gray-700 hover:text-[#FF0000]" onClick={toggleTheme}>
-                        <Sun className="w-5 h-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                        <Moon className="absolute w-5 h-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                      <Button variant="ghost" size="sm" className="p-1.5 sm:p-2 text-gray-700 hover:text-[#ec2538]" onClick={toggleTheme}>
+                        <Sun className="w-4 h-4 sm:w-5 sm:h-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                        <Moon className="absolute w-4 h-4 sm:w-5 sm:h-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -155,29 +158,24 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                   </Tooltip>
                 </TooltipProvider>
 
-                {/* Cart */}
+                {/* Cart - Siempre visible */}
                 <div className="relative">
-                  <ShoppingCart className="w-6 h-6 text-gray-700 cursor-pointer hover:text-[#FF0000]" />
-                  <span className="absolute -top-2 -right-2 bg-[#FF0000] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700 cursor-pointer hover:text-[#ec2538]" />
+                  <span className="absolute -top-2 -right-2 bg-[#ec2538] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                     {cartCount > 99 ? '99+' : cartCount}
                   </span>
                 </div>
 
-                {/* Login - Ahora conectado */}
-                <Link 
-                  href="/login" 
-                  className="text-gray-700 cursor-pointer hover:text-[#FF0000] transition-colors duration-200 font-medium"
-                >
-                  Iniciar sesión
-                </Link>
+                {/* User Menu - Siempre visible */}
+                <UserMenu />
               </div>
 
-              {/* Mobile Menu Button */}
+              {/* Mobile Menu Button - Solo visible en móvil */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={toggleMobileMenu}
-                className="lg:hidden p-2"
+                className="lg:hidden p-1.5 sm:p-2 ml-1"
               >
                 {isMobileMenuOpen ? (
                   <X className="h-5 w-5" />
@@ -188,8 +186,8 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
             </div>
           </div>
 
-          {/* Mobile Search */}
-          <div className="md:hidden pb-4">
+          {/* Mobile Search - Solo visible en móvil */}
+          <div className="sm:hidden pb-4">
             <SearchBar />
           </div>
         </div>
