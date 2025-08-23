@@ -126,7 +126,7 @@ def get_product(
         raise Exception(f"Error al obtener el producto: {str(e)}")
 
 #create product
-async def create_product(db: Session, product: ProductCreate, image_file: Optional[UploadFile] = None):
+async def create_product(db: Session, product: ProductCreate, image_file: Optional[UploadFile] = None, usr_insert: Decimal = None):
     """
     Crea un nuevo producto en la base de datos llamando a una función SQL.
     Si se proporciona un archivo de imagen, lo sube a Cloudinary primero.
@@ -185,7 +185,8 @@ async def update_product(
     id_producto: Decimal,
     product: ProductUpdate,
     db: Session,
-    image_file: Optional[UploadFile] = None
+    image_file: Optional[UploadFile] = None,
+    usr_update: Decimal = None
     ):
     """
     Actualiza un producto existente en la base de datos llamando a una función SQL.
