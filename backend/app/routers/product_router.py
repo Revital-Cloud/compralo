@@ -10,7 +10,7 @@ para la lógica de negocio y del gestor de base de datos para las sesiones.
 from fastapi import APIRouter, Depends, Body, Form, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from decimal import Decimal
-from typing import Optional, Dict, Any
+from typing import Optional, List
 import json
 
 from core.database import get_db
@@ -76,6 +76,7 @@ async def get_product(
 @router.post("/products", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_product(
     db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user),
     # Datos del producto como Form fields
     id_categoria: Decimal = Form(...),
     id_linea: Decimal = Form(...),
@@ -87,8 +88,8 @@ async def create_product(
     id_marca: Decimal = Form(...),
     num_stock: int = Form(0),
     ind_activo: bool = Form(True),
-    # Archivo de imagen opcional
-    image_file: Optional[UploadFile] = File(None)
+    # Archivos de imagen opcionales (múltiples)
+    image_files: List[UploadFile] = File(None, description="Múltiples archivos de imagen para el producto")
 ):
     """
     Crear un nuevo producto con opción de imagen.
@@ -118,6 +119,13 @@ async def create_product(
         HTTPException: Si ocurre un error durante la creación del producto.
     """
     try:
+        print(f"🔍 ROUTER DEBUG: image_files recibidos: {image_files}")
+        print(f"🔍 ROUTER DEBUG: Tipo: {type(image_files)}")
+        if image_files:
+            print(f"🔍 ROUTER DEBUG: Cantidad de archivos: {len(image_files)}")
+            for i, file in enumerate(image_files):
+                print(f"🔍 ROUTER DEBUG: Archivo {i}: {file.filename}, tipo: {file.content_type}, tamaño: {file.size}")
+        
         # Convertir el JSON string a dict
         try:
             spcf_producto_dict = json.loads(spcf_producto)
@@ -142,8 +150,14 @@ async def create_product(
         print(f"spcf_producto recibido: {product_data.spcf_producto}")
         print(f"Tipo de spcf_producto: {type(product_data.spcf_producto)}")
         
-        # Llamar al servicio con la imagen opcional
-        service_response_message = await product_service.create_product(db, product_data, image_file)
+        # Llamar al servicio con las imágenes opcionales y el usuario
+        print(f"🔍 ROUTER DEBUG: Llamando a product_service.create_product con image_files: {image_files}")
+        service_response_message = await product_service.create_product(
+            db, 
+            product_data, 
+            image_files, 
+            current_user.id_usuario
+        )
         
         return ResponseMessage(message=service_response_message)
     except Exception as e:
@@ -162,6 +176,7 @@ async def update_product(
     id_sublinea: Decimal,
     id_producto: Decimal,
     db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user),
     # Datos del producto como Form fields opcionales
     nom_producto: Optional[str] = Form(None),
     spcf_producto: Optional[str] = Form(None),  # JSON como string
@@ -170,8 +185,8 @@ async def update_product(
     id_marca: Optional[Decimal] = Form(None),
     num_stock: Optional[int] = Form(None),
     ind_activo: Optional[bool] = Form(None),
-    # Archivo de imagen opcional
-    image_file: Optional[UploadFile] = File(None)
+    # Archivos de imagen opcionales (múltiples)
+    image_files: List[UploadFile] = File(None, description="Múltiples archivos de imagen para el producto")
     ):
     """
     Actualizar un producto existente.
@@ -199,6 +214,13 @@ async def update_product(
         ResponseMessage: Un mensaje indicando el resultado de la operación de actualización.
     """
     try:
+        print(f"🔍 ROUTER UPDATE DEBUG: image_files recibidos: {image_files}")
+        print(f"🔍 ROUTER UPDATE DEBUG: Tipo: {type(image_files)}")
+        if image_files:
+            print(f"🔍 ROUTER UPDATE DEBUG: Cantidad de archivos: {len(image_files)}")
+            for i, file in enumerate(image_files):
+                print(f"🔍 ROUTER UPDATE DEBUG: Archivo {i}: {file.filename}, tipo: {file.content_type}, tamaño: {file.size}")
+        
         # Preparar el dict de datos para actualizar
         update_data = {}
         
@@ -223,6 +245,7 @@ async def update_product(
         # Crear el objeto ProductUpdate
         product_data = ProductUpdate(**update_data)
         
+        print(f"🔍 ROUTER UPDATE DEBUG: Llamando a product_service.update_product con image_files: {image_files}")
         response_message = await product_service.update_product(
             id_categoria, 
             id_linea, 
@@ -230,7 +253,8 @@ async def update_product(
             id_producto, 
             product_data, 
             db,
-            image_file
+            image_files,
+            current_user.id_usuario
         )
 
         return ResponseMessage(message="producto actualizado exitosamente")
