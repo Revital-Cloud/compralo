@@ -11,6 +11,8 @@ from sqlalchemy.orm import Session
 from schemas.cms_schema import Cms, CmsCreate,CmsUpdate,ResponseMessage
 from services.cms_service import get_contents,get_content,create_cms_content,update_cms_content,delete_cms_content
 from core.database import get_db
+from core.dependencies import get_current_user
+from schemas.auth_schema import UserInToken
 
 router = APIRouter(tags=["CMS Content"])
 
@@ -52,7 +54,8 @@ async def get_cms_content(id_cms_content:int,db:Session=Depends(get_db)):
 @router.post("/cms",response_model=ResponseMessage,status_code=status.HTTP_201_CREATED)
 async def create_cms_content_endpoint(
     cms_content:CmsCreate = Body(...),
-    db:Session=Depends(get_db)
+    db:Session=Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Crea un nuevo CMS Content en la base de datos.
@@ -61,13 +64,7 @@ async def create_cms_content_endpoint(
         cms_content (CmsCreate): El CMS Content a crear.
     """
     try:
-        cms_content = CmsCreate(
-            nom_cms_content=cms_content.nom_cms_content,
-            des_cms_content=cms_content.des_cms_content,
-            num_version=cms_content.num_version,
-            ind_publicado=cms_content.ind_publicado
-        )
-        result = create_cms_content(db,cms_content)
+        result = create_cms_content(db,cms_content, current_user.id_usuario)
         if not result:
             raise HTTPException(status_code=500,detail="Error al crear CMS Content en la base de datos")
         return ResponseMessage(message="CMS Content creado exitosamente")
@@ -78,31 +75,31 @@ async def create_cms_content_endpoint(
 async def update_cms_content_endpoint(
     id_cms_content:int,
     cms_content:CmsUpdate = Body(...),
-    db:Session=Depends(get_db)):
+    db:Session=Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
     """
     Actualiza un CMS Content específico en la base de datos.
     """
     try:
-        cms_content = CmsUpdate(
-            nom_cms_content=cms_content.nom_cms_content,
-            des_cms_content=cms_content.des_cms_content,
-            num_version=cms_content.num_version,
-            ind_publicado=cms_content.ind_publicado
-        )
-        result = update_cms_content(db,id_cms_content,cms_content)
+        result = update_cms_content(db,id_cms_content,cms_content, current_user.id_usuario)
         if not result:
             raise HTTPException(status_code=500,detail="Error al actualizar CMS Content en la base de datos")
         return ResponseMessage(message="CMS Content actualizado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=400,detail=str(e))
 
-@router.delete("/cms/{id_cms_content}",response_model=ResponseMessage,status_code=status.HTTP_200_OK)
-async def delete_cms_content_endpoint(id_cms_content:int,db:Session=Depends(get_db)):
+@router.put("/cms/{id_cms_content}/deactivate",response_model=ResponseMessage,status_code=status.HTTP_200_OK)
+async def delete_cms_content_endpoint(
+    id_cms_content:int,
+    db:Session=Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
     """
     Elimina un CMS Content específico de la base de datos.
     """
     try:
-        result = delete_cms_content(db,id_cms_content)
+        result = delete_cms_content(db,id_cms_content, current_user.id_usuario)
         if not result:
             raise HTTPException(status_code=500,detail="Error al eliminar CMS Content en la base de datos")
         return ResponseMessage(message="CMS Content eliminado exitosamente")

@@ -27,7 +27,7 @@ const ProductActions: React.FC<ProductActionsProps> = ({
     <Button
       size={isMobile ? "default" : "lg"}
       onClick={onShopNow}
-      className={`bg-orange-500 dark:bg-blue-600 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-blue-700 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 ${
+      className={`bg-white text-black hover:bg-gray-200 font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 ${
         isMobile 
           ? 'w-full px-6 py-3 text-base' 
           : 'px-8 py-4 text-lg'
@@ -39,7 +39,7 @@ const ProductActions: React.FC<ProductActionsProps> = ({
       variant="outline"
       size={isMobile ? "default" : "lg"}
       onClick={onAddToWishlist}
-      className={`border-2 border-white/50 dark:border-gray-300/50 text-black dark:text-gray-300 hover:bg-white/10 dark:hover:bg-gray-700/30 font-semibold rounded-xl backdrop-blur-sm transition-all duration-300 ${
+      className={`bg-transparent border-2 border-white/50 text-white hover:bg-white/10 font-semibold rounded-xl backdrop-blur-sm transition-all duration-300 ${
         isMobile 
           ? 'w-full px-6 py-3 text-base' 
           : 'px-8 py-4 text-lg'

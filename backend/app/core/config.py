@@ -8,6 +8,7 @@ seguridad, la API y el servicio de emails con Resend.
 """
 # Carga de variables de entorno y configuraciones
 from pydantic_settings import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
     """
@@ -34,6 +35,7 @@ class Settings(BaseSettings):
         FRONTEND_URL (str): URL del frontend para links en emails.
         VERIFY_EMAIL_URL (str): URL para verificación de email.
         RESET_PASSWORD_URL (str): URL para reset de contraseña.
+        
     """
     # Configuración de la base de datos
     DATABASE_URL: str
@@ -57,9 +59,9 @@ class Settings(BaseSettings):
     CLOUDINARY_API_SECRET: str
     
     # Configuración de emails con Resend
-    RESEND_KEY: str
+    RESEND_API_KEY: str
     RESEND_FROM_EMAIL: str
-    RESEND_FROM_NAME: str = "Brillo Rosa"
+    RESEND_FROM_NAME: str
     
     # URLs del frontend para links en emails
     FRONTEND_URL: str
@@ -70,6 +72,14 @@ class Settings(BaseSettings):
     API_STR: str = "/api"
     PROJECT_NAME: str = "Brillo Rosa API"
     
+    # Configuración de Wompi
+    WOMPI_PUBLIC_KEY: str
+    WOMPI_PRIVATE_KEY: str
+    WOMPI_EVENTS_SECRET: str
+    WOMPI_INTEGRITY_SECRET: str
+    WOMPI_ENVIRONMENT: str = "sandbox"
+
+
     class Config:
         env_file = ".env"
         case_sensitive = True

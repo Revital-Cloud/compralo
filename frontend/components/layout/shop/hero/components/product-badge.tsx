@@ -12,8 +12,7 @@ interface ProductBadgeProps {
 const ProductBadge: React.FC<ProductBadgeProps> = ({ badge, icon = <Award className="w-4 h-4 mr-2" /> }) => (
   <div className="flex items-start">
     <Badge
-      variant="secondary"
-      className="bg-black/20 dark:bg-white/20 text-white border-white/30 dark:border-gray/30 backdrop-blur-sm px-4 py-2 text-sm font-medium"
+      className="bg-white/20 text-white border-white/30 backdrop-blur-sm px-4 py-2 text-sm font-medium"
     >
       {icon}
       {badge}

@@ -14,6 +14,9 @@ export * from './user';
 // Re-export de tipos de producto
 export * from './product';
 
+// Re-export de tipos de datos (Excel/CSV)
+export * from './data';
+
 // =============================================================================
 // TIPOS ADICIONALES PARA LA APLICACIÓN
 // =============================================================================

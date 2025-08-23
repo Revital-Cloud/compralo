@@ -6,33 +6,67 @@ export const appConfig = {
   // URLs
   apiUrl: process.env.NEXT_PUBLIC_API_URL_LOCAL || 'http://localhost:8000/api',
   
+  // Branding de Brillo Rosa
+  brand: {
+    name: 'Brillo Rosa',
+    logo: '/brillo-rosa-logo.svg',
+    colors: {
+      primary: 'oklch(0.75 0.15 350)',
+      secondary: 'oklch(0.95 0.05 350)',
+      accent: 'oklch(0.85 0.12 350)',
+    },
+    fonts: {
+      primary: 'var(--font-geist-sans)',
+      mono: 'var(--font-geist-mono)',
+    }
+  },
+  
   // Configuración de secciones
   sections: {
-    showNewDrops: process.env.NEXT_PUBLIC_SHOW_NEW_DROPS === 'true',
-    showCategories: process.env.NEXT_PUBLIC_SHOW_CATEGORIES === 'true',
+    showNewDrops: true,
+    showCategories: true,
   },
   
   // Configuración de la tienda
   store: {
-    name: process.env.NEXT_PUBLIC_STORE_NAME || 'Synkro Store',
-    currency: process.env.NEXT_PUBLIC_CURRENCY || 'COP',
-    currencySymbol: process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '$',
+    name: 'Brillo Rosa',
+    currency: 'ARS',
+    currencySymbol: '$',
   },
   
   // Configuración de productos
   products: {
-    itemsPerPage: parseInt(process.env.NEXT_PUBLIC_PRODUCTS_PER_PAGE || '12'),
-    enableFavorites: process.env.NEXT_PUBLIC_ENABLE_FAVORITES === 'true',
-    enableReviews: process.env.NEXT_PUBLIC_ENABLE_REVIEWS === 'true',
+    itemsPerPage: 12,
+    enableFavorites: true,
+    enableReviews: true,
   },
   
   // Configuración de features
   features: {
-    enableSearch: process.env.NEXT_PUBLIC_ENABLE_SEARCH !== 'false',
-    enableFilters: process.env.NEXT_PUBLIC_ENABLE_FILTERS !== 'false',
-    enableComparison: process.env.NEXT_PUBLIC_ENABLE_COMPARISON === 'true',
-    enableNotifications: process.env.NEXT_PUBLIC_ENABLE_NOTIFICATIONS === 'true',
+    enableSearch: true,
+    enableFilters: true,
+    enableComparison: true,
+    enableNotifications: true,
   },
+  
+  // Tema por defecto
+  theme: {
+    default: 'light',
+    colors: {
+      light: {
+        background: 'oklch(0.99 0 0)',
+        foreground: 'oklch(0.2 0 0)',
+        primary: 'oklch(0.75 0.15 350)',
+        secondary: 'oklch(0.95 0.05 350)',
+      },
+      dark: {
+        background: 'oklch(0.15 0 0)',
+        foreground: 'oklch(0.95 0 0)',
+        primary: 'oklch(0.8 0.15 350)',
+        secondary: 'oklch(0.3 0.05 350)',
+      }
+    }
+  }
 } as const;
 
 /**

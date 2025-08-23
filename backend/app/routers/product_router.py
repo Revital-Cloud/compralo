@@ -14,7 +14,7 @@ from typing import Optional, Dict, Any
 import json
 
 from core.database import get_db
-from core.dependencies import require_admin, get_current_user_optional
+from core.dependencies import require_admin, get_current_user, get_current_user_optional
 from schemas.product_schema import Product, ProductCreate, ProductUpdate, ResponseMessage
 from schemas.auth_schema import UserInToken
 from services import product_service
@@ -109,6 +109,7 @@ async def create_product(
         ind_activo (bool): Si el producto está activo.
         image_file (UploadFile): Archivo de imagen opcional.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
+        current_user (UserInToken): Usuario autenticado.
 
     Returns:
         ResponseMessage: Un mensaje indicando el resultado de la operación.
@@ -192,6 +193,7 @@ async def update_product(
         ind_activo (Optional[bool]): Si el producto está activo.
         image_file (Optional[UploadFile]): Archivo de imagen opcional.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
+        current_user (UserInToken): Usuario autenticado.
 
     Returns:
         ResponseMessage: Un mensaje indicando el resultado de la operación de actualización.
@@ -249,8 +251,8 @@ async def deactivate_product(
     id_linea: Decimal,  
     id_sublinea: Decimal,
     id_producto: Decimal, 
-    #current_user: UserInToken = Depends(require_admin()),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Eliminar un producto (Solo Administradores).
@@ -270,18 +272,22 @@ async def deactivate_product(
         
     Raises:
         HTTPException: Si el usuario no es administrador (403).
-        HTTPException: Si no se proporciona token de autenticación (401).
-        HTTPException: Si el producto no se encuentra (404).
     """
     try:
         response_message = product_service.deactivate_product(
             db, 
-            id_categoria,
+            id_categoria, 
             id_linea, 
             id_sublinea, 
-            id_producto
-        )
-        return ResponseMessage(message="Producto desactivado correctamente")
+            id_producto,
+            current_user.id_usuario
+            )
+        
+        if response_message and "Error" in str(response_message):
+             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(response_message))
+
+        return ResponseMessage(message="Producto desactivado exitosamente")
+
     except Exception as e:
         if response_message is None:
             raise HTTPException(

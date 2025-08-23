@@ -38,7 +38,6 @@ def get_users(db: Session):
             ape_usuario,
             email_usuario,
             password_usuario,
-            des_direccion,
             id_rol,
             ind_genero,
             cel_usuario,
@@ -69,7 +68,6 @@ def get_user(db: Session, id_usuario: Decimal):
             ape_usuario,
             email_usuario,
             password_usuario,
-            des_direccion,
             id_rol,
             ind_genero,
             cel_usuario,
@@ -91,6 +89,8 @@ def create_users(db: Session, user: UserCreate):
 
     Utiliza la función de base de datos `fun_insert_usuarios` para insertar
     un nuevo usuario. Los datos del usuario se toman del esquema `UserCreate`.
+    El `id_rol` se asigna con un valor por defecto en la base de datos.
+    El campo `usr_insert` se establece automáticamente con el `id_usuario` del nuevo usuario.
 
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
@@ -103,7 +103,10 @@ def create_users(db: Session, user: UserCreate):
     """
     try:
         params = user.model_dump()
+        params["usr_insert"] = Decimal(user.id_usuario)
         
+        # El id_rol ya no se pasa como parámetro, se asume que la función
+        # de base de datos le asigna un valor por defecto.
         query = text("""
             SELECT fun_insert_usuarios(
             :id_usuario,
@@ -111,11 +114,10 @@ def create_users(db: Session, user: UserCreate):
             :ape_usuario,
             :email_usuario,
             :password_usuario,
-            :des_direccion,
-            :id_rol,
             :ind_genero,
             :cel_usuario,
-            :fec_nacimiento)
+            :fec_nacimiento,
+            :usr_insert)
             """)
         
         result = db.execute(query, params)
@@ -128,18 +130,20 @@ def create_users(db: Session, user: UserCreate):
         db.rollback()
         raise Exception(f"Error al crear el usuario: {str(e)}")
     
-def update_user(db: Session, id_usuario: Decimal, user: UserUpdate):
+def update_user(db: Session, id_usuario: Decimal, user: UserUpdate, current_user_id: Decimal):
     """
     Actualiza un usuario existente en la base de datos llamando a una función SQL.
 
     Utiliza la función de base de datos `fun_update_usuarios` para actualizar
     un usuario existente, identificado por `id_usuario`. Los datos para la
     actualización se toman del esquema `UserUpdate` (solo campos proporcionados).
+    El campo `usr_update` se establece con el ID del usuario que realiza la operación.
 
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
         id_usuario (Decimal): El ID del usuario a actualizar.
         user (UserUpdate): Un objeto Pydantic `UserUpdate` con los datos a actualizar.
+        current_user_id (Decimal): El ID del usuario que realiza la actualización.
 
     Returns:
         dict or None: Un diccionario que representa el usuario actualizado (generalmente el JSON
@@ -150,10 +154,11 @@ def update_user(db: Session, id_usuario: Decimal, user: UserUpdate):
     try:
         update_params = user.model_dump(exclude_unset=True)
         update_params["id_usuario"] = id_usuario
+        update_params["usr_update"] = str(current_user_id)
         
         query = text("""SELECT fun_update_usuarios(
             :id_usuario, :nom_usuario, :ape_usuario, :email_usuario, :password_usuario,
-            :des_direccion, :id_rol, :ind_genero, :cel_usuario, :fec_nacimiento
+            :ind_genero, :cel_usuario, :fec_nacimiento, :usr_update
             )""")
         
         result = db.execute(query, update_params)
@@ -197,7 +202,7 @@ def delete_user(db: Session, id_usuario:Decimal):
 
 def get_user_by_email(db: Session, email: str):
     """
-    Obtiene un usuario por su email.
+    Obtiene un usuario por su email con los campos mínimos necesarios para autenticación.
 
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
@@ -214,15 +219,7 @@ def get_user_by_email(db: Session, email: str):
             ape_usuario,
             email_usuario,
             password_usuario,
-            des_direccion,
-            id_rol,
-            ind_genero,
-            cel_usuario,
-            fec_nacimiento,
-            usr_insert,
-            fec_insert,
-            usr_update,
-            fec_update
+            id_rol
         FROM tab_usuarios 
         WHERE email_usuario = :email
         """)
@@ -231,6 +228,32 @@ def get_user_by_email(db: Session, email: str):
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener usuario por email: {str(e)}")
+
+def get_user_by_email_auth_only(db: Session, email: str):
+    """
+    Obtiene solo email y password para autenticación rápida.
+    Optimizada para validación de credenciales únicamente.
+
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        email (str): Email del usuario a buscar.
+
+    Returns:
+        dict or None: Diccionario con email y password o None si no se encuentra.
+    """
+    try:
+        query = text("""
+        SELECT 
+            email_usuario,
+            password_usuario
+        FROM tab_usuarios 
+        WHERE email_usuario = :email
+        """)
+        result = db.execute(query, {"email": email})
+        return result.mappings().first()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener credenciales: {str(e)}")
 
 def update_password(db: Session, id_usuario: Decimal, hashed_password: str):
     """
@@ -246,14 +269,12 @@ def update_password(db: Session, id_usuario: Decimal, hashed_password: str):
     """
     try:
         query = text("""
-        UPDATE tab_usuarios 
-        SET password_usuario = :password, 
-            fec_update = CURRENT_TIMESTAMP 
-        WHERE id_usuario = :id_usuario
+        SELECT fun_update_password_usuario(:id_usuario, :password)
         """)
-        db.execute(query, {"password": hashed_password, "id_usuario": id_usuario})
+        result = db.execute(query, {"password": hashed_password, "id_usuario": id_usuario})
+        fetched_result = result.fetchone()
         db.commit()
-        return True
+        return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al actualizar contraseña: {str(e)}")
@@ -261,14 +282,20 @@ def update_password(db: Session, id_usuario: Decimal, hashed_password: str):
 # Alias para compatibilidad con diferentes nomenclaturas
 def get_user_by_id(db: Session, id_usuario: Decimal):
     """
-    Alias para get_user para mantener compatibilidad.
-    
-    Args:
-        db (Session): La sesión de base de datos SQLAlchemy.
-        id_usuario (Decimal): ID del usuario.
-        
-    Returns:
-        dict or None: Un diccionario que representa el usuario o None si no se encuentra.
+    Obtiene un usuario específico de la base de datos por su ID.
     """
-    return get_user(db, id_usuario)
+    try:
+        query = text("""
+            SELECT 
+                id_usuario, nom_usuario, ape_usuario, email_usuario, 
+                password_usuario, id_rol, ind_genero, cel_usuario, 
+                fec_nacimiento, usr_insert, fec_insert, usr_update, fec_update
+            FROM tab_usuarios 
+            WHERE id_usuario = :id_usuario
+        """)
+        result = db.execute(query, {"id_usuario": id_usuario})
+        return result.mappings().first()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener el usuario por ID: {str(e)}")
         

@@ -1,18 +1,29 @@
-import type { Metadata } from "next";
+'use client';
+
+import { useAdminRedirect } from "@/hooks/use-role-redirect";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/layout/dashboard/sidebar";
 import AdminHeader from "@/components/layout/dashboard/admin-header";
-
-export const metadata: Metadata = {
-  title: "Admin Dashboard",
-  description: "Admin Dashboard",
-};
+import { Loader2 } from "lucide-react";
 
 export default function AdminLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { isLoading, hasRequiredRole } = useAdminRedirect();
+
+  // Mostrar un loader a pantalla completa mientras se verifica la autenticación y permisos
+  // Esto evita que se muestre contenido del admin a usuarios no autorizados
+  if (isLoading || !hasRequiredRole) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  // Si el usuario es admin y está autenticado, mostrar el layout del dashboard
   return (
     <SidebarProvider
       style={

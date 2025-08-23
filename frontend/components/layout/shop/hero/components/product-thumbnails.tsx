@@ -35,8 +35,8 @@ const ProductThumbnails: React.FC<ProductThumbnailsProps> = ({
           onClick={() => onThumbnailSelect(index)}
           className={`relative w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-lg sm:rounded-xl overflow-hidden transition-all duration-300 border-2 hover:scale-105 ${
             selectedThumbnail === index
-              ? "border-blue-400 dark:border-blue-500 ring-2 ring-blue-400/50 dark:ring-blue-500/50 shadow-lg"
-              : "border-white/30 dark:border-gray-600 hover:border-white/50 dark:hover:border-gray-500"
+              ? "border-white ring-2 ring-white/50 shadow-lg"
+              : "border-white/30 hover:border-white/50"
           }`}
         >
           {/* Mostrar placeholder si es necesario */}
@@ -62,8 +62,8 @@ const ProductThumbnails: React.FC<ProductThumbnailsProps> = ({
           
           {/* Overlay de selección */}
           {selectedThumbnail === index && (
-            <div className="absolute inset-0 bg-blue-400/20 dark:bg-blue-500/20 flex items-center justify-center">
-              <div className="w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 bg-blue-500 dark:bg-blue-400 rounded-full shadow-lg"></div>
+            <div className="absolute inset-0 bg-white/20 flex items-center justify-center">
+              <div className="w-2 h-2 sm:w-3 sm:h-3 md:w-4 md:h-4 bg-white rounded-full shadow-lg"></div>
             </div>
           )}
         </button>

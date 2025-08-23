@@ -14,10 +14,14 @@ class CategoryBase(BaseModel):
 
     Atributos:
         nom_categoria (str): Nombre de la categoría.
-        ind_activo (bool): Indica si la categoría está activa.
+        usr_insert (Optional[Decimal]): Usuario que insertó el registro.
     """
     nom_categoria: str = Field(..., description="Nombre de la categoría.")
-    ind_activo: bool = Field(..., description="Indica si la categoría está activa.")
+    ind_activo: Optional[bool] = Field(None, description="Indica si la categoría está activa.")
+    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
+    fec_insert: Optional[datetime] = Field(None, description="Fecha de inserción del registro.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
+    fec_update: Optional[datetime] = Field(None, description="Fecha de actualización del registro.")
     
     class Config:
         from_attributes = True
@@ -36,9 +40,15 @@ class CategoryUpdate(BaseModel):
     """
     Esquema para la Actualización de Categorías.
     Permite actualizar campos opcionales de una categoría existente.
+
+    Atributos:
+        nom_categoria (Optional[str]): Nombre de la categoría.
+        ind_activo (Optional[bool]): Indica si la categoría está activa.
+        usr_update (Optional[Decimal]): Usuario que actualizó el registro.
     """
     nom_categoria: Optional[str] = Field(None, description="Nombre de la categoría.")
     ind_activo: Optional[bool] = Field(None, description="Indica si la categoría está activa.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
 
 # Esquema para llamar una sola categoría
 class Category(CategoryBase):

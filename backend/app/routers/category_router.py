@@ -6,6 +6,8 @@ from decimal import Decimal
 from fastapi import APIRouter, Body, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
+from core.dependencies import get_current_user
+from schemas.auth_schema import UserInToken
 
 # Importar los esquemas de categoria
 from schemas.category_schema import CategoryCreate, CategoryUpdate, Category, ResponseMessage
@@ -45,17 +47,21 @@ async def get_category(id_categoria: Decimal, db: Session = Depends(get_db)):
     Returns:
         Category: Detalles de la categoría solicitada.
     """
-    category = category_service.get_category(db, id_categoria)
-    if not category:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Categoría no encontrada")
-    return category
+    try:
+        category = category_service.get_category(db, id_categoria)
+        if not category:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Categoría no encontrada")
+        return category
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 # Ruta para crear una nueva categoría
 @router.post("/categories", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_category(
     db: Session = Depends(get_db),
-    category_data: CategoryCreate = Body(...)
+    category_data: CategoryCreate = Body(...),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Crea una nueva categoría en la base de datos.
@@ -69,10 +75,7 @@ async def create_category(
         ResponseMessage: Mensaje de confirmación de creación exitosa.
     """
     try:
-        category_data = CategoryCreate(
-            nom_categoria=category_data.nom_categoria, ind_activo=category_data.ind_activo
-            )
-        category_service.create_category(db, category_data)
+        category_service.create_category(db, category_data, current_user.id_usuario)
         return ResponseMessage(message="Categoría creada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -83,7 +86,8 @@ async def create_category(
 async def update_category(
     id_categoria: Decimal,
     category_data: CategoryUpdate = Body(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
     Actualiza una categoría existente en la base de datos.
@@ -97,13 +101,11 @@ async def update_category(
         ResponseMessage: Mensaje de confirmación de actualización exitosa.
     """
     try:
-        category_data = CategoryUpdate(
-            nom_categoria=category_data.nom_categoria, ind_activo=category_data.ind_activo
-            )
         category_service.update_category(
             db, 
             id_categoria, 
-            category_data
+            category_data,
+            current_user.id_usuario
             )
         return ResponseMessage(message="Categoría actualizada exitosamente")
     except Exception as e:
@@ -118,6 +120,7 @@ async def update_category(
 async def deactivate_category(
     id_categoria: Decimal,
     db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
     ):
     """
     Desactiva una categoría existente de la base de datos.
@@ -131,7 +134,7 @@ async def deactivate_category(
     """
     try:
         
-        category_service.deactivate_category(db, id_categoria)
+        category_service.deactivate_category(db, id_categoria, current_user.id_usuario)
         return ResponseMessage(message="Categoría desactivada exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

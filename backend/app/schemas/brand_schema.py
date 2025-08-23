@@ -6,6 +6,7 @@ las operaciones de creación, actualización y visualización.
 Incluye esquemas para la creación, actualización y visualización de marcas,
 así como un esquema para mensajes de respuesta genéricos.
 """
+from datetime import datetime
 from pydantic import BaseModel, Field
 from typing import Optional
 from decimal import Decimal
@@ -19,11 +20,10 @@ class BrandBase(BaseModel):
 
     Atributos:
         nom_marca (str): Nombre de la marca.
+        ind_activo (Optional[bool]): Indica si la marca está activa.
     """
     nom_marca: str = Field(..., description="Nombre de la marca")
-    ind_activo: bool = Field(..., description="Indica si la marca está activa")
-
-    
+    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
     class Config:
         from_attributes = True
     
@@ -36,6 +36,11 @@ class Brand(BrandBase):
     Incluye el `id_marca` y los campos de auditoría.
     """
     id_marca: Decimal
+    ind_activo: Optional[bool] = Field(None, description="Indica si la marca está activa.")
+    fec_insert: Optional[datetime] = Field(None, description="Fecha de inserción del registro.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
+    fec_update: Optional[datetime] = Field(None, description="Fecha de actualización del registro.")
+    
     
 class BrandCreate(BrandBase):
     """
@@ -46,16 +51,17 @@ class BrandCreate(BrandBase):
     """
     pass
     
-class BrandUpdate(BrandBase):
+class BrandUpdate(BaseModel):
     """
     Esquema para la Actualización de Marcas.
     
     Define los campos que pueden ser actualizados para una marca existente.
     Todos los campos son opcionales, permitiendo actualizaciones parciales.
     """
-    nom_marca: Optional[str] = None
-    ind_activo: Optional[bool] = None
-    
+    nom_marca: Optional[str] = Field(None, description="Nombre de la marca.")
+    ind_activo: Optional[bool] = Field(None, description="Indica si la marca está activa.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
+
 class ResponseMessage(BaseModel):
     """
     Esquema para Mensajes de Respuesta Genéricos.

@@ -5,7 +5,7 @@ Define los endpoints relacionados con la autenticación de usuarios,
 incluyendo login, refresh de tokens, cambio de contraseña y obtención
 de información del usuario actual.
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
@@ -21,8 +21,10 @@ from schemas.auth_schema import (
     ResetPasswordRequest,
     ResetPasswordConfirm
 )
-from schemas.user_schema import ResponseMessage
+from schemas.user_schema import ResponseMessage, User, UserCreate, UserUpdate
 from services import auth_service
+from services import user_service
+from core.dependencies import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -68,20 +70,26 @@ async def refresh_token(
     """
     return auth_service.refresh_access_token(db, refresh_data.refresh_token)
 
-@router.get("/me", response_model=UserInToken)
+@router.get("/me", response_model=User)
 async def get_current_user_info(
-    current_user: UserInToken = Depends(get_current_user)
+    current_user: UserInToken = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """
-    Endpoint para obtener información del usuario actual.
+    Endpoint para obtener información completa del usuario actual.
     
     Args:
         current_user (UserInToken): Usuario autenticado (inyectado por dependencia)
+        db (Session): Sesión de la base de datos
         
     Returns:
-        UserInToken: Información del usuario actual
+        User: Información completa del usuario actual
     """
-    return current_user
+    # Obtener la información completa del usuario desde la base de datos
+    full_user = user_service.get_user(db, current_user.id_usuario)
+    if full_user is None:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return full_user
 
 @router.post("/change-password", response_model=ResponseMessage)
 async def change_password(
@@ -153,6 +161,7 @@ async def verify_token(
 @router.post("/send-verification-email")
 async def send_verification_email(
     user_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user)
 ):
@@ -176,7 +185,6 @@ async def send_verification_email(
             )
         
         # Obtener usuario de la BD
-        from services import user_service
         user = user_service.get_user_by_id(db, user_id)
         if not user:
             raise HTTPException(
@@ -194,17 +202,12 @@ async def send_verification_email(
         
         # Importar y usar la función de email
         from services.email_service import send_verification_email
-        success = await send_verification_email(
+        background_tasks.add_task(
+            send_verification_email,
             user_email=user.email_usuario,
             user_name=user.nom_usuario,
             verification_token=verification_token
         )
-        
-        if not success:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Error al enviar email de verificación"
-            )
         
         return {
             "message": "Email de verificación enviado exitosamente",
@@ -243,7 +246,6 @@ async def verify_email_endpoint(
         email = payload.get("email")
         
         # Obtener usuario de la BD
-        from services import user_service
         user = user_service.get_user_by_id(db, user_id)
         if not user:
             raise HTTPException(
@@ -282,6 +284,7 @@ async def verify_email_endpoint(
 @router.post("/forgot-password", response_model=ResponseMessage)
 async def forgot_password(
     request: ResetPasswordRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -301,7 +304,6 @@ async def forgot_password(
     """
     try:
         # Buscar usuario por email
-        from services import user_service
         user = user_service.get_user_by_email(db, request.email)
         
         if user:
@@ -315,7 +317,8 @@ async def forgot_password(
             
             # Enviar email de reset
             from services.email_service import send_password_reset_email
-            await send_password_reset_email(
+            background_tasks.add_task(
+                send_password_reset_email,
                 user_email=user.email_usuario,
                 user_name=user.nom_usuario,
                 reset_token=reset_token
@@ -343,6 +346,7 @@ async def forgot_password(
 @router.post("/reset-password", response_model=ResponseMessage)
 async def reset_password(
     reset_data: ResetPasswordConfirm,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -370,7 +374,6 @@ async def reset_password(
         email = payload.get("email")
         
         # Obtener usuario
-        from services import user_service
         user = user_service.get_user_by_id(db, user_id)
         if not user or user.email_usuario != email:
             raise HTTPException(
@@ -387,12 +390,11 @@ async def reset_password(
         
         # Enviar email de confirmación
         from services.email_service import send_password_changed_email
-        from fastapi import Request
-        # request: Request = None  # Obtener IP para logs
-        await send_password_changed_email(
+        background_tasks.add_task(
+            send_password_changed_email,
             user_email=user.email_usuario,
             user_name=user.nom_usuario,
-            ip_address=None  # request.client.host if request else None
+            ip_address=None
         )
         
         logger.info(f"Password successfully reset for user: {email}")

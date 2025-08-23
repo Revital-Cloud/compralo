@@ -20,45 +20,60 @@ from fastapi.security.utils import get_authorization_scheme_param
 from sqlalchemy.orm import Session
 from typing import Callable, Optional
 import logging
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.responses import Response
 
 from core.database import get_db
 from services import auth_service
 
 logger = logging.getLogger(__name__)
 
-class AuthMiddleware:
+class AuthMiddleware(BaseHTTPMiddleware):
     """
     Middleware de autenticación que verifica tokens JWT en las rutas protegidas.
     """
     
-    def __init__(self, protected_paths: list[str] = None, admin_only_paths: list[str] = None):
+    def __init__(self, app, protected_paths: list[str] = None, admin_only_paths: list[str] = None):
         """
         Inicializa el middleware de autenticación.
         
         Args:
+            app: La aplicación FastAPI
             protected_paths: Lista de rutas que requieren autenticación
             admin_only_paths: Lista de rutas que solo pueden acceder administradores
         """
+        super().__init__(app)
         self.protected_paths = protected_paths or []
         self.admin_only_paths = admin_only_paths or []
     
-    async def __call__(self, request: Request, call_next: Callable):
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         """
         Procesa la solicitud y verifica la autenticación si es necesaria.
-        
-        Args:
-            request: Solicitud HTTP
-            call_next: Siguiente función en la cadena de middleware
-            
-        Returns:
-            Response: Respuesta HTTP
         """
         path = request.url.path
         method = request.method
         
+        # Permitir que las solicitudes OPTIONS de pre-vuelo de CORS pasen sin autenticación
+        if method == "OPTIONS":
+            return await call_next(request)
+
         # Verificar si la ruta necesita protección
         needs_auth = any(path.startswith(protected_path) for protected_path in self.protected_paths)
-        needs_admin = any(path.startswith(admin_path) for admin_path in self.admin_only_paths)
+        
+        # Para rutas administrativas, solo requerir admin en métodos de escritura
+        needs_admin = False
+        
+        # Caso especial: POST a /api/users es público (registro)
+        if path.startswith("/api/users"):
+            if method == "POST":
+                return await call_next(request)  # Permitir registro público
+            elif method in ["GET", "PUT", "DELETE", "PATCH"]:
+                needs_admin = True  # Otras operaciones de usuarios son admin-only
+        # Para el resto de rutas admin
+        elif any(path.startswith(admin_path) for admin_path in self.admin_only_paths):
+            if method in ["POST", "PUT", "DELETE", "PATCH"]:
+                needs_admin = True
+            # Para GET, no requerimos ser admin
         
         if needs_auth or needs_admin:
             try:
@@ -98,7 +113,7 @@ class AuthMiddleware:
                     if needs_admin and current_user.id_rol != 1:
                         raise HTTPException(
                             status_code=status.HTTP_403_FORBIDDEN,
-                            detail="Se requieren permisos de administrador para acceder a este recurso"
+                            detail="Se requieren permisos de administrador para realizar esta operación"
                         )
                     
                     # Agregar información del usuario a la request
@@ -109,18 +124,21 @@ class AuthMiddleware:
                 finally:
                     db.close()
                     
-            except HTTPException:
-                raise
+            except HTTPException as e:
+                return Response(
+                    content=str(e.detail),
+                    status_code=e.status_code,
+                    headers=e.headers or {}
+                )
             except Exception as e:
                 logger.error(f"Error en middleware de autenticación: {str(e)}")
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Error interno del servidor"
+                return Response(
+                    content="Error interno del servidor",
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
         
         # Continuar con la siguiente función
-        response = await call_next(request)
-        return response
+        return await call_next(request)
 
 class ProductMiddleware:
     """
@@ -203,10 +221,6 @@ class ProductMiddleware:
         response = await call_next(request)
         return response
 
-# Instancias de middlewares configurados
-auth_middleware = AuthMiddleware(
-    protected_paths=["/api/auth/me", "/api/auth/change-password", "/api/auth/logout"],
-    admin_only_paths=["/api/admin"]
-)
-
-product_middleware = ProductMiddleware()
+# Ya no necesitamos estas instancias predefinidas ya que configuramos el middleware directamente en main.py
+# auth_middleware = AuthMiddleware(...)
+# product_middleware = ProductMiddleware()

@@ -7,6 +7,7 @@ El backend de Synkro está diseñado para funcionar como una API independiente p
 ## 🏗️ Arquitectura SaaS Simplificada
 
 ### Deployment Aislado por Cliente
+
 - **Sin tenant_id**: Cada instancia maneja un solo cliente
 - **Base de datos dedicada**: PostgreSQL exclusiva por instancia
 - **Configuración específica**: Variables de entorno por cliente
@@ -14,6 +15,7 @@ El backend de Synkro está diseñado para funcionar como una API independiente p
 - **Desarrollo simplificado**: Sin lógica multi-tenant
 
 ### Características por Instancia
+
 - **Autenticación JWT** sin complejidad tenant
 - **Roles simples**: Admin, Employee, Customer
 - **API personalizable** por plan de suscripción
@@ -78,24 +80,26 @@ backend/
 ## 🛠️ Stack Tecnológico
 
 ### Framework y Core
+
 - **FastAPI 0.104+** - Framework web moderno y rápido
 - **Python 3.13+** - Lenguaje principal
 - **Uvicorn** - Servidor ASGI de alto rendimiento
 - **Pydantic V2** - Validación de datos y serialización
 
 ### Base de Datos
+
 - **PostgreSQL 15+** - Base de datos relacional dedicada
 - **SQLAlchemy 2.0+** - ORM con soporte async
-- **Alembic** - Migraciones de base de datos
-- **asyncpg** - Driver PostgreSQL asíncrono
 
 ### Autenticación y Seguridad
+
 - **JWT (PyJWT)** - Tokens de autenticación
-- **bcrypt** - Hashing de contraseñas
+- **argon2-cffi** - Hashing de contraseñas seguro
 - **python-multipart** - Manejo de formularios
 - **CORS** - Configuración de orígenes permitidos
 
 ### Integraciones SaaS
+
 - **Mercado Pago SDK** - Procesamiento de pagos por cliente
 - **Resend** - Emails transaccionales con branding
 - **Redis** (opcional) - Cache por instancia
@@ -103,6 +107,7 @@ backend/
 ## 🚀 Instalación y Configuración
 
 ### Prerrequisitos
+
 ```bash
 # Versiones requeridas
 Python 3.13+
@@ -111,6 +116,7 @@ Git
 ```
 
 ### 1. Preparar Entorno
+
 ```bash
 # Crear entorno virtual
 python -m venv venv
@@ -119,13 +125,14 @@ python -m venv venv
 # Windows
 .\venv\Scripts\activate
 # Linux/Mac
-source venv/bin/activate
+source venv/Scripts/activate
 
 # Instalar dependencias
 pip install -r requirements.txt
 ```
 
 ### 2. Configurar Base de Datos
+
 ```sql
 -- Crear base de datos dedicada para esta instancia
 CREATE DATABASE cliente_empresa_db;
@@ -134,6 +141,7 @@ GRANT ALL PRIVILEGES ON DATABASE cliente_empresa_db TO cliente_user;
 ```
 
 ### 3. Variables de Entorno
+
 ```bash
 # Copiar plantilla de configuración
 cp .env.example .env
@@ -184,17 +192,19 @@ REDIS_URL=redis://localhost:6379/0
 ```
 
 ### 4. Iniciar Servidor de Desarrollo
+
 ```bash
 # Método recomendado (FastAPI CLI)
 fastapi dev app/main.py
 
-# Método alternativo (Uvicorn)
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+# Método alternativo (Uvicorn) --Linux
+python3 -m uvicorn main:app --host 10.5.213.111 --port 8000
 ```
 
 ## 🔐 Sistema de Autenticación Simplificado
 
 ### Roles por Instancia (Sin Tenant Complexity)
+
 ```python
 # Sin tenant_id - toda la instancia pertenece al cliente
 class UserRole(IntEnum):
@@ -214,13 +224,14 @@ async def create_product(
 ```
 
 ### JWT Específico por Instancia
+
 ```python
 # Cada instancia tiene su propio JWT secret
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    
+
     # JWT secret único para esta instancia del cliente
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
     return encoded_jwt
@@ -231,18 +242,21 @@ def create_access_token(data: dict):
 ### Capas de la Aplicación
 
 1. **Routers (API Layer)**
+
    - Endpoints HTTP específicos para esta instancia
    - Validación de entrada con Pydantic
    - Manejo de respuestas HTTP
    - Sin lógica de tenant - toda la API es del cliente
 
 2. **Services (Business Logic)**
+
    - Lógica de negocio específica del e-commerce
    - Orquestación de operaciones
    - Aplicación de reglas de negocio
    - **Independiente de infraestructura**
 
 3. **Models (Data Layer)**
+
    - Entidades SQLAlchemy para esta instancia
    - Relaciones entre modelos sin tenant_id
    - Mapeo objeto-relacional
@@ -253,6 +267,7 @@ def create_access_token(data: dict):
    - Documentación automática
 
 ### Ejemplo de Implementación Limpia
+
 ```python
 # Router (API Layer)
 @router.get("/products")
@@ -274,7 +289,7 @@ async def get_products(db: Session, skip: int = 0, limit: int = 100):
 # Model (Data Layer)
 class Product(Base):
     __tablename__ = "products"
-    
+
     id_producto = Column(DECIMAL, primary_key=True)
     nom_producto = Column(String(255), nullable=False)
     val_precio = Column(DECIMAL(10, 2), nullable=False)
@@ -285,13 +300,14 @@ class Product(Base):
 ## 🎯 Características SaaS por Instancia
 
 ### Límites Configurables por Plan
+
 ```python
 # Middleware de límites basado en el plan del cliente
 class SubscriptionLimitMiddleware:
     def __init__(self, max_products: int, max_users: int):
         self.max_products = max_products
         self.max_users = max_users
-    
+
     async def check_product_limit(self, db: Session):
         current_count = db.query(Product).count()
         if current_count >= self.max_products:
@@ -302,6 +318,7 @@ class SubscriptionLimitMiddleware:
 ```
 
 ### Personalización por Sector
+
 ```python
 # Configuración específica por tipo de negocio
 BUSINESS_CONFIG = {
@@ -319,6 +336,7 @@ BUSINESS_CONFIG = {
 ```
 
 ### API de Integraciones
+
 ```python
 # API pública para integraciones del cliente
 @router.get("/api/v1/products")
@@ -335,6 +353,7 @@ async def public_api_products(
 ## 🚀 Deployment de Instancia
 
 ### Docker para Cliente Específico
+
 ```dockerfile
 # Dockerfile para instancia del cliente
 FROM python:3.13-slim
@@ -359,6 +378,7 @@ CMD ["fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ### Health Checks Específicos
+
 ```python
 # Health check personalizado por instancia
 @router.get("/health")
@@ -366,7 +386,7 @@ async def health_check(db: Session = Depends(get_db)):
     try:
         # Verificar conexión a BD dedicada
         db.execute(text("SELECT 1"))
-        
+
         # Verificar configuración específica del cliente
         config_status = {
             "client": CLIENT_NAME,
@@ -375,7 +395,7 @@ async def health_check(db: Session = Depends(get_db)):
             "features": FEATURES_ENABLED.split(","),
             "mercadopago": "configured" if MERCADOPAGO_ACCESS_TOKEN else "not_configured"
         }
-        
+
         return {"status": "healthy", "instance": config_status}
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Instance unhealthy: {str(e)}")
@@ -384,6 +404,7 @@ async def health_check(db: Session = Depends(get_db)):
 ## 📊 Ventajas del Backend Aislado
 
 ### Para Desarrollo
+
 - ✅ **Sin complejidad multi-tenant** en el código
 - ✅ **Desarrollo como aplicación normal** sin tenant_id
 - ✅ **Testing simplificado** con datos aislados
@@ -391,6 +412,7 @@ async def health_check(db: Session = Depends(get_db)):
 - ✅ **Deploy independiente** sin afectar otros clientes
 
 ### Para Operations
+
 - ✅ **Escalado granular** por cliente
 - ✅ **Backup independiente** y restore específico
 - ✅ **Monitoring dedicado** por instancia
@@ -398,6 +420,7 @@ async def health_check(db: Session = Depends(get_db)):
 - ✅ **Updates controlados** cliente por cliente
 
 ### Para Compliance
+
 - ✅ **Aislamiento total** de datos entre clientes
 - ✅ **Audit trail** específico por cliente
 - ✅ **Compliance** con regulaciones estrictas (GDPR, CCPA)
@@ -406,6 +429,7 @@ async def health_check(db: Session = Depends(get_db)):
 ## 🔧 Comandos Útiles
 
 ### Desarrollo
+
 ```bash
 # Ejecutar servidor con hot reload
 fastapi dev app/main.py
@@ -422,6 +446,7 @@ isort app/
 ```
 
 ### Base de Datos
+
 ```bash
 # Crear nueva migración
 alembic revision --autogenerate -m "Add new feature"
@@ -437,6 +462,7 @@ alembic history
 ```
 
 ### Logs y Debugging
+
 ```bash
 # Ver logs con detalles
 uvicorn app.main:app --log-level debug
@@ -451,19 +477,23 @@ python -c "from app.core.config import settings; print(settings.dict())"
 ## 📚 Documentación de la API
 
 ### Swagger UI Automático
+
 - **Desarrollo**: http://localhost:8000/docs
 - **Producción**: https://api.cliente-empresa.com/docs
 
 ### ReDoc
+
 - **Desarrollo**: http://localhost:8000/redoc
 - **Producción**: https://api.cliente-empresa.com/redoc
 
 ### OpenAPI Schema
+
 - **JSON**: http://localhost:8000/openapi.json
 
 ## 🧪 Testing
 
 ### Estructura de Tests
+
 ```bash
 tests/
 ├── conftest.py              # Configuración de pytest
@@ -476,6 +506,7 @@ tests/
 ```
 
 ### Ejecutar Tests
+
 ```bash
 # Todos los tests
 pytest
@@ -490,6 +521,7 @@ pytest --cov=app tests/
 ## 🤝 Convenciones de Código
 
 ### Naming
+
 - **Archivos**: `snake_case` (ej: `product_service.py`)
 - **Clases**: `PascalCase` (ej: `ProductService`, `UserModel`)
 - **Funciones**: `snake_case` (ej: `get_product_by_id()`)
@@ -497,6 +529,7 @@ pytest --cov=app tests/
 - **Constantes**: `UPPER_CASE` (ej: `MAX_PRODUCTS`, `JWT_SECRET`)
 
 ### Estructura de Funciones
+
 ```python
 async def create_product(
     db: Session,
@@ -505,15 +538,15 @@ async def create_product(
 ) -> ProductResponse:
     """
     Crear un nuevo producto en esta instancia del cliente.
-    
+
     Args:
         db: Sesión de base de datos dedicada
         product_data: Datos del producto validados
         current_user: Usuario autenticado de esta instancia
-        
+
     Returns:
         ProductResponse: Producto creado con metadata
-        
+
     Raises:
         HTTPException: Si se alcanza el límite de productos del plan
     """
@@ -522,4 +555,4 @@ async def create_product(
 
 ---
 
-**Backend Synkro** - API escalable para instancias SaaS aisladas 🛍️⚡ 
+**Backend Synkro** - API escalable para instancias SaaS aisladas 🛍️⚡

@@ -75,10 +75,10 @@ const EcommerceHeroCarousel: React.FC<HeroCarouselProps> = ({
     <section className={`relative w-full min-h-screen overflow-hidden ${className}`}>
       {/* Main Carousel */}
       <div
-        className={`absolute inset-0 bg-gradient-to-br ${currentProduct.backgroundColor} dark:from-gray-800 dark:via-gray-900 dark:to-black transition-all duration-1000 ease-in-out`}
+        className={`absolute inset-0 bg-gradient-to-br ${currentProduct.backgroundColor} transition-all duration-1000 ease-in-out`}
       >
         {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10 dark:opacity-5">
+        <div className="absolute inset-0 opacity-10">
           <div
             className="absolute inset-0"
             style={{
@@ -89,95 +89,75 @@ const EcommerceHeroCarousel: React.FC<HeroCarouselProps> = ({
         </div>
 
         <div className="relative h-full flex items-center min-h-screen">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Mobile/Tablet Layout (below lg) */}
-            <div className="lg:hidden flex flex-col items-center justify-center space-y-6 sm:space-y-8 py-8 sm:py-12">
-              {/* Product Image - Mobile First */}
-              <div className="relative flex flex-col items-center space-y-4 sm:space-y-6 order-1">
-                <ProductImage 
-                  src={currentImage}
-                  alt={`${currentProduct.name} - Vista ${selectedThumbnail + 1}`}
-                  className="w-64 h-64 sm:w-80 sm:h-80"
-                />
-                
-                {/* Product Thumbnails - Mobile */}
-                <ProductThumbnails 
-                  thumbnails={currentProduct.thumbnails}
-                  productName={currentProduct.name}
-                  selectedThumbnail={selectedThumbnail}
-                  onThumbnailSelect={handleThumbnailSelect}
-                  className="justify-center"
-                />
-              </div>
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 h-full">
+            {/* Mobile Layout */}
+            <div className={`lg:hidden flex flex-col items-center justify-center text-center h-full pt-24 pb-32 ${currentProduct.textColor}`}>
+              <div className="w-full flex flex-col items-center justify-center">
+                <div className="relative w-full max-w-sm">
+                  {/* Product Badge */}
+                  <ProductBadge badge={currentProduct.badge} />
 
-              {/* Product Content - Mobile */}
-              <div className={`flex flex-col items-center text-center space-y-4 sm:space-y-6 ${currentProduct.textColor} z-10 order-2 w-full max-w-md sm:max-w-lg`}>
-                {/* Badge */}
-                <ProductBadge badge={currentProduct.badge} />
+                  {/* Product Info */}
+                  <ProductInfo 
+                    name={currentProduct.name}
+                    subtitle={currentProduct.subtitle}
+                    isMobile={true}
+                  />
 
-                {/* Product Info */}
-                <ProductInfo 
-                  name={currentProduct.name}
-                  subtitle={currentProduct.subtitle}
-                  textColor={currentProduct.textColor}
-                  isMobile={true}
-                />
+                  {/* Pricing */}
+                  <ProductPricing 
+                    price={currentProduct.price}
+                    originalPrice={currentProduct.originalPrice}
+                    isMobile={true}
+                  />
 
-                {/* Pricing */}
-                <ProductPricing 
-                  price={currentProduct.price}
-                  originalPrice={currentProduct.originalPrice}
-                  textColor={currentProduct.textColor}
-                  isMobile={true}
-                />
+                  {/* Actions */}
+                  <ProductActions 
+                    onShopNow={() => onShopNow?.(currentProduct)}
+                    onAddToWishlist={() => onAddToWishlist?.(currentProduct)}
+                    isMobile={true}
+                  />
 
-                {/* Actions */}
-                <ProductActions 
-                  onShopNow={() => onShopNow?.(currentProduct)}
-                  onAddToWishlist={() => onAddToWishlist?.(currentProduct)}
-                  isMobile={true}
-                />
-
-                {/* Features */}
-                <ProductFeatures 
-                  textColor={currentProduct.textColor}
-                  isMobile={true}
-                />
+                  {/* Features */}
+                  <ProductFeatures 
+                    isMobile={true}
+                  />
+                </div>
               </div>
             </div>
 
-            {/* Desktop Layout (lg and up) */}
-            <div className="hidden lg:grid lg:grid-cols-2 gap-8 xl:gap-12 items-center h-full min-h-screen">
-              {/* Product Content - Desktop */}
-              <div className={`flex flex-col space-y-6 xl:space-y-8 ${currentProduct.textColor} z-10`}>
-                {/* Badge */}
-                <ProductBadge badge={currentProduct.badge} />
+            {/* Desktop Layout */}
+            <div className={`hidden lg:grid grid-cols-2 gap-8 items-center h-full ${currentProduct.textColor}`}>
+              {/* Left Column: Product Info */}
+              <div className="flex flex-col justify-center items-start text-left">
+                <div className="max-w-md w-full">
+                  {/* Product Badge */}
+                  <ProductBadge badge={currentProduct.badge} />
 
-                {/* Product Info */}
-                <ProductInfo 
-                  name={currentProduct.name}
-                  subtitle={currentProduct.subtitle}
-                  textColor={currentProduct.textColor}
-                />
+                  {/* Product Info */}
+                  <ProductInfo 
+                    name={currentProduct.name}
+                    subtitle={currentProduct.subtitle}
+                  />
 
-                {/* Pricing */}
-                <ProductPricing 
-                  price={currentProduct.price}
-                  originalPrice={currentProduct.originalPrice}
-                  textColor={currentProduct.textColor}
-                />
+                  {/* Pricing */}
+                  <ProductPricing 
+                    price={currentProduct.price}
+                    originalPrice={currentProduct.originalPrice}
+                  />
 
-                {/* Actions */}
-                <ProductActions 
-                  onShopNow={() => onShopNow?.(currentProduct)}
-                  onAddToWishlist={() => onAddToWishlist?.(currentProduct)}
-                />
+                  {/* Actions */}
+                  <ProductActions 
+                    onShopNow={() => onShopNow?.(currentProduct)}
+                    onAddToWishlist={() => onAddToWishlist?.(currentProduct)}
+                  />
 
-                {/* Features */}
-                <ProductFeatures textColor={currentProduct.textColor} />
+                  {/* Features */}
+                  <ProductFeatures />
+                </div>
               </div>
 
-              {/* Product Image & Thumbnails - Desktop */}
+              {/* Right Column: Product Image & Thumbnails */}
               <div className="relative flex flex-col items-center space-y-6 xl:space-y-8">
                 {/* Main Product Image */}
                 <ProductImage 

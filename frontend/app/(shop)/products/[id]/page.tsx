@@ -3,7 +3,20 @@
 import { useState } from "react"
 import { ProductGallery, ProductInfo, RelatedProducts } from "@/components/product"
 import CartToast from "@/components/ui/cart-toast"
-import { mockProductDetails, mockRelatedProducts } from "@/mockData/product-details"
+
+const mockProductDetails = {
+  name: "Producto no encontrado",
+  images: [],
+  price: 0,
+  originalPrice: 0,
+  rating: 0,
+  reviewCount: 0,
+  colors: [],
+  sizes: [],
+  isNew: false
+};
+
+const mockRelatedProducts: any[] = [];
 
 const ProductPage = () => {
   const [showCartToast, setShowCartToast] = useState(false)

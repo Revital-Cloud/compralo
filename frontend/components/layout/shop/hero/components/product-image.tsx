@@ -42,12 +42,12 @@ const ProductImage: React.FC<ProductImageProps> = ({
     return (
       <div className={`relative transition-all duration-500 ease-in-out ${className}`}>
         {/* Placeholder con gradiente atractivo */}
-        <div className="w-full h-full bg-gradient-to-br from-gray-200 via-gray-100 to-white dark:from-gray-700 dark:via-gray-600 dark:to-gray-500 rounded-2xl shadow-2xl flex items-center justify-center border border-gray-200 dark:border-gray-600 transition-all duration-300">
+        <div className="w-full h-full bg-gradient-to-br from-secondary via-muted to-background rounded-2xl shadow-2xl flex items-center justify-center border border-border transition-all duration-300">
           {/* Efecto de brillo */}
           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/20 to-transparent rounded-2xl"></div>
           
           {/* Contenido del placeholder */}
-          <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-300 space-y-3 sm:space-y-4 px-4">
+          <div className="flex flex-col items-center justify-center text-muted-foreground space-y-3 sm:space-y-4 px-4">
             {/* Icono de imagen */}
             <svg 
               className="w-12 h-12 sm:w-16 sm:h-16 opacity-60 transition-all duration-300" 
@@ -75,7 +75,7 @@ const ProductImage: React.FC<ProductImageProps> = ({
     <div className={`relative transition-all duration-500 ease-in-out ${className}`}>
       {/* Loading placeholder */}
       {imageLoading && (
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 rounded-2xl animate-pulse z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-secondary to-muted rounded-2xl animate-pulse z-10"></div>
       )}
       
       {/* Imagen real */}

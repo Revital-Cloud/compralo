@@ -51,6 +51,7 @@ function setupInterceptors(instance: AxiosInstance): void {
   // Interceptor de REQUEST: Agregar token de autenticación automáticamente
   instance.interceptors.request.use(
     (config) => {
+      // Leer el token en cada petición para asegurar que siempre esté actualizado
       const token = getStoredToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -70,22 +71,38 @@ function setupInterceptors(instance: AxiosInstance): void {
     async (error) => {
       const originalRequest = error.config;
 
-      // Si el token expiró (401) y no hemos intentado renovarlo
+      // Si el token expiró (401) y no hemos intentado renovarlo ya
       if (error.response?.status === 401 && !originalRequest._retry) {
         originalRequest._retry = true;
 
         try {
           // Intentar renovar el token usando el servicio de auth
           const { refreshToken } = await import('@/services/auth.service');
-          await refreshToken();
+          const tokens = await refreshToken();
+          
+          console.log('Token refreshed successfully');
+          
+          // Actualizar el header del request original con el nuevo token
+          originalRequest.headers.Authorization = `Bearer ${tokens.access_token}`;
+          
           // Reintentar la petición original
           return instance(originalRequest);
+          
         } catch (refreshError) {
-          // Si falla el refresh, limpiar tokens y redirigir
+          console.error('Refresh token failed:', refreshError);
+          
+          // Si falla el refresh, limpiar tokens
           clearTokens();
-          if (typeof window !== 'undefined') {
-            window.location.href = '/login';
+          
+          // Solo redirigir si estamos en el browser y no es una petición de verificación
+          if (typeof window !== 'undefined' && !originalRequest.url?.includes('/verify-token')) {
+            // Dar tiempo para que otros procesos se den cuenta del cambio de estado
+            setTimeout(() => {
+              window.location.href = '/login?session=expired';
+            }, 100);
           }
+          
+          return Promise.reject(refreshError);
         }
       }
 

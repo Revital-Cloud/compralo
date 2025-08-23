@@ -16,11 +16,19 @@ class LineBase(BaseModel):
         id_categoria (Decimal): Identificador de la categoría a la que pertenece la línea.
         id_linea (Decimal): Identificador único para la línea.
         nom_linea (str): Nombre de la línea.
-        ind_activo (bool): Indica si la línea está activa.
+        ind_activo (Optional[bool]): Indica si la línea está activa.
+        usr_insert (Optional[Decimal]): Usuario que insertó el registro.
+        fec_insert (Optional[datetime]): Fecha de inserción del registro.
+        usr_update (Optional[Decimal]): Usuario que actualizó el registro.
+        fec_update (Optional[datetime]): Fecha de actualización del registro.
     """
     id_categoria: Decimal = Field(..., description="Identificador de la categoría a la que pertenece la línea.")
     nom_linea: str = Field(..., description="Nombre de la línea.")
-    ind_activo: bool = Field(..., description="Indica si la línea está activa.")
+    ind_activo: Optional[bool] = Field(None, description="Indica si la línea está activa.")
+    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
+    fec_insert: Optional[datetime] = Field(None, description="Fecha de inserción del registro.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
+    fec_update: Optional[datetime] = Field(None, description="Fecha de actualización del registro.")
     
     class Config:
         from_attributes = True
@@ -46,15 +54,16 @@ class LineCreate(LineBase):
     """
     pass
 # Esquema para la Actualización de Líneas
-class LineUpdate(LineBase):
+class LineUpdate(BaseModel):
     """
     Esquema para la Actualización de Líneas.
     Define los campos que pueden ser actualizados para una línea existente.
     Todos los campos son opcionales, permitiendo actualizaciones parciales.
     """
-    id_categoria: Optional[Decimal] = None
-    nom_linea: Optional[str] = None
-    ind_activo: Optional[bool] = None
+    id_categoria: Optional[Decimal] = Field(None, description="Identificador de la categoría a la que pertenece la línea.")
+    nom_linea: Optional[str] = Field(None, description="Nombre de la línea.")
+    ind_activo: Optional[bool] = Field(None, description="Indica si la línea está activa.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
 # Mensajitos para las respuesta api en lineas
 class ResponseMessage(BaseModel):
     """

@@ -7,6 +7,7 @@ Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a
 ## 🏢 Modelo de Negocio SaaS
 
 ### Arquitectura de Deployment Aislado
+
 - **Cada cliente = Una instancia completa independiente**
 - **Base de datos dedicada por cliente**
 - **Infraestructura separada (Docker containers o VPS)**
@@ -14,6 +15,7 @@ Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a
 - **Máximo aislamiento y compliance**
 
 ### Planes de Suscripción
+
 - **Starter**: $29.99/mes - Hasta 100 productos, 3 usuarios
 - **Business**: $79.99/mes - Hasta 1,000 productos, 10 usuarios, analytics avanzados
 - **Enterprise**: $199.99/mes - Productos ilimitados, usuarios ilimitados, integraciones personalizadas
@@ -21,6 +23,7 @@ Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a
 ## 🛠️ Stack Tecnológico
 
 ### Backend
+
 - **FastAPI** - API REST de alto rendimiento
 - **Python 3.13+** - Lenguaje principal
 - **PostgreSQL** - Base de datos dedicada por cliente
@@ -29,6 +32,7 @@ Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a
 - **SQLAlchemy** - ORM
 
 ### Frontend
+
 - **Next.js 15+** - Framework React con App Router
 - **TypeScript** - Tipado estático
 - **Tailwind CSS** - Styling utilitario
@@ -37,6 +41,7 @@ Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a
 - **React Query** - Gestión de estado del servidor
 
 ### Integraciones
+
 - **Mercado Pago** - Procesamiento de pagos (configuración por cliente)
 - **Resend** - Emails transaccionales con branding personalizado
 - **Docker** - Containerización para deployment de instancias
@@ -70,18 +75,21 @@ synkro/
 ## 🚀 Inicio Rápido (Desarrollo)
 
 ### Prerrequisitos
+
 - **Python 3.13+**
 - **Node.js 18+**
 - **PostgreSQL 15+**
 - **Git**
 
 ### 1. Clonar el Repositorio
+
 ```bash
 git clone https://github.com/KevinBermudezC/synkro.git
 cd synkro
 ```
 
 ### 2. Configurar Backend
+
 ```bash
 cd backend
 
@@ -103,6 +111,7 @@ cp .env.example .env
 ```
 
 ### 3. Configurar Frontend
+
 ```bash
 cd ../frontend
 
@@ -115,6 +124,7 @@ cp .env.example .env.local
 ```
 
 ### 4. Ejecutar en Desarrollo
+
 ```bash
 # Terminal 1 - Backend
 cd backend
@@ -132,6 +142,7 @@ npm run dev
 ## 🏗️ Deployment de Instancias de Cliente
 
 ### Proceso de Nueva Instancia
+
 1. **Información del negocio** - Datos de la empresa cliente
 2. **Selección de plan** - Starter, Business o Enterprise
 3. **Configuración de pagos** - Setup de Mercado Pago
@@ -142,9 +153,10 @@ npm run dev
 8. **Go-live** - Activación de la instancia
 
 ### Ejemplo de Deployment por Cliente
+
 ```yaml
 # docker-compose.yml para cliente "empresa-abc"
-version: '3.8'
+version: "3.8"
 services:
   backend:
     image: synkro-backend:latest
@@ -153,13 +165,13 @@ services:
       - CLIENT_NAME=empresa_abc
       - JWT_SECRET=unique_secret_for_empresa_abc
       - MERCADOPAGO_ACCESS_TOKEN=client_specific_token
-      
+
   frontend:
     image: synkro-frontend:latest
     environment:
       - NEXT_PUBLIC_API_URL=https://api.empresa-abc.com
       - NEXT_PUBLIC_BRAND_COLOR=#1a56db
-      
+
   postgres:
     image: postgres:15
     environment:
@@ -171,6 +183,7 @@ services:
 ## 🎯 Características SaaS
 
 ### Por Cliente (Instancia Dedicada)
+
 - ✅ **Aislamiento total** - Infraestructura completamente separada
 - ✅ **Base de datos dedicada** - Sin sharing entre clientes
 - ✅ **Personalización completa** - Branding, dominio, features
@@ -180,12 +193,14 @@ services:
 - ✅ **White-label total** - Sin marca Synkro visible
 
 ### Para Diferentes Sectores
+
 - **Fashion** - Tallas, colores, materiales, géneros
 - **Electronics** - Marcas, modelos, garantías, especificaciones
 - **Home & Garden** - Dimensiones, materiales, instalación
 - **General** - Configuración flexible para cualquier sector
 
 ### Gestión Centralizada
+
 - **Panel de control** para todas las instancias
 - **Deployment automatizado** de nuevos clientes
 - **Updates distribuidos** a todas las instancias
@@ -195,6 +210,7 @@ services:
 ## 📊 Ventajas del Deployment Aislado
 
 ### Técnicas
+
 - **Máximo aislamiento** - Imposible cross-contamination
 - **Desarrollo simplificado** - Sin complejidad multi-tenant
 - **Escalado natural** - Horizontal por cliente
@@ -202,6 +218,7 @@ services:
 - **Performance dedicada** - Sin contención de recursos
 
 ### Comerciales
+
 - **Compliance total** - Cumplimiento de regulaciones estrictas
 - **Personalización ilimitada** - Cada cliente puede modificar su instancia
 - **Pricing premium** - Justificación para precios más altos
@@ -228,4 +245,4 @@ Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](L
 
 ---
 
-**Synkro** - Transformando el e-commerce con soluciones SaaS de deployment aislado 🛍️✨ 
+**Synkro** - Transformando el e-commerce con soluciones SaaS de deployment aislado 🛍️✨
