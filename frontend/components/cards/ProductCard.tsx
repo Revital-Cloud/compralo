@@ -2,6 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Package } from 'lucide-react';
+import { ProductImageGallery } from '@/components/product/ProductImageGallery';
 
 interface ProductCardProps {
   product: {
@@ -9,7 +10,11 @@ interface ProductCardProps {
     nom_producto: string;
     val_precio?: number;
     stock_cantidad?: number;
-    imagen_producto?: string;
+    img_producto?: {
+      main: string;
+      gallery: string[];
+      thumbnails: string[];
+    };
   };
   onClick?: () => void;
   className?: string;
@@ -23,17 +28,17 @@ export function ProductCard({ product, onClick, className = '' }: ProductCardPro
       className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${className}`}
       onClick={onClick}
     >
-      <div className="aspect-square bg-gray-200 flex items-center justify-center">
-        {product.imagen_producto ? (
-          <img
-            src={product.imagen_producto}
-            alt={product.nom_producto}
-            className="w-full h-full object-cover"
-          />
-        ) : (
+      {product.img_producto ? (
+        <ProductImageGallery
+          images={product.img_producto}
+          productName={product.nom_producto}
+          className="w-full"
+        />
+      ) : (
+        <div className="aspect-square bg-gray-200 flex items-center justify-center">
           <Package className="w-12 h-12 text-gray-400" />
-        )}
-      </div>
+        </div>
+      )}
       
       <div className="p-4">
         <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">

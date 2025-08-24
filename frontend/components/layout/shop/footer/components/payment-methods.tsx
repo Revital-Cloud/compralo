@@ -23,12 +23,12 @@ const defaultPaymentMethods: Omit<PaymentMethod, 'color'>[] = [
 const PaymentMethods: React.FC<PaymentMethodsProps> = ({ methods = defaultPaymentMethods }) => {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 order-1 lg:order-2">
-      <span className="text-sm font-medium text-secondary-foreground/80">Métodos de pago:</span>
+      <span className="text-sm font-medium text-gray-600 dark:text-gray-400 transition-colors duration-300">Métodos de pago:</span>
       <div className="flex gap-2">
         {methods.map((method, index) => (
           <div
             key={index}
-            className="w-10 h-6 bg-secondary-foreground/10 rounded text-xs flex items-center justify-center text-secondary-foreground/80 font-bold"
+            className="w-10 h-6 bg-gray-200 dark:bg-gray-700 rounded text-xs flex items-center justify-center text-gray-600 dark:text-gray-300 font-bold transition-colors duration-300"
             title={method.name}
           >
             {method.letter}

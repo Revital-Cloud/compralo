@@ -1,23 +1,43 @@
-// Product Hooks
-export * from './use-products';
+// Auth hooks
+export { useAuth } from './use-auth'
 
-// Category Hooks
-export * from './use-categories';
+// Category hooks
+export { useCategories } from './use-categories'
 
-// Line Hooks
-export * from './use-lines';
+// Dashboard hooks
+export { useDashboardData } from './use-dashboard-data'
 
-// Subline Hooks
-export * from './use-sublines';
+// File export hooks
+export { useFileExport } from './use-file-export'
 
-// Auth Hooks
-export * from './use-auth';
+// File import hooks
+export { useFileImport } from './use-file-import'
 
-// Other Hooks
-export * from './use-dashboard-data';
-export * from './use-file-export';
-export * from './use-file-import';
-export * from './use-mobile';
-export * from './use-refresh-token';
-export * from './use-role-redirect';
-export * from './use-toast-actions';
+// Line hooks
+export { useLines } from './use-lines'
+
+// Mobile hooks
+export { useMobile } from './use-mobile'
+
+// Product hooks
+export { useProducts } from './use-products'
+
+// Refresh token hooks
+export { useRefreshToken } from './use-refresh-token'
+
+// Role redirect hooks
+export { useRoleRedirect } from './use-role-redirect'
+
+// Sublines hooks
+export { useSublines } from './use-sublines'
+
+// Toast actions hooks
+export { useToastActions } from './use-toast-actions'
+
+// Theme hooks
+export { 
+  useThemeColors, 
+  useThemeState, 
+  useThemeClasses,
+  THEME_CLASSES 
+} from './use-theme-colors'

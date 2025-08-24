@@ -119,18 +119,18 @@ const TestimonialsSection = () => {
         custom={i}
       >
         <Star 
-          className={`w-5 h-5 ${i < rating ? 'fill-[#fec806] text-[#fec806]' : 'text-gray-300'}`}
+          className={`w-5 h-5 ${i < rating ? 'fill-[#fec806] text-[#fec806]' : 'text-gray-300 dark:text-gray-600'}`}
         />
       </motion.div>
     ))
   }
 
   return (
-    <section className="relative py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-hidden">
+    <section className="relative py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 overflow-hidden transition-colors duration-300">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div 
-          className="absolute -top-20 -left-20 w-60 h-60 bg-gradient-to-br from-[#ec2538]/10 to-[#FF8C00]/10 rounded-full blur-3xl"
+          className="absolute -top-20 -left-20 w-60 h-60 bg-gradient-to-br from-[#ec2538]/10 to-[#FF8C00]/10 dark:from-[#ec2538]/20 dark:to-[#FF8C00]/20 rounded-full blur-3xl"
           animate={{ 
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.6, 0.3]
@@ -142,7 +142,7 @@ const TestimonialsSection = () => {
           }}
         />
         <motion.div 
-          className="absolute -bottom-20 -right-20 w-80 h-80 bg-gradient-to-br from-[#fec806]/10 to-[#ec2538]/10 rounded-full blur-3xl"
+          className="absolute -bottom-20 -right-20 w-80 h-80 bg-gradient-to-br from-[#fec806]/10 to-[#ec2538]/10 dark:from-[#fec806]/20 dark:to-[#ec2538]/20 rounded-full blur-3xl"
           animate={{ 
             scale: [1.2, 1, 1.2],
             opacity: [0.4, 0.7, 0.4]
@@ -157,7 +157,7 @@ const TestimonialsSection = () => {
         
         {/* Floating quote decorations */}
         <motion.div
-          className="absolute top-20 left-1/4 text-[#ec2538]/20"
+          className="absolute top-20 left-1/4 text-[#ec2538]/20 dark:text-[#ec2538]/30"
           animate={{
             y: [0, -20, 0],
             rotate: [0, 5, 0]
@@ -171,7 +171,7 @@ const TestimonialsSection = () => {
           <Quote className="w-16 h-16" />
         </motion.div>
         <motion.div
-          className="absolute bottom-20 right-1/4 text-[#fec806]/20"
+          className="absolute bottom-20 right-1/4 text-[#fec806]/20 dark:text-[#fec806]/30"
           animate={{
             y: [0, -15, 0],
             rotate: [0, -5, 0]
@@ -203,14 +203,14 @@ const TestimonialsSection = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <span className="text-[#ec2538]">Testimonios</span>
+            <span className="text-[#ec2538] dark:text-red-400">Testimonios</span>
             <br />
             <span className="bg-gradient-to-r from-[#FF8C00] to-[#fec806] bg-clip-text text-transparent">
               de nuestros clientes
             </span>
           </motion.h2>
           <motion.p 
-            className="text-gray-600 text-lg max-w-2xl mx-auto"
+            className="text-gray-600 dark:text-gray-300 text-lg max-w-2xl mx-auto transition-colors duration-300"
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -239,18 +239,18 @@ const TestimonialsSection = () => {
               }}
               className="group"
             >
-              <div className="relative bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200/50 h-full">
+              <div className="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg dark:shadow-gray-900/25 hover:shadow-2xl dark:hover:shadow-gray-900/40 transition-all duration-300 border border-gray-200/50 dark:border-gray-700/50 h-full">
                 {/* Quote icon */}
                 <motion.div
                   variants={quoteVariants}
-                  className="absolute -top-4 -left-4 w-8 h-8 bg-gradient-to-br from-[#ec2538] to-[#FF8C00] rounded-full flex items-center justify-center shadow-lg"
+                  className="absolute -top-4 -left-4 w-8 h-8 bg-gradient-to-br from-[#ec2538] to-[#FF8C00] rounded-full flex items-center justify-center shadow-lg dark:shadow-gray-900/25"
                 >
                   <Quote className="w-4 h-4 text-white" />
                 </motion.div>
                 
                 {/* Content */}
                 <div className="mb-6">
-                  <p className="text-gray-700 leading-relaxed italic text-sm lg:text-base">
+                  <p className="text-gray-700 dark:text-gray-200 leading-relaxed italic text-sm lg:text-base transition-colors duration-300">
                     "{testimonial.content}"
                   </p>
                 </div>
@@ -268,7 +268,7 @@ const TestimonialsSection = () => {
                 {/* User info */}
                 <div className="flex items-center space-x-3">
                   <motion.div 
-                    className={`w-12 h-12 bg-gradient-to-br ${testimonial.bgColor} rounded-full flex items-center justify-center text-white font-bold shadow-lg`}
+                    className={`w-12 h-12 bg-gradient-to-br ${testimonial.bgColor} rounded-full flex items-center justify-center text-white font-bold shadow-lg dark:shadow-gray-900/25`}
                     whileHover={{ 
                       scale: 1.1,
                       rotate: 5,
@@ -278,17 +278,17 @@ const TestimonialsSection = () => {
                     {testimonial.avatar}
                   </motion.div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 text-sm lg:text-base">
+                    <h4 className="font-semibold text-gray-900 dark:text-white text-sm lg:text-base transition-colors duration-300">
                       {testimonial.name}
                     </h4>
-                    <p className="text-gray-500 text-xs lg:text-sm">
+                    <p className="text-gray-500 dark:text-gray-400 text-xs lg:text-sm transition-colors duration-300">
                       {testimonial.role}
                     </p>
                   </div>
                 </div>
 
                 {/* Hover effect overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#ec2538]/5 to-[#fec806]/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-[#ec2538]/5 to-[#fec806]/5 dark:from-[#ec2538]/10 dark:to-[#fec806]/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
               </div>
             </motion.div>
           ))}
@@ -303,7 +303,7 @@ const TestimonialsSection = () => {
           transition={{ duration: 0.6, ease: "easeOut", delay: 0.4 }}
         >
           <motion.p 
-            className="text-gray-600 mb-6"
+            className="text-gray-600 dark:text-gray-300 mb-6 transition-colors duration-300"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
@@ -312,7 +312,7 @@ const TestimonialsSection = () => {
             ¿Quieres ser parte de nuestros clientes satisfechos?
           </motion.p>
           <motion.button
-            className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-semibold rounded-full hover:shadow-lg transition-all duration-300"
+            className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-semibold rounded-full hover:shadow-lg dark:hover:shadow-gray-900/25 transition-all duration-300"
             whileHover={{ 
               scale: 1.05,
               boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"

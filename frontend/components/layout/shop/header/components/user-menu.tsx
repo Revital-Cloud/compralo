@@ -53,7 +53,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ className = "" }) => {
   // No renderizar nada hasta que el componente esté montado en el cliente
   if (!isMounted || isLoadingUser) {
     return (
-      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-200 rounded-full animate-pulse" />
+      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
     )
   }
 
@@ -62,7 +62,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ className = "" }) => {
     return (
       <Link 
         href="/login" 
-        className="text-gray-700 cursor-pointer hover:text-[#ec2538] transition-colors duration-200 font-medium text-sm sm:text-base"
+        className="text-gray-700 dark:text-gray-300 cursor-pointer hover:text-[#ec2538] dark:hover:text-red-500 transition-colors duration-200 font-medium text-sm sm:text-base"
       >
         Iniciar sesión
       </Link>
@@ -105,7 +105,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ className = "" }) => {
         variant="ghost"
         size="sm"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-1 sm:space-x-2 p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        className="flex items-center space-x-1 sm:space-x-2 p-1.5 sm:p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors duration-300"
         aria-label="Menú de usuario"
         aria-expanded={isOpen}
         aria-haspopup="true"
@@ -113,7 +113,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ className = "" }) => {
         <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${getAvatarColor()} flex items-center justify-center text-white font-semibold text-xs sm:text-sm`}>
           {getUserInitials()}
         </div>
-        <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-600 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-600 dark:text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
       </Button>
 
       {/* Menú desplegable */}
@@ -124,51 +124,51 @@ const UserMenu: React.FC<UserMenuProps> = ({ className = "" }) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute right-0 mt-2 w-48 sm:w-56 bg-white rounded-xl shadow-lg border border-gray-200 py-2 z-50"
+            className="absolute right-0 mt-2 w-48 sm:w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg dark:shadow-gray-900/25 border border-gray-200 dark:border-gray-700 py-2 z-50 transition-colors duration-300"
           >
             {/* Header del usuario */}
-            <div className="px-4 py-3 border-b border-gray-100">
+            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-600">
               <div className="flex items-center space-x-3">
                 <div className={`w-10 h-10 rounded-full ${getAvatarColor()} flex items-center justify-center text-white font-semibold`}>
                   {getUserInitials()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                     {user?.nom_usuario && user?.ape_usuario 
                       ? `${user.nom_usuario} ${user.ape_usuario}`
                       : user?.email_usuario || "Usuario"
                     }
                   </p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     {user?.email_usuario || ""}
                   </p>
                 </div>
               </div>
             </div>
 
-                         {/* Opciones del menú - Solo opciones esenciales */}
-             <div className="py-1">
-               <Link
-                 href="/profile"
-                 className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                 onClick={() => setIsOpen(false)}
-               >
-                 <User className="w-4 h-4" />
-                 <span>Mi Perfil</span>
-               </Link>
+            {/* Opciones del menú - Solo opciones esenciales */}
+            <div className="py-1">
+              <Link
+                href="/profile"
+                className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-300"
+                onClick={() => setIsOpen(false)}
+              >
+                <User className="w-4 h-4" />
+                <span>Mi Perfil</span>
+              </Link>
 
-               {/* Separador */}
-               <div className="border-t border-gray-100 my-1"></div>
+              {/* Separador */}
+              <div className="border-t border-gray-100 dark:border-gray-600 my-1"></div>
 
-               {/* Cerrar sesión */}
-               <button
-                 onClick={handleLogout}
-                 className="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors w-full text-left"
-               >
-                 <LogOut className="w-4 h-4" />
-                 <span>Cerrar Sesión</span>
-               </button>
-             </div>
+              {/* Cerrar sesión */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300 w-full text-left"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

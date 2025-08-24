@@ -5,7 +5,7 @@
 export interface ProductBase {
   nom_producto: string;
   spcf_producto: Record<string, any>; // Equivalente a Dict[str, Any] de Python
-  img_producto?: string;
+  img_producto?: ProductImages;
   val_precio: string; // Cambiado a string porque el API devuelve string
   id_proveedor: string; // Cambiado a string porque el API devuelve string
   id_marca: string; // Cambiado a string porque el API devuelve string
@@ -13,6 +13,12 @@ export interface ProductBase {
   id_linea: string; // Cambiado a string porque el API devuelve string
   id_categoria: string; // Cambiado a string porque el API devuelve string
   num_stock: number;
+}
+
+export interface ProductImages {
+  main: string;
+  gallery: string[];
+  thumbnails: string[];
 }
 
 export interface ProductCreate extends ProductBase {}

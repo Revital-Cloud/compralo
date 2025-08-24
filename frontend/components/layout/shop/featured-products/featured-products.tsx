@@ -70,25 +70,25 @@ const FeaturedProducts = () => {
   // Loading skeleton
   if (isLoading) {
     return (
-      <section className="relative py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-hidden">
+      <section className="relative py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 overflow-hidden transition-colors duration-300">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <div className="h-8 bg-gray-200 rounded-lg w-64 mx-auto mb-4 animate-pulse" />
-            <div className="h-6 bg-gray-200 rounded w-96 mx-auto animate-pulse" />
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-lg w-64 mx-auto mb-4 animate-pulse" />
+            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-96 mx-auto animate-pulse" />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto">
             {[...Array(8)].map((_, index) => (
               <div
                 key={index}
-                className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 overflow-hidden"
+                className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-lg dark:shadow-gray-900/25 border border-gray-200/50 dark:border-gray-700/50 overflow-hidden transition-colors duration-300"
               >
-                <div className="h-48 bg-gray-200 animate-pulse" />
+                <div className="h-48 bg-gray-200 dark:bg-gray-700 animate-pulse" />
                 <div className="p-6">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2 animate-pulse" />
-                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-4 animate-pulse" />
-                  <div className="h-6 bg-gray-200 rounded w-1/3 mb-4 animate-pulse" />
-                  <div className="h-10 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-3/4 mb-2 animate-pulse" />
+                  <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-1/2 mb-4 animate-pulse" />
+                  <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded w-1/3 mb-4 animate-pulse" />
+                  <div className="h-10 bg-gray-200 dark:bg-gray-600 rounded animate-pulse" />
                 </div>
               </div>
             ))}
@@ -101,20 +101,20 @@ const FeaturedProducts = () => {
   // Error state
   if (isError) {
     return (
-      <section className="relative py-20 bg-gradient-to-br from-red-50 via-white to-red-100 overflow-hidden flex items-center justify-center">
+      <section className="relative py-20 bg-gradient-to-br from-red-50 via-white to-red-100 dark:from-red-950/20 dark:via-gray-900 dark:to-red-950/20 overflow-hidden flex items-center justify-center transition-colors duration-300">
         <div className="text-center p-8">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <ShoppingCart className="w-10 h-10 text-red-500" />
+          <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+            <ShoppingCart className="w-10 h-10 text-red-500 dark:text-red-400" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 transition-colors duration-300">
             ¡Ups! Algo salió mal
           </h3>
-          <p className="text-gray-600 mb-6 max-w-md mx-auto">
+          <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-md mx-auto transition-colors duration-300">
             {error?.message || 'Error al cargar los productos'}
           </p>
           <button
             onClick={() => refetch()}
-            className="inline-flex items-center px-6 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
+            className="inline-flex items-center px-6 py-3 bg-red-500 dark:bg-red-600 text-white rounded-lg font-medium hover:bg-red-600 dark:hover:bg-red-700 transition-colors duration-300"
           >
             <Eye className="w-4 h-4 mr-2" />
             Intentar de nuevo
@@ -125,11 +125,11 @@ const FeaturedProducts = () => {
   }
 
   return (
-    <section className="relative py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-hidden">
+    <section className="relative py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 overflow-hidden transition-colors duration-300">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div 
-          className="absolute -top-20 -right-20 w-60 h-60 bg-gradient-to-br from-[#ec2538]/10 to-[#fec806]/10 rounded-full blur-3xl"
+          className="absolute -top-20 -right-20 w-60 h-60 bg-gradient-to-br from-[#ec2538]/10 to-[#fec806]/10 dark:from-[#ec2538]/20 dark:to-[#fec806]/20 rounded-full blur-3xl"
           animate={{ 
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.6, 0.3]
@@ -141,7 +141,7 @@ const FeaturedProducts = () => {
           }}
         />
         <motion.div 
-          className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-br from-[#FF8C00]/10 to-[#ec2538]/10 rounded-full blur-3xl"
+          className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-br from-[#FF8C00]/10 to-[#ec2538]/10 dark:from-[#FF8C00]/20 dark:to-[#ec2538]/20 rounded-full blur-3xl"
           animate={{ 
             scale: [1.2, 1, 1.2],
             opacity: [0.6, 0.3, 0.6]
@@ -156,7 +156,7 @@ const FeaturedProducts = () => {
         
         {/* Floating elements */}
         <motion.div 
-          className="absolute top-20 left-1/4 w-4 h-4 bg-[#FF8C00]/30 rounded-full"
+          className="absolute top-20 left-1/4 w-4 h-4 bg-[#FF8C00]/30 dark:bg-[#FF8C00]/50 rounded-full"
           animate={{
             y: [0, -10, 0],
             opacity: [0.3, 0.6, 0.3]
@@ -168,7 +168,7 @@ const FeaturedProducts = () => {
           }}
         />
         <motion.div 
-          className="absolute top-40 right-1/4 w-3 h-3 bg-[#ec2538]/30 rounded-full"
+          className="absolute top-40 right-1/4 w-3 h-3 bg-[#ec2538]/30 dark:bg-[#ec2538]/50 rounded-full"
           animate={{
             y: [0, -15, 0],
             opacity: [0.4, 0.7, 0.4]
@@ -192,7 +192,7 @@ const FeaturedProducts = () => {
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
           <motion.h2 
-            className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4"
+            className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4 transition-colors duration-300"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -204,7 +204,7 @@ const FeaturedProducts = () => {
             </span>
           </motion.h2>
           <motion.p 
-            className="text-xl text-gray-600 max-w-2xl mx-auto"
+            className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto transition-colors duration-300"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -232,11 +232,11 @@ const FeaturedProducts = () => {
               }}
               className="group relative"
             >
-              <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200/50 overflow-hidden">
+              <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl shadow-lg dark:shadow-gray-900/25 hover:shadow-2xl dark:hover:shadow-gray-900/40 transition-all duration-300 border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
                 {/* Product Image */}
                 <div className="relative overflow-hidden">
                   <motion.div 
-                    className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center"
+                    className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center"
                     variants={imageVariants}
                     initial="rest"
                     whileHover="hover"
@@ -250,7 +250,7 @@ const FeaturedProducts = () => {
                         height={300}
                       />
                     ) : (
-                      <div className="w-32 h-24 bg-gray-400 rounded flex items-center justify-center">
+                      <div className="w-32 h-24 bg-gray-400 dark:bg-gray-500 rounded flex items-center justify-center">
                         <div className="w-16 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded"></div>
                       </div>
                     )}
@@ -261,9 +261,9 @@ const FeaturedProducts = () => {
                     <motion.button
                       whileHover={{ scale: 1.1 }}
                       whileTap={{ scale: 0.9 }}
-                      className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg hover:bg-white transition-colors"
+                      className="w-8 h-8 bg-white/90 dark:bg-gray-700/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg dark:shadow-gray-900/25 hover:bg-white dark:hover:bg-gray-600 transition-colors duration-300"
                     >
-                      <Heart className="w-4 h-4 text-gray-600" />
+                      <Heart className="w-4 h-4 text-gray-600 dark:text-gray-300" />
                     </motion.button>
                   </div>
                   
@@ -280,10 +280,10 @@ const FeaturedProducts = () => {
                 {/* Product Info */}
                 <div className="p-6">
                   <div className="mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#ec2538] transition-colors">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-[#ec2538] dark:group-hover:text-red-400 transition-colors duration-300">
                       {product.nom_producto}
                     </h3>
-                    <p className="text-gray-600 text-sm line-clamp-2">
+                    <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2 transition-colors duration-300">
                       {product.spcf_producto.descripcion || 'Descripción del producto disponible'}
                     </p>
                   </div>
@@ -291,14 +291,14 @@ const FeaturedProducts = () => {
                   {/* Price and Rating */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-2">
-                      <span className="text-2xl font-bold text-[#ec2538]">
+                      <span className="text-2xl font-bold text-[#ec2538] dark:text-red-400">
                         {formatPrice(product.val_precio)}
                       </span>
                     </div>
                     
                     <div className="flex items-center space-x-1">
                       <Star className="w-4 h-4 fill-[#fec806] text-[#fec806]" />
-                      <span className="text-sm text-gray-600">4.8</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-300 transition-colors duration-300">4.8</span>
                     </div>
                   </div>
 
@@ -318,7 +318,7 @@ const FeaturedProducts = () => {
                       variants={buttonVariants}
                       initial="rest"
                       whileHover="hover"
-                      className="w-full border-2 border-[#ec2538] text-[#ec2538] hover:bg-[#ec2538] hover:text-white font-medium py-2 rounded-lg transition-all duration-300"
+                      className="w-full border-2 border-[#ec2538] dark:border-red-400 text-[#ec2538] dark:text-red-400 hover:bg-[#ec2538] dark:hover:bg-red-400 hover:text-white font-medium py-2 rounded-lg transition-all duration-300"
                     >
                       Ver Detalles
                     </motion.button>
@@ -326,7 +326,7 @@ const FeaturedProducts = () => {
                 </div>
 
                 {/* Hover effect overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#ec2538]/5 to-[#fec806]/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-[#ec2538]/5 to-[#fec806]/5 dark:from-[#ec2538]/10 dark:to-[#fec806]/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
               </div>
             </motion.div>
           ))}
@@ -341,7 +341,7 @@ const FeaturedProducts = () => {
           transition={{ duration: 0.8, delay: 1 }}
         >
           <motion.button 
-            className="bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-lg"
+            className="bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-bold py-4 px-8 rounded-xl shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300 text-lg"
             whileHover={{ 
               scale: 1.05,
               boxShadow: "0 25px 50px -12px rgba(236, 37, 56, 0.4)"

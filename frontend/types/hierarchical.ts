@@ -30,10 +30,16 @@ export interface Product {
   desc_producto?: JSON;
   val_precio?: number;
   stock_cantidad?: number;
-  img_producto?: JSON;
+  img_producto?: ProductImages;
   id_categoria: number;
   id_linea: number;
   id_sublinea: number;
+}
+
+export interface ProductImages {
+  main: string;
+  gallery: string[];
+  thumbnails: string[];
 }
 
 // Tipos para la navegación

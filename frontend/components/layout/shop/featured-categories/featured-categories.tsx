@@ -78,28 +78,28 @@ const FeaturedCategories = () => {
   // Loading skeleton
   if (isLoading) {
     return (
-      <section className="relative min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-hidden">
-        <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(68,68,68,.1)_50%,transparent_75%)] bg-[length:20px_20px] animate-pulse" />
+      <section className="relative min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 overflow-hidden transition-colors duration-300">
+        <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(68,68,68,.1)_50%,transparent_75%)] dark:bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.05)_50%,transparent_75%)] bg-[length:20px_20px] animate-pulse" />
         
         <div className="relative container mx-auto px-4 py-20">
           <div className="text-center mb-16">
-            <div className="h-6 bg-gray-200 rounded-full w-48 mx-auto mb-4 animate-pulse" />
-            <div className="h-12 bg-gray-200 rounded-lg w-96 mx-auto mb-4 animate-pulse" />
-            <div className="h-6 bg-gray-200 rounded-full w-64 mx-auto animate-pulse" />
+            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-48 mx-auto mb-4 animate-pulse" />
+            <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-lg w-96 mx-auto mb-4 animate-pulse" />
+            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-64 mx-auto animate-pulse" />
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[...Array(6)].map((_, index) => (
               <div
                 key={index}
-                className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-gray-200/50"
+                className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg dark:shadow-gray-900/25 border border-gray-200/50 dark:border-gray-700/50 transition-colors duration-300"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-gray-200 rounded-xl animate-pulse" />
-                  <div className="h-4 bg-gray-200 rounded w-16 animate-pulse" />
+                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-xl animate-pulse" />
+                  <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-16 animate-pulse" />
                 </div>
-                <div className="h-6 bg-gray-200 rounded w-32 mb-2 animate-pulse" />
-                <div className="h-4 bg-gray-200 rounded w-full animate-pulse" />
+                <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded w-32 mb-2 animate-pulse" />
+                <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-full animate-pulse" />
               </div>
             ))}
           </div>
@@ -111,20 +111,20 @@ const FeaturedCategories = () => {
   // Error state
   if (isError) {
     return (
-      <section className="relative min-h-screen bg-gradient-to-br from-red-50 via-white to-red-100 overflow-hidden flex items-center justify-center">
+      <section className="relative min-h-screen bg-gradient-to-br from-red-50 via-white to-red-100 dark:from-red-950/20 dark:via-gray-900 dark:to-red-950/20 overflow-hidden flex items-center justify-center transition-colors duration-300">
         <div className="text-center p-8">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <ShoppingBag className="w-10 h-10 text-red-500" />
+          <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+            <ShoppingBag className="w-10 h-10 text-red-500 dark:text-red-400" />
           </div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-4">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 transition-colors duration-300">
             ¡Ups! Algo salió mal
           </h3>
-          <p className="text-gray-600 mb-6 max-w-md mx-auto">
+          <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-md mx-auto transition-colors duration-300">
             {error?.message || 'Error al cargar las categorías'}
           </p>
           <button
             onClick={() => refetch()}
-            className="inline-flex items-center px-6 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors"
+            className="inline-flex items-center px-6 py-3 bg-red-500 dark:bg-red-600 text-white rounded-lg font-medium hover:bg-red-600 dark:hover:bg-red-700 transition-colors duration-300"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Intentar de nuevo
@@ -135,11 +135,11 @@ const FeaturedCategories = () => {
   }
 
   return (
-    <section className="relative py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100 overflow-hidden">
+    <section className="relative py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 overflow-hidden transition-colors duration-300">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div 
-          className="absolute -top-20 -right-20 w-60 h-60 bg-gradient-to-br from-[#FF8C00]/10 to-[#fec806]/10 rounded-full blur-3xl"
+          className="absolute -top-20 -right-20 w-60 h-60 bg-gradient-to-br from-[#FF8C00]/10 to-[#fec806]/10 dark:from-[#FF8C00]/20 dark:to-[#fec806]/20 rounded-full blur-3xl"
           animate={{ 
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.6, 0.3]
@@ -151,7 +151,7 @@ const FeaturedCategories = () => {
           }}
         />
         <motion.div 
-          className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-br from-[#ec2538]/10 to-[#FF8C00]/10 rounded-full blur-3xl"
+          className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-br from-[#ec2538]/10 to-[#FF8C00]/10 dark:from-[#ec2538]/20 dark:to-[#FF8C00]/20 rounded-full blur-3xl"
           animate={{ 
             scale: [1.2, 1, 1.2],
             opacity: [0.6, 0.3, 0.6]
@@ -166,18 +166,18 @@ const FeaturedCategories = () => {
         
         {/* Floating geometric shapes */}
         <motion.div 
-          className="absolute top-20 left-1/4 w-4 h-4 bg-[#FF8C00]/30 rounded-full"
+          className="absolute top-20 left-1/4 w-4 h-4 bg-[#FF8C00]/30 dark:bg-[#FF8C00]/50 rounded-full"
           variants={floatingVariants}
           animate="animate"
         />
         <motion.div 
-          className="absolute top-40 right-1/4 w-3 h-3 bg-[#ec2538]/30 rounded-full"
+          className="absolute top-40 right-1/4 w-3 h-3 bg-[#ec2538]/30 dark:bg-[#ec2538]/50 rounded-full"
           variants={floatingVariants}
           animate="animate"
           transition={{ delay: 1 }}
         />
         <motion.div 
-          className="absolute bottom-40 left-1/3 w-5 h-5 bg-[#fec806]/30 rounded-full"
+          className="absolute bottom-40 left-1/3 w-5 h-5 bg-[#fec806]/30 dark:bg-[#fec806]/50 rounded-full"
           variants={floatingVariants}
           animate="animate"
           transition={{ delay: 2 }}
@@ -193,7 +193,7 @@ const FeaturedCategories = () => {
           transition={{ duration: 0.8, ease: "easeOut" }}
         >
           <motion.h2 
-            className="text-4xl lg:text-5xl font-bold text-gray-900 mb-4"
+            className="text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4 transition-colors duration-300"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
@@ -204,7 +204,7 @@ const FeaturedCategories = () => {
             </span>
           </motion.h2>
           <motion.p 
-            className="text-xl text-gray-600 max-w-2xl mx-auto"
+            className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto transition-colors duration-300"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
@@ -217,10 +217,10 @@ const FeaturedCategories = () => {
         {isLoading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {[...Array(6)].map((_, index) => (
-              <div key={index} className="bg-gray-200 rounded-2xl p-8 animate-pulse">
-                <div className="w-20 h-20 bg-gray-300 rounded-full mx-auto mb-6"></div>
-                <div className="h-6 bg-gray-300 rounded mb-2 mx-auto w-3/4"></div>
-                <div className="h-4 bg-gray-300 rounded mx-auto w-1/2"></div>
+              <div key={index} className="bg-gray-200 dark:bg-gray-700 rounded-2xl p-8 animate-pulse transition-colors duration-300">
+                <div className="w-20 h-20 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-6"></div>
+                <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded mb-2 mx-auto w-3/4"></div>
+                <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded mx-auto w-1/2"></div>
               </div>
             ))}
           </div>
@@ -229,7 +229,7 @@ const FeaturedCategories = () => {
         {/* Error State */}
         {error && !isLoading && (
           <div className="text-center py-12">
-            <p className="text-red-500 text-lg">{error}</p>
+            <p className="text-red-500 dark:text-red-400 text-lg transition-colors duration-300">{error}</p>
           </div>
         )}
 
@@ -253,7 +253,7 @@ const FeaturedCategories = () => {
                   className="group relative"
                 >
                   <motion.div 
-                    className={`relative bg-gradient-to-br ${category.bgGradient} rounded-2xl p-8 text-center cursor-pointer overflow-hidden shadow-lg`}
+                    className={`relative bg-gradient-to-br ${category.bgGradient} rounded-2xl p-8 text-center cursor-pointer overflow-hidden shadow-lg dark:shadow-gray-900/25`}
                     whileHover={{ 
                       scale: 1.05,
                       boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
@@ -345,7 +345,7 @@ const FeaturedCategories = () => {
           transition={{ duration: 0.8, delay: 1 }}
         >
           <motion.button 
-            className="bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-lg cursor-pointer"
+            className="bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-bold py-4 px-8 rounded-xl shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300 text-lg cursor-pointer"
             whileHover={{ 
               scale: 1.05,
               boxShadow: "0 25px 50px -12px rgba(236, 37, 56, 0.4)"
