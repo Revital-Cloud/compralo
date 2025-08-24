@@ -12,7 +12,7 @@ import {
   useInfiniteQuery 
 } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import * as productService from '@/services/product.service';
+import productService from '@/services/product.service';
 import type {
   Product,
   ProductCreate,
@@ -163,6 +163,18 @@ export function useProductsByBrand(brandId: number, params?: PaginationParams) {
     queryKey: ['products', 'brand', brandId, params],
     queryFn: () => productService.getProductsByBrand(brandId, params),
     enabled: !!brandId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook para productos por sublínea
+ */
+export function useProductsBySubline(sublineId: number, params?: PaginationParams) {
+  return useQuery({
+    queryKey: ['products', 'subline', sublineId, params],
+    queryFn: () => productService.getProductsBySubline(sublineId, params),
+    enabled: !!sublineId,
     staleTime: 5 * 60 * 1000,
   });
 }

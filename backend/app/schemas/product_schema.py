@@ -49,7 +49,7 @@ class ProductBase(BaseModel):
     # id_producto: Optional[Decimal] = Field(None, description="Identificador único para el producto.") # Generalmente no se incluye en Create, se genera por la DB. Puede estar en el modelo de respuesta.
     nom_producto: str = Field(..., description="Nombre del producto.")
     spcf_producto: Dict[str, Any] = Field(..., description="Especificaciones del producto en formato JSON.")
-    img_producto: Optional[str] = Field(None, description="URL o ruta de la imagen del producto (mantenido por compatibilidad).")
+    img_producto: Optional[Dict[str, Any]] = Field(None, description="URL o ruta de la imagen del producto (mantenido por compatibilidad).")
     images: Optional[ProductImages] = Field(None, description="Estructura para múltiples imágenes del producto.")
     val_precio: Decimal = Field(..., gt=0, description="Precio de venta del producto.") # Usamos float, gt=0 para la validación CHECK (val_precio >= 0)
     id_proveedor: Decimal # Asumiendo que los IDs decimales pueden ser representados como int en la API si no son muy grandes
@@ -110,7 +110,7 @@ class ProductUpdate(BaseModel):
     id_sublinea: Optional[Decimal] = None
     nom_producto: Optional[str] = None
     spcf_producto: Optional[Dict[str, Any]] = None
-    img_producto: Optional[str] = None
+    img_producto: Optional[Dict[str, Any]] = None
     val_precio: Optional[Decimal] = Field(None, gt=0)
     id_proveedor: Optional[Decimal] = None
     id_marca: Optional[Decimal] = None

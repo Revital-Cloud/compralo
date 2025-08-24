@@ -385,3 +385,42 @@ def deactivate_product(
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al desactivar el producto: {str(e)}")
+
+def get_products_by_subline(db: Session, id_sublinea: Decimal):
+    """
+    Obtiene todos los productos de una sublínea específica.
+    
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        id_sublinea (Decimal): ID de la sublínea.
+        
+    Returns:
+        list: Lista de productos de la sublínea especificada.
+    """
+    try:
+        query = text("""
+        SELECT 
+            id_categoria,
+            id_linea,
+            id_sublinea,
+            id_producto,
+            nom_producto,
+            spcf_producto,
+            img_producto,
+            val_precio,
+            id_proveedor,
+            id_marca,
+            num_stock,
+            ind_activo,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
+        FROM tab_productos
+        WHERE id_sublinea = :id_sublinea AND ind_activo = true
+        """)
+        result = db.execute(query, {"id_sublinea": id_sublinea})
+        return result.mappings().all()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener productos por sublínea: {str(e)}")

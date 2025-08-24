@@ -1,11 +1,14 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { ShoppingBag, RefreshCw } from "lucide-react"
+import { ShoppingBag, RefreshCw} from "lucide-react"
 import { useFeaturedCategories } from "@/hooks/use-categories"
 import { getIconComponent } from "@/utils/category-mapper"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 const FeaturedCategories = () => {
+  const router = useRouter()
   const { 
     data: categories = [], 
     isLoading, 
@@ -13,6 +16,11 @@ const FeaturedCategories = () => {
     refetch,
     isError 
   } = useFeaturedCategories()
+
+  // Función para navegar a la categoría
+  const handleCategoryClick = (categoryId: string) => {
+    router.push(`/categories/${categoryId}`)
+  }
 
   // Animation variants
   const containerVariants = {
@@ -251,6 +259,7 @@ const FeaturedCategories = () => {
                       boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
                     }}
                     transition={{ duration: 0.3 }}
+                    onClick={() => handleCategoryClick(category.id)}
                   >
                     {/* Background pattern */}
                     <div className="absolute inset-0 opacity-10">
@@ -336,14 +345,17 @@ const FeaturedCategories = () => {
           transition={{ duration: 0.8, delay: 1 }}
         >
           <motion.button 
-            className="bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-lg"
+            className="bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 text-lg cursor-pointer"
             whileHover={{ 
               scale: 1.05,
               boxShadow: "0 25px 50px -12px rgba(236, 37, 56, 0.4)"
             }}
             whileTap={{ scale: 0.95 }}
+            onClick={() => router.push('/categories')}
           >
-            Ver Todas las Categorías
+            <Link href="/categories">
+              Ver Todas las Categorías
+            </Link>
           </motion.button>
         </motion.div>
       </div>

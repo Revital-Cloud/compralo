@@ -17,6 +17,9 @@ export * from './product';
 // Re-export de tipos de datos (Excel/CSV)
 export * from './data';
 
+// Re-export de tipos jerárquicos (categorías, líneas, sublíneas)
+export * from './hierarchical';
+
 // =============================================================================
 // TIPOS ADICIONALES PARA LA APLICACIÓN
 // =============================================================================

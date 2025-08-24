@@ -72,6 +72,24 @@ async def get_product(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
     return product
 
+# Productos por sublínea
+@router.get("/products/subline/{id_sublinea}", response_model=list[Product])
+async def get_products_by_subline(id_sublinea: Decimal, db: Session = Depends(get_db)):
+    """
+    Obtener todos los productos de una sublínea específica.
+
+    Args:
+        id_sublinea (Decimal): ID de la sublínea.
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+
+    Returns:
+        list[Product]: Lista de productos de la sublínea especificada.
+    """
+    products = product_service.get_products_by_subline(db, id_sublinea)
+    if not products:
+        return []  # Retornar lista vacía en lugar de error
+    return products
+
 #crea un producto
 @router.post("/products", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_product(

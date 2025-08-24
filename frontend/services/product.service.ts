@@ -101,6 +101,13 @@ export async function getProductsByBrand(brandId: number, params?: PaginationPar
 }
 
 /**
+ * Obtener productos por sublínea
+ */
+export async function getProductsBySubline(sublineId: number, params?: PaginationParams): Promise<PaginatedResponse<Product>> {
+  return await get<PaginatedResponse<Product>>(`/products/subline/${sublineId}`, { params });
+}
+
+/**
  * Obtener productos destacados
  */
 export async function getFeaturedProducts(limit?: number): Promise<Product[]> {
@@ -301,6 +308,7 @@ const productService = {
   searchProducts,
   getProductsByCategory,
   getProductsByBrand,
+  getProductsBySubline,
   getFeaturedProducts,
   getProductsOnSale,
   
