@@ -5,6 +5,7 @@ import { ShoppingCart, Star, Heart, Eye } from "lucide-react"
 import { useFeaturedProducts } from "@/hooks/use-products"
 import { formatPrice } from "@/utils/format-price"
 import { getProductImageUrl } from "@/utils/image-helpers"
+import { getProductDescription } from "@/utils/product-helpers"
 import Image from "next/image"
 
 const FeaturedProducts = () => {
@@ -279,7 +280,7 @@ const FeaturedProducts = () => {
                       {product.nom_producto}
                     </h3>
                     <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2 transition-colors duration-300">
-                      {product.spcf_producto.descripcion || 'Descripción del producto disponible'}
+                      {getProductDescription(product.spcf_producto)}
                     </p>
                   </div>
 
