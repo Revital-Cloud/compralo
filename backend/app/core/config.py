@@ -53,6 +53,11 @@ class Settings(BaseSettings):
     ALGORITHM: str
     REFRESH_TOKEN_EXPIRE_DAYS: int 
     
+    # Cloudinary configuracion
+    CLOUDINARY_CLOUD_NAME: str
+    CLOUDINARY_API_KEY: str
+    CLOUDINARY_API_SECRET: str
+    
     # Configuración de emails con Resend
     RESEND_API_KEY: str
     RESEND_FROM_EMAIL: str
