@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import Link from "next/link"
 import type { Product } from "@/types"
 import Image from "next/image"
+import { getProductImageUrl } from "@/utils/image-helpers"
 
 interface ProductListProps {
   products: Product[]
@@ -77,7 +78,7 @@ const ProductList: React.FC<ProductListProps> = ({
             >
               
               <Image
-                src={product.img_producto || ''}
+                src={getProductImageUrl(product.img_producto)}
                 alt={product.nom_producto}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
               />

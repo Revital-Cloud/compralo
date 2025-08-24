@@ -4,6 +4,7 @@ import { motion } from "framer-motion"
 import { ShoppingCart, Star, Heart, Eye } from "lucide-react"
 import { useFeaturedProducts } from "@/hooks/use-products"
 import { formatPrice } from "@/utils/format-price"
+import { getProductImageUrl } from "@/utils/image-helpers"
 import Image from "next/image"
 
 const FeaturedProducts = () => {
@@ -241,19 +242,13 @@ const FeaturedProducts = () => {
                     initial="rest"
                     whileHover="hover"
                   >
-                    {product.img_producto ? (
-                      <Image 
-                        src={product.img_producto} 
-                        alt={product.nom_producto}
-                        className="w-full h-full object-cover"
-                        width={300}
-                        height={300}
-                      />
-                    ) : (
-                      <div className="w-32 h-24 bg-gray-400 dark:bg-gray-500 rounded flex items-center justify-center">
-                        <div className="w-16 h-12 bg-gradient-to-r from-blue-400 to-purple-500 rounded"></div>
-                      </div>
-                    )}
+                    <Image 
+                      src={getProductImageUrl(product.img_producto)}
+                      alt={product.nom_producto}
+                      className="w-full h-full object-cover"
+                      width={300}
+                      height={300}
+                    />
                   </motion.div>
                   
                   {/* Quick Actions Overlay */}

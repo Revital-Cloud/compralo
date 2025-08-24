@@ -8,6 +8,7 @@ import Link from "next/link"
 import Image from "next/image"
 
 import type { Product } from '@/types'
+import { getProductImageUrl } from "@/utils/image-helpers"
 
 interface ProductGridProps {
   products: Product[]
@@ -94,7 +95,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 
             {/* Product Image */}
             <Image
-              src={product.img_producto || ''}
+              src={getProductImageUrl(product.img_producto)}
               alt={product.nom_producto}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               width={300}
