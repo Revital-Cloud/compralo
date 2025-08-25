@@ -14,11 +14,12 @@ export interface CookieConsent {
 }
 
 export function useCookies() {
+  // Estado inicial null para evitar diferencias SSR
   const [cookieConsent, setCookieConsent] = useState<CookieConsent | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isHydrated, setIsHydrated] = useState(false)
 
+  // Solo cargar cookies después de la hidratación
   useEffect(() => {
-    // Cargar preferencias de cookies desde localStorage
     const loadCookiePreferences = () => {
       try {
         const accepted = localStorage.getItem('cookies-accepted')
@@ -34,7 +35,7 @@ export function useCookies() {
       } catch (error) {
         console.error('Error loading cookie preferences:', error)
       } finally {
-        setIsLoading(false)
+        setIsHydrated(true)
       }
     }
 
@@ -55,6 +56,7 @@ export function useCookies() {
       timestamp: Date.now()
     }
     
+    
     localStorage.setItem('cookies-accepted', 'true')
     localStorage.setItem('cookies-preferences', JSON.stringify(preferences))
     setCookieConsent(consent)
@@ -73,6 +75,7 @@ export function useCookies() {
       preferences,
       timestamp: Date.now()
     }
+    
     
     localStorage.setItem('cookies-accepted', 'true')
     localStorage.setItem('cookies-preferences', JSON.stringify(preferences))
@@ -104,13 +107,37 @@ export function useCookies() {
     return cookieConsent.preferences[type]
   }
 
+  // Función para verificar cookies en tiempo real desde localStorage
+  const checkCookiesInRealTime = () => {
+    // Solo verificar si ya está hidratado
+    if (!isHydrated) return null
+    
+    try {
+      const accepted = localStorage.getItem('cookies-accepted')
+      const preferences = localStorage.getItem('cookies-preferences')
+      
+      if (accepted && preferences) {
+        return {
+          accepted: true,
+          preferences: JSON.parse(preferences),
+          timestamp: Date.now()
+        }
+      }
+    } catch (error) {
+      console.error('Error checking cookies in real time:', error)
+    }
+    return null
+  }
+
   return {
     cookieConsent,
-    isLoading,
+    isLoading: !isHydrated,
+    isHydrated,
     acceptAllCookies,
     acceptNecessaryOnly,
     updateCookiePreferences,
     revokeConsent,
-    canUseCookie
+    canUseCookie,
+    checkCookiesInRealTime
   }
 }

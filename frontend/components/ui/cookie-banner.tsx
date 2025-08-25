@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { X, Cookie, Shield, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -11,32 +11,42 @@ interface CookieBannerProps {
 }
 
 export function CookieBanner({ className }: CookieBannerProps) {
-  const [isVisible, setIsVisible] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
-  const { cookieConsent, acceptAllCookies, acceptNecessaryOnly, updateCookiePreferences } = useCookies()
+  const { 
+    cookieConsent, 
+    acceptAllCookies, 
+    acceptNecessaryOnly, 
+    updateCookiePreferences,
+    isHydrated,
+    checkCookiesInRealTime
+  } = useCookies()
 
-  useEffect(() => {
-    // Verificar si ya se aceptaron las cookies
-    if (!cookieConsent?.accepted) {
-      setIsVisible(true)
-    }
-  }, [cookieConsent])
+  // No mostrar nada hasta que esté hidratado para evitar diferencias SSR
+  if (!isHydrated) {
+    return null
+  }
+
+  // Verificar cookies en tiempo real para mostrar/ocultar el banner
+  const realTimeCookies = checkCookiesInRealTime()
+  
+  // Si las cookies ya están aceptadas (en tiempo real), no mostrar el banner
+  if (realTimeCookies?.accepted) {
+    return null
+  }
 
   const handleAcceptAll = () => {
     acceptAllCookies()
-    setIsVisible(false)
+    // El banner se ocultará automáticamente por el estado reactivo
   }
 
   const handleAcceptNecessary = () => {
     acceptNecessaryOnly()
-    setIsVisible(false)
+    // El banner se ocultará automáticamente por el estado reactivo
   }
 
   const openCookieSettings = () => {
     setIsExpanded(true)
   }
-
-  if (!isVisible) return null
 
   return (
     <div className={cn(

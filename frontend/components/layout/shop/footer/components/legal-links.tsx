@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { CookieSettings } from "@/components/ui/cookie-settings"
+import { NoSSR } from "@/components/ui/no-ssr"
 
 interface LegalLink {
   label: string
@@ -33,8 +34,9 @@ const LegalLinks: React.FC<LegalLinksProps> = ({ links = defaultLegalLinks }) =>
         </Link>
       ))}
       
-      {/* Cookie Settings */}
-      <CookieSettings />
+      <NoSSR>
+        <CookieSettings />
+      </NoSSR>
     </div>
   )
 }

@@ -36,7 +36,7 @@ export const AUTH_KEYS = {
  */
 export function useAuth() {
   const queryClient = useQueryClient();
-  const { canUseCookie } = useCookies();
+  const { canUseCookie, isHydrated } = useCookies();
 
   // Query para obtener el usuario actual
   const {
@@ -46,7 +46,7 @@ export function useAuth() {
   } = useQuery({
     queryKey: AUTH_KEYS.currentUser,
     queryFn: authService.getCurrentUser,
-    enabled: isAuthenticated() && canUseCookie('necessary'), // Solo ejecutar si hay token Y cookies permitidas
+    enabled: isAuthenticated() && canUseCookie('necessary') && isHydrated, // Solo ejecutar si hay token, cookies permitidas Y está hidratado
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
@@ -72,10 +72,10 @@ export function useAuth() {
         // Convertir id_rol a number para asegurar comparación correcta
         const userRole = Number(refreshedUser?.id_rol);
         
-        // Lógica de redireccionamiento:
+        // Lógica de redirección:
         // - Rol 1 (Admin): Redirigir al dashboard de administración (/admin)
-        // - Rol 2 (Cliente): Redirigir a la tienda principal (/)
-        const redirectUrl = userRole === 1 ? '/admin' : '/';
+        // - Rol 2 (Cliente): Redirigir al perfil del usuario (/profile)
+        const redirectUrl = userRole === 1 ? '/admin' : '/profile';
         
         window.location.href = redirectUrl;
       }
@@ -162,7 +162,7 @@ export function useAuth() {
 
   return {
     user,
-    isAuthenticated: isAuthenticated() && !!user && canUseCookie('necessary'),
+    isAuthenticated: isAuthenticated() && !!user && canUseCookie('necessary') && isHydrated,
     isLoadingUser,
     isLoggingIn,
     isLoggingOut,
@@ -171,7 +171,8 @@ export function useAuth() {
     logout,
     register,
     updateProfile,
-    canUseCookies, // Nueva función para verificar cookies
+    canUseCookies: () => canUseCookie('necessary'),
+    isHydrated, // Exponer el estado de hidratación
   };
 }
 

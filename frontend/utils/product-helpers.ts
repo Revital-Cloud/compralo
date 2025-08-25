@@ -22,28 +22,23 @@ export const getProductDescription = (
   specs: ProductSpecs, 
   fallback: string = 'Descripción del producto disponible'
 ): string => {
-  console.log('🔍 getProductDescription input:', specs)
   
   if (!specs) {
-    console.log('❌ specs es null/undefined, usando fallback')
     return fallback
   }
   
   // Caso 1: Si specs es un string, usarlo directamente
   if (typeof specs === 'string') {
-    console.log('✅ specs es string:', specs)
     const trimmed = (specs as string).trim()
     if (trimmed) {
       return trimmed
     } else {
-      console.log('❌ string vacío, usando fallback')
       return fallback
     }
   }
   
   // Caso 2: Si specs es un objeto, buscar la descripción
   if (typeof specs === 'object' && specs !== null) {
-    console.log('✅ specs es objeto, keys disponibles:', Object.keys(specs))
     
     // Posibles claves para la descripción
     const descriptionKeys = [
@@ -63,7 +58,6 @@ export const getProductDescription = (
       if (key in specs && typeof specs[key] === 'string') {
         const description = specs[key].trim()
         if (description) {
-          console.log(`✅ Encontrada descripción en clave '${key}':`, description)
           return description
         }
       }
@@ -75,12 +69,10 @@ export const getProductDescription = (
       .map(([key, value]) => ({ key, value: value.trim() }))
     
     if (availableSpecs.length > 0) {
-      console.log('🔧 Generando descripción desde especificaciones:', availableSpecs)
       
       // Crear descripción inteligente basada en las especificaciones
       const description = generateDescriptionFromSpecs(availableSpecs)
       if (description) {
-        console.log('✅ Descripción generada exitosamente:', description)
         return description
       }
     }
@@ -102,7 +94,6 @@ export const getProductDescription = (
     
     if (availableInfo.length > 0) {
       const generatedDesc = `${availableInfo.join(' - ')} disponible`
-      console.log('✅ Generada descripción desde propiedades:', generatedDesc)
       return generatedDesc
     }
     
@@ -110,15 +101,12 @@ export const getProductDescription = (
     if (Array.isArray(specs) && specs.length > 0) {
       const firstItem = specs[0]
       if (typeof firstItem === 'string' && firstItem.trim()) {
-        console.log('✅ specs es array, usando primer elemento:', firstItem)
         return firstItem.trim()
       }
     }
     
-    console.log('❌ No se encontró descripción válida en el objeto')
   }
   
-  console.log('❌ Usando fallback por defecto')
   return fallback
 }
 
@@ -281,23 +269,4 @@ export const formatProductSpecsForDisplay = (specs: ProductSpecs) => {
   })
   
   return formatted
-}
-
-/**
- * Debug helper para ver qué tipo de especificaciones estamos recibiendo
- * @param specs - Especificaciones del producto (JSON)
- * @returns Información de debug sobre las especificaciones
- */
-export const debugProductSpecs = (specs: ProductSpecs) => {
-  return {
-    type: typeof specs,
-    isNull: specs === null,
-    isUndefined: specs === undefined,
-    isString: typeof specs === 'string',
-    isObject: typeof specs === 'object' && specs !== null,
-    keys: typeof specs === 'object' && specs !== null ? Object.keys(specs) : [],
-    value: specs,
-    description: getProductDescription(specs),
-    availableSpecs: getAvailableProductSpecs(specs)
-  }
 }
