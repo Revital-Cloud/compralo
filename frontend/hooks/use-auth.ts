@@ -3,6 +3,8 @@
  * 
  * Este hook encapsula toda la lógica de autenticación usando React Query
  * para el manejo de estado del servidor y cache automático.
+ * 
+ * INCLUYE validación de cookies para compliance legal.
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -10,6 +12,7 @@ import { toast } from 'sonner';
 import * as authService from '@/services/auth.service';
 import * as userService from '@/services/user.service';
 import { isAuthenticated, clearTokens } from '@/utils/apiWrapper';
+import { useCookies } from './use-cookies';
 import type {
   LoginRequest,
   TokenResponse,
@@ -29,9 +32,11 @@ export const AUTH_KEYS = {
 /**
  * Hook principal de autenticación
  * Combina el estado del usuario con las acciones de login/logout.
+ * INCLUYE validación de cookies para compliance legal.
  */
 export function useAuth() {
   const queryClient = useQueryClient();
+  const { canUseCookie } = useCookies();
 
   // Query para obtener el usuario actual
   const {
@@ -41,14 +46,20 @@ export function useAuth() {
   } = useQuery({
     queryKey: AUTH_KEYS.currentUser,
     queryFn: authService.getCurrentUser,
-    enabled: isAuthenticated(), // Solo ejecutar si hay token
+    enabled: isAuthenticated() && canUseCookie('necessary'), // Solo ejecutar si hay token Y cookies permitidas
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 
   // Mutación para login
   const { mutate: login, isPending: isLoggingIn } = useMutation({
-    mutationFn: (credentials: LoginRequest) => authService.login(credentials),
+    mutationFn: (credentials: LoginRequest) => {
+      // Validar cookies antes de permitir login
+      if (!canUseCookie('necessary')) {
+        throw new Error('Debes aceptar las cookies necesarias para iniciar sesión');
+      }
+      return authService.login(credentials);
+    },
     onSuccess: async () => {
       toast.success('¡Bienvenido! Has iniciado sesión correctamente');
       
@@ -70,6 +81,12 @@ export function useAuth() {
       }
     },
     onError: (error: any) => {
+      // Manejar errores específicos de cookies
+      if (error.message?.includes('cookies')) {
+        toast.error('Para iniciar sesión, debes aceptar las cookies necesarias');
+        return;
+      }
+      
       const message = error?.response?.data?.detail || 'Error al iniciar sesión. Verifica tus credenciales.';
       toast.error(message);
     },
@@ -95,11 +112,23 @@ export function useAuth() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: authService.register,
+    mutationFn: (userData: RegisterRequest) => {
+      // Validar cookies antes de permitir registro
+      if (!canUseCookie('necessary')) {
+        throw new Error('Debes aceptar las cookies necesarias para crear una cuenta');
+      }
+      return authService.register(userData);
+    },
     onSuccess: () => {
       toast.success('¡Cuenta creada exitosamente! Ya puedes iniciar sesión.');
     },
     onError: (error: any) => {
+      // Manejar errores específicos de cookies
+      if (error.message?.includes('cookies')) {
+        toast.error('Para crear una cuenta, debes aceptar las cookies necesarias');
+        return;
+      }
+      
       const message = error?.response?.data?.detail || 'Error al crear la cuenta. Inténtalo de nuevo.';
       toast.error(message);
       throw error; // Re-lanzar el error para que el componente lo pueda manejar
@@ -128,9 +157,12 @@ export function useAuth() {
     await updateProfileMutation.mutateAsync(userData);
   };
 
+  // Función helper para verificar si se pueden usar cookies
+  const canUseCookies = () => canUseCookie('necessary');
+
   return {
     user,
-    isAuthenticated: isAuthenticated() && !!user,
+    isAuthenticated: isAuthenticated() && !!user && canUseCookie('necessary'),
     isLoadingUser,
     isLoggingIn,
     isLoggingOut,
@@ -139,6 +171,7 @@ export function useAuth() {
     logout,
     register,
     updateProfile,
+    canUseCookies, // Nueva función para verificar cookies
   };
 }
 

@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { CookieSettings } from "@/components/ui/cookie-settings"
 
 interface LegalLink {
   label: string
@@ -31,6 +32,9 @@ const LegalLinks: React.FC<LegalLinksProps> = ({ links = defaultLegalLinks }) =>
           {link.label}
         </Link>
       ))}
+      
+      {/* Cookie Settings */}
+      <CookieSettings />
     </div>
   )
 }
