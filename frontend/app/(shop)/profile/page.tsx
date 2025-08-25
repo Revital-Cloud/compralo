@@ -16,7 +16,7 @@ import {
   User 
 } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ProfileHeader,
   ProfileTab,
@@ -30,7 +30,11 @@ import {
 export default function ProfilePage() {
   const { user, isAuthenticated, updateProfile, isLoadingUser, isHydrated } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
+
+  // Obtener la pestaña activa de la URL o usar 'profile' por defecto
+  const activeTab = searchParams.get('tab') || 'profile';
 
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
@@ -44,6 +48,13 @@ export default function ProfilePage() {
       password_usuario: "",
     },
   });
+
+  // Función para cambiar la pestaña y actualizar la URL
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('tab', value);
+    router.push(`/profile?${params.toString()}`);
+  };
 
   useEffect(() => {
     // Esperar a que se complete la hidratación
@@ -62,6 +73,7 @@ export default function ProfilePage() {
         ape_usuario: user.ape_usuario || "",
         email_usuario: user.email_usuario || "",
         cel_usuario: user.cel_usuario || "",
+        des_direccion: user.des_direccion || "",
         fec_nacimiento: user.fec_nacimiento ? new Date(user.fec_nacimiento).toISOString().split('T')[0] : "",
         password_usuario: "",
       });
@@ -152,7 +164,7 @@ export default function ProfilePage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="profile" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="profile" className="flex items-center space-x-2">
               <User className="w-4 h-4" />
@@ -216,9 +228,6 @@ export default function ProfilePage() {
           </TabsContent>
         </Tabs>
       </div>
-      
-      {/* Componente de debug temporal */}
-      
     </div>
   );
 }
