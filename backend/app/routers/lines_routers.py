@@ -29,6 +29,42 @@ async def get_lines(db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron líneas")
     return lines
 
+# Ruta para obtener líneas por categoría
+@router.get("/lines/category/{id_categoria}", response_model=list[Line])
+async def get_lines_by_category(id_categoria: Decimal, db: Session = Depends(get_db)):
+    """
+    Obtiene todas las líneas de una categoría específica.
+
+    Args:
+        id_categoria (Decimal): ID de la categoría.
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+
+    Returns:
+        list[Line]: Lista de líneas de la categoría especificada.
+    """
+    lines = lines_service.get_lines_by_category(db, id_categoria)
+    if not lines:
+        return []  # Retornar lista vacía en lugar de error
+    return lines
+
+# Ruta para obtener una línea específica
+@router.get("/lines/{id_linea}", response_model=Line)
+async def get_line(id_linea: Decimal, db: Session = Depends(get_db)):
+    """
+    Obtiene una línea específica por su ID.
+
+    Args:
+        id_linea (Decimal): ID de la línea a obtener.
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+
+    Returns:
+        Line: Detalles de la línea solicitada.
+    """
+    line = lines_service.get_line(db, id_linea)
+    if not line:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Línea no encontrada")
+    return line
+
 
 # Ruta para crear una nueva línea
 @router.post("/lines", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)

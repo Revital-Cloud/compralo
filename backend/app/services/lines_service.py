@@ -100,3 +100,52 @@ def deactivate_line(db: Session, id_categoria: Decimal, id_linea: Decimal, usr_u
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al desactivar la línea: {str(e)}")
+
+def get_lines_by_category(db: Session, id_categoria: Decimal):
+    """
+    Obtiene todas las líneas de una categoría específica.
+    """
+    try:
+        query = text("""
+        SELECT 
+            id_categoria,
+            id_linea,
+            nom_linea,
+            ind_activo,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
+        FROM tab_lineas
+        WHERE id_categoria = :id_categoria AND ind_activo = true
+        """)
+        result = db.execute(query, {"id_categoria": id_categoria})
+        return result.mappings().all()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener líneas por categoría: {str(e)}")
+
+def get_line(db: Session, id_linea: Decimal):
+    """
+    Obtiene una línea específica por su ID.
+    """
+    try:
+        query = text("""
+        SELECT 
+            id_categoria,
+            id_linea,
+            nom_linea,
+            ind_activo,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
+        FROM tab_lineas
+        WHERE id_linea = :id_linea AND ind_activo = true
+        """)
+        result = db.execute(query, {"id_linea": id_linea})
+        line = result.mappings().first()
+        return line
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener la línea: {str(e)}")

@@ -25,7 +25,7 @@ interface FooterProps {
 
 const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }) => {
   return (
-    <footer className={`bg-secondary text-secondary-foreground/80 ${className}`}>
+    <footer className={`bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 transition-colors duration-300 ${className}`}>
       {/* Newsletter Section */}
       <NewsletterSection onSubscribe={onNewsletterSubscribe} />
 
@@ -51,13 +51,13 @@ const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }
 
             {/* Customer Service */}
             <div className="space-y-4">
-              <h4 className="text-secondary-foreground font-semibold">Atención al Cliente</h4>
+              <h4 className="text-gray-900 dark:text-white font-semibold transition-colors duration-300">Atención al Cliente</h4>
               <ul className="space-y-2.5">
                 {customerServiceLinks.map((link, index) => (
                   <li key={index}>
                     <a 
                       href={link.href} 
-                      className="text-sm text-secondary-foreground/80 hover:text-primary transition-colors block py-1"
+                      className="text-sm text-gray-600 dark:text-gray-400 hover:text-[#ec2538] dark:hover:text-red-400 transition-colors duration-300 block py-1"
                     >
                       {link.label}
                     </a>
@@ -68,12 +68,12 @@ const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }
           </div>
         </div>
 
-        <Separator className="my-8 bg-border" />
+        <Separator className="my-8 bg-gray-200 dark:bg-gray-700" />
 
         {/* Features Section */}
         <FeaturesSection />
 
-        <Separator className="my-6 sm:my-8 bg-border" />
+        <Separator className="my-6 sm:my-8 bg-gray-200 dark:bg-gray-700" />
 
         {/* Bottom Section */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 lg:gap-4">
@@ -81,7 +81,7 @@ const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }
           <PaymentMethods />
         </div>
 
-        <Separator className="my-6 bg-border" />
+        <Separator className="my-6 bg-gray-200 dark:bg-gray-700" />
 
         {/* Copyright */}
         <CopyrightSection />

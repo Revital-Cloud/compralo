@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Product } from "@/types"
+import { formatPrice } from "@/utils/format-price"
 
 interface ProductInfoProps {
   product: Product
@@ -72,12 +73,12 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       {/* Price */}
       <div className="flex items-baseline gap-3">
         <span className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-          ${price.toFixed(2)}
+          {formatPrice(price, 'COP')}
         </span>
         {isDiscounted && (
           <>
             <span className="text-lg text-gray-500 line-through">
-              ${originalPrice?.toFixed(2)}
+              {formatPrice(originalPrice, 'COP')}
             </span>
             <Badge variant="destructive">
               -{discountPercentage}%
@@ -103,7 +104,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
             ))}
           </div>
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            ({reviewCount} reseñas)
+            ({reviewCount} reviews)
           </span>
         </div>
       )}

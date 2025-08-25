@@ -7,7 +7,6 @@
 
 import { get, post, put, del } from '@/utils/apiWrapper';
 import type {
-  Product,
   ProductCreate,
   ProductUpdate,
   ProductFilters,
@@ -22,6 +21,7 @@ import type {
   StockMovement,
   ApiResponse,
 } from '@/types';
+import type { Product } from '@/types/product';
 
 // =============================================================================
 // FUNCIONES DE PRODUCTOS
@@ -98,6 +98,13 @@ export async function getProductsByCategory(categoryId: number, params?: Paginat
  */
 export async function getProductsByBrand(brandId: number, params?: PaginationParams): Promise<PaginatedResponse<Product>> {
   return await get<PaginatedResponse<Product>>(`/products/brand/${brandId}`, { params });
+}
+
+/**
+ * Obtener productos por sublínea
+ */
+export async function getProductsBySubline(sublineId: number, params?: PaginationParams): Promise<PaginatedResponse<Product>> {
+  return await get<PaginatedResponse<Product>>(`/products/subline/${sublineId}`, { params });
 }
 
 /**
@@ -301,6 +308,7 @@ const productService = {
   searchProducts,
   getProductsByCategory,
   getProductsByBrand,
+  getProductsBySubline,
   getFeaturedProducts,
   getProductsOnSale,
   

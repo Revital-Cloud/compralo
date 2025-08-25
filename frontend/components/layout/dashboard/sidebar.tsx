@@ -108,29 +108,26 @@ const data = {
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ variant }: { variant: "default" | "inset" }) {
   return (
-    <Sidebar collapsible="offcanvas" {...props}>
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className="data-[slot=sidebar-menu-button]:!p-1.5"
-            >
-              <a href="/admin">
-                <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Brillo Rosa</span>
-              </a>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+    <Sidebar variant={variant} className="border-r border-border dark:border-gray-700 bg-background dark:bg-gray-900 transition-colors duration-300">
+      <SidebarHeader className="border-b border-border dark:border-gray-700 transition-colors duration-300">
+        <div className="flex h-[--header-height] shrink-0 items-center gap-2 px-4 lg:px-6">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-primary dark:bg-red-500 rounded-lg flex items-center justify-center transition-colors duration-300">
+              <IconInnerShadowTop className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <span className="text-lg font-semibold text-foreground dark:text-white transition-colors duration-300">Synkro</span>
+          </div>
+        </div>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <SidebarMenu>
+          <NavMain items={data.navMain} />
+          <NavSecondary items={data.navSecondary} />
+        </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-border dark:border-gray-700 transition-colors duration-300">
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>

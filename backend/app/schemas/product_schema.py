@@ -8,9 +8,22 @@ así como un esquema para mensajes de respuesta genéricos.
 """
 # Esquemas Pydantic (validación de datos, request/response)
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any # Usaremos Dict o Any para JSONB
+from typing import Optional, Dict, Any, List # Usaremos Dict o Any para JSONB
 from decimal import Decimal # Para campos DECIMAL si se requiere precisión
 from datetime import datetime
+
+class ProductImages(BaseModel):
+    """
+    Esquema para manejar múltiples imágenes de un producto.
+    
+    Permite organizar las imágenes por tipo y mantener un orden.
+    """
+    main: Optional[str] = Field(None, description="URL de la imagen principal del producto")
+    gallery: List[str] = Field(default_factory=list, description="Lista de URLs de imágenes de la galería")
+    thumbnails: List[str] = Field(default_factory=list, description="Lista de URLs de miniaturas")
+    
+    class Config:
+        from_attributes = True
 
 class ProductBase(BaseModel):
     """
@@ -22,7 +35,8 @@ class ProductBase(BaseModel):
     Atributos:
         nom_producto (str): Nombre del producto.
         spcf_producto (Dict[str, Any]): Especificaciones del producto en formato JSON.
-        img_producto (Optional[str]): URL o ruta de la imagen del producto.
+        img_producto (Optional[str]): URL o ruta de la imagen del producto (mantenido por compatibilidad).
+        images (Optional[ProductImages]): Estructura para múltiples imágenes del producto.
         val_precio (Decimal): Precio de venta del producto.
         id_proveedor (Decimal): Identificador del proveedor.
         id_marca (Decimal): Identificador de la marca.
@@ -35,7 +49,8 @@ class ProductBase(BaseModel):
     # id_producto: Optional[Decimal] = Field(None, description="Identificador único para el producto.") # Generalmente no se incluye en Create, se genera por la DB. Puede estar en el modelo de respuesta.
     nom_producto: str = Field(..., description="Nombre del producto.")
     spcf_producto: Dict[str, Any] = Field(..., description="Especificaciones del producto en formato JSON.")
-    img_producto: Optional[str] = Field(None, description="URL o ruta de la imagen del producto.")
+    img_producto: Optional[Dict[str, Any]] = Field(None, description="URL o ruta de la imagen del producto (mantenido por compatibilidad).")
+    images: Optional[ProductImages] = Field(None, description="Estructura para múltiples imágenes del producto.")
     val_precio: Decimal = Field(..., gt=0, description="Precio de venta del producto.") # Usamos float, gt=0 para la validación CHECK (val_precio >= 0)
     id_proveedor: Decimal # Asumiendo que los IDs decimales pueden ser representados como int en la API si no son muy grandes
     id_marca: Decimal
@@ -95,7 +110,7 @@ class ProductUpdate(BaseModel):
     id_sublinea: Optional[Decimal] = None
     nom_producto: Optional[str] = None
     spcf_producto: Optional[Dict[str, Any]] = None
-    img_producto: Optional[str] = None
+    img_producto: Optional[Dict[str, Any]] = None
     val_precio: Optional[Decimal] = Field(None, gt=0)
     id_proveedor: Optional[Decimal] = None
     id_marca: Optional[Decimal] = None

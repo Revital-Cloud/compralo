@@ -104,25 +104,24 @@ const EcommerceHeroCarousel: React.FC = () => {
     }, []);
 
     return (
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {particles.map((particle) => (
           <motion.div
             key={particle.id}
-            className="absolute w-1 h-1 bg-gradient-to-r from-[#ec2538]/30 via-[#FF8C00]/30 to-[#fec806]/30 rounded-full"
+            className="absolute w-2 h-2 bg-gradient-to-r from-orange-200 to-pink-200 dark:from-orange-300 dark:to-pink-300 rounded-full opacity-60"
             style={{
               left: `${particle.left}%`,
               top: `${particle.top}%`,
             }}
             animate={{
-              y: [0, -20, 0],
               x: [0, particle.xOffset, 0],
-              opacity: [0.3, 0.8, 0.3],
-              scale: [1, 1.5, 1],
+              y: [0, -20, 0],
+              opacity: [0.6, 0.8, 0.6],
             }}
             transition={{
               duration: particle.duration,
-              repeat: Infinity,
               delay: particle.delay,
+              repeat: Infinity,
               ease: "easeInOut",
             }}
           />
@@ -132,46 +131,38 @@ const EcommerceHeroCarousel: React.FC = () => {
   };
 
   return (
-    <section className="relative w-full min-h-[120vh] bg-gradient-to-br from-[#F5F5F5] via-white to-[#F0F0F0] overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-50 via-white to-orange-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 transition-colors duration-300">
       {/* Background decorative elements */}
       <BgDecorativeElements />
       
-      {/* Floating particles overlay */}
+      {/* Floating particles */}
       <FloatingParticles />
-
-      {/* Hero Section */}
-      <div className="container mx-auto px-4 py-16 lg:py-32 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-          {/* Left Content */}
-          <div className="text-center lg:text-left space-y-10 lg:space-y-12">
-            {/* Badge */}
+      
+      {/* Main content container */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          {/* Left Content - Text and CTA */}
+          <div className="text-center lg:text-left">
+            {/* Trending Badge */}
             <motion.div 
-              className="inline-flex items-center gap-3 bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white px-6 py-3 rounded-full text-base lg:text-lg font-medium"
-              variants={textVariants}
-              initial="hidden"
-              animate="visible"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-[#FF8C00] to-[#fec806] text-white px-4 py-2 rounded-full text-sm lg:text-base font-semibold mb-6 shadow-lg"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
             >
-              <TrendingUp className="w-5 h-5 lg:w-6 lg:h-6" />
-              <span>🔥 Ofertas en Tendencia</span>
+              <TrendingUp className="w-4 h-4 lg:w-5 lg:h-5" />
+              Ofertas en Tendencia
             </motion.div>
             
-            {/* Main Headline */}
+            {/* Main Title */}
             <motion.h1 
-              className="text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight"
+              className="text-4xl lg:text-6xl xl:text-7xl font-bold text-gray-900 dark:text-white mb-6 leading-tight"
               variants={titleVariants}
               initial="hidden"
               animate="visible"
             >
-               <motion.span 
-                 className="text-[#ec2538]"
-                 variants={titleVariants}
-                 initial="hidden"
-                 animate="visible"
-               >
-                Descubre las
-               </motion.span>
-              <br />
-                <RotatingText
+              Descubre las{" "}
+              <RotatingText
                  texts={[
                    "mejores ofertas",
                    "ofertas únicas",
@@ -198,7 +189,7 @@ const EcommerceHeroCarousel: React.FC = () => {
             
             {/* Subtitle */}
             <motion.p 
-              className="text-xl lg:text-2xl text-gray-600 max-w-xl leading-relaxed"
+              className="text-xl lg:text-2xl text-gray-600 dark:text-gray-300 max-w-xl leading-relaxed"
               variants={textVariants}
               initial="hidden"
               animate="visible"
@@ -224,7 +215,7 @@ const EcommerceHeroCarousel: React.FC = () => {
               <Button 
                 variant="outline"
                 size="lg" 
-                className="w-full sm:w-48 border-2 border-[#ec2538] text-[#ec2538] hover:bg-[#ec2538] hover:text-white font-semibold py-5 text-lg lg:text-xl rounded-xl transition-all duration-300 flex items-center justify-center"
+                className="w-full sm:w-48 border-2 border-[#ec2538] dark:border-red-500 text-[#ec2538] dark:text-red-500 hover:bg-[#ec2538] dark:hover:bg-red-500 hover:text-white font-semibold py-5 text-lg lg:text-xl rounded-xl transition-all duration-300 flex items-center justify-center"
               >
                 Ver Categorías
               </Button>
@@ -245,8 +236,8 @@ const EcommerceHeroCarousel: React.FC = () => {
                 animate="visible"
                 transition={{ delay: 1.3 }}
               >
-                <Shield className="w-5 h-5 text-[#ec2538]" />
-                <span className="text-sm lg:text-base text-gray-600">Compra Segura</span>
+                <Shield className="w-5 h-5 text-[#ec2538] dark:text-red-500" />
+                <span className="text-sm lg:text-base text-gray-600 dark:text-gray-300">Compra Segura</span>
               </motion.div>
               <motion.div 
                 className="flex items-center gap-2"
@@ -255,8 +246,8 @@ const EcommerceHeroCarousel: React.FC = () => {
                 animate="visible"
                 transition={{ delay: 1.4 }}
               >
-                <Zap className="w-5 h-5 text-[#fec806]" />
-                <span className="text-sm lg:text-base text-gray-600">Entrega Rápida</span>
+                <Zap className="w-5 h-5 text-[#fec806] dark:text-yellow-400" />
+                <span className="text-sm lg:text-base text-gray-600 dark:text-gray-300">Entrega Rápida</span>
               </motion.div>
               <motion.div 
                 className="flex items-center gap-2"
@@ -265,8 +256,8 @@ const EcommerceHeroCarousel: React.FC = () => {
                 animate="visible"
                 transition={{ delay: 1.5 }}
               >
-                <Star className="w-5 h-5 text-[#FF8C00]" />
-                <span className="text-sm lg:text-base text-gray-600">4.9/5 Calificación</span>
+                <Star className="w-5 h-5 text-[#FF8C00] dark:text-orange-500" />
+                <span className="text-sm lg:text-base text-gray-600 dark:text-gray-300">4.9/5 Calificación</span>
               </motion.div>
             </motion.div>
           </div>
@@ -289,54 +280,54 @@ const EcommerceHeroCarousel: React.FC = () => {
                 </svg>
                 
                 {/* Floating elements around the cart */}
-                <div className="absolute -top-6 -right-6 bg-white rounded-full p-4 shadow-lg animate-bounce">
-                  <div className="w-8 h-8 bg-[#ec2538] rounded-full flex items-center justify-center">
+                <div className="absolute -top-6 -right-6 bg-white dark:bg-gray-800 rounded-full p-4 shadow-lg dark:shadow-gray-900/25 animate-bounce border border-gray-200 dark:border-gray-700">
+                  <div className="w-8 h-8 bg-[#ec2538] dark:bg-red-500 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-bold">%</span>
                   </div>
                 </div>
                 
-                <div className="absolute -bottom-6 -left-6 bg-white rounded-full p-4 shadow-lg animate-pulse">
-                  <div className="w-8 h-8 bg-[#fec806] rounded-full flex items-center justify-center">
-                    <span className="text-black text-sm font-bold">$</span>
+                <div className="absolute -bottom-6 -left-6 bg-white dark:bg-gray-800 rounded-full p-4 shadow-lg dark:shadow-gray-900/25 animate-pulse border border-gray-200 dark:border-gray-700">
+                  <div className="w-8 h-8 bg-[#fec806] dark:bg-yellow-400 rounded-full flex items-center justify-center">
+                    <span className="text-black dark:text-gray-900 text-sm font-bold">$</span>
                   </div>
                 </div>
                 
-                <div className="absolute top-1/2 -right-12 bg-white rounded-full p-3 shadow-lg animate-bounce" style={{animationDelay: '0.5s'}}>
-                  <div className="w-6 h-6 bg-[#FF8C00] rounded-full"></div>
+                <div className="absolute top-1/2 -right-12 bg-white dark:bg-gray-800 rounded-full p-3 shadow-lg dark:shadow-gray-900/25 animate-bounce border border-gray-200 dark:border-gray-700" style={{animationDelay: '0.5s'}}>
+                  <div className="w-6 h-6 bg-[#FF8C00] dark:bg-orange-500 rounded-full"></div>
                 </div>
               </motion.div>
               
               {/* Stats below the cart */}
               <div className="mt-12 grid grid-cols-3 gap-8 text-center">
                 <motion.div 
-                  className="bg-white/80 backdrop-blur-sm rounded-lg p-4 shadow-lg"
+                  className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg p-4 shadow-lg dark:shadow-gray-900/25 border border-gray-200 dark:border-gray-700 transition-colors duration-300"
                   variants={statCardVariants}
                   initial="hidden"
                   animate="visible"
                   custom={0}
                 >
-                  <div className="text-3xl font-bold text-[#ec2538]">50K+</div>
-                  <div className="text-sm text-gray-600">Clientes Felices</div>
+                  <div className="text-3xl font-bold text-[#ec2538] dark:text-red-500">50K+</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">Clientes Felices</div>
                 </motion.div>
                 <motion.div 
-                  className="bg-white/80 backdrop-blur-sm rounded-lg p-4 shadow-lg"
+                  className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg p-4 shadow-lg dark:shadow-gray-900/25 border border-gray-200 dark:border-gray-700 transition-colors duration-300"
                   variants={statCardVariants}
                   initial="hidden"
                   animate="visible"
                   custom={1}
                 >
-                  <div className="text-3xl font-bold text-[#FF8C00]">10K+</div>
-                  <div className="text-sm text-gray-600">Productos</div>
+                  <div className="text-3xl font-bold text-[#FF8C00] dark:text-orange-500">10K+</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">Productos</div>
                 </motion.div>
                 <motion.div 
-                  className="bg-white/80 backdrop-blur-sm rounded-lg p-4 shadow-lg"
+                  className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg p-4 shadow-lg dark:shadow-gray-900/25 border border-gray-200 dark:border-gray-700 transition-colors duration-300"
                   variants={statCardVariants}
                   initial="hidden"
                   animate="visible"
                   custom={2}
                 >
-                  <div className="text-3xl font-bold text-[#fec806]">24/7</div>
-                  <div className="text-sm text-gray-600">Soporte</div>
+                  <div className="text-3xl font-bold text-[#fec806] dark:text-yellow-400">24/7</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-300">Soporte</div>
                 </motion.div>
               </div>
             </div>

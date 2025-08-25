@@ -27,10 +27,13 @@ export function NavSecondary({
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild>
+              <SidebarMenuButton 
+                asChild
+                className="text-foreground dark:text-gray-300 hover:text-primary dark:hover:text-white hover:bg-accent dark:hover:bg-gray-800 transition-colors duration-300"
+              >
                 <a href={item.url}>
-                  <item.icon />
-                  <span>{item.title}</span>
+                  <item.icon className="text-foreground dark:text-gray-300" />
+                  <span className="text-foreground dark:text-gray-300">{item.title}</span>
                 </a>
               </SidebarMenuButton>
             </SidebarMenuItem>

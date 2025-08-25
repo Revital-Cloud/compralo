@@ -4,8 +4,8 @@ import { useState } from "react"
 import { useParams } from "next/navigation"
 import { ProductGallery, ProductInfo, RelatedProducts } from "@/components/product"
 import CartToast from "@/components/ui/cart-toast"
-import { Loading } from "@/components/ui"
 import { useProductByIds } from "@/hooks/use-products"
+import Loading from "@/components/ui/loading"
 
 const ProductPage = () => {
   const params = useParams()
@@ -88,7 +88,20 @@ const ProductPage = () => {
   }
 
   // Preparar datos para los componentes
-  const productImages = product.img_producto ? [product.img_producto] : []
+  
+  // Verificar que img_producto tenga la estructura correcta
+  const hasValidImages = product.img_producto && 
+    typeof product.img_producto === 'object' && 
+    'main' in product.img_producto
+  
+  const productImages = hasValidImages ? [
+    (product.img_producto as any).main,
+    ...((product.img_producto as any).gallery || [])
+  ].filter(Boolean) : []
+  
+  // Preparar miniaturas para la galería
+  const productThumbnails = hasValidImages ? ((product.img_producto as any).thumbnails || []) : []
+  
   const productPrice = parseFloat(product.val_precio.toString()) || 0
   
   // Extraer colores y tallas de las especificaciones si existen
@@ -113,7 +126,7 @@ const ProductPage = () => {
           {/* Product Information */}
           <div className="w-full mt-4 lg:mt-0">
             <ProductInfo
-              product={product}
+              product={product as any}
               name={product.nom_producto}
               price={productPrice}
               originalPrice={productPrice} // No hay precio original en el backend

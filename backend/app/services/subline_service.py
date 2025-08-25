@@ -122,5 +122,56 @@ def deactivate_subline(db: Session, id_categoria: Decimal, id_linea: Decimal, id
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al desactivar sublinea: {str(e)}")
+
+def get_sublines_by_line(db: Session, id_linea: Decimal):
+    """
+    Obtiene todas las sublíneas de una línea específica.
+    """
+    try:
+        query = text("""
+        SELECT
+            id_categoria,
+            id_linea,
+            id_sublinea,
+            nom_sublinea,
+            ind_activo,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
+        FROM tab_sublineas
+        WHERE id_linea = :id_linea AND ind_activo = true
+        """)
+        result = db.execute(query, {"id_linea": id_linea})
+        return result.mappings().all()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener sublíneas por línea: {str(e)}")
+
+def get_subline(db: Session, id_sublinea: Decimal):
+    """
+    Obtiene una sublínea específica por su ID.
+    """
+    try:
+        query = text("""
+        SELECT
+            id_categoria,
+            id_linea,
+            id_sublinea,
+            nom_sublinea,
+            ind_activo,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
+        FROM tab_sublineas
+        WHERE id_sublinea = :id_sublinea AND ind_activo = true
+        """)
+        result = db.execute(query, {"id_sublinea": id_sublinea})
+        subline = result.mappings().first()
+        return subline
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener la sublínea: {str(e)}")
         
         

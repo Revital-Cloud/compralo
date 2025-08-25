@@ -17,8 +17,8 @@ export default function AdminLayout({
   // Esto evita que se muestre contenido del admin a usuarios no autorizados
   if (isLoading || !hasRequiredRole) {
     return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex h-screen w-full items-center justify-center bg-background dark:bg-gray-950 transition-colors duration-300">
+        <Loader2 className="h-8 w-8 animate-spin text-foreground dark:text-gray-300" />
       </div>
     );
   }
@@ -36,7 +36,7 @@ export default function AdminLayout({
       <AppSidebar variant="inset" />
       <SidebarInset>
         <AdminHeader />
-        <div className="flex flex-1 flex-col">
+        <div className="flex flex-1 flex-col bg-background dark:bg-gray-950 transition-colors duration-300">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
               <div className="px-4 lg:px-6">
