@@ -31,9 +31,41 @@ export function useCookies() {
             preferences: JSON.parse(preferences),
             timestamp: Date.now()
           })
+        } else {
+          // Si no hay cookies configuradas, establecer cookies necesarias por defecto
+          // para evitar problemas de acceso a funcionalidades básicas
+          const defaultPreferences: CookiePreferences = {
+            necessary: true,
+            functional: false,
+            analytics: false,
+            marketing: false
+          }
+          
+          setCookieConsent({
+            accepted: true,
+            preferences: defaultPreferences,
+            timestamp: Date.now()
+          })
+          
+          // Guardar en localStorage
+          localStorage.setItem('cookies-accepted', 'true')
+          localStorage.setItem('cookies-preferences', JSON.stringify(defaultPreferences))
         }
       } catch (error) {
         console.error('Error loading cookie preferences:', error)
+        // En caso de error, establecer cookies necesarias por defecto
+        const defaultPreferences: CookiePreferences = {
+          necessary: true,
+          functional: false,
+          analytics: false,
+          marketing: false
+        }
+        
+        setCookieConsent({
+          accepted: true,
+          preferences: defaultPreferences,
+          timestamp: Date.now()
+        })
       } finally {
         setIsHydrated(true)
       }
@@ -103,6 +135,11 @@ export function useCookies() {
   }
 
   const canUseCookie = (type: keyof CookiePreferences): boolean => {
+    // Si no está hidratado, permitir cookies necesarias por defecto
+    if (!isHydrated && type === 'necessary') {
+      return true
+    }
+    
     if (!cookieConsent?.accepted) return false
     return cookieConsent.preferences[type]
   }
