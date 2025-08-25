@@ -4,8 +4,8 @@ import { useState } from "react"
 import { useParams } from "next/navigation"
 import { ProductGallery, ProductInfo, RelatedProducts } from "@/components/product"
 import CartToast from "@/components/ui/cart-toast"
-import { Loading } from "@/components/ui"
 import { useProductByIds } from "@/hooks/use-products"
+import Loading from "@/components/ui/loading"
 
 const ProductPage = () => {
   const params = useParams()

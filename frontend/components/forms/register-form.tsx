@@ -15,13 +15,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
-import { ArrowLeft, Eye, EyeOff, Loader2, CalendarIcon } from "lucide-react";
+import { ArrowLeft, Loader2, CalendarIcon } from 'lucide-react';
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PasswordStrength } from "@/components/ui/password-strength";
 import Link from "next/link";
 import {
   Card,
@@ -33,13 +34,13 @@ import {
 import { useRouter } from "next/navigation";
 import { registerSchema } from "@/schemas/auth.schema";
 import type { RegisterRequest } from "@/types";
+import { toLocalISOString, parseLocalDate, formatDateSpanish, fixCalendarDateSelection, debugDate } from "@/utils/date-helpers";
 
 type FormValues = z.infer<typeof registerSchema>;
 
 export function RegisterForm() {
   const { register: registerUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const form = useForm<FormValues>({
@@ -176,28 +177,15 @@ export function RegisterForm() {
                   <FormItem>
                     <FormLabel>Contraseña</FormLabel>
                     <FormControl>
-                      <div className="relative">
-                        <Input
-                          type={showPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          {...field}
-                          disabled={isLoading}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
-                          disabled={isLoading}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
+                      <PasswordStrength
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="••••••••"
+                        disabled={isLoading}
+                        showToggle={true}
+                        showStrength={true}
+                        showCriteria={true}
+                      />
                     </FormControl>
                     <FormMessage className="min-h-[1.25rem]" />
                   </FormItem>
@@ -267,7 +255,7 @@ export function RegisterForm() {
                             disabled={isLoading}
                           >
                             {field.value ? (
-                              format(new Date(field.value), "PPP", { locale: es })
+                              formatDateSpanish(field.value)
                             ) : (
                               <span>Selecciona una fecha</span>
                             )}
@@ -278,11 +266,22 @@ export function RegisterForm() {
                       <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
                           mode="single"
-                          selected={field.value ? new Date(field.value) : undefined}
+                          selected={field.value ? parseLocalDate(field.value) : undefined}
                           onSelect={(date) => {
-                            field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
+                            if (date) {
+                              console.log('🔍 Fecha seleccionada del calendario:', date);
+                              debugDate(date, 'Fecha del calendario');
+                              
+                              // Usar la función específica para corregir problemas de zona horaria
+                              const fixedDateString = fixCalendarDateSelection(date);
+                              console.log('🔍 Fecha corregida:', fixedDateString);
+                              
+                              field.onChange(fixedDateString);
+                            } else {
+                              field.onChange('');
+                            }
                           }}
-                          defaultMonth={field.value ? new Date(field.value) : undefined}
+                          defaultMonth={field.value ? parseLocalDate(field.value) : undefined}
                           disabled={(date) =>
                             date > new Date()
                           }

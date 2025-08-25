@@ -39,7 +39,7 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const [showPassword, setShowPassword] = useState(false);
-
+  
   // Hook de autenticación
   const { login, isLoggingIn } = useAuth();
 

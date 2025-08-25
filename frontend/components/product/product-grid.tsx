@@ -9,6 +9,7 @@ import Image from "next/image"
 
 import type { Product } from '@/types'
 import { getProductImageUrl } from "@/utils/image-helpers"
+import { formatPrice } from "@/utils/format-price"
 
 interface ProductGridProps {
   products: Product[]
@@ -123,7 +124,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
             
             <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
               <span className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">
-                ${typeof product.val_precio === 'string' ? parseFloat(product.val_precio).toFixed(2) : product.val_precio}
+                {formatPrice(product.val_precio)}
               </span>
             </div>
 
