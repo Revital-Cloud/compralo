@@ -20,7 +20,7 @@ const AboutSection: React.FC<AboutSectionProps> = ({
   description = "Somos la tienda online más grande del universo. Te tenemos cubierto con nuestras colecciones exclusivas y las últimas tendencias en todos los productos que necesitas.",
   contact = {
     phone: "+1 (555) 123-4567",
-    email: "contacto@synkro.com",
+    email: "contacto@compralo.com",
     address: "123 Calle Principal, Ciudad"
   }
 }) => {

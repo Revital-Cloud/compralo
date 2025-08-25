@@ -2,23 +2,25 @@
 
 import { motion } from "framer-motion"
 import { ShoppingCart, Star, Heart, Eye } from "lucide-react"
-import { useFeaturedProducts } from "@/hooks/use-products"
+import { useProducts } from "@/hooks/use-products"
 import { formatPrice } from "@/utils/format-price"
 import { getProductImageUrl } from "@/utils/image-helpers"
 import { getProductDescription } from "@/utils/product-helpers"
 import Image from "next/image"
+import { Product } from "@/types/product"
+import { useMemo } from "react"
 
 const FeaturedProducts = () => {
   const { 
-    data: products = [], 
+    data: products, 
     isLoading, 
     error, 
     refetch,
     isError 
-  } = useFeaturedProducts()
+  } = useProducts()
 
-  // Animation variants
-  const containerVariants = {
+  // Animation variants - memoized to prevent re-creation on each render
+  const containerVariants = useMemo(() => ({
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
@@ -27,9 +29,9 @@ const FeaturedProducts = () => {
         delayChildren: 0.2
       }
     }
-  }
+  }), [])
 
-  const cardVariants = {
+  const cardVariants = useMemo(() => ({
     hidden: { 
       opacity: 0, 
       y: 50,
@@ -44,9 +46,9 @@ const FeaturedProducts = () => {
         ease: "easeOut" as const
       }
     }
-  }
+  }), [])
 
-  const imageVariants = {
+  const imageVariants = useMemo(() => ({
     rest: { 
       scale: 1,
       transition: { duration: 0.3 }
@@ -55,9 +57,9 @@ const FeaturedProducts = () => {
       scale: 1.1,
       transition: { duration: 0.3 }
     }
-  }
+  }), [])
 
-  const buttonVariants = {
+  const buttonVariants = useMemo(() => ({
     rest: { 
       scale: 1,
       y: 0
@@ -67,7 +69,7 @@ const FeaturedProducts = () => {
       y: -2,
       transition: { duration: 0.2 }
     }
-  }
+  }), [])
 
   // Loading skeleton
   if (isLoading) {
@@ -224,7 +226,7 @@ const FeaturedProducts = () => {
           whileInView="visible"
           viewport={{ once: true }}
         >
-          {products.map((product) => (
+          {products?.items?.map((product: Product) => (
             <motion.div
               key={product.id_producto}
               variants={cardVariants}

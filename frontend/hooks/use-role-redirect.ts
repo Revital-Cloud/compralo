@@ -49,29 +49,28 @@ export function useRoleRedirect(options: RoleRedirectOptions = {}) {
 
     const userRole = Number(user?.id_rol);
     
-    // Para el shop layout, redirigir admins automáticamente
-    if (config.requiredRole === undefined && isAuthenticated && userRole === 1) {
-      router.replace('/admin');
-      return;
-    }
-
-    // Verificar autenticación solo si se requiere rol específico
-    if (config.requiredRole && !isAuthenticated) {
-      if (config.showMessages) {
-        toast.error(config.loginMessage);
+    // Solo hacer redirecciones automáticas si se especifica un rol requerido
+    if (config.requiredRole) {
+      // Verificar autenticación
+      if (!isAuthenticated) {
+        if (config.showMessages) {
+          toast.error(config.loginMessage);
+        }
+        router.replace(config.loginRedirect);
+        return;
       }
-      router.replace(config.loginRedirect);
-      return;
-    }
 
-    // Verificar rol si está especificado
-    if (config.requiredRole && isAuthenticated && userRole !== config.requiredRole) {
-      if (config.showMessages) {
-        toast.error(config.unauthorizedMessage);
+      // Verificar rol
+      if (userRole !== config.requiredRole) {
+        if (config.showMessages) {
+          toast.error(config.unauthorizedMessage);
+        }
+        router.replace(config.unauthorizedRedirect);
+        return;
       }
-      router.replace(config.unauthorizedRedirect);
-      return;
     }
+    // Si no hay rol requerido, no hacer redirecciones automáticas
+    // El componente padre debe manejar la lógica de redirección
   }, [isLoadingUser, isAuthenticated, user, router, config]);
 
   return {

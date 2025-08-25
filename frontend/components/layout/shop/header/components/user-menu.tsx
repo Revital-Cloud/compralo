@@ -163,7 +163,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ className = "" }) => {
               {/* Cerrar sesión */}
               <button
                 onClick={handleLogout}
-                className="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300 w-full text-left"
+                className="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors duration-300 w-full text-left cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Cerrar Sesión</span>

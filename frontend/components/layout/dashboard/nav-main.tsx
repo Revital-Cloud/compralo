@@ -29,11 +29,11 @@ export function NavMain({
               <SidebarMenuButton 
                 tooltip={item.title} 
                 asChild
-                className="text-foreground dark:text-gray-300 hover:text-primary dark:hover:text-white hover:bg-accent dark:hover:bg-gray-800 transition-colors duration-300"
+                className="text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
               >
                 <Link href={item.url}>
-                  {item.icon && <item.icon className="text-foreground dark:text-gray-300" />}
-                  <span className="text-foreground dark:text-gray-300">{item.title}</span>
+                  {item.icon && <item.icon className="text-gray-700 dark:text-gray-300" />}
+                  <span className="text-gray-700 dark:text-gray-300">{item.title}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

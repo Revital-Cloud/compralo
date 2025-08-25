@@ -13,6 +13,8 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 // =============================================================================
 
 let apiInstance: AxiosInstance | null = null;
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 
 /**
  * Crear y configurar la instancia de Axios
@@ -51,6 +53,11 @@ function setupInterceptors(instance: AxiosInstance): void {
   // Interceptor de REQUEST: Agregar token de autenticación automáticamente
   instance.interceptors.request.use(
     (config) => {
+      // Si ya marcamos esta instancia como no autenticada, no hacer requests
+      if (instance.defaults.headers.common['Authorization'] === '') {
+        return Promise.reject(new Error('Not authenticated'));
+      }
+      
       // Leer el token en cada petición para asegurar que siempre esté actualizado
       const token = getStoredToken();
       if (token) {
@@ -76,6 +83,17 @@ function setupInterceptors(instance: AxiosInstance): void {
         originalRequest._retry = true;
 
         try {
+          // Si ya estamos refrescando, agregar este request a la cola
+          if (isRefreshing) {
+            return new Promise((resolve, reject) => {
+              failedQueue.push({ resolve, reject });
+            }).then(() => {
+              return instance(originalRequest);
+            });
+          }
+
+          isRefreshing = true;
+          
           // Intentar renovar el token usando el servicio de auth
           const { refreshToken } = await import('@/services/auth.service');
           const tokens = await refreshToken();
@@ -85,24 +103,35 @@ function setupInterceptors(instance: AxiosInstance): void {
           // Actualizar el header del request original con el nuevo token
           originalRequest.headers.Authorization = `Bearer ${tokens.access_token}`;
           
+          // Procesar la cola de requests fallidos
+          failedQueue.forEach(({ resolve }) => {
+            resolve();
+          });
+          failedQueue = [];
+          
           // Reintentar la petición original
           return instance(originalRequest);
           
         } catch (refreshError) {
           console.error('Refresh token failed:', refreshError);
           
-          // Si falla el refresh, limpiar tokens
+          // Si falla el refresh, limpiar tokens y marcar como no autenticado
           clearTokens();
+          
+          // Marcar esta instancia como no autenticada para evitar más intentos
+          instance.defaults.headers.common['Authorization'] = '';
           
           // Solo redirigir si estamos en el browser y no es una petición de verificación
           if (typeof window !== 'undefined' && !originalRequest.url?.includes('/verify-token')) {
-            // Dar tiempo para que otros procesos se den cuenta del cambio de estado
-            setTimeout(() => {
+            // Evitar múltiples redirecciones
+            if (!window.location.pathname.includes('/login')) {
               window.location.href = '/login?session=expired';
-            }, 100);
+            }
           }
           
           return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
         }
       }
 

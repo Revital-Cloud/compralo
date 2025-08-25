@@ -16,7 +16,7 @@ import {
   User 
 } from "lucide-react";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ProfileHeader,
   ProfileTab,
@@ -28,9 +28,13 @@ import {
 } from "@/components/layout/shop/profile";
 
 export default function ProfilePage() {
-  const { user, isAuthenticated, updateProfile, isLoadingUser } = useAuth();
+  const { user, isAuthenticated, updateProfile, isLoadingUser, isHydrated } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
+
+  // Obtener la pestaña activa de la URL o usar 'profile' por defecto
+  const activeTab = searchParams.get('tab') || 'profile';
 
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
@@ -45,11 +49,25 @@ export default function ProfilePage() {
     },
   });
 
+  // Función para cambiar la pestaña y actualizar la URL
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams);
+    params.set('tab', value);
+    router.push(`/profile?${params.toString()}`);
+  };
+
   useEffect(() => {
-    if (isLoadingUser) return;
+    // Esperar a que se complete la hidratación
+    if (!isHydrated) return;
+    
+    // Si no está autenticado después de la hidratación, redirigir
     if (!isAuthenticated) {
       router.push("/login");
-    } else if (user) {
+      return;
+    }
+    
+    // Si está autenticado y hay usuario, cargar datos en el formulario
+    if (user) {
       form.reset({
         nom_usuario: user.nom_usuario || "",
         ape_usuario: user.ape_usuario || "",
@@ -60,7 +78,7 @@ export default function ProfilePage() {
         password_usuario: "",
       });
     }
-  }, [isAuthenticated, isLoadingUser, user, router, form]);
+  }, [isAuthenticated, isLoadingUser, user, router, form, isHydrated]);
 
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
     const updatedValues = Object.fromEntries(
@@ -94,8 +112,45 @@ export default function ProfilePage() {
     }
   };
 
-  if (isLoadingUser || !isAuthenticated || !user) {
-    return <div className="min-h-screen bg-background flex items-center justify-center">Cargando...</div>;
+  // Mostrar loading mientras se hidrata o carga el usuario
+  if (!isHydrated || isLoadingUser) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando perfil...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si no está autenticado después de la hidratación, mostrar mensaje
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Redirigiendo al login...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si no hay usuario, mostrar error
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-destructive">Error al cargar el perfil del usuario</p>
+          
+          <button 
+            onClick={() => router.push('/login')}
+            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+          >
+            Volver al login
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -109,7 +164,7 @@ export default function ProfilePage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="profile" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="profile" className="flex items-center space-x-2">
               <User className="w-4 h-4" />

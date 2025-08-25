@@ -23,6 +23,7 @@ import type {
   UserUpdate,
   RegisterRequest,
 } from '@/types';
+import { useEffect } from 'react';
 
 // Keys para las queries (para cache management)
 export const AUTH_KEYS = {
@@ -46,9 +47,12 @@ export function useAuth() {
   } = useQuery({
     queryKey: AUTH_KEYS.currentUser,
     queryFn: authService.getCurrentUser,
-    enabled: isAuthenticated() && canUseCookie('necessary') && isHydrated, // Solo ejecutar si hay token, cookies permitidas Y está hidratado
+    enabled: isAuthenticated() && isHydrated, // Simplificado: solo verificar token y hidratación
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   // Mutación para login
@@ -67,17 +71,32 @@ export function useAuth() {
       // Esto es necesario porque el login solo devuelve tokens, no datos del usuario
       const refreshedUser = await queryClient.fetchQuery<User>({ queryKey: AUTH_KEYS.currentUser });
       
-      // Redirección basada en rol del usuario
+      // Redirección simplificada después del login
       if (typeof window !== 'undefined') {
         // Convertir id_rol a number para asegurar comparación correcta
         const userRole = Number(refreshedUser?.id_rol);
         
-        // Lógica de redirección:
-        // - Rol 1 (Admin): Redirigir al dashboard de administración (/admin)
-        // - Rol 2 (Cliente): Redirigir al perfil del usuario (/profile)
-        const redirectUrl = userRole === 1 ? '/admin' : '/profile';
+        // Obtener la URL actual y los parámetros
+        const currentPath = window.location.pathname;
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectTo = urlParams.get('redirect');
         
-        window.location.href = redirectUrl;
+        // Solo hacer redirección desde páginas de autenticación
+        if (currentPath === '/login' || currentPath === '/register') {
+          let targetUrl = '/'; // Por defecto, ir a la página principal
+          
+          if (redirectTo && redirectTo.startsWith('/')) {
+            // Si hay un parámetro redirect válido, usarlo
+            targetUrl = redirectTo;
+          } else if (userRole === 1) {
+            // Si es admin, ir al panel de administración
+            targetUrl = '/admin';
+          }
+          
+          window.location.href = targetUrl;
+        }
+        // En otros casos, no redirigir automáticamente
+        // Los layouts se encargarán de la redirección según el contexto
       }
     },
     onError: (error: any) => {
@@ -160,9 +179,12 @@ export function useAuth() {
   // Función helper para verificar si se pueden usar cookies
   const canUseCookies = () => canUseCookie('necessary');
 
+  // Lógica simplificada de autenticación
+  const isUserAuthenticated = isAuthenticated() && !!user && isHydrated;
+
   return {
     user,
-    isAuthenticated: isAuthenticated() && !!user && canUseCookie('necessary') && isHydrated,
+    isAuthenticated: isUserAuthenticated,
     isLoadingUser,
     isLoggingIn,
     isLoggingOut,
