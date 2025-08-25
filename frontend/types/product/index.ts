@@ -26,7 +26,7 @@ export interface ProductCreate extends ProductBase {}
 export interface ProductUpdate {
   nom_producto?: string;
   spcf_producto?: Record<string, any>;
-  img_producto?: string;
+  img_producto?: ProductImages;
   val_precio?: number;
   id_proveedor?: number;
   id_marca?: number;

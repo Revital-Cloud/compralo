@@ -14,7 +14,6 @@ import {
 import { toast } from 'sonner';
 import productService from '@/services/product.service';
 import type {
-  Product,
   ProductCreate,
   ProductUpdate,
   ProductFilters,
@@ -25,6 +24,7 @@ import type {
   Provider,
   StockUpdate,
 } from '@/types';
+import type { Product } from '@/types/product';
 
 // Keys para las queries
 export const PRODUCT_KEYS = {

@@ -2,7 +2,8 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Package } from 'lucide-react';
-import { ProductImageGallery } from '@/components/product/ProductImageGallery';
+import ProductGallery from '../product/product-gallery';
+import { formatPrice } from '@/utils/format-price';
 
 interface ProductCardProps {
   product: {
@@ -29,10 +30,9 @@ export function ProductCard({ product, onClick, className = '' }: ProductCardPro
       onClick={onClick}
     >
       {product.img_producto ? (
-        <ProductImageGallery
-          images={product.img_producto}
+        <ProductGallery
+          images={[product.img_producto.main, ...(product.img_producto.gallery || [])]}
           productName={product.nom_producto}
-          className="w-full"
         />
       ) : (
         <div className="aspect-square bg-gray-200 flex items-center justify-center">
@@ -45,7 +45,7 @@ export function ProductCard({ product, onClick, className = '' }: ProductCardPro
           {product.nom_producto}
         </h3>
         <p className="text-lg font-bold text-blue-600 mb-2">
-          ${product.val_precio?.toLocaleString() || '0'}
+          {formatPrice(product.val_precio, 'COP')}
         </p>
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-600">

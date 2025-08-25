@@ -162,9 +162,29 @@ const EcommerceHeroCarousel: React.FC = () => {
               animate="visible"
             >
               Descubre las{" "}
-              <span className="bg-gradient-to-r from-[#ec2538] to-[#FF8C00] bg-clip-text text-transparent">
-                ofertas
-              </span>
+              <RotatingText
+                 texts={[
+                   "mejores ofertas",
+                   "ofertas únicas",
+                   "ofertas increíbles",
+                   "ofertas especiales",
+                   "ofertas premium"
+                 ]}
+                 className="bg-gradient-to-r from-[#FF8C00] to-[#fec806] bg-clip-text text-secondary"
+                 rotationInterval={3000}
+                 staggerDuration={0.05}
+                 staggerFrom="center"
+                 transition={{
+                   type: "spring",
+                   damping: 20,
+                   stiffness: 100
+                 }}
+                 initial={{ y: 50, opacity: 0 }}
+                 animate={{ y: 0, opacity: 1 }}
+                 exit={{ y: -50, opacity: 0 }}
+                 auto={true}
+                 loop={true}
+               />
             </motion.h1>
             
             {/* Subtitle */}

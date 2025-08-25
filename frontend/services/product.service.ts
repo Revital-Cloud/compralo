@@ -7,7 +7,6 @@
 
 import { get, post, put, del } from '@/utils/apiWrapper';
 import type {
-  Product,
   ProductCreate,
   ProductUpdate,
   ProductFilters,
@@ -22,6 +21,7 @@ import type {
   StockMovement,
   ApiResponse,
 } from '@/types';
+import type { Product } from '@/types/product';
 
 // =============================================================================
 // FUNCIONES DE PRODUCTOS
