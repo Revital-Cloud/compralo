@@ -45,105 +45,105 @@
 
 :root {
   --radius: 0.625rem;
-  /* Colores principales de Brillo Rosa */
-  --background: oklch(0.99 0 0);
-  --foreground: oklch(0.2 0 0);
-  --card: oklch(0.99 0 0);
-  --card-foreground: oklch(0.2 0 0);
-  --popover: oklch(0.99 0 0);
-  --popover-foreground: oklch(0.2 0 0);
+  /* Colores principales de Compralo - Valores hexadecimales exactos */
+  --background: #F5F5F5;
+  --foreground: #000000;
+  --card: #FFFFFF;
+  --card-foreground: #000000;
+  --popover: #FFFFFF;
+  --popover-foreground: #000000;
   
-  /* Rosa brillante como color primario */
-  --primary: oklch(0.75 0.15 350);
-  --primary-foreground: oklch(0.99 0 0);
+  /* Rojo como color primario */
+  --primary: #FF0000;
+  --primary-foreground: #FFFFFF;
   
-  /* Rosa suave como color secundario */
-  --secondary: oklch(0.95 0.05 350);
-  --secondary-foreground: oklch(0.2 0 0);
+  /* Naranja como color secundario */
+  --secondary: #FF7A00;
+  --secondary-foreground: #FFFFFF;
   
-  /* Rosa muy suave para elementos muteados */
-  --muted: oklch(0.97 0.02 350);
-  --muted-foreground: oklch(0.5 0 0);
+  /* Amarillo para acentos */
+  --accent: #FFD600;
+  --accent-foreground: #000000;
   
-  /* Rosa brillante para acentos */
-  --accent: oklch(0.85 0.12 350);
-  --accent-foreground: oklch(0.99 0 0);
-  
-  /* Rojo suave para elementos destructivos */
-  --destructive: oklch(0.7 0.2 25);
+  /* Rojo para elementos destructivos */
+  --destructive: #FF0000;
   
   /* Bordes y elementos de interfaz */
-  --border: oklch(0.92 0.02 350);
-  --input: oklch(0.92 0.02 350);
-  --ring: oklch(0.75 0.15 350);
+  --border: #E5E5E5;
+  --input: #E5E5E5;
+  --ring: #FF0000;
   
   /* Colores para gráficos */
-  --chart-1: oklch(0.75 0.15 350);
-  --chart-2: oklch(0.85 0.12 350);
-  --chart-3: oklch(0.65 0.18 350);
-  --chart-4: oklch(0.95 0.05 350);
-  --chart-5: oklch(0.55 0.2 350);
+  --chart-1: #FF0000;
+  --chart-2: #FF7A00;
+  --chart-3: #FFD600;
+  --chart-4: #F5F5F5;
+  --chart-5: #000000;
   
   /* Colores para la barra lateral */
-  --sidebar: oklch(0.99 0 0);
-  --sidebar-foreground: oklch(0.2 0 0);
-  --sidebar-primary: oklch(0.75 0.15 350);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.95 0.05 350);
-  --sidebar-accent-foreground: oklch(0.2 0 0);
-  --sidebar-border: oklch(0.92 0.02 350);
-  --sidebar-ring: oklch(0.75 0.15 350);
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #FF0000;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FF7A00;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #E5E5E5;
+  --sidebar-ring: #FF0000;
+  
+  /* Colores muteados */
+  --muted: #F5F5F5;
+  --muted-foreground: #666666;
 }
 
 .dark {
-  /* Colores oscuros de Brillo Rosa */
-  --background: oklch(0.15 0 0);
-  --foreground: oklch(0.95 0 0);
-  --card: oklch(0.2 0 0);
-  --card-foreground: oklch(0.95 0 0);
-  --popover: oklch(0.2 0 0);
-  --popover-foreground: oklch(0.95 0 0);
+  /* Colores oscuros de Compralo */
+  --background: #1A1A1A;
+  --foreground: #FFFFFF;
+  --card: #2A2A2A;
+  --card-foreground: #FFFFFF;
+  --popover: #2A2A2A;
+  --popover-foreground: #FFFFFF;
   
-  /* Rosa brillante como color primario en modo oscuro */
-  --primary: oklch(0.8 0.15 350);
-  --primary-foreground: oklch(0.15 0 0);
+  /* Rojo como color primario en modo oscuro */
+  --primary: #FF0000;
+  --primary-foreground: #FFFFFF;
   
-  /* Rosa suave como color secundario en modo oscuro */
-  --secondary: oklch(0.3 0.05 350);
-  --secondary-foreground: oklch(0.95 0 0);
+  /* Naranja como color secundario en modo oscuro */
+  --secondary: #FF7A00;
+  --secondary-foreground: #FFFFFF;
   
-  /* Rosa oscuro para elementos muteados */
-  --muted: oklch(0.25 0.02 350);
-  --muted-foreground: oklch(0.7 0 0);
+  /* Amarillo para acentos en modo oscuro */
+  --accent: #FFD600;
+  --accent-foreground: #000000;
   
-  /* Rosa brillante para acentos en modo oscuro */
-  --accent: oklch(0.3 0.05 350);
-  --accent-foreground: oklch(0.95 0 0);
-  
-  /* Rojo suave para elementos destructivos en modo oscuro */
-  --destructive: oklch(0.8 0.15 25);
+  /* Rojo para elementos destructivos en modo oscuro */
+  --destructive: #FF0000;
   
   /* Bordes y elementos de interfaz en modo oscuro */
-  --border: oklch(0.3 0.02 350);
-  --input: oklch(0.3 0.02 350);
-  --ring: oklch(0.6 0.15 350);
+  --border: #404040;
+  --input: #404040;
+  --ring: #FF0000;
   
   /* Colores para gráficos en modo oscuro */
-  --chart-1: oklch(0.8 0.15 350);
-  --chart-2: oklch(0.7 0.12 350);
-  --chart-3: oklch(0.6 0.18 350);
-  --chart-4: oklch(0.5 0.05 350);
-  --chart-5: oklch(0.9 0.2 350);
+  --chart-1: #FF0000;
+  --chart-2: #FF7A00;
+  --chart-3: #FFD600;
+  --chart-4: #F5F5F5;
+  --chart-5: #FFFFFF;
   
   /* Colores para la barra lateral en modo oscuro */
-  --sidebar: oklch(0.2 0 0);
-  --sidebar-foreground: oklch(0.95 0 0);
-  --sidebar-primary: oklch(0.8 0.15 350);
-  --sidebar-primary-foreground: oklch(0.15 0 0);
-  --sidebar-accent: oklch(0.3 0.05 350);
-  --sidebar-accent-foreground: oklch(0.95 0 0);
-  --sidebar-border: oklch(0.3 0.02 350);
-  --sidebar-ring: oklch(0.6 0.15 350);
+  --sidebar: #2A2A2A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #FF0000;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FF7A00;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #404040;
+  --sidebar-ring: #FF0000;
+  
+  /* Colores muteados en modo oscuro */
+  --muted: #2A2A2A;
+  --muted-foreground: #CCCCCC;
 }
 
 @layer base {

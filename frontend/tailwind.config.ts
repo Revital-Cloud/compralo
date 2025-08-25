@@ -11,18 +11,42 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Colores principales de Brillo Rosa
-        'brillo-rosa': {
-          50: 'oklch(0.97 0.02 350)',  // Rosa muy suave
-          100: 'oklch(0.95 0.05 350)', // Rosa suave
-          200: 'oklch(0.92 0.08 350)', // Rosa claro
-          300: 'oklch(0.85 0.12 350)', // Rosa medio
-          400: 'oklch(0.8 0.15 350)',  // Rosa vivo
-          500: 'oklch(0.75 0.15 350)', // Rosa principal
-          600: 'oklch(0.7 0.18 350)',  // Rosa oscuro
-          700: 'oklch(0.65 0.18 350)', // Rosa más oscuro
-          800: 'oklch(0.6 0.2 350)',   // Rosa profundo
-          900: 'oklch(0.55 0.2 350)',  // Rosa muy profundo
+        // Colores principales de Compralo - Valores hexadecimales exactos
+        'compralo': {
+          50: '#FFF5F5',
+          100: '#FFE5E5',
+          200: '#FFCCCC',
+          300: '#FF9999',
+          400: '#FF6666',
+          500: '#FF0000',
+          600: '#CC0000',
+          700: '#990000',
+          800: '#660000',
+          900: '#330000',
+        },
+        'compralo-orange': {
+          50: '#FFF7F0',
+          100: '#FFE8CC',
+          200: '#FFD199',
+          300: '#FFBA66',
+          400: '#FFA333',
+          500: '#FF7A00',
+          600: '#CC6200',
+          700: '#994900',
+          800: '#663100',
+          900: '#331800',
+        },
+        'compralo-yellow': {
+          50: '#FFFEF0',
+          100: '#FFFECC',
+          200: '#FFFD99',
+          300: '#FFFC66',
+          400: '#FFFB33',
+          500: '#FFD600',
+          600: '#CCAB00',
+          700: '#998000',
+          800: '#665600',
+          900: '#332B00',
         },
         border: "var(--border)",
         input: "var(--input)",

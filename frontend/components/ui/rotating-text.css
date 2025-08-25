@@ -1,0 +1,68 @@
+/* RotatingText Component Styles */
+.text-rotate {
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+}
+
+.text-rotate-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.text-rotate-lines {
+  display: block;
+}
+
+.text-rotate-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.text-rotate-element {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.text-rotate-space {
+  display: inline-block;
+  width: 0.25em;
+}
+
+/* Animation states */
+.text-rotate-element {
+  will-change: transform, opacity;
+}
+
+/* Custom animations for different effects */
+.text-rotate-fade .text-rotate-element {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.text-rotate-slide .text-rotate-element {
+  transition: transform 0.4s ease-out, opacity 0.3s ease-in-out;
+}
+
+.text-rotate-bounce .text-rotate-element {
+  transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease-in-out;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .text-rotate {
+    font-size: 0.9em;
+  }
+}
+
+@media (max-width: 480px) {
+  .text-rotate {
+    font-size: 0.8em;
+  }
+}

@@ -6,8 +6,11 @@ import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { Product } from "@/types"
+import { formatPrice } from "@/utils/format-price"
 
 interface ProductInfoProps {
+  product: Product
   name: string
   price: number
   originalPrice?: number
@@ -21,6 +24,7 @@ interface ProductInfoProps {
 }
 
 const ProductInfo: React.FC<ProductInfoProps> = ({
+  product,
   name,
   price,
   originalPrice,
@@ -69,12 +73,12 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       {/* Price */}
       <div className="flex items-baseline gap-3">
         <span className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-          ${price.toFixed(2)}
+          {formatPrice(price, 'COP')}
         </span>
         {isDiscounted && (
           <>
             <span className="text-lg text-gray-500 line-through">
-              ${originalPrice?.toFixed(2)}
+              {formatPrice(originalPrice, 'COP')}
             </span>
             <Badge variant="destructive">
               -{discountPercentage}%
@@ -100,10 +104,24 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
             ))}
           </div>
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            ({reviewCount} reseñas)
+            ({reviewCount} reviews)
           </span>
         </div>
       )}
+
+      {/* Stock Status */}
+      <div className="flex items-center gap-2">
+        <div className={cn(
+          "w-3 h-3 rounded-full",
+          product.num_stock > 0 ? "bg-green-500" : "bg-red-500"
+        )} />
+        <span className={cn(
+          "text-sm font-medium",
+          product.num_stock > 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+        )}>
+          {product.num_stock > 0 ? `${product.num_stock} en stock` : 'Sin stock'}
+        </span>
+      </div>
 
       {/* Colors */}
       {colors.length > 0 && (
@@ -214,12 +232,18 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
           ACERCA DEL PRODUCTO
         </h3>
         <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-          <p>• Cámara principal de 200MP con zoom óptico 100x</p>
-          <p>• Pantalla Dynamic AMOLED 2X de 6.8 pulgadas</p>
-          <p>• Procesador Snapdragon 8 Gen 3 para máximo rendimiento</p>
-          <p>• Batería de 5000mAh con carga rápida 45W</p>
-          <p>• S Pen integrado con funciones avanzadas</p>
-          <p>• Resistente al agua IP68</p>
+          {product.spcf_producto && typeof product.spcf_producto === 'object' ? (
+            <div className="space-y-2">
+              {Object.entries(product.spcf_producto).map(([key, value]) => (
+                <div key={key} className="flex justify-between">
+                  <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
+                  <span>{String(value)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p>{product.spcf_producto || 'Sin especificaciones disponibles'}</p>
+          )}
         </div>
       </div>
     </div>

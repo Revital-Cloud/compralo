@@ -16,9 +16,10 @@ import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import type { LoginRequest } from "@/types"
+import { useSearchParams } from "next/navigation"
 
 // Schema de validación con Zod
 const loginSchema = z.object({
@@ -39,9 +40,13 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const [showPassword, setShowPassword] = useState(false);
-
+  const searchParams = useSearchParams();
+  
   // Hook de autenticación
   const { login, isLoggingIn } = useAuth();
+  
+  // Detectar si hay un parámetro redirect en la URL
+  const redirectTo = searchParams.get('redirect');
 
   // Configurar React Hook Form
   const {
@@ -59,6 +64,7 @@ export function LoginForm({
   // Manejar envío del formulario
   const onSubmit = (data: LoginFormData) => {
     // Usar el hook de login que maneja toda la lógica
+    // El hook detectará automáticamente el parámetro redirect de la URL
     login(data as LoginRequest);
   };
 
@@ -77,6 +83,11 @@ export function LoginForm({
           <CardTitle className="text-xl">Bienvenido de nuevo</CardTitle>
           <CardDescription>
             Inicia sesión con tu cuenta para acceder a tu tienda
+            {redirectTo && (
+              <span className="block mt-2 text-sm text-blue-600 dark:text-blue-400">
+                Serás redirigido a {redirectTo} después del login
+              </span>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>

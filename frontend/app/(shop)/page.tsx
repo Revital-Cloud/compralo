@@ -1,19 +1,28 @@
 import EcommerceHeroCarousel from "@/components/layout/shop/hero/hero";
-import NewDropsSection from "@/components/layout/shop/new-drops/new-drops";
-import CategoriesSection from "@/components/layout/shop/categories/categories";
-import { shouldShowSection } from "@/lib/config";
+import FeaturedCategories from "@/components/layout/shop/featured-categories/featured-categories";
+import FeaturedProducts from "@/components/layout/shop/featured-products/featured-products";
+import TestimonialsSection from "@/components/layout/shop/testimonials/testimonials";
+import { CookieBanner } from "@/components/ui/cookie-banner";
+import { NoSSR } from "@/components/ui/no-ssr";
 
 export default function Home() {
   return (
-    <div className="relative">
-      {/* Hero Section - Always visible */}
+    <div className="relative">   
+      {/* Hero Section - Compralo Design */}
       <EcommerceHeroCarousel />
       
-      {/* New Drops Section - Configurable */}
-      {shouldShowSection('showNewDrops') && <NewDropsSection />}
+      {/* Featured Categories Section */}
+      <FeaturedCategories />
       
-      {/* Categories Section - Configurable */}
-      {shouldShowSection('showCategories') && <CategoriesSection />}
+      {/* Featured Products Section */}
+      <FeaturedProducts />
+      
+      {/* Testimonials Section */}
+      <TestimonialsSection />
+      
+      <NoSSR>
+        <CookieBanner />
+      </NoSSR>
     </div>
   );
 }

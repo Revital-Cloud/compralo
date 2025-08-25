@@ -31,7 +31,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-background dark:bg-gray-950 transition-colors duration-300">
       {/* Header Section */}
       <DashboardHeader
         timeRange={timeRange}

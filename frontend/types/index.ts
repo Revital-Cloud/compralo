@@ -16,6 +16,10 @@ export * from './product';
 
 // Re-export de tipos de datos (Excel/CSV)
 export * from './data';
+// Re-export de tipos jerárquicos (categorías, líneas, sublíneas)
+export type { Category } from './hierarchical';
+export type { Line } from './hierarchical';
+export type { Subline } from './hierarchical';
 
 // =============================================================================
 // TIPOS ADICIONALES PARA LA APLICACIÓN
@@ -165,9 +169,10 @@ export interface User extends UserBase {
 // =============================================================================
 
 export interface ProductBase {
+  id_producto: number;
   nom_producto: string;
   spcf_producto: Record<string, any>; // Equivalente a Dict[str, Any] de Python
-  img_producto?: string;
+  img_producto?: ProductImages;
   val_precio: number; // Convertimos Decimal a number para TS
   id_proveedor: number;
   id_marca: number;
@@ -177,12 +182,18 @@ export interface ProductBase {
   num_stock: number;
 }
 
+export interface ProductImages {
+  main: string;
+  gallery: string[];
+  thumbnails: string[];
+}
+
 export interface ProductCreate extends ProductBase {}
 
 export interface ProductUpdate {
   nom_producto?: string;
   spcf_producto?: Record<string, any>;
-  img_producto?: string;
+  img_producto?: ProductImages;
   val_precio?: number;
   id_proveedor?: number;
   id_marca?: number;

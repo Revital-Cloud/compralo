@@ -74,14 +74,6 @@ export default function ProfileTab({ user, form, isEditing, onSubmit }: ProfileT
                   )}
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="des_direccion">Dirección</Label>
-                  <Input 
-                    id="des_direccion" 
-                    {...form.register("des_direccion")}
-                    disabled={!isEditing} 
-                  />
-                </div>
-                <div className="grid gap-2">
                   <Label htmlFor="fec_nacimiento">Fecha de nacimiento</Label>
                   <Input 
                     id="fec_nacimiento" 

@@ -3,6 +3,8 @@
  * 
  * Este hook encapsula toda la lógica de autenticación usando React Query
  * para el manejo de estado del servidor y cache automático.
+ * 
+ * INCLUYE validación de cookies para compliance legal.
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -10,6 +12,7 @@ import { toast } from 'sonner';
 import * as authService from '@/services/auth.service';
 import * as userService from '@/services/user.service';
 import { isAuthenticated, clearTokens } from '@/utils/apiWrapper';
+import { useCookies } from './use-cookies';
 import type {
   LoginRequest,
   TokenResponse,
@@ -20,6 +23,7 @@ import type {
   UserUpdate,
   RegisterRequest,
 } from '@/types';
+import { useEffect } from 'react';
 
 // Keys para las queries (para cache management)
 export const AUTH_KEYS = {
@@ -29,9 +33,11 @@ export const AUTH_KEYS = {
 /**
  * Hook principal de autenticación
  * Combina el estado del usuario con las acciones de login/logout.
+ * INCLUYE validación de cookies para compliance legal.
  */
 export function useAuth() {
   const queryClient = useQueryClient();
+  const { canUseCookie, isHydrated } = useCookies();
 
   // Query para obtener el usuario actual
   const {
@@ -41,14 +47,23 @@ export function useAuth() {
   } = useQuery({
     queryKey: AUTH_KEYS.currentUser,
     queryFn: authService.getCurrentUser,
-    enabled: isAuthenticated(), // Solo ejecutar si hay token
+    enabled: isAuthenticated() && isHydrated, // Simplificado: solo verificar token y hidratación
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 
   // Mutación para login
   const { mutate: login, isPending: isLoggingIn } = useMutation({
-    mutationFn: (credentials: LoginRequest) => authService.login(credentials),
+    mutationFn: (credentials: LoginRequest) => {
+      // Validar cookies antes de permitir login
+      if (!canUseCookie('necessary')) {
+        throw new Error('Debes aceptar las cookies necesarias para iniciar sesión');
+      }
+      return authService.login(credentials);
+    },
     onSuccess: async () => {
       toast.success('¡Bienvenido! Has iniciado sesión correctamente');
       
@@ -56,20 +71,41 @@ export function useAuth() {
       // Esto es necesario porque el login solo devuelve tokens, no datos del usuario
       const refreshedUser = await queryClient.fetchQuery<User>({ queryKey: AUTH_KEYS.currentUser });
       
-      // Redirección basada en rol del usuario
+      // Redirección simplificada después del login
       if (typeof window !== 'undefined') {
         // Convertir id_rol a number para asegurar comparación correcta
         const userRole = Number(refreshedUser?.id_rol);
         
-        // Lógica de redireccionamiento:
-        // - Rol 1 (Admin): Redirigir al dashboard de administración (/admin)
-        // - Rol 2 (Cliente): Redirigir a la tienda principal (/)
-        const redirectUrl = userRole === 1 ? '/admin' : '/';
+        // Obtener la URL actual y los parámetros
+        const currentPath = window.location.pathname;
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectTo = urlParams.get('redirect');
         
-        window.location.href = redirectUrl;
+        // Solo hacer redirección desde páginas de autenticación
+        if (currentPath === '/login' || currentPath === '/register') {
+          let targetUrl = '/'; // Por defecto, ir a la página principal
+          
+          if (redirectTo && redirectTo.startsWith('/')) {
+            // Si hay un parámetro redirect válido, usarlo
+            targetUrl = redirectTo;
+          } else if (userRole === 1) {
+            // Si es admin, ir al panel de administración
+            targetUrl = '/admin';
+          }
+          
+          window.location.href = targetUrl;
+        }
+        // En otros casos, no redirigir automáticamente
+        // Los layouts se encargarán de la redirección según el contexto
       }
     },
     onError: (error: any) => {
+      // Manejar errores específicos de cookies
+      if (error.message?.includes('cookies')) {
+        toast.error('Para iniciar sesión, debes aceptar las cookies necesarias');
+        return;
+      }
+      
       const message = error?.response?.data?.detail || 'Error al iniciar sesión. Verifica tus credenciales.';
       toast.error(message);
     },
@@ -95,11 +131,23 @@ export function useAuth() {
   });
 
   const registerMutation = useMutation({
-    mutationFn: authService.register,
+    mutationFn: (userData: RegisterRequest) => {
+      // Validar cookies antes de permitir registro
+      if (!canUseCookie('necessary')) {
+        throw new Error('Debes aceptar las cookies necesarias para crear una cuenta');
+      }
+      return authService.register(userData);
+    },
     onSuccess: () => {
       toast.success('¡Cuenta creada exitosamente! Ya puedes iniciar sesión.');
     },
     onError: (error: any) => {
+      // Manejar errores específicos de cookies
+      if (error.message?.includes('cookies')) {
+        toast.error('Para crear una cuenta, debes aceptar las cookies necesarias');
+        return;
+      }
+      
       const message = error?.response?.data?.detail || 'Error al crear la cuenta. Inténtalo de nuevo.';
       toast.error(message);
       throw error; // Re-lanzar el error para que el componente lo pueda manejar
@@ -128,9 +176,15 @@ export function useAuth() {
     await updateProfileMutation.mutateAsync(userData);
   };
 
+  // Función helper para verificar si se pueden usar cookies
+  const canUseCookies = () => canUseCookie('necessary');
+
+  // Lógica simplificada de autenticación
+  const isUserAuthenticated = isAuthenticated() && !!user && isHydrated;
+
   return {
     user,
-    isAuthenticated: isAuthenticated() && !!user,
+    isAuthenticated: isUserAuthenticated,
     isLoadingUser,
     isLoggingIn,
     isLoggingOut,
@@ -139,6 +193,8 @@ export function useAuth() {
     logout,
     register,
     updateProfile,
+    canUseCookies: () => canUseCookie('necessary'),
+    isHydrated, // Exponer el estado de hidratación
   };
 }
 
