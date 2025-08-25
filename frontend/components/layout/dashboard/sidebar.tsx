@@ -108,7 +108,7 @@ const data = {
   ],
 }
 
-export function AppSidebar({ variant }: { variant: "default" | "inset" }) {
+export function AppSidebar({ variant }: { variant: "sidebar" | "inset" }) {
   return (
     <Sidebar variant={variant} className="border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 transition-colors duration-300">
       <SidebarHeader className="border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
@@ -128,7 +128,7 @@ export function AppSidebar({ variant }: { variant: "default" | "inset" }) {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="border-t border-gray-200 dark:border-gray-700 transition-colors duration-300">
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
     </Sidebar>
   )

@@ -15,7 +15,7 @@ export const PRODUCT_KEYS = {
   lists: () => [...PRODUCT_KEYS.all, 'list'] as const,
   list: (filters: PaginationParams) => [...PRODUCT_KEYS.lists(), filters] as const,
   details: () => [...PRODUCT_KEYS.all, 'detail'] as const,
-  detail: (id: number) => [...PRODUCT_KEYS.details(), id] as const,
+  detail: (id: string | number) => [...PRODUCT_KEYS.details(), id] as const,
 };
 
 export function useProducts(filters: PaginationParams = { page: 1, limit: 12 }) {
@@ -30,11 +30,11 @@ export function useProducts(filters: PaginationParams = { page: 1, limit: 12 }) 
   });
 }
 
-export function useProduct(id: number) {
+export function useProduct(slug: string) {
   return useQuery({
-    queryKey: PRODUCT_KEYS.detail(id),
-    queryFn: () => productService.getProductByIds(id.toString()),
-    enabled: !!id,
+    queryKey: PRODUCT_KEYS.detail(slug),
+    queryFn: () => productService.getProductByIds(slug),
+    enabled: !!slug,
     staleTime: 5 * 60 * 1000,
   });
 }

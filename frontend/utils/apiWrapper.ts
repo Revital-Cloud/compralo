@@ -63,6 +63,12 @@ function setupInterceptors(instance: AxiosInstance): void {
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      
+      // No sobrescribir Content-Type si es FormData (Axios lo maneja automáticamente)
+      if (config.data instanceof FormData) {
+        delete config.headers['Content-Type'];
+      }
+      
       return config;
     },
     (error) => {

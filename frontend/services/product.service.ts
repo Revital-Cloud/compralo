@@ -64,6 +64,39 @@ export async function createProduct(productData: ProductCreate): Promise<Product
 }
 
 /**
+ * Crear nuevo producto con imágenes
+ */
+export async function createProductWithImages(
+  productData: ProductCreate, 
+  imageFiles: File[]
+): Promise<Product> {
+  const formData = new FormData();
+  
+  // Agregar datos del producto
+  formData.append('id_categoria', productData.id_categoria.toString());
+  formData.append('id_linea', productData.id_linea.toString());
+  formData.append('id_sublinea', productData.id_sublinea.toString());
+  formData.append('nom_producto', productData.nom_producto);
+  formData.append('spcf_producto', JSON.stringify(productData.spcf_producto));
+  formData.append('val_precio', productData.val_precio.toString());
+  formData.append('id_proveedor', productData.id_proveedor.toString());
+  formData.append('id_marca', productData.id_marca.toString());
+  formData.append('num_stock', productData.num_stock?.toString() || '0');
+  formData.append('ind_activo', productData.ind_activo?.toString() || 'true');
+  
+  // Agregar archivos de imagen
+  imageFiles.forEach((file, index) => {
+    formData.append('image_files', file);
+  });
+  
+  return await post<Product>('/products', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+}
+
+/**
  * Actualizar producto
  */
 export async function updateProduct(id: number, productData: ProductUpdate): Promise<Product> {

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { useParams } from "next/navigation"
 import { ProductGallery, ProductInfo, RelatedProducts } from "@/components/product"
 import CartToast from "@/components/ui/cart-toast"
-import { useProductByIds } from "@/hooks/use-products"
+import { useProduct } from "@/hooks/use-products"
 import Loading from "@/components/ui/loading"
 
 const ProductPage = () => {
@@ -22,7 +22,7 @@ const ProductPage = () => {
     data: product, 
     isLoading, 
     error 
-  } = useProductByIds(slug, !!slug)
+  } = useProduct(slug)
 
   const handleAddToCart = (selectedColor?: string, selectedSize?: string) => {
     if (!product) return

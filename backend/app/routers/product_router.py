@@ -7,10 +7,10 @@ Utiliza FastAPI para definir las rutas y depende del servicio de productos
 para la lógica de negocio y del gestor de base de datos para las sesiones.
 """
 # Definición de rutas (endpoints) de la API para productos
-from fastapi import APIRouter, Depends, Body, Form, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, Body, Form, HTTPException, status, UploadFile, File, Request
 from sqlalchemy.orm import Session
 from decimal import Decimal
-from typing import Optional, List
+from typing import Optional, List, Union
 import json
 
 from core.database import get_db
@@ -93,6 +93,7 @@ async def get_products_by_subline(id_sublinea: Decimal, db: Session = Depends(ge
 #crea un producto
 @router.post("/products", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_product(
+    request: Request,
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user),
     # Datos del producto como Form fields
@@ -107,7 +108,7 @@ async def create_product(
     num_stock: int = Form(0),
     ind_activo: bool = Form(True),
     # Archivos de imagen opcionales (múltiples)
-    image_files: List[UploadFile] = File(None, description="Múltiples archivos de imagen para el producto")
+    image_files: Optional[List[UploadFile]] = File(None, description="Múltiples archivos de imagen para el producto")
 ):
     """
     Crear un nuevo producto con opción de imagen.
@@ -137,12 +138,20 @@ async def create_product(
         HTTPException: Si ocurre un error durante la creación del producto.
     """
     try:
+        # Manejar archivos de imagen (convertir None a lista vacía si es necesario)
+        files_to_process = image_files if image_files else []
+        
         print(f"🔍 ROUTER DEBUG: image_files recibidos: {image_files}")
         print(f"🔍 ROUTER DEBUG: Tipo: {type(image_files)}")
-        if image_files:
-            print(f"🔍 ROUTER DEBUG: Cantidad de archivos: {len(image_files)}")
-            for i, file in enumerate(image_files):
+        print(f"🔍 ROUTER DEBUG: files_to_process: {files_to_process}")
+        print(f"🔍 ROUTER DEBUG: Content-Type del request: {request.headers.get('content-type')}")
+        
+        if files_to_process:
+            print(f"🔍 ROUTER DEBUG: Cantidad de archivos: {len(files_to_process)}")
+            for i, file in enumerate(files_to_process):
                 print(f"🔍 ROUTER DEBUG: Archivo {i}: {file.filename}, tipo: {file.content_type}, tamaño: {file.size}")
+        else:
+            print(f"🔍 ROUTER DEBUG: No se recibieron archivos - image_files es: {image_files}")
         
         # Convertir el JSON string a dict
         try:
@@ -169,11 +178,11 @@ async def create_product(
         print(f"Tipo de spcf_producto: {type(product_data.spcf_producto)}")
         
         # Llamar al servicio con las imágenes opcionales y el usuario
-        print(f"🔍 ROUTER DEBUG: Llamando a product_service.create_product con image_files: {image_files}")
+        print(f"🔍 ROUTER DEBUG: Llamando a product_service.create_product con files_to_process: {files_to_process}")
         service_response_message = await product_service.create_product(
             db, 
             product_data, 
-            image_files, 
+            files_to_process, 
             current_user.id_usuario
         )
         
