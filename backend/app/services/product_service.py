@@ -288,3 +288,4 @@ def deactivate_product(
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al desactivar el producto: {str(e)}")
+
