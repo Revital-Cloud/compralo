@@ -110,14 +110,14 @@ const data = {
 
 export function AppSidebar({ variant }: { variant: "default" | "inset" }) {
   return (
-    <Sidebar variant={variant} className="border-r border-border dark:border-gray-700 bg-background dark:bg-gray-900 transition-colors duration-300">
-      <SidebarHeader className="border-b border-border dark:border-gray-700 transition-colors duration-300">
+    <Sidebar variant={variant} className="border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 transition-colors duration-300">
+      <SidebarHeader className="border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
         <div className="flex h-[--header-height] shrink-0 items-center gap-2 px-4 lg:px-6">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary dark:bg-red-500 rounded-lg flex items-center justify-center transition-colors duration-300">
-              <IconInnerShadowTop className="w-5 h-5 text-primary-foreground" />
+            <div className="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center transition-colors duration-300">
+              <IconInnerShadowTop className="w-5 h-5 text-white dark:text-black" />
             </div>
-            <span className="text-lg font-semibold text-foreground dark:text-white transition-colors duration-300">Synkro</span>
+            <span className="text-lg font-semibold text-gray-900 dark:text-white transition-colors duration-300">Synkro</span>
           </div>
         </div>
       </SidebarHeader>
@@ -127,7 +127,7 @@ export function AppSidebar({ variant }: { variant: "default" | "inset" }) {
           <NavSecondary items={data.navSecondary} />
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="border-t border-border dark:border-gray-700 transition-colors duration-300">
+      <SidebarFooter className="border-t border-gray-200 dark:border-gray-700 transition-colors duration-300">
         <NavUser user={data.user} />
       </SidebarFooter>
     </Sidebar>
