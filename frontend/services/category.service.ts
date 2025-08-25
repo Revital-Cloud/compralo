@@ -16,8 +16,19 @@ import type { ApiResponse } from '@/types';
  * Obtener todas las categorías
  */
 export async function getCategories(): Promise<Category[]> {
-  const categories = await get<Category[]>('/categories');
-  return categories.filter(category => category.ind_activo); // Solo categorías activas
+  console.log('Category service: Fetching categories from /categories');
+  try {
+    const categories = await get<Category[]>('/categories');
+    console.log('Category service: Raw response:', categories);
+    
+    const activeCategories = categories.filter(category => category.ind_activo);
+    console.log('Category service: Active categories:', activeCategories);
+    
+    return activeCategories;
+  } catch (error) {
+    console.error('Category service: Error fetching categories:', error);
+    throw error;
+  }
 }
 
 /**

@@ -2,8 +2,7 @@
 
 import { useState } from "react"
 import { ProductsHeader, ProductsFilters, ProductsDisplay } from "@/components/products-page"
-import { useProducts } from "@/hooks/use-products"
-import { useCategories } from "@/hooks/use-categories"
+import { useProducts, useCategories, useAllLines, useAllSublines, useBrands } from "@/hooks"
 
 const ProductsPage = () => {
   const [sortBy, setSortBy] = useState('trending')
@@ -13,17 +12,26 @@ const ProductsPage = () => {
   // Estados para filtros
   const [priceRange, setPriceRange] = useState([0, 10000])
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [selectedLines, setSelectedLines] = useState<string[]>([])
+  const [selectedSublines, setSelectedSublines] = useState<string[]>([])
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([])
   const [inStockOnly, setInStockOnly] = useState(false)
   const [onSaleOnly, setOnSaleOnly] = useState(false)
 
   // Obtener productos y categorías del API
   const { data: productsData, isLoading: productsLoading, error: productsError } = useProducts()
   const { data: categoriesData, isLoading: categoriesLoading } = useCategories()
+  const { data: linesData, isLoading: linesLoading } = useAllLines()
+  const { data: sublinesData, isLoading: sublinesLoading } = useAllSublines()
+  const { data: brandsData, isLoading: brandsLoading } = useBrands()
 
   // Función para limpiar todos los filtros
   const clearAllFilters = () => {
     setPriceRange([0, 10000])
     setSelectedCategories([])
+    setSelectedLines([])
+    setSelectedSublines([])
+    setSelectedBrands([])
     setInStockOnly(false)
     setOnSaleOnly(false)
   }
@@ -33,6 +41,9 @@ const ProductsPage = () => {
     console.log('Aplicando filtros:', {
       priceRange,
       selectedCategories,
+      selectedLines,
+      selectedSublines,
+      selectedBrands,
       inStockOnly,
       onSaleOnly
     })
@@ -41,6 +52,7 @@ const ProductsPage = () => {
 
   // Contar filtros activos
   const activeFiltersCount = selectedCategories.length + 
+    selectedLines.length + selectedSublines.length + selectedBrands.length +
     (inStockOnly ? 1 : 0) + (onSaleOnly ? 1 : 0) + 
     (priceRange[0] > 0 || priceRange[1] < 10000 ? 1 : 0)
 
@@ -70,12 +82,24 @@ const ProductsPage = () => {
             setPriceRange={setPriceRange}
             selectedCategories={selectedCategories}
             setSelectedCategories={setSelectedCategories}
+            selectedLines={selectedLines}
+            setSelectedLines={setSelectedLines}
+            selectedSublines={selectedSublines}
+            setSelectedSublines={setSelectedSublines}
+            selectedBrands={selectedBrands}
+            setSelectedBrands={setSelectedBrands}
             inStockOnly={inStockOnly}
             setInStockOnly={setInStockOnly}
             onSaleOnly={onSaleOnly}
             setOnSaleOnly={setOnSaleOnly}
             categoriesData={categoriesData}
             categoriesLoading={categoriesLoading}
+            linesData={linesData}
+            linesLoading={linesLoading}
+            sublinesData={sublinesData}
+            sublinesLoading={sublinesLoading}
+            brandsData={brandsData}
+            brandsLoading={brandsLoading}
             activeFiltersCount={activeFiltersCount}
             clearAllFilters={clearAllFilters}
             applyFilters={applyFilters}
@@ -89,6 +113,9 @@ const ProductsPage = () => {
             viewMode={viewMode}
             priceRange={priceRange}
             selectedCategories={selectedCategories}
+            selectedLines={selectedLines}
+            selectedSublines={selectedSublines}
+            selectedBrands={selectedBrands}
             inStockOnly={inStockOnly}
             onSaleOnly={onSaleOnly}
             clearAllFilters={clearAllFilters}

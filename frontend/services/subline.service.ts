@@ -2,6 +2,10 @@ import apiWrapper from '@/utils/apiWrapper';
 import { Subline } from '@/hooks/use-sublines';
 
 class SublineService {
+  async getAllSublines(): Promise<Subline[]> {
+    return apiWrapper.get(`/sublines`);
+  }
+
   async getSublinesByLine(lineId: number): Promise<Subline[]> {
     return apiWrapper.get(`/sublines/line/${lineId}`);
   }

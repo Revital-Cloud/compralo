@@ -9,6 +9,14 @@ export interface Subline {
   productos_count?: number;
 }
 
+export const useAllSublines = () => {
+  return useQuery({
+    queryKey: ['sublines', 'all'],
+    queryFn: () => sublineService.getAllSublines(),
+    staleTime: 10 * 60 * 1000, // 10 minutos
+  });
+};
+
 export const useSublinesByLine = (lineId: number) => {
   return useQuery({
     queryKey: ['sublines', 'line', lineId],

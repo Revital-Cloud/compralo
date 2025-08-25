@@ -147,14 +147,24 @@ const getColorsForCategory = (categoryName: string) => {
 
 // Función principal para mapear categorías de API a categorías de display
 export const mapCategoriesToDisplay = (categories: Category[]): CategoryDisplay[] => {
+  console.log('Raw categories from API:', categories);
+  
+  if (!categories || !Array.isArray(categories)) {
+    console.error('Invalid categories data:', categories);
+    return [];
+  }
+  
   return categories
-    .filter(category => category.ind_activo) // Solo categorías activas
+    .filter(category => {
+      console.log('Processing category:', category);
+      return category && category.ind_activo; // Solo categorías activas
+    })
     .map(category => {
       const colors = getColorsForCategory(category.nom_categoria);
       const icon = getIconForCategory(category.nom_categoria);
       const description = generateDescription(category.nom_categoria);
 
-      return {
+      const mappedCategory = {
         id: category.id_categoria,
         name: category.nom_categoria,
         description,
@@ -164,6 +174,9 @@ export const mapCategoriesToDisplay = (categories: Category[]): CategoryDisplay[
         iconBg: colors.iconBg,
         isActive: category.ind_activo,
       };
+      
+      console.log('Mapped category:', mappedCategory);
+      return mappedCategory;
     });
 };
 

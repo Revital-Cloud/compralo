@@ -11,12 +11,24 @@ interface ProductsFiltersProps {
   setPriceRange: (range: number[]) => void
   selectedCategories: string[]
   setSelectedCategories: (categories: string[]) => void
+  selectedLines: string[]
+  setSelectedLines: (lines: string[]) => void
+  selectedSublines: string[]
+  setSelectedSublines: (sublines: string[]) => void
+  selectedBrands: string[]
+  setSelectedBrands: (brands: string[]) => void
   inStockOnly: boolean
   setInStockOnly: (value: boolean) => void
   onSaleOnly: boolean
   setOnSaleOnly: (value: boolean) => void
   categoriesData: any
   categoriesLoading: boolean
+  linesData: any
+  linesLoading: boolean
+  sublinesData: any
+  sublinesLoading: boolean
+  brandsData: any
+  brandsLoading: boolean
   activeFiltersCount: number
   clearAllFilters: () => void
   applyFilters: () => void
@@ -29,12 +41,24 @@ export const ProductsFilters = ({
   setPriceRange,
   selectedCategories,
   setSelectedCategories,
+  selectedLines,
+  setSelectedLines,
+  selectedSublines,
+  setSelectedSublines,
+  selectedBrands,
+  setSelectedBrands,
   inStockOnly,
   setInStockOnly,
   onSaleOnly,
   setOnSaleOnly,
   categoriesData,
   categoriesLoading,
+  linesData,
+  linesLoading,
+  sublinesData,
+  sublinesLoading,
+  brandsData,
+  brandsLoading,
   activeFiltersCount,
   clearAllFilters,
   applyFilters
@@ -93,41 +117,195 @@ export const ProductsFilters = ({
         <div className="mb-6">
           <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Categorías</h4>
           <div className="space-y-2 max-h-40 overflow-y-auto">
+            
             {categoriesLoading ? (
-              <div className="text-sm text-gray-500">Cargando categorías...</div>
-            ) : categoriesData && categoriesData.length > 0 ? (
-              categoriesData.map((category: any) => {
-                // Validar que la categoría tenga un ID válido
-                if (!category || !category.id_categoria) {
-                  return null;
-                }
-                
-                const categoryId = category.id_categoria.toString();
-                
-                return (
-                  <div key={categoryId} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`category-${categoryId}`}
-                      checked={selectedCategories.includes(categoryId)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedCategories([...selectedCategories, categoryId])
-                        } else {
-                          setSelectedCategories(selectedCategories.filter(id => id !== categoryId))
-                        }
-                      }}
-                    />
-                    <label
-                      htmlFor={`category-${categoryId}`}
-                      className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-                    >
-                      {category.nom_categoria || 'Sin nombre'}
-                    </label>
-                  </div>
-                );
-              }).filter(Boolean) // Filtrar elementos null
+               <div className="text-sm text-gray-500">Cargando categorías...</div>
+             ) : categoriesData && categoriesData.length > 0 ? (
+               // Los datos ya vienen mapeados, no necesitamos filtrar duplicados
+               categoriesData.map((category: any) => {
+                 // Validar que la categoría tenga un ID válido
+                 if (!category || !category.id) {
+                   console.log('Invalid category:', category);
+                   return null;
+                 }
+                 
+                 const categoryId = category.id.toString();
+                 
+                 return (
+                   <div key={`category-${categoryId}`} className="flex items-center space-x-2">
+                     <Checkbox
+                       id={`category-${categoryId}`}
+                       checked={selectedCategories.includes(categoryId)}
+                       onCheckedChange={(checked) => {
+                         if (checked) {
+                           setSelectedCategories([...selectedCategories, categoryId])
+                         } else {
+                           setSelectedCategories(selectedCategories.filter(id => id !== categoryId))
+                         }
+                       }}
+                     />
+                     <label
+                       htmlFor={`category-${categoryId}`}
+                       className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                     >
+                       {category.name || 'Sin nombre'}
+                     </label>
+                   </div>
+                 );
+               }).filter(Boolean) // Filtrar elementos null
             ) : (
-              <div className="text-sm text-gray-500">No hay categorías disponibles</div>
+              <div className="text-sm text-gray-500">
+                No hay categorías disponibles
+                {categoriesData && (
+                  <div className="text-xs text-gray-400 mt-1">
+                    Data: {JSON.stringify(categoriesData).substring(0, 100)}...
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Lines Filter */}
+        <div className="mb-6">
+          <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Líneas</h4>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {linesLoading ? (
+              <div className="text-sm text-gray-500">Cargando líneas...</div>
+            ) : linesData && linesData.length > 0 ? (
+              // Filtrar duplicados por ID antes de renderizar
+              linesData
+                .filter((line: any, index: number, self: any[]) => 
+                  line && line.id_linea && 
+                  index === self.findIndex((l: any) => l.id_linea === line.id_linea)
+                )
+                .map((line: any) => {
+                  if (!line || !line.id_linea) {
+                    return null;
+                  }
+                  
+                  const lineId = line.id_linea.toString();
+                  
+                  return (
+                    <div key={`line-${lineId}`} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`line-${lineId}`}
+                        checked={selectedLines.includes(lineId)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedLines([...selectedLines, lineId])
+                          } else {
+                            setSelectedLines(selectedLines.filter(id => id !== lineId))
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`line-${lineId}`}
+                        className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                      >
+                        {line.nom_linea || 'Sin nombre'}
+                      </label>
+                    </div>
+                  );
+                }).filter(Boolean)
+            ) : (
+              <div className="text-sm text-gray-500">No hay líneas disponibles</div>
+            )}
+          </div>
+        </div>
+
+        {/* Sublines Filter */}
+        <div className="mb-6">
+          <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Sub-líneas</h4>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {sublinesLoading ? (
+              <div className="text-sm text-gray-500">Cargando sub-líneas...</div>
+            ) : sublinesData && sublinesData.length > 0 ? (
+              // Filtrar duplicados por ID antes de renderizar
+              sublinesData
+                .filter((subline: any, index: number, self: any[]) => 
+                  subline && subline.id_sublinea && 
+                  index === self.findIndex((s: any) => s.id_sublinea === subline.id_sublinea)
+                )
+                .map((subline: any) => {
+                  if (!subline || !subline.id_sublinea) {
+                    return null;
+                  }
+                  
+                  const sublineId = subline.id_sublinea.toString();
+                  
+                  return (
+                    <div key={`subline-${sublineId}`} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`subline-${sublineId}`}
+                        checked={selectedSublines.includes(sublineId)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedSublines([...selectedSublines, sublineId])
+                          } else {
+                            setSelectedSublines(selectedSublines.filter(id => id !== sublineId))
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`subline-${sublineId}`}
+                        className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                      >
+                        {subline.nom_sublinea || 'Sin nombre'}
+                      </label>
+                    </div>
+                  );
+                }).filter(Boolean)
+            ) : (
+              <div className="text-sm text-gray-500">No hay sub-líneas disponibles</div>
+            )}
+          </div>
+        </div>
+
+        {/* Brands Filter */}
+        <div className="mb-6">
+          <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Marcas</h4>
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {brandsLoading ? (
+              <div className="text-sm text-gray-500">Cargando marcas...</div>
+            ) : brandsData && brandsData.length > 0 ? (
+              // Filtrar duplicados por ID antes de renderizar
+              brandsData
+                .filter((brand: any, index: number, self: any[]) => 
+                  brand && brand.id_marca && 
+                  index === self.findIndex((b: any) => b.id_marca === brand.id_marca)
+                )
+                .map((brand: any) => {
+                  if (!brand || !brand.id_marca) {
+                    return null;
+                  }
+                  
+                  const brandId = brand.id_marca.toString();
+                  
+                  return (
+                    <div key={`brand-${brandId}`} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`brand-${brandId}`}
+                        checked={selectedBrands.includes(brandId)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedBrands([...selectedBrands, brandId])
+                          } else {
+                            setSelectedBrands(selectedBrands.filter(id => id !== brandId))
+                          }
+                        }}
+                      />
+                      <label
+                        htmlFor={`brand-${brandId}`}
+                        className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                      >
+                        {brand.nom_marca || 'Sin nombre'}
+                      </label>
+                    </div>
+                  );
+                }).filter(Boolean)
+            ) : (
+              <div className="text-sm text-gray-500">No hay marcas disponibles</div>
             )}
           </div>
         </div>

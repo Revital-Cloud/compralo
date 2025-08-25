@@ -10,8 +10,19 @@ export function useCategories() {
   return useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      const apiCategories = await getCategories()
-      return mapCategoriesToDisplay(apiCategories)
+      console.log('Fetching categories...');
+      try {
+        const apiCategories = await getCategories();
+        console.log('API categories response:', apiCategories);
+        
+        const mappedCategories = mapCategoriesToDisplay(apiCategories);
+        console.log('Mapped categories:', mappedCategories);
+        
+        return mappedCategories;
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        throw error;
+      }
     },
     staleTime: 5 * 60 * 1000, // 5 minutos - los datos se consideran frescos
     gcTime: 10 * 60 * 1000, // 10 minutos - tiempo en caché

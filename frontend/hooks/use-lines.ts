@@ -10,6 +10,14 @@ export interface Line {
   productos_count?: number;
 }
 
+export const useAllLines = () => {
+  return useQuery({
+    queryKey: ['lines', 'all'],
+    queryFn: () => lineService.getAllLines(),
+    staleTime: 10 * 60 * 1000, // 10 minutos
+  });
+};
+
 export const useLinesByCategory = (categoryId: number) => {
   return useQuery({
     queryKey: ['lines', 'category', categoryId],

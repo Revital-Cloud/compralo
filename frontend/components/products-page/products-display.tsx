@@ -10,6 +10,9 @@ interface ProductsDisplayProps {
   viewMode: 'grid' | 'list'
   priceRange: number[]
   selectedCategories: string[]
+  selectedLines: string[]
+  selectedSublines: string[]
+  selectedBrands: string[]
   inStockOnly: boolean
   onSaleOnly: boolean
   clearAllFilters: () => void
@@ -22,6 +25,9 @@ export const ProductsDisplay = ({
   viewMode,
   priceRange,
   selectedCategories,
+  selectedLines,
+  selectedSublines,
+  selectedBrands,
   inStockOnly,
   onSaleOnly,
   clearAllFilters
@@ -57,6 +63,30 @@ export const ProductsDisplay = ({
       if (selectedCategories.length > 0) {
         const productCategory = product.id_categoria?.toString()
         if (!productCategory || !selectedCategories.includes(productCategory)) {
+          return false
+        }
+      }
+      
+      // Filtro por línea
+      if (selectedLines.length > 0) {
+        const productLine = product.id_linea?.toString()
+        if (!productLine || !selectedLines.includes(productLine)) {
+          return false
+        }
+      }
+      
+      // Filtro por sub-línea
+      if (selectedSublines.length > 0) {
+        const productSubline = product.id_sublinea?.toString()
+        if (!productSubline || !selectedSublines.includes(productSubline)) {
+          return false
+        }
+      }
+      
+      // Filtro por marca
+      if (selectedBrands.length > 0) {
+        const productBrand = product.id_marca?.toString()
+        if (!productBrand || !selectedBrands.includes(productBrand)) {
           return false
         }
       }
