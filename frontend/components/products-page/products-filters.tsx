@@ -346,7 +346,7 @@ export const ProductsFilters = ({
         {/* Apply Filters Button */}
         <Button
           onClick={applyFilters}
-          className="w-full"
+          className="w-full cursor-pointer"
           disabled={activeFiltersCount === 0}
         >
           Aplicar Filtros
