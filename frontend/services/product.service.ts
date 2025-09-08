@@ -11,7 +11,6 @@ import type {
   ProductUpdate,
   ProductFilters,
   PaginationParams,
-  PaginatedResponse,
   Category,
   Brand,
   Provider,
@@ -20,8 +19,9 @@ import type {
   StockUpdate,
   StockMovement,
   ApiResponse,
-} from '@/types';
-import type { Product } from '@/types/product';
+  Product,
+} from '@/types/product';
+import type { PaginatedResponse } from '@/types/common';
 
 // =============================================================================
 // FUNCIONES DE PRODUCTOS
@@ -30,8 +30,11 @@ import type { Product } from '@/types/product';
 /**
  * Obtener lista de productos
  */
-export async function getProducts(params?: ProductFilters): Promise<PaginatedResponse<Product>> {
-  return await get<PaginatedResponse<Product>>('/products', { params });
+export async function getProducts(params?: ProductFilters): Promise<Product[] | PaginatedResponse<Product>> {
+  if (params) {
+    return await get<PaginatedResponse<Product>>('/products', { params });
+  }
+  return await get<Product[]>('/products');
 }
 
 /**

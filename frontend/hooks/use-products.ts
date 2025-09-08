@@ -8,7 +8,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as productService from '@/services/product.service';
-import type { Product, ProductCreate, ProductUpdate, PaginationParams } from '@/types';
+import type { Product, ProductCreate, ProductUpdate } from '@/types/product';
+import type { PaginationParams } from '@/types/common';
 
 export const PRODUCT_KEYS = {
   all: ['products'] as const,
@@ -17,6 +18,18 @@ export const PRODUCT_KEYS = {
   details: () => [...PRODUCT_KEYS.all, 'detail'] as const,
   detail: (id: string | number) => [...PRODUCT_KEYS.details(), id] as const,
 };
+
+export function useProductsHomePage() {
+  return useQuery<Product[]>({
+    queryKey: ['products', 'homepage'],
+    queryFn: () => productService.getProducts() as Promise<Product[]>,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    gcTime: 10 * 60 * 1000, // 10 minutos en cache
+  });
+}
 
 export function useProducts(filters: PaginationParams = { page: 1, limit: 12 }) {
   return useQuery({
