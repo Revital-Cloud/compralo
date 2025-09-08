@@ -15,7 +15,7 @@ import json
 
 from core.database import get_db
 from core.dependencies import require_admin, get_current_user, get_current_user_optional
-from schemas.product_schema import Product, ProductCreate, ProductUpdate, ResponseMessage
+from schemas.product_schema import Product, ProductCreate, ProductUpdate, ResponseMessage, ProductFilterParams, ProductFilterResponse, ProductFilterStats
 from schemas.auth_schema import UserInToken
 from services import product_service
 
@@ -347,3 +347,140 @@ async def deactivate_product(
             )
         else:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+# ==================== ENDPOINTS DE FILTROS ====================
+
+@router.get("/products/filter", response_model=ProductFilterResponse)
+async def filter_products(
+    filters: ProductFilterParams = Depends(),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user_optional)
+):
+    """
+    Filtrar productos con criterios avanzados.
+    
+    Este endpoint permite filtrar productos utilizando múltiples criterios
+    como categoría, línea, sublínea, marca, proveedor, nombre, precio, stock, etc.
+    Utiliza la función de base de datos fun_filter_products para obtener
+    resultados optimizados con paginación.
+    
+    Args:
+        filters (ProductFilterParams): Parámetros de filtrado validados automáticamente.
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+        current_user (UserInToken): Usuario autenticado (opcional).
+    
+    Returns:
+        ProductFilterResponse: Respuesta con productos filtrados y metadatos de paginación.
+        
+    Raises:
+        HTTPException: Si ocurre un error durante el filtrado.
+    """
+    try:
+        result = product_service.filter_products(db, filters)
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.get("/products/filter/stats", response_model=ProductFilterStats)
+async def get_filter_stats(
+    filters: ProductFilterParams = Depends(),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user_optional)
+):
+    """
+    Obtener estadísticas de productos filtrados.
+    
+    Este endpoint devuelve información estadística sobre los productos
+    que coinciden con los criterios de filtrado, incluyendo totales,
+    rangos de precios, stock disponible, etc.
+    
+    Args:
+        filters (ProductFilterParams): Parámetros de filtrado para las estadísticas.
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+        current_user (UserInToken): Usuario autenticado (opcional).
+    
+    Returns:
+        ProductFilterStats: Estadísticas de los productos filtrados.
+        
+    Raises:
+        HTTPException: Si ocurre un error al obtener las estadísticas.
+    """
+    try:
+        stats = product_service.get_filter_stats(db, filters)
+        return stats
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.get("/products/filter/options")
+async def get_filter_options(
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user_optional)
+):
+    """
+    Obtener opciones disponibles para los filtros.
+    
+    Este endpoint devuelve las opciones disponibles para poblar
+    los selectores del frontend, incluyendo categorías, líneas,
+    sublíneas, marcas, proveedores y rangos de precios.
+    
+    Args:
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+        current_user (UserInToken): Usuario autenticado (opcional).
+    
+    Returns:
+        dict: Diccionario con las opciones de filtro disponibles.
+        
+    Raises:
+        HTTPException: Si ocurre un error al obtener las opciones.
+    """
+    try:
+        options = product_service.get_filter_options(db)
+        return options
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.get("/products/search")
+async def search_products(
+    q: str,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user_optional)
+):
+    """
+    Búsqueda rápida de productos por nombre.
+    
+    Este endpoint permite realizar búsquedas rápidas de productos
+    por nombre, útil para autocompletado y búsquedas en tiempo real.
+    
+    Args:
+        q (str): Término de búsqueda.
+        limit (int): Límite de resultados (máximo 50).
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+        current_user (UserInToken): Usuario autenticado (opcional).
+    
+    Returns:
+        ProductFilterResponse: Respuesta con productos encontrados.
+        
+    Raises:
+        HTTPException: Si ocurre un error durante la búsqueda.
+    """
+    try:
+        # Validar límite
+        if limit > 50:
+            limit = 50
+        
+        # Crear filtros para búsqueda
+        search_filters = ProductFilterParams(
+            nombre_producto=q,
+            limit=limit,
+            offset=0,
+            ordenar_por="nombre",
+            orden="ASC"
+        )
+        
+        result = product_service.filter_products(db, search_filters)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

@@ -141,6 +141,144 @@ class Product(ProductBase): # Este será el modelo de respuesta principal
     usr_update: Optional[Decimal] = None
     fec_update: Optional[datetime] = None
 
+# Esquemas para filtros de productos
+class ProductFilterParams(BaseModel):
+    """
+    Esquema para parámetros de filtrado de productos.
+    
+    Utilizado para validar los parámetros de búsqueda y filtrado
+    que se envían desde el frontend a la función de base de datos.
+    
+    Atributos:
+        id_categoria (Optional[int]): ID de categoría para filtrar.
+        id_linea (Optional[int]): ID de línea para filtrar.
+        id_sublinea (Optional[int]): ID de sublínea para filtrar.
+        id_marca (Optional[int]): ID de marca para filtrar.
+        id_proveedor (Optional[int]): ID de proveedor para filtrar.
+        nombre_producto (Optional[str]): Texto para buscar en nombre del producto.
+        precio_min (Optional[Decimal]): Precio mínimo para filtrar.
+        precio_max (Optional[Decimal]): Precio máximo para filtrar.
+        stock_min (Optional[int]): Stock mínimo para filtrar.
+        solo_con_stock (bool): TRUE para mostrar solo productos con stock > 0.
+        ordenar_por (str): Campo para ordenar ('precio', 'nombre', 'stock', 'fecha').
+        orden (str): Dirección del orden ('ASC' o 'DESC').
+        limit (int): Límite de resultados (1-1000).
+        offset (int): Offset para paginación (>=0).
+    """
+    id_categoria: Optional[int] = Field(None, description="ID de categoría para filtrar")
+    id_linea: Optional[int] = Field(None, description="ID de línea para filtrar")
+    id_sublinea: Optional[int] = Field(None, description="ID de sublínea para filtrar")
+    id_marca: Optional[int] = Field(None, description="ID de marca para filtrar")
+    id_proveedor: Optional[int] = Field(None, description="ID de proveedor para filtrar")
+    nombre_producto: Optional[str] = Field(None, max_length=255, description="Texto para buscar en nombre del producto")
+    precio_min: Optional[Decimal] = Field(None, ge=0, description="Precio mínimo para filtrar")
+    precio_max: Optional[Decimal] = Field(None, ge=0, description="Precio máximo para filtrar")
+    stock_min: Optional[int] = Field(None, ge=0, description="Stock mínimo para filtrar")
+    solo_con_stock: bool = Field(False, description="TRUE para mostrar solo productos con stock > 0")
+    ordenar_por: str = Field("nombre", regex="^(precio|nombre|stock|fecha)$", description="Campo para ordenar")
+    orden: str = Field("ASC", regex="^(ASC|DESC)$", description="Dirección del orden")
+    limit: int = Field(50, ge=1, le=1000, description="Límite de resultados")
+    offset: int = Field(0, ge=0, description="Offset para paginación")
+    
+    class Config:
+        from_attributes = True
+
+class ProductFiltered(BaseModel):
+    """
+    Esquema para productos filtrados con información completa.
+    
+    Representa un producto con datos de las tablas relacionadas
+    obtenido de la función de filtrado de la base de datos.
+    
+    Atributos:
+        id_categoria (int): ID de la categoría.
+        id_linea (int): ID de la línea.
+        id_sublinea (int): ID de la sublínea.
+        id_producto (int): ID del producto.
+        nom_categoria (str): Nombre de la categoría.
+        nom_linea (str): Nombre de la línea.
+        nom_sublinea (str): Nombre de la sublínea.
+        nom_producto (str): Nombre del producto.
+        spcf_producto (Dict[str, Any]): Especificaciones del producto.
+        img_producto (Optional[Dict[str, Any]]): Imágenes del producto.
+        val_precio (Decimal): Precio del producto.
+        num_stock (int): Stock disponible.
+        nom_proveedor (str): Nombre del proveedor.
+        nom_marca (str): Nombre de la marca.
+        fec_insert (datetime): Fecha de inserción.
+        total_registros (int): Total de registros encontrados.
+    """
+    id_categoria: int
+    id_linea: int
+    id_sublinea: int
+    id_producto: int
+    nom_categoria: str
+    nom_linea: str
+    nom_sublinea: str
+    nom_producto: str
+    spcf_producto: Dict[str, Any]
+    img_producto: Optional[Dict[str, Any]] = None
+    val_precio: Decimal
+    num_stock: int
+    nom_proveedor: str
+    nom_marca: str
+    fec_insert: datetime
+    total_registros: int
+    
+    class Config:
+        from_attributes = True
+
+class ProductFilterResponse(BaseModel):
+    """
+    Esquema para respuesta de filtrado de productos.
+    
+    Contiene los productos filtrados junto con información de paginación.
+    
+    Atributos:
+        products (List[ProductFiltered]): Lista de productos filtrados.
+        total (int): Total de registros encontrados.
+        page (int): Página actual.
+        total_pages (int): Total de páginas.
+        limit (int): Límite de resultados por página.
+        offset (int): Offset actual.
+    """
+    products: List[ProductFiltered]
+    total: int
+    page: int
+    total_pages: int
+    limit: int
+    offset: int
+    
+    class Config:
+        from_attributes = True
+
+class ProductFilterStats(BaseModel):
+    """
+    Esquema para estadísticas de filtros de productos.
+    
+    Contiene información agregada sobre los productos que coinciden
+    con los criterios de filtrado.
+    
+    Atributos:
+        total_productos (int): Total de productos encontrados.
+        precio_minimo (Decimal): Precio mínimo encontrado.
+        precio_maximo (Decimal): Precio máximo encontrado.
+        precio_promedio (Decimal): Precio promedio.
+        total_stock (int): Total de stock disponible.
+        categorias_disponibles (int): Número de categorías disponibles.
+        marcas_disponibles (int): Número de marcas disponibles.
+    """
+    total_productos: int
+    precio_minimo: Optional[Decimal] = None
+    precio_maximo: Optional[Decimal] = None
+    precio_promedio: Optional[Decimal] = None
+    total_stock: int
+    categorias_disponibles: int
+    marcas_disponibles: int
+    
+    class Config:
+        from_attributes = True
+
 # Esquema para mensajes de respuesta genéricos
 class ResponseMessage(BaseModel):
     """

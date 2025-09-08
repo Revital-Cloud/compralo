@@ -17,7 +17,7 @@ from fastapi import UploadFile
 from typing import List, Optional
 import json
 
-from schemas.product_schema import ProductCreate, ProductUpdate
+from schemas.product_schema import ProductCreate, ProductUpdate, ProductFilterParams, ProductFiltered, ProductFilterResponse, ProductFilterStats
 from services import cloudinary_service
 # No necesitamos importar el schema Product aquí si solo devolvemos mappings
 # y el router se encarga de la validación con el response_model.
@@ -385,3 +385,328 @@ def deactivate_product(
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al desactivar el producto: {str(e)}")
+
+#filter products
+def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterResponse:
+    """
+    Filtra productos utilizando la función de base de datos fun_filter_products.
+    
+    Ejecuta la función SQL fun_filter_products con los parámetros de filtrado
+    proporcionados y devuelve los resultados con información de paginación.
+    
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        filters (ProductFilterParams): Parámetros de filtrado validados.
+    
+    Returns:
+        ProductFilterResponse: Respuesta con productos filtrados y metadatos de paginación.
+    """
+    try:
+        # Validar rangos de precios
+        if filters.precio_min is not None and filters.precio_max is not None:
+            if filters.precio_min > filters.precio_max:
+                raise ValueError("El precio mínimo no puede ser mayor al precio máximo")
+        
+        # Preparar parámetros para la función de DB
+        params = {
+            "p_id_categoria": filters.id_categoria,
+            "p_id_linea": filters.id_linea,
+            "p_id_sublinea": filters.id_sublinea,
+            "p_id_marca": filters.id_marca,
+            "p_id_proveedor": filters.id_proveedor,
+            "p_nombre_producto": filters.nombre_producto,
+            "p_precio_min": filters.precio_min,
+            "p_precio_max": filters.precio_max,
+            "p_stock_min": filters.stock_min,
+            "p_solo_con_stock": filters.solo_con_stock,
+            "p_ordenar_por": filters.ordenar_por,
+            "p_orden": filters.orden,
+            "p_limit": filters.limit,
+            "p_offset": filters.offset
+        }
+        
+        # Ejecutar función de filtrado
+        query = text("""
+            SELECT * FROM fun_filter_products(
+                :p_id_categoria,
+                :p_id_linea,
+                :p_id_sublinea,
+                :p_id_marca,
+                :p_id_proveedor,
+                :p_nombre_producto,
+                :p_precio_min,
+                :p_precio_max,
+                :p_stock_min,
+                :p_solo_con_stock,
+                :p_ordenar_por,
+                :p_orden,
+                :p_limit,
+                :p_offset
+            )
+        """)
+        
+        result = db.execute(query, params)
+        products_data = result.mappings().all()
+        
+        # Convertir a objetos ProductFiltered
+        products = []
+        total = 0
+        
+        for row in products_data:
+            # Convertir spcf_producto de JSON string a dict si es necesario
+            spcf_producto = row['spcf_producto']
+            if isinstance(spcf_producto, str):
+                try:
+                    spcf_producto = json.loads(spcf_producto)
+                except json.JSONDecodeError:
+                    spcf_producto = {}
+            
+            # Convertir img_producto de JSON string a dict si es necesario
+            img_producto = row['img_producto']
+            if isinstance(img_producto, str):
+                try:
+                    img_producto = json.loads(img_producto)
+                except json.JSONDecodeError:
+                    img_producto = None
+            
+            product = ProductFiltered(
+                id_categoria=row['id_categoria'],
+                id_linea=row['id_linea'],
+                id_sublinea=row['id_sublinea'],
+                id_producto=row['id_producto'],
+                nom_categoria=row['nom_categoria'],
+                nom_linea=row['nom_linea'],
+                nom_sublinea=row['nom_sublinea'],
+                nom_producto=row['nom_producto'],
+                spcf_producto=spcf_producto,
+                img_producto=img_producto,
+                val_precio=row['val_precio'],
+                num_stock=row['num_stock'],
+                nom_proveedor=row['nom_proveedor'],
+                nom_marca=row['nom_marca'],
+                fec_insert=row['fec_insert'],
+                total_registros=row['total_registros']
+            )
+            products.append(product)
+            
+            # Obtener total de registros del primer resultado
+            if total == 0:
+                total = row['total_registros']
+        
+        # Calcular información de paginación
+        page = (filters.offset // filters.limit) + 1
+        total_pages = (total + filters.limit - 1) // filters.limit if total > 0 else 0
+        
+        return ProductFilterResponse(
+            products=products,
+            total=total,
+            page=page,
+            total_pages=total_pages,
+            limit=filters.limit,
+            offset=filters.offset
+        )
+        
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al filtrar productos: {str(e)}")
+
+def get_filter_stats(db: Session, filters: ProductFilterParams) -> ProductFilterStats:
+    """
+    Obtiene estadísticas de los productos que coinciden con los criterios de filtrado.
+    
+    Ejecuta una consulta agregada para obtener información estadística
+    sobre los productos filtrados.
+    
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        filters (ProductFilterParams): Parámetros de filtrado para las estadísticas.
+    
+    Returns:
+        ProductFilterStats: Estadísticas de los productos filtrados.
+    """
+    try:
+        # Construir condiciones WHERE dinámicamente
+        where_conditions = [
+            "c.ind_activo = true",
+            "l.ind_activo = true", 
+            "s.ind_activo = true",
+            "p.ind_activo = true",
+            "pr.ind_activo = true",
+            "m.ind_activo = true"
+        ]
+        
+        params = {}
+        
+        # Agregar filtros según parámetros
+        if filters.id_categoria is not None:
+            where_conditions.append("p.id_categoria = :id_categoria")
+            params["id_categoria"] = filters.id_categoria
+            
+        if filters.id_linea is not None:
+            where_conditions.append("p.id_linea = :id_linea")
+            params["id_linea"] = filters.id_linea
+            
+        if filters.id_sublinea is not None:
+            where_conditions.append("p.id_sublinea = :id_sublinea")
+            params["id_sublinea"] = filters.id_sublinea
+            
+        if filters.id_marca is not None:
+            where_conditions.append("p.id_marca = :id_marca")
+            params["id_marca"] = filters.id_marca
+            
+        if filters.id_proveedor is not None:
+            where_conditions.append("p.id_proveedor = :id_proveedor")
+            params["id_proveedor"] = filters.id_proveedor
+            
+        if filters.nombre_producto is not None and filters.nombre_producto.strip():
+            where_conditions.append("UPPER(p.nom_producto) LIKE UPPER(:nombre_producto)")
+            params["nombre_producto"] = f"%{filters.nombre_producto}%"
+            
+        if filters.precio_min is not None:
+            where_conditions.append("p.val_precio >= :precio_min")
+            params["precio_min"] = filters.precio_min
+            
+        if filters.precio_max is not None:
+            where_conditions.append("p.val_precio <= :precio_max")
+            params["precio_max"] = filters.precio_max
+            
+        if filters.stock_min is not None:
+            where_conditions.append("p.num_stock >= :stock_min")
+            params["stock_min"] = filters.stock_min
+            
+        if filters.solo_con_stock:
+            where_conditions.append("p.num_stock > 0")
+        
+        # Construir query de estadísticas
+        where_clause = " AND ".join(where_conditions)
+        
+        query = text(f"""
+            SELECT 
+                COUNT(*) as total_productos,
+                MIN(p.val_precio) as precio_minimo,
+                MAX(p.val_precio) as precio_maximo,
+                AVG(p.val_precio) as precio_promedio,
+                SUM(p.num_stock) as total_stock,
+                COUNT(DISTINCT p.id_categoria) as categorias_disponibles,
+                COUNT(DISTINCT p.id_marca) as marcas_disponibles
+            FROM tab_lineas l 
+            INNER JOIN tab_categorias c ON l.id_categoria = c.id_categoria
+            INNER JOIN tab_sublineas s ON l.id_linea = s.id_linea
+            INNER JOIN tab_productos p ON s.id_sublinea = p.id_sublinea
+            INNER JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
+            INNER JOIN tab_marcas m ON p.id_marca = m.id_marca
+            WHERE {where_clause}
+        """)
+        
+        result = db.execute(query, params)
+        stats_data = result.mappings().first()
+        
+        if not stats_data:
+            return ProductFilterStats(
+                total_productos=0,
+                precio_minimo=None,
+                precio_maximo=None,
+                precio_promedio=None,
+                total_stock=0,
+                categorias_disponibles=0,
+                marcas_disponibles=0
+            )
+        
+        return ProductFilterStats(
+            total_productos=stats_data['total_productos'] or 0,
+            precio_minimo=stats_data['precio_minimo'],
+            precio_maximo=stats_data['precio_maximo'],
+            precio_promedio=stats_data['precio_promedio'],
+            total_stock=stats_data['total_stock'] or 0,
+            categorias_disponibles=stats_data['categorias_disponibles'] or 0,
+            marcas_disponibles=stats_data['marcas_disponibles'] or 0
+        )
+        
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener estadísticas de filtros: {str(e)}")
+
+def get_filter_options(db: Session) -> dict:
+    """
+    Obtiene las opciones disponibles para los filtros de productos.
+    
+    Devuelve listas de categorías, líneas, sublíneas, marcas y proveedores
+    activos para poblar los selectores del frontend.
+    
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+    
+    Returns:
+        dict: Diccionario con las opciones de filtro disponibles.
+    """
+    try:
+        # Obtener categorías activas
+        categorias_query = text("""
+            SELECT id_categoria, nom_categoria 
+            FROM tab_categorias 
+            WHERE ind_activo = true 
+            ORDER BY nom_categoria
+        """)
+        categorias = db.execute(categorias_query).mappings().all()
+        
+        # Obtener líneas activas
+        lineas_query = text("""
+            SELECT id_linea, nom_linea, id_categoria
+            FROM tab_lineas 
+            WHERE ind_activo = true 
+            ORDER BY nom_linea
+        """)
+        lineas = db.execute(lineas_query).mappings().all()
+        
+        # Obtener sublíneas activas
+        sublineas_query = text("""
+            SELECT id_sublinea, nom_sublinea, id_linea
+            FROM tab_sublineas 
+            WHERE ind_activo = true 
+            ORDER BY nom_sublinea
+        """)
+        sublineas = db.execute(sublineas_query).mappings().all()
+        
+        # Obtener marcas activas
+        marcas_query = text("""
+            SELECT id_marca, nom_marca 
+            FROM tab_marcas 
+            WHERE ind_activo = true 
+            ORDER BY nom_marca
+        """)
+        marcas = db.execute(marcas_query).mappings().all()
+        
+        # Obtener proveedores activos
+        proveedores_query = text("""
+            SELECT id_proveedor, nom_proveedor 
+            FROM tab_proveedores 
+            WHERE ind_activo = true 
+            ORDER BY nom_proveedor
+        """)
+        proveedores = db.execute(proveedores_query).mappings().all()
+        
+        # Obtener rango de precios
+        precios_query = text("""
+            SELECT 
+                MIN(val_precio) as precio_minimo,
+                MAX(val_precio) as precio_maximo
+            FROM tab_productos 
+            WHERE ind_activo = true
+        """)
+        precios = db.execute(precios_query).mappings().first()
+        
+        return {
+            "categorias": [dict(cat) for cat in categorias],
+            "lineas": [dict(linea) for linea in lineas],
+            "sublineas": [dict(sublinea) for sublinea in sublineas],
+            "marcas": [dict(marca) for marca in marcas],
+            "proveedores": [dict(proveedor) for proveedor in proveedores],
+            "precio_rango": {
+                "minimo": float(precios['precio_minimo']) if precios['precio_minimo'] else 0,
+                "maximo": float(precios['precio_maximo']) if precios['precio_maximo'] else 0
+            } if precios else {"minimo": 0, "maximo": 0}
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener opciones de filtro: {str(e)}")
