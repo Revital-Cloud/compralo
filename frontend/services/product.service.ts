@@ -10,7 +10,10 @@ import type {
   ProductCreate,
   ProductUpdate,
   ProductFilters,
-  PaginationParams,
+  ProductFilterParams,
+  ProductFilterResponse,
+  ProductFilterStats,
+  FilterOptions,
   Category,
   Brand,
   Provider,
@@ -18,10 +21,9 @@ import type {
   ProductSubline,
   StockUpdate,
   StockMovement,
-  ApiResponse,
   Product,
 } from '@/types/product';
-import type { PaginatedResponse } from '@/types/common';
+import type { PaginatedResponse, ApiResponse, PaginationParams } from '@/types/common';
 
 // =============================================================================
 // FUNCIONES DE PRODUCTOS
@@ -85,7 +87,7 @@ export async function createProductWithImages(
   formData.append('id_proveedor', productData.id_proveedor.toString());
   formData.append('id_marca', productData.id_marca.toString());
   formData.append('num_stock', productData.num_stock?.toString() || '0');
-  formData.append('ind_activo', productData.ind_activo?.toString() || 'true');
+  formData.append('ind_activo', 'true');
   
   // Agregar archivos de imagen
   imageFiles.forEach((file, index) => {
@@ -119,6 +121,40 @@ export async function deleteProduct(id: number): Promise<ApiResponse> {
 export async function searchProducts(query: string, params?: ProductFilters): Promise<PaginatedResponse<Product>> {
   return await get<PaginatedResponse<Product>>('/products/search', { 
     params: { ...params, q: query } 
+  });
+}
+
+// =============================================================================
+// FUNCIONES DE FILTROS AVANZADOS (NUEVOS)
+// =============================================================================
+
+/**
+ * Filtrar productos con criterios avanzados
+ */
+export async function filterProducts(filters: ProductFilterParams): Promise<ProductFilterResponse> {
+  return await get<ProductFilterResponse>('/products/filter', { params: filters });
+}
+
+/**
+ * Obtener estadísticas de productos filtrados
+ */
+export async function getFilterStats(filters: ProductFilterParams): Promise<ProductFilterStats> {
+  return await get<ProductFilterStats>('/products/filter/stats', { params: filters });
+}
+
+/**
+ * Obtener opciones disponibles para los filtros
+ */
+export async function getFilterOptions(): Promise<FilterOptions> {
+  return await get<FilterOptions>('/products/filter/options');
+}
+
+/**
+ * Búsqueda rápida de productos por nombre
+ */
+export async function quickSearchProducts(query: string, limit: number = 20): Promise<ProductFilterResponse> {
+  return await get<ProductFilterResponse>('/products/search', { 
+    params: { q: query, limit } 
   });
 }
 
@@ -347,6 +383,12 @@ const productService = {
   getProductsBySubline,
   getFeaturedProducts,
   getProductsOnSale,
+  
+  // Filtros avanzados
+  filterProducts,
+  getFilterStats,
+  getFilterOptions,
+  quickSearchProducts,
   
   // Inventario
   updateProductStock,

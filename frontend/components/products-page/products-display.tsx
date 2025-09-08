@@ -107,12 +107,17 @@ export const ProductsDisplay = ({
 
   // Obtener productos filtrados
   const getProductsToDisplay = () => {
-    // Los datos vienen como array directo
+    // Los datos del endpoint de filtros vienen como { products: [], total: number, ... }
+    if (productsData?.products && Array.isArray(productsData.products)) {
+      return productsData.products
+    }
+    // Fallback para datos que vienen como array directo
     return Array.isArray(productsData) ? productsData : []
   }
 
   const allProducts = getProductsToDisplay()
-  const filteredProducts = getFilteredProducts(allProducts)
+  // Los filtros ya se aplicaron en el backend, no necesitamos filtrar de nuevo
+  const filteredProducts = allProducts
 
   return (
     <div className="flex-1 min-w-0">
@@ -136,9 +141,9 @@ export const ProductsDisplay = ({
         ) : filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              {allProducts.length === 0 ? 'No hay productos disponibles.' : 'No hay productos que coincidan con los filtros aplicados.'}
+              {productsData?.total === 0 ? 'No hay productos disponibles.' : 'No hay productos que coincidan con los filtros aplicados.'}
             </p>
-            {allProducts.length > 0 && (
+            {productsData?.total && productsData.total > 0 && (
               <Button variant="outline" onClick={clearAllFilters}>
                 Limpiar filtros
               </Button>
@@ -150,7 +155,7 @@ export const ProductsDisplay = ({
             {(priceRange[0] > 0 || priceRange[1] < 10000 || selectedCategories.length > 0 || inStockOnly || onSaleOnly) && (
               <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
-                  Mostrando {filteredProducts.length} de {allProducts.length} productos
+                  Mostrando {filteredProducts.length} de {productsData?.total || 0} productos
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {priceRange[0] > 0 && (

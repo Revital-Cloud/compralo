@@ -175,8 +175,8 @@ class ProductFilterParams(BaseModel):
     precio_max: Optional[Decimal] = Field(None, ge=0, description="Precio máximo para filtrar")
     stock_min: Optional[int] = Field(None, ge=0, description="Stock mínimo para filtrar")
     solo_con_stock: bool = Field(False, description="TRUE para mostrar solo productos con stock > 0")
-    ordenar_por: str = Field("nombre", regex="^(precio|nombre|stock|fecha)$", description="Campo para ordenar")
-    orden: str = Field("ASC", regex="^(ASC|DESC)$", description="Dirección del orden")
+    ordenar_por: str = Field("nombre", pattern="^(precio|nombre|stock|fecha)$", description="Campo para ordenar")
+    orden: str = Field("ASC", pattern="^(ASC|DESC)$", description="Dirección del orden")
     limit: int = Field(50, ge=1, le=1000, description="Límite de resultados")
     offset: int = Field(0, ge=0, description="Offset para paginación")
     

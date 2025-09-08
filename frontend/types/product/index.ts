@@ -64,6 +64,77 @@ export interface ProductFilters {
 }
 
 // =============================================================================
+// TIPOS DE FILTROS AVANZADOS (NUEVOS)
+// =============================================================================
+
+export interface ProductFilterParams {
+  id_categoria?: number;
+  id_linea?: number;
+  id_sublinea?: number;
+  id_marca?: number;
+  id_proveedor?: number;
+  nombre_producto?: string;
+  precio_min?: number;
+  precio_max?: number;
+  stock_min?: number;
+  solo_con_stock?: boolean;
+  ordenar_por?: 'precio' | 'nombre' | 'stock' | 'fecha';
+  orden?: 'ASC' | 'DESC';
+  limit?: number;
+  offset?: number;
+}
+
+export interface ProductFiltered {
+  id_categoria: number;
+  id_linea: number;
+  id_sublinea: number;
+  id_producto: number;
+  nom_categoria: string;
+  nom_linea: string;
+  nom_sublinea: string;
+  nom_producto: string;
+  spcf_producto: Record<string, any>;
+  img_producto?: Record<string, any>;
+  val_precio: number;
+  num_stock: number;
+  nom_proveedor: string;
+  nom_marca: string;
+  fec_insert: string;
+  total_registros: number;
+}
+
+export interface ProductFilterResponse {
+  products: ProductFiltered[];
+  total: number;
+  page: number;
+  total_pages: number;
+  limit: number;
+  offset: number;
+}
+
+export interface ProductFilterStats {
+  total_productos: number;
+  precio_minimo?: number;
+  precio_maximo?: number;
+  precio_promedio?: number;
+  total_stock: number;
+  categorias_disponibles: number;
+  marcas_disponibles: number;
+}
+
+export interface FilterOptions {
+  categorias: Array<{ id_categoria: number; nom_categoria: string }>;
+  lineas: Array<{ id_linea: number; nom_linea: string; id_categoria: number }>;
+  sublineas: Array<{ id_sublinea: number; nom_sublinea: string; id_linea: number }>;
+  marcas: Array<{ id_marca: number; nom_marca: string }>;
+  proveedores: Array<{ id_proveedor: number; nom_proveedor: string }>;
+  precio_rango: {
+    minimo: number;
+    maximo: number;
+  };
+}
+
+// =============================================================================
 // TIPOS DE CATEGORÍAS Y CLASIFICACIÓN
 // =============================================================================
 

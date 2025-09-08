@@ -31,7 +31,6 @@ interface ProductsFiltersProps {
   brandsLoading: boolean
   activeFiltersCount: number
   clearAllFilters: () => void
-  applyFilters: () => void
 }
 
 export const ProductsFilters = ({
@@ -60,8 +59,7 @@ export const ProductsFilters = ({
   brandsData,
   brandsLoading,
   activeFiltersCount,
-  clearAllFilters,
-  applyFilters
+  clearAllFilters
 }: ProductsFiltersProps) => {
   return (
     <div className={`lg:w-80 lg:flex-shrink-0 ${showFilters ? 'block' : 'hidden md:block'}`}>
@@ -343,14 +341,7 @@ export const ProductsFilters = ({
           </div>
         </div>
 
-        {/* Apply Filters Button */}
-        <Button
-          onClick={applyFilters}
-          className="w-full cursor-pointer"
-          disabled={activeFiltersCount === 0}
-        >
-          Aplicar Filtros
-        </Button>
+        {/* Los filtros se aplican automáticamente - no necesitamos botón */}
       </div>
     </div>
   )
