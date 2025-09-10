@@ -68,11 +68,11 @@ export interface ProductFilters {
 // =============================================================================
 
 export interface ProductFilterParams {
-  id_categoria?: number;
-  id_linea?: number;
-  id_sublinea?: number;
-  id_marca?: number;
-  id_proveedor?: number;
+  id_categoria?: number | number[];
+  id_linea?: number | number[];
+  id_sublinea?: number | number[];
+  id_marca?: number | number[];
+  id_proveedor?: number | number[];
   nombre_producto?: string;
   precio_min?: number;
   precio_max?: number;

@@ -8,6 +8,8 @@ así como un esquema para mensajes de respuesta genéricos.
 """
 # Esquemas Pydantic (validación de datos, request/response)
 from pydantic import BaseModel, Field
+from fastapi import Query
+from typing import Union, List
 from typing import Optional, Dict, Any, List # Usaremos Dict o Any para JSONB
 from decimal import Decimal # Para campos DECIMAL si se requiere precisión
 from datetime import datetime
@@ -165,11 +167,11 @@ class ProductFilterParams(BaseModel):
         limit (int): Límite de resultados (1-1000).
         offset (int): Offset para paginación (>=0).
     """
-    id_categoria: Optional[int] = Field(None, description="ID de categoría para filtrar")
-    id_linea: Optional[int] = Field(None, description="ID de línea para filtrar")
-    id_sublinea: Optional[int] = Field(None, description="ID de sublínea para filtrar")
-    id_marca: Optional[int] = Field(None, description="ID de marca para filtrar")
-    id_proveedor: Optional[int] = Field(None, description="ID de proveedor para filtrar")
+    id_categoria: Optional[List[int]] = Query(None, description="ID de categoría para filtrar (puede ser múltiple)")
+    id_linea: Optional[List[int]] = Query(None, description="ID de línea para filtrar (puede ser múltiple)")
+    id_sublinea: Optional[List[int]] = Query(None, description="ID de sublínea para filtrar (puede ser múltiple)")
+    id_marca: Optional[List[int]] = Query(None, description="ID de marca para filtrar (puede ser múltiple)")
+    id_proveedor: Optional[List[int]] = Query(None, description="ID de proveedor para filtrar (puede ser múltiple)")
     nombre_producto: Optional[str] = Field(None, max_length=255, description="Texto para buscar en nombre del producto")
     precio_min: Optional[Decimal] = Field(None, ge=0, description="Precio mínimo para filtrar")
     precio_max: Optional[Decimal] = Field(None, ge=0, description="Precio máximo para filtrar")

@@ -132,14 +132,86 @@ export async function searchProducts(query: string, params?: ProductFilters): Pr
  * Filtrar productos con criterios avanzados
  */
 export async function filterProducts(filters: ProductFilterParams): Promise<ProductFilterResponse> {
-  return await get<ProductFilterResponse>('/products/filter', { params: filters });
+  // Convertir arrays a la sintaxis que espera el backend
+  const params = new URLSearchParams();
+  
+  // Agregar parámetros básicos
+  if (filters.nombre_producto) params.append('nombre_producto', filters.nombre_producto);
+  if (filters.precio_min !== undefined) params.append('precio_min', filters.precio_min.toString());
+  if (filters.precio_max !== undefined) params.append('precio_max', filters.precio_max.toString());
+  if (filters.stock_min !== undefined) params.append('stock_min', filters.stock_min.toString());
+  if (filters.solo_con_stock !== undefined) params.append('solo_con_stock', filters.solo_con_stock.toString());
+  if (filters.ordenar_por) params.append('ordenar_por', filters.ordenar_por);
+  if (filters.orden) params.append('orden', filters.orden);
+  if (filters.limit !== undefined) params.append('limit', filters.limit.toString());
+  if (filters.offset !== undefined) params.append('offset', filters.offset.toString());
+  
+  // Agregar arrays con sintaxis correcta (sin [])
+  if (filters.id_categoria) {
+    const categories = Array.isArray(filters.id_categoria) ? filters.id_categoria : [filters.id_categoria];
+    categories.forEach(id => params.append('id_categoria', id.toString()));
+  }
+  if (filters.id_linea) {
+    const lines = Array.isArray(filters.id_linea) ? filters.id_linea : [filters.id_linea];
+    lines.forEach(id => params.append('id_linea', id.toString()));
+  }
+  if (filters.id_sublinea) {
+    const sublines = Array.isArray(filters.id_sublinea) ? filters.id_sublinea : [filters.id_sublinea];
+    sublines.forEach(id => params.append('id_sublinea', id.toString()));
+  }
+  if (filters.id_marca) {
+    const brands = Array.isArray(filters.id_marca) ? filters.id_marca : [filters.id_marca];
+    brands.forEach(id => params.append('id_marca', id.toString()));
+  }
+  if (filters.id_proveedor) {
+    const providers = Array.isArray(filters.id_proveedor) ? filters.id_proveedor : [filters.id_proveedor];
+    providers.forEach(id => params.append('id_proveedor', id.toString()));
+  }
+  
+  return await get<ProductFilterResponse>(`/products/filter?${params.toString()}`);
 }
 
 /**
  * Obtener estadísticas de productos filtrados
  */
 export async function getFilterStats(filters: ProductFilterParams): Promise<ProductFilterStats> {
-  return await get<ProductFilterStats>('/products/filter/stats', { params: filters });
+  // Convertir arrays a la sintaxis que espera el backend
+  const params = new URLSearchParams();
+  
+  // Agregar parámetros básicos
+  if (filters.nombre_producto) params.append('nombre_producto', filters.nombre_producto);
+  if (filters.precio_min !== undefined) params.append('precio_min', filters.precio_min.toString());
+  if (filters.precio_max !== undefined) params.append('precio_max', filters.precio_max.toString());
+  if (filters.stock_min !== undefined) params.append('stock_min', filters.stock_min.toString());
+  if (filters.solo_con_stock !== undefined) params.append('solo_con_stock', filters.solo_con_stock.toString());
+  if (filters.ordenar_por) params.append('ordenar_por', filters.ordenar_por);
+  if (filters.orden) params.append('orden', filters.orden);
+  if (filters.limit !== undefined) params.append('limit', filters.limit.toString());
+  if (filters.offset !== undefined) params.append('offset', filters.offset.toString());
+  
+  // Agregar arrays con sintaxis correcta (sin [])
+  if (filters.id_categoria) {
+    const categories = Array.isArray(filters.id_categoria) ? filters.id_categoria : [filters.id_categoria];
+    categories.forEach(id => params.append('id_categoria', id.toString()));
+  }
+  if (filters.id_linea) {
+    const lines = Array.isArray(filters.id_linea) ? filters.id_linea : [filters.id_linea];
+    lines.forEach(id => params.append('id_linea', id.toString()));
+  }
+  if (filters.id_sublinea) {
+    const sublines = Array.isArray(filters.id_sublinea) ? filters.id_sublinea : [filters.id_sublinea];
+    sublines.forEach(id => params.append('id_sublinea', id.toString()));
+  }
+  if (filters.id_marca) {
+    const brands = Array.isArray(filters.id_marca) ? filters.id_marca : [filters.id_marca];
+    brands.forEach(id => params.append('id_marca', id.toString()));
+  }
+  if (filters.id_proveedor) {
+    const providers = Array.isArray(filters.id_proveedor) ? filters.id_proveedor : [filters.id_proveedor];
+    providers.forEach(id => params.append('id_proveedor', id.toString()));
+  }
+  
+  return await get<ProductFilterStats>(`/products/filter/stats?${params.toString()}`);
 }
 
 /**

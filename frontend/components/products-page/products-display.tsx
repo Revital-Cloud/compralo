@@ -18,6 +18,11 @@ interface ProductsDisplayProps {
   inStockOnly: boolean
   onSaleOnly: boolean
   clearAllFilters: () => void
+  onRemoveFilter?: (filterType: string, value?: string) => void
+  categoriesData?: any[]
+  linesData?: any[]
+  sublinesData?: any[]
+  brandsData?: any[]
 }
 
 export const ProductsDisplay = ({
@@ -32,7 +37,12 @@ export const ProductsDisplay = ({
   selectedBrands,
   inStockOnly,
   onSaleOnly,
-  clearAllFilters
+  clearAllFilters,
+  onRemoveFilter,
+  categoriesData,
+  linesData,
+  sublinesData,
+  brandsData
 }: ProductsDisplayProps) => {
   // Funciones simples para manejar acciones
   const handleAddToCart = (productId: string) => {
@@ -45,9 +55,11 @@ export const ProductsDisplay = ({
 
   // Función para manejar la eliminación de filtros individuales
   const handleRemoveFilter = (filterType: string, value?: string) => {
-    // Esta función debería ser implementada en el componente padre
-    // para manejar la eliminación de filtros específicos
-    console.log(`Remover filtro: ${filterType}`, value)
+    if (onRemoveFilter) {
+      onRemoveFilter(filterType, value)
+    } else {
+      console.log(`Remover filtro: ${filterType}`, value)
+    }
   }
 
   // Función para aplicar filtros a los productos
@@ -185,6 +197,10 @@ export const ProductsDisplay = ({
                   }}
                   onRemoveFilter={handleRemoveFilter}
                   onClearAll={clearAllFilters}
+                  categoriesData={categoriesData}
+                  linesData={linesData}
+                  sublinesData={sublinesData}
+                  brandsData={brandsData}
                 />
                 <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
                   Mostrando {filteredProducts.length} productos

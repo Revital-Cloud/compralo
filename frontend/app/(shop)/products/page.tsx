@@ -47,28 +47,32 @@ const ProductsPage = () => {
   const filterParams: ProductFilterParams = useMemo(() => {
     console.log('🔄 useMemo ejecutándose - filterParams recalculado')
     const params: ProductFilterParams = {
-      solo_con_stock: inStockOnly,
       ordenar_por: sortBy as 'precio' | 'nombre' | 'stock' | 'fecha',
       orden: 'ASC' as 'ASC' | 'DESC',
       limit: itemsPerPage,
       offset: (currentPage - 1) * itemsPerPage,
     }
 
+    // Solo agregar solo_con_stock si realmente se está aplicando el filtro
+    if (inStockOnly) {
+      params.solo_con_stock = true
+    }
+
     // Solo agregar filtros si tienen valores válidos
-    if (selectedCategories.length === 1) {
-      params.id_categoria = Number(selectedCategories[0])
+    if (selectedCategories.length > 0) {
+      params.id_categoria = selectedCategories.map(Number)
     }
-    if (selectedLines.length === 1) {
-      params.id_linea = Number(selectedLines[0])
+    if (selectedLines.length > 0) {
+      params.id_linea = selectedLines.map(Number)
     }
-    if (selectedSublines.length === 1) {
-      params.id_sublinea = Number(selectedSublines[0])
+    if (selectedSublines.length > 0) {
+      params.id_sublinea = selectedSublines.map(Number)
     }
-    if (selectedBrands.length === 1) {
-      params.id_marca = Number(selectedBrands[0])
+    if (selectedBrands.length > 0) {
+      params.id_marca = selectedBrands.map(Number)
     }
-    if (selectedProviders.length === 1) {
-      params.id_proveedor = Number(selectedProviders[0])
+    if (selectedProviders.length > 0) {
+      params.id_proveedor = selectedProviders.map(Number)
     }
     if (searchQuery.trim()) {
       params.nombre_producto = searchQuery.trim()
@@ -79,7 +83,7 @@ const ProductsPage = () => {
     if (priceRange[1] < dynamicPriceRange.max) {
       params.precio_max = priceRange[1]
     }
-
+    
     return params
   }, [
     selectedCategories,
@@ -97,6 +101,7 @@ const ProductsPage = () => {
     itemsPerPage,
     currentPage
   ])
+
 
   // Solo hacer llamadas si realmente hay filtros activos o es la carga inicial
   const hasActiveFilters = selectedCategories.length > 0 || 
@@ -123,6 +128,7 @@ const ProductsPage = () => {
     orden: 'ASC' as 'ASC' | 'DESC'
   })
 
+
   // Obtener estadísticas de filtros - solo si hay filtros activos
   const { data: filterStats } = useFilterStats(hasActiveFilters ? filterParams : {})
 
@@ -137,6 +143,36 @@ const ProductsPage = () => {
     setInStockOnly(false)
     setSearchQuery('')
     setCurrentPage(1)
+  }, [dynamicPriceRange.min, dynamicPriceRange.max])
+
+  // Función para eliminar filtros individuales
+  const handleRemoveFilter = useCallback((filterType: string, value?: string) => {
+    switch (filterType) {
+      case 'categories':
+        setSelectedCategories(prev => prev.filter(cat => cat !== value))
+        break
+      case 'lines':
+        setSelectedLines(prev => prev.filter(line => line !== value))
+        break
+      case 'sublines':
+        setSelectedSublines(prev => prev.filter(subline => subline !== value))
+        break
+      case 'brands':
+        setSelectedBrands(prev => prev.filter(brand => brand !== value))
+        break
+      case 'priceMin':
+        setPriceRange(prev => [dynamicPriceRange.min, prev[1]])
+        break
+      case 'priceMax':
+        setPriceRange(prev => [prev[0], dynamicPriceRange.max])
+        break
+      case 'inStockOnly':
+        setInStockOnly(false)
+        break
+      case 'onSaleOnly':
+        setOnSaleOnly(false)
+        break
+    }
   }, [dynamicPriceRange.min, dynamicPriceRange.max])
 
   // Los filtros se aplican automáticamente con useMemo - no necesitamos función applyFilters
@@ -156,6 +192,7 @@ const ProductsPage = () => {
       ])
     }
   }, [filterOptions, priceRange])
+
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -220,6 +257,11 @@ const ProductsPage = () => {
             inStockOnly={inStockOnly}
             onSaleOnly={onSaleOnly}
             clearAllFilters={clearAllFilters}
+            onRemoveFilter={handleRemoveFilter}
+            categoriesData={categoriesData}
+            linesData={linesData}
+            sublinesData={sublinesData}
+            brandsData={brandsData}
           />
         </div>
       </div>

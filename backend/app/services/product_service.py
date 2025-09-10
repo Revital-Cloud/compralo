@@ -407,13 +407,31 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
             if filters.precio_min > filters.precio_max:
                 raise ValueError("El precio mínimo no puede ser mayor al precio máximo")
         
+        # Procesar arrays - ahora siempre son listas
+        def get_single_value(value):
+            if value is None or len(value) == 0:
+                return None
+            elif len(value) == 1:
+                return value[0]
+            else:
+                return None  # Para arrays, usaremos los parámetros de array
+        
+        def get_array_value(value):
+            if value is None or len(value) == 0:
+                return None
+            elif len(value) == 1:
+                return None  # Para valores únicos, usaremos los parámetros únicos
+            else:
+                return value
+        
         # Preparar parámetros para la función de DB
         params = {
-            "p_id_categoria": filters.id_categoria,
-            "p_id_linea": filters.id_linea,
-            "p_id_sublinea": filters.id_sublinea,
-            "p_id_marca": filters.id_marca,
-            "p_id_proveedor": filters.id_proveedor,
+            # Parámetros únicos
+            "p_id_categoria": get_single_value(filters.id_categoria),
+            "p_id_linea": get_single_value(filters.id_linea),
+            "p_id_sublinea": get_single_value(filters.id_sublinea),
+            "p_id_marca": get_single_value(filters.id_marca),
+            "p_id_proveedor": get_single_value(filters.id_proveedor),
             "p_nombre_producto": filters.nombre_producto,
             "p_precio_min": filters.precio_min,
             "p_precio_max": filters.precio_max,
@@ -422,10 +440,16 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
             "p_ordenar_por": filters.ordenar_por,
             "p_orden": filters.orden,
             "p_limit": filters.limit,
-            "p_offset": filters.offset
+            "p_offset": filters.offset,
+            # Parámetros de arrays
+            "p_id_categorias": get_array_value(filters.id_categoria),
+            "p_id_lineas": get_array_value(filters.id_linea),
+            "p_id_sublineas": get_array_value(filters.id_sublinea),
+            "p_id_marcas": get_array_value(filters.id_marca),
+            "p_id_proveedores": get_array_value(filters.id_proveedor)
         }
         
-        # Ejecutar función de filtrado
+        # Usar función de base de datos
         query = text("""
             SELECT * FROM fun_filter_products(
                 :p_id_categoria,
@@ -441,7 +465,12 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
                 :p_ordenar_por,
                 :p_orden,
                 :p_limit,
-                :p_offset
+                :p_offset,
+                :p_id_categorias,
+                :p_id_lineas,
+                :p_id_sublineas,
+                :p_id_marcas,
+                :p_id_proveedores
             )
         """)
         

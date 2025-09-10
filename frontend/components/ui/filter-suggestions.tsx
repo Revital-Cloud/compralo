@@ -15,6 +15,10 @@ interface FilterSuggestionsProps {
   }
   onRemoveFilter: (filterType: string, value?: string) => void
   onClearAll: () => void
+  categoriesData?: any[]
+  linesData?: any[]
+  sublinesData?: any[]
+  brandsData?: any[]
   className?: string
 }
 
@@ -22,8 +26,33 @@ export const FilterSuggestions = ({
   activeFilters,
   onRemoveFilter,
   onClearAll,
+  categoriesData,
+  linesData,
+  sublinesData,
+  brandsData,
   className
 }: FilterSuggestionsProps) => {
+  // Funciones helper para obtener nombres reales
+  const getCategoryName = (id: string) => {
+    const category = categoriesData?.find(cat => cat.id?.toString() === id)
+    return category?.name || `Categoría ${id}`
+  }
+
+  const getLineName = (id: string) => {
+    const line = linesData?.find(l => l.id_linea?.toString() === id)
+    return line?.nom_linea || `Línea ${id}`
+  }
+
+  const getSublineName = (id: string) => {
+    const subline = sublinesData?.find(sl => sl.id_sublinea?.toString() === id)
+    return subline?.nom_sublinea || `Sub-línea ${id}`
+  }
+
+  const getBrandName = (id: string) => {
+    const brand = brandsData?.find(b => b.id_marca?.toString() === id)
+    return brand?.nom_marca || `Marca ${id}`
+  }
+
   const hasActiveFilters = Object.values(activeFilters).some(value => {
     if (Array.isArray(value)) return value.length > 0
     if (typeof value === 'boolean') return value
@@ -92,7 +121,7 @@ export const FilterSuggestions = ({
             variant="secondary" 
             className="bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-700"
           >
-            Categoría: {category}
+            {getCategoryName(category)}
             <button
               onClick={() => onRemoveFilter('categories', category)}
               className="ml-1 hover:bg-blue-300 dark:hover:bg-blue-600 rounded-full p-0.5"
@@ -109,7 +138,7 @@ export const FilterSuggestions = ({
             variant="secondary" 
             className="bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-700"
           >
-            Línea: {line}
+            {getLineName(line)}
             <button
               onClick={() => onRemoveFilter('lines', line)}
               className="ml-1 hover:bg-blue-300 dark:hover:bg-blue-600 rounded-full p-0.5"
@@ -126,7 +155,7 @@ export const FilterSuggestions = ({
             variant="secondary" 
             className="bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-700"
           >
-            Sub-línea: {subline}
+            {getSublineName(subline)}
             <button
               onClick={() => onRemoveFilter('sublines', subline)}
               className="ml-1 hover:bg-blue-300 dark:hover:bg-blue-600 rounded-full p-0.5"
@@ -143,7 +172,7 @@ export const FilterSuggestions = ({
             variant="secondary" 
             className="bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-700"
           >
-            Marca: {brand}
+            {getBrandName(brand)}
             <button
               onClick={() => onRemoveFilter('brands', brand)}
               className="ml-1 hover:bg-blue-300 dark:hover:bg-blue-600 rounded-full p-0.5"

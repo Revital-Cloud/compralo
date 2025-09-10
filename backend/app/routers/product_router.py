@@ -352,7 +352,7 @@ async def deactivate_product(
 
 @router.get("/products/filter", response_model=ProductFilterResponse)
 async def filter_products(
-    filters: ProductFilterParams = Depends(),
+    request: Request,
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user_optional)
 ):
@@ -365,7 +365,7 @@ async def filter_products(
     resultados optimizados con paginación.
     
     Args:
-        filters (ProductFilterParams): Parámetros de filtrado validados automáticamente.
+        request (Request): Request object para acceder a los query parameters.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
         current_user (UserInToken): Usuario autenticado (opcional).
     
@@ -376,6 +376,37 @@ async def filter_products(
         HTTPException: Si ocurre un error durante el filtrado.
     """
     try:
+        # Obtener query parameters manualmente
+        query_params = request.query_params
+        
+        # Procesar parámetros que pueden ser múltiples
+        def get_list_param(param_name: str) -> Optional[List[int]]:
+            values = query_params.getlist(param_name)
+            if not values:
+                return None
+            try:
+                return [int(v) for v in values]
+            except ValueError:
+                return None
+        
+        # Crear objeto de filtros manualmente
+        filters = ProductFilterParams(
+            id_categoria=get_list_param('id_categoria'),
+            id_linea=get_list_param('id_linea'),
+            id_sublinea=get_list_param('id_sublinea'),
+            id_marca=get_list_param('id_marca'),
+            id_proveedor=get_list_param('id_proveedor'),
+            nombre_producto=query_params.get('nombre_producto'),
+            precio_min=Decimal(query_params.get('precio_min')) if query_params.get('precio_min') else None,
+            precio_max=Decimal(query_params.get('precio_max')) if query_params.get('precio_max') else None,
+            stock_min=int(query_params.get('stock_min')) if query_params.get('stock_min') else None,
+            solo_con_stock=query_params.get('solo_con_stock', 'false').lower() == 'true',
+            ordenar_por=query_params.get('ordenar_por', 'nombre'),
+            orden=query_params.get('orden', 'ASC'),
+            limit=int(query_params.get('limit', 20)),
+            offset=int(query_params.get('offset', 0))
+        )
+        
         result = product_service.filter_products(db, filters)
         return result
     except ValueError as e:
