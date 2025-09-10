@@ -69,13 +69,17 @@ const colorMapping: Record<string, { color: string; bgGradient: string; iconBg: 
   'electronica': { color: '#FF8C00', bgGradient: 'from-orange-500 to-orange-600', iconBg: 'bg-orange-100' },
   'electrónicos': { color: '#FF8C00', bgGradient: 'from-orange-500 to-orange-600', iconBg: 'bg-orange-100' },
   'tecnologia': { color: '#3B82F6', bgGradient: 'from-blue-500 to-blue-600', iconBg: 'bg-blue-100' },
-  'hogar': { color: '#6B7280', bgGradient: 'from-gray-500 to-gray-600', iconBg: 'bg-gray-100' },
-  'casa': { color: '#6B7280', bgGradient: 'from-gray-500 to-gray-600', iconBg: 'bg-gray-100' },
+  'hogar y jardín': { color: '#8B5CF6', bgGradient: 'from-purple-500 to-purple-600', iconBg: 'bg-purple-100' },
+  'casa': { color: '#8B5CF6', bgGradient: 'from-purple-500 to-purple-600', iconBg: 'bg-purple-100' },
+  'jardin': { color: '#10B981', bgGradient: 'from-green-500 to-green-600', iconBg: 'bg-green-100' },
+  'jardín': { color: '#10B981', bgGradient: 'from-green-500 to-green-600', iconBg: 'bg-green-100' },
   'belleza': { color: '#fec806', bgGradient: 'from-yellow-500 to-yellow-600', iconBg: 'bg-yellow-100' },
   'cosmeticos': { color: '#EC4899', bgGradient: 'from-pink-500 to-pink-600', iconBg: 'bg-pink-100' },
   'cosméticos': { color: '#EC4899', bgGradient: 'from-pink-500 to-pink-600', iconBg: 'bg-pink-100' },
   'moda': { color: '#ec2538', bgGradient: 'from-red-500 to-red-600', iconBg: 'bg-red-100' },
   'ropa': { color: '#ec2538', bgGradient: 'from-red-500 to-red-600', iconBg: 'bg-red-100' },
+  'accesorios': { color: '#ec2538', bgGradient: 'from-red-500 to-red-600', iconBg: 'bg-red-100' },
+  'ropa y accesorios': { color: '#ec2538', bgGradient: 'from-red-500 to-red-600', iconBg: 'bg-red-100' },
   'gaming': { color: '#8B5CF6', bgGradient: 'from-purple-500 to-purple-600', iconBg: 'bg-purple-100' },
   'videojuegos': { color: '#8B5CF6', bgGradient: 'from-purple-500 to-purple-600', iconBg: 'bg-purple-100' },
   'salud': { color: '#EF4444', bgGradient: 'from-pink-500 to-pink-600', iconBg: 'bg-pink-100' },
@@ -88,6 +92,8 @@ const colorMapping: Record<string, { color: string; bgGradient: string; iconBg: 
   'mascotas': { color: '#A855F7', bgGradient: 'from-purple-500 to-purple-600', iconBg: 'bg-purple-100' },
   'comida': { color: '#F97316', bgGradient: 'from-orange-500 to-orange-600', iconBg: 'bg-orange-100' },
   'alimentos': { color: '#F97316', bgGradient: 'from-orange-500 to-orange-600', iconBg: 'bg-orange-100' },
+  'bebidas': { color: '#F97316', bgGradient: 'from-orange-500 to-orange-600', iconBg: 'bg-orange-100' },
+  'alimentos y bebidas': { color: '#F97316', bgGradient: 'from-orange-500 to-orange-600', iconBg: 'bg-orange-100' },
   'musica': { color: '#06B6D4', bgGradient: 'from-cyan-500 to-cyan-600', iconBg: 'bg-cyan-100' },
   'música': { color: '#06B6D4', bgGradient: 'from-cyan-500 to-cyan-600', iconBg: 'bg-cyan-100' },
   'fotografia': { color: '#6366F1', bgGradient: 'from-indigo-500 to-indigo-600', iconBg: 'bg-indigo-100' },
@@ -102,11 +108,15 @@ const generateDescription = (categoryName: string): string => {
     'tecnologia': 'Computadores y accesorios',
     'hogar': 'Decoración y muebles',
     'casa': 'Decoración y muebles',
+    'jardin': 'Plantas y herramientas de jardín',
+    'jardín': 'Plantas y herramientas de jardín',
     'belleza': 'Productos de cuidado personal',
     'cosmeticos': 'Maquillaje y cuidado facial',
     'cosméticos': 'Maquillaje y cuidado facial',
     'moda': 'Ropa y accesorios',
     'ropa': 'Vestimenta para toda ocasión',
+    'accesorios': 'Complementos de moda',
+    'ropa y accesorios': 'Vestimenta y complementos',
     'gaming': 'Videojuegos y consolas',
     'videojuegos': 'Entretenimiento digital',
     'salud': 'Bienestar y cuidado',
@@ -119,6 +129,8 @@ const generateDescription = (categoryName: string): string => {
     'mascotas': 'Todo para tus compañeros peludos',
     'comida': 'Alimentos y bebidas',
     'alimentos': 'Productos alimenticios',
+    'bebidas': 'Bebidas y refrescos',
+    'alimentos y bebidas': 'Productos alimenticios y bebidas',
     'musica': 'Instrumentos y audio',
     'música': 'Instrumentos y audio',
     'fotografia': 'Equipos fotográficos',
@@ -147,14 +159,24 @@ const getColorsForCategory = (categoryName: string) => {
 
 // Función principal para mapear categorías de API a categorías de display
 export const mapCategoriesToDisplay = (categories: Category[]): CategoryDisplay[] => {
+  console.log('Raw categories from API:', categories);
+  
+  if (!categories || !Array.isArray(categories)) {
+    console.error('Invalid categories data:', categories);
+    return [];
+  }
+  
   return categories
-    .filter(category => category.ind_activo) // Solo categorías activas
+    .filter(category => {
+      console.log('Processing category:', category);
+      return category && category.ind_activo; // Solo categorías activas
+    })
     .map(category => {
       const colors = getColorsForCategory(category.nom_categoria);
       const icon = getIconForCategory(category.nom_categoria);
       const description = generateDescription(category.nom_categoria);
 
-      return {
+      const mappedCategory = {
         id: category.id_categoria,
         name: category.nom_categoria,
         description,
@@ -164,6 +186,9 @@ export const mapCategoriesToDisplay = (categories: Category[]): CategoryDisplay[
         iconBg: colors.iconBg,
         isActive: category.ind_activo,
       };
+      
+      console.log('Mapped category:', mappedCategory);
+      return mappedCategory;
     });
 };
 

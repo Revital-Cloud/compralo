@@ -3,15 +3,23 @@ export { useAuth } from './use-auth'
 export { useLoginRedirect } from './use-role-redirect'
 
 // Data hooks
-export { useProducts } from './use-products'
+export { 
+  useProducts, 
+  useBrands, 
+  useFilterProducts, 
+  useFilterStats, 
+  useFilterOptions, 
+  useQuickSearch 
+} from './use-products'
 export { useFeaturedProducts } from './use-products'
 export { useCategories } from './use-categories'
-export { useLines } from './use-lines'
-export { useSublines } from './use-sublines'
+export { useFooterCategories } from './use-footer-categories'
+export { useAllLines, useLinesByCategory, useLine } from './use-lines'
+export { useAllSublines, useSublinesByLine, useSubline } from './use-sublines'
 export { useDashboardData } from './use-dashboard-data'
 
 // UI hooks
-export { useMobile } from './use-mobile'
+export { useIsMobile as useMobile } from './use-mobile'
 export { useToastActions } from './use-toast-actions'
 export { useFileExport } from './use-file-export'
 export { useFileImport } from './use-file-import'

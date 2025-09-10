@@ -45,9 +45,10 @@ export const ProductsHeader = ({
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               {productsLoading ? 'Cargando productos...' :
                productsError ? 'Error al cargar productos' :
-               Array.isArray(productsData) ? `${productsData.length} productos encontrados` :
-               productsData?.items ? `${productsData.items.length} productos encontrados` :
-               productsData ? '1 producto encontrado' : '0 productos encontrados'}
+               productsData?.total > 0 ? `${productsData.total} productos encontrados` :
+               productsData?.products && productsData.products.length > 0 ? `${productsData.products.length} productos encontrados` :
+               Array.isArray(productsData) && productsData.length > 0 ? `${productsData.length} productos encontrados` :
+               'No hay productos disponibles'}
             </p>
           </div>
 

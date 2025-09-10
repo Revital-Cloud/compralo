@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     
     # Configuración de la API
     API_STR: str = "/api"
-    PROJECT_NAME: str = "Brillo Rosa API"
+    PROJECT_NAME: str = "Compralo API"
     
     # Configuración de Wompi
     WOMPI_PUBLIC_KEY: str

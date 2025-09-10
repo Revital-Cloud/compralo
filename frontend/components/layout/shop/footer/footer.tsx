@@ -12,11 +12,8 @@ import {
   LegalLinks,
   CopyrightSection
 } from "./components"
-import { mainCategories, 
-    additionalCategories, 
-    companyLinks, 
-    customerServiceLinks 
-} from "@/lib/footer-config"
+import { companyLinks, customerServiceLinks } from "@/lib/footer-config"
+import { useFooterCategories } from "@/hooks"
 
 interface FooterProps {
   className?: string
@@ -24,6 +21,8 @@ interface FooterProps {
 }
 
 const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }) => {
+  const { data: footerCategories, isLoading, error } = useFooterCategories()
+
   return (
     <footer className={`bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 transition-colors duration-300 ${className}`}>
       {/* Newsletter Section */}
@@ -36,10 +35,20 @@ const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }
           <AboutSection />
 
           {/* Categories Column 1 */}
-          <CategoriesSection title="Categorías" categories={mainCategories} />
+          <CategoriesSection 
+            title="Categorías" 
+            categories={footerCategories?.mainCategories || []}
+            isLoading={isLoading}
+            error={error}
+          />
 
           {/* Categories Column 2 */}
-          <CategoriesSection title="Más Categorías" categories={additionalCategories} />
+          <CategoriesSection 
+            title="Más Categorías" 
+            categories={footerCategories?.additionalCategories || []}
+            isLoading={isLoading}
+            error={error}
+          />
 
           {/* Company */}
           <CategoriesSection title="Empresa" categories={companyLinks} />

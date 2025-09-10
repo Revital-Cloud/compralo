@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion"
 import { ShoppingCart, Star, Heart, Eye } from "lucide-react"
-import { useProducts } from "@/hooks/use-products"
+import { useProductsHomePage } from "@/hooks/use-products"
 import { formatPrice } from "@/utils/format-price"
 import { getProductImageUrl } from "@/utils/image-helpers"
 import { getProductDescription } from "@/utils/product-helpers"
@@ -17,7 +17,7 @@ const FeaturedProducts = () => {
     error, 
     refetch,
     isError 
-  } = useProducts()
+  } = useProductsHomePage()
 
   // Animation variants - memoized to prevent re-creation on each render
   const containerVariants = useMemo(() => ({
@@ -226,7 +226,7 @@ const FeaturedProducts = () => {
           whileInView="visible"
           viewport={{ once: true }}
         >
-          {products?.items?.map((product: Product) => (
+          {products?.slice(0, 4)?.map((product: Product) => (
             <motion.div
               key={product.id_producto}
               variants={cardVariants}

@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button"
 import Loading from "@/components/ui/loading"
 import { ProductGrid, ProductList } from "@/components/product"
+import { EmptyProductsState } from "@/components/ui/empty-state"
+import { FilterSuggestions } from "@/components/ui/filter-suggestions"
 import { formatPrice } from "@/utils/format-price"
 
 interface ProductsDisplayProps {
@@ -10,9 +12,17 @@ interface ProductsDisplayProps {
   viewMode: 'grid' | 'list'
   priceRange: number[]
   selectedCategories: string[]
+  selectedLines: string[]
+  selectedSublines: string[]
+  selectedBrands: string[]
   inStockOnly: boolean
   onSaleOnly: boolean
   clearAllFilters: () => void
+  onRemoveFilter?: (filterType: string, value?: string) => void
+  categoriesData?: any[]
+  linesData?: any[]
+  sublinesData?: any[]
+  brandsData?: any[]
 }
 
 export const ProductsDisplay = ({
@@ -22,9 +32,17 @@ export const ProductsDisplay = ({
   viewMode,
   priceRange,
   selectedCategories,
+  selectedLines,
+  selectedSublines,
+  selectedBrands,
   inStockOnly,
   onSaleOnly,
-  clearAllFilters
+  clearAllFilters,
+  onRemoveFilter,
+  categoriesData,
+  linesData,
+  sublinesData,
+  brandsData
 }: ProductsDisplayProps) => {
   // Funciones simples para manejar acciones
   const handleAddToCart = (productId: string) => {
@@ -33,6 +51,15 @@ export const ProductsDisplay = ({
 
   const handleToggleFavorite = (productId: string) => {
     console.log(`Toggle favorito: ${productId}`)
+  }
+
+  // Función para manejar la eliminación de filtros individuales
+  const handleRemoveFilter = (filterType: string, value?: string) => {
+    if (onRemoveFilter) {
+      onRemoveFilter(filterType, value)
+    } else {
+      console.log(`Remover filtro: ${filterType}`, value)
+    }
   }
 
   // Función para aplicar filtros a los productos
@@ -49,7 +76,8 @@ export const ProductsDisplay = ({
       }
       
       // Solo aplicar filtro de precio máximo si el usuario lo ha modificado
-      if (priceRange[1] < 10000 && productPrice > priceRange[1]) {
+      // Nota: Este filtro se aplica en el backend, aquí es solo para mostrar información
+      if (priceRange[1] < 10000000 && productPrice > priceRange[1]) {
         return false
       }
       
@@ -57,6 +85,30 @@ export const ProductsDisplay = ({
       if (selectedCategories.length > 0) {
         const productCategory = product.id_categoria?.toString()
         if (!productCategory || !selectedCategories.includes(productCategory)) {
+          return false
+        }
+      }
+      
+      // Filtro por línea
+      if (selectedLines.length > 0) {
+        const productLine = product.id_linea?.toString()
+        if (!productLine || !selectedLines.includes(productLine)) {
+          return false
+        }
+      }
+      
+      // Filtro por sub-línea
+      if (selectedSublines.length > 0) {
+        const productSubline = product.id_sublinea?.toString()
+        if (!productSubline || !selectedSublines.includes(productSubline)) {
+          return false
+        }
+      }
+      
+      // Filtro por marca
+      if (selectedBrands.length > 0) {
+        const productBrand = product.id_marca?.toString()
+        if (!productBrand || !selectedBrands.includes(productBrand)) {
           return false
         }
       }
@@ -77,12 +129,17 @@ export const ProductsDisplay = ({
 
   // Obtener productos filtrados
   const getProductsToDisplay = () => {
-    // Los datos vienen como array directo
+    // Los datos del endpoint de filtros vienen como { products: [], total: number, ... }
+    if (productsData?.products && Array.isArray(productsData.products)) {
+      return productsData.products
+    }
+    // Fallback para datos que vienen como array directo
     return Array.isArray(productsData) ? productsData : []
   }
 
   const allProducts = getProductsToDisplay()
-  const filteredProducts = getFilteredProducts(allProducts)
+  // Los filtros ya se aplicaron en el backend, no necesitamos filtrar de nuevo
+  const filteredProducts = allProducts
 
   return (
     <div className="flex-1 min-w-0">
@@ -95,60 +152,59 @@ export const ProductsDisplay = ({
             text="Cargando productos..." 
           />
         ) : productsError ? (
-          <div className="text-center py-12">
-            <p className="text-red-600 dark:text-red-400 mb-4">
-              Error al cargar los productos. Por favor, intenta de nuevo.
-            </p>
-            <Button onClick={() => window.location.reload()}>
-              Recargar página
-            </Button>
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <div className="mb-6 p-4 rounded-full bg-red-100 dark:bg-red-900/20">
+              <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div className="max-w-md mx-auto space-y-4">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Error al cargar productos
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                Ocurrió un problema al cargar los productos. Por favor, intenta de nuevo o contacta con soporte si el problema persiste.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                <Button onClick={() => window.location.reload()}>
+                  Recargar página
+                </Button>
+                <Button variant="outline" onClick={() => window.location.href = '/products'}>
+                  Volver a productos
+                </Button>
+              </div>
+            </div>
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              {allProducts.length === 0 ? 'No hay productos disponibles.' : 'No hay productos que coincidan con los filtros aplicados.'}
-            </p>
-            {allProducts.length > 0 && (
-              <Button variant="outline" onClick={clearAllFilters}>
-                Limpiar filtros
-              </Button>
-            )}
-          </div>
+          <EmptyProductsState 
+            hasFilters={productsData?.total && productsData.total > 0}
+            onClearFilters={clearAllFilters}
+          />
         ) : (
           <>
-            {/* Filtros activos info */}
-            {(priceRange[0] > 0 || priceRange[1] < 10000 || selectedCategories.length > 0 || inStockOnly || onSaleOnly) && (
-              <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">
-                  Mostrando {filteredProducts.length} de {allProducts.length} productos
+            {/* Filtros activos info - Solo mostrar si hay productos */}
+            {filteredProducts.length > 0 && (
+              <div className="mb-6 space-y-4">
+                <FilterSuggestions
+                  activeFilters={{
+                    priceRange: priceRange[0] > 0 || priceRange[1] < 10000000 ? [priceRange[0], priceRange[1]] as [number, number] : undefined,
+                    categories: selectedCategories,
+                    lines: selectedLines,
+                    sublines: selectedSublines,
+                    brands: selectedBrands,
+                    inStockOnly,
+                    onSaleOnly
+                  }}
+                  onRemoveFilter={handleRemoveFilter}
+                  onClearAll={clearAllFilters}
+                  categoriesData={categoriesData}
+                  linesData={linesData}
+                  sublinesData={sublinesData}
+                  brandsData={brandsData}
+                />
+                <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                  Mostrando {filteredProducts.length} productos
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {priceRange[0] > 0 && (
-                    <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                      Precio mínimo: {formatPrice(priceRange[0])}
-                    </span>
-                  )}
-                  {priceRange[1] < 10000 && (
-                    <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                      Precio máximo: {formatPrice(priceRange[1])}
-                    </span>
-                  )}
-                  {selectedCategories.length > 0 && (
-                    <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                      {selectedCategories.length} categoría{selectedCategories.length > 1 ? 's' : ''} seleccionada{selectedCategories.length > 1 ? 's' : ''}
-                    </span>
-                  )}
-                  {inStockOnly && (
-                    <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                      Solo en stock
-                    </span>
-                  )}
-                  {onSaleOnly && (
-                    <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                      Solo en oferta
-                    </span>
-                  )}
-                </div>
               </div>
             )}
 
@@ -170,20 +226,6 @@ export const ProductsDisplay = ({
         )}
       </div>
 
-      {/* Pagination - Solo si hay datos paginados */}
-      {productsData && productsData.total && productsData.total > productsData.limit && (
-        <div className="mt-8 md:mt-12 flex justify-center overflow-x-auto">
-          <div className="flex items-center gap-1 md:gap-2 min-w-max px-4">
-            <Button variant="outline" size="sm" disabled={productsData.page <= 1} className="flex-shrink-0">
-              ← Anterior
-            </Button>
-            <Button variant="default" size="sm" className="flex-shrink-0">{productsData.page}</Button>
-            <Button variant="outline" size="sm" disabled={productsData.page >= productsData.pages} className="flex-shrink-0">
-              Siguiente →
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

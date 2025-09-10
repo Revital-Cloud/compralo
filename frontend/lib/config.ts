@@ -4,7 +4,7 @@
 
 export const appConfig = {
   // URLs
-  apiUrl: process.env.NEXT_PUBLIC_API_URL_LOCAL || 'http://localhost:8000/api',
+  apiUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api',
   
   // Branding de Brillo Rosa
   brand: {

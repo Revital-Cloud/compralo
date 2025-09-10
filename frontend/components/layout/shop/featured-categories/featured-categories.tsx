@@ -1,11 +1,12 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { ShoppingBag, RefreshCw} from "lucide-react"
 import { useFeaturedCategories } from "@/hooks/use-categories"
 import { getIconComponent } from "@/utils/category-mapper"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import FeaturedCategoriesSkeleton from "./featured-categories-skeleton"
+import FeaturedCategoriesError from "./featured-categories-error"
 
 const FeaturedCategories = () => {
   const router = useRouter()
@@ -78,59 +79,14 @@ const FeaturedCategories = () => {
   // Loading skeleton
   if (isLoading) {
     return (
-      <section className="relative min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 overflow-hidden transition-colors duration-300">
-        <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(68,68,68,.1)_50%,transparent_75%)] dark:bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,.05)_50%,transparent_75%)] bg-[length:20px_20px] animate-pulse" />
-        
-        <div className="relative container mx-auto px-4 py-20">
-          <div className="text-center mb-16">
-            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-48 mx-auto mb-4 animate-pulse" />
-            <div className="h-12 bg-gray-200 dark:bg-gray-700 rounded-lg w-96 mx-auto mb-4 animate-pulse" />
-            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-64 mx-auto animate-pulse" />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[...Array(6)].map((_, index) => (
-              <div
-                key={index}
-                className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg dark:shadow-gray-900/25 border border-gray-200/50 dark:border-gray-700/50 transition-colors duration-300"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-xl animate-pulse" />
-                  <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-16 animate-pulse" />
-                </div>
-                <div className="h-6 bg-gray-200 dark:bg-gray-600 rounded w-32 mb-2 animate-pulse" />
-                <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-full animate-pulse" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <FeaturedCategoriesSkeleton />
     )
   }
 
   // Error state
   if (isError) {
     return (
-      <section className="relative min-h-screen bg-gradient-to-br from-red-50 via-white to-red-100 dark:from-red-950/20 dark:via-gray-900 dark:to-red-950/20 overflow-hidden flex items-center justify-center transition-colors duration-300">
-        <div className="text-center p-8">
-          <div className="w-20 h-20 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-            <ShoppingBag className="w-10 h-10 text-red-500 dark:text-red-400" />
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 transition-colors duration-300">
-            ¡Ups! Algo salió mal
-          </h3>
-          <p className="text-gray-600 dark:text-gray-300 mb-6 max-w-md mx-auto transition-colors duration-300">
-            {error?.message || 'Error al cargar las categorías'}
-          </p>
-          <button
-            onClick={() => refetch()}
-            className="inline-flex items-center px-6 py-3 bg-red-500 dark:bg-red-600 text-white rounded-lg font-medium hover:bg-red-600 dark:hover:bg-red-700 transition-colors duration-300"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Intentar de nuevo
-          </button>
-        </div>
-      </section>
+      <FeaturedCategoriesError error={error} refetch={refetch} />
     )
   }
 

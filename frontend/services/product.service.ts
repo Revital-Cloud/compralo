@@ -10,8 +10,10 @@ import type {
   ProductCreate,
   ProductUpdate,
   ProductFilters,
-  PaginationParams,
-  PaginatedResponse,
+  ProductFilterParams,
+  ProductFilterResponse,
+  ProductFilterStats,
+  FilterOptions,
   Category,
   Brand,
   Provider,
@@ -19,9 +21,9 @@ import type {
   ProductSubline,
   StockUpdate,
   StockMovement,
-  ApiResponse,
-} from '@/types';
-import type { Product } from '@/types/product';
+  Product,
+} from '@/types/product';
+import type { PaginatedResponse, ApiResponse, PaginationParams } from '@/types/common';
 
 // =============================================================================
 // FUNCIONES DE PRODUCTOS
@@ -30,8 +32,11 @@ import type { Product } from '@/types/product';
 /**
  * Obtener lista de productos
  */
-export async function getProducts(params?: ProductFilters): Promise<PaginatedResponse<Product>> {
-  return await get<PaginatedResponse<Product>>('/products', { params });
+export async function getProducts(params?: ProductFilters): Promise<Product[] | PaginatedResponse<Product>> {
+  if (params) {
+    return await get<PaginatedResponse<Product>>('/products', { params });
+  }
+  return await get<Product[]>('/products');
 }
 
 /**
@@ -82,7 +87,7 @@ export async function createProductWithImages(
   formData.append('id_proveedor', productData.id_proveedor.toString());
   formData.append('id_marca', productData.id_marca.toString());
   formData.append('num_stock', productData.num_stock?.toString() || '0');
-  formData.append('ind_activo', productData.ind_activo?.toString() || 'true');
+  formData.append('ind_activo', 'true');
   
   // Agregar archivos de imagen
   imageFiles.forEach((file, index) => {
@@ -116,6 +121,112 @@ export async function deleteProduct(id: number): Promise<ApiResponse> {
 export async function searchProducts(query: string, params?: ProductFilters): Promise<PaginatedResponse<Product>> {
   return await get<PaginatedResponse<Product>>('/products/search', { 
     params: { ...params, q: query } 
+  });
+}
+
+// =============================================================================
+// FUNCIONES DE FILTROS AVANZADOS (NUEVOS)
+// =============================================================================
+
+/**
+ * Filtrar productos con criterios avanzados
+ */
+export async function filterProducts(filters: ProductFilterParams): Promise<ProductFilterResponse> {
+  // Convertir arrays a la sintaxis que espera el backend
+  const params = new URLSearchParams();
+  
+  // Agregar parámetros básicos
+  if (filters.nombre_producto) params.append('nombre_producto', filters.nombre_producto);
+  if (filters.precio_min !== undefined) params.append('precio_min', filters.precio_min.toString());
+  if (filters.precio_max !== undefined) params.append('precio_max', filters.precio_max.toString());
+  if (filters.stock_min !== undefined) params.append('stock_min', filters.stock_min.toString());
+  if (filters.solo_con_stock !== undefined) params.append('solo_con_stock', filters.solo_con_stock.toString());
+  if (filters.ordenar_por) params.append('ordenar_por', filters.ordenar_por);
+  if (filters.orden) params.append('orden', filters.orden);
+  if (filters.limit !== undefined) params.append('limit', filters.limit.toString());
+  if (filters.offset !== undefined) params.append('offset', filters.offset.toString());
+  
+  // Agregar arrays con sintaxis correcta (sin [])
+  if (filters.id_categoria) {
+    const categories = Array.isArray(filters.id_categoria) ? filters.id_categoria : [filters.id_categoria];
+    categories.forEach(id => params.append('id_categoria', id.toString()));
+  }
+  if (filters.id_linea) {
+    const lines = Array.isArray(filters.id_linea) ? filters.id_linea : [filters.id_linea];
+    lines.forEach(id => params.append('id_linea', id.toString()));
+  }
+  if (filters.id_sublinea) {
+    const sublines = Array.isArray(filters.id_sublinea) ? filters.id_sublinea : [filters.id_sublinea];
+    sublines.forEach(id => params.append('id_sublinea', id.toString()));
+  }
+  if (filters.id_marca) {
+    const brands = Array.isArray(filters.id_marca) ? filters.id_marca : [filters.id_marca];
+    brands.forEach(id => params.append('id_marca', id.toString()));
+  }
+  if (filters.id_proveedor) {
+    const providers = Array.isArray(filters.id_proveedor) ? filters.id_proveedor : [filters.id_proveedor];
+    providers.forEach(id => params.append('id_proveedor', id.toString()));
+  }
+  
+  return await get<ProductFilterResponse>(`/products/filter?${params.toString()}`);
+}
+
+/**
+ * Obtener estadísticas de productos filtrados
+ */
+export async function getFilterStats(filters: ProductFilterParams): Promise<ProductFilterStats> {
+  // Convertir arrays a la sintaxis que espera el backend
+  const params = new URLSearchParams();
+  
+  // Agregar parámetros básicos
+  if (filters.nombre_producto) params.append('nombre_producto', filters.nombre_producto);
+  if (filters.precio_min !== undefined) params.append('precio_min', filters.precio_min.toString());
+  if (filters.precio_max !== undefined) params.append('precio_max', filters.precio_max.toString());
+  if (filters.stock_min !== undefined) params.append('stock_min', filters.stock_min.toString());
+  if (filters.solo_con_stock !== undefined) params.append('solo_con_stock', filters.solo_con_stock.toString());
+  if (filters.ordenar_por) params.append('ordenar_por', filters.ordenar_por);
+  if (filters.orden) params.append('orden', filters.orden);
+  if (filters.limit !== undefined) params.append('limit', filters.limit.toString());
+  if (filters.offset !== undefined) params.append('offset', filters.offset.toString());
+  
+  // Agregar arrays con sintaxis correcta (sin [])
+  if (filters.id_categoria) {
+    const categories = Array.isArray(filters.id_categoria) ? filters.id_categoria : [filters.id_categoria];
+    categories.forEach(id => params.append('id_categoria', id.toString()));
+  }
+  if (filters.id_linea) {
+    const lines = Array.isArray(filters.id_linea) ? filters.id_linea : [filters.id_linea];
+    lines.forEach(id => params.append('id_linea', id.toString()));
+  }
+  if (filters.id_sublinea) {
+    const sublines = Array.isArray(filters.id_sublinea) ? filters.id_sublinea : [filters.id_sublinea];
+    sublines.forEach(id => params.append('id_sublinea', id.toString()));
+  }
+  if (filters.id_marca) {
+    const brands = Array.isArray(filters.id_marca) ? filters.id_marca : [filters.id_marca];
+    brands.forEach(id => params.append('id_marca', id.toString()));
+  }
+  if (filters.id_proveedor) {
+    const providers = Array.isArray(filters.id_proveedor) ? filters.id_proveedor : [filters.id_proveedor];
+    providers.forEach(id => params.append('id_proveedor', id.toString()));
+  }
+  
+  return await get<ProductFilterStats>(`/products/filter/stats?${params.toString()}`);
+}
+
+/**
+ * Obtener opciones disponibles para los filtros
+ */
+export async function getFilterOptions(): Promise<FilterOptions> {
+  return await get<FilterOptions>('/products/filter/options');
+}
+
+/**
+ * Búsqueda rápida de productos por nombre
+ */
+export async function quickSearchProducts(query: string, limit: number = 20): Promise<ProductFilterResponse> {
+  return await get<ProductFilterResponse>('/products/search', { 
+    params: { q: query, limit } 
   });
 }
 
@@ -344,6 +455,12 @@ const productService = {
   getProductsBySubline,
   getFeaturedProducts,
   getProductsOnSale,
+  
+  // Filtros avanzados
+  filterProducts,
+  getFilterStats,
+  getFilterOptions,
+  quickSearchProducts,
   
   // Inventario
   updateProductStock,

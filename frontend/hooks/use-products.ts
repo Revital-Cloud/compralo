@@ -8,7 +8,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as productService from '@/services/product.service';
-import type { Product, ProductCreate, ProductUpdate, PaginationParams } from '@/types';
+import type { Product, ProductCreate, ProductUpdate, ProductFilterParams, ProductFilterResponse, ProductFilterStats, FilterOptions } from '@/types/product';
+import type { PaginationParams } from '@/types/common';
 
 export const PRODUCT_KEYS = {
   all: ['products'] as const,
@@ -16,7 +17,25 @@ export const PRODUCT_KEYS = {
   list: (filters: PaginationParams) => [...PRODUCT_KEYS.lists(), filters] as const,
   details: () => [...PRODUCT_KEYS.all, 'detail'] as const,
   detail: (id: string | number) => [...PRODUCT_KEYS.details(), id] as const,
+  // Filtros avanzados
+  filters: () => [...PRODUCT_KEYS.all, 'filters'] as const,
+  filter: (filters: ProductFilterParams) => [...PRODUCT_KEYS.filters(), filters] as const,
+  filterStats: (filters: ProductFilterParams) => [...PRODUCT_KEYS.filters(), 'stats', filters] as const,
+  filterOptions: () => [...PRODUCT_KEYS.filters(), 'options'] as const,
+  search: (query: string) => [...PRODUCT_KEYS.all, 'search', query] as const,
 };
+
+export function useProductsHomePage() {
+  return useQuery<Product[]>({
+    queryKey: ['products', 'homepage'],
+    queryFn: () => productService.getProducts() as Promise<Product[]>,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    gcTime: 10 * 60 * 1000, // 10 minutos en cache
+  });
+}
 
 export function useProducts(filters: PaginationParams = { page: 1, limit: 12 }) {
   return useQuery({
@@ -102,5 +121,67 @@ export function useBrands() {
     queryKey: ['brands'],
     queryFn: () => productService.getBrands(),
     staleTime: 10 * 60 * 1000, // 10 minutos
+  });
+}
+
+// =============================================================================
+// HOOKS DE FILTROS AVANZADOS (NUEVOS)
+// =============================================================================
+
+/**
+ * Hook para filtrar productos con criterios avanzados
+ */
+export function useFilterProducts(filters: ProductFilterParams) {
+  return useQuery({
+    queryKey: PRODUCT_KEYS.filter(filters),
+    queryFn: () => {
+      console.log('🚀 Ejecutando query de filtros:', filters)
+      return productService.filterProducts(filters)
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutos - aumentar para evitar llamadas frecuentes
+    placeholderData: (previousData) => previousData, // Mantener datos anteriores durante la carga
+    refetchOnWindowFocus: false, // Evitar refetch innecesario
+    refetchOnMount: false, // Evitar refetch al montar si ya tenemos datos
+    refetchOnReconnect: false, // Evitar refetch al reconectar
+  });
+}
+
+/**
+ * Hook para obtener estadísticas de productos filtrados
+ */
+export function useFilterStats(filters: ProductFilterParams) {
+  return useQuery({
+    queryKey: PRODUCT_KEYS.filterStats(filters),
+    queryFn: () => {
+      console.log('📊 Ejecutando query de estadísticas:', filters)
+      return productService.getFilterStats(filters)
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutos - estadísticas cambian menos
+    refetchOnWindowFocus: false, // Evitar refetch innecesario
+    refetchOnMount: false, // Evitar refetch al montar si ya tenemos datos
+    refetchOnReconnect: false, // Evitar refetch al reconectar
+  });
+}
+
+/**
+ * Hook para obtener opciones de filtros
+ */
+export function useFilterOptions() {
+  return useQuery({
+    queryKey: PRODUCT_KEYS.filterOptions(),
+    queryFn: () => productService.getFilterOptions(),
+    staleTime: 15 * 60 * 1000, // 15 minutos - las opciones cambian poco
+  });
+}
+
+/**
+ * Hook para búsqueda rápida de productos
+ */
+export function useQuickSearch(query: string, limit: number = 20) {
+  return useQuery({
+    queryKey: PRODUCT_KEYS.search(query),
+    queryFn: () => productService.quickSearchProducts(query, limit),
+    enabled: !!query && query.length >= 2, // Solo buscar si hay al menos 2 caracteres
+    staleTime: 1 * 60 * 1000, // 1 minuto
   });
 } 
