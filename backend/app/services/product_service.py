@@ -448,11 +448,28 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
         result = db.execute(query, params)
         products_data = result.mappings().all()
         
+        # Debug: Información de la consulta a la DB
+        print(f"🔍 Debug DB Query:")
+        print(f"  - Registros devueltos por la DB: {len(products_data)}")
+        if products_data:
+            print(f"  - Primer registro total_registros: {products_data[0].get('total_registros', 'N/A')}")
+            print(f"  - IDs únicos en la respuesta: {set(row['id_producto'] for row in products_data)}")
+        
         # Convertir a objetos ProductFiltered
         products = []
         total = 0
+        seen_products = set()  # Para evitar duplicados
         
         for row in products_data:
+            # Crear clave única para evitar duplicados
+            product_key = f"{row['id_categoria']}-{row['id_linea']}-{row['id_sublinea']}-{row['id_producto']}"
+            
+            # Saltar si ya hemos procesado este producto
+            if product_key in seen_products:
+                continue
+                
+            seen_products.add(product_key)
+            
             # Convertir spcf_producto de JSON string a dict si es necesario
             spcf_producto = row['spcf_producto']
             if isinstance(spcf_producto, str):
@@ -494,12 +511,23 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
                 total = row['total_registros']
         
         # Calcular información de paginación
+        # Usar el número real de productos únicos en lugar del total_registros de la DB
+        actual_total = len(products)
         page = (filters.offset // filters.limit) + 1
-        total_pages = (total + filters.limit - 1) // filters.limit if total > 0 else 0
+        total_pages = (actual_total + filters.limit - 1) // filters.limit if actual_total > 0 else 0
+        
+        # Debug: Log para entender la discrepancia
+        duplicates_removed = len(products_data) - actual_total
+        print(f"🔍 Debug filter_products:")
+        print(f"  - Productos únicos devueltos: {actual_total}")
+        print(f"  - Total de la DB (primer registro): {total}")
+        print(f"  - Registros procesados de la DB: {len(products_data)}")
+        print(f"  - Duplicados eliminados: {duplicates_removed}")
+        print(f"  - Filtros aplicados: {filters}")
         
         return ProductFilterResponse(
             products=products,
-            total=total,
+            total=actual_total,  # Usar el total real de productos únicos
             page=page,
             total_pages=total_pages,
             limit=filters.limit,
