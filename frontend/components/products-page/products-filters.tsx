@@ -31,6 +31,7 @@ interface ProductsFiltersProps {
   brandsLoading: boolean
   activeFiltersCount: number
   clearAllFilters: () => void
+  priceRangeOptions?: { min: number; max: number } // Rango dinámico de la DB
 }
 
 export const ProductsFilters = ({
@@ -59,7 +60,8 @@ export const ProductsFilters = ({
   brandsData,
   brandsLoading,
   activeFiltersCount,
-  clearAllFilters
+  clearAllFilters,
+  priceRangeOptions
 }: ProductsFiltersProps) => {
   return (
     <div className={`lg:w-80 lg:flex-shrink-0 ${showFilters ? 'block' : 'hidden md:block'}`}>
@@ -96,18 +98,24 @@ export const ProductsFilters = ({
         <div className="mb-6">
           <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Rango de Precio</h4>
           <div className="px-2">
-            <Slider
-              value={priceRange}
-              onValueChange={setPriceRange}
-              max={10000}
-              min={0}
-              step={100}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-gray-500 mt-2">
-              <span>${priceRange[0]}</span>
-              <span>${priceRange[1]}</span>
-            </div>
+            {priceRangeOptions ? (
+              <Slider
+                value={priceRange}
+                onValueChange={setPriceRange}
+                max={priceRangeOptions.max}
+                min={priceRangeOptions.min}
+                step={Math.max(1000, Math.floor((priceRangeOptions.max - priceRangeOptions.min) / 100))} // Step dinámico
+                className="w-full"
+              />
+            ) : (
+              <div className="text-sm text-gray-500">Cargando rango de precios...</div>
+            )}
+            {priceRangeOptions && priceRangeOptions.max > 0 && priceRange[1] > 0 && (
+              <div className="flex justify-between text-xs text-gray-500 mt-2">
+                <span>${priceRange[0].toLocaleString()}</span>
+                <span>${priceRange[1].toLocaleString()}</span>
+              </div>
+            )}
           </div>
         </div>
 

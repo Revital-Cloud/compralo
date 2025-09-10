@@ -18,8 +18,6 @@ interface ProductGridProps {
   onToggleFavorite?: (productId: string) => void
 }
 
-
-
 const ProductGrid: React.FC<ProductGridProps> = ({
   products,
   loading = false,
@@ -101,6 +99,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               width={300}
               height={300}
+              priority
             />
 
             {/* Quick Add to Cart */}
@@ -130,7 +129,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 
             {/* Stock Info */}
             <div className="text-xs text-gray-500">
-              Stock: {product.num_stock} unidades
+              Stock: {product.num_stock > 0 ? `${product.num_stock} unidades` : 'Sin stock'}
             </div>
           </div>
         </Link>

@@ -11,7 +11,7 @@ const ProductsPage = () => {
   const [showFilters, setShowFilters] = useState(false)
   
   // Estados para filtros
-  const [priceRange, setPriceRange] = useState([0, 10000])
+  const [priceRange, setPriceRange] = useState([0, 0]) // Se inicializará con datos de la DB
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedLines, setSelectedLines] = useState<string[]>([])
   const [selectedSublines, setSelectedSublines] = useState<string[]>([])
@@ -25,6 +25,17 @@ const ProductsPage = () => {
 
   // Obtener opciones de filtros
   const { data: filterOptions, isLoading: optionsLoading } = useFilterOptions()
+  
+  // Rango de precios dinámico basado en los datos de la DB
+  const dynamicPriceRange = useMemo(() => {
+    if (filterOptions?.precio_rango) {
+      return {
+        min: filterOptions.precio_rango.minimo,
+        max: filterOptions.precio_rango.maximo
+      }
+    }
+    return { min: 0, max: 0 }
+  }, [filterOptions])
   
   // Obtener datos para los componentes existentes
   const { data: categoriesData, isLoading: categoriesLoading } = useCategories()
@@ -62,10 +73,10 @@ const ProductsPage = () => {
     if (searchQuery.trim()) {
       params.nombre_producto = searchQuery.trim()
     }
-    if (priceRange[0] > 0) {
+    if (priceRange[0] > dynamicPriceRange.min) {
       params.precio_min = priceRange[0]
     }
-    if (priceRange[1] < 10000) {
+    if (priceRange[1] < dynamicPriceRange.max) {
       params.precio_max = priceRange[1]
     }
 
@@ -79,6 +90,8 @@ const ProductsPage = () => {
     searchQuery,
     priceRange[0], // Descomponer el array para evitar re-renders innecesarios
     priceRange[1],
+    dynamicPriceRange.min, // Incluir el rango dinámico
+    dynamicPriceRange.max,
     inStockOnly,
     sortBy,
     itemsPerPage,
@@ -92,8 +105,8 @@ const ProductsPage = () => {
     selectedBrands.length > 0 || 
     selectedProviders.length > 0 ||
     searchQuery.trim() !== '' || 
-    priceRange[0] > 0 || 
-    priceRange[1] < 10000 || 
+    priceRange[0] > dynamicPriceRange.min || 
+    priceRange[1] < dynamicPriceRange.max ||
     inStockOnly
 
   console.log('🔍 Debug - hasActiveFilters:', hasActiveFilters, 'filterParams:', filterParams)
@@ -115,7 +128,7 @@ const ProductsPage = () => {
 
   // Función para limpiar todos los filtros - estabilizada con useCallback
   const clearAllFilters = useCallback(() => {
-    setPriceRange([0, 10000])
+    setPriceRange([dynamicPriceRange.min, dynamicPriceRange.max]) // Usar rango dinámico
     setSelectedCategories([])
     setSelectedLines([])
     setSelectedSublines([])
@@ -124,7 +137,7 @@ const ProductsPage = () => {
     setInStockOnly(false)
     setSearchQuery('')
     setCurrentPage(1)
-  }, [])
+  }, [dynamicPriceRange.min, dynamicPriceRange.max])
 
   // Los filtros se aplican automáticamente con useMemo - no necesitamos función applyFilters
 
@@ -132,24 +145,17 @@ const ProductsPage = () => {
   const activeFiltersCount = selectedCategories.length + 
     selectedLines.length + selectedSublines.length + selectedBrands.length +
     selectedProviders.length + (inStockOnly ? 1 : 0) + 
-    (searchQuery ? 1 : 0) + (priceRange[0] > 0 || priceRange[1] < 10000 ? 1 : 0)
+    (searchQuery ? 1 : 0) + (priceRange[0] > dynamicPriceRange.min || priceRange[1] < dynamicPriceRange.max ? 1 : 0)
 
-  // Actualizar rango de precios basado en las opciones disponibles - estabilizada
-  const updatePriceRange = useCallback(() => {
-    if (filterOptions?.precio_rango) {
+  // Inicializar el rango de precios cuando se cargan los datos de la DB
+  useEffect(() => {
+    if (filterOptions?.precio_rango && priceRange[0] === 0 && priceRange[1] === 0) {
       setPriceRange([
         filterOptions.precio_rango.minimo,
         filterOptions.precio_rango.maximo
       ])
     }
-  }, [filterOptions])
-
-  // Efecto para actualizar el rango de precios cuando se cargan las opciones
-  useEffect(() => {
-    if (filterOptions?.precio_rango && priceRange[1] === 10000) {
-      updatePriceRange()
-    }
-  }, [filterOptions, priceRange[1], updatePriceRange])
+  }, [filterOptions, priceRange])
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -197,6 +203,7 @@ const ProductsPage = () => {
             brandsLoading={brandsLoading}
             activeFiltersCount={activeFiltersCount}
             clearAllFilters={clearAllFilters}
+            priceRangeOptions={dynamicPriceRange}
           />
 
           {/* Main Content */}
