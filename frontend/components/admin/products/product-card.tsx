@@ -23,7 +23,7 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete }) => {
   const handleDelete = () => {
     if (onDelete && confirm('¿Estás seguro de que quieres eliminar este producto?')) {
-      onDelete(product.id_producto);
+      onDelete(parseInt(product.id_producto));
     }
   };
 

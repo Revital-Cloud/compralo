@@ -30,6 +30,18 @@ export interface UserInToken {
   id_rol: number;
 }
 
+// =============================================================================
+// TIPOS DE USUARIO PÚBLICO (SEGURO)
+// =============================================================================
+
+export interface UserPublic {
+  id_usuario: number;
+  nom_usuario: string;
+  ape_usuario: string;
+  email_usuario: string;
+  id_rol?: number;
+}
+
 export interface ChangePasswordRequest {
   current_password: string;
   new_password: string;

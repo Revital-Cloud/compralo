@@ -9,6 +9,8 @@ import {
   Pagination 
 } from "@/components/admin/products";
 import { useProducts, useDeleteProduct } from "@/hooks/use-products";
+import type { PaginatedResponse } from '@/types/common';
+import type { Product } from '@/types/product';
 
 const ProductsPage = () => {
   const router = useRouter();
@@ -28,8 +30,8 @@ const ProductsPage = () => {
     page: currentPage,
     limit: itemsPerPage,
     search: search || undefined,
-    category: category || undefined,
-    brand: brand || undefined,
+    id_categoria: category ? parseInt(category) : undefined,
+    id_marca: brand ? parseInt(brand) : undefined,
   };
 
   // Hook para obtener productos
@@ -75,8 +77,8 @@ const ProductsPage = () => {
   };
 
   // Extraer datos de la respuesta
-  const products = productsResponse?.items || [];
-  const totalItems = productsResponse?.total || 0;
+  const products = (productsResponse as PaginatedResponse<Product>)?.items || [];
+  const totalItems = (productsResponse as PaginatedResponse<Product>)?.total || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   // Manejar errores
@@ -118,8 +120,8 @@ const ProductsPage = () => {
 
       {/* Filtros de búsqueda (opcional) */}
       {totalItems > 0 && (
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <p className="text-sm text-gray-600">
+        <div className="bg-muted/30 p-4 rounded-lg border border-border">
+          <p className="text-sm text-muted-foreground">
             Mostrando {products.length} de {totalItems} productos
             {search && ` para "${search}"`}
             {category && ` en categoría "${category}"`}
