@@ -43,7 +43,7 @@ export default function ShopLayout({
     <>
       <EcommerceHeader 
         menuItems={defaultMenuItems}
-        cartCount={0} // Aquí puedes conectar el estado real del carrito
+        // cartCount se obtiene automáticamente del hook useCartInfo
       />
       {children}
       <EcommerceFooter />

@@ -93,7 +93,64 @@ def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al crear producto en el carrito: {str(e)}")
+
+def update_cart_product_quantity(db: Session, id_carrito_producto: int, nueva_cantidad: int, usr_update: Optional[int]):
+    """
+    Actualiza la cantidad de un producto en el carrito con validación de stock.
     
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        id_carrito_producto (int): ID del producto en el carrito a actualizar.
+        nueva_cantidad (int): Nueva cantidad del producto.
+        usr_update (Optional[int]): Usuario que actualiza el registro.
+    """
+    try:
+        # Primero, obtener información del producto para validar stock
+        stock_query = text("""
+        SELECT p.num_stock, cp.id_producto, cp.cantidad as cantidad_actual
+        FROM tab_carrito_productos cp
+        JOIN tab_productos p ON cp.id_producto = p.id_producto
+        WHERE cp.id_carrito_producto = :id_carrito_producto
+        """)
+        stock_result = db.execute(stock_query, {"id_carrito_producto": id_carrito_producto})
+        stock_info = stock_result.fetchone()
+        
+        if not stock_info:
+            raise Exception("Producto no encontrado en el carrito")
+        
+        stock_disponible = stock_info[0]
+        id_producto = stock_info[1]
+        cantidad_actual = stock_info[2]
+        
+        # Validar que la nueva cantidad no exceda el stock disponible
+        if nueva_cantidad > stock_disponible:
+            raise Exception(f"Stock insuficiente. Disponible: {stock_disponible}, solicitado: {nueva_cantidad}")
+        
+        # Validar que la cantidad sea mayor a 0
+        if nueva_cantidad <= 0:
+            raise Exception("La cantidad debe ser mayor a 0")
+        
+        # Actualizar la cantidad en la base de datos
+        update_query = text("""
+        UPDATE tab_carrito_productos 
+        SET cantidad = :nueva_cantidad, 
+            usr_update = :usr_update, 
+            fec_update = NOW()
+        WHERE id_carrito_producto = :id_carrito_producto
+        """)
+        
+        db.execute(update_query, {
+            "id_carrito_producto": id_carrito_producto,
+            "nueva_cantidad": nueva_cantidad,
+            "usr_update": usr_update
+        })
+        
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al actualizar cantidad: {str(e)}")
+
 def delete_cart_product(db: Session, id_usuario: Optional[Decimal], session_id: Optional[Decimal], id_categoria_producto: Decimal, id_linea_producto: Decimal, id_sublinea_producto: Decimal, id_producto: Decimal, cantidad: Decimal, usr_update: Decimal):
     """
     Elimina un producto en el carrito.
@@ -211,12 +268,12 @@ def get_cart_user(db:Session, get_cart_user:GetCartUser):
     
 def get_cart_detail(db:Session, get_cart_detail:GetCartDetail):
     """
-    Obtiene a detalle el carrito de un usuario.
+    Obtiene a detalle el carrito de un usuario usando la función SQL fun_obtener_carrito_detalle.
     Args:
         db (Session): Sesión de base de datos.
         get_cart_detail (GetCartDetail): Datos del usuario (id_usuario o session_id).
     Returns:
-        list[CartProduct]: Lista de productos en el carrito.
+        list[CartProduct]: Lista de productos en el carrito con stock disponible.
     """
     try:
         params = get_cart_detail.model_dump()
@@ -225,8 +282,51 @@ def get_cart_detail(db:Session, get_cart_detail:GetCartDetail):
         """)
         result = db.execute(query, params)
         fetched_result = result.fetchone()
+        
+        if not fetched_result or not fetched_result[0]:
+            return []
+        
+        cart_data = fetched_result[0]
+        
+        # Extraer la lista de productos del JSON
+        productos = cart_data.get('productos', [])
+        
+        # Convertir productos a la estructura esperada por el frontend
+        products_list = []
+        for producto in productos:
+            product_dict = {
+                'id_carrito_producto': producto.get('id_carrito_producto'),
+                'id_producto': producto.get('id_producto'),
+                'nombre_producto': producto.get('nombre_producto'),
+                'precio_unitario': float(producto.get('precio_unitario', 0)),
+                'cantidad': int(producto.get('cantidad', 0)),
+                'subtotal': float(producto.get('subtotal', 0)),
+                'stock_disponible': int(producto.get('stock_disponible', 0)),
+                'imagen_url': None,
+                'categoria': None,
+                'marca': None,
+                'linea': None,
+                'sublinea': None
+            }
+            
+            # Procesar imagen_producto si existe
+            if producto.get('imagen_producto'):
+                try:
+                    import json
+                    img_data = producto.get('imagen_producto')
+                    if isinstance(img_data, str):
+                        img_data = json.loads(img_data)
+                    if isinstance(img_data, dict) and 'main' in img_data:
+                        product_dict['imagen_url'] = img_data['main']
+                    elif isinstance(img_data, dict) and 'url' in img_data:
+                        product_dict['imagen_url'] = img_data['url']
+                except:
+                    pass  # Si no se puede parsear, mantener None
+            
+            products_list.append(product_dict)
+        
         db.commit()
-        return fetched_result[0] if fetched_result else None
+        return products_list
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener detalle del carrito: {str(e)}")

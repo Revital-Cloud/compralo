@@ -93,17 +93,29 @@ const ProductCard: React.FC<ProductCardProps> = ({
               {brand}
             </p>
 
-            {/* Botón Ver Producto */}
+            {/* Precio */}
+            <div className="flex items-center gap-2 mb-3">
+              <span className="font-bold text-lg text-gray-900 dark:text-white">
+                ${price.toFixed(2)}
+              </span>
+              {originalPrice && originalPrice > price && (
+                <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                  ${originalPrice.toFixed(2)}
+                </span>
+              )}
+            </div>
+
+            {/* Botón Agregar al Carrito */}
             <Button
-              variant="outline"
+              variant="default"
               size="sm"
-              className="w-full text-xs mb-3 font-bold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 border-gray-900 dark:border-white"
+              className="w-full text-xs font-bold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
               onClick={(e) => {
                 e.stopPropagation()
                 onAddToCart?.(id)
               }}
             >
-              {texts.viewProduct} - ${price.toFixed(0)}
+              AGREGAR AL CARRITO
             </Button>
           </div>
         </div>

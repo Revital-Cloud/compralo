@@ -30,6 +30,8 @@ import {
 } from "./components"
 import Link from "next/link"
 import { defaultMenuItems } from "@/lib/menu-config"
+import { useCartInfo } from "@/hooks/use-cart"
+import { useRouter } from "next/navigation"
 
 interface EcommerceHeaderProps {
   logo?: React.ReactNode
@@ -41,9 +43,19 @@ interface EcommerceHeaderProps {
 const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
   logo,
   menuItems = [],
-  cartCount = 0,
+  cartCount, // Ahora será opcional, usaremos el hook
   className = ""
 }) => {
+  const router = useRouter()
+  const { itemCount, isLoading } = useCartInfo()
+  
+  // Usar el count del hook si no se proporciona uno
+  const displayCartCount = cartCount ?? itemCount
+  
+  const handleCartClick = () => {
+    router.push('/cart')
+  }
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { theme, setTheme } = useTheme()
 
@@ -175,12 +187,29 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                 </TooltipProvider>
 
                 {/* Cart - Siempre visible */}
-                <div className="relative">
-                  <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 text-gray-700 dark:text-gray-300 cursor-pointer hover:text-[#ec2538] dark:hover:text-red-500 transition-colors duration-300" />
-                  <span className="absolute -top-2 -right-2 bg-[#ec2538] dark:bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {cartCount > 99 ? '99+' : cartCount}
-                  </span>
-                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="relative p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300" 
+                        onClick={handleCartClick}
+                        disabled={isLoading}
+                      >
+                        <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                        {displayCartCount > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-[#ec2538] dark:bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                            {displayCartCount > 99 ? '99+' : displayCartCount}
+                          </span>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Carrito de compras ({displayCartCount} {displayCartCount === 1 ? 'producto' : 'productos'})</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
                 {/* User Menu - Siempre visible */}
                 <UserMenu />

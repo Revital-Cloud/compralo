@@ -7,23 +7,14 @@ import { Input } from '@/components/ui/input'
 import CartItem from '@/components/cart/cart-item'
 import { ProductCard } from '@/components/product/product-card'
 import { Badge } from '@/components/ui/badge'
-import { X, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react'
+import { X, ShoppingBag, ChevronLeft, ChevronRight, AlertCircle, Loader2 } from 'lucide-react'
+import { useCart } from '@/hooks/use-cart'
+import { useAuth } from '@/hooks/use-auth'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import Loading from '@/components/ui/loading'
+import { toast } from 'sonner'
+import { formatPrice } from '@/utils/format-price'
 
-interface CartItemType {
-  id: string;
-  name: string;
-  brand: string;
-  color: string;
-  size: string;
-  price: number;
-  originalPrice?: number;
-  quantity: number;
-  image: string;
-  isFavorite?: boolean;
-}
-
-const initialCartItems: CartItemType[] = []
-const mockRecommendedProducts: any[] = []
 const cartTexts = {
   es: {
     title: 'Cesta de la compra',
@@ -41,75 +32,113 @@ const cartTexts = {
     checkout: 'Pagar',
     promoCode: '¿Tienes un código promocional?',
     size: 'Talla:',
-    quantity: 'Cantidad:'
+    quantity: 'Cantidad:',
+    viewSummary: 'Ver Resumen',
+    loading: 'Cargando carrito...',
+    errorTitle: 'Error al cargar el carrito',
+    retry: 'Reintentar'
   }
-}
-
-const calculateCartTotals = (items: CartItemType[]) => {
-  const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0)
-  const shipping = subtotal > 50 || subtotal === 0 ? 0 : 10
-  const salesTax = subtotal * 0.08
-  const total = subtotal + shipping + salesTax
-  const itemCount = items.reduce((acc, item) => acc + item.quantity, 0)
-  return { subtotal, shipping, salesTax, total, itemCount }
 }
 
 const CartPage = () => {
-  const [cartItems, setCartItems] = useState<CartItemType[]>(initialCartItems)
   const [promoCode, setPromoCode] = useState('')
-  const [email, setEmail] = useState('')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
-  // Funciones para manejar el carrito
-  const handleQuantityChange = (id: string, quantity: number) => {
-    setCartItems((items: CartItemType[]) =>
-      items.map((item: CartItemType) =>
-        item.id === id ? { ...item, quantity } : item
-      )
-    )
-  }
+  // Hook de autenticación
+  const { user, isAuthenticated } = useAuth()
 
-  const handleRemoveItem = (id: string) => {
-    setCartItems((items: CartItemType[]) => items.filter((item: CartItemType) => item.id !== id))
-  }
-
-  const handleToggleFavorite = (id: string) => {
-    setCartItems((items: CartItemType[]) =>
-      items.map((item: CartItemType) =>
-        item.id === id ? { ...item, isFavorite: !item.isFavorite } : item
-      )
-    )
-  }
-
-  // Cálculos del carrito usando la utilidad de mockData
-  const cartTotals = calculateCartTotals(cartItems)
-  const { subtotal, shipping, salesTax, total, itemCount } = cartTotals
+  // Hook del carrito con datos reales
+  const {
+    items,
+    totals,
+    itemCount,
+    total,
+    hasItems,
+    isLoading,
+    error,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+    refetchCart
+  } = useCart()
 
   // Textos de la interfaz
   const texts = cartTexts.es
+
+  // Funciones para manejar el carrito
+  const handleQuantityChange = async (id: string, cantidad: number, stock_disponible?: number) => {
+    const id_carrito_producto = parseInt(id)
+    try {
+      updateQuantity({ id_carrito_producto, cantidad, stock_disponible })
+    } catch (error) {
+      console.error('Error al actualizar cantidad:', error)
+    }
+  }
+
+  const handleRemoveItem = async (id: string) => {
+    const id_carrito_producto = parseInt(id)
+    try {
+      removeFromCart(id_carrito_producto)
+    } catch (error) {
+      console.error('Error al eliminar producto:', error)
+    }
+  }
+
+  const handleToggleFavorite = (id: string) => {
+    // TODO: Implementar favoritos
+    console.log('Toggle favorite:', id)
+    toast.info('Funcionalidad de favoritos próximamente')
+  }
+
+  // Estados de carga y error
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <Loading />
+      </div>
+    )
+  }
+
+  // Cálculos del carrito - usar datos del backend o fallback local
+  const subtotal = Number(totals?.total_productos) || (Array.isArray(items) && items.length > 0 ? items.reduce((acc, item) => acc + (Number(item.subtotal) || 0), 0) : 0)
+  const shipping = Number(totals?.resumen?.costo_envio) || (subtotal > 50 || subtotal === 0 ? 0 : 10)
+  const salesTax = Number(totals?.resumen?.impuestos) || 0
+  const finalTotal = Number(totals?.total_final) || (hasItems() ? Number(total) : 0) || 0
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 pb-24 lg:pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:h-full">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             {texts.title}
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 text-base max-w-4xl mb-2">
+          <p className="text-gray-600 dark:text-gray-400">
             {texts.subtitle}
           </p>
-          <button className="text-blue-600 dark:text-blue-400 text-sm font-medium hover:underline">
-            {texts.signInText}
-          </button>
+          {/* Mensaje contextual según estado de autenticación */}
+          {!isAuthenticated ? (
+            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <p className="text-blue-800 dark:text-blue-200 text-sm">
+                {texts.signInText}
+              </p>
+            </div>
+          ) : (
+            <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <p className="text-green-800 dark:text-green-200 text-sm">
+                ¡Hola {user?.nom_usuario || 'Usuario'}! Tu carrito se sincroniza automáticamente.
+              </p>
+            </div>
+          )}
         </div>
 
-        <div className="lg:flex lg:gap-8 lg:items-start">
-          {/* Carrito Principal */}
-          <div className="lg:flex-1 lg:min-w-0">
-            <Card className="mb-8 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
+          <div className="lg:col-span-2">
+            {/* Tu Cesta */}
+            <Card className="mb-8 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg">
+              <CardHeader className="pb-6 border-b border-gray-200 dark:border-gray-700">
+                <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                  <ShoppingBag className="h-6 w-6" />
                   {texts.yourBag}
                 </CardTitle>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -117,15 +146,49 @@ const CartPage = () => {
                 </p>
               </CardHeader>
               <CardContent className="p-0">
-                {cartItems.length > 0 ? (
+                {/* Mostrar error solo si existe y es relevante para el usuario */}
+                {error && typeof error === 'string' && error.includes('Stock insuficiente') && (
+                  <div className="p-6">
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <div className="flex flex-col gap-3">
+                          <span>{texts.errorTitle}: {typeof error === 'string' ? error : 'Error desconocido'}</span>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={refetchCart}
+                            >
+                              <Loader2 className="h-4 w-4 mr-2" />
+                              {texts.retry}
+                            </Button>
+                          </div>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+
+                {hasItems() && Array.isArray(items) ? (
                   <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {cartItems.map((item) => (
+                    {items.map((item) => (
                       <CartItem
-                        key={item.id}
-                        {...item}
+                        key={item.id_carrito_producto}
+                        id={item.id_carrito_producto.toString()}
+                        name={item.nombre_producto}
+                        brand={item.marca || 'Sin marca'}
+                        color={item.categoria || 'Sin especificar'}
+                        size={item.sublinea || 'Único'}
+                        price={item.precio_unitario}
+                        quantity={item.cantidad}
+                        image={item.imagen_url || '/placeholder-product.jpg'}
+                        stock_disponible={item.stock_disponible}
+                        cartTotal={finalTotal}
                         onQuantityChange={handleQuantityChange}
                         onRemove={handleRemoveItem}
                         onToggleFavorite={handleToggleFavorite}
+                        isFavorite={false} // TODO: Implementar favoritos
                       />
                     ))}
                   </div>
@@ -163,10 +226,28 @@ const CartPage = () => {
                 </div>
               </div>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {mockRecommendedProducts.slice(0, 4).map((product) => (
-                  <div key={product.id} className="relative">
-                    <ProductCard {...product} />
-                  </div>
+                {/* Productos recomendados simulados */}
+                {[1, 2, 3, 4].map((index) => (
+                  <ProductCard
+                    key={index}
+                    id={`recommended-${index}`}
+                    name={`Producto Recomendado ${index}`}
+                    brand="Synkro"
+                    price={29.99 + index * 10}
+                    originalPrice={39.99 + index * 10}
+                    image="/placeholder-product.jpg"
+                    badge="Recomendado"
+                    badgeColor="blue"
+                    onAddToCart={(id) => {
+                      // TODO: Implementar con productos reales
+                      console.log('Agregar producto recomendado:', id)
+                      toast.info('Funcionalidad de productos recomendados próximamente')
+                    }}
+                    onToggleFavorite={(id) => {
+                      console.log('Toggle favorito:', id)
+                      toast.info('Funcionalidad de favoritos próximamente')
+                    }}
+                  />
                 ))}
               </div>
             </div>
@@ -184,19 +265,19 @@ const CartPage = () => {
                 <CardContent className="p-6">
                   {/* Lista detallada de productos */}
                   <div className="space-y-4 mb-6 max-h-60 overflow-y-auto">
-                    {cartItems.map((item) => (
-                      <div key={item.id} className="flex justify-between text-sm py-2">
+                    {Array.isArray(items) && items.map((item) => (
+                      <div key={item.id_carrito_producto} className="flex justify-between text-sm py-2">
                         <div className="flex-1 min-w-0 pr-4">
                           <p className="font-semibold text-gray-900 dark:text-white truncate text-base">
-                            {item.name}
+                            {item.nombre_producto}
                           </p>
                           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                            {item.brand} • {texts.size} {item.size} • {texts.quantity} {item.quantity}
+                            {item.marca || 'Sin marca'} • {texts.size} {item.sublinea || 'Único'} • {texts.quantity} {item.cantidad}
                           </p>
                         </div>
                         <div className="flex-shrink-0">
                           <span className="font-bold text-gray-900 dark:text-white text-base">
-                            ${(item.price * item.quantity).toFixed(2)}
+                            {formatPrice(item.subtotal)}
                           </span>
                         </div>
                       </div>
@@ -205,38 +286,68 @@ const CartPage = () => {
                   
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">{texts.delivery}</span>
+                      <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
                       <span className="text-gray-900 dark:text-white font-medium">
-                        {shipping > 0 ? `$${shipping.toFixed(2)}` : 'Gratis'}
+                        {formatPrice(subtotal)}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">{texts.salesTax}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{texts.delivery}</span>
                       <span className="text-gray-900 dark:text-white font-medium">
-                        {salesTax > 0 ? `$${salesTax.toFixed(2)}` : '-'}
+                        {shipping > 0 ? formatPrice(shipping) : 'Gratis'}
                       </span>
                     </div>
+                    {salesTax > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">{texts.salesTax}</span>
+                        <span className="text-gray-900 dark:text-white font-medium">
+                          {formatPrice(salesTax)}
+                        </span>
+                      </div>
+                    )}
+                    {totals?.total_descuentos && totals.total_descuentos > 0 && (
+                      <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                        <span>Descuentos aplicados</span>
+                        <span>-{formatPrice(totals.total_descuentos)}</span>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
                     <div className="flex justify-between font-bold text-xl">
                       <span className="text-gray-900 dark:text-white">{texts.total}</span>
-                      <span className="text-gray-900 dark:text-white">${total.toFixed(2)}</span>
+                      <span className="text-gray-900 dark:text-white">{formatPrice(finalTotal)}</span>
                     </div>
+                    {totals?.puntos_a_ganar && totals.puntos_a_ganar > 0 && (
+                      <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
+                        🎉 Ganarás {totals.puntos_a_ganar} puntos con esta compra
+                      </p>
+                    )}
                   </div>
-                  
-                  <div className="mt-6 space-y-3">
-                    <Button className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 h-12 font-bold text-sm tracking-wide">
-                      {texts.checkout}
-                    </Button>
-                    
-                    <div className="text-center">
-                      <button 
-                        className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:underline font-medium transition-colors"
-                        onClick={() => setIsSidebarOpen(true)}
-                      >
-                        {texts.promoCode}
-                      </button>
+
+                  <Button 
+                    className="w-full mt-6 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3 text-lg"
+                    disabled={!hasItems()}
+                  >
+                    {texts.checkout}
+                  </Button>
+
+                  {/* Código promocional */}
+                  <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      {texts.promoCode}
+                    </p>
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        placeholder="Código promocional"
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button variant="outline" size="sm">
+                        Aplicar
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -264,19 +375,19 @@ const CartPage = () => {
               <div className="flex-1 overflow-y-auto p-6">
                 {/* Lista detallada de productos - Mobile */}
                 <div className="space-y-4 mb-6">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="flex justify-between text-sm py-2">
+                  {Array.isArray(items) && items.map((item) => (
+                    <div key={item.id_carrito_producto} className="flex justify-between text-sm py-2">
                       <div className="flex-1 min-w-0 pr-4">
                         <p className="font-semibold text-gray-900 dark:text-white truncate text-base">
-                          {item.name}
+                          {item.nombre_producto}
                         </p>
                         <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                          {item.brand} • {texts.size} {item.size} • {texts.quantity} {item.quantity}
+                          {item.marca || 'Sin marca'} • {texts.size} {item.sublinea || 'Único'} • {texts.quantity} {item.cantidad}
                         </p>
                       </div>
                       <div className="flex-shrink-0">
                         <span className="font-bold text-gray-900 dark:text-white text-base">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          {formatPrice(item.subtotal)}
                         </span>
                       </div>
                     </div>
@@ -285,67 +396,86 @@ const CartPage = () => {
                 
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">{texts.delivery}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
                     <span className="text-gray-900 dark:text-white font-medium">
-                      {shipping > 0 ? `$${shipping.toFixed(2)}` : 'Gratis'}
+                      {formatPrice(subtotal)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">{texts.salesTax}</span>
+                    <span className="text-gray-600 dark:text-gray-400">{texts.delivery}</span>
                     <span className="text-gray-900 dark:text-white font-medium">
-                      {salesTax > 0 ? `$${salesTax.toFixed(2)}` : '-'}
+                      {shipping > 0 ? formatPrice(shipping) : 'Gratis'}
                     </span>
                   </div>
+                  {salesTax > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">{texts.salesTax}</span>
+                      <span className="text-gray-900 dark:text-white font-medium">
+                        {formatPrice(salesTax)}
+                      </span>
+                    </div>
+                  )}
+                  {totals?.total_descuentos && totals.total_descuentos > 0 && (
+                    <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                      <span>Descuentos aplicados</span>
+                      <span>-{formatPrice(totals.total_descuentos)}</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
                   <div className="flex justify-between font-bold text-xl">
                     <span className="text-gray-900 dark:text-white">{texts.total}</span>
-                    <span className="text-gray-900 dark:text-white">${total.toFixed(2)}</span>
+                    <span className="text-gray-900 dark:text-white">{formatPrice(finalTotal)}</span>
                   </div>
+                  {totals?.puntos_a_ganar && totals.puntos_a_ganar > 0 && (
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
+                      🎉 Ganarás {totals.puntos_a_ganar} puntos con esta compra
+                    </p>
+                  )}
                 </div>
               </div>
               
-              <div className="p-6 border-t border-gray-200 dark:border-gray-700 space-y-3">
-                <Button className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 h-12 font-bold tracking-wide">
+              <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+                <Button 
+                  className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3 text-lg"
+                  disabled={!hasItems}
+                >
                   {texts.checkout}
                 </Button>
-                
-                <div className="text-center">
-                  <button className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:underline font-medium transition-colors">
-                    {texts.promoCode}
-                  </button>
-                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Mobile Bottom Bar con Total */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 z-40 shadow-lg">
+        {/* Barra inferior móvil */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 z-40">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 {itemCount} {itemCount === 1 ? 'artículo' : 'artículos'}
               </p>
-              <p className="font-bold text-lg text-gray-900 dark:text-white">${total.toFixed(2)}</p>
+              <p className="font-bold text-lg text-gray-900 dark:text-white">{formatPrice(finalTotal)}</p>
             </div>
             <div className="flex gap-2">
               <Button 
                 variant="outline" 
                 onClick={() => setIsSidebarOpen(true)}
-                className="px-4 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
               >
                 {texts.viewSummary}
               </Button>
-              <Button className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 px-6 font-bold tracking-wide">
+              <Button 
+                className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
+                disabled={!hasItems}
+              >
                 {texts.checkout}
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Overlay para mobile sidebar */}
+        {/* Overlay para cerrar sidebar */}
         {isSidebarOpen && (
           <div 
             className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
