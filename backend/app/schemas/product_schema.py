@@ -144,6 +144,50 @@ class Product(ProductBase): # Este será el modelo de respuesta principal
     fec_update: Optional[datetime] = None
 
 # Esquemas para filtros de productos
+class ProductAdminResponse(BaseModel):
+    """
+    Esquema para la respuesta del endpoint de productos admin.
+    
+    Incluye información completa de productos con estados de activación
+    de todas las tablas relacionadas para el panel de administración.
+    """
+    id_categoria: str
+    id_linea: str
+    id_sublinea: str
+    id_producto: str
+    nom_categoria: str
+    nom_linea: str
+    nom_sublinea: str
+    nom_producto: str
+    spcf_producto: Dict[str, Any]
+    img_producto: Optional[Dict[str, Any]]
+    val_precio: str
+    num_stock: int
+    id_proveedor: str
+    id_marca: str
+    nom_proveedor: str
+    nom_marca: str
+    fec_insert: str
+    ind_activo_producto: bool
+    ind_activo_categoria: bool
+    ind_activo_linea: bool
+    ind_activo_sublinea: bool
+    ind_activo_proveedor: bool
+    ind_activo_marca: bool
+    total_registros: int
+    
+    class Config:
+        from_attributes = True
+
+class ProductAdminParams(BaseModel):
+    """
+    Parámetros para el endpoint de productos admin.
+    """
+    ordenar_por: Optional[str] = Field('nombre', description="Campo para ordenar")
+    orden: Optional[str] = Field('ASC', description="Dirección del orden (ASC/DESC)")
+    limit: Optional[int] = Field(50, ge=1, le=1000, description="Límite de resultados")
+    offset: Optional[int] = Field(0, ge=0, description="Offset para paginación")
+
 class ProductFilterParams(BaseModel):
     """
     Esquema para parámetros de filtrado de productos.

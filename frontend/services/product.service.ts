@@ -22,6 +22,8 @@ import type {
   StockUpdate,
   StockMovement,
   Product,
+  ProductAdmin,
+  ProductAdminParams,
 } from '@/types/product';
 import type { PaginatedResponse, ApiResponse, PaginationParams } from '@/types/common';
 
@@ -37,6 +39,13 @@ export async function getProducts(params?: ProductFilters): Promise<Product[] | 
     return await get<PaginatedResponse<Product>>('/products', { params });
   }
   return await get<Product[]>('/products');
+}
+
+/**
+ * Obtener productos para administración (solo admin)
+ */
+export async function getProductsAdmin(params?: ProductAdminParams): Promise<ProductAdmin[]> {
+  return await get<ProductAdmin[]>('/products-admin', { params });
 }
 
 /**
