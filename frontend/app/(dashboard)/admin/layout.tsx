@@ -21,9 +21,9 @@ export default function AdminLayout({
         }
       >
         <AppSidebar variant="inset" />
-        <SidebarInset>
+        <SidebarInset className="md:peer-data-[variant=inset]:m-0 md:peer-data-[variant=inset]:rounded-none md:peer-data-[variant=inset]:shadow-none">
           <AdminHeader />
-          <div className="flex flex-1 flex-col bg-background dark:bg-gray-950 transition-colors duration-300">
+          <div className="flex flex-1 flex-col bg-background transition-colors duration-300">
             <div className="@container/main flex flex-1 flex-col gap-2">
               <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
                 <div className="px-4 lg:px-6">

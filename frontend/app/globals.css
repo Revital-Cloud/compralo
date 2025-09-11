@@ -96,54 +96,47 @@
 }
 
 .dark {
-  /* Colores oscuros de Compralo */
-  --background: #1A1A1A;
+  /* Colores oscuros de Compralo (azules profundos) */
+  --background: #0b1220; /* fondo principal azul oscuro */
   --foreground: #FFFFFF;
-  --card: #2A2A2A;
+  --card: #10192e; /* un poco más claro que background */
   --card-foreground: #FFFFFF;
-  --popover: #2A2A2A;
+  --popover: #10192e;
   --popover-foreground: #FFFFFF;
-  
-  /* Rojo como color primario en modo oscuro */
+
+  /* Colores de marca en modo oscuro */
   --primary: #FF0000;
   --primary-foreground: #FFFFFF;
-  
-  /* Naranja como color secundario en modo oscuro */
   --secondary: #FF7A00;
   --secondary-foreground: #FFFFFF;
-  
-  /* Amarillo para acentos en modo oscuro */
   --accent: #FFD600;
   --accent-foreground: #000000;
-  
-  /* Rojo para elementos destructivos en modo oscuro */
-  --destructive: #FF0000;
-  
-  /* Bordes y elementos de interfaz en modo oscuro */
-  --border: #404040;
-  --input: #404040;
+
+  /* Bordes y elementos de interfaz en modo oscuro (azul/gris profundo) */
+  --border: #1f2940;
+  --input: #1f2940;
   --ring: #FF0000;
-  
+
   /* Colores para gráficos en modo oscuro */
   --chart-1: #FF0000;
   --chart-2: #FF7A00;
   --chart-3: #FFD600;
-  --chart-4: #F5F5F5;
+  --chart-4: #0b1220;
   --chart-5: #FFFFFF;
-  
-  /* Colores para la barra lateral en modo oscuro */
-  --sidebar: #2A2A2A;
+
+  /* Sidebar en modo oscuro con azul consistente */
+  --sidebar: #0f1629;
   --sidebar-foreground: #FFFFFF;
   --sidebar-primary: #FF0000;
   --sidebar-primary-foreground: #FFFFFF;
   --sidebar-accent: #FF7A00;
   --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border: #404040;
+  --sidebar-border: #1f2940;
   --sidebar-ring: #FF0000;
-  
+
   /* Colores muteados en modo oscuro */
-  --muted: #2A2A2A;
-  --muted-foreground: #CCCCCC;
+  --muted: #0f1629;
+  --muted-foreground: #B8C1D4;
 }
 
 @layer base {
