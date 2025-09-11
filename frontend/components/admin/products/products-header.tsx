@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { IconPlus, IconUpload, IconDownload } from "@tabler/icons-react";
 import Link from "next/link";
 import { ImportWizard } from "@/components/excel";
-import { toast } from "sonner";
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 
 interface ProductsHeaderProps {
   onImportComplete: (result: any) => void;
@@ -28,9 +28,11 @@ export const ProductsHeader: React.FC<ProductsHeaderProps> = ({
     <div className="flex items-center justify-between">
       <div>
         <h1 className="text-2xl font-bold">Todos los Productos</h1>
-        <p className="text-muted-foreground">
-          Inicio &gt; Todos los Productos
-        </p>
+        <Breadcrumb 
+          items={[{ label: 'Inicio', href: '/admin' }, { label: 'Todos los Productos', href: '/admin/products' }]}
+          className="text-sm text-gray-500"
+        >
+        </Breadcrumb>
       </div>
       
       <div className="flex gap-3">
@@ -38,7 +40,7 @@ export const ProductsHeader: React.FC<ProductsHeaderProps> = ({
         {onExport && (
           <Button variant="outline" onClick={onExport}>
             <IconDownload className="h-4 w-4 mr-2" />
-            EXPORTAR
+            Exportar Productos
           </Button>
         )}
         
@@ -47,7 +49,7 @@ export const ProductsHeader: React.FC<ProductsHeaderProps> = ({
           <DialogTrigger asChild>
             <Button variant="outline">
               <IconUpload className="h-4 w-4 mr-2" />
-              IMPORTAR PRODUCTOS
+              Importar Productos
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
@@ -68,9 +70,9 @@ export const ProductsHeader: React.FC<ProductsHeaderProps> = ({
         
         {/* Botón de Agregar */}
         <Link href="/admin/products/create">
-          <Button className="bg-black hover:bg-gray-800 text-white">
+          <Button className="bg-primary hover:bg-primary/80 text-primary-foreground">
             <IconPlus className="h-4 w-4 mr-2" />
-            AGREGAR NUEVO PRODUCTO
+            Agregar Producto
           </Button>
         </Link>
       </div>

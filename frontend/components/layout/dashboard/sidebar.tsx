@@ -6,6 +6,10 @@ import {
   IconDashboard,
   IconHelp,
   IconInnerShadowTop,
+  IconCategory,
+  IconHierarchy,
+  IconTags,
+  IconBuildingFactory2,
   IconSearch,
   IconSettings,
   IconShoppingCart,
@@ -47,6 +51,31 @@ const data = {
       title: "Productos",
       url: "/admin/products",
       icon: IconPackage,
+    },
+    {
+      title: "Categorías",
+      url: "/admin/categories",
+      icon: IconCategory,
+    },
+    {
+      title: "Líneas",
+      url: "/admin/lines",
+      icon: IconHierarchy,
+    },
+    {
+      title: "Sublíneas",
+      url: "/admin/sublines",
+      icon: IconHierarchy,
+    },
+    {
+      title: "Marcas",
+      url: "/admin/brands",
+      icon: IconTags,
+    },
+    {
+      title: "Proveedores",
+      url: "/admin/providers",
+      icon: IconBuildingFactory2,
     },
     {
       title: "Órdenes",
