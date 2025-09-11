@@ -4,6 +4,8 @@ import { ProductGrid, ProductList } from "@/components/product"
 import { EmptyProductsState } from "@/components/ui/empty-state"
 import { FilterSuggestions } from "@/components/ui/filter-suggestions"
 import { formatPrice } from "@/utils/format-price"
+import { useCart } from "@/hooks/use-cart"
+import { toast } from "sonner"
 
 interface ProductsDisplayProps {
   productsData: any
@@ -44,13 +46,55 @@ export const ProductsDisplay = ({
   sublinesData,
   brandsData
 }: ProductsDisplayProps) => {
-  // Funciones simples para manejar acciones
-  const handleAddToCart = (productId: string) => {
-    console.log(`Agregado al carrito: ${productId}`)
+  // Hook del carrito para funcionalidad real
+  const { addToCart, isAddingToCart } = useCart()
+
+  // Función real para agregar al carrito
+  const handleAddToCart = async (productId: string) => {
+    try {
+      // Buscar el producto en la lista
+      const product = productsData?.data?.find((p: any) => p.id_producto.toString() === productId)
+      
+      if (!product) {
+        toast.error('Producto no encontrado')
+        return
+      }
+
+      // Verificar stock
+      if (product.num_stock <= 0) {
+        toast.error('Producto agotado')
+        return
+      }
+
+      // Preparar datos del producto para el carrito
+      const cartProductData = {
+        id_categoria_producto: product.id_categoria_producto || 1,
+        id_linea_producto: product.id_linea_producto || 1, 
+        id_sublinea_producto: product.id_sublinea_producto || 1,
+        id_producto: product.id_producto,
+        cantidad: 1,
+        precio_unitario_carrito: parseFloat(product.val_precio.toString()),
+        stock_disponible: product.num_stock // Pasar stock para validación
+      }
+
+      console.log('🛒 Agregando producto al carrito desde grid:', cartProductData)
+
+      // Llamar al hook del carrito
+      addToCart(cartProductData)
+      
+      // Mostrar toast de éxito
+      toast.success(`${product.nom_producto} agregado al carrito`)
+      
+    } catch (error) {
+      console.error('❌ Error al agregar producto al carrito:', error)
+      toast.error('Error al agregar producto al carrito')
+    }
   }
 
   const handleToggleFavorite = (productId: string) => {
+    // TODO: Implementar favoritos
     console.log(`Toggle favorito: ${productId}`)
+    toast.info('Funcionalidad de favoritos próximamente')
   }
 
   // Función para manejar la eliminación de filtros individuales

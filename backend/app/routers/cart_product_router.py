@@ -80,6 +80,77 @@ async def create_cart_product(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+@router.put("/carrito-productos/{id_carrito_producto}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def update_cart_product_quantity(
+    id_carrito_producto: int,
+    cantidad: int = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Actualiza la cantidad de un producto en el carrito.
+    
+    Args:
+        id_carrito_producto (int): ID del producto en el carrito.
+        cantidad (int): Nueva cantidad del producto.
+        db (Session): La sesión de base de datos SQLAlchemy.
+        current_user (UserInToken): Usuario autenticado.
+    Returns:
+        ResponseMessage: Mensaje de confirmación.
+    """
+    try:
+        cart_product_service.update_cart_product_quantity(
+            db, 
+            id_carrito_producto, 
+            cantidad, 
+            current_user.id_usuario if current_user else None
+        )
+        return ResponseMessage(message="Cantidad actualizada correctamente")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.delete("/carrito-productos/{id_carrito_producto}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def delete_cart_product_by_id(
+    id_carrito_producto: int,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Elimina un producto del carrito usando su ID de carrito.
+    Obtiene los datos necesarios y usa la función existente delete_cart_product.
+    """
+    try:
+        from sqlalchemy import text
+        # Obtener los datos del producto para usar tu función existente
+        query = text("""
+        SELECT cp.id_categoria_producto, cp.id_linea_producto, cp.id_sublinea_producto, 
+               cp.id_producto, cp.cantidad, c.id_usuario, c.session_id
+        FROM tab_carrito_productos cp
+        JOIN tab_carritos c ON cp.id_carrito = c.id_carrito
+        WHERE cp.id_carrito_producto = :id_carrito_producto
+        """)
+        result = db.execute(query, {"id_carrito_producto": id_carrito_producto})
+        product_data = result.fetchone()
+        
+        if not product_data:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado en el carrito")
+        
+        # Usar TU función existente
+        cart_product_service.delete_cart_product(
+            db=db,
+            id_usuario=product_data[5],  # id_usuario
+            session_id=product_data[6],  # session_id
+            id_categoria_producto=product_data[0],  # id_categoria_producto
+            id_linea_producto=product_data[1],  # id_linea_producto
+            id_sublinea_producto=product_data[2],  # id_sublinea_producto
+            id_producto=product_data[3],  # id_producto
+            cantidad=product_data[4],  # cantidad
+            usr_update=current_user.id_usuario if current_user else None
+        )
+        return ResponseMessage(message="Producto eliminado del carrito correctamente")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
 @router.delete("/carrito-productos/{id_categoria_producto}-{id_linea_producto}-{id_sublinea_producto}-{id_producto}-{cantidad}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def delete_cart_product(
     id_categoria_producto: Decimal,

@@ -53,15 +53,23 @@ function setupInterceptors(instance: AxiosInstance): void {
   // Interceptor de REQUEST: Agregar token de autenticación automáticamente
   instance.interceptors.request.use(
     (config) => {
-      // Si ya marcamos esta instancia como no autenticada, no hacer requests
-      if (instance.defaults.headers.common['Authorization'] === '') {
+      // Endpoints que NO requieren autenticación
+      const publicEndpoints = ['/login', '/users', '/refresh', '/auth/forgot-password', '/auth/reset-password'];
+      const isPublicEndpoint = publicEndpoints.some(endpoint => 
+        config.url?.includes(endpoint)
+      );
+
+      // Si no es un endpoint público y ya marcamos esta instancia como no autenticada, rechazar
+      if (!isPublicEndpoint && instance.defaults.headers.common['Authorization'] === '') {
         return Promise.reject(new Error('Not authenticated'));
       }
       
-      // Leer el token en cada petición para asegurar que siempre esté actualizado
-      const token = getStoredToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+      // Solo agregar token si NO es un endpoint público
+      if (!isPublicEndpoint) {
+        const token = getStoredToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
       }
       
       // No sobrescribir Content-Type si es FormData (Axios lo maneja automáticamente)
@@ -84,8 +92,14 @@ function setupInterceptors(instance: AxiosInstance): void {
     async (error) => {
       const originalRequest = error.config;
 
-      // Si el token expiró (401) y no hemos intentado renovarlo ya
-      if (error.response?.status === 401 && !originalRequest._retry) {
+      // Endpoints que NO deben intentar refresh automático
+      const publicEndpoints = ['/login', '/users', '/refresh', '/auth/forgot-password', '/auth/reset-password'];
+      const isPublicEndpoint = publicEndpoints.some(endpoint => 
+        originalRequest.url?.includes(endpoint)
+      );
+
+      // Si el token expiró (401) y no hemos intentado renovarlo ya, y NO es un endpoint público
+      if (error.response?.status === 401 && !originalRequest._retry && !isPublicEndpoint) {
         originalRequest._retry = true;
 
         try {

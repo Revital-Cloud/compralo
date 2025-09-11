@@ -1,14 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { ProductGallery, ProductInfo, RelatedProducts } from "@/components/product"
 import CartToast from "@/components/ui/cart-toast"
 import { useProduct } from "@/hooks/use-products"
+import { useCart } from "@/hooks/use-cart"
 import Loading from "@/components/ui/loading"
 
 const ProductPage = () => {
   const params = useParams()
+  const router = useRouter()
   const slug = params?.id as string
   
   const [showCartToast, setShowCartToast] = useState(false)
@@ -24,17 +26,54 @@ const ProductPage = () => {
     error 
   } = useProduct(slug)
 
-  const handleAddToCart = (selectedColor?: string, selectedSize?: string) => {
-    if (!product) return
+  // Hook del carrito para funcionalidad real
+  const { 
+    addToCart, 
+    isAddingToCart,
+    error: cartError 
+  } = useCart()
+
+  const handleAddToCart = async (selectedColor?: string, selectedSize?: string) => {
+    if (!product) {
+      console.error('No hay producto para agregar al carrito')
+      return
+    }
     
-    // Guardar datos del carrito
-    setCartData({
-      color: selectedColor,
-      size: selectedSize
-    })
+    // Validar stock disponible
+    if (product.num_stock <= 0) {
+      console.error('Producto agotado')
+      return
+    }
     
-    // Mostrar toast inmediatamente
-    setShowCartToast(true)
+    try {
+      // Preparar datos del producto para el carrito
+      const cartProductData = {
+        id_categoria_producto: product.id_categoria_producto || 1,
+        id_linea_producto: product.id_linea_producto || 1, 
+        id_sublinea_producto: product.id_sublinea_producto || 1,
+        id_producto: product.id_producto,
+        cantidad: 1, // Por defecto agregamos 1 unidad
+        precio_unitario_carrito: parseFloat(product.val_precio.toString()),
+        stock_disponible: product.num_stock // Pasar stock para validación
+      }
+
+      console.log('🛒 Agregando producto al carrito:', cartProductData)
+
+      // Llamar al hook del carrito
+      addToCart(cartProductData)
+      
+      // Guardar datos para el toast
+      setCartData({
+        color: selectedColor,
+        size: selectedSize
+      })
+      
+      // Mostrar toast de confirmación
+      setShowCartToast(true)
+      
+    } catch (error) {
+      console.error('❌ Error al agregar producto al carrito:', error)
+    }
   }
 
   const handleAddToWishlist = () => {
@@ -44,8 +83,8 @@ const ProductPage = () => {
   }
 
   const handleViewCart = () => {
-    // Navegar al carrito
-    console.log("Navegar al carrito")
+    // Navegar al carrito real
+    router.push('/cart')
     setShowCartToast(false)
   }
 

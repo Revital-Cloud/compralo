@@ -1,7 +1,11 @@
-import React from 'react'
+import React, { useState } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Heart, Trash2, Minus, Plus } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { formatPrice } from '@/utils/format-price'
+import { toast } from 'sonner'
+import { CART_LIMITS } from '@/services/cart.service'
 
 interface CartItemProps {
   id: string
@@ -13,7 +17,9 @@ interface CartItemProps {
   originalPrice?: number
   quantity: number
   image: string
-  onQuantityChange: (id: string, quantity: number) => void
+  stock_disponible?: number
+  cartTotal?: number
+  onQuantityChange: (id: string, quantity: number, stock_disponible?: number) => void
   onRemove: (id: string) => void
   onToggleFavorite: (id: string) => void
   isFavorite?: boolean
@@ -29,19 +35,54 @@ const CartItem: React.FC<CartItemProps> = ({
   originalPrice,
   quantity,
   image,
+  stock_disponible,
+  cartTotal = 0,
   onQuantityChange,
   onRemove,
   onToggleFavorite,
   isFavorite = false
 }) => {
+  const [isUpdating, setIsUpdating] = useState(false)
+  
   const texts = {
     size: 'Talla:',
     quantity: 'Cantidad:'
   }
 
-  const handleQuantityChange = (newQuantity: number) => {
-    if (newQuantity >= 1) {
-      onQuantityChange(id, newQuantity)
+  const handleQuantityChange = async (newQuantity: number) => {
+    if (newQuantity >= 1 && newQuantity !== quantity) {
+      // Validar stock disponible
+      if (stock_disponible !== undefined && newQuantity > stock_disponible) {
+        toast.error(`Stock insuficiente. Solo hay ${stock_disponible} unidades disponibles`)
+        return
+      }
+      
+      // Validar límite del carrito
+      const currentItemTotal = price * quantity
+      const newItemTotal = price * newQuantity
+      const totalWithoutCurrentItem = cartTotal - currentItemTotal
+      const newTotal = totalWithoutCurrentItem + newItemTotal
+      
+      if (newTotal > CART_LIMITS.MAX_TOTAL) {
+        toast.error(`Límite de carrito alcanzado. El máximo permitido es ${formatPrice(CART_LIMITS.MAX_TOTAL)}`)
+        return
+      }
+      
+      setIsUpdating(true)
+      try {
+        await onQuantityChange(id, newQuantity, stock_disponible)
+      } finally {
+        setIsUpdating(false)
+      }
+    }
+  }
+
+  const handleRemove = async () => {
+    setIsUpdating(true)
+    try {
+      await onRemove(id)
+    } finally {
+      setIsUpdating(false)
     }
   }
 
@@ -79,6 +120,7 @@ const CartItem: React.FC<CartItemProps> = ({
               size="icon"
               className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700"
               onClick={() => onToggleFavorite(id)}
+              disabled={isUpdating}
             >
               <Heart 
                 className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400 dark:text-gray-500'}`} 
@@ -88,9 +130,10 @@ const CartItem: React.FC<CartItemProps> = ({
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-gray-400 dark:text-gray-500 hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-700"
-              onClick={() => onRemove(id)}
+              onClick={handleRemove}
+              disabled={isUpdating}
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className={`h-4 w-4 ${isUpdating ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
@@ -100,15 +143,54 @@ const CartItem: React.FC<CartItemProps> = ({
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600 dark:text-gray-400">{texts.size}</span>
-              <select className="text-sm border-0 bg-transparent text-gray-900 dark:text-white font-medium focus:outline-none">
-                <option value={size}>{size}</option>
-              </select>
+              <span className="text-sm text-gray-900 dark:text-white font-medium">
+                {size}
+              </span>
             </div>
+            
+            {/* Control de cantidad mejorado */}
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600 dark:text-gray-400">{texts.quantity}</span>
-              <select className="text-sm border-0 bg-transparent text-gray-900 dark:text-white font-medium focus:outline-none">
-                <option value={quantity}>{quantity}</option>
-              </select>
+              {stock_disponible !== undefined && (
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                  (Stock: {stock_disponible})
+                </span>
+              )}
+              <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-md">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  onClick={() => handleQuantityChange(quantity - 1)}
+                  disabled={isUpdating || quantity <= 1}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                
+                <Input
+                  type="number"
+                  value={quantity}
+                  onChange={(e) => {
+                    const newQuantity = parseInt(e.target.value) || 1
+                    if (newQuantity >= 1) {
+                      handleQuantityChange(newQuantity)
+                    }
+                  }}
+                  className="w-16 h-8 text-center border-0 focus:ring-0 text-sm"
+                  min="1"
+                  disabled={isUpdating}
+                />
+                
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  onClick={() => handleQuantityChange(quantity + 1)}
+                  disabled={isUpdating || (stock_disponible !== undefined && quantity >= stock_disponible)}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -116,11 +198,11 @@ const CartItem: React.FC<CartItemProps> = ({
         {/* Precio */}
         <div className="flex items-center gap-3">
           <span className="font-bold text-xl text-blue-600 dark:text-blue-400">
-            ${price.toFixed(2)}
+            {formatPrice(price)}
           </span>
           {originalPrice && originalPrice > price && (
             <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
-              ${originalPrice.toFixed(2)}
+              {formatPrice(originalPrice)}
             </span>
           )}
         </div>
