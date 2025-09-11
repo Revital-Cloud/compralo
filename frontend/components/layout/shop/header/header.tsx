@@ -31,7 +31,7 @@ import {
 import Link from "next/link"
 import { defaultMenuItems } from "@/lib/menu-config"
 import { useCartInfo } from "@/hooks/use-cart"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 
 interface EcommerceHeaderProps {
   logo?: React.ReactNode
@@ -47,6 +47,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
   className = ""
 }) => {
   const router = useRouter()
+  const pathname = usePathname()
   const { itemCount, isLoading } = useCartInfo()
   
   // Usar el count del hook si no se proporciona uno
@@ -100,7 +101,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                     key={index}
                     href={item.href || "#"}
                     className={`text-sm font-medium transition-colors duration-300 ${
-                      item.href === "/" 
+                      pathname === item.href
                         ? "text-[#ec2538] dark:text-red-500 border-b-2 border-[#ec2538] dark:border-red-500 pb-2" 
                         : "text-gray-900 dark:text-white hover:text-[#ec2538] dark:hover:text-red-500"
                     }`}
@@ -193,7 +194,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="relative p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300" 
+                        className="relative p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300 cursor-pointer" 
                         onClick={handleCartClick}
                         disabled={isLoading}
                       >
@@ -243,6 +244,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         items={navigationItems}
+        pathname={pathname}
       />
     </header>
   )

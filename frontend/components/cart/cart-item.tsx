@@ -44,6 +44,32 @@ const CartItem: React.FC<CartItemProps> = ({
 }) => {
   const [isUpdating, setIsUpdating] = useState(false)
   
+  // Deshabilitar "+" si el siguiente incremento excede stock o el límite de carrito
+  const isPlusDisabled = (() => {
+    const exceedsStock = stock_disponible !== undefined && quantity >= stock_disponible
+    const currentItemTotal = price * quantity
+    const nextItemTotal = price * (quantity + 1)
+    const totalWithoutCurrentItem = (cartTotal || 0) - currentItemTotal
+    const nextTotal = totalWithoutCurrentItem + nextItemTotal
+    const exceedsLimit = nextTotal > CART_LIMITS.MAX_TOTAL
+    return isUpdating || exceedsStock || exceedsLimit
+  })()
+
+  const plusDisabledReason = (() => {
+    if (isUpdating) return null
+    if (stock_disponible !== undefined && quantity >= stock_disponible) {
+      return `Stock insuficiente. Solo hay ${stock_disponible} unidades disponibles`
+    }
+    const currentItemTotal = price * quantity
+    const nextItemTotal = price * (quantity + 1)
+    const totalWithoutCurrentItem = (cartTotal || 0) - currentItemTotal
+    const nextTotal = totalWithoutCurrentItem + nextItemTotal
+    if (nextTotal > CART_LIMITS.MAX_TOTAL) {
+      return `Límite de carrito alcanzado. El máximo permitido es ${formatPrice(CART_LIMITS.MAX_TOTAL)}`
+    }
+    return null
+  })()
+  
   const texts = {
     size: 'Talla:',
     quantity: 'Cantidad:'
@@ -87,9 +113,9 @@ const CartItem: React.FC<CartItemProps> = ({
   }
 
   return (
-    <div className="flex gap-6 p-6">
+    <div className="flex flex-col sm:flex-row gap-4 p-4 sm:p-6">
       {/* Imagen del producto */}
-      <div className="relative w-24 h-24 sm:w-32 sm:h-32 flex-shrink-0">
+      <div className="relative w-full h-32 sm:w-24 sm:h-24 md:w-32 md:h-32 flex-shrink-0 mx-auto sm:mx-0">
         <Image
           src={image}
           alt={name}
@@ -100,12 +126,12 @@ const CartItem: React.FC<CartItemProps> = ({
 
       {/* Información del producto */}
       <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-start mb-3">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate mb-1">
+            <h3 className="font-bold text-lg text-gray-900 dark:text-white break-words mb-1">
               {name}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
               {brand}
             </p>
             <p className="text-sm text-gray-500 dark:text-gray-500">
@@ -114,7 +140,7 @@ const CartItem: React.FC<CartItemProps> = ({
           </div>
 
           {/* Acciones del producto */}
-          <div className="flex gap-2 ml-4">
+          <div className="flex gap-2 justify-end sm:justify-start">
             <Button
               variant="ghost"
               size="icon"
@@ -138,66 +164,74 @@ const CartItem: React.FC<CartItemProps> = ({
           </div>
         </div>
 
-        {/* Línea de tamaño y cantidad */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">{texts.size}</span>
-              <span className="text-sm text-gray-900 dark:text-white font-medium">
-                {size}
-              </span>
-            </div>
+        {/* Información de tamaño y stock */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600 dark:text-gray-400">{texts.size}</span>
+            <span className="text-sm text-gray-900 dark:text-white font-medium">
+              {size}
+            </span>
+          </div>
+          
+          {stock_disponible !== undefined && (
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              (Stock: {stock_disponible})
+            </span>
+          )}
+        </div>
+
+        {/* Control de cantidad */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+          <span className="text-sm text-gray-600 dark:text-gray-400">{texts.quantity}</span>
+          <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-md w-fit">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 hover:bg-gray-100 dark:hover:bg-gray-700"
+              onClick={() => handleQuantityChange(quantity - 1)}
+              disabled={isUpdating || quantity <= 1}
+            >
+              <Minus className="h-2.5 w-2.5" />
+            </Button>
             
-            {/* Control de cantidad mejorado */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-400">{texts.quantity}</span>
-              {stock_disponible !== undefined && (
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  (Stock: {stock_disponible})
-                </span>
-              )}
-              <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-md">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => handleQuantityChange(quantity - 1)}
-                  disabled={isUpdating || quantity <= 1}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                
-                <Input
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => {
-                    const newQuantity = parseInt(e.target.value) || 1
-                    if (newQuantity >= 1) {
-                      handleQuantityChange(newQuantity)
-                    }
-                  }}
-                  className="w-16 h-8 text-center border-0 focus:ring-0 text-sm"
-                  min="1"
-                  disabled={isUpdating}
-                />
-                
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700"
-                  onClick={() => handleQuantityChange(quantity + 1)}
-                  disabled={isUpdating || (stock_disponible !== undefined && quantity >= stock_disponible)}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
+            <Input
+              type="number"
+              value={quantity}
+              onChange={(e) => {
+                const newQuantity = parseInt(e.target.value) || 1
+                if (newQuantity >= 1) {
+                  handleQuantityChange(newQuantity)
+                }
+              }}
+              className="w-12 h-6 text-center border-0 focus:ring-0 text-xs"
+              min="1"
+              disabled={isUpdating}
+            />
+            
+            <span
+              onClick={() => {
+                if (isPlusDisabled && plusDisabledReason) {
+                  toast.error(plusDisabledReason)
+                }
+              }}
+              className={isPlusDisabled ? 'cursor-not-allowed' : ''}
+            >
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 hover:bg-gray-100 dark:hover:bg-gray-700"
+                onClick={() => handleQuantityChange(quantity + 1)}
+                disabled={isPlusDisabled}
+              >
+                <Plus className="h-2.5 w-2.5" />
+              </Button>
+            </span>
           </div>
         </div>
 
         {/* Precio */}
         <div className="flex items-center gap-3">
-          <span className="font-bold text-xl text-blue-600 dark:text-blue-400">
+          <span className="font-bold text-lg sm:text-xl text-blue-600 dark:text-blue-400">
             {formatPrice(price)}
           </span>
           {originalPrice && originalPrice > price && (

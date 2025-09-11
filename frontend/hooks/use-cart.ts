@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCartStore } from '@/stores/cart-store';
 import { useAuth } from '@/hooks/use-auth';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import * as cartService from '@/services/cart.service';
 import { formatPrice } from '@/utils/format-price';
 
@@ -37,7 +37,7 @@ function validateCartLimit(currentTotal: number, productPrice: number, quantity:
 
 export function useCart() {
   const queryClient = useQueryClient();
-  const { user: authUser } = useAuth();
+  const { user: authUser, isAuthenticated } = useAuth();
 
   // Estado del store
   const {
@@ -75,15 +75,35 @@ export function useCart() {
     ? { id_usuario: authUser.id_usuario }
     : { session_id: cartUser.session_id || cartService.generateSessionId() };
 
-  // Sincronizar usuario del carrito con el store
-  useEffect(() => {
-    if (!authUser?.id_usuario && !cartUser.session_id) {
-      const newSessionId = cartService.generateSessionId();
-      setCartUser({ session_id: newSessionId });
-    } else if (authUser?.id_usuario && !cartUser.id_usuario) {
-      setCartUser({ id_usuario: authUser.id_usuario });
+  // =============================================================================
+  // MUTACIÓN PARA MIGRAR CARRITO (definida antes del useEffect)
+  // =============================================================================
+
+  /**
+   * Estado para controlar si se está migrando
+   */
+  const [isMigrating, setIsMigrating] = useState(false);
+
+  /**
+   * Mutación para migrar carrito anónimo
+   */
+  const migrateCartMutation = useMutation({
+    mutationFn: (migrateData: cartService.MigrateCartRequest) => {
+      return cartService.migrateAnonymousCart(migrateData);
+    },
+    onSuccess: () => {
+      console.log('✅ Migración exitosa - refrescando datos');
+      setIsMigrating(false);
+      refetchProducts();
+      refetchTotals();
+      setError(null);
+    },
+    onError: (error: any) => {
+      console.error('❌ Error en migración:', error);
+      setIsMigrating(false);
+      setError(error.message || 'Error al migrar carrito');
     }
-  }, [authUser?.id_usuario, cartUser, setCartUser]);
+  });
 
   // =============================================================================
   // QUERIES
@@ -118,6 +138,55 @@ export function useCart() {
     staleTime: 2 * 60 * 1000, // 2 minutos
     refetchOnWindowFocus: false,
   });
+
+  // =============================================================================
+  // MIGRACIÓN AUTOMÁTICA DE CARRITO
+  // =============================================================================
+
+  // Sincronizar usuario del carrito con el store y manejar migración
+  useEffect(() => {
+    if (!authUser?.id_usuario && !cartUser.session_id) {
+      // Usuario anónimo sin session_id - generar uno nuevo
+      const newSessionId = cartService.generateSessionId();
+      console.log('🛒 Generando session_id para usuario anónimo:', newSessionId);
+      setCartUser({ session_id: newSessionId });
+    } else if (authUser?.id_usuario && isAuthenticated && cartUser.session_id && !cartUser.id_usuario && !isMigrating) {
+      // Usuario se acaba de autenticar y tenía carrito anónimo - migrar
+      console.log('🔄 Detectado login - migrando carrito anónimo a usuario autenticado');
+      
+      if (id_carrito) {
+        setIsMigrating(true);
+        const migrateData: cartService.MigrateCartRequest = {
+          id_carrito: id_carrito
+        };
+        
+        migrateCartMutation.mutate(migrateData, {
+          onSuccess: () => {
+            console.log('✅ Carrito migrado exitosamente');
+            // Actualizar el cartUser a usuario autenticado
+            setCartUser({ id_usuario: authUser.id_usuario });
+            // Refrescar datos del carrito usando queryClient
+            queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
+          },
+          onError: (error) => {
+            console.error('❌ Error al migrar carrito:', error);
+            // Aún así actualizar a usuario autenticado
+            setCartUser({ id_usuario: authUser.id_usuario });
+          }
+        });
+      } else {
+        // No hay carrito para migrar, solo actualizar usuario
+        setCartUser({ id_usuario: authUser.id_usuario });
+      }
+    } else if (authUser?.id_usuario && !cartUser.session_id && !cartUser.id_usuario) {
+      // Usuario autenticado sin carrito configurado
+      setCartUser({ id_usuario: authUser.id_usuario });
+    }
+  }, [authUser?.id_usuario, isAuthenticated, cartUser, setCartUser, id_carrito, queryClient, isMigrating]);
+
+  // =============================================================================
+  // EFECTOS PARA SINCRONIZAR ESTADO
+  // =============================================================================
 
   // Efectos para sincronizar el estado
   useEffect(() => {
@@ -195,6 +264,9 @@ export function useCart() {
         ...product,
         ...currentCartUser
       };
+      
+      console.log('🛒 Agregando producto al carrito:', productWithUser);
+      
       return cartService.addToCart(productWithUser);
     },
     onMutate: async (product) => {
@@ -214,13 +286,14 @@ export function useCart() {
       addItem(tempItem);
     },
     onSuccess: () => {
+      console.log('✅ Producto agregado exitosamente');
       // Refrescar datos del servidor
       refetchProducts();
       refetchTotals();
       setError(null);
     },
     onError: (error: any) => {
-      console.error('Error al agregar producto:', error);
+      console.error('❌ Error al agregar producto:', error);
       // Mostrar errores relevantes al usuario (stock y límite)
       if (error.message?.includes('Stock insuficiente') || error.message?.includes('Límite de carrito alcanzado')) {
         setError(error.message);
@@ -279,7 +352,6 @@ export function useCart() {
       setError(null);
     },
     onError: (error: any) => {
-      console.error('Error al actualizar cantidad:', error);
       // Mostrar errores relevantes al usuario (stock, límite y cantidad)
       if (error.message?.includes('Stock insuficiente') || 
           error.message?.includes('cantidad debe ser mayor') || 
@@ -342,22 +414,7 @@ export function useCart() {
     }
   });
 
-  /**
-   * Mutación para migrar carrito anónimo
-   */
-  const migrateCartMutation = useMutation({
-    mutationFn: (migrateData: cartService.MigrateCartRequest) => {
-      return cartService.migrateAnonymousCart(migrateData);
-    },
-    onSuccess: () => {
-      refetchProducts();
-      refetchTotals();
-      setError(null);
-    },
-    onError: (error: any) => {
-      setError(error.message || 'Error al migrar carrito');
-    }
-  });
+  // migrateCartMutation ya está definido arriba
 
   // =============================================================================
   // ESTADOS COMBINADOS
@@ -397,6 +454,16 @@ export function useCart() {
       refetchProducts();
       refetchTotals();
     },
+    
+    // === DEBUG ===
+    getCartStatus: () => ({
+      isAuthenticated: !!authUser?.id_usuario,
+      currentCartUser,
+      cartUser,
+      id_carrito,
+      hasItems: hasItems(),
+      itemCount,
+    }),
 
     // === ESTADOS DE LAS MUTACIONES ===
     isAddingToCart: addToCartMutation.isPending,
