@@ -14,6 +14,7 @@ import {
   Search
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import MiniCartHover from "@/components/cart/minicart-hover"
 import {
   Tooltip,
   TooltipContent,
@@ -187,30 +188,26 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                   </Tooltip>
                 </TooltipProvider>
 
-                {/* Cart - Siempre visible */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="relative p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300 cursor-pointer" 
-                        onClick={handleCartClick}
-                        disabled={isLoading}
-                      >
-                        <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                        {displayCartCount > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-[#ec2538] dark:bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                            {displayCartCount > 99 ? '99+' : displayCartCount}
-                          </span>
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Carrito de compras ({displayCartCount} {displayCartCount === 1 ? 'producto' : 'productos'})</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                {/* Cart con MiniCart en hover */}
+                <MiniCartHover
+                  trigger={
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="relative p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300 cursor-pointer" 
+                      onClick={handleCartClick}
+                      disabled={isLoading}
+                      aria-label={`Carrito de compras (${displayCartCount} ${displayCartCount === 1 ? 'producto' : 'productos'})`}
+                    >
+                      <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                      {displayCartCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-[#ec2538] dark:bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                          {displayCartCount > 99 ? '99+' : displayCartCount}
+                        </span>
+                      )}
+                    </Button>
+                  }
+                />
 
                 {/* User Menu - Siempre visible */}
                 <UserMenu />
