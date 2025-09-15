@@ -82,7 +82,6 @@ export interface CartProductDetail {
 
 export interface MigrateCartRequest {
   id_carrito: number;
-  id_usuario: number;
 }
 
 export interface ResponseMessage {
@@ -111,7 +110,13 @@ export async function getOrCreateCart(cartUser: CartUser): Promise<CartResponse>
  * Agrega un producto al carrito
  */
 export async function addToCart(product: CartProductCreate): Promise<ResponseMessage> {
-  return await post<ResponseMessage>('/carrito-productos', product);
+  // Si hay session_id, enviarlo como query parameter
+  const params = product.session_id ? { session_id: product.session_id } : {};
+  
+  // Crear una copia del producto sin session_id para el body
+  const { session_id, ...productBody } = product;
+  
+  return await post<ResponseMessage>('/carrito-productos', productBody, { params });
 }
 
 /**

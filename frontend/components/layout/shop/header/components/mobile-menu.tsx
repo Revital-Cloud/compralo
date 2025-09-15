@@ -11,9 +11,10 @@ interface MobileMenuProps {
   isOpen: boolean
   onClose: () => void
   items?: NavItem[]
+  pathname?: string
 }
 
-export function MobileMenu({ isOpen, onClose, items = [] }: MobileMenuProps) {
+export function MobileMenu({ isOpen, onClose, items = [], pathname }: MobileMenuProps) {
   const { theme } = useTheme()
 
   if (!isOpen) {
@@ -36,7 +37,7 @@ export function MobileMenu({ isOpen, onClose, items = [] }: MobileMenuProps) {
               href={item.href || ""}
               className={cn(
                 "flex w-full items-center rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#ec2538] dark:hover:text-red-500 transition-colors duration-300",
-                item.href === "/" ? "text-[#ec2538] dark:text-red-500 font-semibold" : "text-gray-700 dark:text-gray-300"
+                pathname === item.href ? "text-[#ec2538] dark:text-red-500 font-semibold" : "text-gray-700 dark:text-gray-300"
               )}
               onClick={onClose}
             >

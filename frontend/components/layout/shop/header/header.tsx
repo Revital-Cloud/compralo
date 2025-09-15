@@ -14,6 +14,7 @@ import {
   Search
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import MiniCartHover from "@/components/cart/minicart-hover"
 import {
   Tooltip,
   TooltipContent,
@@ -31,7 +32,7 @@ import {
 import Link from "next/link"
 import { defaultMenuItems } from "@/lib/menu-config"
 import { useCartInfo } from "@/hooks/use-cart"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 
 interface EcommerceHeaderProps {
   logo?: React.ReactNode
@@ -47,6 +48,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
   className = ""
 }) => {
   const router = useRouter()
+  const pathname = usePathname()
   const { itemCount, isLoading } = useCartInfo()
   
   // Usar el count del hook si no se proporciona uno
@@ -100,7 +102,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                     key={index}
                     href={item.href || "#"}
                     className={`text-sm font-medium transition-colors duration-300 ${
-                      item.href === "/" 
+                      pathname === item.href
                         ? "text-[#ec2538] dark:text-red-500 border-b-2 border-[#ec2538] dark:border-red-500 pb-2" 
                         : "text-gray-900 dark:text-white hover:text-[#ec2538] dark:hover:text-red-500"
                     }`}
@@ -186,30 +188,26 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                   </Tooltip>
                 </TooltipProvider>
 
-                {/* Cart - Siempre visible */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="relative p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300" 
-                        onClick={handleCartClick}
-                        disabled={isLoading}
-                      >
-                        <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                        {displayCartCount > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-[#ec2538] dark:bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                            {displayCartCount > 99 ? '99+' : displayCartCount}
-                          </span>
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Carrito de compras ({displayCartCount} {displayCartCount === 1 ? 'producto' : 'productos'})</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                {/* Cart con MiniCart en hover */}
+                <MiniCartHover
+                  trigger={
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="relative p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300 cursor-pointer" 
+                      onClick={handleCartClick}
+                      disabled={isLoading}
+                      aria-label={`Carrito de compras (${displayCartCount} ${displayCartCount === 1 ? 'producto' : 'productos'})`}
+                    >
+                      <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                      {displayCartCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-[#ec2538] dark:bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                          {displayCartCount > 99 ? '99+' : displayCartCount}
+                        </span>
+                      )}
+                    </Button>
+                  }
+                />
 
                 {/* User Menu - Siempre visible */}
                 <UserMenu />
@@ -243,6 +241,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
         items={navigationItems}
+        pathname={pathname}
       />
     </header>
   )

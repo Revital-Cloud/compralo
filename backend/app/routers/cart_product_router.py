@@ -4,10 +4,10 @@ Módulo de enrutador para la gestión de productos en el carrito.
 Define las rutas y endpoints relacionados con la gestión de productos en el carrito.
 """
 from decimal import Decimal
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from core.database import get_db
-from core.dependencies import get_current_user
+from core.dependencies import get_current_user, get_current_user_optional
 from schemas.auth_schema import UserInToken
 from schemas.cart_product_schemas import CalculateTotalCart, CartProductCreate, CartProduct, GetCartDetail, GetCartUser, MigrateCartAnonymous, ResponseMessage, CartResponse, Cart, CartTotalResponse
 from services import cart_product_service
@@ -44,9 +44,9 @@ async def get_cart_products(db:Session = Depends(get_db)):
 @router.post("/carrito-productos", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_cart_product(
     cart_product_data: CartProductCreate = Body(...),
-    session_id: Optional[Decimal] = None, 
+    session_id: Optional[Decimal] = Query(None), 
     db:Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user)
+    current_user: Optional[UserInToken] = Depends(get_current_user_optional)
 ):
     """
     Crea un nuevo producto en el carrito.
@@ -85,7 +85,7 @@ async def update_cart_product_quantity(
     id_carrito_producto: int,
     cantidad: int = Body(..., embed=True),
     db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user)
+    current_user: Optional[UserInToken] = Depends(get_current_user_optional)
 ):
     """
     Actualiza la cantidad de un producto en el carrito.
@@ -113,7 +113,7 @@ async def update_cart_product_quantity(
 async def delete_cart_product_by_id(
     id_carrito_producto: int,
     db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user)
+    current_user: Optional[UserInToken] = Depends(get_current_user_optional)
 ):
     """
     Elimina un producto del carrito usando su ID de carrito.
@@ -160,7 +160,7 @@ async def delete_cart_product(
     cantidad: Decimal,
     session_id: Optional[Decimal] = None,  # Query parameter opcional
     db:Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user)
+    current_user: Optional[UserInToken] = Depends(get_current_user_optional)
 ):
     """
     Elimina un producto en el carrito.

@@ -256,7 +256,6 @@ export const ProductsDisplay = ({
             {viewMode === 'grid' ? (
               <ProductGrid
                 products={filteredProducts}
-                onAddToCart={handleAddToCart}
                 onToggleFavorite={handleToggleFavorite}
               />
             ) : (

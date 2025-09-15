@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useState } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Heart } from 'lucide-react'
+import { formatPrice } from '@/utils/format-price'
 
 interface ProductCardProps {
   id: string
@@ -12,10 +13,13 @@ interface ProductCardProps {
   price: number
   originalPrice?: number
   image: string
+  hoverImage?: string
   badge?: string
   badgeColor?: 'blue' | 'red' | 'green' | 'yellow'
-  onAddToCart?: (id: string) => void
+  colorsAvailable?: number
+  category?: string
   onToggleFavorite?: (id: string) => void
+  onClick?: (id: string) => void
   isFavorite?: boolean
   className?: string
 }
@@ -27,13 +31,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
   price,
   originalPrice,
   image,
+  hoverImage,
   badge,
   badgeColor = 'blue',
-  onAddToCart,
+  colorsAvailable,
+  category,
   onToggleFavorite,
+  onClick,
   isFavorite = false,
   className = ''
 }) => {
+  const [isHovered, setIsHovered] = useState(false)
   const texts = {
     viewProduct: 'VER PRODUCTO'
   }
@@ -45,82 +53,86 @@ const ProductCard: React.FC<ProductCardProps> = ({
     yellow: 'bg-yellow-600 text-black'
   }
 
+  const handleClick = () => {
+    onClick?.(id)
+  }
+
   return (
-    <Card className={`group cursor-pointer hover:shadow-lg dark:hover:shadow-2xl transition-all duration-300 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 ${className}`}>
-      <CardContent className="p-0">
-        <div className="relative">
-          {/* Imagen del producto */}
-          <div className="relative aspect-square overflow-hidden rounded-t-lg">
-            <Image
-              src={image}
-              alt={name}
-              fill
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-            
-            {/* Badge */}
-            {badge && (
-              <Badge 
-                variant="secondary" 
-                className={`absolute top-3 left-3 z-10 font-bold text-xs px-2 py-1 ${badgeColorClasses[badgeColor]}`}
-              >
-                {badge}
-              </Badge>
-            )}
+    <div 
+      className={`group cursor-pointer transition-all duration-300 ${className}`}
+      onClick={handleClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Imagen del producto */}
+      <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-gray-800 mb-4">
+        <Image
+          src={isHovered && hoverImage ? hoverImage : image}
+          alt={name}
+          fill
+          className="object-cover transition-all duration-500"
+        />
+        
+        {/* Badge */}
+        {badge && (
+          <Badge 
+            variant="secondary" 
+            className={`absolute top-3 left-3 z-10 font-bold text-xs px-2 py-1 ${badgeColorClasses[badgeColor]}`}
+          >
+            {badge}
+          </Badge>
+        )}
 
-            {/* Botón de favorito */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-3 right-3 z-10 h-8 w-8 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800"
-              onClick={(e) => {
-                e.stopPropagation()
-                onToggleFavorite?.(id)
-              }}
-            >
-              <Heart 
-                className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600 dark:text-gray-400'}`} 
-              />
-            </Button>
-          </div>
+        {/* Botón de favorito */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute top-3 right-3 z-10 h-8 w-8 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleFavorite?.(id)
+          }}
+        >
+          <Heart 
+            className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600 dark:text-gray-400'}`} 
+          />
+        </Button>
+      </div>
 
-          {/* Información del producto */}
-          <div className="p-4">
-            <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-1 line-clamp-2 uppercase">
-              {name}
-            </h3>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 uppercase">
-              {brand}
-            </p>
-
-            {/* Precio */}
-            <div className="flex items-center gap-2 mb-3">
-              <span className="font-bold text-lg text-gray-900 dark:text-white">
-                ${price.toFixed(2)}
-              </span>
-              {originalPrice && originalPrice > price && (
-                <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
-                  ${originalPrice.toFixed(2)}
-                </span>
-              )}
-            </div>
-
-            {/* Botón Agregar al Carrito */}
-            <Button
-              variant="default"
-              size="sm"
-              className="w-full text-xs font-bold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
-              onClick={(e) => {
-                e.stopPropagation()
-                onAddToCart?.(id)
-              }}
-            >
-              AGREGAR AL CARRITO
-            </Button>
-          </div>
+      {/* Información del producto */}
+      <div className="space-y-1">
+        {/* Precio */}
+        <div className="flex items-center gap-2">
+          <span className="font-bold text-lg text-gray-900 dark:text-white">
+            {formatPrice(price)}
+          </span>
+          {originalPrice && originalPrice > price && (
+            <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+              {formatPrice(originalPrice)}
+            </span>
+          )}
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Nombre del producto */}
+        <h3 className="font-medium text-sm text-gray-900 dark:text-white line-clamp-2">
+          {name}
+        </h3>
+
+        {/* Categoría */}
+        {category && (
+          <p className="text-xs text-gray-600 dark:text-gray-400">
+            {category}
+          </p>
+        )}
+
+        {/* Colores disponibles */}
+        {colorsAvailable && colorsAvailable > 0 && (
+          <p className="text-xs text-gray-500 dark:text-gray-500">
+            {colorsAvailable} {colorsAvailable === 1 ? 'color' : 'colores'}
+          </p>
+        )}
+      </div>
+    </div>
   )
 }
 
