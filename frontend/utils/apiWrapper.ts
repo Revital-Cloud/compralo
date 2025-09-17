@@ -54,7 +54,18 @@ function setupInterceptors(instance: AxiosInstance): void {
   instance.interceptors.request.use(
     (config) => {
       // Endpoints que NO requieren autenticación
-      const publicEndpoints = ['/login', '/users', '/refresh', '/auth/forgot-password', '/auth/reset-password'];
+      const publicEndpoints = [
+        '/login', 
+        '/users', 
+        '/refresh', 
+        '/auth/forgot-password', 
+        '/auth/reset-password',
+        // Endpoints del carrito (soportan usuarios anónimos)
+        '/carrito-usuario',
+        '/carrito-productos',
+        '/carrito-productos-detalle', 
+        '/calcular-total',
+      ];
       const isPublicEndpoint = publicEndpoints.some(endpoint => 
         config.url?.includes(endpoint)
       );
@@ -93,7 +104,18 @@ function setupInterceptors(instance: AxiosInstance): void {
       const originalRequest = error.config;
 
       // Endpoints que NO deben intentar refresh automático
-      const publicEndpoints = ['/login', '/users', '/refresh', '/auth/forgot-password', '/auth/reset-password'];
+      const publicEndpoints = [
+        '/login', 
+        '/users', 
+        '/refresh', 
+        '/auth/forgot-password', 
+        '/auth/reset-password',
+        // Endpoints del carrito (soportan usuarios anónimos)
+        '/carrito-usuario',
+        '/carrito-productos',
+        '/carrito-productos-detalle', 
+        '/calcular-total',
+      ];
       const isPublicEndpoint = publicEndpoints.some(endpoint => 
         originalRequest.url?.includes(endpoint)
       );
