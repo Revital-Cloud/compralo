@@ -118,7 +118,12 @@ export function useCart() {
     error: cartError
   } = useQuery({
     queryKey: CART_KEYS.cart(currentCartUser),
-    queryFn: () => cartService.getOrCreateCart(currentCartUser),
+    queryFn: async () => {
+      console.log('🛒 Obteniendo/creando carrito para:', currentCartUser);
+      const result = await cartService.getOrCreateCart(currentCartUser);
+      console.log('🛒 Carrito obtenido/creado:', result);
+      return result;
+    },
     staleTime: 5 * 60 * 1000, // 5 minutos
     refetchOnWindowFocus: false,
   });
@@ -133,7 +138,12 @@ export function useCart() {
     refetch: refetchProducts
   } = useQuery({
     queryKey: CART_KEYS.products(currentCartUser),
-    queryFn: () => cartService.getCartProductsDetail(currentCartUser),
+    queryFn: async () => {
+      console.log('🔍 Obteniendo productos del carrito para:', currentCartUser);
+      const result = await cartService.getCartProductsDetail(currentCartUser);
+      console.log('📦 Productos obtenidos del servidor:', result);
+      return result;
+    },
     enabled: !!cartData?.id_carrito,
     staleTime: 2 * 60 * 1000, // 2 minutos
     refetchOnWindowFocus: false,
@@ -145,12 +155,21 @@ export function useCart() {
 
   // Sincronizar usuario del carrito con el store y manejar migración
   useEffect(() => {
+    console.log('🔄 [MIGRATION] useEffect ejecutándose:', {
+      authUser: authUser?.id_usuario,
+      isAuthenticated,
+      cartUser,
+      id_carrito,
+      isMigrating,
+      isPending: migrateCartMutation.isPending
+    });
+    
     if (!authUser?.id_usuario && !cartUser.session_id) {
       // Usuario anónimo sin session_id - generar uno nuevo
       const newSessionId = cartService.generateSessionId();
       console.log('🛒 Generando session_id para usuario anónimo:', newSessionId);
       setCartUser({ session_id: newSessionId });
-    } else if (authUser?.id_usuario && isAuthenticated && cartUser.session_id && !cartUser.id_usuario && !isMigrating) {
+    } else if (authUser?.id_usuario && isAuthenticated && cartUser.session_id && !cartUser.id_usuario && !isMigrating && !migrateCartMutation.isPending) {
       // Usuario se acaba de autenticar y tenía carrito anónimo - migrar
       console.log('🔄 Detectado login - migrando carrito anónimo a usuario autenticado');
       
@@ -167,11 +186,15 @@ export function useCart() {
             setCartUser({ id_usuario: authUser.id_usuario });
             // Refrescar datos del carrito usando queryClient
             queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
+            // Resetear el estado de migración
+            setIsMigrating(false);
           },
           onError: (error) => {
             console.error('❌ Error al migrar carrito:', error);
             // Aún así actualizar a usuario autenticado
             setCartUser({ id_usuario: authUser.id_usuario });
+            // Resetear el estado de migración para evitar bucle infinito
+            setIsMigrating(false);
           }
         });
       } else {
@@ -210,8 +233,18 @@ export function useCart() {
           setTotals(null);
         }
       }
-    } else if (!cartProducts) {
-      // Si la respuesta es null o array vacío, limpiar todo
+    } else if (cartProducts === null || cartProducts === undefined) {
+      // Si la respuesta es null o undefined, limpiar todo
+      console.log('🛒 Limpiando carrito - respuesta vacía');
+      if (Array.isArray(items) && items.length > 0) {
+        setItems([]);
+      }
+      if (totals !== null) {
+        setTotals(null);
+      }
+    } else if (Array.isArray(cartProducts) && (cartProducts as any[]).length === 0) {
+      // Si es un array vacío, también limpiar
+      console.log('🛒 Carrito vacío - limpiando estado');
       if (Array.isArray(items) && items.length > 0) {
         setItems([]);
       }
@@ -231,7 +264,12 @@ export function useCart() {
     refetch: refetchTotals
   } = useQuery({
     queryKey: CART_KEYS.totals(currentCartUser),
-    queryFn: () => cartService.calculateCartTotal(currentCartUser),
+    queryFn: async () => {
+      console.log('🧮 Calculando totales del carrito para:', currentCartUser);
+      const result = await cartService.calculateCartTotal(currentCartUser);
+      console.log('🧮 Totales calculados:', result);
+      return result;
+    },
     enabled: !!cartData?.id_carrito && hasItems(),
     staleTime: 1 * 60 * 1000, // 1 minuto
     refetchOnWindowFocus: false,
@@ -252,7 +290,7 @@ export function useCart() {
    * Mutación para agregar producto al carrito
    */
   const addToCartMutation = useMutation({
-    mutationFn: (product: cartService.CartProductCreate) => {
+    mutationFn: async (product: cartService.CartProductCreate) => {
       // Validar límite del carrito
       const currentTotal = getCartTotal();
       const limitError = validateCartLimit(currentTotal, product.precio_unitario_carrito, product.cantidad);
@@ -267,7 +305,9 @@ export function useCart() {
       
       console.log('🛒 Agregando producto al carrito:', productWithUser);
       
-      return cartService.addToCart(productWithUser);
+      const result = await cartService.addToCart(productWithUser);
+      console.log('✅ Respuesta del servidor al agregar producto:', result);
+      return result;
     },
     onMutate: async (product) => {
       // Optimistic update
@@ -287,6 +327,8 @@ export function useCart() {
     },
     onSuccess: () => {
       console.log('✅ Producto agregado exitosamente');
+      // Invalidar todas las queries del carrito para forzar refresco
+      queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       // Refrescar datos del servidor
       refetchProducts();
       refetchTotals();
@@ -300,7 +342,8 @@ export function useCart() {
       } else {
         setError(null); // No mostrar otros errores técnicos
       }
-      // Revertir optimistic update
+      // Invalidar queries y refrescar para revertir optimistic update
+      queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       refetchProducts();
     },
     onSettled: () => {
@@ -347,6 +390,7 @@ export function useCart() {
       updateItemQuantity(id_carrito_producto, cantidad);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       refetchProducts();
       refetchTotals();
       setError(null);
@@ -360,7 +404,8 @@ export function useCart() {
       } else {
         setError(null);
       }
-      // Revertir cambios
+      // Invalidar queries y revertir cambios
+      queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       refetchProducts();
     }
   });
@@ -377,13 +422,15 @@ export function useCart() {
       removeItem(id_carrito_producto);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       refetchProducts();
       refetchTotals();
       setError(null);
     },
     onError: (error: any) => {
       setError(error.message || 'Error al eliminar producto');
-      // Revertir cambios
+      // Invalidar queries y revertir cambios
+      queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       refetchProducts();
     }
   });
@@ -404,12 +451,14 @@ export function useCart() {
       clearCart();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       refetchProducts();
       refetchTotals();
       setError(null);
     },
     onError: (error: any) => {
       setError(error.message || 'Error al limpiar carrito');
+      queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       refetchProducts();
     }
   });
@@ -451,6 +500,8 @@ export function useCart() {
     // === UTILIDADES ===
     findItem,
     refetchCart: () => {
+      // Invalidar todas las queries del carrito y refrescar
+      queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       refetchProducts();
       refetchTotals();
     },
