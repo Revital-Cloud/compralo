@@ -2,24 +2,24 @@
 
 ## 📋 Resumen
 
-Esta guía documenta la implementación completa del sistema de carrito de compras en Synkro, desde el frontend hasta el backend.
+Esta guía documenta de forma completa cómo está implementado el sistema de carrito de compras de Synkro: arquitectura, responsabilidades por archivo, decisiones técnicas, flujos, manejo de errores y un paso a paso cronológico de la implementación.
 
 ## 🏗️ Arquitectura del Sistema
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Components    │    │     Hooks       │    │    Services     │
-│                 │    │                 │    │                 │
-│ • ProductInfo   │───▶│ • useCart()     │───▶│ • cart.service  │
-│ • ProductGrid   │    │ • useCartInfo() │    │ • apiWrapper    │
-│ • ProductList   │    │                 │    │                 │
-│ • CartPage      │    │                 │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+┌─────────────────┐    ┌─────────────────┐    ┌──────────────────────┐
+│   Components    │    │     Hooks       │    │       Services       │
+│                 │    │                 │    │                      │
+│ • CartPage      │───▶│ • useCart()     │───▶│ • cart.service.ts    │
+│ • CartItem      │    │ • useCartInfo() │    │ • apiWrapper.ts      │
+│ • ProductsPage  │    │ • useIsInCart() │    │                      │
+│ • ProductCard   │    │                 │    │                      │
+└─────────────────┘    └─────────────────┘    └──────────────────────┘
          │                       │                       │
          ▼                       ▼                       ▼
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Zustand       │    │  React Query    │    │    Backend      │
-│   Store         │    │    Cache        │    │     API         │
+│   Zustand       │    │  React Query    │    │     Backend     │
+│   Store         │    │    Cache        │    │      API        │
 │                 │    │                 │    │                 │
 │ • cart-store.ts │    │ • Queries       │    │ • FastAPI       │
 │ • Persistencia  │    │ • Mutations     │    │ • PostgreSQL    │
@@ -27,74 +27,83 @@ Esta guía documenta la implementación completa del sistema de carrito de compr
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-## 🔧 Componentes Implementados
+Puntos clave:
+- **Usuarios anónimos y registrados**: soporte nativo mediante `session_id` o `id_usuario`.
+- **React Query**: obtención perezosa, `staleTime`, `enabled`, invalidación selectiva y refetch tras mutaciones.
+- **Zustand**: estado local, persistencia en `localStorage`, cómputos (totales, conteo), y utilidades (`findItem`).
+- **Optimistic UI**: para agregar, actualizar cantidad, eliminar y limpiar carrito, con rollback vía refetch.
+- **Límites**: validación de monto máximo del carrito en cliente (`CART_LIMITS.MAX_TOTAL`).
+- **Migración automática**: carrito anónimo → usuario autenticado tras login.
 
-### 1. **Página Individual de Producto** ✅
-**Archivo:** `frontend/app/(shop)/products/[id]/page.tsx`
+## 📁 Archivos y responsabilidades
 
-**Funcionalidad:**
-- Botón "AGREGAR AL CARRITO" completamente funcional
-- Conexión con `useCart()` hook
-- Manejo de colores y tallas seleccionadas
-- Toast de confirmación
-- Navegación al carrito
+### Hook: `frontend/hooks/use-cart.ts`
+- Orquesta toda la lógica del carrito en el cliente.
+- Define claves `CART_KEYS` para React Query.
+- Inicializa el usuario del carrito: usa `id_usuario` si existe; si no, genera `session_id` con `cart.service.generateSessionId()` y lo persiste en el store.
+- Queries:
+  - `getOrCreateCart(cartUser)` → crea/obtiene `id_carrito`.
+  - `getCartProductsDetail(cartUser)` → carga productos, sincroniza `items` del store.
+  - `calculateCartTotal(cartUser)` → carga `totals` en el store cuando hay items.
+- Mutations (con Optimistic UI y validaciones):
+  - `addToCart(product)` → valida límite, crea item temporal, refetch de productos y totales.
+  - `updateQuantity({ id_carrito_producto, cantidad, stock_disponible })` → valida stock, cantidad > 0 y límite.
+  - `removeFromCart(id_carrito_producto)` → quita localmente y refetch.
+  - `clearCart()` → elimina todos los ítems en backend, limpia store de forma optimista.
+  - `migrateCart({ id_carrito })` → migra carrito anónimo al usuario autenticado tras login.
+- Estados expuestos: `items`, `totals`, `itemCount`, `total`, `hasItems`, `isLoading`, `error`, flags de mutación (`isAddingToCart`, etc.).
 
-**Código clave:**
-```typescript
-const { addToCart, isAddingToCart, error: cartError } = useCart()
+### Servicio: `frontend/services/cart.service.ts`
+- Contratos y DTOs del dominio carrito.
+- Constantes: `CART_LIMITS.MAX_TOTAL`.
+- `generateSessionId()` para usuarios anónimos.
+- Endpoints:
+  - `POST /carrito-usuario` → `getOrCreateCart`.
+  - `POST /carrito-productos` → `addToCart` (envía `session_id` como query param cuando aplique).
+  - `PUT /carrito-productos/{id}` → `updateCartItemQuantity`.
+  - `DELETE /carrito-productos/{id}` → `removeFromCart`.
+  - `POST /carrito-productos-detalle` → `getCartProductsDetail`.
+  - `POST /calcular-total` → `calculateCartTotal`.
+  - `POST /migrar` → `migrateAnonymousCart`.
 
-const handleAddToCart = async (selectedColor?: string, selectedSize?: string) => {
-  const cartProductData = {
-    id_categoria_producto: product.id_categoria_producto || 1,
-    id_linea_producto: product.id_linea_producto || 1, 
-    id_sublinea_producto: product.id_sublinea_producto || 1,
-    id_producto: product.id_producto,
-    cantidad: 1,
-    precio_unitario_carrito: parseFloat(product.val_precio.toString())
-  }
-  
-  addToCart(cartProductData)
-}
-```
+### Store: `frontend/stores/cart-store.ts`
+- Estado persistente (`persist` + `localStorage`) con `name: 'synkro-cart-storage'`.
+- Datos: `items`, `totals`, `id_carrito`, `cartUser`.
+- UI: `isLoading`, `error`, `isOpen` y acciones (`openCart`, `closeCart`, `toggleCart`).
+- Acciones CRUD: `addItem`, `removeItem`, `updateItemQuantity`, `clearCart`.
+- Utilidades: `getItemCount`, `getCartTotal`, `hasItems`, `findItem`.
+- Partialize para persistir solo datos significativos (sin estados de UI transitorios).
 
-### 2. **Vista de Grilla de Productos** ✅
-**Archivo:** `frontend/components/products-page/products-display.tsx`
+### API Wrapper: `frontend/utils/apiWrapper.ts`
+- Configura Axios con interceptores de request/response.
+- Lista blanca de endpoints públicos (carrito incluido) para permitir uso sin token.
+- Refresh token automático para rutas privadas y manejo de sesión expirada.
+- Métodos HTTP genéricos: `get`, `post`, `put`, `del`, `patch`.
 
-**Funcionalidad:**
-- Botón "Agregar al carrito" en cada producto
-- Verificación de stock antes de agregar
-- Toast de feedback (éxito/error)
-- Búsqueda de producto en la lista
+### UI Carrito: `frontend/app/(shop)/cart/page.tsx`
+- Página de carrito con estado real bajo `useCart()`.
+- Muestra `items`, `totals`, subtotal, envío, impuestos y total final.
+- Lógica de actualización de cantidad, eliminación de ítems y feedback de errores relevantes (p.ej. stock insuficiente y límite superado).
+- Layout responsivo con sidebar móvil para el resumen.
 
-**Código clave:**
-```typescript
-const handleAddToCart = async (productId: string) => {
-  // Buscar el producto en la lista
-  const product = productsData?.data?.find((p: any) => p.id_producto.toString() === productId)
-  
-  // Verificar stock
-  if (product.num_stock <= 0) {
-    toast.error('Producto agotado')
-    return
-  }
-  
-  // Agregar al carrito
-  addToCart(cartProductData)
-  toast.success(`${product.nom_producto} agregado al carrito`)
-}
-```
+### Item de Carrito: `frontend/components/cart/cart-item.tsx`
+- Componente presentacional con control de cantidad, remover y favorito.
+- Valida antes de invocar acciones:
+  - Stock según `stock_disponible`.
+  - Límite del carrito con `CART_LIMITS.MAX_TOTAL`.
+- Prop `cartTotal` permite precalcular si la acción de “+1” excede el límite, deshabilitando el botón y mostrando la razón.
 
-### 3. **Vista de Lista de Productos** ⏳
-**Estado:** Pendiente de implementación
-**Archivo:** `frontend/components/product/product-list.tsx`
+### Productos: `frontend/components/products-page/products-display.tsx`
+- Integra `useCart()` para agregar productos desde la grilla/lista.
+- Busca el producto en `productsData`, valida `num_stock`, construye `CartProductCreate` y llama a `addToCart`.
+- Muestra toasts de éxito/error y mantiene la UI consistente con React Query + Zustand.
 
-### 4. **Tarjetas de Productos** ⏳
-**Estado:** Pendiente de implementación  
-**Archivo:** `frontend/components/product/product-card.tsx`
+### Tarjeta de Producto: `frontend/components/product/product-card.tsx`
+- Card visual reutilizable (precio, badge, imagen hover, favorito). Se integra con acciones externas (`onClick`, `onToggleFavorite`).
 
-## 🔄 Flujo de Datos
+## 🔄 Flujos de datos
 
-### Agregar Producto al Carrito
+### Agregar producto al carrito
 
 ```mermaid
 sequenceDiagram
@@ -107,17 +116,17 @@ sequenceDiagram
 
     U->>C: Click "Agregar al carrito"
     C->>H: addToCart(productData)
-    H->>S: addProductToCart(productData)
-    S->>B: POST /carrito-productos
+    H->>S: POST /carrito-productos
+    S->>B: Request
     B-->>S: Respuesta (éxito/error)
     S-->>H: Resultado
-    H->>Z: Optimistic Update
-    H->>H: Refetch queries
+    H->>Z: Optimistic Update (onMutate)
+    H->>H: Refetch productos y totales
     H-->>C: Estado actualizado
     C-->>U: Toast de confirmación
 ```
 
-### Cargar Carrito
+### Carga inicial del carrito
 
 ```mermaid
 sequenceDiagram
@@ -128,200 +137,183 @@ sequenceDiagram
     participant Z as Zustand Store
 
     C->>H: useCart() (mount)
-    H->>S: getOrCreateCart(user)
-    S->>B: POST /carrito-usuario
+    H->>S: POST /carrito-usuario
     B-->>S: {id_carrito, message}
-    S-->>H: Carrito creado/obtenido
-    H->>S: getCartProductsDetail(user)
-    S->>B: POST /carrito-productos-detalle
+    H->>Z: setCartId(id_carrito)
+    H->>S: POST /carrito-productos-detalle
     B-->>S: Array de productos
-    S-->>H: Productos del carrito
     H->>Z: setItems(products)
-    H-->>C: {items, totals, isLoading}
+    H->>S: POST /calcular-total (si hay items)
+    B-->>S: Totales
+    H->>Z: setTotals(totales)
 ```
 
-## 📊 Estados del Sistema
+### Migración automática (anónimo → autenticado)
 
-### Estados del Hook useCart()
+```mermaid
+sequenceDiagram
+    participant A as Auth
+    participant H as useCart
+    participant S as cart.service
+    participant B as Backend
+    participant Z as Store
 
+    A-->>H: Usuario inicia sesión
+    H->>H: Detecta session_id + id_carrito
+    H->>S: POST /migrar { id_carrito }
+    B-->>S: OK
+    H->>Z: setCartUser({ id_usuario })
+    H->>H: invalidateQueries(cart)
+    H->>S: Refetch productos y totales
+```
+
+## 📊 Estados del sistema
+
+### Hook `useCart()` (principales)
 ```typescript
-interface CartState {
-  // Datos
-  items: CartProductDetail[]
-  totals: CartTotalResponse | null
-  itemCount: number
-  total: number
-  
-  // Estados UI
-  isLoading: boolean
-  error: string | null
-  hasItems: boolean
-  
-  // Estados de operaciones
-  isAddingToCart: boolean
-  isUpdatingQuantity: boolean
-  isRemoving: boolean
-}
+items: CartProductDetail[]
+totals: CartTotalResponse | null
+itemCount: number
+total: number
+isLoading: boolean
+error: string | null
+hasItems: () => boolean
+isAddingToCart: boolean
+isUpdatingQuantity: boolean
+isRemoving: boolean
 ```
 
-### Estados del Zustand Store
-
+### Store `useCartStore()` (principales)
 ```typescript
-interface CartState {
-  // Estado del carrito
-  id_carrito?: number
-  items: CartItem[]
-  totals: CartTotalResponse | null
-  
-  // Estado de la UI
-  isLoading: boolean
-  error: string | null
-  isOpen: boolean
-  
-  // Usuario
-  cartUser: CartUser
-}
+items: CartItem[]
+totals: CartTotalResponse | null
+id_carrito?: number
+isLoading: boolean
+error: string | null
+cartUser: { id_usuario?: number; session_id?: number }
 ```
 
-## 🎯 Casos de Uso Implementados
+## ✅ Casos de uso
 
-### ✅ Casos de Uso Funcionando
+### Funcionando
+- **Agregar producto** desde página de producto y grilla/lista.
+- **Ver carrito** y resumen con totales reales del backend.
+- **Persistencia** entre sesiones con `localStorage`.
+- **Usuarios anónimos** con `session_id` automático.
+- **Usuarios autenticados** con `id_usuario`.
+- **Cálculo de totales** (descuentos, puntos) desde backend.
 
-1. **Agregar producto individual** - Página de producto
-2. **Agregar desde grilla** - Lista de productos
-3. **Ver carrito** - Navegación desde header
-4. **Mostrar count** - Ícono del carrito en header
-5. **Persistencia** - Carrito guardado entre sesiones
-6. **Usuarios anónimos** - Session ID automático
-7. **Usuarios registrados** - ID de usuario
-8. **Cálculos del backend** - Totales, descuentos, puntos
+### Pendientes / siguientes
+- **Favoritos** (UI lista, falta backend/integración).
+- **Códigos promocionales** (UI lista, falta endpoint/acción).
+- **Checkout** (pendiente flujo completo).
 
-### ⏳ Casos de Uso Pendientes
+## 🔧 Uso para desarrolladores
 
-1. **Agregar desde lista** - Vista de lista de productos
-2. **Agregar desde cards** - Tarjetas de productos
-3. **Códigos promocionales** - Input y aplicación
-4. **Favoritos** - Toggle de productos favoritos
-5. **Checkout** - Proceso de compra
-
-## 🔧 Configuración y Uso
-
-### Para Desarrolladores
-
-**1. Usar el hook en un componente:**
+### 1) Hook completo
 ```typescript
 import { useCart } from '@/hooks/use-cart'
 
 const MyComponent = () => {
-  const { 
-    addToCart, 
-    items, 
-    itemCount, 
-    isAddingToCart 
-  } = useCart()
-  
+  const { addToCart, items, itemCount, isAddingToCart } = useCart()
   const handleAdd = () => {
     addToCart({
+      id_categoria_producto: 1,
+      id_linea_producto: 1,
+      id_sublinea_producto: 1,
       id_producto: 123,
       cantidad: 1,
-      precio_unitario_carrito: 29.99,
-      // ... otros campos requeridos
+      precio_unitario_carrito: 29990,
     })
   }
 }
 ```
 
-**2. Solo obtener información básica:**
+### 2) Info básica (header)
 ```typescript
 import { useCartInfo } from '@/hooks/use-cart'
 
 const Header = () => {
   const { itemCount, total, isLoading } = useCartInfo()
-  
-  return (
-    <div>
-      Carrito ({itemCount}) - ${total}
-    </div>
-  )
+  return <div>Carrito ({itemCount}) - ${total}</div>
 }
 ```
 
-**3. Verificar si un producto está en el carrito:**
+### 3) Verificar si un producto está en el carrito
 ```typescript
 import { useIsInCart } from '@/hooks/use-cart'
-
-const ProductComponent = ({ productId }) => {
+const ProductComponent = ({ productId }: { productId: number }) => {
   const isInCart = useIsInCart(productId)
-  
-  return (
-    <div>
-      {isInCart ? 'En el carrito' : 'Agregar al carrito'}
-    </div>
-  )
+  return <div>{isInCart ? 'En el carrito' : 'Agregar al carrito'}</div>
 }
 ```
 
-## 🚨 Manejo de Errores
+## 🚨 Manejo de errores y validaciones
 
-### Errores Comunes
+- **Producto no encontrado**: no se agrega; toast de error.
+- **Sin stock**: validación en UI y en `updateQuantity`; mensaje específico.
+- **Límite de carrito**: validación previa en `useCart.addToCart` y `updateQuantity`; UI deshabilita “+1” y muestra mensaje.
+- **Token expirado**: endpoints de carrito son públicos; rutas privadas usan refresh automático en `apiWrapper`.
+- **Optimistic UI fallida**: rollback por refetch de productos/totales en `onError`.
 
-1. **Producto no encontrado**
-   - Toast: "Producto no encontrado"
-   - No se agrega al carrito
+## 🧪 Endpoints implicados (backend)
+- `POST /carrito-usuario`
+- `POST /carrito-productos`
+- `PUT /carrito-productos/{id}`
+- `DELETE /carrito-productos/{id}`
+- `POST /carrito-productos-detalle`
+- `POST /calcular-total`
+- `POST /migrar`
 
-2. **Producto sin stock**
-   - Toast: "Producto agotado"
-   - No se agrega al carrito
+## 🧭 Paso a paso cronológico (de 0 a 100)
 
-3. **Error de conexión**
-   - Toast: "Error al agregar producto al carrito"
-   - Rollback del optimistic update
+1) Configuración de cliente HTTP
+- Se creó `apiWrapper.ts` con interceptores, endpoints públicos para carrito y refresh de token.
 
-4. **Token expirado**
-   - Refresh automático del token
-   - Reintentar operación
+2) Estado global y persistencia
+- Se implementó `cart-store.ts` con Zustand, persistencia selectiva, utilidades (conteo, total, búsqueda), y acciones CRUD.
 
-## 🔄 Próximos Pasos
+3) Servicio de dominio carrito
+- Se definieron tipos, límites (`CART_LIMITS`), y funciones a endpoints en `cart.service.ts`.
 
-### Fase 2 Restante
+4) Hook orquestador
+- Se desarrolló `use-cart.ts` con claves de React Query, queries (carrito, productos, totales), migración automática de carrito y mutations con Optimistic UI y validaciones.
 
-1. **Conectar ProductList** - Vista de lista
-2. **Conectar ProductCard** - Tarjetas de productos
-3. **Mejorar botones del carrito** - Cantidad y eliminar
-4. **Implementar códigos promocionales**
+5) UI del carrito
+- Se creó la página `app/(shop)/cart/page.tsx` consumiendo `useCart()`, con resumen, lista de items y manejo de errores.
 
-### Fase 3 - Avanzado
+6) Ítem de carrito
+- `components/cart/cart-item.tsx` con controles de cantidad, validaciones de stock/límite y eliminación.
 
-1. **Estados de carga mejorados** - Skeletons
-2. **Sincronización entre pestañas** - Broadcast Channel
-3. **Carrito offline** - Service Worker
-4. **Notificaciones push** - Carrito abandonado
+7) Integración en listado/grilla de productos
+- `components/products-page/products-display.tsx` integra `useCart()` para agregar desde la grilla/lista con validaciones y toasts.
 
-## 📈 Métricas y Monitoreo
+8) Tarjeta de producto reutilizable
+- `components/product/product-card.tsx` para UI consistente y futura integración con favoritos/quick add.
 
-### Eventos Importantes
+9) Migración tras login
+- El `useCart` detecta autenticación, llama a `migrateAnonymousCart`, invalida queries y sincroniza `cartUser`.
 
-- `cart.product.added` - Producto agregado
-- `cart.product.removed` - Producto eliminado
-- `cart.quantity.updated` - Cantidad actualizada
-- `cart.checkout.started` - Inicio de checkout
-- `cart.error.occurred` - Error en operación
+## 📈 Métricas y debug
 
-### Logs de Debug
+### Eventos sugeridos
+- `cart.product.added`
+- `cart.product.removed`
+- `cart.quantity.updated`
+- `cart.checkout.started`
+- `cart.error.occurred`
 
+### Logs de debug
 ```typescript
-// Activar logs detallados
-localStorage.setItem('debug', 'cart:*')
-
-// Ver en consola:
-// 🛒 Obteniendo carrito para usuario: {id_usuario: 123}
-// ✅ Carrito obtenido: {id_carrito: 456}
-// 🛒 Agregando producto al carrito: {id_producto: 789}
+// Ejemplos que verás en consola al activar logs propios
+// 🛒 Generando session_id para usuario anónimo: 123456
+// ✅ Carrito obtenido: { id_carrito: 456 }
+// 🛒 Agregando producto al carrito: { id_producto: 789 }
 ```
 
 ---
 
-**Fecha de creación:** $(date)
-**Última actualización:** $(date)
-**Versión:** 1.0.0
+**Fecha de creación:** 2025-09-17
+**Última actualización:** 2025-09-17
+**Versión:** 1.1.0
 **Autor:** Synkro Development Team
