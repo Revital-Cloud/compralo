@@ -8,6 +8,9 @@ export interface Line {
   id_categoria: number;
   sublineas_count?: number;
   productos_count?: number;
+  ind_activo?: boolean;
+  fec_insert?: string;
+  fec_update?: string;
 }
 
 export const useAllLines = () => {

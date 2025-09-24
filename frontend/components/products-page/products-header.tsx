@@ -1,14 +1,13 @@
 import { Grid, List, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 
 const sortOptions = [
-  { value: 'trending', label: 'Tendencia' },
-  { value: 'newest', label: 'Más nuevos' },
-  { value: 'price-low', label: 'Precio: Menor a Mayor' },
-  { value: 'price-high', label: 'Precio: Mayor a Menor' },
-  { value: 'rating', label: 'Mejor calificación' }
+  { value: 'nombre-asc', label: 'Nombre (A-Z)' },
+  { value: 'nombre-desc', label: 'Nombre (Z-A)' },
+  { value: 'precio-asc', label: 'Precio: Menor a Mayor' },
+  { value: 'precio-desc', label: 'Precio: Mayor a Menor' },
+  { value: 'fecha-desc', label: 'Más nuevos' }
 ]
 
 interface ProductsHeaderProps {
@@ -69,19 +68,18 @@ export const ProductsHeader = ({
               )}
             </Button>
 
-            {/* Sort Dropdown */}
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[140px] sm:w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {sortOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Sort Dropdown (native) */}
+            <select
+              value={sortBy}
+              onChange={(e) => { const v = e.target.value; if (v !== sortBy) setSortBy(v) }}
+              className="w-[140px] sm:w-[180px] h-9 rounded-md border border-gray-200 dark:border-gray-700 bg-transparent px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring/50"
+            >
+              {sortOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
 
             {/* View Mode Toggles */}
             <div className="hidden md:flex border border-gray-200 dark:border-gray-700 rounded-lg p-1">
