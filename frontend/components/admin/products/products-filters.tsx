@@ -152,8 +152,8 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
                         Cargando...
                       </SelectItem>
                     ) : (
-                      filterOptions?.categories?.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
+                      filterOptions?.categories?.map((cat, idx) => (
+                        <SelectItem key={`cat-${cat.id ?? idx}`} value={String(cat.id)}>
                           {cat.nombre}
                         </SelectItem>
                       )) || []
@@ -177,8 +177,8 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
                         Cargando...
                       </SelectItem>
                     ) : (
-                      filterOptions?.lines?.map((line) => (
-                        <SelectItem key={line.id} value={line.id}>
+                      filterOptions?.lines?.map((line, idx) => (
+                        <SelectItem key={`line-${line.id ?? idx}`} value={String(line.id)}>
                           {line.nombre}
                         </SelectItem>
                       )) || []
@@ -202,8 +202,8 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
                         Cargando...
                       </SelectItem>
                     ) : (
-                      filterOptions?.sublines?.map((subline) => (
-                        <SelectItem key={subline.id} value={subline.id}>
+                      filterOptions?.sublines?.map((subline, idx) => (
+                        <SelectItem key={`subline-${subline.id ?? idx}`} value={String(subline.id)}>
                           {subline.nombre}
                         </SelectItem>
                       )) || []
@@ -227,8 +227,8 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
                         Cargando...
                       </SelectItem>
                     ) : (
-                      filterOptions?.brands?.map((brand) => (
-                        <SelectItem key={brand.id} value={brand.id}>
+                      filterOptions?.brands?.map((brand, idx) => (
+                        <SelectItem key={`brand-${brand.id ?? idx}`} value={String(brand.id)}>
                           {brand.nombre}
                         </SelectItem>
                       )) || []
@@ -252,8 +252,8 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
                         Cargando...
                       </SelectItem>
                     ) : (
-                      filterOptions?.providers?.map((provider) => (
-                        <SelectItem key={provider.id} value={provider.id}>
+                      filterOptions?.providers?.map((provider, idx) => (
+                        <SelectItem key={`provider-${provider.id ?? idx}`} value={String(provider.id)}>
                           {provider.nombre}
                         </SelectItem>
                       )) || []
