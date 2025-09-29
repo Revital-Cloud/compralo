@@ -1,131 +1,143 @@
 'use client';
 
 import React from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { 
-  IconSearch,
-  IconFilter,
-  IconDownload,
-  IconMail,
-  IconCalendar,
-  IconShoppingBag
-} from "@tabler/icons-react"
+import { IconDownload } from "@tabler/icons-react"
 import { ExportDialog } from "@/components/excel"
 import { toast } from "sonner"
+import DataTable from '@/components/tables/table'
+import { ColumnDef } from '@tanstack/react-table'
+import { Pencil, Power, Mail, Calendar, ShoppingBag } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { getUsers } from '@/services/user.service'
+import type { User } from '@/types'
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  avatar: string;
-  role: string;
-  registrationDate: string;
-  totalOrders: number;
-  totalSpent: number;
-  status: string;
-}
-
-// Mock data para usuarios
-const usersData: User[] = []
-
-// Estadísticas de usuarios
-const userStats = {
-  total: 0,
-  customers: 0,
-  employees: 0,
-  admins: 0,
-  active: 0,
-  inactive: 0
-}
-
-const getRoleBadge = (role: string) => {
-  switch (role) {
-    case 'admin':
+const getRoleBadge = (roleId: number) => {
+  switch (roleId) {
+    case 1:
       return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Admin</Badge>
-    case 'employee':
+    case 3:
       return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Empleado</Badge>
-    case 'customer':
+    case 2:
       return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Cliente</Badge>
     default:
-      return <Badge variant="secondary">{role}</Badge>
+      return <Badge variant="secondary">Usuario</Badge>
   }
 }
 
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case 'active':
-      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Activo</Badge>
-    case 'inactive':
-      return <Badge variant="destructive">Inactivo</Badge>
-    default:
-      return <Badge variant="secondary">{status}</Badge>
-  }
+const getStatusBadge = (status: boolean) => {
+  return status ? (
+    <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Activo</Badge>
+  ) : (
+    <Badge variant="destructive">Inactivo</Badge>
+  )
 }
-
-const UserCard = ({ user }: { user: any }) => (
-  <Card className="relative">
-    <CardHeader className="pb-3">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center space-x-3">
-          <Avatar className="h-12 w-12">
-            <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback>
-              {user.name.split(' ').map((n: string) => n[0]).join('')}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <CardTitle className="text-sm font-medium">{user.name}</CardTitle>
-            <CardDescription className="text-xs flex items-center gap-1">
-              <IconMail className="h-3 w-3" />
-              {user.email}
-            </CardDescription>
-          </div>
-        </div>
-        <div className="flex flex-col gap-1">
-          {getRoleBadge(user.role)}
-          {getStatusBadge(user.status)}
-        </div>
-      </div>
-    </CardHeader>
-    
-    <CardContent className="space-y-3">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <IconCalendar className="h-3 w-3" />
-            Registro
-          </p>
-          <span className="text-sm font-medium">{user.registrationDate}</span>
-        </div>
-        <div>
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <IconShoppingBag className="h-3 w-3" />
-            Órdenes
-          </p>
-          <span className="text-sm font-medium">{user.totalOrders}</span>
-        </div>
-      </div>
-      
-      {user.role === 'customer' && (
-        <div>
-          <p className="text-xs text-muted-foreground">Total Gastado</p>
-          <div className="text-lg font-bold text-green-600">
-            ${user.totalSpent.toLocaleString()}
-          </div>
-        </div>
-      )}
-    </CardContent>
-  </Card>
-)
 
 const UsersPage = () => {
+  const { data: usersResponse, isLoading, isError } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => getUsers(),
+  })
+
+  const users = usersResponse?.items || []
+  const totalUsers = usersResponse?.total || 0
+
+  // Calcular estadísticas
+  const userStats = {
+    total: totalUsers,
+    customers: users.filter(u => u.id_rol === 2).length,
+    employees: users.filter(u => u.id_rol === 3).length,
+    admins: users.filter(u => u.id_rol === 1).length,
+    active: users.filter(u => u.ind_activo).length,
+    inactive: users.filter(u => !u.ind_activo).length,
+  }
+
   const handleExportComplete = (filename: string) => {
     toast.success(`¡Usuarios exportados exitosamente en ${filename}!`);
   };
+
+  const columns: ColumnDef<User>[] = [
+    {
+      accessorKey: 'id_usuario',
+      header: 'Usuario',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={row.original.img_usuario || undefined} alt={row.original.nom_usuario} />
+            <AvatarFallback>
+              {row.original.nom_usuario[0]}{row.original.ape_usuario?.[0] || ''}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="font-medium">{row.original.nom_usuario} {row.original.ape_usuario}</div>
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
+              <Mail className="h-3 w-3" />
+              {row.original.email_usuario}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'cel_usuario',
+      header: 'Teléfono',
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.cel_usuario || '-'}</span>
+      ),
+    },
+    {
+      accessorKey: 'id_rol',
+      header: 'Rol',
+      cell: ({ row }) => getRoleBadge(row.original.id_rol),
+    },
+    {
+      accessorKey: 'fec_insert',
+      header: 'Registro',
+      cell: ({ row }) => {
+        const date = row.original.fec_insert;
+        return (
+          <div className="flex items-center gap-1 text-sm">
+            <Calendar className="h-3 w-3" />
+            {date ? new Date(date).toLocaleDateString('es-ES') : '-'}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'ind_activo',
+      header: 'Estado',
+      cell: ({ row }) => getStatusBadge(row.original.ind_activo),
+    },
+  ]
+
+  const actions: ColumnDef<User>[] = [
+    {
+      id: 'actions',
+      header: 'Acciones',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Editar usuario"
+            onClick={() => window.location.href = `/admin/users/${row.original.id_usuario}/edit`}
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            variant={row.original.ind_activo ? 'destructive' : 'secondary'}
+            size="icon"
+            aria-label={row.original.ind_activo ? 'Desactivar' : 'Activar'}
+          >
+            <Power className="w-4 h-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ]
 
   return (
     <div className="space-y-6">
@@ -188,27 +200,35 @@ const UsersPage = () => {
         </Card>
       </div>
 
-      {/* Filtros y búsqueda */}
-      <div className="flex items-center space-x-4">
-        <div className="relative flex-1 max-w-md">
-          <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar usuarios..."
-            className="pl-10"
-          />
+      {/* Loading State */}
+      {isLoading && (
+        <div className="text-center py-12">
+          <div className="text-muted-foreground">Cargando usuarios...</div>
         </div>
-        <Button variant="outline">
-          <IconFilter className="h-4 w-4 mr-2" />
-          Filtros
-        </Button>
-      </div>
+      )}
 
-      {/* Users Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {usersData.map((user) => (
-          <UserCard key={user.id} user={user} />
-        ))}
-      </div>
+      {/* Error State */}
+      {isError && (
+        <div className="text-center py-12">
+          <div className="text-red-600">No se pudieron cargar los usuarios.</div>
+        </div>
+      )}
+
+      {/* Users Table */}
+      {!isLoading && !isError && users.length > 0 && (
+        <DataTable 
+          columns={[...columns, ...actions]} 
+          data={users}
+          pageSize={10}
+        />
+      )}
+
+      {/* Empty State */}
+      {!isLoading && !isError && users.length === 0 && (
+        <div className="text-center py-12">
+          <div className="text-muted-foreground">No hay usuarios registrados</div>
+        </div>
+      )}
     </div>
   )
 }

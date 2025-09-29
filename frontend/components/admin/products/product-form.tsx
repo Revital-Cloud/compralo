@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { IconX, IconPlus } from "@tabler/icons-react";
 import { useCategories, useBrands } from "@/hooks/use-products";
 import { toast } from "sonner";
@@ -150,17 +150,16 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="id_categoria">Categoría *</Label>
-              <Select onValueChange={(value) => setValue('id_categoria', value)}>
-                <SelectTrigger className={errors.id_categoria ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Selecciona una categoría" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id_categoria} value={category.id_categoria.toString()}>
-                      {category.nom_categoria}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Select 
+                onChange={(e) => setValue('id_categoria', e.target.value)}
+                className={errors.id_categoria ? 'border-red-500' : ''}
+              >
+                <option value="">Selecciona una categoría</option>
+                {categories.map((category) => (
+                  <option key={category.id_categoria} value={category.id_categoria.toString()}>
+                    {category.nom_categoria}
+                  </option>
+                ))}
               </Select>
               {errors.id_categoria && (
                 <p className="text-sm text-red-500">{errors.id_categoria.message}</p>
@@ -169,17 +168,16 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="id_marca">Marca *</Label>
-              <Select onValueChange={(value) => setValue('id_marca', value)}>
-                <SelectTrigger className={errors.id_marca ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Selecciona una marca" />
-                </SelectTrigger>
-                <SelectContent>
-                  {brands.map((brand) => (
-                    <SelectItem key={brand.id_marca} value={brand.id_marca.toString()}>
-                      {brand.nom_marca}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
+              <Select 
+                onChange={(e) => setValue('id_marca', e.target.value)}
+                className={errors.id_marca ? 'border-red-500' : ''}
+              >
+                <option value="">Selecciona una marca</option>
+                {brands.map((brand) => (
+                  <option key={brand.id_marca} value={brand.id_marca.toString()}>
+                    {brand.nom_marca}
+                  </option>
+                ))}
               </Select>
               {errors.id_marca && (
                 <p className="text-sm text-red-500">{errors.id_marca.message}</p>

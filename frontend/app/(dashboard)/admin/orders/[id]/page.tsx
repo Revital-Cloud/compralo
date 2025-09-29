@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select } from "@/components/ui/select"
 import { 
   IconUser,
   IconInfoCircle,
@@ -127,17 +127,13 @@ const OrderDetailsPage = ({ params }: { params: { id: string } }) => {
             <span>{orderDetails.dateRange}</span>
           </div>
           <div className="flex items-center space-x-2">
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Cambiar Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Pendiente">Pendiente</SelectItem>
-                <SelectItem value="Procesando">Procesando</SelectItem>
-                <SelectItem value="Enviado">Enviado</SelectItem>
-                <SelectItem value="Entregado">Entregado</SelectItem>
-                <SelectItem value="Cancelado">Cancelado</SelectItem>
-              </SelectContent>
+            <Select value={status} onChange={(e) => setStatus(e.target.value)} className="w-32">
+              <option value="">Cambiar Estado</option>
+              <option value="Pendiente">Pendiente</option>
+              <option value="Procesando">Procesando</option>
+              <option value="Enviado">Enviado</option>
+              <option value="Entregado">Entregado</option>
+              <option value="Cancelado">Cancelado</option>
             </Select>
             <Button variant="outline" size="sm">
               <IconRefresh className="h-4 w-4" />

@@ -1,17 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from "sonner";
-import { 
-  ProductsHeader, 
-  ProductsGrid, 
-  Pagination 
-} from "@/components/admin/products";
+import { ProductsHeader } from "@/components/admin/products";
 import { ProductsFilters } from "@/components/admin/products/products-filters";
-import { useProducts, useDeleteProduct, useProductsAdmin } from "@/hooks/use-products";
-import type { PaginatedResponse } from '@/types/common';
-import type { Product, ProductAdmin } from '@/types/product';
+import { useDeleteProduct, useProductsAdmin } from "@/hooks/use-products";
+import type { Product } from '@/types/product';
+import DataTable from '@/components/tables/table';
+import { ColumnDef } from '@tanstack/react-table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Pencil, Trash2, Eye } from 'lucide-react';
+import { formatPrice } from '@/utils/format-price';
+import Image from 'next/image';
 
 const ProductsPage = () => {
   const router = useRouter();
@@ -72,19 +74,6 @@ const ProductsPage = () => {
       // El error ya se maneja en el hook
       console.error('Error al eliminar producto:', error);
     }
-  };
-
-  // Manejar importación completada
-  const handleImportComplete = (result: any) => {
-    toast.success(`¡Importación completada! ${result.successfulRows} productos agregados`);
-    // Refrescar la lista de productos
-    window.location.reload();
-  };
-
-  // Manejar exportación
-  const handleExport = () => {
-    // Implementar lógica de exportación
-    toast.info('Funcionalidad de exportación en desarrollo');
   };
 
   // Manejar cambios de filtros
@@ -168,7 +157,7 @@ const ProductsPage = () => {
   const totalItems = adminProducts.length > 0 ? adminProducts[0].total_registros : 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  // Adaptar ProductAdmin a Product para el componente ProductsGrid
+  // Adaptar ProductAdmin a Product para el componente DataTable
   const products: Product[] = adminProducts.map(adminProduct => ({
     id_producto: adminProduct.id_producto,
     nom_producto: adminProduct.nom_producto,
@@ -181,13 +170,12 @@ const ProductsPage = () => {
     id_linea: adminProduct.id_linea,
     id_categoria: adminProduct.id_categoria,
     num_stock: adminProduct.num_stock,
-    usr_insert: "0", // No disponible en ProductAdmin
+    usr_insert: "0",
     fec_insert: adminProduct.fec_insert,
     usr_update: null,
     fec_update: null,
     ind_activo: adminProduct.ind_activo_producto,
     images: null,
-    // Agregar nombres del endpoint admin
     nom_categoria: adminProduct.nom_categoria,
     nom_linea: adminProduct.nom_linea,
     nom_sublinea: adminProduct.nom_sublinea,
@@ -195,14 +183,155 @@ const ProductsPage = () => {
     nom_marca: adminProduct.nom_marca
   }));
 
+  // Definir columnas de la tabla
+  const columns: ColumnDef<Product>[] = [
+    {
+      accessorKey: 'img_producto',
+      header: 'Imagen',
+      cell: ({ row }) => {
+        const imgUrl = typeof row.original.img_producto === 'string' 
+          ? row.original.img_producto 
+          : row.original.img_producto?.main || '';
+        
+        return (
+          <div className="w-12 h-12 relative rounded-md overflow-hidden bg-gray-100">
+            {imgUrl ? (
+              <Image
+                src={imgUrl}
+                alt={row.original.nom_producto}
+                fill
+                className="object-cover"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                <Eye className="w-6 h-6" />
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'nom_producto',
+      header: 'Producto',
+      cell: ({ row }) => (
+        <div className="max-w-xs">
+          <div className="font-medium truncate">{row.original.nom_producto}</div>
+          <div className="text-xs text-muted-foreground">ID: {row.original.id_producto}</div>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'nom_categoria',
+      header: 'Categoría',
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.nom_categoria || '-'}</span>
+      ),
+    },
+    {
+      accessorKey: 'nom_linea',
+      header: 'Linea',
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.nom_linea || '-'}</span>
+      ),
+    },
+    {
+      accessorKey: 'nom_sublinea',
+      header: 'SubLinea',
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.nom_sublinea || '-'}</span>
+      ),
+    },
+    {
+      accessorKey: 'nom_marca',
+      header: 'Marca',
+      cell: ({ row }) => (
+        <span className="text-sm">{row.original.nom_marca || '-'}</span>
+      ),
+    },
+    {
+      accessorKey: 'val_precio',
+      header: 'Precio',
+      cell: ({ row }) => (
+        <span className="font-semibold">{formatPrice(row.original.val_precio)}</span>
+      ),
+    },
+    {
+      accessorKey: 'num_stock',
+      header: 'Stock',
+      cell: ({ row }) => {
+        const stock = row.original.num_stock || 0;
+        return (
+          <Badge 
+            variant={stock === 0 ? 'destructive' : stock <= 10 ? 'default' : 'secondary'}
+            className={
+              stock === 0 
+                ? 'bg-red-100 text-red-800 hover:bg-red-100' 
+                : stock <= 10 
+                ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' 
+                : 'bg-green-100 text-green-800 hover:bg-green-100'
+            }
+          >
+            {stock}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: 'ind_activo',
+      header: 'Estado',
+      cell: ({ row }) => (
+        <Badge variant={row.original.ind_activo ? 'default' : 'secondary'}>
+          {row.original.ind_activo ? 'Activo' : 'Inactivo'}
+        </Badge>
+      ),
+    },
+  ];
+
+  const actions: ColumnDef<Product>[] = [
+    {
+      id: 'actions',
+      header: 'Acciones',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Ver producto"
+            onClick={() => router.push(`/products/${row.original.id_producto}`)}
+          >
+            <Eye className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Editar producto"
+            onClick={() => router.push(`/admin/products/${row.original.id_producto}/edit`)}
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            variant="destructive"
+            size="icon"
+            aria-label="Eliminar producto"
+            onClick={() => {
+              if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
+                handleDeleteProduct(Number(row.original.id_producto));
+              }
+            }}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   // Manejar errores
   if (error) {
     return (
       <div className="space-y-6">
-        <ProductsHeader 
-          onImportComplete={handleImportComplete}
-          onExport={handleExport}
-        />
+        <ProductsHeader />
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -227,10 +356,7 @@ const ProductsPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <ProductsHeader 
-        onImportComplete={handleImportComplete}
-        onExport={handleExport}
-      />
+      <ProductsHeader />
 
       {/* Filtros de productos */}
       <ProductsFilters
@@ -255,22 +381,21 @@ const ProductsPage = () => {
         products={products}
       />
 
-      {/* Products Grid */}
-      <ProductsGrid 
-        products={products}
-        onDelete={handleDeleteProduct}
-        isLoading={isLoading}
-      />
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          totalItems={totalItems}
-          itemsPerPage={itemsPerPage}
+      {/* Products Table */}
+      {isLoading ? (
+        <div className="text-center py-12">
+          <div className="text-muted-foreground">Cargando productos...</div>
+        </div>
+      ) : products.length > 0 ? (
+        <DataTable 
+          columns={[...columns, ...actions]} 
+          data={products}
+          pageSize={itemsPerPage}
         />
+      ) : (
+        <div className="text-center py-12">
+          <div className="text-muted-foreground">No se encontraron productos</div>
+        </div>
       )}
     </div>
   );

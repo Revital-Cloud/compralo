@@ -3,12 +3,12 @@
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { EmptyState } from '@/components/admin/empty-states'
 import DataTable from '@/components/tables/table'
-import { ColumnDef } from '@tanstack/react-table'
+import { ColumnDef, Row } from '@tanstack/react-table'
 import { useAllLines, type Line } from '@/hooks/use-lines'
-import { Switch } from '@/components/ui/switch'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { lineService } from '@/services/line.service'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Pencil, Power } from 'lucide-react'
 
 const LinesPage = () => {
@@ -66,22 +66,52 @@ const LinesPage = () => {
     {
       accessorKey: 'ind_activo',
       header: 'Activo',
-      cell: ({ row }) => {
-        const value = row.original.ind_activo === true
-        return (
-          <Switch
-            checked={value}
-            onCheckedChange={(checked) => {
-              const { id_categoria, id_linea, nom_linea } = row.original as any
-              if (checked) {
-                activateMutation.mutate({ id_categoria, id_linea, nom_linea })
-              } else {
+      cell: ({ row }) => (
+        <Badge variant={row.original.ind_activo ? 'default' : 'secondary'}>
+          {row.original.ind_activo ? 'Activo' : 'Inactivo'}
+        </Badge>
+      ),
+    },
+  ]
+
+  const actions: ColumnDef<Line>[] = [
+    {
+      id: 'actions',
+      header: 'Acciones',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="icon" aria-label="Editar línea">
+            <a href={`/admin/lines/${(row.original as any).id_linea}/edit`}>
+              <Pencil />
+            </a>
+          </Button>
+          {row.original.ind_activo === true ? (
+            <Button
+              variant="destructive"
+              size="icon"
+              aria-label="Desactivar línea"
+              onClick={() => {
+                const { id_categoria, id_linea } = row.original as any
                 deactivateMutation.mutate({ id_categoria, id_linea })
-              }
-            }}
-          />
-        )
-      },
+              }}
+            >
+              <Power />
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="icon"
+              aria-label="Activar línea"
+              onClick={() => {
+                const { id_categoria, id_linea, nom_linea } = row.original as any
+                activateMutation.mutate({ id_categoria, id_linea, nom_linea })
+              }}
+            >
+              <Power />
+            </Button>
+          )}
+        </div>
+      ),
     },
   ]
 
@@ -114,44 +144,9 @@ const LinesPage = () => {
 
       {!isLoading && !isError && Array.isArray(data) && data.length > 0 && (
         <DataTable 
-          columns={columns} 
+          columns={[...columns, ...actions]} 
           data={data} 
           pageSize={10}
-          actionsHeader="Acciones"
-          actions={(row) => (
-            <div className="flex items-center gap-2">
-              <Button asChild variant="outline" size="icon" aria-label="Editar línea">
-                <a href={`/admin/lines/${(row.original as any).id_linea}/edit`}>
-                  <Pencil />
-                </a>
-              </Button>
-              {row.original.ind_activo === true ? (
-                <Button
-                  variant="destructive"
-                  size="icon"
-                  aria-label="Desactivar línea"
-                  onClick={() => {
-                    const { id_categoria, id_linea } = row.original as any
-                    deactivateMutation.mutate({ id_categoria, id_linea })
-                  }}
-                >
-                  <Power />
-                </Button>
-              ) : (
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  aria-label="Activar línea"
-                  onClick={() => {
-                    const { id_categoria, id_linea, nom_linea } = row.original as any
-                    activateMutation.mutate({ id_categoria, id_linea, nom_linea })
-                  }}
-                >
-                  <Power />
-                </Button>
-              )}
-            </div>
-          )}
         />
       )}
     </div>

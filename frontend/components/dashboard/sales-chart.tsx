@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select } from "@/components/ui/select"
 import { IconDownload } from "@tabler/icons-react"
 
 interface SalesDataPoint {
@@ -36,15 +36,10 @@ export const SalesChart = ({ salesData, summary, loading }: SalesChartProps) => 
             <CardDescription>Rendimiento de ventas mensual</CardDescription>
           </div>
           <div className="flex items-center space-x-2">
-            <Select defaultValue="monthly">
-              <SelectTrigger className="w-28">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="weekly">Semanal</SelectItem>
-                <SelectItem value="monthly">Mensual</SelectItem>
-                <SelectItem value="yearly">Anual</SelectItem>
-              </SelectContent>
+            <Select defaultValue="monthly" className="w-28">
+              <option value="weekly">Semanal</option>
+              <option value="monthly">Mensual</option>
+              <option value="yearly">Anual</option>
             </Select>
             <Button variant="outline" size="sm">
               <IconDownload className="h-4 w-4" />

@@ -1,11 +1,91 @@
 'use client'
+
 import React from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { EmptyState } from '@/components/admin/empty-states'
 import { useAllBrands } from '@/hooks/use-brands'
+import DataTable from '@/components/tables/table'
+import { ColumnDef } from '@tanstack/react-table'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Pencil, Power } from 'lucide-react'
+
+interface Brand {
+  id_marca: number
+  nom_marca: string
+  des_marca?: string
+  fec_insert?: string
+  fec_update?: string
+  ind_activo?: boolean
+}
 
 const BrandsPage = () => {
   const { data, isLoading, isError } = useAllBrands()
+
+  const columns: ColumnDef<Brand>[] = [
+    {
+      accessorKey: 'id_marca',
+      header: 'ID',
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.id_marca}</span>,
+    },
+    {
+      accessorKey: 'nom_marca',
+      header: 'Nombre',
+      cell: ({ row }) => <span className="font-medium">{row.original.nom_marca}</span>,
+    },
+    {
+      accessorKey: 'des_marca',
+      header: 'Descripción',
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.original.des_marca || '-'}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'fec_insert',
+      header: 'Fecha de Creación',
+      cell: ({ getValue }) => {
+        const v = getValue<string | undefined>()
+        return v ? new Date(v).toLocaleDateString('es-ES') : <span className="text-muted-foreground">-</span>
+      },
+    },
+    {
+      accessorKey: 'ind_activo',
+      header: 'Estado',
+      cell: ({ row }) => (
+        <Badge variant={row.original.ind_activo ? 'default' : 'secondary'}>
+          {row.original.ind_activo ? 'Activo' : 'Inactivo'}
+        </Badge>
+      ),
+    },
+  ]
+
+  const actions: ColumnDef<Brand>[] = [
+    {
+      id: 'actions',
+      header: 'Acciones',
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Editar marca"
+            onClick={() => window.location.href = `/admin/brands/${row.original.id_marca}/edit`}
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+          <Button
+            variant={row.original.ind_activo ? 'destructive' : 'secondary'}
+            size="icon"
+            aria-label={row.original.ind_activo ? 'Desactivar' : 'Activar'}
+          >
+            <Power className="w-4 h-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ]
 
   return (
     <div className="space-y-6">
@@ -35,16 +115,11 @@ const BrandsPage = () => {
       )}
 
       {!isLoading && !isError && Array.isArray(data) && data.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data.map((brand) => (
-            <div key={brand.id_marca} className="border rounded-xl p-4">
-              <div className="font-medium">{brand.nom_marca}</div>
-              {brand.des_marca ? (
-                <div className="text-sm text-muted-foreground mt-1">{brand.des_marca}</div>
-              ) : null}
-            </div>
-          ))}
-        </div>
+        <DataTable 
+          columns={[...columns, ...actions]} 
+          data={data}
+          pageSize={10}
+        />
       )}
     </div>
   )

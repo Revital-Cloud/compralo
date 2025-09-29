@@ -5,13 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import {
   IconSearch,
   IconFilter,
@@ -140,125 +134,120 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
               {/* Categoría */}
               <div className="space-y-1">
                 <label className="text-xs font-medium">Categoría</label>
-                <Select value={category || "all"} onValueChange={(value) => onCategoryChange(value === "all" ? "" : value)}>
-                  <SelectTrigger className="h-7 text-xs">
-                    <SelectValue placeholder="Todas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las categorías</SelectItem>
-                    {isLoading ? (
-                      <SelectItem value="loading" disabled>
-                        <IconLoader2 className="h-3 w-3 mr-2 animate-spin" />
-                        Cargando...
-                      </SelectItem>
-                    ) : (
-                      filterOptions?.categories?.map((cat, idx) => (
-                        <SelectItem key={`cat-${cat.id ?? idx}`} value={String(cat.id)}>
-                          {cat.nombre}
-                        </SelectItem>
-                      )) || []
-                    )}
-                  </SelectContent>
+                <Select 
+                  value={category || "all"} 
+                  onChange={(e) => onCategoryChange(e.target.value === "all" ? "" : e.target.value)}
+                  className="h-7 text-xs"
+                  sizeVariant="sm"
+                >
+                  <option value="all">Todas las categorías</option>
+                  {isLoading ? (
+                    <option value="loading" disabled>
+                      Cargando...
+                    </option>
+                  ) : (
+                    filterOptions?.categories?.map((cat, idx) => (
+                      <option key={`cat-${cat.id ?? idx}`} value={String(cat.id)}>
+                        {cat.nombre}
+                      </option>
+                    )) || []
+                  )}
                 </Select>
               </div>
 
               {/* Línea */}
               <div className="space-y-1">
                 <label className="text-xs font-medium">Línea</label>
-                <Select value={line || "all"} onValueChange={(value) => onLineChange(value === "all" ? "" : value)}>
-                  <SelectTrigger className="h-7 text-xs">
-                    <SelectValue placeholder="Todas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las líneas</SelectItem>
-                    {isLoading ? (
-                      <SelectItem value="loading" disabled>
-                        <IconLoader2 className="h-3 w-3 mr-2 animate-spin" />
-                        Cargando...
-                      </SelectItem>
-                    ) : (
-                      filterOptions?.lines?.map((line, idx) => (
-                        <SelectItem key={`line-${line.id ?? idx}`} value={String(line.id)}>
-                          {line.nombre}
-                        </SelectItem>
-                      )) || []
-                    )}
-                  </SelectContent>
+                <Select 
+                  value={line || "all"} 
+                  onChange={(e) => onLineChange(e.target.value === "all" ? "" : e.target.value)}
+                  className="h-7 text-xs"
+                  sizeVariant="sm"
+                >
+                  <option value="all">Todas las líneas</option>
+                  {isLoading ? (
+                    <option value="loading" disabled>
+                      Cargando...
+                    </option>
+                  ) : (
+                    filterOptions?.lines?.map((line, idx) => (
+                      <option key={`line-${line.id ?? idx}`} value={String(line.id)}>
+                        {line.nombre}
+                      </option>
+                    )) || []
+                  )}
                 </Select>
               </div>
 
               {/* Sublínea */}
               <div className="space-y-1">
                 <label className="text-xs font-medium">Sublínea</label>
-                <Select value={subline || "all"} onValueChange={(value) => onSublineChange(value === "all" ? "" : value)}>
-                  <SelectTrigger className="h-7 text-xs">
-                    <SelectValue placeholder="Todas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las sublíneas</SelectItem>
-                    {isLoading ? (
-                      <SelectItem value="loading" disabled>
-                        <IconLoader2 className="h-3 w-3 mr-2 animate-spin" />
-                        Cargando...
-                      </SelectItem>
-                    ) : (
-                      filterOptions?.sublines?.map((subline, idx) => (
-                        <SelectItem key={`subline-${subline.id ?? idx}`} value={String(subline.id)}>
-                          {subline.nombre}
-                        </SelectItem>
-                      )) || []
-                    )}
-                  </SelectContent>
+                <Select 
+                  value={subline || "all"} 
+                  onChange={(e) => onSublineChange(e.target.value === "all" ? "" : e.target.value)}
+                  className="h-7 text-xs"
+                  sizeVariant="sm"
+                >
+                  <option value="all">Todas las sublíneas</option>
+                  {isLoading ? (
+                    <option value="loading" disabled>
+                      Cargando...
+                    </option>
+                  ) : (
+                    filterOptions?.sublines?.map((subline, idx) => (
+                      <option key={`subline-${subline.id ?? idx}`} value={String(subline.id)}>
+                        {subline.nombre}
+                      </option>
+                    )) || []
+                  )}
                 </Select>
               </div>
 
               {/* Marca */}
               <div className="space-y-1">
                 <label className="text-xs font-medium">Marca</label>
-                <Select value={brand || "all"} onValueChange={(value) => onBrandChange(value === "all" ? "" : value)}>
-                  <SelectTrigger className="h-7 text-xs">
-                    <SelectValue placeholder="Todas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas las marcas</SelectItem>
-                    {isLoading ? (
-                      <SelectItem value="loading" disabled>
-                        <IconLoader2 className="h-3 w-3 mr-2 animate-spin" />
-                        Cargando...
-                      </SelectItem>
-                    ) : (
-                      filterOptions?.brands?.map((brand, idx) => (
-                        <SelectItem key={`brand-${brand.id ?? idx}`} value={String(brand.id)}>
-                          {brand.nombre}
-                        </SelectItem>
-                      )) || []
-                    )}
-                  </SelectContent>
+                <Select 
+                  value={brand || "all"} 
+                  onChange={(e) => onBrandChange(e.target.value === "all" ? "" : e.target.value)}
+                  className="h-7 text-xs"
+                  sizeVariant="sm"
+                >
+                  <option value="all">Todas las marcas</option>
+                  {isLoading ? (
+                    <option value="loading" disabled>
+                      Cargando...
+                    </option>
+                  ) : (
+                    filterOptions?.brands?.map((brand, idx) => (
+                      <option key={`brand-${brand.id ?? idx}`} value={String(brand.id)}>
+                        {brand.nombre}
+                      </option>
+                    )) || []
+                  )}
                 </Select>
               </div>
 
               {/* Proveedor */}
               <div className="space-y-1">
                 <label className="text-xs font-medium">Proveedor</label>
-                <Select value={provider || "all"} onValueChange={(value) => onProviderChange(value === "all" ? "" : value)}>
-                  <SelectTrigger className="h-7 text-xs">
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos los proveedores</SelectItem>
-                    {isLoading ? (
-                      <SelectItem value="loading" disabled>
-                        <IconLoader2 className="h-3 w-3 mr-2 animate-spin" />
-                        Cargando...
-                      </SelectItem>
-                    ) : (
-                      filterOptions?.providers?.map((provider, idx) => (
-                        <SelectItem key={`provider-${provider.id ?? idx}`} value={String(provider.id)}>
-                          {provider.nombre}
-                        </SelectItem>
-                      )) || []
-                    )}
-                  </SelectContent>
+                <Select 
+                  value={provider || "all"} 
+                  onChange={(e) => onProviderChange(e.target.value === "all" ? "" : e.target.value)}
+                  className="h-7 text-xs"
+                  sizeVariant="sm"
+                >
+                  <option value="all">Todos los proveedores</option>
+                  {isLoading ? (
+                    <option value="loading" disabled>
+                      Cargando...
+                    </option>
+                  ) : (
+                    filterOptions?.providers?.map((provider, idx) => (
+                      <option key={`provider-${provider.id ?? idx}`} value={String(provider.id)}>
+                        {provider.nombre}
+                      </option>
+                    )) || []
+                  )}
                 </Select>
               </div>
             </div>
@@ -269,17 +258,17 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
                 {/* Ordenar por */}
                 <div className="flex items-center space-x-1">
                   <label className="text-xs font-medium">Ordenar:</label>
-                  <Select value={sortBy} onValueChange={onSortByChange}>
-                    <SelectTrigger className="h-7 text-xs w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sortOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                  <Select 
+                    value={sortBy} 
+                    onChange={(e) => onSortByChange(e.target.value)}
+                    className="h-7 text-xs w-32"
+                    sizeVariant="sm"
+                  >
+                    {sortOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </Select>
                 </div>
 
