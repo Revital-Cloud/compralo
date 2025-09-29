@@ -6,6 +6,45 @@ El frontend de Synkro está construido con Next.js 15+ y diseñado para ofrecer 
 
 ## 🎯 Características SaaS del Frontend
 
+### ✅ Funcionalidades Implementadas
+
+#### Sistema de Autenticación
+- **Login/Registro** con validación completa
+- **Protección de rutas** por roles (Admin, Employee, Customer)
+- **Gestión de sesiones** con JWT
+- **Recuperación de contraseña** integrada
+
+#### Catálogo de Productos Avanzado
+- **Sistema de filtros** con búsqueda en tiempo real
+- **Filtros jerárquicos** (Categorías → Líneas → Sublíneas)
+- **Búsqueda por nombre** con autocompletado
+- **Filtros por precio, marca, proveedor**
+- **Paginación** y ordenamiento dinámico
+- **Estados vacíos** mejorados con ilustraciones
+
+#### Sistema de Carrito Funcional
+- **Carrito persistente** con Zustand
+- **Integración completa** con backend
+- **Cálculos automáticos** de totales
+- **Validación de stock** en tiempo real
+- **Migración automática** de carrito anónimo a usuario
+
+#### Dashboard Administrativo
+- **Gestión de productos** con CRUD completo
+- **Gestión de categorías, líneas y sublíneas**
+- **Gestión de marcas y proveedores**
+- **Gestión de usuarios** con roles
+- **Tablas interactivas** con TanStack Table
+- **Formularios validados** con React Hook Form
+
+#### Interfaz de Usuario Moderna
+- **Diseño responsive** con Tailwind CSS
+- **Modo oscuro** implementado
+- **Componentes shadcn/ui** (56+ componentes)
+- **Sistema de cookies** con compliance GDPR
+- **Estados de carga** y manejo de errores
+- **Animaciones** con Framer Motion
+
 ### White-Label Completo
 - **Branding personalizado** - Logo, colores, tipografías por cliente
 - **Dominio propio** - Cada cliente tiene su URL personalizada
@@ -55,84 +94,153 @@ frontend/
 │   │
 │   ├── (dashboard)/             # Grupo de rutas protegidas
 │   │   ├── admin/               # Panel de administración
-│   │   ├── products/            # Gestión de productos
-│   │   ├── orders/              # Gestión de pedidos
-│   │   ├── customers/           # Gestión de clientes
-│   │   └── analytics/           # Dashboard de analytics
+│   │   │   ├── page.tsx         # Dashboard principal
+│   │   │   ├── products/        # Gestión de productos
+│   │   │   ├── categories/      # Gestión de categorías
+│   │   │   ├── lines/           # Gestión de líneas
+│   │   │   ├── sublines/        # Gestión de sublíneas
+│   │   │   ├── brands/          # Gestión de marcas
+│   │   │   ├── providers/       # Gestión de proveedores
+│   │   │   └── users/           # Gestión de usuarios
+│   │   └── products/            # Gestión de productos (usuario)
 │   │
-│   ├── (store)/                 # Tienda pública del cliente
+│   ├── (shop)/                  # Tienda pública del cliente
 │   │   ├── page.tsx            # Página principal de la tienda
-│   │   ├── products/           # Catálogo de productos
-│   │   ├── cart/               # Carrito de compras
-│   │   └── checkout/           # Proceso de checkout
+│   │   ├── products/           # Catálogo de productos con filtros
+│   │   ├── cart/               # Carrito de compras funcional
+│   │   └── product/            # Páginas individuales de productos
 │   │
-│   ├── api/                     # API Routes (si necesarias)
 │   ├── globals.css              # Estilos globales
 │   ├── layout.tsx               # Layout principal
+│   ├── loading.tsx              # Componente de carga global
+│   ├── not-found.tsx            # Página 404
 │   └── page.tsx                 # Página de inicio
 │
-├── components/                   # Componentes reutilizables
-│   ├── ui/                      # Componentes base (shadcn/ui)
+├── components/                   # Componentes reutilizables (80+ componentes)
+│   ├── ui/                      # Componentes base (shadcn/ui) - 56 componentes
 │   │   ├── button.tsx           # Botón personalizable
 │   │   ├── input.tsx            # Input con validación
 │   │   ├── card.tsx             # Cards responsivos
+│   │   ├── table.tsx            # Tablas con TanStack Table
+│   │   ├── empty-state.tsx      # Estados vacíos mejorados
+│   │   ├── cookie-banner.tsx    # Banner de cookies GDPR
 │   │   └── ...                  # Más componentes UI
 │   │
-│   ├── auth/                    # Componentes de autenticación
+│   ├── admin/                   # Componentes de administración (12 componentes)
+│   │   ├── product-form.tsx     # Formulario de productos
+│   │   ├── category-form.tsx    # Formulario de categorías
+│   │   ├── brand-form.tsx       # Formulario de marcas
+│   │   ├── provider-form.tsx    # Formulario de proveedores
+│   │   └── ...                  # Más formularios admin
+│   │
+│   ├── products-page/           # Componentes de catálogo (4 componentes)
+│   │   ├── products-header.tsx  # Header con búsqueda y filtros
+│   │   ├── products-filters.tsx # Panel de filtros avanzados
+│   │   ├── products-display.tsx # Display de productos
+│   │   └── products-pagination.tsx # Paginación
+│   │
+│   ├── product/                 # Componentes de producto (8 componentes)
+│   │   ├── product-card.tsx     # Tarjeta de producto
+│   │   ├── product-details.tsx  # Detalles del producto
+│   │   ├── product-gallery.tsx  # Galería de imágenes
+│   │   └── ...                  # Más componentes de producto
+│   │
+│   ├── cart/                    # Componentes de carrito (2 componentes)
+│   │   ├── cart-item.tsx        # Item del carrito
+│   │   └── cart-summary.tsx     # Resumen del carrito
+│   │
+│   ├── layout/                  # Componentes de layout (56 componentes)
+│   │   ├── header.tsx           # Header principal
+│   │   ├── footer.tsx           # Footer con branding
+│   │   ├── navigation.tsx       # Navegación principal
+│   │   ├── dashboard/           # Componentes del dashboard
+│   │   └── ...                  # Más componentes de layout
+│   │
+│   ├── forms/                   # Formularios reutilizables (3 componentes)
 │   │   ├── login-form.tsx       # Formulario de login
 │   │   ├── register-form.tsx    # Formulario de registro
-│   │   └── auth-guard.tsx       # Protección de rutas
+│   │   └── contact-form.tsx     # Formulario de contacto
 │   │
-│   ├── admin/                   # Componentes de administración
-│   │   ├── product-form.tsx     # Formulario de productos
-│   │   ├── order-list.tsx       # Lista de pedidos
-│   │   └── analytics-chart.tsx  # Gráficos de analytics
+│   ├── auth/                    # Componentes de autenticación
+│   │   └── route-guard.tsx      # Protección de rutas
 │   │
-│   ├── store/                   # Componentes de la tienda
-│   │   ├── product-card.tsx     # Tarjeta de producto
-│   │   ├── cart-sidebar.tsx     # Sidebar del carrito
-│   │   └── checkout-form.tsx    # Formulario de checkout
-│   │
-│   └── common/                  # Componentes comunes
-│       ├── header.tsx           # Header personalizable
-│       ├── footer.tsx           # Footer con branding
-│       ├── loading.tsx          # Estados de carga
-│       └── error-boundary.tsx   # Manejo de errores
+│   └── providers/               # Providers de contexto
+│       ├── auth-provider.tsx    # Provider de autenticación
+│       ├── query-provider.tsx   # Provider de React Query
+│       └── theme-provider.tsx   # Provider de tema
 │
-├── lib/                          # Utilidades y configuración
-│   ├── auth.tsx                 # Configuración de autenticación
-│   ├── api.ts                   # Cliente API (fetch wrapper)
-│   ├── utils.ts                 # Utilidades generales
-│   ├── validations.ts           # Esquemas de validación
-│   └── constants.ts             # Constantes de la aplicación
-│
-├── hooks/                        # Custom hooks
+├── hooks/                        # Custom hooks (20+ hooks)
 │   ├── use-auth.ts              # Hook de autenticación
 │   ├── use-cart.ts              # Hook del carrito
 │   ├── use-products.ts          # Hook de productos
-│   └── use-orders.ts            # Hook de pedidos
+│   ├── use-categories.ts        # Hook de categorías
+│   ├── use-brands.ts            # Hook de marcas
+│   ├── use-providers.ts         # Hook de proveedores
+│   ├── use-filter-products.ts   # Hook de filtros de productos
+│   ├── use-cookies.ts           # Hook de gestión de cookies
+│   ├── use-theme.ts             # Hook de tema
+│   └── ...                      # Más hooks especializados
 │
-├── types/                        # Definiciones de tipos
-│   ├── auth.ts                  # Tipos de autenticación
-│   ├── products.ts              # Tipos de productos
-│   ├── orders.ts                # Tipos de pedidos
-│   └── client-config.ts         # Configuración del cliente
+├── services/                     # Servicios de API (11 servicios)
+│   ├── auth.service.ts          # Servicio de autenticación
+│   ├── product.service.ts       # Servicio de productos
+│   ├── cart.service.ts          # Servicio de carrito
+│   ├── category.service.ts      # Servicio de categorías
+│   ├── brand.service.ts         # Servicio de marcas
+│   ├── provider.service.ts      # Servicio de proveedores
+│   ├── user.service.ts          # Servicio de usuarios
+│   ├── payment.service.ts       # Servicio de pagos
+│   └── ...                      # Más servicios
 │
-├── public/                       # Assets estáticos personalizables
-│   ├── logos/                   # Logos por cliente
-│   ├── favicon/                 # Favicons personalizados
-│   └── images/                  # Imágenes de la tienda
+├── types/                        # Definiciones de tipos (8 archivos)
+│   ├── auth/                    # Tipos de autenticación
+│   ├── product/                 # Tipos de productos
+│   ├── cart/                    # Tipos de carrito
+│   ├── category/                # Tipos de categorías
+│   ├── payment/                 # Tipos de pagos
+│   ├── user/                    # Tipos de usuario
+│   ├── common/                  # Tipos comunes
+│   └── index.ts                 # Exportaciones centralizadas
 │
-├── styles/                       # Estilos personalizados
-│   ├── globals.css              # Estilos globales
-│   └── client-themes/           # Temas por cliente
-│       ├── empresa-abc.css      # Tema específico del cliente
-│       └── default.css          # Tema por defecto
+├── stores/                       # Estado global
+│   └── cart-store.ts            # Store Zustand para carrito
+│
+├── utils/                        # Utilidades (9 archivos)
+│   ├── apiWrapper.ts            # Wrapper de API con interceptores
+│   ├── cart-helpers.ts          # Utilidades del carrito
+│   ├── format-price.ts          # Formateo de precios
+│   ├── image-helpers.ts         # Utilidades de imágenes
+│   ├── product-helpers.ts       # Utilidades de productos
+│   └── ...                      # Más utilidades
+│
+├── lib/                          # Configuración y utilidades
+│   ├── config.ts                # Configuración de la app
+│   ├── utils.ts                 # Utilidades generales
+│   ├── theme-config.ts          # Configuración de temas
+│   └── ...                      # Más configuraciones
+│
+├── schemas/                      # Esquemas de validación
+│   ├── auth.schema.ts           # Esquemas de autenticación
+│   └── user.schema.ts           # Esquemas de usuario
+│
+├── public/                       # Assets estáticos
+│   ├── carrito.svg              # Iconos personalizados
+│   ├── file.svg                 # Iconos de archivos
+│   └── ...                      # Más assets
+│
+├── Docs/                         # Documentación técnica
+│   ├── ARCHITECTURE_GUIDE.md    # Guía de arquitectura
+│   ├── CART_INTEGRATION_GUIDE.md # Guía de integración del carrito
+│   ├── COOKIE_SYSTEM.md         # Sistema de cookies
+│   ├── DARK_MODE_IMPLEMENTATION.md # Modo oscuro
+│   ├── PRODUCT_FILTERS_GUIDE.md # Guía de filtros
+│   └── ...                      # Más documentación
 │
 ├── .env.local.example           # Plantilla de configuración
-├── next.config.js               # Configuración de Next.js
-├── tailwind.config.js           # Configuración de Tailwind
+├── next.config.ts               # Configuración de Next.js
+├── tailwind.config.ts           # Configuración de Tailwind
 ├── tsconfig.json                # Configuración de TypeScript
+├── components.json              # Configuración de shadcn/ui
 └── package.json                 # Dependencias y scripts
 ```
 
@@ -193,8 +301,8 @@ NEXT_PUBLIC_BUSINESS_TYPE=fashion
 NEXT_PUBLIC_CURRENCY=ARS
 NEXT_PUBLIC_LANGUAGE=es
 
-# Mercado Pago (público)
-NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY=TEST-client_specific_public_key
+# Wompi (público)
+NEXT_PUBLIC_WOMPI_PUBLIC_KEY=TEST-client_specific_public_key
 
 # Analytics y tracking (opcional)
 NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=GA-CLIENT-123

@@ -4,6 +4,49 @@
 
 Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a múltiples empresas como **instancias completamente separadas**. Cada cliente obtiene su propia copia completa del software, su propia base de datos y su propio deployment aislado.
 
+## 🎯 Estado Actual del Proyecto
+
+**Versión**: V1.0 - Funcionalidades Core Implementadas  
+**Progreso**: 85% completado  
+**Última actualización**: Septiembre 2025
+
+### ✅ Funcionalidades Implementadas
+
+#### Backend (FastAPI)
+- **Autenticación JWT** completa con roles (Admin, Employee, Customer)
+- **Gestión de productos** con filtros avanzados y búsqueda
+- **Sistema de carrito** con persistencia y cálculos automáticos
+- **Gestión de órdenes** y pagos integrados
+- **Sistema de categorías** jerárquico (Categorías → Líneas → Sublíneas)
+- **Gestión de marcas y proveedores**
+- **Sistema de descuentos** y puntos de fidelidad
+- **Gestión de usuarios** con perfiles completos
+- **Sistema de direcciones** para envíos
+- **Integración con Wompi** para pagos
+- **Sistema de emails** con Resend
+- **API de inventario** y movimientos de stock
+- **Middleware de autenticación** y autorización por roles
+
+#### Frontend (Next.js 15)
+- **Interfaz de tienda** completa con catálogo de productos
+- **Sistema de filtros** avanzado con búsqueda en tiempo real
+- **Carrito de compras** funcional con persistencia
+- **Dashboard administrativo** para gestión de productos
+- **Sistema de autenticación** con login/registro
+- **Gestión de categorías, líneas y sublíneas**
+- **Gestión de marcas y proveedores**
+- **Sistema de favoritos** para usuarios
+- **Interfaz responsive** con modo oscuro
+- **Sistema de cookies** con compliance GDPR
+- **Estados vacíos** mejorados con ilustraciones
+- **Integración completa** con backend API
+
+### 🚧 En Desarrollo
+- **Proceso de checkout** completo
+- **Gestión de órdenes** del lado del usuario
+- **Dashboard de analytics** avanzado
+- **Sistema de notificaciones**
+
 ## 🏢 Modelo de Negocio SaaS
 
 ### Arquitectura de Deployment Aislado
@@ -42,7 +85,7 @@ Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a
 
 ### Integraciones
 
-- **Mercado Pago** - Procesamiento de pagos (configuración por cliente)
+- **Wompi** - Procesamiento de pagos (configuración por cliente)
 - **Resend** - Emails transaccionales con branding personalizado
 - **Docker** - Containerización para deployment de instancias
 
@@ -108,6 +151,9 @@ pip install -r requirements.txt
 # Configurar variables de entorno
 cp .env.example .env
 # Editar .env con tu configuración de BD
+
+# Ejecutar migraciones (si es necesario)
+# alembic upgrade head
 ```
 
 ### 3. Configurar Frontend
@@ -138,6 +184,20 @@ npm run dev
 - **Backend**: http://localhost:8000
 - **Frontend**: http://localhost:3000
 - **API Docs**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+### 5. Accesos por Defecto
+
+#### Usuarios de Prueba
+- **Admin**: admin@synkro.com / admin123
+- **Employee**: empleado@synkro.com / empleado123
+- **Customer**: cliente@synkro.com / cliente123
+
+#### Funcionalidades Disponibles
+- **Tienda**: Navegación completa de productos con filtros
+- **Carrito**: Agregar/eliminar productos, persistencia
+- **Admin**: Gestión completa de productos, categorías, marcas
+- **Autenticación**: Login/registro con JWT
 
 ## 🏗️ Deployment de Instancias de Cliente
 
@@ -145,7 +205,7 @@ npm run dev
 
 1. **Información del negocio** - Datos de la empresa cliente
 2. **Selección de plan** - Starter, Business o Enterprise
-3. **Configuración de pagos** - Setup de Mercado Pago
+3. **Configuración de pagos** - Setup de Wompi
 4. **Creación de instancia** - Deploy de infraestructura dedicada
 5. **Setup de base de datos** - PostgreSQL dedicada
 6. **Personalización** - Branding y configuración específica
@@ -164,7 +224,7 @@ services:
       - DATABASE_URL=postgresql://user:pass@postgres:5432/empresa_abc_db
       - CLIENT_NAME=empresa_abc
       - JWT_SECRET=unique_secret_for_empresa_abc
-      - MERCADOPAGO_ACCESS_TOKEN=client_specific_token
+      - WOMPI_ACCESS_TOKEN=client_specific_token
 
   frontend:
     image: synkro-frontend:latest
