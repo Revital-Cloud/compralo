@@ -96,6 +96,20 @@ def get_order_by_id(db:Session, id_orden: Decimal):
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener la orden: {str(e)}")
+
+def get_order_detail(db:Session, id_orden: Decimal):
+    """
+    Obtiene los detalles de una orden específica.
+    """
+    try:
+        query = text("""
+        SELECT * FROM tab_ordenes WHERE id_orden = :id_orden
+        """)
+        result = db.execute(query, {"id_orden": id_orden})
+        return result.mappings().first()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener los detalles de la orden: {str(e)}")
     
 def create_order(db:Session, order:OrderCreate, usr_insert: Decimal):
     """

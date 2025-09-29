@@ -28,18 +28,12 @@ router = APIRouter(
 @router.get("/orders", response_model=List[Order])
 async def get_orders(
     db:Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
-    Obtiene todas las órdenes del usuario autenticado.
-    
-    Args:
-        db (Session): La sesión de base de datos SQLAlchemy.
-        current_user (UserInToken): El usuario autenticado.
-
-    Returns:
-        List[Order]: Lista de órdenes del usuario.
+    Obtiene las órdenes del usuario autenticado.
     """
-    orders = order_service.get_orders(db)
+    orders = order_service.get_orders_by_user(db, current_user.id_usuario)
     if orders is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron órdenes")
     return orders
@@ -61,6 +55,22 @@ def get_user_orders(
     
     result = db.execute(query, params).fetchall()
     return result
+
+@router.get("/orders/{order_id}", response_model=Order)
+async def get_order_detail(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Obtiene el detalle de una orden si pertenece al usuario autenticado.
+    """
+    order = order_service.get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
+    if order.get("id_usuario") != current_user.id_usuario:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado para ver esta orden")
+    return order
 
 
 @router.post("/order", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)

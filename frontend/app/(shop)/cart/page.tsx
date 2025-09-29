@@ -127,6 +127,9 @@ const CartPage = () => {
   const defaultAddress = Array.isArray(addresses) ? addresses.find(a => a.ind_principal) || addresses[0] : undefined
   const defaultPaymentMethod = Array.isArray(paymentMethods) ? paymentMethods.find(m => m.is_default) || paymentMethods[0] : undefined
 
+  const [isPaying, setIsPaying] = useState(false)
+  const [pendingOrderId, setPendingOrderId] = useState<number | null>(null)
+
   const handleCheckout = async () => {
     if (!hasItems()) {
       toast.error('Tu carrito está vacío')
@@ -144,8 +147,14 @@ const CartPage = () => {
       toast.error('Agrega un método de pago')
       return
     }
+    if (!(defaultPaymentMethod as any).provider_source_id) {
+      toast.error('Tu método de pago no está listo. Vuelve a agregar la tarjeta para generar el token de Wompi.')
+      return
+    }
 
     try {
+      setIsPaying(true)
+      setPendingOrderId(null)
       // 1) Crear la orden en backend
       const orderResp = await createOrder({
         id_carrito: Number(id_carrito),
@@ -159,14 +168,18 @@ const CartPage = () => {
         throw new Error(orderResp?.message || 'No se pudo crear la orden')
       }
 
+      const createdOrderId = Number(orderResp.id_orden)
+      toast.success(`Orden creada #${createdOrderId}`)
+
       // 2) Pagar la orden con Wompi usando el método por defecto
-      const payResp = await payOrder(Number(orderResp.id_orden), { payment_method_id: Number(defaultPaymentMethod.id_metodo_pago) })
+      const payResp = await payOrder(createdOrderId, { payment_method_id: Number(defaultPaymentMethod.id_metodo_pago) })
 
       if (payResp.status === 'APPROVED') {
         toast.success('Pago aprobado')
         // TODO: redireccionar a página de éxito si existe
       } else if (payResp.status === 'PENDING') {
-        toast.message('Pago pendiente de confirmación')
+        setPendingOrderId(createdOrderId)
+        toast.message(`Pago pendiente de confirmación. Orden #${createdOrderId}`)
       } else if (payResp.status === 'DECLINED') {
         toast.error('Pago declinado')
       } else {
@@ -174,6 +187,8 @@ const CartPage = () => {
       }
     } catch (e: any) {
       toast.error(e?.response?.data?.detail || e?.message || 'Error procesando el pago')
+    } finally {
+      setIsPaying(false)
     }
   }
 
@@ -389,11 +404,23 @@ const CartPage = () => {
                   </div>
 
                   <Button 
-                    className="w-full mt-6 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3 text-lg"
-                    disabled={!hasItems()}
+                    className="w-full mt-6 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3 text-lg cursor-pointer"
+                    disabled={!hasItems() || isPaying || !!pendingOrderId}
                     onClick={handleCheckout}
                   >
-                    {texts.checkout}
+                    {pendingOrderId ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {`Pago pendiente · Orden #${pendingOrderId}`}
+                      </span>
+                    ) : isPaying ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Procesando…
+                      </span>
+                    ) : (
+                      texts.checkout
+                    )}
                   </Button>
 
                   {/* Código promocional */}

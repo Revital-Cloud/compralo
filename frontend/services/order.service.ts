@@ -27,14 +27,14 @@ export interface PayOrderResponse {
 }
 
 export async function createOrder(payload: CreateOrderRequest): Promise<CreateOrderResponse> {
-  // Backend espera POST /api/orders/order
-  const res = await api.post<CreateOrderResponse>('/orders/order', payload);
+  // Backend expone POST /api/order
+  const res = await api.post<CreateOrderResponse>('/order', payload);
   return res;
 }
 
 export async function payOrder(orderId: number, payload: PayOrderRequest): Promise<PayOrderResponse> {
-  // Backend espera POST /api/orders/{order_id}/pay
-  const res = await api.post<PayOrderResponse>(`/orders/${orderId}/pay`, payload);
+  // Backend expone POST /api/{order_id}/pay
+  const res = await api.post<PayOrderResponse>(`/${orderId}/pay`, payload);
   return res;
 }
 
