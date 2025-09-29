@@ -15,7 +15,7 @@ import json
 
 from core.database import get_db
 from core.dependencies import require_admin, get_current_user, get_current_user_optional
-from schemas.product_schema import Product, ProductCreate, ProductUpdate, ResponseMessage, ProductFilterParams, ProductFilterResponse, ProductFilterStats
+from schemas.product_schema import Product, ProductCreate, ProductUpdate, ResponseMessage, ProductFilterParams, ProductFilterResponse, ProductFilterStats, ProductAdminResponse, ProductAdminParams
 from schemas.auth_schema import UserInToken
 from services import product_service
 
@@ -41,6 +41,99 @@ async def get_products(db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron productos")
     return products
 
+#endpoint para administradores - productos completos con estados de activación
+@router.get("/products-admin", response_model=list[ProductAdminResponse])
+async def get_products_admin(
+    ordenar_por: str = "nombre",
+    orden: str = "ASC", 
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin())
+):
+    """
+    Obtener todos los productos para el panel de administración.
+    
+    Este endpoint está restringido solo para administradores y devuelve
+    información completa de productos incluyendo estados de activación
+    de todas las tablas relacionadas.
+    
+    Args:
+        ordenar_por (str): Campo para ordenar ('precio', 'nombre', 'stock', 'fecha', 'categoria', 'marca')
+        orden (str): Dirección del orden ('ASC' o 'DESC')
+        limit (int): Límite de resultados (máximo 1000)
+        offset (int): Offset para paginación
+        db (Session): Sesión de la base de datos
+        current_user (UserInToken): Usuario autenticado (debe ser admin)
+        
+    Returns:
+        list[ProductAdminResponse]: Lista de productos con información completa para admin
+    """
+    # Validar parámetros
+    if ordenar_por not in ['precio', 'nombre', 'stock', 'fecha', 'categoria', 'marca']:
+        ordenar_por = 'nombre'
+    
+    if orden.upper() not in ['ASC', 'DESC']:
+        orden = 'ASC'
+    
+    if limit > 1000:
+        limit = 1000
+    
+    if offset < 0:
+        offset = 0
+    
+    params = {
+        'ordenar_por': ordenar_por,
+        'orden': orden.upper(),
+        'limit': limit,
+        'offset': offset
+    }
+    
+    products = product_service.get_products_admin(db, params)
+    if not products:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron productos")
+    
+    return products
+
+#endpoint de prueba temporal (sin autenticación)
+@router.get("/products-admin-test", response_model=list[ProductAdminResponse])
+async def get_products_admin_test(
+    ordenar_por: str = "nombre",
+    orden: str = "ASC", 
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint de prueba para productos admin (sin autenticación).
+    
+    Este endpoint está temporalmente sin autenticación para pruebas.
+    """
+    # Validar parámetros
+    if ordenar_por not in ['precio', 'nombre', 'stock', 'fecha', 'categoria', 'marca']:
+        ordenar_por = 'nombre'
+    
+    if orden.upper() not in ['ASC', 'DESC']:
+        orden = 'ASC'
+    
+    if limit > 1000:
+        limit = 1000
+    
+    if offset < 0:
+        offset = 0
+    
+    params = {
+        'ordenar_por': ordenar_por,
+        'orden': orden.upper(),
+        'limit': limit,
+        'offset': offset
+    }
+    
+    products = product_service.get_products_admin(db, params)
+    if not products:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron productos")
+    
+    return products
 
 #un solo producto
 @router.get(

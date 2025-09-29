@@ -83,6 +83,22 @@ class User(UserBase):
     """
     id_usuario: Decimal
     fec_nacimiento: Optional[datetime] = Field(None, description="Fecha de nacimiento del usuario.")
+
+class UserPublic(BaseModel):
+    """
+    Esquema público para información del usuario actual.
+    
+    Solo incluye información segura y necesaria para el frontend.
+    NO incluye contraseñas, información personal sensible o datos de auditoría.
+    """
+    id_usuario: Decimal = Field(..., description="Identificador único para el usuario.")
+    nom_usuario: str = Field(..., description="Nombre del usuario.")
+    ape_usuario: str = Field(..., description="Apellido del usuario.")
+    email_usuario: str = Field(..., description="Email del usuario.")
+    id_rol: Optional[Decimal] = Field(None, description="Identificador del rol del usuario.")
+    
+    class Config:
+        from_attributes = True
     
 class ResponseMessage(BaseModel):
     """

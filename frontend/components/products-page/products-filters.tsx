@@ -1,6 +1,5 @@
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Slider } from "@/components/ui/slider"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 
@@ -97,21 +96,51 @@ export const ProductsFilters = ({
         {/* Price Range Filter */}
         <div className="mb-6">
           <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Rango de Precio</h4>
-          <div className="px-2">
+          <div className="px-2 space-y-2">
             {priceRangeOptions ? (
-              <Slider
-                value={priceRange}
-                onValueChange={setPriceRange}
-                max={priceRangeOptions.max}
-                min={priceRangeOptions.min}
-                step={Math.max(1000, Math.floor((priceRangeOptions.max - priceRangeOptions.min) / 100))} // Step dinámico
-                className="w-full"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">Mín.</label>
+                  <input
+                    type="number"
+                    value={priceRange[0]}
+                    min={priceRangeOptions.min}
+                    max={priceRange[1]}
+                    step={Math.max(1000, Math.floor((priceRangeOptions.max - priceRangeOptions.min) / 100))}
+                    onChange={(e) => {
+                      const raw = Number(e.target.value)
+                      const clamped = isNaN(raw) ? priceRangeOptions.min : Math.max(priceRangeOptions.min, Math.min(raw, priceRange[1]))
+                      if (clamped !== priceRange[0]) {
+                        setPriceRange([clamped, priceRange[1]])
+                      }
+                    }}
+                    className="w-full h-9 rounded-md border border-gray-200 dark:border-gray-700 bg-transparent px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring/50"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">Máx.</label>
+                  <input
+                    type="number"
+                    value={priceRange[1]}
+                    min={priceRange[0]}
+                    max={priceRangeOptions.max}
+                    step={Math.max(1000, Math.floor((priceRangeOptions.max - priceRangeOptions.min) / 100))}
+                    onChange={(e) => {
+                      const raw = Number(e.target.value)
+                      const clamped = isNaN(raw) ? priceRangeOptions.max : Math.min(priceRangeOptions.max, Math.max(raw, priceRange[0]))
+                      if (clamped !== priceRange[1]) {
+                        setPriceRange([priceRange[0], clamped])
+                      }
+                    }}
+                    className="w-full h-9 rounded-md border border-gray-200 dark:border-gray-700 bg-transparent px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring/50"
+                  />
+                </div>
+              </div>
             ) : (
               <div className="text-sm text-gray-500">Cargando rango de precios...</div>
             )}
             {priceRangeOptions && priceRangeOptions.max > 0 && priceRange[1] > 0 && (
-              <div className="flex justify-between text-xs text-gray-500 mt-2">
+              <div className="flex justify-between text-xs text-gray-500">
                 <span>${priceRange[0].toLocaleString()}</span>
                 <span>${priceRange[1].toLocaleString()}</span>
               </div>

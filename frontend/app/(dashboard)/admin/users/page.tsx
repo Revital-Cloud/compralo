@@ -10,7 +10,6 @@ import {
   IconSearch,
   IconFilter,
   IconDownload,
-  IconUser,
   IconMail,
   IconCalendar,
   IconShoppingBag

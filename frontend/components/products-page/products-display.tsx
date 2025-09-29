@@ -3,7 +3,6 @@ import Loading from "@/components/ui/loading"
 import { ProductGrid, ProductList } from "@/components/product"
 import { EmptyProductsState } from "@/components/ui/empty-state"
 import { FilterSuggestions } from "@/components/ui/filter-suggestions"
-import { formatPrice } from "@/utils/format-price"
 import { useCart } from "@/hooks/use-cart"
 import { toast } from "sonner"
 

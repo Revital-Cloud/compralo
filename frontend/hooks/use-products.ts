@@ -8,7 +8,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as productService from '@/services/product.service';
-import type { Product, ProductCreate, ProductUpdate, ProductFilterParams, ProductFilterResponse, ProductFilterStats, FilterOptions } from '@/types/product';
+import type { Product, ProductCreate, ProductUpdate, ProductFilterParams, ProductFilterResponse, ProductFilterStats, FilterOptions, ProductAdmin, ProductAdminParams } from '@/types/product';
 import type { PaginationParams } from '@/types/common';
 
 export const PRODUCT_KEYS = {
@@ -17,6 +17,9 @@ export const PRODUCT_KEYS = {
   list: (filters: PaginationParams) => [...PRODUCT_KEYS.lists(), filters] as const,
   details: () => [...PRODUCT_KEYS.all, 'detail'] as const,
   detail: (id: string | number) => [...PRODUCT_KEYS.details(), id] as const,
+  // Admin
+  admin: () => [...PRODUCT_KEYS.all, 'admin'] as const,
+  adminList: (params: ProductAdminParams) => [...PRODUCT_KEYS.admin(), 'list', params] as const,
   // Filtros avanzados
   filters: () => [...PRODUCT_KEYS.all, 'filters'] as const,
   filter: (filters: ProductFilterParams) => [...PRODUCT_KEYS.filters(), filters] as const,
@@ -183,5 +186,24 @@ export function useQuickSearch(query: string, limit: number = 20) {
     queryFn: () => productService.quickSearchProducts(query, limit),
     enabled: !!query && query.length >= 2, // Solo buscar si hay al menos 2 caracteres
     staleTime: 1 * 60 * 1000, // 1 minuto
+  });
+}
+
+// =============================================================================
+// HOOKS PARA ADMINISTRACIÓN
+// =============================================================================
+
+/**
+ * Hook para obtener productos para administración (solo admin)
+ */
+export function useProductsAdmin(params: ProductAdminParams = {}) {
+  return useQuery({
+    queryKey: PRODUCT_KEYS.adminList(params),
+    queryFn: () => productService.getProductsAdmin(params),
+    staleTime: 2 * 60 * 1000, // 2 minutos
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    gcTime: 5 * 60 * 1000, // 5 minutos en cache
   });
 } 

@@ -13,6 +13,7 @@ export interface ProductBase {
   id_linea: string; // Cambiado a string porque el API devuelve string
   id_categoria: string; // Cambiado a string porque el API devuelve string
   num_stock: number;
+  images?: any; // Campo que viene del backend
 }
 
 export interface ProductImages {
@@ -40,9 +41,53 @@ export interface Product extends ProductBase {
   id_producto: string; // Cambiado a string porque el API devuelve string
   usr_insert: string;
   fec_insert: string; // Fecha como string, ya que viene del JSON
-  usr_update?: string;
-  fec_update?: string;
+  usr_update?: string | null;
+  fec_update?: string | null;
   ind_activo: boolean; // Agregado campo que viene del API
+  // Nombres opcionales del endpoint admin
+  nom_categoria?: string;
+  nom_linea?: string;
+  nom_sublinea?: string;
+  nom_proveedor?: string;
+  nom_marca?: string;
+}
+
+// =============================================================================
+// TIPOS PARA ADMINISTRACIÓN
+// =============================================================================
+
+export interface ProductAdmin {
+  id_categoria: string;
+  id_linea: string;
+  id_sublinea: string;
+  id_producto: string;
+  nom_categoria: string;
+  nom_linea: string;
+  nom_sublinea: string;
+  nom_producto: string;
+  spcf_producto: Record<string, any>;
+  img_producto?: ProductImages;
+  val_precio: string;
+  num_stock: number;
+  id_proveedor: string;
+  id_marca: string;
+  nom_proveedor: string;
+  nom_marca: string;
+  fec_insert: string;
+  ind_activo_producto: boolean;
+  ind_activo_categoria: boolean;
+  ind_activo_linea: boolean;
+  ind_activo_sublinea: boolean;
+  ind_activo_proveedor: boolean;
+  ind_activo_marca: boolean;
+  total_registros: number;
+}
+
+export interface ProductAdminParams {
+  ordenar_por?: 'precio' | 'nombre' | 'stock' | 'fecha' | 'categoria' | 'marca';
+  orden?: 'ASC' | 'DESC';
+  limit?: number;
+  offset?: number;
 }
 
 // =============================================================================
