@@ -1,5 +1,5 @@
 export interface Category {
-  id_categoria: string;
+  id_categoria: number;
   nom_categoria: string;
   ind_activo: boolean;
   usr_insert?: string;

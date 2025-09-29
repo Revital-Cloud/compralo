@@ -2,7 +2,8 @@
 
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { EmptyState } from '@/components/admin/empty-states'
-import { useCategories } from '@/hooks/use-categories'
+import { useQuery } from '@tanstack/react-query'
+import { getAllCategories } from '@/services/category.service'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -11,7 +12,10 @@ import { Pencil, Power } from 'lucide-react'
 import type { Category } from '@/types/category'
 
 const CategoriesPage = () => {
-  const { data, isLoading, isError } = useCategories()
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['categories', 'all'],
+    queryFn: getAllCategories,
+  })
 
   const columns: ColumnDef<Category>[] = [
     {
