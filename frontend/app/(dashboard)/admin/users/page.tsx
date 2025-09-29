@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { IconDownload } from "@tabler/icons-react"
-import { ExportDialog } from "@/components/excel"
+
 import { toast } from "sonner"
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
@@ -149,15 +149,6 @@ const UsersPage = () => {
             Gestiona todos los usuarios de tu plataforma
           </p>
         </div>
-        <ExportDialog
-          defaultDataTypes={['users']}
-          onExportComplete={handleExportComplete}
-        >
-          <Button>
-            <IconDownload className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
-        </ExportDialog>
       </div>
 
       {/* Estadísticas */}
