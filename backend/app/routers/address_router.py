@@ -111,4 +111,27 @@ async def deactivate_address(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
-    
+@router.put("/address/{id_direccion}-{id_usuario}/deactivate-main", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def deactivate_main_address(
+    id_direccion: Decimal,
+    id_usuario: Decimal,
+    db:Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Desactiva la dirección principal de un usuario.
+
+    Args:
+        id_direccion (Decimal): El ID de la dirección a desactivar.
+        id_usuario (Decimal): El ID del usuario que desactiva la dirección principal.
+        db (Session): La sesión de base de datos SQLAlchemy.
+        current_user (UserInToken): El usuario autenticado.
+
+    Returns:
+        ResponseMessage: Mensaje de confirmación.
+    """
+    try:
+        address_service.deactivate_main_address(db, id_direccion, id_usuario, current_user.id_usuario)
+        return ResponseMessage(message="Dirección principal desactivada exitosamente")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

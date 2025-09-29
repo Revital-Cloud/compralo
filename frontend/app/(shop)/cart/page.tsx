@@ -14,6 +14,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import Loading from '@/components/ui/loading'
 import { toast } from 'sonner'
 import { formatPrice } from '@/utils/format-price'
+import { useQuery } from '@tanstack/react-query'
+import addressService from '@/services/address.service'
+import { listPaymentMethods } from '@/services/payment.service'
+import { createOrder, payOrder } from '@/services/order.service'
 
 const cartTexts = {
   es: {
@@ -59,7 +63,8 @@ const CartPage = () => {
     updateQuantity,
     removeFromCart,
     clearCart,
-    refetchCart
+    refetchCart,
+    id_carrito
   } = useCart()
 
   // Textos de la interfaz
@@ -104,6 +109,73 @@ const CartPage = () => {
   const shipping = Number(totals?.resumen?.costo_envio) || (subtotal > 50 || subtotal === 0 ? 0 : 10)
   const salesTax = Number(totals?.resumen?.impuestos) || 0
   const finalTotal = Number(totals?.total_final) || (hasItems() ? Number(total) : 0) || 0
+
+  // Cargar dirección principal del usuario (si existe)
+  const { data: addresses } = useQuery({
+    queryKey: ['addresses'],
+    queryFn: addressService.getMyAddresses,
+    enabled: !!user?.id_usuario,
+  })
+
+  // Cargar métodos de pago y detectar predeterminado
+  const { data: paymentMethods } = useQuery({
+    queryKey: ['payment-methods'],
+    queryFn: listPaymentMethods,
+    enabled: !!user?.id_usuario,
+  })
+
+  const defaultAddress = Array.isArray(addresses) ? addresses.find(a => a.ind_principal) || addresses[0] : undefined
+  const defaultPaymentMethod = Array.isArray(paymentMethods) ? paymentMethods.find(m => m.is_default) || paymentMethods[0] : undefined
+
+  const handleCheckout = async () => {
+    if (!hasItems()) {
+      toast.error('Tu carrito está vacío')
+      return
+    }
+    if (!user?.id_usuario) {
+      toast.error('Inicia sesión para continuar')
+      return
+    }
+    if (!defaultAddress) {
+      toast.error('Agrega una dirección de envío')
+      return
+    }
+    if (!defaultPaymentMethod) {
+      toast.error('Agrega un método de pago')
+      return
+    }
+
+    try {
+      // 1) Crear la orden en backend
+      const orderResp = await createOrder({
+        id_carrito: Number(id_carrito),
+        id_direccion: Number(defaultAddress.id_direccion),
+        codigo_descuento: null,
+        des_observaciones: null,
+        id_canje: null,
+      })
+
+      if (!orderResp?.id_orden) {
+        throw new Error(orderResp?.message || 'No se pudo crear la orden')
+      }
+
+      // 2) Pagar la orden con Wompi usando el método por defecto
+      const payResp = await payOrder(Number(orderResp.id_orden), { payment_method_id: Number(defaultPaymentMethod.id_metodo_pago) })
+
+      if (payResp.status === 'APPROVED') {
+        toast.success('Pago aprobado')
+        // TODO: redireccionar a página de éxito si existe
+      } else if (payResp.status === 'PENDING') {
+        toast.message('Pago pendiente de confirmación')
+      } else if (payResp.status === 'DECLINED') {
+        toast.error('Pago declinado')
+      } else {
+        toast.error('Error en el pago')
+      }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail || e?.message || 'Error procesando el pago')
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 pb-24 lg:pb-8">
@@ -238,15 +310,6 @@ const CartPage = () => {
                     image="/placeholder-product.jpg"
                     badge="Recomendado"
                     badgeColor="blue"
-                    onAddToCart={(id) => {
-                      // TODO: Implementar con productos reales
-                      console.log('Agregar producto recomendado:', id)
-                      toast.info('Funcionalidad de productos recomendados próximamente')
-                    }}
-                    onToggleFavorite={(id) => {
-                      console.log('Toggle favorito:', id)
-                      toast.info('Funcionalidad de favoritos próximamente')
-                    }}
                   />
                 ))}
               </div>
@@ -328,6 +391,7 @@ const CartPage = () => {
                   <Button 
                     className="w-full mt-6 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3 text-lg"
                     disabled={!hasItems()}
+                    onClick={handleCheckout}
                   >
                     {texts.checkout}
                   </Button>
