@@ -106,6 +106,11 @@ class WompiService:
 
         return await self._request("post", endpoint, data=payload)
 
+    async def get_transaction(self, transaction_id: str) -> Dict[str, Any]:
+        """Obtiene el detalle de una transacción por id."""
+        endpoint = f"transactions/{transaction_id}"
+        return await self._request("get", endpoint)
+
 
 # Instancia global del servicio
 wompi_service = WompiService() 

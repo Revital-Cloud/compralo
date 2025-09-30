@@ -11,6 +11,7 @@ import json
 import httpx
 import uuid
 from decimal import Decimal
+import asyncio
 
 from core.database import get_db
 from core.dependencies import get_current_user
@@ -66,6 +67,24 @@ async def get_order_detail(
     Obtiene el detalle de una orden si pertenece al usuario autenticado.
     """
     order = order_service.get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
+    if order.get("id_usuario") != current_user.id_usuario:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado para ver esta orden")
+    return order
+
+
+@router.get("/orders/{order_id}/detail")
+async def get_order_detail_with_items(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Devuelve la orden con sus `items` (snapshot) y descuentos aplicados.
+    Siempre devuelve el snapshot de items aunque un producto haya sido desactivado.
+    """
+    order = order_service.get_order_with_items(db, order_id)
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
     if order.get("id_usuario") != current_user.id_usuario:
@@ -150,22 +169,35 @@ async def pay_order(
             reference=reference
         )
         
+        # Marcar el método de pago usado en la orden (para visualización)
+        try:
+            order_service.update_order_payment_info(db, Decimal(order_id), metodo_pago="tarjeta")
+        except Exception:
+            pass
+        
         transaction_data = transaction_response.get("data", {})
-        status = transaction_data.get("status")
+        status_tx = transaction_data.get("status")
         transaction_id = transaction_data.get("id")
 
-        # La respuesta inmediata de Wompi es la fuente de verdad.
-        # El webhook servirá como un mecanismo de respaldo y para casos de pagos asíncronos (ej. PSE).
-        if status in ['APPROVED', 'DECLINED', 'VOIDED', 'ERROR']:
-            # El webhook se encargará de actualizar el pago y la orden.
-            # Aquí solo devolvemos el resultado inmediato al usuario.
-            pass
+        # Si quedó en pendiente, hacemos un intento de polling rápido (2s)
+        if status_tx == "PENDING" and transaction_id:
+            await asyncio.sleep(2)
+            try:
+                detail = await wompi_service.get_transaction(str(transaction_id))
+                status_tx = (detail.get("data") or {}).get("status") or status_tx
+            except Exception:
+                # Si falla la consulta, mantenemos el estado original
+                pass
 
-        # De forma proactiva, podemos intentar actualizar el pago para no depender 100% del webhook
-        # y dar una respuesta más completa si es posible.
-        # Esto es opcional y depende de la estrategia que se quiera seguir.
+        # Si está aprobado/declinado, actualizamos estado de la orden para feedback inmediato
+        estado_map = {"APPROVED": 2, "DECLINED": 4, "VOIDED": 4, "ERROR": 4}
+        if status_tx in estado_map:
+            try:
+                order_service.update_order_payment_info(db, Decimal(order_id), ind_estado=estado_map[status_tx])
+            except Exception:
+                pass
 
-        return {"status": status, "transaction_id": transaction_id, "message": transaction_data.get("status_message")}
+        return {"status": status_tx, "transaction_id": transaction_id, "message": transaction_data.get("status_message")}
 
     except httpx.HTTPStatusError as e:
         error_details = e.response.json().get("error", {})

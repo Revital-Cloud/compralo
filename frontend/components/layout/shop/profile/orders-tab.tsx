@@ -14,6 +14,17 @@ interface OrderItem {
   ind_estado: number;
 }
 
+interface OrderProductItem {
+  id_item?: number;
+  id_producto?: number;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  product_image?: string | null;
+  item_discounts?: any;
+}
+
 interface OrderDetail {
   id_orden: number;
   fec_insert: string;
@@ -22,6 +33,9 @@ interface OrderDetail {
   val_total_pedido: number;
   ind_estado: number;
   des_observaciones?: string | null;
+  items?: OrderProductItem[];
+  detalle_descuentos_aplicados?: any[] | null;
+  metodo_pago?: string | null;
 }
 
 function formatStatus(state: number) {
@@ -32,6 +46,16 @@ function formatStatus(state: number) {
     case 4: return "Cancelada";
     default: return "Desconocido";
   }
+}
+
+function formatPaymentMethod(m?: string | null) {
+  if (!m) return "—";
+  const map: Record<string, string> = {
+    tarjeta: "Tarjeta",
+    efectivo_red_pagos: "Efectivo (red de pagos)",
+    transferencia: "Transferencia",
+  };
+  return map[m] || m;
 }
 
 function formatDate(dateString: string) {
@@ -62,7 +86,7 @@ export default function OrdersTab() {
     queryKey: ["order-detail", selectedOrder?.id_orden],
     queryFn: async () => {
       if (!selectedOrder?.id_orden) return null;
-      return await api.get<OrderDetail>(`/orders/${selectedOrder.id_orden}`);
+      return await api.get<OrderDetail>(`/orders/${selectedOrder.id_orden}/detail`);
     },
     enabled: !!selectedOrder?.id_orden,
   });
@@ -102,7 +126,7 @@ export default function OrdersTab() {
                 >
                   <div>
                     <p className="font-medium">Orden #{Number(o.id_orden)}</p>
-                    <p className="text-sm text-muted-foreground">{formatDate(o.fec_insert)}</p>
+                    <p className="text-sm text-muted-foreground">{formatDate((o as any).fec_insert ?? o.fec_pedido)}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">${Number(o.val_total_pedido).toLocaleString()}</p>
@@ -140,6 +164,10 @@ export default function OrdersTab() {
                   <span>{formatStatus(orderDetail.ind_estado)}</span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-muted-foreground">Método de pago</span>
+                  <span>{formatPaymentMethod(orderDetail.metodo_pago)}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>${Number(orderDetail.val_total_productos).toLocaleString()}</span>
                 </div>
@@ -151,13 +179,50 @@ export default function OrdersTab() {
                   <span>Total</span>
                   <span>${Number(orderDetail.val_total_pedido).toLocaleString()}</span>
                 </div>
-                {orderDetail.des_observaciones && (
-                  <div className="pt-2">
-                    <span className="text-muted-foreground">Observaciones:</span>
-                    <p>{orderDetail.des_observaciones}</p>
-                  </div>
-                )}
+                <div className="pt-2 space-y-1">
+                  <span className="text-muted-foreground">Descuentos aplicados:</span>
+                  {(orderDetail.detalle_descuentos_aplicados && (orderDetail.detalle_descuentos_aplicados as any[])?.length > 0) ? (
+                    <ul className="list-disc pl-5 text-sm">
+                      {(orderDetail.detalle_descuentos_aplicados as any[]).map((d, idx) => (
+                        <li key={idx}>{d.nombre || d.codigo || "Descuento"} (-${Number(d.monto || d.valor || 0).toLocaleString()})</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Sin descuentos aplicados</p>
+                  )}
+                </div>
               </div>
+
+              {orderDetail.items && orderDetail.items.length > 0 && (
+                <div className="rounded-md border border-border p-4">
+                  <p className="font-medium mb-3">Productos</p>
+                  <div className="space-y-3">
+                    {orderDetail.items.map((it, idx) => (
+                      <div key={idx} className="flex items-center justify-between">
+                        <div className="min-w-0">
+                          <p className="truncate">{it.product_name}</p>
+                          <p className="text-sm text-muted-foreground">Cantidad: {it.quantity}</p>
+                          {it.item_discounts && (
+                            <p className="text-xs text-muted-foreground">Descuentos: {Array.isArray(it.item_discounts) ? it.item_discounts.map((d:any)=>d.nombre||d.codigo).join(', ') : '-'}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm">${Number(it.unit_price).toLocaleString()} c/u</p>
+                          <p className="font-semibold">${Number(it.total_price).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {orderDetail.des_observaciones && (
+                <div className="pt-2">
+                  <span className="text-muted-foreground">Observaciones:</span>
+                  <p>{orderDetail.des_observaciones}</p>
+                </div>
+              )}
             </div>
           ) : null}
         </DialogContent>

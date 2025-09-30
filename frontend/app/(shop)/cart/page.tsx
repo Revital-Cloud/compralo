@@ -18,6 +18,9 @@ import { useQuery } from '@tanstack/react-query'
 import addressService from '@/services/address.service'
 import { listPaymentMethods } from '@/services/payment.service'
 import { createOrder, payOrder } from '@/services/order.service'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription } from '@/components/ui/alert-dialog'
 
 const cartTexts = {
   es: {
@@ -95,15 +98,6 @@ const CartPage = () => {
     toast.info('Funcionalidad de favoritos próximamente')
   }
 
-  // Estados de carga y error
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <Loading />
-      </div>
-    )
-  }
-
   // Cálculos del carrito - usar datos del backend o fallback local
   const subtotal = Number(totals?.total_productos) || (Array.isArray(items) && items.length > 0 ? items.reduce((acc, item) => acc + (Number(item.subtotal) || 0), 0) : 0)
   const shipping = Number(totals?.resumen?.costo_envio) || (subtotal > 50 || subtotal === 0 ? 0 : 10)
@@ -129,8 +123,11 @@ const CartPage = () => {
 
   const [isPaying, setIsPaying] = useState(false)
   const [pendingOrderId, setPendingOrderId] = useState<number | null>(null)
+  const [isPMDialogOpen, setIsPMDialogOpen] = useState(false)
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null)
+  const [isRetryDialogOpen, setIsRetryDialogOpen] = useState(false)
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (pmIdOverride?: number) => {
     if (!hasItems()) {
       toast.error('Tu carrito está vacío')
       return
@@ -143,53 +140,86 @@ const CartPage = () => {
       toast.error('Agrega una dirección de envío')
       return
     }
-    if (!defaultPaymentMethod) {
-      toast.error('Agrega un método de pago')
+
+    const effectivePM = pmIdOverride
+      ?? (selectedPaymentMethodId ? Number(selectedPaymentMethodId) : Number((defaultPaymentMethod as any)?.id_metodo_pago))
+
+    const pmObject = Array.isArray(paymentMethods)
+      ? paymentMethods.find((m: any) => Number(m.id_metodo_pago) === Number(effectivePM))
+      : undefined
+
+    if (!pmObject) {
+      toast.error('Selecciona un método de pago')
       return
     }
-    if (!(defaultPaymentMethod as any).provider_source_id) {
+    if (!(pmObject as any).provider_source_id) {
       toast.error('Tu método de pago no está listo. Vuelve a agregar la tarjeta para generar el token de Wompi.')
       return
     }
 
     try {
       setIsPaying(true)
+      // limpiar cualquier estado previo de pendiente
       setPendingOrderId(null)
-      // 1) Crear la orden en backend
-      const orderResp = await createOrder({
-        id_carrito: Number(id_carrito),
-        id_direccion: Number(defaultAddress.id_direccion),
-        codigo_descuento: null,
-        des_observaciones: null,
-        id_canje: null,
-      })
 
-      if (!orderResp?.id_orden) {
-        throw new Error(orderResp?.message || 'No se pudo crear la orden')
+      // 1) Crear la orden solo si no hay una orden pendiente previa en memoria
+      let orderIdToPay: number
+      if (pendingOrderId) {
+        orderIdToPay = Number(pendingOrderId)
+      } else {
+        const orderResp = await createOrder({
+          id_carrito: Number(id_carrito),
+          id_direccion: Number(defaultAddress.id_direccion),
+          codigo_descuento: null,
+          des_observaciones: null,
+          id_canje: null,
+        })
+
+        if (!orderResp?.id_orden) {
+          throw new Error(orderResp?.message || 'No se pudo crear la orden')
+        }
+
+        orderIdToPay = Number(orderResp.id_orden)
+        toast.success(`Orden creada #${orderIdToPay}`)
       }
 
-      const createdOrderId = Number(orderResp.id_orden)
-      toast.success(`Orden creada #${createdOrderId}`)
-
-      // 2) Pagar la orden con Wompi usando el método por defecto
-      const payResp = await payOrder(createdOrderId, { payment_method_id: Number(defaultPaymentMethod.id_metodo_pago) })
+      // 2) Pagar la orden con Wompi usando el método seleccionado
+      const payResp = await payOrder(orderIdToPay, { payment_method_id: Number(effectivePM) })
 
       if (payResp.status === 'APPROVED') {
+        setPendingOrderId(null)
         toast.success('Pago aprobado')
-        // TODO: redireccionar a página de éxito si existe
+        // Vaciar carrito inmediatamente y refrescar datos
+        try {
+          clearCart()
+          refetchCart()
+        } catch (_) {}
       } else if (payResp.status === 'PENDING') {
-        setPendingOrderId(createdOrderId)
-        toast.message(`Pago pendiente de confirmación. Orden #${createdOrderId}`)
+        setPendingOrderId(orderIdToPay)
+        toast.message(`Pago pendiente de confirmación. Orden #${orderIdToPay}`)
       } else if (payResp.status === 'DECLINED') {
+        setPendingOrderId(null)
+        setIsRetryDialogOpen(true)
         toast.error('Pago declinado')
       } else {
+        setPendingOrderId(null)
         toast.error('Error en el pago')
       }
     } catch (e: any) {
       toast.error(e?.response?.data?.detail || e?.message || 'Error procesando el pago')
     } finally {
       setIsPaying(false)
+      setIsPMDialogOpen(false)
     }
+  }
+
+  // Estado de carga después de declarar todos los hooks
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <Loading />
+      </div>
+    )
   }
 
   return (
@@ -406,7 +436,15 @@ const CartPage = () => {
                   <Button 
                     className="w-full mt-6 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3 text-lg cursor-pointer"
                     disabled={!hasItems() || isPaying || !!pendingOrderId}
-                    onClick={handleCheckout}
+                    onClick={() => {
+                      const count = Array.isArray(paymentMethods) ? paymentMethods.length : 0
+                      if (count > 1) {
+                        setSelectedPaymentMethodId(String((defaultPaymentMethod as any)?.id_metodo_pago ?? ''))
+                        setIsPMDialogOpen(true)
+                      } else {
+                        handleCheckout()
+                      }
+                    }}
                   >
                     {pendingOrderId ? (
                       <span className="inline-flex items-center gap-2">
@@ -574,6 +612,74 @@ const CartPage = () => {
           />
         )}
       </div>
+
+      {/* Dialogo de selección de método de pago */}
+      <Dialog open={isPMDialogOpen} onOpenChange={setIsPMDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Selecciona un método de pago</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <RadioGroup value={selectedPaymentMethodId ?? ''} onValueChange={setSelectedPaymentMethodId}>
+              {Array.isArray(paymentMethods) && paymentMethods.map((pm: any) => (
+                <label key={pm.id_metodo_pago} className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <RadioGroupItem value={String(pm.id_metodo_pago)} />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">
+                      {pm.brand?.toUpperCase() || 'Tarjeta'} •••• {pm.last_four_digits}
+                    </div>
+                    <div className="text-xs text-gray-500">Titular: {pm.card_holder} · Expira {pm.exp_month || pm.expiration_month}/{pm.exp_year || pm.expiration_year}</div>
+                  </div>
+                  {pm.is_default && (
+                    <Badge>Principal</Badge>
+                  )}
+                </label>
+              ))}
+            </RadioGroup>
+          </div>
+          <DialogFooter>
+            <Button className="w-full" disabled={!selectedPaymentMethodId || isPaying} onClick={() => handleCheckout(Number(selectedPaymentMethodId))}>
+              {isPaying ? 'Procesando…' : 'Pagar con este método'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de reintento cuando el pago es declinado */}
+      <AlertDialog open={isRetryDialogOpen} onOpenChange={setIsRetryDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Pago declinado</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Quieres reintentar el pago seleccionando un método distinto?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="cursor-pointer hover:bg-transparent hover:text-inherit hover:opacity-100 focus-visible:ring-0 focus-visible:ring-offset-0"
+              onClick={() => setIsRetryDialogOpen(false)}
+            >
+              No
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="cursor-pointer"
+              onClick={() => {
+                setIsRetryDialogOpen(false)
+                const count = Array.isArray(paymentMethods) ? paymentMethods.length : 0
+                if (count > 1) {
+                  setSelectedPaymentMethodId(String((defaultPaymentMethod as any)?.id_metodo_pago ?? ''))
+                  setIsPMDialogOpen(true)
+                } else {
+                  // Si solo hay una tarjeta, reintenta directo
+                  handleCheckout()
+                }
+              }}
+            >
+              Sí, reintentar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
