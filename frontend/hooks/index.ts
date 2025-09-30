@@ -16,6 +16,7 @@ export { useCategories } from './use-categories'
 export { useFooterCategories } from './use-footer-categories'
 export { useAllLines, useLinesByCategory, useLine } from './use-lines'
 export { useAllSublines, useSublinesByLine, useSubline } from './use-sublines'
+export { useAllProviders, useProvider } from './use-providers'
 export { useDashboardData } from './use-dashboard-data'
 
 // UI hooks

@@ -300,6 +300,7 @@ async def update_product(
     # Datos del producto como Form fields opcionales
     nom_producto: Optional[str] = Form(None),
     spcf_producto: Optional[str] = Form(None),  # JSON como string
+    img_producto: Optional[str] = Form(None),  # JSON como string para imágenes existentes
     val_precio: Optional[Decimal] = Form(None),
     id_proveedor: Optional[Decimal] = Form(None),
     id_marca: Optional[Decimal] = Form(None),
@@ -351,6 +352,11 @@ async def update_product(
                 update_data['spcf_producto'] = json.loads(spcf_producto)
             except json.JSONDecodeError:
                 raise HTTPException(status_code=400, detail="El campo 'spcf_producto' debe ser una cadena JSON válida.")
+        if img_producto is not None:
+            try:
+                update_data['img_producto'] = json.loads(img_producto)
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="El campo 'img_producto' debe ser una cadena JSON válida.")
         if val_precio is not None:
             update_data['val_precio'] = val_precio
         if id_proveedor is not None:

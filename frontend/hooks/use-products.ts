@@ -81,11 +81,23 @@ export function useUpdateProduct() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: ProductUpdate }) => 
-      productService.updateProduct(id, data),
-    onSuccess: (_, { id }) => {
+    mutationFn: ({ 
+      id_categoria, 
+      id_linea, 
+      id_sublinea, 
+      id_producto, 
+      data 
+    }: { 
+      id_categoria: number; 
+      id_linea: number; 
+      id_sublinea: number; 
+      id_producto: number; 
+      data: FormData 
+    }) => 
+      productService.updateProduct(id_categoria, id_linea, id_sublinea, id_producto, data),
+    onSuccess: (_, { id_producto }) => {
       toast.success('Producto actualizado exitosamente');
-      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.detail(id) });
+      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.detail(id_producto) });
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
     },
     onError: (error: any) => {

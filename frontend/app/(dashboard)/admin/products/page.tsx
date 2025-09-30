@@ -313,7 +313,7 @@ const ProductsPage = () => {
             variant="outline"
             size="icon"
             aria-label="Editar producto"
-            onClick={() => router.push(`/admin/products/${row.original.id_producto}/edit`)}
+            onClick={() => router.push(`/admin/products/${row.original.id_categoria}-${row.original.id_linea}-${row.original.id_sublinea}-${row.original.id_producto}/edit`)}
           >
             <Pencil className="w-4 h-4" />
           </Button>

@@ -113,8 +113,18 @@ export async function createProductWithImages(
 /**
  * Actualizar producto
  */
-export async function updateProduct(id: number, productData: ProductUpdate): Promise<Product> {
-  return await put<Product>(`/products/${id}`, productData);
+export async function updateProduct(
+  id_categoria: number, 
+  id_linea: number, 
+  id_sublinea: number, 
+  id_producto: number, 
+  productData: FormData
+): Promise<Product> {
+  return await put<Product>(`/products/${id_categoria}-${id_linea}-${id_sublinea}-${id_producto}`, productData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 }
 
 /**
