@@ -306,7 +306,7 @@ const FeaturedProducts = () => {
                       variants={buttonVariants}
                       initial="rest"
                       whileHover="hover"
-                      className="w-full bg-gradient-to-r from-[#FF8C00] to-[#fec806] hover:from-[#E67E00] hover:to-[#E6B800] text-white font-semibold py-3 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2"
+                      className="w-full bg-gradient-to-r from-[#FF8C00] to-[#fec806] hover:from-[#E67E00] hover:to-[#E6B800] text-white font-semibold py-3 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 cursor-pointer"
                     >
                       <ShoppingCart className="w-4 h-4" />
                       <span>Agregar al Carrito</span>
@@ -316,7 +316,7 @@ const FeaturedProducts = () => {
                       variants={buttonVariants}
                       initial="rest"
                       whileHover="hover"
-                      className="w-full border-2 border-[#ec2538] dark:border-red-400 text-[#ec2538] dark:text-red-400 hover:bg-[#ec2538] dark:hover:bg-red-400 hover:text-white font-medium py-2 rounded-lg transition-all duration-300"
+                      className="w-full border-2 border-[#ec2538] dark:border-red-400 text-[#ec2538] dark:text-red-400 hover:bg-[#ec2538] dark:hover:bg-red-400 hover:!text-white dark:hover:!text-white font-medium py-2 rounded-lg transition-all duration-300 cursor-pointer"
                     >
                       Ver Detalles
                     </motion.button>
@@ -339,7 +339,7 @@ const FeaturedProducts = () => {
           transition={{ duration: 0.8, delay: 1 }}
         >
           <motion.button 
-            className="bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-bold py-4 px-8 rounded-xl shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300 text-lg"
+            className="bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-bold py-4 px-8 rounded-xl shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300 text-lg cursor-pointer"
             whileHover={{ 
               scale: 1.05,
               boxShadow: "0 25px 50px -12px rgba(236, 37, 56, 0.4)"
