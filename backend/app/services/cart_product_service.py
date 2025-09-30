@@ -74,6 +74,8 @@ def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert
         params = cart_product.model_dump()
         params["usr_insert"] = usr_insert
         
+        print(f"🛒 [BACKEND] Agregando producto al carrito con parámetros: {params}")
+        
         query = text("""
         SELECT fun_agregar_producto_carrito(
             :id_usuario,
@@ -89,9 +91,13 @@ def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert
         result = db.execute(query, params)
         fetched_result = result.fetchone()
         db.commit()
+        
+        print(f"✅ [BACKEND] Producto agregado exitosamente. Resultado: {fetched_result[0] if fetched_result else None}")
+        
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
+        print(f"❌ [BACKEND] Error al crear producto en el carrito: {str(e)}")
         raise Exception(f"Error al crear producto en el carrito: {str(e)}")
 
 def update_cart_product_quantity(db: Session, id_carrito_producto: int, nueva_cantidad: int, usr_update: Optional[int]):
@@ -210,15 +216,18 @@ def migrate_cart_anonymous(db: Session, migrate_cart_anonymous: MigrateCartAnony
     
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
-        id_carrito (Decimal): El id_carrito de un carrito anónimo (donde id_usuario IS NULL).
-        id_usuario (Decimal): El identificador del usuario registrado de destino.
-        usr_insert (Decimal): El usuario que realizó la operación.
+        migrate_cart_anonymous (MigrateCartAnonymous): Datos de migración con id_carrito.
+        usr_insert (Decimal): El usuario que realizó la operación (también es el id_usuario de destino).
         
 
     """
     try:
         params = migrate_cart_anonymous.model_dump()
+        params["id_usuario"] = usr_insert  # El usuario de destino es el mismo que hace la operación
         params["usr_insert"] = usr_insert
+        
+        print(f"🔄 [SERVICE] Parámetros de migración: {params}")
+        
         query = text("""
         SELECT fun_migrar_carrito_anonimo_a_usuario(
             :id_carrito,
@@ -229,9 +238,13 @@ def migrate_cart_anonymous(db: Session, migrate_cart_anonymous: MigrateCartAnony
         result = db.execute(query, params)
         fetched_result = result.fetchone()
         db.commit()
+        
+        print(f"✅ [SERVICE] Migración exitosa: {fetched_result[0] if fetched_result else None}")
+        
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
+        print(f"❌ [SERVICE] Error en migración: {str(e)}")
         raise Exception(f"Error al migrar carrito anónimo a usuario: {str(e)}")
     
 def get_cart_user(db:Session, get_cart_user:GetCartUser):
@@ -247,6 +260,8 @@ def get_cart_user(db:Session, get_cart_user:GetCartUser):
     """
     try:
         params = get_cart_user.model_dump()
+        print(f"🛒 [BACKEND] Obteniendo/creando carrito con parámetros: {params}")
+        
         query = text("""
         SELECT fun_obtener_carrito_usuario(
             :id_usuario,
@@ -257,6 +272,8 @@ def get_cart_user(db:Session, get_cart_user:GetCartUser):
         fetched_result = result.fetchone()
         id_carrito = fetched_result[0] if fetched_result else None
         
+        print(f"🛒 [BACKEND] ID del carrito obtenido: {id_carrito}")
+        
         if id_carrito is None:
             raise Exception("No se pudo obtener o crear el carrito")
         
@@ -264,6 +281,7 @@ def get_cart_user(db:Session, get_cart_user:GetCartUser):
         return int(id_carrito)
     except Exception as e:
         db.rollback()
+        print(f"❌ [BACKEND] Error al obtener carrito de usuario: {str(e)}")
         raise Exception(f"Error al obtener carrito de usuario: {str(e)}")
     
 def get_cart_detail(db:Session, get_cart_detail:GetCartDetail):
@@ -277,19 +295,26 @@ def get_cart_detail(db:Session, get_cart_detail:GetCartDetail):
     """
     try:
         params = get_cart_detail.model_dump()
+        print(f"🔍 [BACKEND] Obteniendo detalle del carrito con parámetros: {params}")
+        
         query = text("""
         SELECT fun_obtener_carrito_detalle(:id_usuario, :session_id)
         """)
         result = db.execute(query, params)
         fetched_result = result.fetchone()
         
+        print(f"🔍 [BACKEND] Resultado de la consulta: {fetched_result}")
+        
         if not fetched_result or not fetched_result[0]:
+            print("🔍 [BACKEND] No se encontraron productos en el carrito")
             return []
         
         cart_data = fetched_result[0]
+        print(f"🔍 [BACKEND] Datos del carrito obtenidos: {cart_data}")
         
         # Extraer la lista de productos del JSON
         productos = cart_data.get('productos', [])
+        print(f"🔍 [BACKEND] Productos extraídos: {productos}")
         
         # Convertir productos a la estructura esperada por el frontend
         products_list = []
@@ -325,10 +350,13 @@ def get_cart_detail(db:Session, get_cart_detail:GetCartDetail):
             
             products_list.append(product_dict)
         
+        print(f"📦 [BACKEND] Lista de productos procesada: {products_list}")
+        
         db.commit()
         return products_list
     except Exception as e:
         db.rollback()
+        print(f"❌ [BACKEND] Error al obtener detalle del carrito: {str(e)}")
         raise Exception(f"Error al obtener detalle del carrito: {str(e)}")
     
 def calculate_total_cart(db:Session, calculate_total_cart:CalculateTotalCart):

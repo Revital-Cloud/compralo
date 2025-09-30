@@ -62,20 +62,38 @@ async def create_cart_product(
         ResponseMessage: Mensaje de confirmación.
     """
     try:
+        print(f"🔍 [ROUTER] current_user recibido: {current_user}")
+        print(f"🔍 [ROUTER] session_id recibido: {session_id}")
+        print(f"🔍 [ROUTER] cart_product_data recibido: {cart_product_data}")
+        
         # Para usuarios autenticados, usar su id_usuario y session_id=None
         # Para usuarios anónimos, usar id_usuario=None y el session_id proporcionado
         if current_user:
             user_id = current_user.id_usuario
             session_id_param = None
+            print(f"🔍 [ROUTER] Usuario autenticado - user_id: {user_id}")
         else:
-            user_id = None
-            session_id_param = session_id
+            # Si no hay current_user pero hay id_usuario en el body, usarlo
+            if cart_product_data.id_usuario:
+                user_id = cart_product_data.id_usuario
+                session_id_param = None
+                print(f"🔍 [ROUTER] Usuario del body - user_id: {user_id}")
+            else:
+                user_id = None
+                session_id_param = session_id
+                print(f"🔍 [ROUTER] Usuario anónimo - session_id: {session_id_param}")
         
         # Establecer los valores correctos en el objeto
         cart_product_data.id_usuario = user_id
         cart_product_data.session_id = session_id_param
         
-        cart_product_service.create_cart_product(db, cart_product_data, current_user.id_usuario if current_user else None)
+        print(f"🔍 [ROUTER] Datos finales del producto: {cart_product_data}")
+        
+        # Determinar el usr_insert correcto
+        usr_insert = current_user.id_usuario if current_user else user_id
+        print(f"🔍 [ROUTER] usr_insert: {usr_insert}")
+        
+        cart_product_service.create_cart_product(db, cart_product_data, usr_insert)
         return ResponseMessage(message="Producto agregado al carrito correctamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -208,7 +226,7 @@ async def delete_cart_product(
 async def migrate_cart_anonymous(
     migrate_data: MigrateCartAnonymous = Body(...),
     db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user)
+    current_user: Optional[UserInToken] = Depends(get_current_user_optional)
 ):
     """
     Migra productos de un carrito anónimo al carrito del usuario autenticado.
@@ -230,9 +248,26 @@ async def migrate_cart_anonymous(
         ResponseMessage: Mensaje de confirmación de la migración.
     """
     try:
-        cart_product_service.migrate_cart_anonymous(db, migrate_data, current_user.id_usuario)
+        print(f"🔄 [ROUTER] Iniciando migración de carrito anónimo")
+        print(f"🔄 [ROUTER] migrate_data: {migrate_data}")
+        print(f"🔄 [ROUTER] current_user: {current_user}")
+        
+        # Validar que tenemos un usuario autenticado
+        if not current_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, 
+                detail="Se requiere autenticación para migrar el carrito"
+            )
+        
+        print(f"🔄 [ROUTER] Migrando carrito {migrate_data.id_carrito} al usuario {current_user.id_usuario}")
+        
+        result = cart_product_service.migrate_cart_anonymous(db, migrate_data, current_user.id_usuario)
+        
+        print(f"✅ [ROUTER] Migración exitosa: {result}")
+        
         return ResponseMessage(message="Carrito anónimo migrado a usuario correctamente")
     except Exception as e:
+        print(f"❌ [ROUTER] Error en migración: {str(e)}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.post("/carrito-usuario", response_model=CartResponse, status_code=status.HTTP_200_OK)

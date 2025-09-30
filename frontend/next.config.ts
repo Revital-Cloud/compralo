@@ -16,10 +16,6 @@ const nextConfig: NextConfig = {
     // unoptimized: true,
   },
   // Configuración para optimizar el renderizado de componentes
-  experimental: {
-    optimizeCss: true,
-    ppr: 'incremental',
-  },
 
 };
 

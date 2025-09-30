@@ -78,6 +78,11 @@ def create_address(db:Session, address:AddressCreate, usr_insert:Decimal):
         result = db.execute(query, params)
         fetched_result = result.fetchone()
         db.commit()
+        
+        # Verificar si la función SQL retornó un error
+        if fetched_result and isinstance(fetched_result[0], str) and "Error:" in fetched_result[0]:
+            raise Exception(fetched_result[0])
+            
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
@@ -107,9 +112,27 @@ def update_address(db:Session, id_direccion:Decimal, address:AddressUpdate, usr_
         usr_update (Decimal): Identificador del usuario que actualizó la dirección.
     """
     try:
-        params = address.model_dump(exclude_unset=True)
-        params["id_direccion"] = id_direccion
-        params["usr_update"] = usr_update
+        # Construir parámetros con todas las llaves esperadas por la función SQL.
+        base_params = {
+            "id_direccion": id_direccion,
+            "id_usuario": None,
+            "nombre_direccion": None,
+            "calle_direccion": None,
+            "ciudad": None,
+            "departamento": None,
+            "codigo_postal": None,
+            "barrio": None,
+            "referencias": None,
+            "complemento": None,
+            "ind_principal": None,
+            "ind_activa": None,
+            "usr_update": usr_update,
+        }
+        # Sobrescribir con valores reales enviados
+        params = {**base_params, **address.model_dump(exclude_unset=True)}
+        # Si no se envía id_usuario en la actualización, usar el usuario autenticado
+        if params.get("id_usuario") is None:
+            params["id_usuario"] = usr_update
         query = text("""
         SELECT fun_update_direcciones(
             :id_direccion,
