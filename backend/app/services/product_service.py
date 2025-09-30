@@ -351,15 +351,31 @@ async def update_product(
             # No modificar img_producto si no hay nuevas imágenes
         
         params = product.model_dump(exclude_unset=True) # Solo incluye campos que se proporcionaron
+
+        # Asegurar que TODAS las llaves esperadas por la función SQL existan
+        # aunque sea con valor None, para evitar errores de bind parameter faltante
+        expected_keys = [
+            'nom_producto',
+            'spcf_producto',
+            'img_producto',
+            'val_precio',
+            'id_proveedor',
+            'id_marca',
+            'num_stock',
+            'ind_activo',
+        ]
+        for key in expected_keys:
+            if key not in params:
+                params[key] = None
         
-        # Convertir spcf_producto a JSON string si es dict
+        # Asegurar formatos como cadenas JSON cuando aplique (para compat con función SQL)
         if 'spcf_producto' in params and isinstance(params['spcf_producto'], dict):
             params['spcf_producto'] = json.dumps(params['spcf_producto'])
-        
-        # ✅ Convertir img_producto a JSON string si es dict (ProductImages)
         if 'img_producto' in params and isinstance(params['img_producto'], dict):
             params['img_producto'] = json.dumps(params['img_producto'])
-            print(f"🔄 DEBUG UPDATE: img_producto convertido a JSON: {params['img_producto']}")
+        if 'img_producto' in params and params['img_producto'] is None:
+            # enviar objeto vacío como string
+            params['img_producto'] = '{}'
             
         params['id_categoria'] = id_categoria
         params['id_linea'] = id_linea
@@ -449,6 +465,50 @@ def deactivate_product(
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al desactivar el producto: {str(e)}")
+
+
+def set_product_active(
+    db: Session,
+    category_id: Decimal,
+    line_id: Decimal,
+    subline_id: Decimal,
+    product_id: Decimal,
+    active: bool,
+    usr_update: Decimal,
+):
+    """
+    Actualiza únicamente el campo ind_activo de un producto.
+
+    Evita depender de la función fun_update_producto y no requiere otros campos.
+    """
+    try:
+        query = text(
+            """
+            SELECT fun_set_producto_activo(
+              :id_categoria,
+              :id_linea,
+              :id_sublinea,
+              :id_producto,
+              :active,
+              :usr_update
+            )
+            """
+        )
+        params = {
+            'id_categoria': category_id,
+            'id_linea': line_id,
+            'id_sublinea': subline_id,
+            'id_producto': product_id,
+            'active': active,
+            'usr_update': usr_update,
+        }
+        result = db.execute(query, params)
+        fetched = result.fetchone()
+        db.commit()
+        return fetched[0] if fetched else None
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al actualizar estado del producto: {str(e)}")
 
 #filter products
 def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterResponse:

@@ -5,13 +5,13 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from "sonner";
 import { ProductsHeader } from "@/components/admin/products";
 import { ProductsFilters } from "@/components/admin/products/products-filters";
-import { useDeleteProduct, useProductsAdmin } from "@/hooks/use-products";
+import { useProductsAdmin, useDeactivateProduct, useActivateProduct } from "@/hooks/use-products";
 import type { Product } from '@/types/product';
 import DataTable from '@/components/tables/table';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, Eye } from 'lucide-react';
+import { Pencil, Power, Eye } from 'lucide-react';
 import { formatPrice } from '@/utils/format-price';
 import Image from 'next/image';
 
@@ -54,8 +54,9 @@ const ProductsPage = () => {
     offset: (currentPage - 1) * itemsPerPage
   });
 
-  // Hook para eliminar productos
-  const deleteProductMutation = useDeleteProduct();
+  // Mutations activar/desactivar
+  const deactivateProduct = useDeactivateProduct();
+  const activateProduct = useActivateProduct();
 
   // Manejar cambio de página
   const handlePageChange = (page: number) => {
@@ -66,13 +67,19 @@ const ProductsPage = () => {
     router.push(`/admin/products?${params.toString()}`);
   };
 
-  // Manejar eliminación de producto
-  const handleDeleteProduct = async (id: number) => {
-    try {
-      await deleteProductMutation.mutateAsync(id);
-    } catch (error) {
-      // El error ya se maneja en el hook
-      console.error('Error al eliminar producto:', error);
+  // Manejar activar/desactivar producto
+  const handleToggleActive = async (row: Product) => {
+    if (row.ind_activo) {
+      if (confirm('¿Desactivar este producto?')) {
+        await deactivateProduct.mutateAsync({
+          id_categoria: Number(row.id_categoria),
+          id_linea: Number(row.id_linea),
+          id_sublinea: Number(row.id_sublinea),
+          id_producto: Number(row.id_producto),
+        });
+      }
+    } else {
+      await activateProduct.mutateAsync(row);
     }
   };
 
@@ -311,16 +318,12 @@ const ProductsPage = () => {
             <Pencil className="w-4 h-4" />
           </Button>
           <Button
-            variant="destructive"
+            variant={row.original.ind_activo ? 'destructive' : 'secondary'}
             size="icon"
-            aria-label="Eliminar producto"
-            onClick={() => {
-              if (confirm('¿Estás seguro de que quieres eliminar este producto?')) {
-                handleDeleteProduct(Number(row.original.id_producto));
-              }
-            }}
+            aria-label={row.original.ind_activo ? 'Desactivar producto' : 'Activar producto'}
+            onClick={() => handleToggleActive(row.original)}
           >
-            <Trash2 className="w-4 h-4" />
+            <Power className="w-4 h-4" />
           </Button>
         </div>
       ),

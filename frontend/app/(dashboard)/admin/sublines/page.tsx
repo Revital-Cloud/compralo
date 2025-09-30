@@ -4,6 +4,8 @@ import React from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { EmptyState } from '@/components/admin/empty-states'
 import { useAllSublines, type Subline } from '@/hooks/use-sublines'
+import { sublineService } from '@/services/subline.service'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -11,7 +13,24 @@ import { Badge } from '@/components/ui/badge'
 import { Pencil, Power } from 'lucide-react'
 
 const SublinesPage = () => {
+  const queryClient = useQueryClient()
   const { data, isLoading, isError } = useAllSublines()
+
+  const deactivateMutation = useMutation({
+    mutationFn: (ids: { id_categoria: number; id_linea: number; id_sublinea: number }) =>
+      sublineService.deactivateSubline(ids),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sublines', 'all'] })
+    },
+  })
+
+  const activateMutation = useMutation({
+    mutationFn: (params: { ids: { id_categoria: number; id_linea: number; id_sublinea: number }; nom_sublinea: string }) =>
+      sublineService.updateSubline(params.ids, { ind_activo: true, nom_sublinea: params.nom_sublinea }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sublines', 'all'] })
+    },
+  })
 
   const columns: ColumnDef<Subline>[] = [
     {
@@ -57,13 +76,40 @@ const SublinesPage = () => {
           >
             <Pencil className="w-4 h-4" />
           </Button>
-          <Button
-            variant={row.original.ind_activo ? 'destructive' : 'secondary'}
-            size="icon"
-            aria-label={row.original.ind_activo ? 'Desactivar' : 'Activar'}
-          >
-            <Power className="w-4 h-4" />
-          </Button>
+          {row.original.ind_activo ? (
+            <Button
+              variant="destructive"
+              size="icon"
+              aria-label="Desactivar"
+              onClick={() =>
+                deactivateMutation.mutate({
+                  id_categoria: (row.original as any).id_categoria,
+                  id_linea: (row.original as any).id_linea,
+                  id_sublinea: row.original.id_sublinea,
+                })
+              }
+            >
+              <Power className="w-4 h-4" />
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="icon"
+              aria-label="Activar"
+              onClick={() =>
+                activateMutation.mutate({
+                  ids: {
+                    id_categoria: (row.original as any).id_categoria,
+                    id_linea: (row.original as any).id_linea,
+                    id_sublinea: row.original.id_sublinea,
+                  },
+                  nom_sublinea: row.original.nom_sublinea,
+                })
+              }
+            >
+              <Power className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       ),
     },

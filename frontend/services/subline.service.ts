@@ -13,6 +13,16 @@ class SublineService {
   async getSubline(sublineId: number): Promise<Subline> {
     return apiWrapper.get(`/sublines/${sublineId}`);
   }
+
+  async updateSubline(ids: { id_categoria: number; id_linea: number; id_sublinea: number }, payload: { nom_sublinea?: string; ind_activo?: boolean }): Promise<{ message: string }> {
+    const slug = `${ids.id_categoria}-${ids.id_linea}-${ids.id_sublinea}`;
+    return apiWrapper.put(`/sublines/${slug}`, payload);
+  }
+
+  async deactivateSubline(ids: { id_categoria: number; id_linea: number; id_sublinea: number }): Promise<{ message: string }> {
+    const slug = `${ids.id_categoria}-${ids.id_linea}-${ids.id_sublinea}`;
+    return apiWrapper.put(`/sublines/${slug}/deactivate`, {});
+  }
 }
 
 export const sublineService = new SublineService();

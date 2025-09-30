@@ -4,6 +4,8 @@ import React from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { EmptyState } from '@/components/admin/empty-states'
 import { useAllBrands } from '@/hooks/use-brands'
+import { brandService } from '@/services/brand.service'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -20,7 +22,18 @@ interface Brand {
 }
 
 const BrandsPage = () => {
+  const queryClient = useQueryClient()
   const { data, isLoading, isError } = useAllBrands()
+
+  const deactivateMutation = useMutation({
+    mutationFn: (id_marca: number) => brandService.deactivateBrand(id_marca),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['brands', 'all'] }),
+  })
+
+  const activateMutation = useMutation({
+    mutationFn: (id_marca: number) => brandService.updateBrand(id_marca, { ind_activo: true }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['brands', 'all'] }),
+  })
 
   const columns: ColumnDef<Brand>[] = [
     {
@@ -75,13 +88,25 @@ const BrandsPage = () => {
           >
             <Pencil className="w-4 h-4" />
           </Button>
-          <Button
-            variant={row.original.ind_activo ? 'destructive' : 'secondary'}
-            size="icon"
-            aria-label={row.original.ind_activo ? 'Desactivar' : 'Activar'}
-          >
-            <Power className="w-4 h-4" />
-          </Button>
+          {row.original.ind_activo ? (
+            <Button
+              variant="destructive"
+              size="icon"
+              aria-label="Desactivar"
+              onClick={() => deactivateMutation.mutate(row.original.id_marca)}
+            >
+              <Power className="w-4 h-4" />
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="icon"
+              aria-label="Activar"
+              onClick={() => activateMutation.mutate(row.original.id_marca)}
+            >
+              <Power className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       ),
     },

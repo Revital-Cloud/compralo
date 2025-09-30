@@ -11,8 +11,8 @@ import { toast } from "sonner"
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Pencil, Power, Mail, Calendar, ShoppingBag } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
-import { getUsers } from '@/services/user.service'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { getUsers, toggleUserStatus } from '@/services/user.service'
 import type { User } from '@/types'
 
 const getRoleBadge = (roleId: number) => {
@@ -37,9 +37,15 @@ const getStatusBadge = (status: boolean) => {
 }
 
 const UsersPage = () => {
+  const queryClient = useQueryClient()
   const { data: usersResponse, isLoading, isError } = useQuery({
     queryKey: ['users'],
     queryFn: () => getUsers(),
+  })
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, active }: { id: number; active: boolean }) => toggleUserStatus(id, active),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
   })
 
   const users = usersResponse?.items || []
@@ -127,13 +133,25 @@ const UsersPage = () => {
           >
             <Pencil className="w-4 h-4" />
           </Button>
-          <Button
-            variant={row.original.ind_activo ? 'destructive' : 'secondary'}
-            size="icon"
-            aria-label={row.original.ind_activo ? 'Desactivar' : 'Activar'}
-          >
-            <Power className="w-4 h-4" />
-          </Button>
+          {row.original.ind_activo ? (
+            <Button
+              variant="destructive"
+              size="icon"
+              aria-label="Desactivar"
+              onClick={() => toggleMutation.mutate({ id: row.original.id_usuario as unknown as number, active: false })}
+            >
+              <Power className="w-4 h-4" />
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="icon"
+              aria-label="Activar"
+              onClick={() => toggleMutation.mutate({ id: row.original.id_usuario as unknown as number, active: true })}
+            >
+              <Power className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       ),
     },

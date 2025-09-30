@@ -111,6 +111,39 @@ export function useDeleteProduct() {
   });
 }
 
+export function useDeactivateProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { id_categoria: number; id_linea: number; id_sublinea: number; id_producto: number }) =>
+      productService.deactivateProduct(params),
+    onSuccess: () => {
+      toast.success('Producto desactivado exitosamente');
+      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.admin() });
+      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Error al desactivar el producto';
+      toast.error(message);
+    },
+  });
+}
+
+export function useActivateProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (product: Product) => productService.activateProduct(product),
+    onSuccess: () => {
+      toast.success('Producto activado exitosamente');
+      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.admin() });
+      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Error al activar el producto';
+      toast.error(message);
+    },
+  });
+}
+
 export function useCategories() {
   return useQuery({
     queryKey: ['categories'],

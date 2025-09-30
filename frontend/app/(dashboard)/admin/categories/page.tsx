@@ -2,8 +2,8 @@
 
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { EmptyState } from '@/components/admin/empty-states'
-import { useQuery } from '@tanstack/react-query'
-import { getAllCategories } from '@/services/category.service'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { getAllCategories, updateCategory, deactivateCategory } from '@/services/category.service'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -12,9 +12,20 @@ import { Pencil, Power } from 'lucide-react'
 import type { Category } from '@/types/category'
 
 const CategoriesPage = () => {
+  const queryClient = useQueryClient()
   const { data, isLoading, isError } = useQuery({
     queryKey: ['categories', 'all'],
     queryFn: getAllCategories,
+  })
+
+  const deactivateMutation = useMutation({
+    mutationFn: (id_categoria: number) => deactivateCategory(id_categoria),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categories', 'all'] }),
+  })
+
+  const activateMutation = useMutation({
+    mutationFn: (id_categoria: number) => updateCategory(id_categoria, { ind_activo: true }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categories', 'all'] }),
   })
 
   const columns: ColumnDef<Category>[] = [
@@ -61,13 +72,25 @@ const CategoriesPage = () => {
           >
             <Pencil className="w-4 h-4" />
           </Button>
-          <Button
-            variant={row.original.ind_activo ? 'destructive' : 'secondary'}
-            size="icon"
-            aria-label={row.original.ind_activo ? 'Desactivar' : 'Activar'}
-          >
-            <Power className="w-4 h-4" />
-          </Button>
+          {row.original.ind_activo ? (
+            <Button
+              variant="destructive"
+              size="icon"
+              aria-label="Desactivar"
+              onClick={() => deactivateMutation.mutate(row.original.id_categoria as unknown as number)}
+            >
+              <Power className="w-4 h-4" />
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="icon"
+              aria-label="Activar"
+              onClick={() => activateMutation.mutate(row.original.id_categoria as unknown as number)}
+            >
+              <Power className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       ),
     },

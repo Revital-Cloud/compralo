@@ -4,6 +4,8 @@ import React from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { EmptyState } from '@/components/admin/empty-states'
 import { useAllProviders } from '@/hooks/use-providers'
+import { providerService } from '@/services/provider.service'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
@@ -20,7 +22,22 @@ interface Provider {
 }
 
 const ProvidersPage = () => {
+  const queryClient = useQueryClient()
   const { data, isLoading, isError } = useAllProviders()
+
+  const deactivateMutation = useMutation({
+    mutationFn: (id_proveedor: number) => providerService.deactivateProvider(id_proveedor),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['providers', 'all'] })
+    },
+  })
+
+  const activateMutation = useMutation({
+    mutationFn: ({ id_proveedor }: { id_proveedor: number }) => providerService.updateProvider(id_proveedor, { ind_activo: true }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['providers', 'all'] })
+    },
+  })
 
   const columns: ColumnDef<Provider>[] = [
     {
@@ -75,13 +92,25 @@ const ProvidersPage = () => {
           >
             <Pencil className="w-4 h-4" />
           </Button>
-          <Button
-            variant={row.original.ind_activo ? 'destructive' : 'secondary'}
-            size="icon"
-            aria-label={row.original.ind_activo ? 'Desactivar' : 'Activar'}
-          >
-            <Power className="w-4 h-4" />
-          </Button>
+          {row.original.ind_activo ? (
+            <Button
+              variant="destructive"
+              size="icon"
+              aria-label="Desactivar"
+              onClick={() => deactivateMutation.mutate(row.original.id_proveedor)}
+            >
+              <Power className="w-4 h-4" />
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              size="icon"
+              aria-label="Activar"
+              onClick={() => activateMutation.mutate({ id_proveedor: row.original.id_proveedor })}
+            >
+              <Power className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       ),
     },

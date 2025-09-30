@@ -16,7 +16,6 @@ import {
   IconX
 } from "@tabler/icons-react"
 import Link from "next/link"
-import { ExportDialog } from "@/components/excel"
 import { toast } from "sonner"
 
 interface Order {
@@ -95,15 +94,6 @@ const OrdersPage = () => {
             Gestiona todas las órdenes de tu tienda
           </p>
         </div>
-        <ExportDialog
-          defaultDataTypes={['orders']}
-          onExportComplete={handleExportComplete}
-        >
-          <Button>
-            <IconDownload className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
-        </ExportDialog>
       </div>
 
       {/* Estadísticas */}

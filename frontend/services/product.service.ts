@@ -125,6 +125,29 @@ export async function deleteProduct(id: number): Promise<ApiResponse> {
 }
 
 /**
+ * Desactivar producto por IDs compuestos
+ */
+export async function deactivateProduct(params: {
+  id_categoria: number;
+  id_linea: number;
+  id_sublinea: number;
+  id_producto: number;
+}): Promise<ApiResponse> {
+  const slug = `${params.id_categoria}-${params.id_linea}-${params.id_sublinea}-${params.id_producto}`;
+  return await put<ApiResponse>(`/products/${slug}/deactivate`);
+}
+
+/**
+ * Activar producto (actualiza ind_activo=true) con endpoint dedicado
+ */
+export async function activateProduct(product: Product): Promise<ApiResponse> {
+  const slug = `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`;
+  const formData = new FormData();
+  formData.append('active', 'true');
+  return await put<ApiResponse>(`/products/${slug}/active`, formData);
+}
+
+/**
  * Buscar productos
  */
 export async function searchProducts(query: string, params?: ProductFilters): Promise<PaginatedResponse<Product>> {
@@ -458,6 +481,8 @@ const productService = {
   createProduct,
   updateProduct,
   deleteProduct,
+  deactivateProduct,
+  activateProduct,
   searchProducts,
   getProductsByCategory,
   getProductsByBrand,

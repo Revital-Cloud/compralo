@@ -441,6 +441,38 @@ async def deactivate_product(
         else:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
+
+@router.put(
+    "/products/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}/active",
+    response_model=ResponseMessage,
+    status_code=status.HTTP_200_OK,
+)
+async def set_product_active(
+    id_categoria: Decimal,
+    id_linea: Decimal,
+    id_sublinea: Decimal,
+    id_producto: Decimal,
+    active: bool = Form(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user),
+):
+    """
+    Actualiza solo el campo ind_activo de un producto.
+    """
+    try:
+        product_service.set_product_active(
+            db,
+            id_categoria,
+            id_linea,
+            id_sublinea,
+            id_producto,
+            active,
+            current_user.id_usuario,
+        )
+        return ResponseMessage(message="Estado del producto actualizado exitosamente")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
 # ==================== ENDPOINTS DE FILTROS ====================
 
 @router.get("/products/filter", response_model=ProductFilterResponse)
