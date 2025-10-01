@@ -4,6 +4,7 @@ import { Heart } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import Image from "next/image"
+import { useFavorites } from "@/hooks/use-favorites"
 
 import type { Product } from '@/types'
 import { getProductImageUrl } from "@/utils/image-helpers"
@@ -20,10 +21,30 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   loading = false,
   onToggleFavorite
 }) => {
+  const { toggleFavorite, isProductFavorite } = useFavorites()
 
-  const handleToggleFavorite = (e: React.MouseEvent, productId: string) => {
+  const handleToggleFavorite = async (e: React.MouseEvent, productId: string) => {
     e.preventDefault()
     e.stopPropagation()
+    
+    const product = products.find(p => p.id_producto.toString() === productId)
+    if (!product) return
+
+    const isFavorite = isProductFavorite(
+      product.id_categoria,
+      product.id_linea,
+      product.id_sublinea,
+      product.id_producto
+    )
+
+    await toggleFavorite(
+      product.id_categoria,
+      product.id_linea,
+      product.id_sublinea,
+      product.id_producto,
+      isFavorite
+    )
+
     onToggleFavorite?.(productId)
   }
 
@@ -71,7 +92,12 @@ const ProductGrid: React.FC<ProductGridProps> = ({
               )}
             >
               <Heart 
-                className="w-4 h-4 text-gray-600 dark:text-gray-400"
+                className={cn(
+                  "w-4 h-4",
+                  isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto)
+                    ? "fill-red-500 text-red-500"
+                    : "text-gray-600 dark:text-gray-400"
+                )}
               />
             </button>
           </div>

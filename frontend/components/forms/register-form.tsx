@@ -21,7 +21,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { PasswordStrength } from "@/components/ui/password-strength";
 import Link from "next/link";
 import {
@@ -216,22 +216,18 @@ export function RegisterForm() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Género</FormLabel>
-                      <Select
-                        disabled={isLoading}
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="bg-background">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="masculino">Masculino</SelectItem>
-                          <SelectItem value="femenino">Femenino</SelectItem>
-                          <SelectItem value="otro">Otro</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <Select
+                          disabled={isLoading}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          value={field.value}
+                          className="w-full"
+                        >
+                          <option value="masculino">Masculino</option>
+                          <option value="femenino">Femenino</option>
+                          <option value="otro">Otro</option>
+                        </Select>
+                      </FormControl>
                       <FormMessage className="min-h-[1.25rem]" />
                     </FormItem>
                   )}

@@ -32,6 +32,7 @@ import {
 import Link from "next/link"
 import { defaultMenuItems } from "@/lib/menu-config"
 import { useCartInfo } from "@/hooks/use-cart"
+import { useFavorites } from "@/hooks/use-favorites"
 import { useRouter, usePathname } from "next/navigation"
 
 interface EcommerceHeaderProps {
@@ -50,12 +51,18 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
   const router = useRouter()
   const pathname = usePathname()
   const { itemCount, isLoading } = useCartInfo()
+  const { favorites } = useFavorites()
   
   // Usar el count del hook si no se proporciona uno
   const displayCartCount = cartCount ?? itemCount
+  const favoritesCount = favorites.length
   
   const handleCartClick = () => {
     router.push('/cart')
+  }
+
+  const handleFavoritesClick = () => {
+    router.push('/favorites')
   }
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -135,9 +142,15 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
+                          className="relative p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
+                          onClick={handleFavoritesClick}
                         >
                           <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
+                          {favoritesCount > 0 && (
+                            <span className="absolute -top-1 -right-1 bg-[#ec2538] dark:bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                              {favoritesCount > 99 ? '99+' : favoritesCount}
+                            </span>
+                          )}
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>

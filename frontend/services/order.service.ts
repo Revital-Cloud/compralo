@@ -1,42 +1,31 @@
 import api from '@/utils/apiWrapper';
 
-export interface CreateOrderRequest {
-  id_carrito: number;
+// Nota: Eliminamos las funciones de crear/pagar orden directamente.
+// El flujo soportado es pagar el carrito y, solo si Wompi APRUEBA, crear la orden.
+
+export interface PayCartAndCreateOrderRequest {
+  payment_method_id: number;
   id_direccion: number;
   codigo_descuento?: string | null;
   des_observaciones?: string | null;
   id_canje?: number | null;
 }
 
-export interface CreateOrderResponse {
-  success?: boolean;
-  message?: string;
-  error?: string;
-  id_orden?: number;
-  datos?: Record<string, any>;
-}
-
-export interface PayOrderRequest {
-  payment_method_id: number;
-}
-
-export interface PayOrderResponse {
-  status: 'APPROVED' | 'DECLINED' | 'VOIDED' | 'ERROR' | 'PENDING';
+export interface PayCartAndCreateOrderResponse {
+  status: 'APPROVED' | 'DECLINED' | 'VOIDED' | 'ERROR' | 'PENDING' | 'UNKNOWN';
+  order_id?: number | null;
   transaction_id?: string;
-  message?: string;
 }
 
-export async function createOrder(payload: CreateOrderRequest): Promise<CreateOrderResponse> {
-  // Backend expone POST /api/order
-  const res = await api.post<CreateOrderResponse>('/order', payload);
+// (Se eliminan createOrder y payOrder para evitar usos accidentales)
+
+export async function payCartAndCreateOrder(
+  cartId: number,
+  payload: PayCartAndCreateOrderRequest
+): Promise<PayCartAndCreateOrderResponse> {
+  const res = await api.post<PayCartAndCreateOrderResponse>(`/cart/${cartId}/pay`, payload);
   return res;
 }
 
-export async function payOrder(orderId: number, payload: PayOrderRequest): Promise<PayOrderResponse> {
-  // Backend expone POST /api/{order_id}/pay
-  const res = await api.post<PayOrderResponse>(`/${orderId}/pay`, payload);
-  return res;
-}
-
-const orderService = { createOrder, payOrder };
+const orderService = { payCartAndCreateOrder };
 export default orderService; 

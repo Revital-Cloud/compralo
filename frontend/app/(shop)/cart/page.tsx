@@ -17,10 +17,11 @@ import { formatPrice } from '@/utils/format-price'
 import { useQuery } from '@tanstack/react-query'
 import addressService from '@/services/address.service'
 import { listPaymentMethods } from '@/services/payment.service'
-import { createOrder, payOrder } from '@/services/order.service'
+import { payCartAndCreateOrder } from '@/services/order.service'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription } from '@/components/ui/alert-dialog'
+import { useRouter } from 'next/navigation'
 
 const cartTexts = {
   es: {
@@ -48,6 +49,7 @@ const cartTexts = {
 }
 
 const CartPage = () => {
+  const router = useRouter()
   const [promoCode, setPromoCode] = useState('')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
@@ -126,6 +128,7 @@ const CartPage = () => {
   const [isPMDialogOpen, setIsPMDialogOpen] = useState(false)
   const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<string | null>(null)
   const [isRetryDialogOpen, setIsRetryDialogOpen] = useState(false)
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false)
 
   const handleCheckout = async (pmIdOverride?: number) => {
     if (!hasItems()) {
@@ -133,7 +136,7 @@ const CartPage = () => {
       return
     }
     if (!user?.id_usuario) {
-      toast.error('Inicia sesión para continuar')
+      setIsAuthDialogOpen(true)
       return
     }
     if (!defaultAddress) {
@@ -162,41 +165,26 @@ const CartPage = () => {
       // limpiar cualquier estado previo de pendiente
       setPendingOrderId(null)
 
-      // 1) Crear la orden solo si no hay una orden pendiente previa en memoria
-      let orderIdToPay: number
-      if (pendingOrderId) {
-        orderIdToPay = Number(pendingOrderId)
-      } else {
-        const orderResp = await createOrder({
-          id_carrito: Number(id_carrito),
-          id_direccion: Number(defaultAddress.id_direccion),
-          codigo_descuento: null,
-          des_observaciones: null,
-          id_canje: null,
-        })
+      // 1) Pagar el carrito y crear la orden solo si es aprobado
+      const payResp = await payCartAndCreateOrder(Number(id_carrito), {
+        payment_method_id: Number(effectivePM),
+        id_direccion: Number(defaultAddress.id_direccion),
+        codigo_descuento: null,
+        des_observaciones: null,
+        id_canje: null,
+      })
 
-        if (!orderResp?.id_orden) {
-          throw new Error(orderResp?.message || 'No se pudo crear la orden')
-        }
-
-        orderIdToPay = Number(orderResp.id_orden)
-        toast.success(`Orden creada #${orderIdToPay}`)
-      }
-
-      // 2) Pagar la orden con Wompi usando el método seleccionado
-      const payResp = await payOrder(orderIdToPay, { payment_method_id: Number(effectivePM) })
-
-      if (payResp.status === 'APPROVED') {
+      if (payResp.status === 'APPROVED' && payResp.order_id) {
         setPendingOrderId(null)
-        toast.success('Pago aprobado')
+        toast.success(`Pago aprobado. Orden #${payResp.order_id}`)
         // Vaciar carrito inmediatamente y refrescar datos
         try {
           clearCart()
           refetchCart()
         } catch (_) {}
       } else if (payResp.status === 'PENDING') {
-        setPendingOrderId(orderIdToPay)
-        toast.message(`Pago pendiente de confirmación. Orden #${orderIdToPay}`)
+        setPendingOrderId(null)
+        toast.message('Pago pendiente de confirmación. No se ha generado la orden aún')
       } else if (payResp.status === 'DECLINED') {
         setPendingOrderId(null)
         setIsRetryDialogOpen(true)
@@ -569,6 +557,19 @@ const CartPage = () => {
                 <Button 
                   className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3 text-lg"
                   disabled={!hasItems}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      setIsAuthDialogOpen(true)
+                      return
+                    }
+                    const count = Array.isArray(paymentMethods) ? paymentMethods.length : 0
+                    if (count > 1) {
+                      setSelectedPaymentMethodId(String((defaultPaymentMethod as any)?.id_metodo_pago ?? ''))
+                      setIsPMDialogOpen(true)
+                    } else {
+                      handleCheckout()
+                    }
+                  }}
                 >
                   {texts.checkout}
                 </Button>
@@ -597,6 +598,19 @@ const CartPage = () => {
               <Button 
                 className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
                 disabled={!hasItems}
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    setIsAuthDialogOpen(true)
+                    return
+                  }
+                  const count = Array.isArray(paymentMethods) ? paymentMethods.length : 0
+                  if (count > 1) {
+                    setSelectedPaymentMethodId(String((defaultPaymentMethod as any)?.id_metodo_pago ?? ''))
+                    setIsPMDialogOpen(true)
+                  } else {
+                    handleCheckout()
+                  }
+                }}
               >
                 {texts.checkout}
               </Button>
@@ -612,6 +626,37 @@ const CartPage = () => {
           />
         )}
       </div>
+
+      {/* Diálogo de autenticación requerida */}
+      <Dialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Debes iniciar sesión para comprar</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Para finalizar tu compra necesitas iniciar sesión o registrarte.
+          </p>
+          <DialogFooter className="flex gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAuthDialogOpen(false)
+                router.push('/register')
+              }}
+            >
+              Registrarse
+            </Button>
+            <Button
+              onClick={() => {
+                setIsAuthDialogOpen(false)
+                router.push('/login')
+              }}
+            >
+              Iniciar sesión
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialogo de selección de método de pago */}
       <Dialog open={isPMDialogOpen} onOpenChange={setIsPMDialogOpen}>
