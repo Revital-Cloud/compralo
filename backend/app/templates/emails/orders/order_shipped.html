@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Tu Orden ha sido Enviada - Compralo{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    ¡Tu orden está en camino! 🚚
+</div>
+
+<div class="alert alert-success">
+    <strong>📦 ¡Tu orden ha sido enviada!</strong><br>
+    Tu pedido está ahora en camino hacia tu dirección.
+</div>
+
+<div class="content-block">
+    <h2>Detalles del Envío</h2>
+    <table class="table">
+        <tr>
+            <td><strong>Número de Orden:</strong></td>
+            <td>#{{ order.id }}</td>
+        </tr>
+        <tr>
+            <td><strong>Fecha de Envío:</strong></td>
+            <td>{{ order.shipped_at }}</td>
+        </tr>
+        <tr>
+            <td><strong>Número de Seguimiento:</strong></td>
+            <td style="color: #FF0000; font-weight: bold;">{{ order.tracking_number }}</td>
+        </tr>
+        <tr>
+            <td><strong>Empresa de Envío:</strong></td>
+            <td>{{ order.shipping_company }}</td>
+        </tr>
+        <tr>
+            <td><strong>Dirección de Envío:</strong></td>
+            <td>{{ order.shipping_address }}</td>
+        </tr>
+        <tr>
+            <td><strong>Fecha Estimada de Entrega:</strong></td>
+            <td style="color: #FF7A00; font-weight: bold;">{{ order.estimated_delivery }}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="content-block">
+    <h3>Productos Enviados</h3>
+    <div class="product-grid">
+        {% for item in order.items %}
+        <div class="product-card">
+            <div style="font-size: 30px; margin-bottom: 10px;">📦</div>
+            <strong>{{ item.product_name }}</strong>
+            <p style="font-size: 12px; color: #888;">Cantidad: {{ item.quantity }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <strong>🔍 Rastrea tu Envío</strong><br>
+    <p>Puedes rastrear tu paquete en tiempo real usando el número de seguimiento:</p>
+    <div style="text-align: center; margin: 15px 0;">
+        <code style="background: #f8f9fa; padding: 8px 16px; border-radius: 4px; font-size: 16px; font-weight: bold;">
+            {{ order.tracking_number }}
+        </code>
+    </div>
+</div>
+
+<div class="text-center">
+    <a href="{{ order.tracking_url }}" class="btn" target="_blank">
+        🚚 Rastrear Envío
+    </a>
+    <a href="{{ frontend_url }}/orders/{{ order.id }}" class="btn btn-secondary" style="margin-left: 10px;">
+        📋 Ver Orden
+    </a>
+</div>
+
+<div class="alert alert-warning">
+    <strong>📞 Información Importante</strong><br>
+    <ul style="margin: 10px 0 0 20px; padding: 0;">
+        <li>Mantén el número de seguimiento a mano</li>
+        <li>Alguien debe estar en casa para recibir el paquete</li>
+        <li>Si no estás disponible, el paquete será devuelto al centro de distribución</li>
+        <li>Contacta a la empresa de envío si tienes problemas</li>
+    </ul>
+</div>
+
+<div class="content-block">
+    <h3>¿Necesitas ayuda?</h3>
+    <p>Si tienes alguna pregunta sobre tu envío, estamos aquí para ayudarte:</p>
+    <div style="text-align: center; margin: 20px 0;">
+        <a href="mailto:{{ support_email }}" style="color: #FF0000; text-decoration: none; margin: 0 15px;">
+            📧 {{ support_email }}
+        </a>
+        <a href="{{ frontend_url }}/chat" style="color: #FF0000; text-decoration: none; margin: 0 15px;">
+            💬 Chat en vivo
+        </a>
+    </div>
+</div>
+
+<div class="text-center" style="margin: 30px 0;">
+    <p style="font-size: 18px; color: #FF0000; font-weight: 600;">
+        ¡Tu pedido llegará pronto! 📦
+    </p>
+    <p style="color: #888;">
+        Gracias por tu paciencia y por elegir Compralo.
+    </p>
+</div>
+{% endblock %}

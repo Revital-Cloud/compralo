@@ -78,21 +78,21 @@ export async function verifyToken(): Promise<{ valid: boolean; user_id?: number;
  * Cambiar contraseña
  */
 export async function changePassword(passwordData: ChangePasswordRequest): Promise<ApiResponse> {
-  return await post<ApiResponse>('/auth/change-password', passwordData);
+  return await post<ApiResponse>('/change-password', passwordData);
 }
 
 /**
  * Solicitar reset de contraseña
  */
 export async function requestPasswordReset(resetData: ResetPasswordRequest): Promise<ApiResponse> {
-  return await post<ApiResponse>('/auth/forgot-password', resetData);
+  return await post<ApiResponse>('/forgot-password', resetData);
 }
 
 /**
  * Confirmar reset de contraseña
  */
 export async function confirmPasswordReset(confirmData: ResetPasswordConfirm): Promise<ApiResponse> {
-  return await post<ApiResponse>('/auth/reset-password', confirmData);
+  return await post<ApiResponse>('/reset-password', confirmData);
 }
 
 /**

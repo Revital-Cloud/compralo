@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Recomendaciones Personalizadas - Compralo{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    ¡Hola {{ customer_name }}! 👋
+</div>
+
+<div class="highlight-box">
+    <h2 style="margin: 0; color: #FF0000;">🎯 Recomendaciones Solo para Ti</h2>
+    <p style="margin: 10px 0; font-size: 18px; color: #666;">
+        Basado en tus compras anteriores, creemos que te encantarán estos productos
+    </p>
+</div>
+
+<div class="content-block">
+    <h3>🛍️ Productos Recomendados</h3>
+    <div class="product-grid">
+        {% for product in recommended_products %}
+        <div class="product-card">
+            <div style="font-size: 30px; margin-bottom: 10px;">⭐</div>
+            <strong>{{ product.name }}</strong>
+            <p style="font-size: 12px; color: #888;">{{ product.category }}</p>
+            <p style="font-size: 14px; color: #FF0000; font-weight: bold;">${{ product.price }}</p>
+            {% if product.discount %}
+            <div class="discount-badge">{{ product.discount }}% OFF</div>
+            {% endif %}
+            <div style="margin-top: 10px;">
+                <a href="{{ frontend_url }}/productos/{{ product.slug }}" class="btn" style="padding: 8px 16px; font-size: 12px;">
+                    Ver Producto
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <strong>🤖 ¿Cómo elegimos estos productos?</strong><br>
+    <p>Nuestro algoritmo analiza tus compras anteriores, productos que has visto y tus preferencias para sugerirte los mejores productos que realmente te interesarán.</p>
+</div>
+
+<div class="content-block">
+    <h3>🔥 Ofertas Relacionadas</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
+        {% for offer in related_offers %}
+        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #FFF5F5, #FFE5E5); border-radius: 8px; border: 1px solid #FFE5E5;">
+            <div style="font-size: 24px; margin-bottom: 5px;">{{ offer.icon }}</div>
+            <strong>{{ offer.title }}</strong>
+            <p style="font-size: 12px; margin: 5px 0; color: #666;">{{ offer.description }}</p>
+            <div style="margin: 10px 0;">
+                <span style="color: #FF0000; font-weight: bold;">{{ offer.discount }}</span>
+            </div>
+            <a href="{{ frontend_url }}/ofertas/{{ offer.slug }}" style="color: #FF0000; text-decoration: none; font-size: 12px;">Ver oferta →</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="text-center">
+    <a href="{{ frontend_url }}/productos?recomendados=true" class="btn">
+        🛍️ Ver Todas las Recomendaciones
+    </a>
+    <a href="{{ frontend_url }}/productos" class="btn btn-secondary" style="margin-left: 10px;">
+        🛒 Explorar Tienda
+    </a>
+</div>
+
+<div class="divider"></div>
+
+<div class="content-block">
+    <h3>💡 Productos que Otros Compradores También Compraron</h3>
+    <div class="product-grid">
+        {% for product in also_bought %}
+        <div class="product-card">
+            <div style="font-size: 30px; margin-bottom: 10px;">👥</div>
+            <strong>{{ product.name }}</strong>
+            <p style="font-size: 12px; color: #888;">{{ product.category }}</p>
+            <p style="font-size: 14px; color: #FF0000; font-weight: bold;">${{ product.price }}</p>
+            <div style="margin-top: 10px;">
+                <a href="{{ frontend_url }}/productos/{{ product.slug }}" class="btn" style="padding: 8px 16px; font-size: 12px;">
+                    Ver Producto
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="alert alert-success">
+    <strong>🎁 ¡Oferta Especial de Recomendaciones!</strong><br>
+    <p>Usa el código <strong style="color: #FF0000;">RECOMENDADO15</strong> y obtén 15% de descuento en cualquiera de estos productos recomendados.</p>
+    <p><small>*Válido hasta el {{ offer_expiry }}. Solo para productos recomendados.</small></p>
+</div>
+
+<div class="content-block">
+    <h3>📊 Tus Estadísticas de Compra</h3>
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin: 20px 0;">
+        <div style="text-align: center; padding: 15px; background: #F5F5F5; border-radius: 8px;">
+            <div style="font-size: 24px; margin-bottom: 5px;">🛒</div>
+            <strong>{{ stats.total_orders }}</strong>
+            <p style="font-size: 12px; color: #666;">Órdenes Totales</p>
+        </div>
+        <div style="text-align: center; padding: 15px; background: #F5F5F5; border-radius: 8px;">
+            <div style="font-size: 24px; margin-bottom: 5px;">💰</div>
+            <strong>${{ stats.total_spent }}</strong>
+            <p style="font-size: 12px; color: #666;">Total Gastado</p>
+        </div>
+        <div style="text-align: center; padding: 15px; background: #F5F5F5; border-radius: 8px;">
+            <div style="font-size: 24px; margin-bottom: 5px;">⭐</div>
+            <strong>{{ stats.favorite_category }}</strong>
+            <p style="font-size: 12px; color: #666;">Categoría Favorita</p>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-warning">
+    <strong>📧 ¿No te interesan estas recomendaciones?</strong><br>
+    <p>Puedes <a href="{{ frontend_url }}/preferences" style="color: #FF0000;">actualizar tus preferencias</a> o <a href="{{ unsubscribe_url }}" style="color: #FF0000;">cancelar las recomendaciones por email</a>.</p>
+</div>
+
+<div class="text-center" style="margin: 30px 0;">
+    <p style="font-size: 18px; color: #FF0000; font-weight: 600;">
+        ¡Esperamos que encuentres algo perfecto! 🛍️
+    </p>
+    <p style="color: #888;">
+        Gracias por confiar en Compralo para tus compras.
+    </p>
+</div>
+{% endblock %}

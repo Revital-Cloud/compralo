@@ -1,23 +1,77 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nuevo pedido</title>
-</head>
-<body>
-    <h1>Nuevo pedido</h1>
-    <p>Se ha recibido un nuevo pedido</p>
-    <p>Detalles del pedido:</p>
-    <ul>
-        <li>ID del pedido: {{ order.id }}</li>
-        <li>Fecha del pedido: {{ order.created_at }}</li>
-        <li>Cliente: {{ order.customer_name }}</li>
-        <li>Email del cliente: {{ order.customer_email }}</li>
-        <li>Teléfono del cliente: {{ order.customer_phone }}</li>
-        <li>Dirección del cliente: {{ order.customer_address }}</li>
-        <li>Total del pedido: {{ order.total }}</li>
-        <li>Estado del pedido: {{ order.status }}</li>
+{% extends "base.html" %}
+
+{% block title %}Nueva Orden Recibida - Compralo{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    ¡Nueva Orden! 🛒
+</div>
+
+<div class="alert alert-success">
+    <strong>🎉 ¡Nueva Orden Recibida!</strong><br>
+    Se ha recibido un nuevo pedido que requiere tu atención.
+</div>
+
+<div class="content-block">
+    <h2>Detalles de la Orden</h2>
+    <table class="table">
+        <tr>
+            <td><strong>ID de la Orden:</strong></td>
+            <td>#{{ order.id }}</td>
+        </tr>
+        <tr>
+            <td><strong>Fecha:</strong></td>
+            <td>{{ order.created_at }}</td>
+        </tr>
+        <tr>
+            <td><strong>Cliente:</strong></td>
+            <td>{{ order.customer_name }}</td>
+        </tr>
+        <tr>
+            <td><strong>Email:</strong></td>
+            <td>{{ order.customer_email }}</td>
+        </tr>
+        <tr>
+            <td><strong>Teléfono:</strong></td>
+            <td>{{ order.customer_phone }}</td>
+        </tr>
+        <tr>
+            <td><strong>Dirección:</strong></td>
+            <td>{{ order.customer_address }}</td>
+        </tr>
+        <tr>
+            <td><strong>Total:</strong></td>
+            <td style="color: #FF0000; font-weight: bold; font-size: 18px;">${{ order.total }}</td>
+        </tr>
+        <tr>
+            <td><strong>Estado:</strong></td>
+            <td><span style="background: #FFD600; color: #000; padding: 4px 8px; border-radius: 4px; font-weight: bold;">{{ order.status }}</span></td>
+        </tr>
+    </table>
+</div>
+
+<div class="alert alert-info">
+    <strong>📋 Próximos Pasos</strong><br>
+    <ul style="margin: 10px 0 0 20px; padding: 0;">
+        <li>Revisar los detalles de la orden</li>
+        <li>Verificar el stock de los productos</li>
+        <li>Procesar el pago si es necesario</li>
+        <li>Preparar el envío</li>
+        <li>Actualizar el estado de la orden</li>
     </ul>
-</body>
-</html>
+</div>
+
+<div class="text-center">
+    <a href="{{ frontend_url }}/admin/orders/{{ order.id }}" class="btn">
+        📝 Ver Orden Completa
+    </a>
+    <a href="{{ frontend_url }}/admin/orders" class="btn btn-secondary" style="margin-left: 10px;">
+        📊 Ver Todas las Órdenes
+    </a>
+</div>
+
+<div class="content-block">
+    <p><strong>Equipo de Compralo</strong></p>
+    <p>Este es un email automático del sistema de gestión de órdenes.</p>
+</div>
+{% endblock %}
