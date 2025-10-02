@@ -38,23 +38,40 @@ def get_products_admin(db: Session, params: dict):
         list: Lista de productos con información completa para admin
     """
     try:
-        query = text("""
-            SELECT 
+        # Mapear campo de orden a columna SQL segura
+        ordenar_por = (params or {}).get('ordenar_por', 'nombre')
+        orden = (params or {}).get('orden', 'ASC')
+
+        order_column_map = {
+            'nombre': 'p.nom_producto',
+            'precio': 'p.val_precio',
+            'stock': 'p.num_stock',
+            'fecha': 'p.fec_insert',
+            'categoria': 'c.nom_categoria',
+            'marca': 'm.nom_marca',
+        }
+        order_column = order_column_map.get(str(ordenar_por).lower(), 'p.nom_producto')
+        order_direction = 'DESC' if str(orden).upper() == 'DESC' else 'ASC'
+
+        # Usar DISTINCT ON para evitar duplicados por joins o datos inconsistentes
+        # Nota: DISTINCT ON requiere que las columnas de DISTINCT estén primero en ORDER BY
+        query = text(f"""
+            SELECT DISTINCT ON (p.id_categoria, p.id_linea, p.id_sublinea, p.id_producto)
                 p.id_categoria::text,
                 p.id_linea::text,
                 p.id_sublinea::text,
                 p.id_producto::text,
-                c.nom_categoria, 
-                l.nom_linea, 
-                s.nom_sublinea, 
-                p.nom_producto, 
-                p.spcf_producto, 
-                p.img_producto, 
-                p.val_precio::text, 
-                p.num_stock, 
+                c.nom_categoria,
+                l.nom_linea,
+                s.nom_sublinea,
+                p.nom_producto,
+                p.spcf_producto,
+                p.img_producto,
+                p.val_precio::text,
+                p.num_stock,
                 p.id_proveedor::text,
                 p.id_marca::text,
-                pr.nom_proveedor, 
+                pr.nom_proveedor,
                 m.nom_marca,
                 p.fec_insert::text,
                 p.ind_activo as ind_activo_producto,
@@ -63,13 +80,14 @@ def get_products_admin(db: Session, params: dict):
                 s.ind_activo as ind_activo_sublinea,
                 pr.ind_activo as ind_activo_proveedor,
                 m.ind_activo as ind_activo_marca,
-                (SELECT COUNT(DISTINCT p2.id_categoria || '-' || p2.id_linea || '-' || p2.id_sublinea || '-' || p2.id_producto) 
-                 FROM tab_productos p2
-                 INNER JOIN tab_categorias c2 ON p2.id_categoria = c2.id_categoria
-                 INNER JOIN tab_lineas l2 ON p2.id_linea = l2.id_linea AND p2.id_categoria = l2.id_categoria
-                 INNER JOIN tab_sublineas s2 ON p2.id_sublinea = s2.id_sublinea AND p2.id_linea = s2.id_linea
-                 INNER JOIN tab_proveedores pr2 ON p2.id_proveedor = pr2.id_proveedor
-                 INNER JOIN tab_marcas m2 ON p2.id_marca = m2.id_marca
+                (
+                    SELECT COUNT(DISTINCT p2.id_categoria || '-' || p2.id_linea || '-' || p2.id_sublinea || '-' || p2.id_producto)
+                    FROM tab_productos p2
+                    INNER JOIN tab_categorias c2 ON p2.id_categoria = c2.id_categoria
+                    INNER JOIN tab_lineas l2 ON p2.id_linea = l2.id_linea AND p2.id_categoria = l2.id_categoria
+                    INNER JOIN tab_sublineas s2 ON p2.id_sublinea = s2.id_sublinea AND p2.id_linea = s2.id_linea
+                    INNER JOIN tab_proveedores pr2 ON p2.id_proveedor = pr2.id_proveedor
+                    INNER JOIN tab_marcas m2 ON p2.id_marca = m2.id_marca
                 ) as total_registros
             FROM tab_productos p
             INNER JOIN tab_categorias c ON p.id_categoria = c.id_categoria
@@ -77,10 +95,10 @@ def get_products_admin(db: Session, params: dict):
             INNER JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea
             INNER JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
             INNER JOIN tab_marcas m ON p.id_marca = m.id_marca
-            ORDER BY p.nom_producto ASC
+            ORDER BY p.id_categoria, p.id_linea, p.id_sublinea, p.id_producto, {order_column} {order_direction}
             LIMIT :limit OFFSET :offset
         """)
-        
+
         result = db.execute(query, params)
         return result.mappings().all()
     except Exception as e:
