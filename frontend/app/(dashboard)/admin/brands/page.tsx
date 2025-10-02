@@ -2,6 +2,8 @@
 
 import React, { useMemo, useState } from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
+import { CreateEntityModal } from '@/components/admin/common/create-entity-modal'
+import { EditEntityModal } from '@/components/admin/common/edit-entity-modal'
 import { EmptyState } from '@/components/admin/empty-states'
 import { useAllBrands } from '@/hooks/use-brands'
 import { brandService } from '@/services/brand.service'
@@ -16,7 +18,6 @@ import { BrandsFilters } from '@/components/admin/brands/brands-filters'
 interface Brand {
   id_marca: number
   nom_marca: string
-  des_marca?: string
   fec_insert?: string
   fec_update?: string
   ind_activo?: boolean
@@ -81,29 +82,28 @@ const BrandsPage = () => {
       cell: ({ row }) => <span className="font-medium">{row.original.nom_marca}</span>,
     },
     {
-      accessorKey: 'des_marca',
-      header: 'Descripción',
-      cell: ({ row }) => (
-        <span className="text-sm text-muted-foreground">
-          {row.original.des_marca || '-'}
-        </span>
-      ),
-    },
-    {
       accessorKey: 'fec_insert',
       header: 'Fecha de Creación',
       cell: ({ getValue }) => {
         const v = getValue<string | undefined>()
-        return v ? new Date(v).toLocaleDateString('es-ES') : <span className="text-muted-foreground">-</span>
+        return v ? new Date(v).toLocaleDateString('es-ES') : <span className="text-muted-foreground"></span>
+      },
+    },
+    {
+      accessorKey: 'fec_update',
+      header: 'Fecha de Actualización',
+      cell: ({ getValue }) => {
+        const v = getValue<string | undefined>()
+        return v ? new Date(v).toLocaleDateString('es-ES') : <span className="text-muted-foreground"></span>
       },
     },
     {
       accessorKey: 'ind_activo',
       header: 'Estado',
       cell: ({ row }) => (
-        <Badge variant={row.original.ind_activo ? 'default' : 'secondary'}>
+        <span className={row.original.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
           {row.original.ind_activo ? 'Activo' : 'Inactivo'}
-        </Badge>
+        </span>
       ),
     },
   ]
@@ -114,12 +114,7 @@ const BrandsPage = () => {
       header: 'Acciones',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Editar marca"
-            onClick={() => window.location.href = `/admin/brands/${row.original.id_marca}/edit`}
-          >
+          <Button variant="outline" size="icon" aria-label="Editar marca" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
             <Pencil className="w-4 h-4" />
           </Button>
           {row.original.ind_activo ? (
@@ -146,13 +141,40 @@ const BrandsPage = () => {
     },
   ]
 
+  const [openCreate, setOpenCreate] = useState(false)
+  const [openEdit, setOpenEdit] = useState(false)
+  const [editing, setEditing] = useState<any | null>(null)
+
   return (
     <div className="space-y-6">
       <CatalogHeader 
         title="Marcas"
         description="Registra las marcas con las que trabajas"
-        createUrl="/admin/brands/create"
+        onCreateClick={() => setOpenCreate(true)}
         createLabel="Agregar Marca"
+      />
+
+      <CreateEntityModal
+        open={openCreate}
+        onOpenChange={setOpenCreate}
+        type="brand"
+        title="Nueva Marca"
+        onSubmit={async (values) => {
+          await brandService.createBrand({ nom_marca: values.nom_marca, ind_activo: values.ind_activo })
+          queryClient.invalidateQueries({ queryKey: ['brands', 'all'] })
+        }}
+      />
+
+      <EditEntityModal
+        open={openEdit}
+        onOpenChange={setOpenEdit}
+        type="brand"
+        title="Editar Marca"
+        initialValues={{ nom_marca: (editing as any)?.nom_marca, ind_activo: (editing as any)?.ind_activo ?? true }}
+        onSubmit={async (values) => {
+          await brandService.updateBrand((editing as any)?.id_marca, { nom_marca: values.nom_marca, ind_activo: values.ind_activo })
+          queryClient.invalidateQueries({ queryKey: ['brands', 'all'] })
+        }}
       />
 
       {/* Filtros */}

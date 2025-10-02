@@ -9,6 +9,8 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Pencil, Power } from 'lucide-react'
+import { CreateEntityModal } from '@/components/admin/common/create-entity-modal'
+import { EditEntityModal } from '@/components/admin/common/edit-entity-modal'
 import { useMemo, useState } from 'react'
 import { CategoriesFilters } from '@/components/admin/categories/categories-filters'
 import type { Category } from '@/types/category'
@@ -63,6 +65,10 @@ const CategoriesPage = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categories', 'all'] }),
   })
 
+  const [openCreate, setOpenCreate] = useState(false)
+  const [openEdit, setOpenEdit] = useState(false)
+  const [editing, setEditing] = useState<any | null>(null)
+
   const columns: ColumnDef<Category>[] = [
     {
       accessorKey: 'id_categoria',
@@ -86,9 +92,9 @@ const CategoriesPage = () => {
       accessorKey: 'ind_activo',
       header: 'Estado',
       cell: ({ row }) => (
-        <Badge variant={row.original.ind_activo ? 'default' : 'secondary'}>
+        <span className={row.original.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
           {row.original.ind_activo ? 'Activo' : 'Inactivo'}
-        </Badge>
+        </span>
       ),
     },
   ]
@@ -99,12 +105,7 @@ const CategoriesPage = () => {
       header: 'Acciones',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Editar categoría"
-            onClick={() => window.location.href = `/admin/categories/${row.original.id_categoria}/edit`}
-          >
+          <Button variant="outline" size="icon" aria-label="Editar categoría" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
             <Pencil className="w-4 h-4" />
           </Button>
           {row.original.ind_activo ? (
@@ -136,8 +137,32 @@ const CategoriesPage = () => {
       <CatalogHeader 
         title="Categorías"
         description="Gestiona las categorías para organizar tus productos"
-        createUrl="/admin/categories/create"
+        onCreateClick={() => setOpenCreate(true)}
         createLabel="Agregar Categoría"
+      />
+
+      <CreateEntityModal
+        open={openCreate}
+        onOpenChange={setOpenCreate}
+        type="category"
+        title="Nueva Categoría"
+        onSubmit={async (values) => {
+          const { createCategory } = await import('@/services/category.service')
+          await createCategory({ nom_categoria: values.nom_categoria, ind_activo: values.ind_activo })
+          queryClient.invalidateQueries({ queryKey: ['categories', 'all'] })
+        }}
+      />
+
+      <EditEntityModal
+        open={openEdit}
+        onOpenChange={setOpenEdit}
+        type="category"
+        title="Editar Categoría"
+        initialValues={{ nom_categoria: (editing as any)?.nom_categoria, ind_activo: (editing as any)?.ind_activo ?? true }}
+        onSubmit={async (values) => {
+          await updateCategory((editing as any)?.id_categoria, { nom_categoria: values.nom_categoria, ind_activo: values.ind_activo })
+          queryClient.invalidateQueries({ queryKey: ['categories', 'all'] })
+        }}
       />
 
       {/* Filtros */}

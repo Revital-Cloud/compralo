@@ -1,6 +1,8 @@
 'use client'
 
 import { CatalogHeader } from '@/components/admin/catalog-header'
+import { CreateEntityModal } from '@/components/admin/common/create-entity-modal'
+import { EditEntityModal } from '@/components/admin/common/edit-entity-modal'
 import { EmptyState } from '@/components/admin/empty-states'
 import DataTable from '@/components/tables/table'
 import { ColumnDef, Row } from '@tanstack/react-table'
@@ -61,6 +63,11 @@ const LinesPage = () => {
     return rows
   }, [data, search, category, sortBy, sortOrder])
 
+  // Modal crear línea
+  const [openCreate, setOpenCreate] = useState(false)
+  const [openEdit, setOpenEdit] = useState(false)
+  const [editing, setEditing] = useState<any | null>(null)
+
   const activateMutation = useMutation({
     mutationFn: async (params: { id_categoria: number; id_linea: number; nom_linea: string }) => {
       // Activar enviando update con toda la info necesaria e ind_activo=true
@@ -120,11 +127,11 @@ const LinesPage = () => {
     },
     {
       accessorKey: 'ind_activo',
-      header: 'Activo',
+      header: 'Estado',
       cell: ({ row }) => (
-        <Badge variant={row.original.ind_activo ? 'default' : 'secondary'}>
+        <span className={row.original.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
           {row.original.ind_activo ? 'Activo' : 'Inactivo'}
-        </Badge>
+        </span>
       ),
     },
   ]
@@ -135,10 +142,8 @@ const LinesPage = () => {
       header: 'Acciones',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="icon" aria-label="Editar línea">
-            <a href={`/admin/lines/${(row.original as any).id_linea}/edit`}>
-              <Pencil />
-            </a>
+          <Button variant="outline" size="icon" aria-label="Editar línea" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
+            <Pencil />
           </Button>
           {row.original.ind_activo === true ? (
             <Button
@@ -175,8 +180,36 @@ const LinesPage = () => {
       <CatalogHeader 
         title="Líneas"
         description="Define las líneas principales de tu catálogo"
-        createUrl="/admin/lines/create"
+        onCreateClick={() => setOpenCreate(true)}
         createLabel="Agregar Línea"
+      />
+
+      <EditEntityModal
+        open={openEdit}
+        onOpenChange={setOpenEdit}
+        type="line"
+        title="Editar Línea"
+        initialValues={{
+          id_categoria: (editing as any)?.id_categoria,
+          nom_linea: (editing as any)?.nom_linea,
+          ind_activo: (editing as any)?.ind_activo ?? true,
+        }}
+        onSubmit={async (values) => {
+          const ids = editing as any
+          await lineService.updateLine(Number(values.id_categoria), Number(ids.id_linea), { nom_linea: values.nom_linea, ind_activo: values.ind_activo })
+          queryClient.invalidateQueries({ queryKey: ['lines', 'all'] })
+        }}
+      />
+
+      <CreateEntityModal
+        open={openCreate}
+        onOpenChange={setOpenCreate}
+        type="line"
+        title="Nueva Línea"
+        onSubmit={async (values) => {
+          await lineService.createLine({ id_categoria: Number(values.id_categoria), nom_linea: values.nom_linea, ind_activo: values.ind_activo })
+          queryClient.invalidateQueries({ queryKey: ['lines', 'all'] })
+        }}
       />
 
       {/* Filtros */}

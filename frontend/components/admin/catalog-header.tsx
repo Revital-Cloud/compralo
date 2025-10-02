@@ -8,10 +8,11 @@ import { IconDownload, IconPlus, IconUpload } from '@tabler/icons-react'
 interface CatalogHeaderProps {
   title: string
   description?: string
-  createUrl: string
+  createUrl?: string
   createLabel: string
   onExport?: () => void
   onImportClick?: () => void
+  onCreateClick?: () => void
 }
 
 export const CatalogHeader: React.FC<CatalogHeaderProps> = ({
@@ -21,6 +22,7 @@ export const CatalogHeader: React.FC<CatalogHeaderProps> = ({
   createLabel,
   onExport,
   onImportClick,
+  onCreateClick,
 }) => {
   return (
     <div className="flex items-center justify-between">
@@ -44,12 +46,21 @@ export const CatalogHeader: React.FC<CatalogHeaderProps> = ({
           Importar
         </Button>
 
-        <Link href={createUrl}>
-          <Button className="bg-primary hover:bg-primary/80 text-primary-foreground">
+        {onCreateClick ? (
+          <Button className="bg-[#fec806] hover:bg-[#e6b800] text-black" onClick={onCreateClick}>
             <IconPlus className="h-4 w-4 mr-2" />
             {createLabel}
           </Button>
-        </Link>
+        ) : (
+          createUrl && (
+            <Link href={createUrl}>
+              <Button className="bg-[#fec806] hover:bg-[#e6b800] text-black">
+                <IconPlus className="h-4 w-4 mr-2" />
+                {createLabel}
+              </Button>
+            </Link>
+          )
+        )}
       </div>
     </div>
   )
