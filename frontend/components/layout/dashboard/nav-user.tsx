@@ -60,22 +60,22 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-gray-100 data-[state=open]:text-black text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors duration-300"
             >
-              <Avatar className="h-8 w-8 rounded-lg grayscale">
-                <AvatarFallback className="rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+              <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarFallback className="rounded-lg bg-[#fec806] text-black font-semibold">
                   {user.nom_usuario?.charAt(0)}{user.ape_usuario?.charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium text-gray-900 dark:text-white">
+                <span className="truncate font-semibold">
                   {user.nom_usuario} {user.ape_usuario}
                 </span>
-                <span className="text-gray-500 dark:text-gray-400 truncate text-xs">
+                <span className="truncate text-xs opacity-80">
                   {user.email_usuario}
                 </span>
               </div>
-              <IconDotsVertical className="ml-auto size-4 text-gray-700 dark:text-gray-300" />
+              <IconDotsVertical className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -103,26 +103,26 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
             <DropdownMenuGroup>
-              <DropdownMenuItem className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300">
-                <IconUserCircle className="text-gray-700 dark:text-gray-300" />
+              <DropdownMenuItem className="cursor-pointer hover:bg-sidebar-accent hover:text-[#fec806] transition-colors duration-300">
+                <IconUserCircle />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300">
-                <IconCreditCard className="text-gray-700 dark:text-gray-300" />
+              <DropdownMenuItem className="cursor-pointer hover:bg-sidebar-accent hover:text-[#fec806] transition-colors duration-300">
+                <IconCreditCard />
                 Billing
               </DropdownMenuItem>
-              <DropdownMenuItem className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300">
-                <IconNotification className="text-gray-700 dark:text-gray-300" />
+              <DropdownMenuItem className="cursor-pointer hover:bg-sidebar-accent hover:text-[#fec806] transition-colors duration-300">
+                <IconNotification />
                 Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
             <DropdownMenuItem 
-              className={`text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300 ${isLoggingOut ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors duration-300 ${isLoggingOut ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={handleLogout}
               disabled={isLoggingOut}
             >
-              <IconLogout className={`text-gray-700 dark:text-gray-300 ${isLoggingOut ? 'animate-spin' : ''}`} />
+              <IconLogout className={isLoggingOut ? 'animate-spin' : ''} />
               {isLoggingOut ? 'Cerrando sesión...' : 'Cerrar sesión'}
             </DropdownMenuItem>
           </DropdownMenuContent>

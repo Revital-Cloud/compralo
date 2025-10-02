@@ -43,66 +43,79 @@ const data = {
       title: "Dashboard",
       url: "/admin",
       icon: IconDashboard,
-    },
-    {
-      title: "Analíticas",
-      url: "/admin/analytics",
-      icon: IconChartBar,
-    },
-    {
-      title: "Productos",
-      url: "/admin/products",
-      icon: IconPackage,
-    },
-    {
-      title: "Categorías",
-      url: "/admin/categories",
-      icon: IconCategory,
-    },
-    {
-      title: "Líneas",
-      url: "/admin/lines",
-      icon: IconHierarchy,
-    },
-    {
-      title: "Sublíneas",
-      url: "/admin/sublines",
-      icon: IconHierarchy,
-    },
-    {
-      title: "Marcas",
-      url: "/admin/brands",
-      icon: IconTags,
-    },
-    {
-      title: "Proveedores",
-      url: "/admin/providers",
-      icon: IconBuildingFactory2,
+      section: "principal"
     },
     {
       title: "Órdenes",
       url: "/admin/orders",
       icon: IconShoppingCart,
+      section: "principal"
+    },
+    {
+      title: "Productos",
+      url: "/admin/products",
+      icon: IconPackage,
+      section: "catalogo"
+    },
+    {
+      title: "Categorías",
+      url: "/admin/categories",
+      icon: IconCategory,
+      section: "catalogo"
+    },
+    {
+      title: "Líneas",
+      url: "/admin/lines",
+      icon: IconHierarchy,
+      section: "catalogo"
+    },
+    {
+      title: "Sublíneas",
+      url: "/admin/sublines",
+      icon: IconHierarchy,
+      section: "catalogo"
+    },
+    {
+      title: "Marcas",
+      url: "/admin/brands",
+      icon: IconTags,
+      section: "catalogo"
+    },
+    {
+      title: "Proveedores",
+      url: "/admin/providers",
+      icon: IconBuildingFactory2,
+      section: "catalogo"
     },
     {
       title: "Usuarios",
       url: "/admin/users",
       icon: IconUsers,
+      section: "gestion"
     },
     {
       title: "Descuentos",
       url: "/admin/discounts",
       icon: IconDiscount,
+      section: "gestion"
     },
     {
       title: "Puntos",
       url: "/admin/points",
       icon: IconCoins,
+      section: "gestion"
+    },
+    {
+      title: "Analíticas",
+      url: "/admin/analytics",
+      icon: IconChartBar,
+      section: "otros"
     },
     {
       title: "Envíos",
       url: "/admin/shipping",
       icon: IconTruck,
+      section: "otros"
     }
   ],
   navSecondary: [
