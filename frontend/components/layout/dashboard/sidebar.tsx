@@ -19,7 +19,9 @@ import {
   IconMail,
   IconHeart,
   IconBrandGoogle,
-  IconCreditCard
+  IconCreditCard,
+  IconDiscount,
+  IconCoins
 } from "@tabler/icons-react"
 
 import { NavMain } from "@/components/layout/dashboard/nav-main"
@@ -86,6 +88,16 @@ const data = {
       title: "Usuarios",
       url: "/admin/users",
       icon: IconUsers,
+    },
+    {
+      title: "Descuentos",
+      url: "/admin/discounts",
+      icon: IconDiscount,
+    },
+    {
+      title: "Puntos",
+      url: "/admin/points",
+      icon: IconCoins,
     },
     {
       title: "Envíos",
