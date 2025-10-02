@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ProductCreateHeader, ProductForm, ProductImageUpload } from '@/components/admin/products';
-import { useProduct, useUpdateProduct } from '@/hooks/use-products';
+import { useProductAdminDetail, useUpdateProduct } from '@/hooks/use-products';
 import type { ProductCreate } from '@/types';
 
 const ProductEditPage = () => {
@@ -13,7 +13,7 @@ const ProductEditPage = () => {
   const slug = (params?.id as string) || '';
   const [selectedImages, setSelectedImages] = useState<any[]>([]);
 
-  const { data: product, isLoading, error } = useProduct(slug);
+  const { data: product, isLoading, error } = useProductAdminDetail(slug);
   const updateProductMutation = useUpdateProduct();
 
   const initialData = useMemo(() => {

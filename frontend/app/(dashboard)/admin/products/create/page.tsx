@@ -9,6 +9,7 @@ import {
   ProductImageUpload 
 } from "@/components/admin/products";
 import { useCreateProduct } from "@/hooks/use-products";
+import * as productService from "@/services/product.service";
 import type { ProductCreate } from '@/types';
 
 const ProductCreatePage = () => {
@@ -37,8 +38,18 @@ const ProductCreatePage = () => {
         }
       };
 
-      // Crear el producto
-      await createProductMutation.mutateAsync(productData);
+      // Crear el producto usando form-data (el backend espera Form fields)
+      const imageFiles: File[] = selectedImages
+        .map((img: any) => img?.file)
+        .filter((f: File | undefined) => !!f);
+
+      // Si hay imágenes, enviamos con archivos; si no, igual usamos form-data para cumplir el backend
+      if (imageFiles.length > 0) {
+        await productService.createProductWithImages(productData, imageFiles);
+      } else {
+        // Enviar como form-data sin archivos
+        await productService.createProductWithImages(productData, []);
+      }
       
       // Redirigir a la lista de productos
       router.push('/admin/products');

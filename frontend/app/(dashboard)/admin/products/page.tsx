@@ -287,11 +287,21 @@ const ProductsPage = () => {
     {
       accessorKey: 'ind_activo',
       header: 'Estado',
-      cell: ({ row }) => (
-        <Badge variant={row.original.ind_activo ? 'default' : 'secondary'}>
-          {row.original.ind_activo ? 'Activo' : 'Inactivo'}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const isActive = !!row.original.ind_activo;
+        return (
+          <Badge
+            className={
+              isActive
+                ? 'bg-[#fec806] text-black hover:bg-[#fec806]'
+                : 'bg-red-100 text-red-800 hover:bg-red-100'
+            }
+            variant={isActive ? 'secondary' : 'destructive'}
+          >
+            {isActive ? 'Activo' : 'Inactivo'}
+          </Badge>
+        );
+      },
     },
   ];
 
@@ -386,8 +396,15 @@ const ProductsPage = () => {
 
       {/* Products Table */}
       {isLoading ? (
-        <div className="text-center py-12">
-          <div className="text-muted-foreground">Cargando productos...</div>
+        <div className="space-y-4">
+          {/* Skeleton de filtros y header de tabla */}
+          <div className="h-10 bg-gray-200/50 dark:bg-gray-800/60 rounded-md animate-pulse" />
+          {/* Skeleton de filas de tabla */}
+          <div className="space-y-3">
+            {Array.from({ length: itemsPerPage }).map((_, i) => (
+              <div key={i} className="h-16 bg-gray-200/40 dark:bg-gray-800/40 rounded-md animate-pulse" />
+            ))}
+          </div>
         </div>
       ) : products.length > 0 ? (
         <DataTable 

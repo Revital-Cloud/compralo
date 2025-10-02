@@ -25,7 +25,7 @@ export const ProductsHeader: React.FC<ProductsHeaderProps> = () => {
         
         {/* Botón de Agregar */}
         <Link href="/admin/products/create">
-          <Button className="bg-primary hover:bg-primary/80 text-primary-foreground">
+          <Button className="bg-yellow-500 hover:bg-yellow-600 text-black">
             <IconPlus className="h-4 w-4 mr-2" />
             Agregar Producto
           </Button>

@@ -71,6 +71,28 @@ export async function getProductByIds(
 }
 
 /**
+ * Obtener producto con detalle admin (joins completos)
+ * Formato esperado: "{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}"
+ */
+export async function getProductAdminDetail(
+  ids:
+    | string
+    | {
+        id_categoria: string | number
+        id_linea: string | number
+        id_sublinea: string | number
+        id_producto: string | number
+      }
+): Promise<Product> {
+  const slug =
+    typeof ids === 'string'
+      ? ids
+      : `${ids.id_categoria}-${ids.id_linea}-${ids.id_sublinea}-${ids.id_producto}`
+
+  return await get<Product>(`/products-admin/${slug}`)
+}
+
+/**
  * Crear nuevo producto
  */
 export async function createProduct(productData: ProductCreate): Promise<Product> {
@@ -488,6 +510,7 @@ const productService = {
   // Productos
   getProducts,
   getProductByIds,
+  getProductAdminDetail,
   createProduct,
   updateProduct,
   deleteProduct,

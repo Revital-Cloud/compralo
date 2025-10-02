@@ -165,6 +165,26 @@ async def get_product(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
     return product
 
+# Detalle admin con joins completos
+@router.get(
+    "/products-admin/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}",
+    response_model=Product
+)
+async def get_product_admin_detail(
+    id_categoria: Decimal,
+    id_linea: Decimal,
+    id_sublinea: Decimal,
+    id_producto: Decimal,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin()),
+):
+    product = product_service.get_product_admin_detail(
+        db, id_categoria, id_linea, id_sublinea, id_producto
+    )
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
+    return product
+
 # Productos por sublínea
 @router.get("/products/subline/{id_sublinea}", response_model=list[Product])
 async def get_products_by_subline(id_sublinea: Decimal, db: Session = Depends(get_db)):

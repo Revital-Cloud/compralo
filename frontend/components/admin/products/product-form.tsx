@@ -195,12 +195,18 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         tags: initialData.tags || [],
         spcf_producto: initialData.spcf_producto || {},
       });
+      // Formatear precio inicial con separadores de miles
+      if (initialData.val_precio) {
+        const formatted = formatCurrency(String(initialData.val_precio));
+        setValue('val_precio', formatted);
+      }
     }
   }, [initialData, reset]);
 
   const watchedTags = watch('tags');
   const watchedCategory = watch('id_categoria');
   const watchedLine = watch('id_linea');
+  const watchedSubline = watch('id_sublinea');
   const [newTag, setNewTag] = React.useState('');
   const [customSpecs, setCustomSpecs] = React.useState<Array<{key: string, value: string}>>([]);
   const [newCustomKey, setNewCustomKey] = React.useState('');
@@ -216,15 +222,47 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     peso: initialData?.spcf_producto?.peso || '',
   });
 
+  // Formatear precio con separadores de miles mientras se escribe
+  const formatCurrency = (value: string) => {
+    const numeric = value.replace(/\D/g, '');
+    if (!numeric) return '';
+    const withDots = numeric.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return withDots;
+  };
+
   // Sincronizar des_producto con descripcion_corta
   React.useEffect(() => {
     setValue('des_producto', baseSpecs.descripcion_corta);
   }, [baseSpecs.descripcion_corta, setValue]);
 
-  // Obtener el preset actual basado en la categoría seleccionada
-  const selectedCategory = categories.find(cat => cat.id_categoria.toString() === watchedCategory);
+  // Sincronizar baseSpecs cuando lleguen initialData/spcf desde el servidor (editar)
+  React.useEffect(() => {
+    if (initialData?.spcf_producto) {
+      const s = initialData.spcf_producto as Record<string, any>;
+      setBaseSpecs((prev) => ({
+        ...prev,
+        descripcion_corta: s.descripcion_corta ?? prev.descripcion_corta ?? '',
+        color: s.color ?? prev.color ?? '',
+        material: s.material ?? prev.material ?? '',
+        garantia: s.garantia ?? prev.garantia ?? '',
+        dimensiones: s.dimensiones ?? prev.dimensiones ?? '',
+        peso: s.peso ?? prev.peso ?? '',
+      }));
+    }
+  }, [initialData?.spcf_producto]);
+
+  // Obtener el preset actual basado en la categoría seleccionada (defensivo ante datos indefinidos)
+  const selectedCategory = (categories || []).find((cat: any) => {
+    const catId = cat && cat.id_categoria != null ? String(cat.id_categoria) : '';
+    const watched = watchedCategory != null ? String(watchedCategory) : '';
+    return catId === watched && watched !== '';
+  });
   const currentPreset = selectedCategory ? getPresetByCategory(selectedCategory.nom_categoria) : null;
   const presetFields = currentPreset ? SPEC_PRESETS[currentPreset]?.fields || [] : [];
+
+  // Evitar fallos si categories aún no está cargado o si no hay categoría seleccionada
+  // Esto previene accesos a propiedades de undefined durante el render inicial
+  const safeCategories = Array.isArray(categories) ? categories : [];
   
   // Campos dinámicos del preset
   const [presetSpecs, setPresetSpecs] = React.useState<Record<string, any>>(() => {
@@ -242,7 +280,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       newPresetSpecs[field.key] = initialData?.spcf_producto?.[field.key] || '';
     });
     setPresetSpecs(newPresetSpecs);
-  }, [currentPreset, initialData?.spcf_producto]);
+  }, [currentPreset, initialData?.spcf_producto, presetFields.length]);
 
   // Obtener líneas filtradas por categoría seleccionada
   const { data: linesByCategory = [] } = useLinesByCategory(
@@ -256,6 +294,20 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
   // Usar líneas filtradas por categoría si hay una seleccionada, sino todas las líneas
   const availableLines = watchedCategory ? linesByCategory : allLines;
+
+  // Utilidad: eliminar duplicados por id
+  const uniqueById = <T extends Record<string, any>>(items: T[], idKey: string): T[] => {
+    const seen = new Set<string>();
+    return (items || []).filter((item) => {
+      const id = item && item[idKey] != null ? String(item[idKey]) : '';
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+  };
+
+  const uniqueLines = uniqueById(availableLines, 'id_linea');
+  const uniqueSublines = uniqueById(sublinesByLine, 'id_sublinea');
 
   const addTag = () => {
     if (newTag.trim() && !watchedTags.includes(newTag.trim())) {
@@ -288,6 +340,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     console.log('Errors:', errors);
     console.log('Is valid:', isValid);
     
+    // Validar que la sublínea pertenezca a la línea seleccionada
+    if (watchedLine) {
+      const existsInLine = uniqueSublines.some(
+        (s) => String(s.id_sublinea) === String(watchedSubline)
+      );
+      if (!existsInLine) {
+        toast.error('La sublínea seleccionada no pertenece a la línea elegida');
+        return;
+      }
+    }
+
     // Validar campos requeridos del preset
     const requiredFields = presetFields.filter(field => field.required);
     const missingRequiredFields = requiredFields.filter(field => !presetSpecs[field.key]?.trim());
@@ -304,6 +367,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }, {} as Record<string, any>);
 
     // Convertir strings a números para campos numéricos
+    // Normalizar precio quitando puntos
+    const normalizedPrice = String(data.val_precio || '')
+      .toString()
+      .replace(/\./g, '');
+
     const formattedData = {
       ...data,
       // sincronizar descripción corta al campo des_producto para compatibilidad
@@ -316,7 +384,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         ...data.spcf_producto,
         tags: data.tags || [],
       },
-      val_precio: parseFloat(data.val_precio),
+      val_precio: parseFloat(normalizedPrice),
       num_stock: parseInt(data.num_stock),
       id_categoria: parseInt(data.id_categoria),
       id_marca: parseInt(data.id_marca),
@@ -506,13 +574,18 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               <Label htmlFor="id_categoria">Categoría *</Label>
               <Select 
                 value={watch('id_categoria')}
-                onChange={(e) => setValue('id_categoria', e.target.value)}
+                onChange={(e) => {
+                  setValue('id_categoria', e.target.value);
+                  // Al cambiar categoría, reiniciar línea y sublínea
+                  setValue('id_linea', '');
+                  setValue('id_sublinea', '');
+                }}
                 className={errors.id_categoria ? 'border-red-500' : ''}
                 fullWidth
               >
                 <option value="" disabled>Selecciona una categoría</option>
                 {categories.map((category) => (
-                  <option key={category.id_categoria} value={category.id_categoria.toString()}>
+                  <option key={`cat-${category.id_categoria}`} value={category.id_categoria.toString()}>
                     {category.nom_categoria}
                   </option>
                 ))}
@@ -546,7 +619,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           {/* Línea y Sublínea */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="id_linea">Línea *</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="id_linea">Línea *</Label>
+                <span className="text-xs text-muted-foreground">(elige primero la categoría)</span>
+              </div>
               <Select 
                 value={watch('id_linea')}
                 onChange={(e) => {
@@ -555,11 +631,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   setValue('id_sublinea', '');
                 }}
                 className={errors.id_linea ? 'border-red-500' : ''}
+                disabled={!watchedCategory}
                 fullWidth
               >
                 <option value="" disabled>Selecciona una línea</option>
-                {availableLines.map((line) => (
-                  <option key={line.id_linea} value={line.id_linea.toString()}>
+                {uniqueLines.map((line) => (
+                  <option key={`line-${line.id_linea}`} value={line.id_linea.toString()}>
                     {line.nom_linea}
                   </option>
                 ))}
@@ -570,7 +647,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="id_sublinea">Sublínea *</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="id_sublinea">Sublínea *</Label>
+                <span className="text-xs text-muted-foreground">(elige primero la línea)</span>
+              </div>
               <Select 
                 value={watch('id_sublinea')}
                 onChange={(e) => setValue('id_sublinea', e.target.value)}
@@ -579,8 +659,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 fullWidth
               >
                 <option value="" disabled>Selecciona una sublínea</option>
-                {sublinesByLine.map((subline) => (
-                  <option key={subline.id_sublinea} value={subline.id_sublinea.toString()}>
+                {uniqueSublines.map((subline) => (
+                  <option key={`subline-${subline.id_sublinea}`} value={subline.id_sublinea.toString()}>
                     {subline.nom_sublinea}
                   </option>
                 ))}
@@ -626,11 +706,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               <Label htmlFor="val_precio">Precio *</Label>
               <Input
                 id="val_precio"
-                {...register('val_precio')}
-                placeholder="0.00"
-                type="number"
-                step="0.01"
-                min="0"
+                value={watch('val_precio')}
+                onChange={(e) => {
+                  const formatted = formatCurrency(e.target.value);
+                  setValue('val_precio', formatted);
+                }}
+                inputMode="numeric"
+                placeholder="0"
                 className={errors.val_precio ? 'border-red-500' : ''}
               />
               {errors.val_precio && (

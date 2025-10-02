@@ -61,6 +61,15 @@ export function useProduct(slug: string) {
   });
 }
 
+export function useProductAdminDetail(slug: string) {
+  return useQuery({
+    queryKey: [...PRODUCT_KEYS.detail(slug), 'admin'],
+    queryFn: () => productService.getProductAdminDetail(slug),
+    enabled: !!slug,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useCreateProduct() {
   const queryClient = useQueryClient();
   

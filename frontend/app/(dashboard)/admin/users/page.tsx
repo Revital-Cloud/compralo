@@ -19,8 +19,6 @@ const getRoleBadge = (roleId: number) => {
   switch (roleId) {
     case 1:
       return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Admin</Badge>
-    case 3:
-      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Empleado</Badge>
     case 2:
       return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Cliente</Badge>
     default:
@@ -48,14 +46,13 @@ const UsersPage = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
   })
 
-  const users = usersResponse?.items || []
-  const totalUsers = usersResponse?.total || 0
+  const users = usersResponse?.items || usersResponse || []
+  const totalUsers = Array.isArray(usersResponse) ? users.length : (usersResponse?.total || users.length || 0)
 
   // Calcular estadísticas
   const userStats = {
     total: totalUsers,
     customers: users.filter(u => u.id_rol === 2).length,
-    employees: users.filter(u => u.id_rol === 3).length,
     admins: users.filter(u => u.id_rol === 1).length,
     active: users.filter(u => u.ind_activo).length,
     inactive: users.filter(u => !u.ind_activo).length,
@@ -181,12 +178,6 @@ const UsersPage = () => {
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-green-600">{userStats.customers}</div>
             <p className="text-sm text-muted-foreground">Clientes</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-600">{userStats.employees}</div>
-            <p className="text-sm text-muted-foreground">Empleados</p>
           </CardContent>
         </Card>
         <Card>
