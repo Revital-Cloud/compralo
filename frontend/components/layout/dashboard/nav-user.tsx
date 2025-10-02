@@ -1,5 +1,6 @@
 "use client"
 
+import React from 'react'
 import {
   IconCreditCard,
   IconDotsVertical,
@@ -29,17 +30,22 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/hooks/use-auth"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 
 export function NavUser() {
   const { isMobile } = useSidebar()
   const { user, logout, isLoggingOut } = useAuth()
+  const [open, setOpen] = React.useState(false)
 
   const handleLogout = () => {
-    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
-      toast.info('Cerrando sesión...')
-      logout()
-    }
+    setOpen(true)
+  }
+
+  const confirmLogout = () => {
+    toast.info('Cerrando sesión...')
+    logout()
   }
 
   // Si no hay usuario, no mostrar nada
@@ -122,6 +128,21 @@ export function NavUser() {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
+      {/* Dialogo de confirmación de logout */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Cerrar sesión?</DialogTitle>
+            <DialogDescription>
+              Saldrás de tu cuenta y se limpiarán los datos locales.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={confirmLogout}>Cerrar sesión</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </SidebarMenu>
   )
 }

@@ -10,7 +10,7 @@ import { IconDownload } from "@tabler/icons-react"
 import { toast } from "sonner"
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
-import { Pencil, Power, Mail, Calendar, ShoppingBag } from 'lucide-react'
+import { Pencil, Power } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getUsers, toggleUserStatus } from '@/services/user.service'
 import type { User } from '@/types'
@@ -34,6 +34,12 @@ const getStatusBadge = (status: boolean) => {
   )
 }
 
+const getGenderLabel = (ind_genero: boolean | null | undefined) => {
+  if (ind_genero === true) return 'Femenino'
+  if (ind_genero === false) return 'Masculino'
+  return '-'
+}
+
 const UsersPage = () => {
   const queryClient = useQueryClient()
   const { data: usersResponse, isLoading, isError } = useQuery({
@@ -52,10 +58,10 @@ const UsersPage = () => {
   // Calcular estadísticas
   const userStats = {
     total: totalUsers,
-    customers: users.filter(u => u.id_rol === 2).length,
-    admins: users.filter(u => u.id_rol === 1).length,
-    active: users.filter(u => u.ind_activo).length,
-    inactive: users.filter(u => !u.ind_activo).length,
+    customers: users.filter(u => Number((u as any).id_rol) === 2).length,
+    admins: users.filter(u => Number((u as any).id_rol) === 1).length,
+    active: users.filter(u => (u as any).ind_activo).length,
+    inactive: users.filter(u => !(u as any).ind_activo).length,
   }
 
   const handleExportComplete = (filename: string) => {
@@ -69,17 +75,14 @@ const UsersPage = () => {
       cell: ({ row }) => (
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={row.original.img_usuario || undefined} alt={row.original.nom_usuario} />
+            <AvatarImage src={undefined} alt={row.original.nom_usuario} />
             <AvatarFallback>
               {row.original.nom_usuario[0]}{row.original.ape_usuario?.[0] || ''}
             </AvatarFallback>
           </Avatar>
           <div>
             <div className="font-medium">{row.original.nom_usuario} {row.original.ape_usuario}</div>
-            <div className="text-xs text-muted-foreground flex items-center gap-1">
-              <Mail className="h-3 w-3" />
-              {row.original.email_usuario}
-            </div>
+            <div className="text-xs text-muted-foreground">{row.original.email_usuario}</div>
           </div>
         </div>
       ),
@@ -92,22 +95,16 @@ const UsersPage = () => {
       ),
     },
     {
-      accessorKey: 'id_rol',
-      header: 'Rol',
-      cell: ({ row }) => getRoleBadge(row.original.id_rol),
+      accessorKey: 'ind_genero',
+      header: 'Género',
+      cell: ({ row }) => (
+        <span className="text-sm">{getGenderLabel(row.original.ind_genero as unknown as boolean | null | undefined)}</span>
+      ),
     },
     {
-      accessorKey: 'fec_insert',
-      header: 'Registro',
-      cell: ({ row }) => {
-        const date = row.original.fec_insert;
-        return (
-          <div className="flex items-center gap-1 text-sm">
-            <Calendar className="h-3 w-3" />
-            {date ? new Date(date).toLocaleDateString('es-ES') : '-'}
-          </div>
-        );
-      },
+      accessorKey: 'id_rol',
+      header: 'Rol',
+      cell: ({ row }) => getRoleBadge(Number((row.original as any).id_rol)),
     },
     {
       accessorKey: 'ind_activo',
