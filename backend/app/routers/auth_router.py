@@ -372,11 +372,20 @@ async def reset_password(
         
     Security:
         - Verifica token JWT específico de reset
-        - Token se usa una sola vez
+        - Token se usa una sola vez (blacklist)
         - Hash seguro de la nueva contraseña
         - Email de confirmación
     """
     try:
+        # Verificar si el token ya fue usado
+        from core.token_blacklist import is_token_blacklisted, add_token_to_blacklist
+        
+        if is_token_blacklisted(reset_data.token):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Este enlace de restablecimiento ya fue utilizado. Solicita uno nuevo."
+            )
+        
         # Verificar token de reset
         from core.jwt_utils import verify_password_reset_token
         payload = verify_password_reset_token(reset_data.token)
@@ -398,6 +407,9 @@ async def reset_password(
         
         # Actualizar contraseña en BD
         user_service.update_password(db, user_id, hashed_password)
+        
+        # Agregar token a blacklist para evitar reutilización
+        add_token_to_blacklist(reset_data.token)
         
         # Enviar email de confirmación
         from services.email_service import send_password_changed_email
