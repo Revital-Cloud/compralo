@@ -245,8 +245,8 @@ export function RegisterForm() {
                           <Button
                             variant={"outline"}
                             className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
+                              "w-full pl-3 text-left font-normal hover:bg-accent/50 dark:hover:bg-accent/20 dark:hover:text-white",
+                              !field.value && "text-muted-foreground dark:text-white/90"
                             )}
                             disabled={isLoading}
                           >

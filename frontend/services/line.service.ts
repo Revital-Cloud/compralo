@@ -29,6 +29,14 @@ class LineService {
   async deactivateSubline(idCategoria: number, idLinea: number, idSublinea: number): Promise<{ message: string }> {
     return apiWrapper.put(`/sublines/${idCategoria}-${idLinea}-${idSublinea}/deactivate`, {});
   }
+
+  async createLine(payload: { id_categoria: number; nom_linea: string; desc_linea?: string; ind_activo?: boolean }): Promise<Line> {
+    return apiWrapper.post(`/lines`, payload);
+  }
+
+  async createSubline(payload: { id_categoria: number; id_linea: number; nom_sublinea: string; ind_activo?: boolean }): Promise<{ message: string }> {
+    return apiWrapper.post(`/sublines`, payload);
+  }
 }
 
 export const lineService = new LineService();

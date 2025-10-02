@@ -17,6 +17,10 @@ class BrandService {
   async deactivateBrand(brandId: number): Promise<{ message: string }> {
     return apiWrapper.put(`/brands/${brandId}/deactivate`, {});
   }
+
+  async createBrand(payload: { nom_marca: string; des_marca?: string; ind_activo?: boolean }): Promise<Brand> {
+    return apiWrapper.post(`/brands`, payload);
+  }
 }
 
 export const brandService = new BrandService();

@@ -148,6 +148,39 @@
   }
 }
 
+/* Fix: texto invisible en los selects nativos de react-day-picker (mes/año)
+   En Windows/Chrome el popup del <select> usa el color del elemento.
+   Forzamos color y fondo para que los items sean legibles en dark y light. */
+[data-slot=calendar] .rdp-caption select,
+.rdp-caption select {
+  color: var(--foreground);
+  background-color: var(--popover);
+  /* Forzar esquema oscuro del popup nativo en Windows/Chrome */
+  color-scheme: var(--color-scheme, light);
+  forced-color-adjust: none;
+}
+
+[data-slot=calendar] .rdp-caption select option,
+.rdp-caption select option {
+  color: var(--foreground);
+  background-color: var(--popover);
+}
+
+/* Ajustar esquema automáticamente según tema */
+:root { --color-scheme: light; }
+.dark { --color-scheme: dark; }
+
+/* Reglas explícitas para dark mode del popup nativo */
+.dark [data-slot=calendar] .rdp-caption select,
+.dark .rdp-caption select {
+  color-scheme: dark;
+}
+.dark [data-slot=calendar] .rdp-caption select option,
+.dark .rdp-caption select option {
+  color: #ffffff;
+  background-color: #0f1629;
+}
+
 /* Hide spin buttons on number inputs */
 /* Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,

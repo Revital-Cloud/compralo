@@ -12,14 +12,14 @@ type NativeSelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & {
 const Select = React.forwardRef<HTMLSelectElement, NativeSelectProps>(
   ({ className, sizeVariant = "default", fullWidth = false, children, ...props }, ref) => {
     return (
-      <div className="relative">
+      <div className={cn("relative", fullWidth && "w-full")}> 
         <select
           ref={ref}
           data-slot="select-native"
           className={cn(
             "appearance-none border-input data-[placeholder]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive dark:bg-input/30 dark:hover:bg-input/50 rounded-md border bg-transparent text-sm shadow-xs transition-all duration-200 outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
-            sizeVariant === "default" ? "h-10 px-3 py-2" : "h-8 px-2.5 py-1.5",
-            fullWidth ? "w-full" : "w-[140px] sm:w-[180px]",
+            sizeVariant === "default" ? "h-10 pl-3 pr-8 py-2" : "h-8 pl-2.5 pr-8 py-1.5",
+            "w-full",
             "hover:border-ring/50 focus:border-ring",
             className
           )}

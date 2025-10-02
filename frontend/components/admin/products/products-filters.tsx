@@ -1,22 +1,9 @@
 'use client';
 
-import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Select } from "@/components/ui/select";
-import {
-  IconSearch,
-  IconFilter,
-  IconX,
-  IconSortAscending,
-  IconSortDescending,
-  IconId,
-  IconList,
-  IconLoader2
-} from "@tabler/icons-react";
+import React, { useMemo } from 'react';
+import { UniversalFilters } from '@/components/ui/universal-filters';
 import { useFilterOptions } from '@/hooks/use-filter-options';
+import { FilterConfig, SortOption, StockStats } from '@/types/filters';
 
 interface ProductsFiltersProps {
   search: string;
@@ -62,7 +49,9 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
   products
 }) => {
   const { data: filterOptions, isLoading } = useFilterOptions();
-  const sortOptions = [
+
+  // Opciones de ordenamiento
+  const sortOptions: SortOption[] = [
     { value: 'nombre', label: 'Nombre' },
     { value: 'precio', label: 'Precio' },
     { value: 'stock', label: 'Stock' },
@@ -71,272 +60,92 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
     { value: 'marca', label: 'Marca' }
   ];
 
+  // Verificar si hay filtros activos
   const hasActiveFilters = search || category || brand || line || subline || provider || sortBy !== 'nombre' || sortOrder !== 'ASC';
 
   // Calcular estadísticas de stock
-  const stockStats = products.reduce((acc, product) => {
-    const stock = product.num_stock || 0;
-    if (stock === 0) {
-      acc.sinStock++;
-    } else if (stock <= 10) {
-      acc.stockBajo++;
-    } else {
-      acc.enStock++;
+  const stockStats: StockStats = useMemo(() => {
+    return products.reduce((acc, product) => {
+      const stock = product.num_stock || 0;
+      if (stock === 0) {
+        acc.sinStock++;
+      } else if (stock <= 10) {
+        acc.stockBajo++;
+      } else {
+        acc.enStock++;
+      }
+      return acc;
+    }, { enStock: 0, stockBajo: 0, sinStock: 0 });
+  }, [products]);
+
+  // Configurar filtros dinámicos
+  const filters: FilterConfig[] = [
+    {
+      id: 'category',
+      label: 'Categoría',
+      type: 'select',
+      value: category,
+      onChange: onCategoryChange,
+      options: filterOptions?.categories || [],
+      isLoading
+    },
+    {
+      id: 'line',
+      label: 'Línea',
+      type: 'select',
+      value: line,
+      onChange: onLineChange,
+      options: filterOptions?.lines || [],
+      isLoading
+    },
+    {
+      id: 'subline',
+      label: 'Sublínea',
+      type: 'select',
+      value: subline,
+      onChange: onSublineChange,
+      options: filterOptions?.sublines || [],
+      isLoading
+    },
+    {
+      id: 'brand',
+      label: 'Marca',
+      type: 'select',
+      value: brand,
+      onChange: onBrandChange,
+      options: filterOptions?.brands || [],
+      isLoading
+    },
+    {
+      id: 'provider',
+      label: 'Proveedor',
+      type: 'select',
+      value: provider,
+      onChange: onProviderChange,
+      options: filterOptions?.providers || [],
+      isLoading
     }
-    return acc;
-  }, { enStock: 0, stockBajo: 0, sinStock: 0 });
+  ];
 
   return (
-    <div className="space-y-2">
-      {/* Header compacto */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <IconFilter className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold">Filtros</h3>
-          <Badge variant="secondary" className="text-xs">
-            {totalResults} productos
-          </Badge>
-        </div>
-        
-        <div className="flex items-center space-x-1">
-          <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-100 text-xs">
-            En Stock: {stockStats.enStock}
-          </Badge>
-          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 text-xs">
-            Stock Bajo: {stockStats.stockBajo}
-          </Badge>
-          <Badge variant="destructive" className="bg-red-100 hover:bg-red-100 text-xs text-white">
-            Sin Stock: {stockStats.sinStock}
-          </Badge>
-        </div>
-      </div>
-
-      {/* Filtros compactos */}
-      <Card>
-        <CardContent className="p-3">
-          <div className="space-y-2">
-            {/* Primera fila: Búsqueda y filtros principales */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-2">
-              {/* Búsqueda */}
-              <div className="space-y-1">
-                <label className="text-xs font-medium">Buscar</label>
-                <div className="relative">
-                  <IconSearch className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                  <Input
-                    placeholder="Nombre del producto..."
-                    value={search}
-                    onChange={(e) => onSearchChange(e.target.value)}
-                    className="pl-7 h-7 text-xs"
-                  />
-                </div>
-              </div>
-
-              {/* Categoría */}
-              <div className="space-y-1">
-                <label className="text-xs font-medium">Categoría</label>
-                <Select 
-                  value={category || "all"} 
-                  onChange={(e) => onCategoryChange(e.target.value === "all" ? "" : e.target.value)}
-                  className="h-7 text-xs"
-                  sizeVariant="sm"
-                >
-                  <option value="all">Todas las categorías</option>
-                  {isLoading ? (
-                    <option value="loading" disabled>
-                      Cargando...
-                    </option>
-                  ) : (
-                    filterOptions?.categories?.map((cat, idx) => (
-                      <option key={`cat-${cat.id ?? idx}`} value={String(cat.id)}>
-                        {cat.nombre}
-                      </option>
-                    )) || []
-                  )}
-                </Select>
-              </div>
-
-              {/* Línea */}
-              <div className="space-y-1">
-                <label className="text-xs font-medium">Línea</label>
-                <Select 
-                  value={line || "all"} 
-                  onChange={(e) => onLineChange(e.target.value === "all" ? "" : e.target.value)}
-                  className="h-7 text-xs"
-                  sizeVariant="sm"
-                >
-                  <option value="all">Todas las líneas</option>
-                  {isLoading ? (
-                    <option value="loading" disabled>
-                      Cargando...
-                    </option>
-                  ) : (
-                    filterOptions?.lines?.map((line, idx) => (
-                      <option key={`line-${line.id ?? idx}`} value={String(line.id)}>
-                        {line.nombre}
-                      </option>
-                    )) || []
-                  )}
-                </Select>
-              </div>
-
-              {/* Sublínea */}
-              <div className="space-y-1">
-                <label className="text-xs font-medium">Sublínea</label>
-                <Select 
-                  value={subline || "all"} 
-                  onChange={(e) => onSublineChange(e.target.value === "all" ? "" : e.target.value)}
-                  className="h-7 text-xs"
-                  sizeVariant="sm"
-                >
-                  <option value="all">Todas las sublíneas</option>
-                  {isLoading ? (
-                    <option value="loading" disabled>
-                      Cargando...
-                    </option>
-                  ) : (
-                    filterOptions?.sublines?.map((subline, idx) => (
-                      <option key={`subline-${subline.id ?? idx}`} value={String(subline.id)}>
-                        {subline.nombre}
-                      </option>
-                    )) || []
-                  )}
-                </Select>
-              </div>
-
-              {/* Marca */}
-              <div className="space-y-1">
-                <label className="text-xs font-medium">Marca</label>
-                <Select 
-                  value={brand || "all"} 
-                  onChange={(e) => onBrandChange(e.target.value === "all" ? "" : e.target.value)}
-                  className="h-7 text-xs"
-                  sizeVariant="sm"
-                >
-                  <option value="all">Todas las marcas</option>
-                  {isLoading ? (
-                    <option value="loading" disabled>
-                      Cargando...
-                    </option>
-                  ) : (
-                    filterOptions?.brands?.map((brand, idx) => (
-                      <option key={`brand-${brand.id ?? idx}`} value={String(brand.id)}>
-                        {brand.nombre}
-                      </option>
-                    )) || []
-                  )}
-                </Select>
-              </div>
-
-              {/* Proveedor */}
-              <div className="space-y-1">
-                <label className="text-xs font-medium">Proveedor</label>
-                <Select 
-                  value={provider || "all"} 
-                  onChange={(e) => onProviderChange(e.target.value === "all" ? "" : e.target.value)}
-                  className="h-7 text-xs"
-                  sizeVariant="sm"
-                >
-                  <option value="all">Todos los proveedores</option>
-                  {isLoading ? (
-                    <option value="loading" disabled>
-                      Cargando...
-                    </option>
-                  ) : (
-                    filterOptions?.providers?.map((provider, idx) => (
-                      <option key={`provider-${provider.id ?? idx}`} value={String(provider.id)}>
-                        {provider.nombre}
-                      </option>
-                    )) || []
-                  )}
-                </Select>
-              </div>
-            </div>
-
-            {/* Segunda fila: Ordenamiento y controles */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                {/* Ordenar por */}
-                <div className="flex items-center space-x-1">
-                  <label className="text-xs font-medium">Ordenar:</label>
-                  <Select 
-                    value={sortBy} 
-                    onChange={(e) => onSortByChange(e.target.value)}
-                    className="h-7 text-xs w-32"
-                    sizeVariant="sm"
-                  >
-                    {sortOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
-
-                {/* Botón de orden */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onSortOrderChange(sortOrder === 'ASC' ? 'DESC' : 'ASC')}
-                  className="h-7 px-2 text-xs"
-                >
-                  {sortOrder === 'ASC' ? (
-                    <IconSortAscending className="h-3 w-3" />
-                  ) : (
-                    <IconSortDescending className="h-3 w-3" />
-                  )}
-                </Button>
-
-                {/* Filtros activos */}
-                {hasActiveFilters && (
-                  <div className="flex items-center space-x-1">
-                    <span className="text-xs text-muted-foreground">Activos:</span>
-                    {search && (
-                      <Badge variant="secondary" className="text-xs">
-                        {search}
-                      </Badge>
-                    )}
-                    {category && (
-                      <Badge variant="secondary" className="text-xs">
-                        Cat: {filterOptions?.categories.find(c => c.id === category)?.nombre || category}
-                      </Badge>
-                    )}
-                    {brand && (
-                      <Badge variant="secondary" className="text-xs">
-                        Marca: {filterOptions?.brands.find(b => b.id === brand)?.nombre || brand}
-                      </Badge>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-1">
-                {/* Botón de limpiar filtros */}
-                {hasActiveFilters && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onClearFilters}
-                    className="text-muted-foreground hover:text-foreground h-7 px-2 text-xs"
-                  >
-                    <IconX className="h-3 w-3 mr-1" />
-                    Limpiar
-                  </Button>
-                )}
-
-                {/* Botones de vista */}
-                <div className="flex items-center border rounded">
-                  <Button variant="default" size="sm" className="rounded-r-none h-7 px-2">
-                    <IconId className="h-3 w-3" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="rounded-l-none h-7 px-2">
-                    <IconList className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <UniversalFilters
+      title="Filtros"
+      searchValue={search}
+      onSearchChange={onSearchChange}
+      searchPlaceholder="Nombre del producto..."
+      filters={filters}
+      sortBy={sortBy}
+      onSortByChange={onSortByChange}
+      sortOrder={sortOrder}
+      onSortOrderChange={onSortOrderChange}
+      sortOptions={sortOptions}
+      stockStats={stockStats}
+      totalResults={totalResults}
+      onClearFilters={onClearFilters}
+      hasActiveFilters={hasActiveFilters}
+      showStockBadges={true}
+      showTotalResults={true}
+      compact={true}
+    />
   );
 };
