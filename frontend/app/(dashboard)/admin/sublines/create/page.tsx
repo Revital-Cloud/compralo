@@ -56,8 +56,8 @@ const CreateSublinePage = () => {
               <Label htmlFor="id_categoria">Categoría</Label>
               <select id="id_categoria" className="w-full border rounded-md h-9 px-3 text-sm" value={idCategoria as any} onChange={(e) => { setIdCategoria(e.target.value ? Number(e.target.value) : ('' as any)); setIdLinea('' as any); }}>
                 <option value="">Seleccione</option>
-                {categories.map((c: any) => (
-                  <option key={c.id_categoria} value={c.id_categoria}>{c.nom_categoria}</option>
+                {categories.map((c: any, idx: number) => (
+                  <option key={`cat-${c.id_categoria}-${idx}`} value={c.id_categoria}>{c.nom_categoria}</option>
                 ))}
               </select>
             </div>
@@ -66,8 +66,8 @@ const CreateSublinePage = () => {
               <Label htmlFor="id_linea">Línea</Label>
               <select id="id_linea" className="w-full border rounded-md h-9 px-3 text-sm" value={idLinea as any} onChange={(e) => setIdLinea(e.target.value ? Number(e.target.value) : ('' as any))} disabled={!idCategoria}>
                 <option value="">Seleccione</option>
-                {Array.isArray(lines) && lines.map((l: any) => (
-                  <option key={l.id_linea} value={l.id_linea}>{l.nom_linea}</option>
+                {Array.isArray(lines) && lines.map((l: any, idx: number) => (
+                  <option key={`line-${l.id_categoria}-${l.id_linea}-${idx}`} value={l.id_linea}>{l.nom_linea}</option>
                 ))}
               </select>
             </div>

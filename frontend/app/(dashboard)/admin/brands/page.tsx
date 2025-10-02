@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo, useState } from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { EmptyState } from '@/components/admin/empty-states'
 import { useAllBrands } from '@/hooks/use-brands'
@@ -11,6 +11,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Pencil, Power } from 'lucide-react'
+import { BrandsFilters } from '@/components/admin/brands/brands-filters'
 
 interface Brand {
   id_marca: number
@@ -24,6 +25,39 @@ interface Brand {
 const BrandsPage = () => {
   const queryClient = useQueryClient()
   const { data, isLoading, isError } = useAllBrands()
+
+  // Filtros locales
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'nombre' | 'fecha'>('nombre')
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC')
+
+  const clearFilters = () => {
+    setSearch('')
+    setSortBy('nombre')
+    setSortOrder('ASC')
+  }
+
+  const filteredData = useMemo(() => {
+    if (!Array.isArray(data)) return []
+    let rows = data as Brand[]
+    if (search) {
+      const q = search.toLowerCase()
+      rows = rows.filter(r => r.nom_marca?.toLowerCase().includes(q))
+    }
+    rows = [...rows].sort((a, b) => {
+      let va: any, vb: any
+      if (sortBy === 'fecha') {
+        va = a.fec_insert || ''
+        vb = b.fec_insert || ''
+      } else {
+        va = a.nom_marca || ''
+        vb = b.nom_marca || ''
+      }
+      const cmp = String(va).localeCompare(String(vb))
+      return sortOrder === 'ASC' ? cmp : -cmp
+    })
+    return rows
+  }, [data, search, sortBy, sortOrder])
 
   const deactivateMutation = useMutation({
     mutationFn: (id_marca: number) => brandService.deactivateBrand(id_marca),
@@ -121,6 +155,18 @@ const BrandsPage = () => {
         createLabel="Agregar Marca"
       />
 
+      {/* Filtros */}
+      <BrandsFilters
+        search={search}
+        onSearchChange={setSearch}
+        sortBy={sortBy}
+        onSortByChange={(v) => setSortBy(v as any)}
+        sortOrder={sortOrder}
+        onSortOrderChange={setSortOrder}
+        onClearFilters={clearFilters}
+        totalResults={Array.isArray(filteredData) ? filteredData.length : 0}
+      />
+
       {isLoading && (
         <div className="text-sm text-muted-foreground">Cargando marcas...</div>
       )}
@@ -139,10 +185,10 @@ const BrandsPage = () => {
         />
       )}
 
-      {!isLoading && !isError && Array.isArray(data) && data.length > 0 && (
+      {!isLoading && !isError && Array.isArray(filteredData) && filteredData.length > 0 && (
         <DataTable 
           columns={[...columns, ...actions]} 
-          data={data}
+          data={filteredData}
           pageSize={10}
         />
       )}

@@ -9,6 +9,8 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Pencil, Power } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { CategoriesFilters } from '@/components/admin/categories/categories-filters'
 import type { Category } from '@/types/category'
 
 const CategoriesPage = () => {
@@ -17,6 +19,39 @@ const CategoriesPage = () => {
     queryKey: ['categories', 'all'],
     queryFn: getAllCategories,
   })
+
+  // Filtros locales
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'nombre' | 'fecha'>('nombre')
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC')
+
+  const clearFilters = () => {
+    setSearch('')
+    setSortBy('nombre')
+    setSortOrder('ASC')
+  }
+
+  const filteredData = useMemo(() => {
+    if (!Array.isArray(data)) return []
+    let rows = data as unknown as Category[]
+    if (search) {
+      const q = search.toLowerCase()
+      rows = rows.filter(r => r.nom_categoria?.toLowerCase().includes(q))
+    }
+    rows = [...rows].sort((a, b) => {
+      let va: any, vb: any
+      if (sortBy === 'fecha') {
+        va = (a as any).fec_insert || ''
+        vb = (b as any).fec_insert || ''
+      } else {
+        va = (a as any).nom_categoria || ''
+        vb = (b as any).nom_categoria || ''
+      }
+      const cmp = String(va).localeCompare(String(vb))
+      return sortOrder === 'ASC' ? cmp : -cmp
+    })
+    return rows
+  }, [data, search, sortBy, sortOrder])
 
   const deactivateMutation = useMutation({
     mutationFn: (id_categoria: number) => deactivateCategory(id_categoria),
@@ -105,6 +140,18 @@ const CategoriesPage = () => {
         createLabel="Agregar Categoría"
       />
 
+      {/* Filtros */}
+      <CategoriesFilters
+        search={search}
+        onSearchChange={setSearch}
+        sortBy={sortBy}
+        onSortByChange={(v) => setSortBy(v as any)}
+        sortOrder={sortOrder}
+        onSortOrderChange={setSortOrder}
+        onClearFilters={clearFilters}
+        totalResults={Array.isArray(filteredData) ? filteredData.length : 0}
+      />
+
       {isLoading && (
         <div className="text-sm text-muted-foreground">Cargando categorías...</div>
       )}
@@ -123,10 +170,10 @@ const CategoriesPage = () => {
         />
       )}
 
-      {!isLoading && !isError && Array.isArray(data) && data.length > 0 && (
+      {!isLoading && !isError && Array.isArray(filteredData) && filteredData.length > 0 && (
         <DataTable 
           columns={[...columns, ...actions]} 
-          data={data as unknown as Category[]}
+          data={filteredData as unknown as Category[]}
           pageSize={10}
         />
       )}

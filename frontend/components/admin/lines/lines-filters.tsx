@@ -47,7 +47,7 @@ export const LinesFilters: React.FC<LinesFiltersProps> = ({
       type: 'select',
       value: category,
       onChange: onCategoryChange,
-      options: categories?.map(cat => ({ id: cat.id_categoria, nombre: cat.nom_categoria })) || [],
+      options: (categories || []).map((cat: any) => ({ id: `${cat.id}`, nombre: `${cat.name}`, label: `${cat.name} (ID: ${cat.id})` })),
       isLoading: categoriesLoading
     }
   ];

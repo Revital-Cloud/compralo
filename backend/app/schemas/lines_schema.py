@@ -43,6 +43,8 @@ class Line(LineBase):
     al mostrar una línea específica. Incluye todos los campos de `LineBase`.
     """
     id_linea: Decimal
+    # Campos enriquecidos para mostrar en el frontend
+    nom_categoria: Optional[str] = None
         
 # Esquema para la Creación de Líneas
 class LineCreate(LineBase):

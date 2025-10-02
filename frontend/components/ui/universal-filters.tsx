@@ -65,8 +65,8 @@ export const UniversalFilters: React.FC<UniversalFiltersProps> = ({
               {filter.isLoading ? 'Cargando...' : `Todos los ${filter.label.toLowerCase()}`}
             </option>
             {!filter.isLoading && filter.options?.map((option, idx) => (
-              <option key={`${filter.id}-${option.id ?? idx}`} value={String(option.id)}>
-                {option.nombre || option.label}
+              <option key={`${filter.id}-${String(option.id)}-${idx}`} value={String(option.id)}>
+                {option.label || option.nombre}
               </option>
             ))}
           </Select>

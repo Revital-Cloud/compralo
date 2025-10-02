@@ -3,7 +3,7 @@
 import React from 'react';
 import { UniversalFilters } from '@/components/ui/universal-filters';
 import { useCategories } from '@/hooks/use-categories';
-import { useLines } from '@/hooks/use-lines';
+import { useAllLines, useLinesByCategory } from '@/hooks/use-lines';
 import { FilterConfig, SortOption } from '@/types/filters';
 
 interface SublinesFiltersProps {
@@ -36,7 +36,11 @@ export const SublinesFilters: React.FC<SublinesFiltersProps> = ({
   totalResults
 }) => {
   const { data: categories, isLoading: categoriesLoading } = useCategories();
-  const { data: lines, isLoading: linesLoading } = useLines();
+  const { data: allLines, isLoading: allLinesLoading } = useAllLines();
+  const catId = Number(category) || 0;
+  const { data: linesByCat, isLoading: linesByCatLoading } = useLinesByCategory(catId);
+  const lines = catId ? linesByCat : allLines;
+  const linesLoading = catId ? linesByCatLoading : allLinesLoading;
 
   const sortOptions: SortOption[] = [
     { value: 'nombre', label: 'Nombre' },
@@ -54,7 +58,7 @@ export const SublinesFilters: React.FC<SublinesFiltersProps> = ({
       type: 'select',
       value: category,
       onChange: onCategoryChange,
-      options: categories?.map(cat => ({ id: cat.id_categoria, nombre: cat.nom_categoria })) || [],
+      options: (categories || []).map((cat: any) => ({ id: `${cat.id}`, nombre: `${cat.name}`, label: `${cat.name} (ID: ${cat.id})` })),
       isLoading: categoriesLoading
     },
     {
@@ -63,7 +67,7 @@ export const SublinesFilters: React.FC<SublinesFiltersProps> = ({
       type: 'select',
       value: line,
       onChange: onLineChange,
-      options: lines?.map(l => ({ id: l.id_linea, nombre: l.nom_linea })) || [],
+      options: (lines as any)?.map((l: any) => ({ id: `${(l as any).id_categoria}-${l.id_linea}`, nombre: `${l.nom_linea}`, label: `${l.nom_linea} — Cat ${ (l as any).id_categoria }` })) || [],
       isLoading: linesLoading
     }
   ];

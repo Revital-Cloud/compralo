@@ -10,10 +10,56 @@ import { lineService } from '@/services/line.service'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Pencil, Power } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { LinesFilters } from '@/components/admin/lines/lines-filters'
 
 const LinesPage = () => {
   const queryClient = useQueryClient()
   const { data, isLoading, isError } = useAllLines()
+
+  // Filtros locales
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'nombre' | 'categoria' | 'fecha'>('nombre')
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC')
+  const [category, setCategory] = useState('')
+
+  const clearFilters = () => {
+    setSearch('')
+    setSortBy('nombre')
+    setSortOrder('ASC')
+    setCategory('')
+  }
+
+  const filteredData = useMemo(() => {
+    if (!Array.isArray(data)) return []
+    let rows = data as unknown as Line[]
+    if (search) {
+      const q = search.toLowerCase()
+      rows = rows.filter(r => (
+        (r as any).nom_linea?.toLowerCase().includes(q) ||
+        String((r as any).id_categoria).includes(q)
+      ))
+    }
+    if (category) {
+      rows = rows.filter(r => String((r as any).id_categoria) === String(category))
+    }
+    rows = [...rows].sort((a, b) => {
+      let va: any, vb: any
+      if (sortBy === 'fecha') {
+        va = (a as any).fec_insert || ''
+        vb = (b as any).fec_insert || ''
+      } else if (sortBy === 'categoria') {
+        va = (a as any).nom_categoria || ''
+        vb = (b as any).nom_categoria || ''
+      } else {
+        va = (a as any).nom_linea || ''
+        vb = (b as any).nom_linea || ''
+      }
+      const cmp = String(va).localeCompare(String(vb))
+      return sortOrder === 'ASC' ? cmp : -cmp
+    })
+    return rows
+  }, [data, search, category, sortBy, sortOrder])
 
   const activateMutation = useMutation({
     mutationFn: async (params: { id_categoria: number; id_linea: number; nom_linea: string }) => {
@@ -46,6 +92,15 @@ const LinesPage = () => {
     {
       accessorKey: 'nom_linea',
       header: 'Nombre',
+    },
+    {
+      id: 'categoria',
+      header: 'Categoría',
+      accessorFn: (row) => (row as any).nom_categoria || String((row as any).id_categoria || ''),
+      cell: ({ getValue }) => (
+        <span className="text-sm text-muted-foreground">{String(getValue() || '')}</span>
+      ),
+      enableSorting: true,
     },
     {
       accessorKey: 'fec_insert',
@@ -124,6 +179,20 @@ const LinesPage = () => {
         createLabel="Agregar Línea"
       />
 
+      {/* Filtros */}
+      <LinesFilters
+        search={search}
+        onSearchChange={setSearch}
+        sortBy={sortBy}
+        onSortByChange={(v) => setSortBy(v as any)}
+        sortOrder={sortOrder}
+        onSortOrderChange={setSortOrder}
+        category={category}
+        onCategoryChange={setCategory}
+        onClearFilters={clearFilters}
+        totalResults={Array.isArray(filteredData) ? filteredData.length : 0}
+      />
+
       {isLoading && (
         <div className="text-sm text-muted-foreground">Cargando líneas...</div>
       )}
@@ -142,10 +211,10 @@ const LinesPage = () => {
         />
       )}
 
-      {!isLoading && !isError && Array.isArray(data) && data.length > 0 && (
+      {!isLoading && !isError && Array.isArray(filteredData) && filteredData.length > 0 && (
         <DataTable 
           columns={[...columns, ...actions]} 
-          data={data} 
+          data={filteredData} 
           pageSize={10}
         />
       )}

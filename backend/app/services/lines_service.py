@@ -9,15 +9,17 @@ def get_lines(db: Session):
     try:
         query = text("""
         SELECT 
-            id_categoria,
-            id_linea,
-            nom_linea,
-            ind_activo,
-            usr_insert,
-            fec_insert,
-            usr_update,
-            fec_update
-        FROM tab_lineas
+            l.id_categoria,
+            l.id_linea,
+            l.nom_linea,
+            c.nom_categoria,
+            l.ind_activo,
+            l.usr_insert,
+            l.fec_insert,
+            l.usr_update,
+            l.fec_update
+        FROM tab_lineas l
+        LEFT JOIN tab_categorias c ON c.id_categoria = l.id_categoria
         """)
         result = db.execute(query)
         return result.mappings().all()
@@ -108,16 +110,18 @@ def get_lines_by_category(db: Session, id_categoria: Decimal):
     try:
         query = text("""
         SELECT 
-            id_categoria,
-            id_linea,
-            nom_linea,
-            ind_activo,
-            usr_insert,
-            fec_insert,
-            usr_update,
-            fec_update
-        FROM tab_lineas
-        WHERE id_categoria = :id_categoria AND ind_activo = true
+            l.id_categoria,
+            l.id_linea,
+            l.nom_linea,
+            c.nom_categoria,
+            l.ind_activo,
+            l.usr_insert,
+            l.fec_insert,
+            l.usr_update,
+            l.fec_update
+        FROM tab_lineas l
+        LEFT JOIN tab_categorias c ON c.id_categoria = l.id_categoria
+        WHERE l.id_categoria = :id_categoria AND l.ind_activo = true
         """)
         result = db.execute(query, {"id_categoria": id_categoria})
         return result.mappings().all()
@@ -132,16 +136,18 @@ def get_line(db: Session, id_linea: Decimal):
     try:
         query = text("""
         SELECT 
-            id_categoria,
-            id_linea,
-            nom_linea,
-            ind_activo,
-            usr_insert,
-            fec_insert,
-            usr_update,
-            fec_update
-        FROM tab_lineas
-        WHERE id_linea = :id_linea AND ind_activo = true
+            l.id_categoria,
+            l.id_linea,
+            l.nom_linea,
+            c.nom_categoria,
+            l.ind_activo,
+            l.usr_insert,
+            l.fec_insert,
+            l.usr_update,
+            l.fec_update
+        FROM tab_lineas l
+        LEFT JOIN tab_categorias c ON c.id_categoria = l.id_categoria
+        WHERE l.id_linea = :id_linea AND l.ind_activo = true
         """)
         result = db.execute(query, {"id_linea": id_linea})
         line = result.mappings().first()

@@ -13,16 +13,20 @@ def get_sublines(db:Session):
     try:
         query = text("""
         SELECT
-            id_categoria,
-            id_linea,
-            id_sublinea,
-            nom_sublinea,
-            ind_activo,
-            usr_insert,
-            fec_insert,
-            usr_update,
-            fec_update
-        FROM tab_sublineas
+            s.id_categoria,
+            s.id_linea,
+            s.id_sublinea,
+            s.nom_sublinea,
+            c.nom_categoria,
+            l.nom_linea,
+            s.ind_activo,
+            s.usr_insert,
+            s.fec_insert,
+            s.usr_update,
+            s.fec_update
+        FROM tab_sublineas s
+        LEFT JOIN tab_lineas l ON l.id_linea = s.id_linea AND l.id_categoria = s.id_categoria
+        LEFT JOIN tab_categorias c ON c.id_categoria = s.id_categoria
         """)
         result = db.execute(query)
         return result.mappings().all()
@@ -130,17 +134,21 @@ def get_sublines_by_line(db: Session, id_linea: Decimal):
     try:
         query = text("""
         SELECT
-            id_categoria,
-            id_linea,
-            id_sublinea,
-            nom_sublinea,
-            ind_activo,
-            usr_insert,
-            fec_insert,
-            usr_update,
-            fec_update
-        FROM tab_sublineas
-        WHERE id_linea = :id_linea AND ind_activo = true
+            s.id_categoria,
+            s.id_linea,
+            s.id_sublinea,
+            s.nom_sublinea,
+            c.nom_categoria,
+            l.nom_linea,
+            s.ind_activo,
+            s.usr_insert,
+            s.fec_insert,
+            s.usr_update,
+            s.fec_update
+        FROM tab_sublineas s
+        LEFT JOIN tab_lineas l ON l.id_linea = s.id_linea AND l.id_categoria = s.id_categoria
+        LEFT JOIN tab_categorias c ON c.id_categoria = s.id_categoria
+        WHERE s.id_linea = :id_linea AND s.ind_activo = true
         """)
         result = db.execute(query, {"id_linea": id_linea})
         return result.mappings().all()
@@ -155,17 +163,21 @@ def get_subline(db: Session, id_sublinea: Decimal):
     try:
         query = text("""
         SELECT
-            id_categoria,
-            id_linea,
-            id_sublinea,
-            nom_sublinea,
-            ind_activo,
-            usr_insert,
-            fec_insert,
-            usr_update,
-            fec_update
-        FROM tab_sublineas
-        WHERE id_sublinea = :id_sublinea AND ind_activo = true
+            s.id_categoria,
+            s.id_linea,
+            s.id_sublinea,
+            s.nom_sublinea,
+            c.nom_categoria,
+            l.nom_linea,
+            s.ind_activo,
+            s.usr_insert,
+            s.fec_insert,
+            s.usr_update,
+            s.fec_update
+        FROM tab_sublineas s
+        LEFT JOIN tab_lineas l ON l.id_linea = s.id_linea AND l.id_categoria = s.id_categoria
+        LEFT JOIN tab_categorias c ON c.id_categoria = s.id_categoria
+        WHERE s.id_sublinea = :id_sublinea AND s.ind_activo = true
         """)
         result = db.execute(query, {"id_sublinea": id_sublinea})
         subline = result.mappings().first()

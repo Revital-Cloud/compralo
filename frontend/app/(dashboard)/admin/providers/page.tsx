@@ -21,6 +21,9 @@ interface Provider {
   ind_activo?: boolean
 }
 
+import React, { useMemo, useState } from 'react'
+import { ProvidersFilters } from '@/components/admin/providers/providers-filters'
+
 const ProvidersPage = () => {
   const queryClient = useQueryClient()
   const { data, isLoading, isError } = useAllProviders()
@@ -116,6 +119,39 @@ const ProvidersPage = () => {
     },
   ]
 
+  // Filtros locales
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'nombre' | 'fecha'>('nombre')
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC')
+
+  const clearFilters = () => {
+    setSearch('')
+    setSortBy('nombre')
+    setSortOrder('ASC')
+  }
+
+  const filteredData = useMemo(() => {
+    if (!Array.isArray(data)) return []
+    let rows = data
+    if (search) {
+      const q = search.toLowerCase()
+      rows = rows.filter((r: any) => r.nom_proveedor?.toLowerCase().includes(q))
+    }
+    rows = [...rows].sort((a: any, b: any) => {
+      let va: any, vb: any
+      if (sortBy === 'fecha') {
+        va = a.fec_insert || ''
+        vb = b.fec_insert || ''
+      } else {
+        va = a.nom_proveedor || ''
+        vb = b.nom_proveedor || ''
+      }
+      const cmp = String(va).localeCompare(String(vb))
+      return sortOrder === 'ASC' ? cmp : -cmp
+    })
+    return rows
+  }, [data, search, sortBy, sortOrder])
+
   return (
     <div className="space-y-6">
       <CatalogHeader 
@@ -123,6 +159,18 @@ const ProvidersPage = () => {
         description="Agrega y gestiona tus proveedores"
         createUrl="/admin/providers/create"
         createLabel="Agregar Proveedor"
+      />
+
+      {/* Filtros */}
+      <ProvidersFilters
+        search={search}
+        onSearchChange={setSearch}
+        sortBy={sortBy}
+        onSortByChange={(v) => setSortBy(v as any)}
+        sortOrder={sortOrder}
+        onSortOrderChange={setSortOrder}
+        onClearFilters={clearFilters}
+        totalResults={Array.isArray(filteredData) ? filteredData.length : 0}
       />
 
       {isLoading && (
@@ -143,10 +191,10 @@ const ProvidersPage = () => {
         />
       )}
 
-      {!isLoading && !isError && Array.isArray(data) && data.length > 0 && (
+      {!isLoading && !isError && Array.isArray(filteredData) && filteredData.length > 0 && (
         <DataTable 
           columns={[...columns, ...actions]} 
-          data={data}
+          data={filteredData}
           pageSize={10}
         />
       )}

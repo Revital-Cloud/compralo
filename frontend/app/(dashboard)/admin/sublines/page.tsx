@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo, useState } from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { EmptyState } from '@/components/admin/empty-states'
 import { useAllSublines, type Subline } from '@/hooks/use-sublines'
@@ -11,10 +11,64 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Pencil, Power } from 'lucide-react'
+import { SublinesFilters } from '@/components/admin/sublines/sublines-filters'
 
 const SublinesPage = () => {
   const queryClient = useQueryClient()
   const { data, isLoading, isError } = useAllSublines()
+
+  // Filtros locales
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'nombre' | 'linea' | 'categoria' | 'fecha'>('nombre')
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC')
+  const [category, setCategory] = useState('')
+  const [line, setLine] = useState('')
+
+  const clearFilters = () => {
+    setSearch('')
+    setSortBy('nombre')
+    setSortOrder('ASC')
+    setCategory('')
+    setLine('')
+  }
+
+  const filteredData = useMemo(() => {
+    if (!Array.isArray(data)) return []
+    let rows = data as unknown as Subline[]
+    if (search) {
+      const q = search.toLowerCase()
+      rows = rows.filter(r => (
+        (r as any).nom_sublinea?.toLowerCase().includes(q) ||
+        (r as any).nom_linea?.toLowerCase().includes(q) ||
+        String((r as any).id_categoria).includes(q)
+      ))
+    }
+    if (category) {
+      rows = rows.filter(r => String((r as any).id_categoria) === String(category))
+    }
+    if (line) {
+      rows = rows.filter(r => String((r as any).id_linea) === String(line))
+    }
+    rows = [...rows].sort((a, b) => {
+      let va: any, vb: any
+      if (sortBy === 'fecha') {
+        va = (a as any).fec_insert || ''
+        vb = (b as any).fec_insert || ''
+      } else if (sortBy === 'linea') {
+        va = (a as any).nom_linea || ''
+        vb = (b as any).nom_linea || ''
+      } else if (sortBy === 'categoria') {
+        va = (a as any).nom_categoria || ''
+        vb = (b as any).nom_categoria || ''
+      } else {
+        va = (a as any).nom_sublinea || ''
+        vb = (b as any).nom_sublinea || ''
+      }
+      const cmp = String(va).localeCompare(String(vb))
+      return sortOrder === 'ASC' ? cmp : -cmp
+    })
+    return rows
+  }, [data, search, category, line, sortBy, sortOrder])
 
   const deactivateMutation = useMutation({
     mutationFn: (ids: { id_categoria: number; id_linea: number; id_sublinea: number }) =>
@@ -42,6 +96,24 @@ const SublinesPage = () => {
       accessorKey: 'nom_sublinea',
       header: 'Nombre',
       cell: ({ row }) => <span className="font-medium">{row.original.nom_sublinea}</span>,
+    },
+    {
+      id: 'categoria',
+      header: 'Categoría',
+      accessorFn: (row) => (row as any).nom_categoria || String((row as any).id_categoria || ''),
+      cell: ({ getValue }) => (
+        <span className="text-sm text-muted-foreground">{String(getValue() || '')}</span>
+      ),
+      enableSorting: true,
+    },
+    {
+      id: 'linea',
+      header: 'Línea',
+      accessorFn: (row) => (row as any).nom_linea || String((row as any).id_linea || ''),
+      cell: ({ getValue }) => (
+        <span className="text-sm text-muted-foreground">{String(getValue() || '')}</span>
+      ),
+      enableSorting: true,
     },
     {
       accessorKey: 'fec_insert',
@@ -124,6 +196,22 @@ const SublinesPage = () => {
         createLabel="Agregar Sublínea"
       />
 
+      {/* Filtros */}
+      <SublinesFilters
+        search={search}
+        onSearchChange={setSearch}
+        sortBy={sortBy}
+        onSortByChange={(v) => setSortBy(v as any)}
+        sortOrder={sortOrder}
+        onSortOrderChange={setSortOrder}
+        category={category}
+        onCategoryChange={setCategory}
+        line={line}
+        onLineChange={setLine}
+        onClearFilters={clearFilters}
+        totalResults={Array.isArray(filteredData) ? filteredData.length : 0}
+      />
+
       {isLoading && (
         <div className="text-sm text-muted-foreground">Cargando sublíneas...</div>
       )}
@@ -142,10 +230,10 @@ const SublinesPage = () => {
         />
       )}
 
-      {!isLoading && !isError && Array.isArray(data) && data.length > 0 && (
+      {!isLoading && !isError && Array.isArray(filteredData) && filteredData.length > 0 && (
         <DataTable 
           columns={[...columns, ...actions]} 
-          data={data}
+          data={filteredData}
           pageSize={10}
         />
       )}
