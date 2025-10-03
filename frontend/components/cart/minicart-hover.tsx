@@ -26,8 +26,8 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
       <HoverCardTrigger asChild>
         {trigger}
       </HoverCardTrigger>
-      <HoverCardContent align="end" sideOffset={8} className="w-80 p-0 overflow-hidden bg-[#0f172a] dark:bg-[#0f172a] border-[#1e293b] dark:border-[#1e293b] text-white">
-        <div className="border-b border-[#1e293b] px-4 py-3 bg-[#0b1522]">
+      <HoverCardContent align="end" sideOffset={8} className="w-80 p-0 overflow-hidden bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+        <div className="border-b border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-50 dark:bg-gray-800">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium">Tu carrito</span>
             <span className="text-muted-foreground">{itemCount} {itemCount === 1 ? 'producto' : 'productos'}</span>
@@ -50,8 +50,8 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-white">{item.nombre_producto}</p>
-                      <p className="truncate text-xs text-gray-300">x{item.cantidad} · ${item.precio_unitario.toLocaleString('es-CO')}</p>
+                      <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{item.nombre_producto}</p>
+                      <p className="truncate text-xs text-gray-600 dark:text-gray-300">x{item.cantidad} · ${item.precio_unitario.toLocaleString('es-CO')}</p>
                     </div>
                     <div className="text-sm font-semibold whitespace-nowrap">${item.subtotal.toLocaleString('es-CO')}</div>
                   </li>
@@ -61,12 +61,12 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
 
             <div className="px-4 py-3 space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-300">Total</span>
-                <span className="font-semibold">${Number(total ?? 0).toLocaleString('es-CO')}</span>
+                <span className="text-gray-600 dark:text-gray-300">Total</span>
+                <span className="font-semibold text-gray-900 dark:text-white">${Number(total ?? 0).toLocaleString('es-CO')}</span>
               </div>
               <div className="flex gap-2">
               <Link href="/cart" className="w-full">
-                  <Button variant="outline" className="w-full cursor-pointer border-[#1e293b] text-white bg-[#0f172a] hover:bg-[#0b1522] hover:text-white">Ver carrito</Button>
+                  <Button variant="outline" className="w-full cursor-pointer border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white">Ver carrito</Button>
                 </Link>
               </div>
               {Array.isArray(items) && items.length > 6 && (

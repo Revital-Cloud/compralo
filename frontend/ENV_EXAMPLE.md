@@ -10,6 +10,9 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
 
 # URL alternativa para desarrollo local
 NEXT_PUBLIC_API_URL_LOCAL=http://localhost:8000/api
+
+# Configuración de Wompi (Pagos)
+NEXT_PUBLIC_WOMPI_PUBLIC_KEY=pub_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 ### Variables Opcionales

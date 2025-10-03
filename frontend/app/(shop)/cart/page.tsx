@@ -47,6 +47,7 @@ import {
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
+import { AuthModal } from "@/components/auth/auth-modal";
 
 const cartTexts = {
   es: {
@@ -149,28 +150,40 @@ const CartPage = () => {
     queryKey: ["addresses"],
     queryFn: addressService.getMyAddresses,
     enabled: !!user?.id_usuario,
+    retry: false,
+    throwOnError: false,
   });
 
   // Cargar métodos de pago y detectar predeterminado
   const { data: paymentMethods } = useQuery({
-    queryKey: ["payment-methods"],
+    queryKey: ["paymentMethods"],
     queryFn: listPaymentMethods,
     enabled: !!user?.id_usuario,
+    retry: false,
+    throwOnError: false,
   });
 
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<
+    string | null
+  >(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<
+    string | null
+  >(null);
+
   const defaultAddress = Array.isArray(addresses)
-    ? addresses.find((a) => a.ind_principal) || addresses[0]
+    ? (selectedAddressId 
+        ? addresses.find((a) => a.id_direccion.toString() === selectedAddressId)
+        : addresses.find((a) => a.ind_principal) || addresses[0])
     : undefined;
   const defaultPaymentMethod = Array.isArray(paymentMethods)
-    ? paymentMethods.find((m) => m.is_default) || paymentMethods[0]
+    ? (selectedPaymentMethodId 
+        ? paymentMethods.find((m) => m.id_metodo_pago.toString() === selectedPaymentMethodId)
+        : paymentMethods.find((m) => m.is_default) || paymentMethods[0])
     : undefined;
 
   const [isPaying, setIsPaying] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<number | null>(null);
   const [isPMDialogOpen, setIsPMDialogOpen] = useState(false);
-  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<
-    string | null
-  >(null);
   const [isRetryDialogOpen, setIsRetryDialogOpen] = useState(false);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
   const [isRequirementsDialogOpen, setIsRequirementsDialogOpen] = useState(false);
@@ -184,6 +197,15 @@ const CartPage = () => {
   const isMissingAddress = !defaultAddress;
   const paymentMethodsCount = Array.isArray(paymentMethods) ? paymentMethods.length : 0;
   const isMissingPaymentMethod = paymentMethodsCount === 0;
+  
+  // Determinar si el botón de pagar debe estar deshabilitado
+  const isPayButtonDisabled = isMissingAddress || isMissingPaymentMethod || isPaying;
+  
+  // Mensaje de feedback para el botón deshabilitado
+  const getPayButtonMessage = () => {
+    if (isPaying) return "Procesando…";
+    return texts.checkout; // Siempre retorna "Pagar" a menos que esté procesando
+  };
 
   const handleCheckout = async (pmIdOverride?: number) => {
     if (!hasItems()) {
@@ -510,23 +532,34 @@ const CartPage = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setIsAddressSelectionOpen(true)}
+                                onClick={() => {
+                                  setSelectedAddressId(defaultAddress?.id_direccion?.toString() ?? null);
+                                  setIsAddressSelectionOpen(true);
+                                }}
                                 className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
                               >
                                 Cambiar
                               </Button>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2">
-                              <AlertCircle className="h-4 w-4 text-amber-500" />
-                              <p className="text-sm text-amber-600 dark:text-amber-400">
-                                Falta agregar dirección
-                              </p>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <AlertCircle className="h-4 w-4 text-amber-500" />
+                                <p className="text-sm text-amber-600 dark:text-amber-400">
+                                  Falta agregar dirección
+                                </p>
+                              </div>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setIsQuickAddressOpen(true)}
-                                className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
+                                onClick={() => {
+                                  if (!isAuthenticated) {
+                                    setIsAuthDialogOpen(true);
+                                    return;
+                                  }
+                                  setIsQuickAddressOpen(true);
+                                }}
+                                className="text-xs h-8 w-20 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
                               >
                                 Agregar
                               </Button>
@@ -554,23 +587,34 @@ const CartPage = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setIsPaymentSelectionOpen(true)}
+                                onClick={() => {
+                                  setSelectedPaymentMethodId(defaultPaymentMethod?.id_metodo_pago?.toString() ?? null);
+                                  setIsPaymentSelectionOpen(true);
+                                }}
                                 className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
                               >
                                 Cambiar
                               </Button>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2">
-                              <AlertCircle className="h-4 w-4 text-amber-500" />
-                              <p className="text-sm text-amber-600 dark:text-amber-400">
-                                Falta agregar método de pago
-                              </p>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <AlertCircle className="h-4 w-4 text-amber-500" />
+                                <p className="text-sm text-amber-600 dark:text-amber-400">
+                                  Falta agregar método de pago
+                                </p>
+                              </div>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => setIsQuickPaymentOpen(true)}
-                                className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
+                                onClick={() => {
+                                  if (!isAuthenticated) {
+                                    setIsAuthDialogOpen(true);
+                                    return;
+                                  }
+                                  setIsQuickPaymentOpen(true);
+                                }}
+                                className="text-xs h-8 w-20 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
                               >
                                 Agregar
                               </Button>
@@ -635,32 +679,19 @@ const CartPage = () => {
                   </div>
 
                   <Button
-                    className="w-full mt-6 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3 text-lg cursor-pointer"
+                    className="w-full mt-6 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3 text-lg cursor-pointer disabled:bg-gray-400 disabled:cursor-not-allowed"
                     disabled={
                       !hasItems() ||
-                      isPaying ||
+                      isPayButtonDisabled ||
                       !!pendingOrderId ||
                       cartExceedsLimit
                     }
                     onClick={() => {
-                      // Bloquear si faltan requisitos
-                      if (isMissingAddress || isMissingPaymentMethod) {
-                        setIsRequirementsDialogOpen(true);
+                      if (!isAuthenticated) {
+                        setIsAuthDialogOpen(true);
                         return;
                       }
-                      const count = Array.isArray(paymentMethods)
-                        ? paymentMethods.length
-                        : 0;
-                      if (count > 1) {
-                        setSelectedPaymentMethodId(
-                          String(
-                            (defaultPaymentMethod as any)?.id_metodo_pago ?? ""
-                          )
-                        );
-                        setIsPMDialogOpen(true);
-                      } else {
-                        handleCheckout();
-                      }
+                      handleCheckout();
                     }}
                   >
                     {pendingOrderId ? (
@@ -668,13 +699,8 @@ const CartPage = () => {
                         <Loader2 className="h-4 w-4 animate-spin" />
                         {`Pago pendiente · Orden #${pendingOrderId}`}
                       </span>
-                    ) : isPaying ? (
-                      <span className="inline-flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Procesando…
-                      </span>
                     ) : (
-                      texts.checkout
+                      getPayButtonMessage()
                     )}
                   </Button>
 
@@ -775,23 +801,34 @@ const CartPage = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setIsAddressSelectionOpen(true)}
+                              onClick={() => {
+                                setSelectedAddressId(defaultAddress?.id_direccion?.toString() ?? null);
+                                setIsAddressSelectionOpen(true);
+                              }}
                               className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
                             >
                               Cambiar
                             </Button>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4 text-amber-500" />
-                            <p className="text-sm text-amber-600 dark:text-amber-400">
-                              Falta agregar dirección
-                            </p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4 text-amber-500" />
+                              <p className="text-sm text-amber-600 dark:text-amber-400">
+                                Falta agregar dirección
+                              </p>
+                            </div>
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setIsQuickAddressOpen(true)}
-                              className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
+                              onClick={() => {
+                                if (!isAuthenticated) {
+                                  setIsAuthDialogOpen(true);
+                                  return;
+                                }
+                                setIsQuickAddressOpen(true);
+                              }}
+                              className="text-xs h-8 w-20 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
                             >
                               Agregar
                             </Button>
@@ -819,23 +856,34 @@ const CartPage = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setIsPaymentSelectionOpen(true)}
+                              onClick={() => {
+                                setSelectedPaymentMethodId(defaultPaymentMethod?.id_metodo_pago?.toString() ?? null);
+                                setIsPaymentSelectionOpen(true);
+                              }}
                               className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
                             >
                               Cambiar
                             </Button>
                           </div>
                         ) : (
-                          <div className="flex items-center gap-2">
-                            <AlertCircle className="h-4 w-4 text-amber-500" />
-                            <p className="text-sm text-amber-600 dark:text-amber-400">
-                              Falta agregar método de pago
-                            </p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4 text-amber-500" />
+                              <p className="text-sm text-amber-600 dark:text-amber-400">
+                                Falta agregar método de pago
+                              </p>
+                            </div>
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setIsQuickPaymentOpen(true)}
-                              className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
+                              onClick={() => {
+                                if (!isAuthenticated) {
+                                  setIsAuthDialogOpen(true);
+                                  return;
+                                }
+                                setIsQuickPaymentOpen(true);
+                              }}
+                              className="text-xs h-8 w-20 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
                             >
                               Agregar
                             </Button>
@@ -953,33 +1001,17 @@ const CartPage = () => {
                 {texts.viewSummary}
               </Button>
               <Button
-                className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
-                disabled={!hasItems || cartExceedsLimit}
+                className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                disabled={!hasItems || isPayButtonDisabled || cartExceedsLimit}
                 onClick={() => {
                   if (!isAuthenticated) {
                     setIsAuthDialogOpen(true);
                     return;
                   }
-                  if (isMissingAddress || isMissingPaymentMethod) {
-                    setIsRequirementsDialogOpen(true);
-                    return;
-                  }
-                  const count = Array.isArray(paymentMethods)
-                    ? paymentMethods.length
-                    : 0;
-                  if (count > 1) {
-                    setSelectedPaymentMethodId(
-                      String(
-                        (defaultPaymentMethod as any)?.id_metodo_pago ?? ""
-                      )
-                    );
-                    setIsPMDialogOpen(true);
-                  } else {
-                    handleCheckout();
-                  }
+                  handleCheckout();
                 }}
               >
-                {texts.checkout}
+                {getPayButtonMessage()}
               </Button>
             </div>
           </div>
@@ -994,36 +1026,14 @@ const CartPage = () => {
         )}
       </div>
 
-      {/* Diálogo de autenticación requerida */}
-      <Dialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Debes iniciar sesión para comprar</DialogTitle>
-          </DialogHeader>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            Para finalizar tu compra necesitas iniciar sesión o registrarte.
-          </p>
-          <DialogFooter className="flex gap-2 sm:justify-end">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsAuthDialogOpen(false);
-                router.push("/register");
-              }}
-            >
-              Registrarse
-            </Button>
-            <Button
-              onClick={() => {
-                setIsAuthDialogOpen(false);
-                router.push("/login");
-              }}
-            >
-              Iniciar sesión
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Modal de autenticación para botones protegidos */}
+      <AuthModal
+        isOpen={isAuthDialogOpen}
+        onClose={() => setIsAuthDialogOpen(false)}
+        title="Debes iniciar sesión para continuar"
+        description="Para agregar dirección, método de pago o finalizar tu compra necesitas iniciar sesión o registrarte."
+      />
+
 
       {/* Diálogo de requisitos faltantes (dirección y/o método de pago) */}
       <Dialog open={isRequirementsDialogOpen} onOpenChange={setIsRequirementsDialogOpen}>
@@ -1081,11 +1091,8 @@ const CartPage = () => {
            </DialogHeader>
            <div className="space-y-3 py-2">
              <RadioGroup
-               value={defaultAddress?.id_direccion?.toString() ?? ""}
-               onValueChange={(value) => {
-                 // Aquí se actualizaría la dirección seleccionada
-                 console.log("Dirección seleccionada:", value);
-               }}
+               value={selectedAddressId ?? ""}
+               onValueChange={setSelectedAddressId}
              >
                {Array.isArray(addresses) &&
                  addresses.map((address: any) => (
@@ -1122,10 +1129,13 @@ const CartPage = () => {
                Agregar Nueva
              </Button>
              <Button
+               disabled={!selectedAddressId}
                onClick={() => {
-                 setIsAddressSelectionOpen(false);
-                 queryClient.invalidateQueries({ queryKey: ["addresses"] });
-                 toast.success("Dirección actualizada");
+                 if (selectedAddressId) {
+                   setIsAddressSelectionOpen(false);
+                   queryClient.invalidateQueries({ queryKey: ["addresses"] });
+                   toast.success("Dirección actualizada");
+                 }
                }}
              >
                Confirmar
@@ -1142,11 +1152,8 @@ const CartPage = () => {
            </DialogHeader>
            <div className="space-y-3 py-2">
              <RadioGroup
-               value={defaultPaymentMethod?.id_metodo_pago?.toString() ?? ""}
-               onValueChange={(value) => {
-                 // Aquí se actualizaría el método de pago seleccionado
-                 console.log("Método de pago seleccionado:", value);
-               }}
+               value={selectedPaymentMethodId ?? ""}
+               onValueChange={setSelectedPaymentMethodId}
              >
                {Array.isArray(paymentMethods) &&
                  paymentMethods.map((method: any) => (
@@ -1180,10 +1187,13 @@ const CartPage = () => {
                Agregar Nuevo
              </Button>
              <Button
+               disabled={!selectedPaymentMethodId}
                onClick={() => {
-                 setIsPaymentSelectionOpen(false);
-                 queryClient.invalidateQueries({ queryKey: ["paymentMethods"] });
-                 toast.success("Método de pago actualizado");
+                 if (selectedPaymentMethodId) {
+                   setIsPaymentSelectionOpen(false);
+                   queryClient.invalidateQueries({ queryKey: ["paymentMethods"] });
+                   toast.success("Método de pago actualizado");
+                 }
                }}
              >
                Confirmar
@@ -1202,19 +1212,31 @@ const CartPage = () => {
             onSuccess={async () => {
               setIsQuickAddressOpen(false);
               await queryClient.invalidateQueries({ queryKey: ["addresses"] });
+              await queryClient.invalidateQueries({ queryKey: ["paymentMethods"] });
               toast.success("Dirección agregada");
               
-              // Si aún falta método de pago, abrir automáticamente ese formulario
-              if (isMissingPaymentMethod) {
-                setTimeout(() => {
+              // Esperar un poco para que se actualicen los datos
+              setTimeout(async () => {
+                try {
+                  // Obtener datos frescos después de la invalidación
+                  const freshAddresses = await queryClient.fetchQuery({ queryKey: ["addresses"] });
+                  const freshPaymentMethods = await queryClient.fetchQuery({ queryKey: ["paymentMethods"] });
+                  
+                  const hasAddress = Array.isArray(freshAddresses) && freshAddresses.length > 0;
+                  const hasPaymentMethod = Array.isArray(freshPaymentMethods) && freshPaymentMethods.length > 0;
+                  
+                  if (!hasPaymentMethod) {
+                    setIsQuickPaymentOpen(true);
+                  } else if (hasAddress && hasPaymentMethod) {
+                    // Si ya no falta nada, intentar pagar
+                    handleCheckout();
+                  }
+                } catch (error) {
+                  console.error('Error fetching fresh data:', error);
+                  // Si hay error, asumir que no hay datos y abrir formulario de pago
                   setIsQuickPaymentOpen(true);
-                }, 500); // Pequeño delay para que se vea el toast
-              } else {
-                // Si ya no falta nada, intentar pagar
-                setTimeout(() => {
-                  handleCheckout();
-                }, 500);
-              }
+                }
+              }, 1000); // Delay para asegurar que los datos se actualicen
             }}
           />
         </DialogContent>
@@ -1229,20 +1251,35 @@ const CartPage = () => {
           <QuickPaymentForm
             onSuccess={async () => {
               setIsQuickPaymentOpen(false);
-              await queryClient.invalidateQueries({ queryKey: ["payment-methods"] });
+              await queryClient.invalidateQueries({ queryKey: ["paymentMethods"] });
+              await queryClient.invalidateQueries({ queryKey: ["addresses"] });
               toast.success("Método de pago agregado");
               
-              // Si aún falta dirección, abrir automáticamente ese formulario
-              if (isMissingAddress) {
-                setTimeout(() => {
+              // Cerrar el modal de requisitos si está abierto
+              setIsRequirementsDialogOpen(false);
+              
+              // Esperar un poco para que se actualicen los datos
+              setTimeout(async () => {
+                try {
+                  // Obtener datos frescos después de la invalidación
+                  const freshAddresses = await queryClient.fetchQuery({ queryKey: ["addresses"] });
+                  const freshPaymentMethods = await queryClient.fetchQuery({ queryKey: ["paymentMethods"] });
+                  
+                  const hasAddress = Array.isArray(freshAddresses) && freshAddresses.length > 0;
+                  const hasPaymentMethod = Array.isArray(freshPaymentMethods) && freshPaymentMethods.length > 0;
+                  
+                  if (!hasAddress) {
+                    setIsQuickAddressOpen(true);
+                  } else if (hasAddress && hasPaymentMethod) {
+                    // Si ya no falta nada, intentar pagar
+                    handleCheckout();
+                  }
+                } catch (error) {
+                  console.error('Error fetching fresh data:', error);
+                  // Si hay error, asumir que no hay datos y abrir formulario de dirección
                   setIsQuickAddressOpen(true);
-                }, 500); // Pequeño delay para que se vea el toast
-              } else {
-                // Si ya no falta nada, intentar pagar
-                setTimeout(() => {
-                  handleCheckout();
-                }, 500);
-              }
+                }
+              }, 1000); // Delay para asegurar que los datos se actualicen
             }}
           />
         </DialogContent>
@@ -1443,12 +1480,19 @@ function QuickPaymentForm({ onSuccess }: { onSuccess: () => void }) {
     },
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleSubmitPayment = async (data: QuickPaymentValues) => {
     setIsSubmitting(true);
     try {
-      await addPaymentMethod(data as any);
-      onSuccess();
+      const result = await addPaymentMethod(data as any);
+      if (result.success) {
+        // Invalidar la query para actualizar los métodos de pago
+        await queryClient.invalidateQueries({ queryKey: ["paymentMethods"] });
+        onSuccess();
+      } else {
+        toast.error(result.error || "No se pudo agregar el método de pago");
+      }
     } catch (e: any) {
       toast.error(e?.message || "No se pudo agregar el método de pago");
     } finally {

@@ -24,7 +24,7 @@ function createApiInstance(): AxiosInstance {
   
   const instance = axios.create({
     baseURL,
-    timeout: 10000,
+    timeout: 30000, // 30 segundos para operaciones complejas como pagos
     headers: {
       'Content-Type': 'application/json',
     },
@@ -290,7 +290,7 @@ export async function patch<T>(endpoint: string, data?: any, config?: AxiosReque
 export function getApiConfig() {
   return {
     baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api',
-    timeout: 10000,
+    timeout: 30000, // 30 segundos para operaciones complejas como pagos
     isAuthenticated: isAuthenticated(),
     token: getStoredToken(),
   };

@@ -28,6 +28,7 @@ export const addPaymentMethod = async (cardData: {
                 headers: {
                     Authorization: `Bearer ${process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY!}`,
                 },
+                timeout: 15000, // 15 segundos para tokenización
             }
         );
 
@@ -55,11 +56,27 @@ export const addPaymentMethod = async (cardData: {
     } catch (error: any) {
         console.error('Error adding payment method:', error);
         
+        // Manejar específicamente errores de timeout
+        if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+            return { 
+                success: false, 
+                error: 'La operación está tomando más tiempo del esperado. Por favor, intenta nuevamente.' 
+            };
+        }
+        
+        // Manejar errores de red
+        if (error.code === 'NETWORK_ERROR' || !error.response) {
+            return { 
+                success: false, 
+                error: 'Error de conexión. Verifica tu conexión a internet e intenta nuevamente.' 
+            };
+        }
+        
         // Extraer el mensaje de error de la respuesta de la API (si existe)
         const errorMessage = error.response?.data?.detail 
                            || error.response?.data?.message 
                            || error.message 
-                           || 'Error desconocido';
+                           || 'Error desconocido al procesar el método de pago';
                            
         return { success: false, error: errorMessage };
     }

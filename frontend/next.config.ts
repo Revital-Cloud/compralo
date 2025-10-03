@@ -54,7 +54,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
-              `connect-src 'self' ${apiUrl} http://localhost:8000 https://api.synkro.com https://*.cloudinary.com${isDevelopment ? ' ws://localhost:*' : ''}`,
+              `connect-src 'self' ${apiUrl} http://localhost:8000 https://api.synkro.com https://*.cloudinary.com https://sandbox.wompi.co https://production.wompi.co${isDevelopment ? ' ws://localhost:*' : ''}`,
               "frame-src 'none'",
               "object-src 'none'",
               "base-uri 'self'",

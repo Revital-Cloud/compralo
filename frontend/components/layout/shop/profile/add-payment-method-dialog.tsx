@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Loader2 } from "lucide-react";
 
 // Define el schema del formulario con Zod
 const formSchema = z.object({
@@ -92,6 +92,14 @@ export const AddPaymentMethodDialog: React.FC<AddPaymentMethodDialogProps> = ({ 
                     <DialogTitle>Agregar Nuevo Método de Pago</DialogTitle>
                     <DialogDescription>
                         Ingresa los detalles de tu tarjeta. La información es guardada de forma segura.
+                        {isPending && (
+                            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                <div className="flex items-center text-blue-700">
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    <span className="text-sm">Procesando tu tarjeta... Esto puede tomar unos segundos.</span>
+                                </div>
+                            </div>
+                        )}
                     </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
@@ -165,7 +173,14 @@ export const AddPaymentMethodDialog: React.FC<AddPaymentMethodDialogProps> = ({ 
                         </div>
                         <DialogFooter>
                           <Button type="submit" disabled={isPending} className="w-full">
-                              {isPending ? "Agregando..." : "Agregar Tarjeta"}
+                              {isPending ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Procesando...
+                                </>
+                              ) : (
+                                "Agregar Tarjeta"
+                              )}
                           </Button>
                         </DialogFooter>
                     </form>
