@@ -43,7 +43,7 @@ export default function AddressesTab() {
   const form = useForm<AddressFormValues>({
     resolver: zodResolver(addressSchema),
     defaultValues: {
-      nombre_direccion: "Dirección principal",
+      nombre_direccion: "",
       calle_direccion: "",
       ciudad: "",
       departamento: "",
@@ -58,6 +58,8 @@ export default function AddressesTab() {
     if (!user?.id_usuario) return;
     setIsPending(true);
     try {
+      console.log("Datos del formulario:", data);
+      console.log("Direcciones existentes:", addresses);
       const editId = (form as any)._editId as number | undefined;
       if (editId) {
         await addressService.updateAddress(Number(editId), {
@@ -69,11 +71,12 @@ export default function AddressesTab() {
           barrio: data.barrio,
           referencias: data.referencias || null,
           complemento: data.complemento || null,
-          ind_principal: true,
+          ind_principal: false,
           ind_activa: true,
         });
       } else {
-        await addressService.createAddress({
+        // Crear dirección como NO principal por defecto - el usuario debe marcarla como principal manualmente
+        const addressData = {
           id_usuario: Number(user.id_usuario),
           nombre_direccion: data.nombre_direccion,
           calle_direccion: data.calle_direccion,
@@ -83,15 +86,26 @@ export default function AddressesTab() {
           barrio: data.barrio,
           referencias: data.referencias || null,
           complemento: data.complemento || null,
-          ind_principal: true,
-          ind_activa: true,
-        });
+          ind_principal: false, // NO principal por defecto
+          ind_activa: true,     // Activa por defecto
+        };
+        console.log("Datos a enviar:", addressData);
+        await addressService.createAddress(addressData);
       }
       setIsOpen(false);
       (form as any)._editId = undefined;
       queryClient.invalidateQueries({ queryKey: ["addresses"] });
-      form.reset();
-      toast.success(editId ? "Dirección actualizada exitosamente" : "Dirección creada exitosamente");
+      form.reset({
+        nombre_direccion: "",
+        calle_direccion: "",
+        ciudad: "",
+        departamento: "",
+        codigo_postal: "",
+        barrio: "",
+        referencias: "",
+        complemento: "",
+      });
+      toast.success(editId ? "Dirección actualizada exitosamente" : "Dirección creada exitosamente. Márcala como principal si la necesitas.");
     } catch (error: any) {
       toast.error(error?.response?.data?.detail || "Error al procesar la dirección");
     } finally {
@@ -108,7 +122,7 @@ export default function AddressesTab() {
         </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button className="cursor-pointer">
               {user?.des_direccion ? (
                 <>
                   <Pencil className="w-4 h-4 mr-2" />
@@ -122,7 +136,7 @@ export default function AddressesTab() {
               )}
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="[&>button]:cursor-pointer">
             <DialogHeader>
               <DialogTitle>
                 {user?.des_direccion ? "Editar dirección" : "Agregar dirección"}
@@ -242,10 +256,10 @@ export default function AddressesTab() {
                   )}
                 />
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+                  <Button type="button" variant="outline" onClick={() => setIsOpen(false)} className="cursor-pointer">
                     Cancelar
                   </Button>
-                  <Button type="submit" disabled={isPending}>
+                  <Button type="submit" disabled={isPending} className="cursor-pointer">
                     {isPending ? "Guardando..." : "Guardar dirección"}
                   </Button>
                 </DialogFooter>
@@ -257,93 +271,130 @@ export default function AddressesTab() {
       <Card>
         <CardContent className="py-6">
           {addresses && addresses.length > 0 ? (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {addresses.map((addr: any) => (
-                <div key={addr.id_direccion} className="flex items-start gap-4 justify-between">
-                  <div 
-                    className="flex items-start gap-4 cursor-pointer flex-1"
-                    onClick={() => setViewAddress(addr)}
-                  >
-                    <MapPin className="w-5 h-5 text-primary mt-1" />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{addr.nombre_direccion}</p>
-                        {addr.ind_principal && (
-                          <div className="flex items-center gap-1 text-yellow-600">
-                            <Star className="w-4 h-4 fill-current" />
-                            <span className="text-xs font-medium">Principal</span>
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{addr.calle_direccion}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-yellow-500 hover:text-white hover:border-yellow-500 h-10 w-10 cursor-pointer"
-                      title="Ver detalles"
+                <Card key={addr.id_direccion} className="h-full">
+                  <CardContent className="p-4 h-full flex flex-col">
+                    <div 
+                      className="flex items-start gap-3 cursor-pointer flex-1"
                       onClick={() => setViewAddress(addr)}
                     >
-                      <Eye className="w-4 h-4" />
-                    </button>
-                    <button
-                      className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-yellow-500 hover:text-white hover:border-yellow-500 h-10 w-10 cursor-pointer"
-                      title="Editar"
-                      onClick={() => {
-                        setIsOpen(true);
-                        form.reset({
-                          nombre_direccion: addr.nombre_direccion || 'Dirección',
-                          calle_direccion: addr.calle_direccion || '',
-                          ciudad: addr.ciudad || '',
-                          departamento: addr.departamento || '',
-                          codigo_postal: addr.codigo_postal || '',
-                          barrio: addr.barrio || '',
-                          referencias: addr.referencias || '',
-                          complemento: addr.complemento || '',
-                        });
-                        // Guardar ID en un campo oculto via ref de formulario no es necesario; lo pasamos al enviar
-                        (form as any)._editId = addr.id_direccion;
-                      }}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <Button
-                      size="icon"
-                      variant={addr.ind_activa ? "default" : "destructive"}
-                      className={`${addr.ind_activa ? "bg-green-600 hover:bg-green-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"} cursor-pointer`}
-                      title={addr.ind_activa ? "Desactivar dirección" : "Activar dirección"}
-                      onClick={async () => {
-                        if (!user?.id_usuario) return;
-                        try {
-                          if (addr.ind_activa) {
-                            await addressService.deactivateAddress(Number(addr.id_direccion), Number(user.id_usuario));
-                            toast.success("Dirección desactivada exitosamente");
-                          } else {
-                            // Reactivar usando updateAddress con los datos existentes
-                            await addressService.updateAddress(Number(addr.id_direccion), {
-                              nombre_direccion: addr.nombre_direccion,
-                              calle_direccion: addr.calle_direccion,
-                              ciudad: addr.ciudad,
-                              departamento: addr.departamento,
-                              codigo_postal: addr.codigo_postal,
-                              barrio: addr.barrio,
-                              referencias: addr.referencias,
-                              complemento: addr.complemento,
-                              ind_principal: addr.ind_principal,
-                              ind_activa: true, // Solo cambiar este campo
-                            });
-                            toast.success("Dirección activada exitosamente");
+                      <MapPin className="w-5 h-5 text-primary mt-1 shrink-0" />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-medium break-words">{addr.nombre_direccion}</p>
+                          <button
+                            className={`flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
+                              addr.ind_principal 
+                                ? 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/30' 
+                                : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+                            }`}
+                            title={addr.ind_principal ? "Desactivar como dirección principal" : "Activar como dirección principal"}
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (!user?.id_usuario) return;
+                              try {
+                                if (addr.ind_principal) {
+                                  await addressService.deactivateMainAddress(Number(addr.id_direccion), Number(user.id_usuario));
+                                  toast.error("Dirección principal desactivada exitosamente");
+                                } else {
+                                  const principalAddresses = addresses?.filter((a:any) => a.ind_principal) || [];
+                                  for (const principalAddr of principalAddresses) {
+                                    await addressService.deactivateMainAddress(Number(principalAddr.id_direccion), Number(user.id_usuario));
+                                  }
+                                  await addressService.updateAddress(Number(addr.id_direccion), {
+                                    nombre_direccion: addr.nombre_direccion,
+                                    calle_direccion: addr.calle_direccion,
+                                    ciudad: addr.ciudad,
+                                    departamento: addr.departamento,
+                                    codigo_postal: addr.codigo_postal,
+                                    barrio: addr.barrio,
+                                    referencias: addr.referencias,
+                                    complemento: addr.complemento,
+                                    ind_principal: true,
+                                    ind_activa: addr.ind_activa,
+                                  });
+                                  toast.success("Dirección principal activada exitosamente");
+                                }
+                                queryClient.invalidateQueries({ queryKey: ["addresses"] });
+                              } catch (error: any) {
+                                toast.error(error?.response?.data?.detail || "Error al cambiar el estado de dirección principal");
+                              }
+                            }}
+                          >
+                            <Star className={`w-4 h-4 ${addr.ind_principal ? 'fill-current' : ''}`} />
+                            <span>Principal</span>
+                          </button>
+                        </div>
+                        <p className="text-sm text-muted-foreground break-words">{addr.calle_direccion}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 mt-4">
+                      <button
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-yellow-500 hover:text-white hover:border-yellow-500 h-10 w-10 cursor-pointer"
+                        title="Ver detalles"
+                        onClick={() => setViewAddress(addr)}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button
+                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-yellow-500 hover:text-white hover:border-yellow-500 h-10 w-10 cursor-pointer"
+                        title="Editar"
+                        onClick={() => {
+                          setIsOpen(true);
+                          form.reset({
+                            nombre_direccion: addr.nombre_direccion || 'Dirección',
+                            calle_direccion: addr.calle_direccion || '',
+                            ciudad: addr.ciudad || '',
+                            departamento: addr.departamento || '',
+                            codigo_postal: addr.codigo_postal || '',
+                            barrio: addr.barrio || '',
+                            referencias: addr.referencias || '',
+                            complemento: addr.complemento || '',
+                          });
+                          (form as any)._editId = addr.id_direccion;
+                        }}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <Button
+                        size="icon"
+                        variant={addr.ind_activa ? "default" : "destructive"}
+                        className={`${addr.ind_activa ? "bg-green-600 hover:bg-green-700 text-white" : "bg-red-600 hover:bg-red-700 text-white"} cursor-pointer`}
+                        title={addr.ind_activa ? "Desactivar dirección" : "Activar dirección"}
+                        onClick={async () => {
+                          if (!user?.id_usuario) return;
+                          try {
+                            if (addr.ind_activa) {
+                              await addressService.deactivateAddress(Number(addr.id_direccion), Number(user.id_usuario));
+                              toast.error("Dirección desactivada exitosamente");
+                            } else {
+                              await addressService.updateAddress(Number(addr.id_direccion), {
+                                nombre_direccion: addr.nombre_direccion,
+                                calle_direccion: addr.calle_direccion,
+                                ciudad: addr.ciudad,
+                                departamento: addr.departamento,
+                                codigo_postal: addr.codigo_postal,
+                                barrio: addr.barrio,
+                                referencias: addr.referencias,
+                                complemento: addr.complemento,
+                                ind_principal: addr.ind_principal,
+                                ind_activa: true,
+                              });
+                              toast.success("Dirección activada exitosamente");
+                            }
+                            queryClient.invalidateQueries({ queryKey: ["addresses"] });
+                          } catch (error: any) {
+                            toast.error(error?.response?.data?.detail || "Error al cambiar el estado de la dirección");
                           }
-                          queryClient.invalidateQueries({ queryKey: ["addresses"] });
-                        } catch (error: any) {
-                          toast.error(error?.response?.data?.detail || "Error al cambiar el estado de la dirección");
-                        }
-                      }}
-                    >
-                      <Power className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
+                        }}
+                      >
+                        <Power className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           ) : (
@@ -358,7 +409,7 @@ export default function AddressesTab() {
       
       {/* Modal de vista de dirección */}
       <Dialog open={!!viewAddress} onOpenChange={() => setViewAddress(null)}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl [&>button]:cursor-pointer">
           <DialogHeader>
             <DialogTitle>Detalles de la dirección</DialogTitle>
             <DialogDescription>

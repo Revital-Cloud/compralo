@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from fastapi import HTTPException, status
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Union
 from decimal import Decimal
 
 from core.config import settings
@@ -133,18 +133,20 @@ async def add_payment_method(db: Session, user: UserInToken, card_token: str, br
             detail=f"Error inesperado al agregar método de pago"
         )
 
-def list_payment_methods(db: Session, id_usuario: int) -> List[MetodoPagoUsuario]:
+
+def list_payment_methods(db: Session, user_or_id: Union[UserInToken, int, Decimal]) -> List[MetodoPagoUsuario]:
     """
-    Lista los métodos de pago guardados de un usuario.
-    
-    Args:
-        db (Session): Sesión de base de datos
-        id_usuario (int): ID del usuario
-        
-    Returns:
-        List[MetodoPagoUsuario]: Lista de métodos de pago del usuario
+    Lista los métodos de pago guardados de un usuario. Acepta objeto `UserInToken` o id.
     """
     try:
+        id_usuario = None
+        if isinstance(user_or_id, (int, Decimal)):
+            id_usuario = int(user_or_id)
+        elif isinstance(user_or_id, UserInToken):
+            id_usuario = int(user_or_id.id_usuario)
+        else:
+            raise ValueError("Parámetro inválido para id de usuario")
+
         query = text("""
             SELECT 
                 id_metodo_pago,
@@ -168,10 +170,6 @@ def list_payment_methods(db: Session, id_usuario: int) -> List[MetodoPagoUsuario
         
         result = db.execute(query, {"id_usuario": id_usuario})
         payment_methods = [dict(row._mapping) for row in result]
-
-        # Depuración: Imprimir los datos antes de la validación de Pydantic
-        # print("Payment methods from DB:", payment_methods)
-
         return [MetodoPagoUsuario(**pm) for pm in payment_methods]
         
     except Exception as e:
@@ -180,6 +178,7 @@ def list_payment_methods(db: Session, id_usuario: int) -> List[MetodoPagoUsuario
             status_code=500,
             detail=f"Error al listar métodos de pago: {str(e)}"
         )
+
 
 def delete_payment_method(db: Session, user: UserInToken, id_metodo_pago: int):
     try:
@@ -198,6 +197,7 @@ def delete_payment_method(db: Session, user: UserInToken, id_metodo_pago: int):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Error al eliminar método de pago: {str(e)}")
+
 
 def set_default_payment_method(db: Session, user: UserInToken, id_metodo_pago: int) -> Dict[str, Any]:
     try:

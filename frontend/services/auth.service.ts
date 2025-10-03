@@ -9,7 +9,7 @@ import { post, get, storeTokens, clearTokens } from '@/utils/apiWrapper';
 import type {
   LoginRequest,
   TokenResponse,
-  User,
+  UserPublic,
   ChangePasswordRequest,
   ResetPasswordRequest,
   ResetPasswordConfirm,
@@ -36,10 +36,10 @@ export async function login(credentials: LoginRequest): Promise<TokenResponse> {
 }
 
 /**
- * Obtener datos del usuario actual
+ * Obtener datos del usuario actual (información segura)
  */
-export async function getCurrentUser(): Promise<User> {
-  return await get<User>('/me');
+export async function getCurrentUser(): Promise<UserPublic> {
+  return await get<UserPublic>('/me');
 }
 
 /**

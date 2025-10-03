@@ -65,11 +65,8 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
                 <span className="font-semibold">${Number(total ?? 0).toLocaleString('es-CO')}</span>
               </div>
               <div className="flex gap-2">
-                <Link href="/cart" className="flex-1">
-                  <Button variant="outline" className="w-full cursor-pointer border-[#1e293b] text-white bg-[#0f172a] hover:bg-[#0b1522]">Ver carrito</Button>
-                </Link>
-                <Link href="/checkout" className="flex-1">
-                  <Button className="w-full cursor-pointer">Pagar</Button>
+              <Link href="/cart" className="w-full">
+                  <Button variant="outline" className="w-full cursor-pointer border-[#1e293b] text-white bg-[#0f172a] hover:bg-[#0b1522] hover:text-white">Ver carrito</Button>
                 </Link>
               </div>
               {Array.isArray(items) && items.length > 6 && (

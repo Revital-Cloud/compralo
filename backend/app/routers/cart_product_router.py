@@ -44,7 +44,7 @@ async def get_cart_products(db:Session = Depends(get_db)):
 @router.post("/carrito-productos", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_cart_product(
     cart_product_data: CartProductCreate = Body(...),
-    session_id: Optional[Decimal] = Query(None), 
+    session_id: Optional[str] = Query(None), 
     db:Session = Depends(get_db),
     current_user: Optional[UserInToken] = Depends(get_current_user_optional)
 ):
@@ -55,7 +55,7 @@ async def create_cart_product(
     
     Args:
         cart_product_data (CartProductCreate): Datos del producto a agregar.
-        session_id (Optional[Decimal]): ID de sesión para usuarios anónimos (query parameter).
+        session_id (Optional[str]): ID de sesión para usuarios anónimos (query parameter, UUID v4).
         db (Session): La sesión de base de datos SQLAlchemy.
         current_user (UserInToken): Usuario autenticado.
     Returns:
@@ -176,7 +176,7 @@ async def delete_cart_product(
     id_sublinea_producto: Decimal,
     id_producto: Decimal,
     cantidad: Decimal,
-    session_id: Optional[Decimal] = None,  # Query parameter opcional
+    session_id: Optional[str] = None,  # Query parameter opcional
     db:Session = Depends(get_db),
     current_user: Optional[UserInToken] = Depends(get_current_user_optional)
 ):
@@ -191,7 +191,7 @@ async def delete_cart_product(
         id_sublinea_producto (Decimal): ID de la sublínea del producto.
         id_producto (Decimal): ID del producto.
         cantidad (Decimal): Cantidad del producto.
-        session_id (Optional[Decimal]): ID de sesión para usuarios anónimos (query parameter).
+        session_id (Optional[str]): ID de sesión para usuarios anónimos (query parameter, UUID v4).
         db (Session): La sesión de base de datos SQLAlchemy.
         current_user (UserInToken): Usuario autenticado.
     Returns:

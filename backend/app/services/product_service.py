@@ -23,6 +23,70 @@ from services import cloudinary_service
 # y el router se encarga de la validación con el response_model.
 
 #all products
+def get_products_admin(db: Session, params: dict):
+    """
+    Obtiene todos los productos para el panel de administración.
+    
+    Utiliza la función SQL fun_get_all_products_admin para obtener
+    productos con información completa incluyendo estados de activación.
+    
+    Args:
+        db (Session): Sesión de la base de datos SQLAlchemy.
+        params (dict): Parámetros de consulta (ordenar_por, orden, limit, offset)
+        
+    Returns:
+        list: Lista de productos con información completa para admin
+    """
+    try:
+        query = text("""
+            SELECT 
+                p.id_categoria::text,
+                p.id_linea::text,
+                p.id_sublinea::text,
+                p.id_producto::text,
+                c.nom_categoria, 
+                l.nom_linea, 
+                s.nom_sublinea, 
+                p.nom_producto, 
+                p.spcf_producto, 
+                p.img_producto, 
+                p.val_precio::text, 
+                p.num_stock, 
+                p.id_proveedor::text,
+                p.id_marca::text,
+                pr.nom_proveedor, 
+                m.nom_marca,
+                p.fec_insert::text,
+                p.ind_activo as ind_activo_producto,
+                c.ind_activo as ind_activo_categoria,
+                l.ind_activo as ind_activo_linea,
+                s.ind_activo as ind_activo_sublinea,
+                pr.ind_activo as ind_activo_proveedor,
+                m.ind_activo as ind_activo_marca,
+                (SELECT COUNT(DISTINCT p2.id_categoria || '-' || p2.id_linea || '-' || p2.id_sublinea || '-' || p2.id_producto) 
+                 FROM tab_productos p2
+                 INNER JOIN tab_categorias c2 ON p2.id_categoria = c2.id_categoria
+                 INNER JOIN tab_lineas l2 ON p2.id_linea = l2.id_linea AND p2.id_categoria = l2.id_categoria
+                 INNER JOIN tab_sublineas s2 ON p2.id_sublinea = s2.id_sublinea AND p2.id_linea = s2.id_linea
+                 INNER JOIN tab_proveedores pr2 ON p2.id_proveedor = pr2.id_proveedor
+                 INNER JOIN tab_marcas m2 ON p2.id_marca = m2.id_marca
+                ) as total_registros
+            FROM tab_productos p
+            INNER JOIN tab_categorias c ON p.id_categoria = c.id_categoria
+            INNER JOIN tab_lineas l ON p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria
+            INNER JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea
+            INNER JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
+            INNER JOIN tab_marcas m ON p.id_marca = m.id_marca
+            ORDER BY p.nom_producto ASC
+            LIMIT :limit OFFSET :offset
+        """)
+        
+        result = db.execute(query, params)
+        return result.mappings().all()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener productos para admin: {str(e)}")
+
 def get_products(db: Session):
     """
     Obtiene todos los productos de la base de datos.

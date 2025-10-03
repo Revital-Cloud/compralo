@@ -21,7 +21,7 @@ from schemas.auth_schema import (
     ResetPasswordRequest,
     ResetPasswordConfirm
 )
-from schemas.user_schema import ResponseMessage, User, UserCreate, UserUpdate
+from schemas.user_schema import ResponseMessage, User, UserCreate, UserUpdate, UserPublic
 from services import auth_service
 from services import user_service
 from core.dependencies import get_current_user
@@ -70,26 +70,37 @@ async def refresh_token(
     """
     return auth_service.refresh_access_token(db, refresh_data.refresh_token)
 
-@router.get("/me", response_model=User)
+@router.get("/me", response_model=UserPublic)
 async def get_current_user_info(
     current_user: UserInToken = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Endpoint para obtener información completa del usuario actual.
+    Endpoint para obtener información segura del usuario actual.
+    
+    Solo devuelve información necesaria para el frontend, sin datos sensibles
+    como contraseñas, información personal o datos de auditoría.
     
     Args:
         current_user (UserInToken): Usuario autenticado (inyectado por dependencia)
         db (Session): Sesión de la base de datos
         
     Returns:
-        User: Información completa del usuario actual
+        UserPublic: Información segura del usuario actual
     """
     # Obtener la información completa del usuario desde la base de datos
     full_user = user_service.get_user(db, current_user.id_usuario)
     if full_user is None:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    return full_user
+    
+    # Retornar solo la información segura
+    return UserPublic(
+        id_usuario=full_user.id_usuario,
+        nom_usuario=full_user.nom_usuario,
+        ape_usuario=full_user.ape_usuario,
+        email_usuario=full_user.email_usuario,
+        id_rol=full_user.id_rol
+    )
 
 @router.post("/change-password", response_model=ResponseMessage)
 async def change_password(

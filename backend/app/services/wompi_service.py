@@ -8,8 +8,9 @@ la generación de transacciones y el manejo de webhooks.
 import httpx
 from typing import Dict, Any, Optional
 from fastapi import HTTPException
-
 from core.config import settings
+import hashlib
+
 
 class WompiService:
     def __init__(self):
@@ -18,15 +19,13 @@ class WompiService:
             "Authorization": f"Bearer {settings.WOMPI_PRIVATE_KEY}",
             "Content-Type": "application/json"
         }
-        self.private_key = settings.WOMPI_PRIVATE_KEY
 
     async def _request(self, method: str, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         url = f"{self.base_url}/{endpoint}"
-        headers = {"Authorization": f"Bearer {self.private_key}"}
-        
+
         async with httpx.AsyncClient() as client:
             try:
-                response = await client.request(method, url, json=data, headers=headers)
+                response = await client.request(method, url, json=data, headers=self.headers)
                 response.raise_for_status()
                 return response.json()
             except httpx.HTTPStatusError as e:
@@ -39,7 +38,7 @@ class WompiService:
                 print(f"Error inesperado en Wompi Service: {str(e)}")
                 raise HTTPException(
                     status_code=500,
-                    detail="Error interno al comunicarse con Wompi"
+                    detail="Error inesperado al comunicarse con Wompi"
                 )
 
     async def create_payment_source(self, user_email: str, card_token: str) -> Dict[str, Any]:
@@ -72,6 +71,10 @@ class WompiService:
             response.raise_for_status()
             return response.json()
 
+    def _build_signature(self, reference: str, amount_in_cents: int, currency: str) -> str:
+        payload = f"{reference}{amount_in_cents}{currency}{settings.WOMPI_INTEGRITY_SECRET}"
+        return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
     async def create_transaction(
         self,
         amount_in_cents: int,
@@ -81,34 +84,32 @@ class WompiService:
     ) -> Dict[str, Any]:
         """
         Crea una transacción (un cobro) utilizando una fuente de pago ya existente.
-
-        Args:
-            amount_in_cents: El monto a cobrar en centavos.
-            customer_email: Email del cliente.
-            payment_source_id: El ID de la tarjeta guardada en Wompi.
-            reference: Una referencia única para la transacción (ej. el ID de la orden).
-
-        Returns:
-            Un diccionario con la respuesta de la API de Wompi.
         """
-        endpoint = f"{self.base_url}/transactions"
+        currency = "COP"
+        signature = self._build_signature(reference, amount_in_cents, currency)
+
+        endpoint = f"transactions"
         payload = {
             "amount_in_cents": amount_in_cents,
-            "currency": "COP",
+            "currency": currency,
             "customer_email": customer_email,
+            # En pagos con fuente guardada, el payment_source_id va al nivel raíz
+            "payment_source_id": payment_source_id,
+            "reference": reference,
+            "signature": signature,
+            # Parámetros adicionales del método de pago
             "payment_method": {
                 "type": "CARD",
-                "payment_source_id": payment_source_id,
-                # Las cuotas pueden ser un parámetro opcional en el futuro
                 "installments": 1,
             },
-            "reference": reference,
         }
-        
-        async with httpx.AsyncClient() as client:
-            response = await client.post(endpoint, json=payload, headers=self.headers)
-            response.raise_for_status()
-            return response.json()
+
+        return await self._request("post", endpoint, data=payload)
+
+    async def get_transaction(self, transaction_id: str) -> Dict[str, Any]:
+        """Obtiene el detalle de una transacción por id."""
+        endpoint = f"transactions/{transaction_id}"
+        return await self._request("get", endpoint)
 
 
 # Instancia global del servicio

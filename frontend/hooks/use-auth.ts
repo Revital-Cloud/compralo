@@ -16,7 +16,7 @@ import { useCookies } from './use-cookies';
 import type {
   LoginRequest,
   TokenResponse,
-  User,
+  UserPublic,
   ChangePasswordRequest,
   ResetPasswordRequest,
   ResetPasswordConfirm,
@@ -69,7 +69,7 @@ export function useAuth() {
       
       // Refresca la query del usuario actual para obtener sus datos
       // Esto es necesario porque el login solo devuelve tokens, no datos del usuario
-      const refreshedUser = await queryClient.fetchQuery<User>({ queryKey: AUTH_KEYS.currentUser });
+      const refreshedUser = await queryClient.fetchQuery<UserPublic>({ queryKey: AUTH_KEYS.currentUser });
       
       // Redirección simplificada después del login
       if (typeof window !== 'undefined') {
@@ -259,7 +259,7 @@ export function useUpdateProfile() {
 
   return useMutation({
     mutationFn: (userData: UserUpdate) => userService.updateCurrentUser(userData),
-    onSuccess: (updatedUser: User) => {
+    onSuccess: (updatedUser: UserPublic) => {
       // Actualizar la cache con los nuevos datos
       queryClient.setQueryData(AUTH_KEYS.currentUser, updatedUser);
       

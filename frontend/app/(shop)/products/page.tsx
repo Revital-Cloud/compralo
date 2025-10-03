@@ -6,7 +6,7 @@ import { useFilterProducts, useFilterOptions, useFilterStats, useCategories, use
 import type { ProductFilterParams } from "@/types/product"
 
 const ProductsPage = () => {
-  const [sortBy, setSortBy] = useState('nombre')
+  const [sortBy, setSortBy] = useState('nombre-asc')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
   
@@ -43,48 +43,35 @@ const ProductsPage = () => {
   const { data: sublinesData, isLoading: sublinesLoading } = useAllSublines()
   const { data: brandsData, isLoading: brandsLoading } = useBrands()
 
-  // Construir parámetros de filtro - optimizado para evitar llamadas excesivas
+  const computeSort = (value: string): ['precio' | 'nombre' | 'stock' | 'fecha', 'ASC' | 'DESC'] => {
+    const [campo, dir] = value.split('-')
+    const ordenarPor = (['precio', 'nombre', 'stock', 'fecha'].includes(campo) ? campo : 'nombre') as 'precio' | 'nombre' | 'stock' | 'fecha'
+    const orden = (dir === 'desc' ? 'DESC' : 'ASC') as 'ASC' | 'DESC'
+    return [ordenarPor, orden]
+  }
+
   const filterParams: ProductFilterParams = useMemo(() => {
-    console.log('🔄 useMemo ejecutándose - filterParams recalculado')
-    const params: ProductFilterParams = {
-      ordenar_por: sortBy as 'precio' | 'nombre' | 'stock' | 'fecha',
-      orden: 'ASC' as 'ASC' | 'DESC',
+    const [ordenar_por, orden] = computeSort(sortBy)
+
+    const base: ProductFilterParams = {
+      ordenar_por,
+      orden,
       limit: itemsPerPage,
       offset: (currentPage - 1) * itemsPerPage,
     }
 
-    // Solo agregar solo_con_stock si realmente se está aplicando el filtro
-    if (inStockOnly) {
-      params.solo_con_stock = true
+    return {
+      ...base,
+      ...(inStockOnly && { solo_con_stock: true }),
+      ...(selectedCategories.length > 0 && { id_categoria: selectedCategories.map(Number) }),
+      ...(selectedLines.length > 0 && { id_linea: selectedLines.map(Number) }),
+      ...(selectedSublines.length > 0 && { id_sublinea: selectedSublines.map(Number) }),
+      ...(selectedBrands.length > 0 && { id_marca: selectedBrands.map(Number) }),
+      ...(selectedProviders.length > 0 && { id_proveedor: selectedProviders.map(Number) }),
+      ...(searchQuery.trim() && { nombre_producto: searchQuery.trim() }),
+      ...(priceRange[0] > dynamicPriceRange.min && { precio_min: priceRange[0] }),
+      ...(priceRange[1] < dynamicPriceRange.max && { precio_max: priceRange[1] }),
     }
-
-    // Solo agregar filtros si tienen valores válidos
-    if (selectedCategories.length > 0) {
-      params.id_categoria = selectedCategories.map(Number)
-    }
-    if (selectedLines.length > 0) {
-      params.id_linea = selectedLines.map(Number)
-    }
-    if (selectedSublines.length > 0) {
-      params.id_sublinea = selectedSublines.map(Number)
-    }
-    if (selectedBrands.length > 0) {
-      params.id_marca = selectedBrands.map(Number)
-    }
-    if (selectedProviders.length > 0) {
-      params.id_proveedor = selectedProviders.map(Number)
-    }
-    if (searchQuery.trim()) {
-      params.nombre_producto = searchQuery.trim()
-    }
-    if (priceRange[0] > dynamicPriceRange.min) {
-      params.precio_min = priceRange[0]
-    }
-    if (priceRange[1] < dynamicPriceRange.max) {
-      params.precio_max = priceRange[1]
-    }
-    
-    return params
   }, [
     selectedCategories,
     selectedLines,
@@ -92,45 +79,62 @@ const ProductsPage = () => {
     selectedBrands,
     selectedProviders,
     searchQuery,
-    priceRange[0], // Descomponer el array para evitar re-renders innecesarios
+    priceRange[0],
     priceRange[1],
-    dynamicPriceRange.min, // Incluir el rango dinámico
+    dynamicPriceRange.min,
     dynamicPriceRange.max,
     inStockOnly,
     sortBy,
     itemsPerPage,
-    currentPage
+    currentPage,
   ])
 
 
   // Solo hacer llamadas si realmente hay filtros activos o es la carga inicial
-  const hasActiveFilters = selectedCategories.length > 0 || 
-    selectedLines.length > 0 || 
-    selectedSublines.length > 0 || 
-    selectedBrands.length > 0 || 
-    selectedProviders.length > 0 ||
-    searchQuery.trim() !== '' || 
-    priceRange[0] > dynamicPriceRange.min || 
-    priceRange[1] < dynamicPriceRange.max ||
-    inStockOnly
+  const hasActiveFilters = useMemo(() => {
+    return (
+      selectedCategories.length > 0 ||
+      selectedLines.length > 0 ||
+      selectedSublines.length > 0 ||
+      selectedBrands.length > 0 ||
+      selectedProviders.length > 0 ||
+      searchQuery.trim() !== '' ||
+      priceRange[0] > dynamicPriceRange.min ||
+      priceRange[1] < dynamicPriceRange.max ||
+      inStockOnly
+    )
+  }, [
+    selectedCategories.length,
+    selectedLines.length,
+    selectedSublines.length,
+    selectedBrands.length,
+    selectedProviders.length,
+    searchQuery,
+    priceRange[0],
+    priceRange[1],
+    dynamicPriceRange.min,
+    dynamicPriceRange.max,
+    inStockOnly,
+  ])
 
-  console.log('🔍 Debug - hasActiveFilters:', hasActiveFilters, 'filterParams:', filterParams)
+  // Debug desactivado para evitar ruido y re-render innecesario
 
   // Obtener productos filtrados - solo si hay filtros activos o es carga inicial
+  const defaultFilters = useMemo(() => {
+    const [ordenar_por, orden] = computeSort(sortBy)
+    return { limit: itemsPerPage, offset: (currentPage - 1) * itemsPerPage, ordenar_por, orden }
+  }, [sortBy, itemsPerPage, currentPage])
+
   const { 
     data: productsData, 
     isLoading: productsLoading, 
     error: productsError 
-  } = useFilterProducts(hasActiveFilters ? filterParams : {
-    limit: itemsPerPage,
-    offset: (currentPage - 1) * itemsPerPage,
-    ordenar_por: sortBy as 'precio' | 'nombre' | 'stock' | 'fecha',
-    orden: 'ASC' as 'ASC' | 'DESC'
-  })
+  } = useFilterProducts(hasActiveFilters ? filterParams : defaultFilters)
 
 
   // Obtener estadísticas de filtros - solo si hay filtros activos
-  const { data: filterStats } = useFilterStats(hasActiveFilters ? filterParams : {})
+  const emptyFilters = useMemo(() => ({} as ProductFilterParams), [])
+  const { data: filterStats } = useFilterStats(hasActiveFilters ? filterParams : emptyFilters)
 
   // Función para limpiar todos los filtros - estabilizada con useCallback
   const clearAllFilters = useCallback(() => {
@@ -147,32 +151,17 @@ const ProductsPage = () => {
 
   // Función para eliminar filtros individuales
   const handleRemoveFilter = useCallback((filterType: string, value?: string) => {
-    switch (filterType) {
-      case 'categories':
-        setSelectedCategories(prev => prev.filter(cat => cat !== value))
-        break
-      case 'lines':
-        setSelectedLines(prev => prev.filter(line => line !== value))
-        break
-      case 'sublines':
-        setSelectedSublines(prev => prev.filter(subline => subline !== value))
-        break
-      case 'brands':
-        setSelectedBrands(prev => prev.filter(brand => brand !== value))
-        break
-      case 'priceMin':
-        setPriceRange(prev => [dynamicPriceRange.min, prev[1]])
-        break
-      case 'priceMax':
-        setPriceRange(prev => [prev[0], dynamicPriceRange.max])
-        break
-      case 'inStockOnly':
-        setInStockOnly(false)
-        break
-      case 'onSaleOnly':
-        setOnSaleOnly(false)
-        break
+    const handlers: Record<string, () => void> = {
+      categories: () => setSelectedCategories(prev => prev.filter(cat => cat !== value)),
+      lines: () => setSelectedLines(prev => prev.filter(line => line !== value)),
+      sublines: () => setSelectedSublines(prev => prev.filter(subline => subline !== value)),
+      brands: () => setSelectedBrands(prev => prev.filter(brand => brand !== value)),
+      priceMin: () => setPriceRange(prev => [dynamicPriceRange.min, prev[1]]),
+      priceMax: () => setPriceRange(prev => [prev[0], dynamicPriceRange.max]),
+      inStockOnly: () => setInStockOnly(false),
+      onSaleOnly: () => setOnSaleOnly(false),
     }
+    handlers[filterType]?.()
   }, [dynamicPriceRange.min, dynamicPriceRange.max])
 
   // Los filtros se aplican automáticamente con useMemo - no necesitamos función applyFilters
@@ -185,13 +174,12 @@ const ProductsPage = () => {
 
   // Inicializar el rango de precios cuando se cargan los datos de la DB
   useEffect(() => {
-    if (filterOptions?.precio_rango && priceRange[0] === 0 && priceRange[1] === 0) {
-      setPriceRange([
-        filterOptions.precio_rango.minimo,
-        filterOptions.precio_rango.maximo
-      ])
+    const range = filterOptions?.precio_rango
+    if (!range) return
+    if (priceRange[0] === 0 && priceRange[1] === 0) {
+      setPriceRange([range.minimo, range.maximo])
     }
-  }, [filterOptions, priceRange])
+  }, [filterOptions])
 
 
   return (

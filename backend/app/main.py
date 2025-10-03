@@ -46,16 +46,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Configurar CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # En producción, especificar dominios específicos
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Agregar middleware de autenticación
+# Agregar middleware de autenticación (primero en la pila interna)
 app.add_middleware(
     AuthMiddleware,
     protected_paths=[
@@ -84,6 +75,15 @@ app.add_middleware(
         "/api/points",       # Todo requiere admin
         "/api/discounts"     # Todo requiere admin
     ]
+)
+
+# Configurar CORS como capa más externa (debe ir DESPUÉS para que envuelva todas las respuestas)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En producción, especificar dominios específicos
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/")
