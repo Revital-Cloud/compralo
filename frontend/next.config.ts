@@ -2,9 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  experimental: {
-    serverComponentsExternalPackages: ['@node-rs/argon2']
-  },
+  serverExternalPackages: ['@node-rs/argon2'],
   // Configuración de seguridad
   async headers() {
     const isDevelopment = process.env.NODE_ENV === 'development';
