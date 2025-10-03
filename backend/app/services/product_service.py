@@ -85,7 +85,7 @@ def get_products_admin(db: Session, params: dict):
                 FROM tab_productos p
                 INNER JOIN tab_categorias c ON p.id_categoria = c.id_categoria
                 INNER JOIN tab_lineas l ON p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria
-                INNER JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea
+                INNER JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea AND p.id_categoria = s.id_categoria
                 INNER JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
                 INNER JOIN tab_marcas m ON p.id_marca = m.id_marca
                 ORDER BY p.id_categoria, p.id_linea, p.id_sublinea, p.id_producto, {order_column} {order_direction}
@@ -248,7 +248,7 @@ def get_product_admin_detail(
             FROM tab_productos p
             INNER JOIN tab_categorias c ON p.id_categoria = c.id_categoria
             INNER JOIN tab_lineas l ON p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria
-            INNER JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea
+            INNER JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea AND p.id_categoria = s.id_categoria
             INNER JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
             INNER JOIN tab_marcas m ON p.id_marca = m.id_marca
             WHERE p.id_categoria = :id_categoria

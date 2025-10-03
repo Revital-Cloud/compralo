@@ -17,10 +17,10 @@ const Select = React.forwardRef<HTMLSelectElement, NativeSelectProps>(
           ref={ref}
           data-slot="select-native"
           className={cn(
-            "appearance-none border-input data-[placeholder]:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-[invalid=true]:not(:focus):ring-destructive/20 dark:aria-[invalid=true]:not(:focus):ring-destructive/40 aria-[invalid=true]:not(:focus):border-destructive rounded-md border bg-white dark:bg-gray-900 text-sm shadow-xs transition-all duration-200 outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
+            "appearance-none border-input data-[placeholder]:text-muted-foreground focus:border-yellow-500 focus:ring-yellow-500 aria-[invalid=true]:not(:focus):ring-destructive/20 dark:aria-[invalid=true]:not(:focus):ring-destructive/40 aria-[invalid=true]:not(:focus):border-destructive rounded-md border bg-white dark:bg-gray-900 text-sm shadow-xs transition-all duration-200 outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-muted/50",
             sizeVariant === "default" ? "h-10 pl-3 pr-8 py-2" : "h-8 pl-2.5 pr-8 py-1.5",
             "w-full",
-            "hover:border-ring/50 focus:border-ring",
+            "hover:border-yellow-300 focus:border-yellow-300",
             className
           )}
           {...props}
