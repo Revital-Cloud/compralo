@@ -1,9 +1,9 @@
 'use client';
 
 import { useAuth } from "@/hooks/use-auth";
-import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { ReactNode } from "react";
+import { redirect } from "next/navigation";
 
 interface RouteGuardProps {
   children: ReactNode;
@@ -18,7 +18,6 @@ export function RouteGuard({
   fallback,
   redirectTo 
 }: RouteGuardProps) {
-  const router = useRouter();
   const { user, isAuthenticated, isLoadingUser, isHydrated } = useAuth();
 
   // Si no está hidratado o cargando, mostrar loader
@@ -33,13 +32,7 @@ export function RouteGuard({
 
   // Si no está autenticado, redirigir al login
   if (!isAuthenticated) {
-    router.replace('/login');
-    return fallback || (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <span className="ml-2 text-sm text-gray-600">Redirigiendo al login...</span>
-      </div>
-    );
+    redirect('/login');
   }
 
   // Si se requiere un rol específico, verificar
@@ -48,17 +41,10 @@ export function RouteGuard({
     
     if (userRole !== requiredRole) {
       if (redirectTo) {
-        router.replace(redirectTo);
+        redirect(redirectTo);
       } else {
-        router.replace('/');
+        redirect('/');
       }
-      
-      return fallback || (
-        <div className="flex h-screen w-full items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin" />
-          <span className="ml-2 text-sm text-gray-600">Acceso denegado...</span>
-        </div>
-      );
     }
   }
 
