@@ -55,11 +55,15 @@ export async function deactivateAddress(id_direccion: number, id_usuario: number
   return await put<{ message: string }>(`/address/${id_direccion}-${id_usuario}/deactivate`, {});
 }
 
+export async function deactivateMainAddress(id_direccion: number, id_usuario: number): Promise<{ message: string }> {
+  return await put<{ message: string }>(`/address/${id_direccion}-${id_usuario}/deactivate-main`, {});
+}
+
 export async function getMyAddresses(): Promise<AddressItem[]> {
   return await get<AddressItem[]>('/addresses');
 }
 
-const addressService = { createAddress, getMyAddresses, updateAddress, deactivateAddress };
+const addressService = { createAddress, getMyAddresses, updateAddress, deactivateAddress, deactivateMainAddress };
 export default addressService;
 
 

@@ -90,6 +90,15 @@ app.add_middleware(
     ]
 )
 
+# Configurar CORS como capa más externa (debe ir DESPUÉS para que envuelva todas las respuestas)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En producción, especificar dominios específicos
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/")
 def read_root():
     """

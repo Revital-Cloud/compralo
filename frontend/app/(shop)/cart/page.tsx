@@ -1,51 +1,86 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import CartItem from '@/components/cart/cart-item'
-import { ProductCard } from '@/components/product/product-card'
-import { Badge } from '@/components/ui/badge'
-import { X, ShoppingBag, ChevronLeft, ChevronRight, AlertCircle, Loader2 } from 'lucide-react'
-import { useCart } from '@/hooks/use-cart'
-import { useAuth } from '@/hooks/use-auth'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import Loading from '@/components/ui/loading'
-import { toast } from 'sonner'
-import { formatPrice } from '@/utils/format-price'
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import CartItem from "@/components/cart/cart-item";
+import { ProductCard } from "@/components/product/product-card";
+import { Badge } from "@/components/ui/badge";
+import {
+  X,
+  ShoppingBag,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import { useCart } from "@/hooks/use-cart";
+import { useAuth } from "@/hooks/use-auth";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import Loading from "@/components/ui/loading";
+import { toast } from "sonner";
+import { formatPrice } from "@/utils/format-price";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import addressService from "@/services/address.service";
+import { listPaymentMethods, addPaymentMethod } from "@/services/payment.service";
+import { payCartAndCreateOrder } from "@/services/order.service";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+} from "@/components/ui/alert-dialog";
+import { useRouter } from "next/navigation";
 
 const cartTexts = {
   es: {
-    title: 'Cesta de la compra',
-    subtitle: 'Revisa y gestiona los artículos de tu cesta.',
-    signInText: '¿Ya tienes una cuenta? Inicia sesión para una experiencia más rápida.',
-    yourBag: 'Tu Cesta',
-    bagSubtitle: 'Los artículos en tu cesta no están reservados.',
-    emptyCartTitle: 'Tu cesta está vacía',
-    emptyCartSubtitle: 'Parece que aún no has añadido nada.',
-    youMayAlsoLike: 'También te puede gustar',
-    orderSummary: 'Resumen del Pedido',
-    delivery: 'Envío',
-    salesTax: 'Impuestos',
-    total: 'Total',
-    checkout: 'Pagar',
-    promoCode: '¿Tienes un código promocional?',
-    size: 'Talla:',
-    quantity: 'Cantidad:',
-    viewSummary: 'Ver Resumen',
-    loading: 'Cargando carrito...',
-    errorTitle: 'Error al cargar el carrito',
-    retry: 'Reintentar'
-  }
-}
+    title: "Cesta de la compra",
+    subtitle: "Revisa y gestiona los artículos de tu cesta.",
+    signInText:
+      "¿Ya tienes una cuenta? Inicia sesión para una experiencia más rápida.",
+    yourBag: "Tu Cesta",
+    bagSubtitle: "Los artículos en tu cesta no están reservados.",
+    emptyCartTitle: "Tu cesta está vacía",
+    emptyCartSubtitle: "Parece que aún no has añadido nada.",
+    youMayAlsoLike: "También te puede gustar",
+    orderSummary: "Resumen del Pedido",
+    delivery: "Envío",
+    salesTax: "Impuestos",
+    total: "Total",
+    checkout: "Pagar",
+    promoCode: "¿Tienes un código promocional?",
+    size: "Talla:",
+    quantity: "Cantidad:",
+    viewSummary: "Ver Resumen",
+    loading: "Cargando carrito...",
+    errorTitle: "Error al cargar el carrito",
+    retry: "Reintentar",
+  },
+};
 
 const CartPage = () => {
-  const [promoCode, setPromoCode] = useState('')
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const router = useRouter();
+  const [promoCode, setPromoCode] = useState("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Hook de autenticación
-  const { user, isAuthenticated } = useAuth()
+  const { user, isAuthenticated } = useAuth();
 
   // Hook del carrito con datos reales
   const {
@@ -59,51 +94,188 @@ const CartPage = () => {
     updateQuantity,
     removeFromCart,
     clearCart,
-    refetchCart
-  } = useCart()
+    refetchCart,
+    id_carrito,
+    cartExceedsLimit,
+  } = useCart();
 
   // Textos de la interfaz
-  const texts = cartTexts.es
+  const texts = cartTexts.es;
 
   // Funciones para manejar el carrito
-  const handleQuantityChange = async (id: string, cantidad: number, stock_disponible?: number) => {
-    const id_carrito_producto = parseInt(id)
+  const handleQuantityChange = async (
+    id: string,
+    cantidad: number,
+    stock_disponible?: number
+  ) => {
+    const id_carrito_producto = parseInt(id);
     try {
-      updateQuantity({ id_carrito_producto, cantidad, stock_disponible })
+      updateQuantity({ id_carrito_producto, cantidad, stock_disponible });
     } catch (error) {
-      console.error('Error al actualizar cantidad:', error)
+      console.error("Error al actualizar cantidad:", error);
     }
-  }
+  };
 
   const handleRemoveItem = async (id: string) => {
-    const id_carrito_producto = parseInt(id)
+    const id_carrito_producto = parseInt(id);
     try {
-      removeFromCart(id_carrito_producto)
+      removeFromCart(id_carrito_producto);
     } catch (error) {
-      console.error('Error al eliminar producto:', error)
+      console.error("Error al eliminar producto:", error);
     }
-  }
+  };
 
   const handleToggleFavorite = (id: string) => {
     // TODO: Implementar favoritos
-    console.log('Toggle favorite:', id)
-    toast.info('Funcionalidad de favoritos próximamente')
-  }
+    console.log("Toggle favorite:", id);
+    toast.info("Funcionalidad de favoritos próximamente");
+  };
 
-  // Estados de carga y error
+  // Cálculos del carrito - usar datos del backend o fallback local
+  const subtotal =
+    Number(totals?.total_productos) ||
+    (Array.isArray(items) && items.length > 0
+      ? items.reduce((acc, item) => acc + (Number(item.subtotal) || 0), 0)
+      : 0);
+  const shipping =
+    Number(totals?.resumen?.costo_envio) ||
+    (subtotal > 50 || subtotal === 0 ? 0 : 10);
+  const salesTax = Number(totals?.resumen?.impuestos) || 0;
+  const finalTotal =
+    Number(totals?.total_final) || (hasItems() ? Number(total) : 0) || 0;
+
+  // Cargar dirección principal del usuario (si existe)
+  const { data: addresses } = useQuery({
+    queryKey: ["addresses"],
+    queryFn: addressService.getMyAddresses,
+    enabled: !!user?.id_usuario,
+  });
+
+  // Cargar métodos de pago y detectar predeterminado
+  const { data: paymentMethods } = useQuery({
+    queryKey: ["payment-methods"],
+    queryFn: listPaymentMethods,
+    enabled: !!user?.id_usuario,
+  });
+
+  const defaultAddress = Array.isArray(addresses)
+    ? addresses.find((a) => a.ind_principal) || addresses[0]
+    : undefined;
+  const defaultPaymentMethod = Array.isArray(paymentMethods)
+    ? paymentMethods.find((m) => m.is_default) || paymentMethods[0]
+    : undefined;
+
+  const [isPaying, setIsPaying] = useState(false);
+  const [pendingOrderId, setPendingOrderId] = useState<number | null>(null);
+  const [isPMDialogOpen, setIsPMDialogOpen] = useState(false);
+  const [selectedPaymentMethodId, setSelectedPaymentMethodId] = useState<
+    string | null
+  >(null);
+  const [isRetryDialogOpen, setIsRetryDialogOpen] = useState(false);
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+  const [isRequirementsDialogOpen, setIsRequirementsDialogOpen] = useState(false);
+  const [isQuickAddressOpen, setIsQuickAddressOpen] = useState(false);
+  const [isQuickPaymentOpen, setIsQuickPaymentOpen] = useState(false);
+  const [isAddressSelectionOpen, setIsAddressSelectionOpen] = useState(false);
+  const [isPaymentSelectionOpen, setIsPaymentSelectionOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Derivados para saber si falta dirección o método de pago
+  const isMissingAddress = !defaultAddress;
+  const paymentMethodsCount = Array.isArray(paymentMethods) ? paymentMethods.length : 0;
+  const isMissingPaymentMethod = paymentMethodsCount === 0;
+
+  const handleCheckout = async (pmIdOverride?: number) => {
+    if (!hasItems()) {
+      toast.error("Tu carrito está vacío");
+      return;
+    }
+    if (!user?.id_usuario) {
+      setIsAuthDialogOpen(true);
+      return;
+    }
+    // Si faltan requisitos, abrir modal informativo y bloquear
+    if (isMissingAddress || isMissingPaymentMethod) {
+      setIsRequirementsDialogOpen(true);
+      return;
+    }
+
+    const effectivePM =
+      pmIdOverride ??
+      (selectedPaymentMethodId
+        ? Number(selectedPaymentMethodId)
+        : Number((defaultPaymentMethod as any)?.id_metodo_pago));
+
+    const pmObject = Array.isArray(paymentMethods)
+      ? paymentMethods.find(
+          (m: any) => Number(m.id_metodo_pago) === Number(effectivePM)
+        )
+      : undefined;
+
+    if (!pmObject) {
+      setIsRequirementsDialogOpen(true);
+      return;
+    }
+    if (!(pmObject as any).provider_source_id) {
+      toast.error(
+        "Tu método de pago no está listo. Vuelve a agregar la tarjeta para generar el token de Wompi."
+      );
+      return;
+    }
+
+    try {
+      setIsPaying(true);
+      // limpiar cualquier estado previo de pendiente
+      setPendingOrderId(null);
+
+      // 1) Pagar el carrito y crear la orden solo si es aprobado
+      const payResp = await payCartAndCreateOrder(Number(id_carrito), {
+        payment_method_id: Number(effectivePM),
+        id_direccion: Number(defaultAddress.id_direccion),
+        codigo_descuento: null,
+        des_observaciones: null,
+        id_canje: null,
+      });
+
+      if (payResp.status === "APPROVED" && payResp.order_id) {
+        setPendingOrderId(null);
+        toast.success(`Pago aprobado. Orden #${payResp.order_id}`);
+        // Vaciar carrito inmediatamente y refrescar datos
+        try {
+          clearCart();
+          refetchCart();
+        } catch (_) {}
+      } else if (payResp.status === "PENDING") {
+        setPendingOrderId(null);
+        toast.message(
+          "Pago pendiente de confirmación. No se ha generado la orden aún"
+        );
+      } else if (payResp.status === "DECLINED") {
+        setPendingOrderId(null);
+        setIsRetryDialogOpen(true);
+        toast.error("Pago declinado");
+      } else {
+        setPendingOrderId(null);
+        toast.error("Error en el pago");
+      }
+    } catch (e: any) {
+      toast.error(
+        e?.response?.data?.detail || e?.message || "Error procesando el pago"
+      );
+    } finally {
+      setIsPaying(false);
+      setIsPMDialogOpen(false);
+    }
+  };
+
+  // Estado de carga después de declarar todos los hooks
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <Loading />
       </div>
-    )
+    );
   }
-
-  // Cálculos del carrito - usar datos del backend o fallback local
-  const subtotal = Number(totals?.total_productos) || (Array.isArray(items) && items.length > 0 ? items.reduce((acc, item) => acc + (Number(item.subtotal) || 0), 0) : 0)
-  const shipping = Number(totals?.resumen?.costo_envio) || (subtotal > 50 || subtotal === 0 ? 0 : 10)
-  const salesTax = Number(totals?.resumen?.impuestos) || 0
-  const finalTotal = Number(totals?.total_final) || (hasItems() ? Number(total) : 0) || 0
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 pb-24 lg:pb-8">
@@ -113,9 +285,7 @@ const CartPage = () => {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             {texts.title}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            {texts.subtitle}
-          </p>
+          <p className="text-gray-600 dark:text-gray-400">{texts.subtitle}</p>
           {/* Mensaje contextual según estado de autenticación */}
           {!isAuthenticated ? (
             <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
@@ -126,7 +296,8 @@ const CartPage = () => {
           ) : (
             <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
               <p className="text-green-800 dark:text-green-200 text-sm">
-                ¡Hola {user?.nom_usuario || 'Usuario'}! Tu carrito se sincroniza automáticamente.
+                ¡Hola {user?.nom_usuario || "Usuario"}! Tu carrito se sincroniza
+                automáticamente.
               </p>
             </div>
           )}
@@ -147,23 +318,52 @@ const CartPage = () => {
               </CardHeader>
               <CardContent className="p-0">
                 {/* Mostrar error solo si existe y es relevante para el usuario */}
-                {error && typeof error === 'string' && error.includes('Stock insuficiente') && (
+                {error &&
+                  typeof error === "string" &&
+                  error.includes("Stock insuficiente") && (
+                    <div className="p-6">
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          <div className="flex flex-col gap-3">
+                            <span>
+                              {texts.errorTitle}:{" "}
+                              {typeof error === "string"
+                                ? error
+                                : "Error desconocido"}
+                            </span>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={refetchCart}
+                              >
+                                <Loader2 className="h-4 w-4 mr-2" />
+                                {texts.retry}
+                              </Button>
+                            </div>
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    </div>
+                  )}
+
+                {/* Alerta de límite del carrito excedido */}
+                {cartExceedsLimit && (
                   <div className="p-6">
                     <Alert variant="destructive">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>
                         <div className="flex flex-col gap-3">
-                          <span>{texts.errorTitle}: {typeof error === 'string' ? error : 'Error desconocido'}</span>
-                          <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={refetchCart}
-                            >
-                              <Loader2 className="h-4 w-4 mr-2" />
-                              {texts.retry}
-                            </Button>
-                          </div>
+                          <span className="font-semibold">
+                            Límite de carrito excedido
+                          </span>
+                          <span>
+                            El total de tu carrito ({formatPrice(total)}) excede
+                            el límite máximo permitido ({formatPrice(20000000)}
+                            ). Por favor, elimina algunos productos del carrito
+                            para continuar.
+                          </span>
                         </div>
                       </AlertDescription>
                     </Alert>
@@ -177,12 +377,12 @@ const CartPage = () => {
                         key={item.id_carrito_producto}
                         id={item.id_carrito_producto.toString()}
                         name={item.nombre_producto}
-                        brand={item.marca || 'Sin marca'}
-                        color={item.categoria || 'Sin especificar'}
-                        size={item.sublinea || 'Único'}
+                        brand={item.marca || "Sin marca"}
+                        color={item.categoria || "Sin especificar"}
+                        size={item.sublinea || "Único"}
                         price={item.precio_unitario}
                         quantity={item.cantidad}
-                        image={item.imagen_url || '/placeholder-product.jpg'}
+                        image={item.imagen_url || "/placeholder-product.jpg"}
                         stock_disponible={item.stock_disponible}
                         cartTotal={finalTotal}
                         onQuantityChange={handleQuantityChange}
@@ -195,8 +395,12 @@ const CartPage = () => {
                 ) : (
                   <div className="text-center py-16">
                     <ShoppingBag className="mx-auto h-16 w-16 text-gray-400 dark:text-gray-600 mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400 text-xl">{texts.emptyCartTitle}</p>
-                    <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">{texts.emptyCartSubtitle}</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-xl">
+                      {texts.emptyCartTitle}
+                    </p>
+                    <p className="text-gray-400 dark:text-gray-500 text-sm mt-2">
+                      {texts.emptyCartSubtitle}
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -238,15 +442,6 @@ const CartPage = () => {
                     image="/placeholder-product.jpg"
                     badge="Recomendado"
                     badgeColor="blue"
-                    onAddToCart={(id) => {
-                      // TODO: Implementar con productos reales
-                      console.log('Agregar producto recomendado:', id)
-                      toast.info('Funcionalidad de productos recomendados próximamente')
-                    }}
-                    onToggleFavorite={(id) => {
-                      console.log('Toggle favorito:', id)
-                      toast.info('Funcionalidad de favoritos próximamente')
-                    }}
                   />
                 ))}
               </div>
@@ -255,7 +450,7 @@ const CartPage = () => {
 
           {/* Resumen del Pedido - Desktop */}
           <div className="hidden lg:block lg:w-80 lg:flex-shrink-0">
-            <div className="sticky top-8" style={{ alignSelf: 'flex-start' }}>
+            <div className="sticky top-8" style={{ alignSelf: "flex-start" }}>
               <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg">
                 <CardHeader className="pb-4 border-b border-gray-200 dark:border-gray-700">
                   <CardTitle className="text-xl font-bold text-gray-900 dark:text-white">
@@ -265,71 +460,222 @@ const CartPage = () => {
                 <CardContent className="p-6">
                   {/* Lista detallada de productos */}
                   <div className="space-y-4 mb-6 max-h-60 overflow-y-auto">
-                    {Array.isArray(items) && items.map((item) => (
-                      <div key={item.id_carrito_producto} className="flex justify-between text-sm py-2">
-                        <div className="flex-1 min-w-0 pr-4">
-                          <p className="font-semibold text-gray-900 dark:text-white truncate text-base">
-                            {item.nombre_producto}
-                          </p>
-                          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                            {item.marca || 'Sin marca'} • {texts.size} {item.sublinea || 'Único'} • {texts.quantity} {item.cantidad}
-                          </p>
+                    {Array.isArray(items) &&
+                      items.map((item) => (
+                        <div
+                          key={item.id_carrito_producto}
+                          className="flex justify-between text-sm py-2"
+                        >
+                          <div className="flex-1 min-w-0 pr-4">
+                            <p className="font-semibold text-gray-900 dark:text-white truncate text-base">
+                              {item.nombre_producto}
+                            </p>
+                            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                              {item.marca || "Sin marca"} • {texts.size}{" "}
+                              {item.sublinea || "Único"} • {texts.quantity}{" "}
+                              {item.cantidad}
+                            </p>
+                          </div>
+                          <div className="flex-shrink-0">
+                            <span className="font-bold text-gray-900 dark:text-white text-base">
+                              {formatPrice(item.subtotal)}
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex-shrink-0">
-                          <span className="font-bold text-gray-900 dark:text-white text-base">
-                            {formatPrice(item.subtotal)}
-                          </span>
+                      ))}
+                  </div>
+
+                  {/* Información de dirección y método de pago */}
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                      Información de Envío y Pago
+                    </h3>
+                    
+                    {/* Dirección */}
+                    <div className="mb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Dirección de envío</p>
+                          {defaultAddress ? (
+                            <div className="flex items-start justify-between">
+                              <div className="text-sm text-gray-900 dark:text-white flex-1">
+                                <p className="font-medium">{defaultAddress.nombre_direccion}</p>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                  {defaultAddress.calle_direccion}, {defaultAddress.ciudad}
+                                </p>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                  {defaultAddress.departamento} - {defaultAddress.codigo_postal}
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setIsAddressSelectionOpen(true)}
+                                className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
+                              >
+                                Cambiar
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4 text-amber-500" />
+                              <p className="text-sm text-amber-600 dark:text-amber-400">
+                                Falta agregar dirección
+                              </p>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setIsQuickAddressOpen(true)}
+                                className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
+                              >
+                                Agregar
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Método de pago */}
+                    <div className="mb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Método de pago</p>
+                          {defaultPaymentMethod ? (
+                            <div className="flex items-start justify-between">
+                              <div className="text-sm text-gray-900 dark:text-white flex-1">
+                                <p className="font-medium">
+                                  {defaultPaymentMethod.brand?.toUpperCase() || "Tarjeta"} •••• {defaultPaymentMethod.last_four_digits}
+                                </p>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                  {defaultPaymentMethod.card_holder}
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setIsPaymentSelectionOpen(true)}
+                                className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
+                              >
+                                Cambiar
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4 text-amber-500" />
+                              <p className="text-sm text-amber-600 dark:text-amber-400">
+                                Falta agregar método de pago
+                              </p>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setIsQuickPaymentOpen(true)}
+                                className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
+                              >
+                                Agregar
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  
+
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                      <span className="text-gray-600 dark:text-gray-400">
+                        Subtotal
+                      </span>
                       <span className="text-gray-900 dark:text-white font-medium">
                         {formatPrice(subtotal)}
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">{texts.delivery}</span>
+                      <span className="text-gray-600 dark:text-gray-400">
+                        {texts.delivery}
+                      </span>
                       <span className="text-gray-900 dark:text-white font-medium">
-                        {shipping > 0 ? formatPrice(shipping) : 'Gratis'}
+                        {shipping > 0 ? formatPrice(shipping) : "Gratis"}
                       </span>
                     </div>
                     {salesTax > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-600 dark:text-gray-400">{texts.salesTax}</span>
+                        <span className="text-gray-600 dark:text-gray-400">
+                          {texts.salesTax}
+                        </span>
                         <span className="text-gray-900 dark:text-white font-medium">
                           {formatPrice(salesTax)}
                         </span>
                       </div>
                     )}
-                    {totals?.total_descuentos && totals.total_descuentos > 0 && (
-                      <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                        <span>Descuentos aplicados</span>
-                        <span>-{formatPrice(totals.total_descuentos)}</span>
-                      </div>
-                    )}
+                    {totals?.total_descuentos &&
+                      totals.total_descuentos > 0 && (
+                        <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                          <span>Descuentos aplicados</span>
+                          <span>-{formatPrice(totals.total_descuentos)}</span>
+                        </div>
+                      )}
                   </div>
-                  
+
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
                     <div className="flex justify-between font-bold text-xl">
-                      <span className="text-gray-900 dark:text-white">{texts.total}</span>
-                      <span className="text-gray-900 dark:text-white">{formatPrice(finalTotal)}</span>
+                      <span className="text-gray-900 dark:text-white">
+                        {texts.total}
+                      </span>
+                      <span className="text-gray-900 dark:text-white">
+                        {formatPrice(finalTotal)}
+                      </span>
                     </div>
                     {totals?.puntos_a_ganar && totals.puntos_a_ganar > 0 && (
                       <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
-                        🎉 Ganarás {totals.puntos_a_ganar} puntos con esta compra
+                        🎉 Ganarás {totals.puntos_a_ganar} puntos con esta
+                        compra
                       </p>
                     )}
                   </div>
 
-                  <Button 
-                    className="w-full mt-6 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3 text-lg"
-                    disabled={!hasItems()}
+                  <Button
+                    className="w-full mt-6 bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3 text-lg cursor-pointer"
+                    disabled={
+                      !hasItems() ||
+                      isPaying ||
+                      !!pendingOrderId ||
+                      cartExceedsLimit
+                    }
+                    onClick={() => {
+                      // Bloquear si faltan requisitos
+                      if (isMissingAddress || isMissingPaymentMethod) {
+                        setIsRequirementsDialogOpen(true);
+                        return;
+                      }
+                      const count = Array.isArray(paymentMethods)
+                        ? paymentMethods.length
+                        : 0;
+                      if (count > 1) {
+                        setSelectedPaymentMethodId(
+                          String(
+                            (defaultPaymentMethod as any)?.id_metodo_pago ?? ""
+                          )
+                        );
+                        setIsPMDialogOpen(true);
+                      } else {
+                        handleCheckout();
+                      }
+                    }}
                   >
-                    {texts.checkout}
+                    {pendingOrderId ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {`Pago pendiente · Orden #${pendingOrderId}`}
+                      </span>
+                    ) : isPaying ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Procesando…
+                      </span>
+                    ) : (
+                      texts.checkout
+                    )}
                   </Button>
 
                   {/* Código promocional */}
@@ -356,12 +702,16 @@ const CartPage = () => {
           </div>
 
           {/* Resumen del Pedido - Mobile (Sidebar) */}
-          <div className={`lg:hidden fixed right-0 top-0 h-full w-80 bg-white dark:bg-gray-800 shadow-2xl transform transition-transform duration-300 z-50 ${
-            isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
-          }`}>
+          <div
+            className={`lg:hidden fixed right-0 top-0 h-full w-80 bg-white dark:bg-gray-800 shadow-2xl transform transition-transform duration-300 z-50 ${
+              isSidebarOpen ? "translate-x-0" : "translate-x-full"
+            }`}
+          >
             <div className="flex flex-col h-full">
               <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-white">{texts.orderSummary}</h2>
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                  {texts.orderSummary}
+                </h2>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -371,45 +721,153 @@ const CartPage = () => {
                   <X className="h-5 w-5" />
                 </Button>
               </div>
-              
+
               <div className="flex-1 overflow-y-auto p-6">
                 {/* Lista detallada de productos - Mobile */}
                 <div className="space-y-4 mb-6">
-                  {Array.isArray(items) && items.map((item) => (
-                    <div key={item.id_carrito_producto} className="flex justify-between text-sm py-2">
-                      <div className="flex-1 min-w-0 pr-4">
-                        <p className="font-semibold text-gray-900 dark:text-white truncate text-base">
-                          {item.nombre_producto}
-                        </p>
-                        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                          {item.marca || 'Sin marca'} • {texts.size} {item.sublinea || 'Único'} • {texts.quantity} {item.cantidad}
-                        </p>
+                  {Array.isArray(items) &&
+                    items.map((item) => (
+                      <div
+                        key={item.id_carrito_producto}
+                        className="flex justify-between text-sm py-2"
+                      >
+                        <div className="flex-1 min-w-0 pr-4">
+                          <p className="font-semibold text-gray-900 dark:text-white truncate text-base">
+                            {item.nombre_producto}
+                          </p>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
+                            {item.marca || "Sin marca"} • {texts.size}{" "}
+                            {item.sublinea || "Único"} • {texts.quantity}{" "}
+                            {item.cantidad}
+                          </p>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <span className="font-bold text-gray-900 dark:text-white text-base">
+                            {formatPrice(item.subtotal)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex-shrink-0">
-                        <span className="font-bold text-gray-900 dark:text-white text-base">
-                          {formatPrice(item.subtotal)}
-                        </span>
+                    ))}
+                </div>
+
+                {/* Información de dirección y método de pago - Mobile */}
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    Información de Envío y Pago
+                  </h3>
+                  
+                  {/* Dirección */}
+                  <div className="mb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Dirección de envío</p>
+                        {defaultAddress ? (
+                          <div className="flex items-start justify-between">
+                            <div className="text-sm text-gray-900 dark:text-white flex-1">
+                              <p className="font-medium">{defaultAddress.nombre_direccion}</p>
+                              <p className="text-gray-600 dark:text-gray-400">
+                                {defaultAddress.calle_direccion}, {defaultAddress.ciudad}
+                              </p>
+                              <p className="text-gray-600 dark:text-gray-400">
+                                {defaultAddress.departamento} - {defaultAddress.codigo_postal}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setIsAddressSelectionOpen(true)}
+                              className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
+                            >
+                              Cambiar
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className="h-4 w-4 text-amber-500" />
+                            <p className="text-sm text-amber-600 dark:text-amber-400">
+                              Falta agregar dirección
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setIsQuickAddressOpen(true)}
+                              className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
+                            >
+                              Agregar
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  {/* Método de pago */}
+                  <div className="mb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Método de pago</p>
+                        {defaultPaymentMethod ? (
+                          <div className="flex items-start justify-between">
+                            <div className="text-sm text-gray-900 dark:text-white flex-1">
+                              <p className="font-medium">
+                                {defaultPaymentMethod.brand?.toUpperCase() || "Tarjeta"} •••• {defaultPaymentMethod.last_four_digits}
+                              </p>
+                              <p className="text-gray-600 dark:text-gray-400">
+                                {defaultPaymentMethod.card_holder}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setIsPaymentSelectionOpen(true)}
+                              className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
+                            >
+                              Cambiar
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className="h-4 w-4 text-amber-500" />
+                            <p className="text-sm text-amber-600 dark:text-amber-400">
+                              Falta agregar método de pago
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setIsQuickPaymentOpen(true)}
+                              className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
+                            >
+                              Agregar
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                
+
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Subtotal
+                    </span>
                     <span className="text-gray-900 dark:text-white font-medium">
                       {formatPrice(subtotal)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">{texts.delivery}</span>
+                    <span className="text-gray-600 dark:text-gray-400">
+                      {texts.delivery}
+                    </span>
                     <span className="text-gray-900 dark:text-white font-medium">
-                      {shipping > 0 ? formatPrice(shipping) : 'Gratis'}
+                      {shipping > 0 ? formatPrice(shipping) : "Gratis"}
                     </span>
                   </div>
                   {salesTax > 0 && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">{texts.salesTax}</span>
+                      <span className="text-gray-600 dark:text-gray-400">
+                        {texts.salesTax}
+                      </span>
                       <span className="text-gray-900 dark:text-white font-medium">
                         {formatPrice(salesTax)}
                       </span>
@@ -422,11 +880,15 @@ const CartPage = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
                   <div className="flex justify-between font-bold text-xl">
-                    <span className="text-gray-900 dark:text-white">{texts.total}</span>
-                    <span className="text-gray-900 dark:text-white">{formatPrice(finalTotal)}</span>
+                    <span className="text-gray-900 dark:text-white">
+                      {texts.total}
+                    </span>
+                    <span className="text-gray-900 dark:text-white">
+                      {formatPrice(finalTotal)}
+                    </span>
                   </div>
                   {totals?.puntos_a_ganar && totals.puntos_a_ganar > 0 && (
                     <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
@@ -435,11 +897,34 @@ const CartPage = () => {
                   )}
                 </div>
               </div>
-              
+
               <div className="p-6 border-t border-gray-200 dark:border-gray-700">
-                <Button 
+                <Button
                   className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3 text-lg"
-                  disabled={!hasItems}
+                  disabled={!hasItems || cartExceedsLimit}
+                  onClick={() => {
+                    if (!isAuthenticated) {
+                      setIsAuthDialogOpen(true);
+                      return;
+                    }
+                    if (isMissingAddress || isMissingPaymentMethod) {
+                      setIsRequirementsDialogOpen(true);
+                      return;
+                    }
+                    const count = Array.isArray(paymentMethods)
+                      ? paymentMethods.length
+                      : 0;
+                    if (count > 1) {
+                      setSelectedPaymentMethodId(
+                        String(
+                          (defaultPaymentMethod as any)?.id_metodo_pago ?? ""
+                        )
+                      );
+                      setIsPMDialogOpen(true);
+                    } else {
+                      handleCheckout();
+                    }
+                  }}
                 >
                   {texts.checkout}
                 </Button>
@@ -453,21 +938,46 @@ const CartPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {itemCount} {itemCount === 1 ? 'artículo' : 'artículos'}
+                {itemCount} {itemCount === 1 ? "artículo" : "artículos"}
               </p>
-              <p className="font-bold text-lg text-gray-900 dark:text-white">{formatPrice(finalTotal)}</p>
+              <p className="font-bold text-lg text-gray-900 dark:text-white">
+                {formatPrice(finalTotal)}
+              </p>
             </div>
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => setIsSidebarOpen(true)}
                 className="text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
               >
                 {texts.viewSummary}
               </Button>
-              <Button 
+              <Button
                 className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
-                disabled={!hasItems}
+                disabled={!hasItems || cartExceedsLimit}
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    setIsAuthDialogOpen(true);
+                    return;
+                  }
+                  if (isMissingAddress || isMissingPaymentMethod) {
+                    setIsRequirementsDialogOpen(true);
+                    return;
+                  }
+                  const count = Array.isArray(paymentMethods)
+                    ? paymentMethods.length
+                    : 0;
+                  if (count > 1) {
+                    setSelectedPaymentMethodId(
+                      String(
+                        (defaultPaymentMethod as any)?.id_metodo_pago ?? ""
+                      )
+                    );
+                    setIsPMDialogOpen(true);
+                  } else {
+                    handleCheckout();
+                  }
+                }}
               >
                 {texts.checkout}
               </Button>
@@ -477,14 +987,490 @@ const CartPage = () => {
 
         {/* Overlay para cerrar sidebar */}
         {isSidebarOpen && (
-          <div 
+          <div
             className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
       </div>
+
+      {/* Diálogo de autenticación requerida */}
+      <Dialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Debes iniciar sesión para comprar</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Para finalizar tu compra necesitas iniciar sesión o registrarte.
+          </p>
+          <DialogFooter className="flex gap-2 sm:justify-end">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAuthDialogOpen(false);
+                router.push("/register");
+              }}
+            >
+              Registrarse
+            </Button>
+            <Button
+              onClick={() => {
+                setIsAuthDialogOpen(false);
+                router.push("/login");
+              }}
+            >
+              Iniciar sesión
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de requisitos faltantes (dirección y/o método de pago) */}
+      <Dialog open={isRequirementsDialogOpen} onOpenChange={setIsRequirementsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>No puedes pagar todavía</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+            {isMissingAddress && (
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
+                <p>Debes agregar una dirección de envío.</p>
+              </div>
+            )}
+            {isMissingPaymentMethod && (
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
+                <p>Debes registrar un método de pago.</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2 sm:justify-end">
+            {isMissingAddress && (
+              <Button
+                variant="outline"
+                className="hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit"
+                onClick={() => {
+                  setIsRequirementsDialogOpen(false);
+                  setIsQuickAddressOpen(true);
+                }}
+              >
+                Agregar dirección
+              </Button>
+            )}
+            {isMissingPaymentMethod && (
+              <Button
+                className="bg-red-600 text-white hover:bg-red-600/90"
+                onClick={() => {
+                  setIsRequirementsDialogOpen(false);
+                  setIsQuickPaymentOpen(true);
+                }}
+              >
+                Agregar método de pago
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+       {/* Modal de selección de dirección */}
+       <Dialog open={isAddressSelectionOpen} onOpenChange={setIsAddressSelectionOpen}>
+         <DialogContent>
+           <DialogHeader>
+             <DialogTitle>Seleccionar Dirección</DialogTitle>
+           </DialogHeader>
+           <div className="space-y-3 py-2">
+             <RadioGroup
+               value={defaultAddress?.id_direccion?.toString() ?? ""}
+               onValueChange={(value) => {
+                 // Aquí se actualizaría la dirección seleccionada
+                 console.log("Dirección seleccionada:", value);
+               }}
+             >
+               {Array.isArray(addresses) &&
+                 addresses.map((address: any) => (
+                   <label
+                     key={address.id_direccion}
+                     className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                   >
+                     <RadioGroupItem value={String(address.id_direccion)} />
+                     <div className="flex-1">
+                       <div className="text-sm font-medium">
+                         {address.nombre_direccion}
+                       </div>
+                       <div className="text-xs text-gray-500 mt-1">
+                         {address.calle_direccion}, {address.ciudad}
+                       </div>
+                       <div className="text-xs text-gray-500">
+                         {address.departamento} - {address.codigo_postal}
+                       </div>
+                     </div>
+                     {address.es_principal && <Badge>Principal</Badge>}
+                   </label>
+                 ))}
+             </RadioGroup>
+           </div>
+           <DialogFooter className="flex flex-col sm:flex-row gap-2">
+             <Button
+               variant="outline"
+               onClick={() => {
+                 setIsAddressSelectionOpen(false);
+                 setIsQuickAddressOpen(true);
+               }}
+               className="hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit"
+             >
+               Agregar Nueva
+             </Button>
+             <Button
+               onClick={() => {
+                 setIsAddressSelectionOpen(false);
+                 queryClient.invalidateQueries({ queryKey: ["addresses"] });
+                 toast.success("Dirección actualizada");
+               }}
+             >
+               Confirmar
+             </Button>
+           </DialogFooter>
+         </DialogContent>
+       </Dialog>
+
+       {/* Modal de selección de método de pago */}
+       <Dialog open={isPaymentSelectionOpen} onOpenChange={setIsPaymentSelectionOpen}>
+         <DialogContent>
+           <DialogHeader>
+             <DialogTitle>Seleccionar Método de Pago</DialogTitle>
+           </DialogHeader>
+           <div className="space-y-3 py-2">
+             <RadioGroup
+               value={defaultPaymentMethod?.id_metodo_pago?.toString() ?? ""}
+               onValueChange={(value) => {
+                 // Aquí se actualizaría el método de pago seleccionado
+                 console.log("Método de pago seleccionado:", value);
+               }}
+             >
+               {Array.isArray(paymentMethods) &&
+                 paymentMethods.map((method: any) => (
+                   <label
+                     key={method.id_metodo_pago}
+                     className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                   >
+                     <RadioGroupItem value={String(method.id_metodo_pago)} />
+                     <div className="flex-1">
+                       <div className="text-sm font-medium">
+                         {method.brand?.toUpperCase() || "Tarjeta"} •••• {method.last_four_digits}
+                       </div>
+                       <div className="text-xs text-gray-500">
+                         Titular: {method.card_holder}
+                       </div>
+                     </div>
+                     {method.es_principal && <Badge>Principal</Badge>}
+                   </label>
+                 ))}
+             </RadioGroup>
+           </div>
+           <DialogFooter className="flex flex-col sm:flex-row gap-2">
+             <Button
+               variant="outline"
+               onClick={() => {
+                 setIsPaymentSelectionOpen(false);
+                 setIsQuickPaymentOpen(true);
+               }}
+               className="hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit"
+             >
+               Agregar Nuevo
+             </Button>
+             <Button
+               onClick={() => {
+                 setIsPaymentSelectionOpen(false);
+                 queryClient.invalidateQueries({ queryKey: ["paymentMethods"] });
+                 toast.success("Método de pago actualizado");
+               }}
+             >
+               Confirmar
+             </Button>
+           </DialogFooter>
+         </DialogContent>
+       </Dialog>
+
+       {/* Modal rápido para agregar dirección */}
+       <Dialog open={isQuickAddressOpen} onOpenChange={setIsQuickAddressOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agregar dirección de envío</DialogTitle>
+          </DialogHeader>
+          <QuickAddressForm
+            onSuccess={async () => {
+              setIsQuickAddressOpen(false);
+              await queryClient.invalidateQueries({ queryKey: ["addresses"] });
+              toast.success("Dirección agregada");
+              
+              // Si aún falta método de pago, abrir automáticamente ese formulario
+              if (isMissingPaymentMethod) {
+                setTimeout(() => {
+                  setIsQuickPaymentOpen(true);
+                }, 500); // Pequeño delay para que se vea el toast
+              } else {
+                // Si ya no falta nada, intentar pagar
+                setTimeout(() => {
+                  handleCheckout();
+                }, 500);
+              }
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal rápido para agregar método de pago */}
+      <Dialog open={isQuickPaymentOpen} onOpenChange={setIsQuickPaymentOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agregar método de pago</DialogTitle>
+          </DialogHeader>
+          <QuickPaymentForm
+            onSuccess={async () => {
+              setIsQuickPaymentOpen(false);
+              await queryClient.invalidateQueries({ queryKey: ["payment-methods"] });
+              toast.success("Método de pago agregado");
+              
+              // Si aún falta dirección, abrir automáticamente ese formulario
+              if (isMissingAddress) {
+                setTimeout(() => {
+                  setIsQuickAddressOpen(true);
+                }, 500); // Pequeño delay para que se vea el toast
+              } else {
+                // Si ya no falta nada, intentar pagar
+                setTimeout(() => {
+                  handleCheckout();
+                }, 500);
+              }
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialogo de selección de método de pago */}
+      <Dialog open={isPMDialogOpen} onOpenChange={setIsPMDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Selecciona un método de pago</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <RadioGroup
+              value={selectedPaymentMethodId ?? ""}
+              onValueChange={setSelectedPaymentMethodId}
+            >
+              {Array.isArray(paymentMethods) &&
+                paymentMethods.map((pm: any) => (
+                  <label
+                    key={pm.id_metodo_pago}
+                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    <RadioGroupItem value={String(pm.id_metodo_pago)} />
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">
+                        {pm.brand?.toUpperCase() || "Tarjeta"} ••••{" "}
+                        {pm.last_four_digits}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Titular: {pm.card_holder} · Expira{" "}
+                        {pm.exp_month || pm.expiration_month}/
+                        {pm.exp_year || pm.expiration_year}
+                      </div>
+                    </div>
+                    {pm.is_default && <Badge>Principal</Badge>}
+                  </label>
+                ))}
+            </RadioGroup>
+          </div>
+          <DialogFooter>
+            <Button
+              className="w-full"
+              disabled={!selectedPaymentMethodId || isPaying}
+              onClick={() => handleCheckout(Number(selectedPaymentMethodId))}
+            >
+              {isPaying ? "Procesando…" : "Pagar con este método"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de reintento cuando el pago es declinado */}
+      <AlertDialog open={isRetryDialogOpen} onOpenChange={setIsRetryDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Pago declinado</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Quieres reintentar el pago seleccionando un método distinto?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="cursor-pointer hover:bg-transparent hover:text-inherit hover:opacity-100 focus-visible:ring-0 focus-visible:ring-offset-0"
+              onClick={() => setIsRetryDialogOpen(false)}
+            >
+              No
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="cursor-pointer"
+              onClick={() => {
+                setIsRetryDialogOpen(false);
+                const count = Array.isArray(paymentMethods)
+                  ? paymentMethods.length
+                  : 0;
+                if (count > 1) {
+                  setSelectedPaymentMethodId(
+                    String((defaultPaymentMethod as any)?.id_metodo_pago ?? "")
+                  );
+                  setIsPMDialogOpen(true);
+                } else {
+                  // Si solo hay una tarjeta, reintenta directo
+                  handleCheckout();
+                }
+              }}
+            >
+              Sí, reintentar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
-  )
+  );
+};
+
+export default CartPage;
+
+// Formulario rápido de dirección (inline)
+const addressSchema = z.object({
+  nombre_direccion: z.string().min(1, "Nombre requerido"),
+  calle_direccion: z.string().min(1, "Dirección requerida"),
+  ciudad: z.string().min(1, "Ciudad requerida"),
+  departamento: z.string().min(1, "Departamento requerido"),
+  codigo_postal: z.string().min(1, "Código postal requerido"),
+  barrio: z.string().min(1, "Barrio requerido"),
+  referencias: z.string().optional(),
+  complemento: z.string().optional(),
+});
+
+type QuickAddressFormValues = z.infer<typeof addressSchema>;
+
+function QuickAddressForm({ onSuccess }: { onSuccess: () => void }) {
+  const { user } = useAuth();
+  const form = useForm<QuickAddressFormValues>({
+    resolver: zodResolver(addressSchema),
+    defaultValues: {
+      nombre_direccion: "",
+      calle_direccion: "",
+      ciudad: "",
+      departamento: "",
+      codigo_postal: "",
+      barrio: "",
+      referencias: "",
+      complemento: "",
+    },
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmitAddress = async (data: QuickAddressFormValues) => {
+    if (!user?.id_usuario) return;
+    setIsSubmitting(true);
+    try {
+      await addressService.createAddress({
+        id_usuario: Number(user.id_usuario),
+        nombre_direccion: data.nombre_direccion,
+        calle_direccion: data.calle_direccion,
+        ciudad: data.ciudad,
+        departamento: data.departamento,
+        codigo_postal: data.codigo_postal,
+        barrio: data.barrio,
+        referencias: data.referencias || null,
+        complemento: data.complemento || null,
+        ind_principal: false,
+        ind_activa: true,
+      });
+      onSuccess();
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo guardar la dirección");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={form.handleSubmit(handleSubmitAddress)}
+      className="grid grid-cols-1 gap-3"
+    >
+      <Input placeholder="Nombre de la dirección" {...form.register("nombre_direccion")} />
+      <Input placeholder="Calle y número" {...form.register("calle_direccion")} />
+      <div className="grid grid-cols-2 gap-3">
+        <Input placeholder="Ciudad" {...form.register("ciudad")} />
+        <Input placeholder="Departamento" {...form.register("departamento")} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Input placeholder="Código postal" {...form.register("codigo_postal")} />
+        <Input placeholder="Barrio" {...form.register("barrio")} />
+      </div>
+      <Input placeholder="Referencias (opcional)" {...form.register("referencias")} />
+      <Input placeholder="Complemento (opcional)" {...form.register("complemento")} />
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Guardando..." : "Guardar dirección"}
+      </Button>
+    </form>
+  );
 }
 
-export default CartPage
+// Formulario rápido de método de pago (inline)
+const paymentSchema = z.object({
+  card_holder: z.string().min(1, "Nombre requerido"),
+  number: z.string().min(13).max(19),
+  exp_month: z.string().length(2),
+  exp_year: z.string().length(2),
+  cvc: z.string().min(3).max(4),
+});
+
+type QuickPaymentValues = z.infer<typeof paymentSchema>;
+
+function QuickPaymentForm({ onSuccess }: { onSuccess: () => void }) {
+  const form = useForm<QuickPaymentValues>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: {
+      card_holder: "",
+      number: "",
+      exp_month: "",
+      exp_year: "",
+      cvc: "",
+    },
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmitPayment = async (data: QuickPaymentValues) => {
+    setIsSubmitting(true);
+    try {
+      await addPaymentMethod(data as any);
+      onSuccess();
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo agregar el método de pago");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={form.handleSubmit(handleSubmitPayment)}
+      className="grid grid-cols-1 gap-3"
+    >
+      <Input placeholder="Nombre en la tarjeta" {...form.register("card_holder")} />
+      <Input placeholder="Número de tarjeta" type="number" inputMode="numeric" {...form.register("number")} />
+      <div className="grid grid-cols-3 gap-3">
+        <Input placeholder="MM" type="number" inputMode="numeric" {...form.register("exp_month")} />
+        <Input placeholder="YY" type="number" inputMode="numeric" {...form.register("exp_year")} />
+        <Input placeholder="CVC" type="number" inputMode="numeric" {...form.register("cvc")} />
+      </div>
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Guardando..." : "Guardar método"}
+      </Button>
+    </form>
+  );
+}

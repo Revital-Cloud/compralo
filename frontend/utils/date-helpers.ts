@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Helpers para manejar fechas y evitar problemas de zona horaria
  * Especialmente útil para calendarios y formularios
  */
@@ -33,8 +33,27 @@ export const toLocalISOString = (date: Date): string => {
  * @returns Date object en hora local
  */
 export const parseLocalDate = (dateString: string): Date => {
-  const date = parseISO(dateString)
-  return createLocalDate(date.getFullYear(), date.getMonth(), date.getDate())
+  try {
+    // Intentar parsear con parseISO primero
+    const date = parseISO(dateString)
+    if (isNaN(date.getTime())) {
+      throw new Error('Invalid date from parseISO')
+    }
+    return createLocalDate(date.getFullYear(), date.getMonth(), date.getDate())
+  } catch (error) {
+    // Si parseISO falla, intentar con Date constructor
+    try {
+      const date = new Date(dateString)
+      if (isNaN(date.getTime())) {
+        throw new Error('Invalid date from Date constructor')
+      }
+      return createLocalDate(date.getFullYear(), date.getMonth(), date.getDate())
+    } catch (fallbackError) {
+      // Si todo falla, devolver fecha actual
+      console.warn('Failed to parse date:', dateString, 'Using current date as fallback')
+      return new Date()
+    }
+  }
 }
 
 /**
@@ -44,8 +63,47 @@ export const parseLocalDate = (dateString: string): Date => {
  * @returns String formateado en español
  */
 export const formatDateSpanish = (date: Date | string, formatString: string = 'PPP'): string => {
-  const dateObj = typeof date === 'string' ? parseLocalDate(date) : date
-  return format(dateObj, formatString, { locale: es })
+  try {
+    const dateObj = typeof date === 'string' ? parseLocalDate(date) : date
+    
+    // Verificar que la fecha es válida antes de formatear
+    if (!dateObj || isNaN(dateObj.getTime())) {
+      console.warn('Invalid date object:', dateObj)
+      return 'Fecha inválida'
+    }
+    
+    return format(dateObj, formatString, { locale: es })
+  } catch (error) {
+    console.warn('Error formatting date:', error, 'Input:', date)
+    return 'Fecha inválida'
+  }
+}
+
+/**
+ * Función simple para formatear fechas ISO del backend
+ * @param dateString - String de fecha ISO del backend
+ * @returns String formateado como dd/MM/yyyy
+ */
+export const formatBackendDate = (dateString: string): string => {
+  try {
+    // Extraer solo la parte de fecha (antes de la T)
+    const datePart = dateString.split('T')[0]
+    const [year, month, day] = datePart.split('-')
+    
+    // Crear fecha local
+    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+    
+    // Verificar que es válida
+    if (isNaN(date.getTime())) {
+      return 'Fecha inválida'
+    }
+    
+    // Formatear como dd/MM/yyyy
+    return `${day}/${month}/${year}`
+  } catch (error) {
+    console.warn('Error formatting backend date:', error, 'Input:', dateString)
+    return 'Fecha inválida'
+  }
 }
 
 /**
@@ -57,8 +115,17 @@ export const isValidDate = (date: any): boolean => {
   if (!date) return false
   if (date instanceof Date) return !isNaN(date.getTime())
   if (typeof date === 'string') {
-    const parsed = parseISO(date)
-    return !isNaN(parsed.getTime())
+    try {
+      const parsed = parseISO(date)
+      return !isNaN(parsed.getTime())
+    } catch {
+      try {
+        const parsed = new Date(date)
+        return !isNaN(parsed.getTime())
+      } catch {
+        return false
+      }
+    }
   }
   return false
 }
@@ -139,7 +206,7 @@ export const fixCalendarDateSelection = (date: Date): string => {
  * @param label - Etiqueta para identificar la fecha en los logs
  */
 export const debugDate = (date: Date | string, label: string = 'Fecha'): void => {
-  console.log(`🔍 ${label}:`, {
+  console.log(` ${label}:`, {
     original: date,
     type: typeof date,
     isDate: date instanceof Date,

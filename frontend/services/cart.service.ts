@@ -1,4 +1,4 @@
-import { post, put, del, get } from '@/utils/apiWrapper';
+import { post, put, del, get } from "@/utils/apiWrapper";
 
 // =============================================================================
 // CONSTANTES
@@ -14,7 +14,7 @@ export const CART_LIMITS = {
 
 export interface CartUser {
   id_usuario?: number;
-  session_id?: number;
+  session_id?: string;
 }
 
 export interface CartResponse {
@@ -30,13 +30,13 @@ export interface CartProductCreate {
   cantidad: number;
   precio_unitario_carrito: number;
   id_usuario?: number;
-  session_id?: number;
+  session_id?: string;
 }
 
 export interface CartProductUpdate {
   cantidad: number;
   id_usuario?: number;
-  session_id?: number;
+  session_id?: string;
 }
 
 export interface CartTotalResponse {
@@ -93,40 +93,49 @@ export interface ResponseMessage {
 // =============================================================================
 
 /**
- * Genera un ID de sesión único para usuarios anónimos
+ * Genera un ID de sesión único para usuarios anónimos usando UUID v4
  */
-export function generateSessionId(): number {
-  return Math.floor(Math.random() * 1000000000);
+export function generateSessionId(): string {
+  return crypto.randomUUID();
 }
 
 /**
  * Obtiene o crea un carrito para un usuario (registrado o anónimo)
  */
-export async function getOrCreateCart(cartUser: CartUser): Promise<CartResponse> {
-  return await post<CartResponse>('/carrito-usuario', cartUser);
+export async function getOrCreateCart(
+  cartUser: CartUser
+): Promise<CartResponse> {
+  return await post<CartResponse>("/carrito-usuario", cartUser);
 }
 
 /**
  * Agrega un producto al carrito
  */
-export async function addToCart(product: CartProductCreate): Promise<ResponseMessage> {
+export async function addToCart(
+  product: CartProductCreate
+): Promise<ResponseMessage> {
   // Si hay session_id, enviarlo como query parameter
   const params = product.session_id ? { session_id: product.session_id } : {};
-  
+
   // Crear una copia del producto sin session_id para el body
   const { session_id, ...productBody } = product;
-  
-  return await post<ResponseMessage>('/carrito-productos', productBody, { params });
+
+  return await post<ResponseMessage>("/carrito-productos", productBody, {
+    params,
+  });
 }
 
 /**
  * Actualiza la cantidad de un producto en el carrito
  */
 export async function updateCartItemQuantity(
-  id_carrito_producto: number, 
+  id_carrito_producto: number,
   cantidad: number
 ): Promise<ResponseMessage> {
-  return await put<ResponseMessage>(`/carrito-productos/${id_carrito_producto}`, { cantidad });
+  return await put<ResponseMessage>(
+    `/carrito-productos/${id_carrito_producto}`,
+    { cantidad }
+  );
 }
 
 /**
@@ -136,29 +145,40 @@ export async function removeFromCart(
   id_carrito_producto: number,
   usr_update?: number
 ): Promise<ResponseMessage> {
-  return await del<ResponseMessage>(`/carrito-productos/${id_carrito_producto}`);
+  return await del<ResponseMessage>(
+    `/carrito-productos/${id_carrito_producto}`
+  );
 }
 
 /**
  * Obtiene los productos del carrito con detalles completos
  */
-export async function getCartProductsDetail(cartUser: CartUser): Promise<CartProductDetail[]> {
-  return await post<CartProductDetail[]>('/carrito-productos-detalle', cartUser);
+export async function getCartProductsDetail(
+  cartUser: CartUser
+): Promise<CartProductDetail[]> {
+  return await post<CartProductDetail[]>(
+    "/carrito-productos-detalle",
+    cartUser
+  );
 }
 
 /**
  * Calcula el total del carrito
  */
-export async function calculateCartTotal(cartUser: CartUser): Promise<CartTotalResponse> {
-  return await post<CartTotalResponse>('/calcular-total', {
+export async function calculateCartTotal(
+  cartUser: CartUser
+): Promise<CartTotalResponse> {
+  return await post<CartTotalResponse>("/calcular-total", {
     ...cartUser,
-    id_canje_aplicar: null
+    id_canje_aplicar: null,
   });
 }
 
 /**
  * Migra un carrito anónimo a un usuario registrado
  */
-export async function migrateAnonymousCart(migrateData: MigrateCartRequest): Promise<ResponseMessage> {
-  return await post<ResponseMessage>('/migrar', migrateData);
+export async function migrateAnonymousCart(
+  migrateData: MigrateCartRequest
+): Promise<ResponseMessage> {
+  return await post<ResponseMessage>("/migrar", migrateData);
 }

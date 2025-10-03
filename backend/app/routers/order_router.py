@@ -11,6 +11,7 @@ import json
 import httpx
 import uuid
 from decimal import Decimal
+import asyncio
 
 from core.database import get_db
 from core.dependencies import get_current_user
@@ -19,6 +20,7 @@ from schemas.order_schema import Order, OrderCreate, ResponseMessage, CreateOrde
 from schemas.payment_schema import PayOrderPayload
 from services.wompi_service import wompi_service
 from services import order_service
+from services import cart_product_service
 
 router = APIRouter(
     tags=["Orders"],
@@ -28,18 +30,12 @@ router = APIRouter(
 @router.get("/orders", response_model=List[Order])
 async def get_orders(
     db:Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
 ):
     """
-    Obtiene todas las órdenes del usuario autenticado.
-    
-    Args:
-        db (Session): La sesión de base de datos SQLAlchemy.
-        current_user (UserInToken): El usuario autenticado.
-
-    Returns:
-        List[Order]: Lista de órdenes del usuario.
+    Obtiene las órdenes del usuario autenticado.
     """
-    orders = order_service.get_orders(db)
+    orders = order_service.get_orders_by_user(db, current_user.id_usuario)
     if orders is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron órdenes")
     return orders
@@ -61,6 +57,40 @@ def get_user_orders(
     
     result = db.execute(query, params).fetchall()
     return result
+
+@router.get("/orders/{order_id}", response_model=Order)
+async def get_order_detail(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Obtiene el detalle de una orden si pertenece al usuario autenticado.
+    """
+    order = order_service.get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
+    if order.get("id_usuario") != current_user.id_usuario:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado para ver esta orden")
+    return order
+
+
+@router.get("/orders/{order_id}/detail")
+async def get_order_detail_with_items(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Devuelve la orden con sus `items` (snapshot) y descuentos aplicados.
+    Siempre devuelve el snapshot de items aunque un producto haya sido desactivado.
+    """
+    order = order_service.get_order_with_items(db, order_id)
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
+    if order.get("id_usuario") != current_user.id_usuario:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado para ver esta orden")
+    return order
 
 
 @router.post("/order", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)
@@ -140,22 +170,159 @@ async def pay_order(
             reference=reference
         )
         
+        # Marcar el método de pago usado en la orden (para visualización)
+        try:
+            order_service.update_order_payment_info(db, Decimal(order_id), metodo_pago="tarjeta")
+        except Exception:
+            pass
+        
         transaction_data = transaction_response.get("data", {})
-        status = transaction_data.get("status")
+        status_tx = transaction_data.get("status")
         transaction_id = transaction_data.get("id")
 
-        # La respuesta inmediata de Wompi es la fuente de verdad.
-        # El webhook servirá como un mecanismo de respaldo y para casos de pagos asíncronos (ej. PSE).
-        if status in ['APPROVED', 'DECLINED', 'VOIDED', 'ERROR']:
-            # El webhook se encargará de actualizar el pago y la orden.
-            # Aquí solo devolvemos el resultado inmediato al usuario.
-            pass
+        # Si quedó en pendiente, hacemos un intento de polling rápido (2s)
+        if status_tx == "PENDING" and transaction_id:
+            await asyncio.sleep(2)
+            try:
+                detail = await wompi_service.get_transaction(str(transaction_id))
+                status_tx = (detail.get("data") or {}).get("status") or status_tx
+            except Exception:
+                # Si falla la consulta, mantenemos el estado original
+                pass
 
-        # De forma proactiva, podemos intentar actualizar el pago para no depender 100% del webhook
-        # y dar una respuesta más completa si es posible.
-        # Esto es opcional y depende de la estrategia que se quiera seguir.
+        # Si está aprobado/declinado, actualizamos estado de la orden para feedback inmediato
+        estado_map = {"APPROVED": 2, "DECLINED": 4, "VOIDED": 4, "ERROR": 4}
+        if status_tx in estado_map:
+            try:
+                order_service.update_order_payment_info(db, Decimal(order_id), ind_estado=estado_map[status_tx])
+            except Exception:
+                pass
 
-        return {"status": status, "transaction_id": transaction_id, "message": transaction_data.get("status_message")}
+        return {"status": status_tx, "transaction_id": transaction_id, "message": transaction_data.get("status_message")}
+
+    except httpx.HTTPStatusError as e:
+        error_details = e.response.json().get("error", {})
+        raise HTTPException(status_code=e.response.status_code, detail=f"Error de Wompi: {error_details.get('reason') or error_details.get('messages')}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+
+@router.post(
+    "/cart/{cart_id}/pay",
+    summary="Pagar directamente el carrito y crear orden solo si el pago es aprobado",
+    description=(
+        "Calcula el total del carrito e inicia una transacción en Wompi. "
+        "Solo crea la orden cuando Wompi devuelve APPROVED. Si queda PENDING o DECLINED, no se crea ninguna orden."
+    )
+)
+async def pay_cart_and_create_order(
+    cart_id: int,
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Flujo seguro: no genera orden pendiente. Solo crea la orden si el pago es aprobado por Wompi.
+
+    Body esperado:
+      - payment_method_id: int (método de pago guardado del usuario)
+      - id_direccion: int (dirección de envío seleccionada)
+      - codigo_descuento?: str | null
+      - des_observaciones?: str | null
+      - id_canje?: int | null
+    """
+    try:
+        payment_method_id = int(payload.get("payment_method_id"))
+        id_direccion = int(payload.get("id_direccion"))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Parámetros inválidos")
+
+    # 1) Validar método de pago pertenece al usuario y obtener provider_source_id
+    query_pm = text(
+        """
+        SELECT mpu.provider_source_id
+        FROM tab_metodos_pago_usuario mpu
+        WHERE mpu.id_metodo_pago = :pm_id AND mpu.id_usuario = :user_id
+        """
+    )
+    pm_row = db.execute(query_pm, {"pm_id": payment_method_id, "user_id": current_user.id_usuario}).fetchone()
+    if not pm_row or not pm_row.provider_source_id:
+        raise HTTPException(status_code=404, detail="Método de pago no encontrado o inválido")
+
+    # 2) Calcular total del carrito para este usuario (sin crear orden)
+    try:
+        cart_total_payload = {
+            "id_usuario": current_user.id_usuario,
+            "session_id": None,
+            "id_canje_aplicar": payload.get("id_canje")
+        }
+        cart_total = cart_product_service.calculate_total_cart(db, type("Obj", (), {"model_dump": lambda self: cart_total_payload})())
+        amount = int((cart_total.get("total_final") or 0) * 100)
+    except Exception:
+        amount = 0
+
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="El carrito está vacío o el total es inválido")
+
+    # 3) Crear transacción en Wompi con referencia al carrito (no a una orden)
+    try:
+        reference = f"cart-{cart_id}-{uuid.uuid4()}"
+        transaction_response = await wompi_service.create_transaction(
+            amount_in_cents=amount,
+            customer_email=current_user.email_usuario,
+            payment_source_id=pm_row.provider_source_id,
+            reference=reference
+        )
+
+        tx_data = transaction_response.get("data", {})
+        status_tx = tx_data.get("status")
+        transaction_id = tx_data.get("id")
+
+        # Polling corto para intentar resolver PENDING rápidos
+        if status_tx == "PENDING" and transaction_id:
+            await asyncio.sleep(2)
+            try:
+                detail = await wompi_service.get_transaction(str(transaction_id))
+                status_tx = (detail.get("data") or {}).get("status") or status_tx
+            except Exception:
+                pass
+
+        # 4) Solo crear la orden cuando esté aprobado
+        if status_tx == "APPROVED":
+            try:
+                result = order_service.create_order(
+                    db,
+                    type(
+                        "CreateOrderObj",
+                        (),
+                        {"model_dump": lambda self: {
+                            "id_carrito": cart_id,
+                            "id_direccion": id_direccion,
+                            "codigo_descuento": payload.get("codigo_descuento"),
+                            "des_observaciones": payload.get("des_observaciones"),
+                            "id_canje": payload.get("id_canje"),
+                        }}
+                    )(),
+                    current_user.id_usuario,
+                )
+                order_id = int(result.get("id_orden")) if isinstance(result, dict) else None
+                if order_id:
+                    # Marcar como procesada por si la función la deja pendiente
+                    try:
+                        order_service.update_order_payment_info(db, Decimal(order_id), metodo_pago="tarjeta", ind_estado=2)
+                    except Exception:
+                        pass
+                    return {"status": "APPROVED", "order_id": order_id, "transaction_id": transaction_id}
+            except Exception as e:
+                # Si fallara la creación de la orden después de aprobado, devolvemos error controlado
+                raise HTTPException(status_code=500, detail=f"Pago aprobado pero falló la creación de la orden: {str(e)}")
+
+        # 5) Para PENDING o DECLINED/ERROR: no crear orden
+        if status_tx in ("PENDING", "DECLINED", "VOIDED", "ERROR"):
+            return {"status": status_tx, "order_id": None, "transaction_id": transaction_id}
+
+        # Estado desconocido
+        return {"status": status_tx or "UNKNOWN", "order_id": None, "transaction_id": transaction_id}
 
     except httpx.HTTPStatusError as e:
         error_details = e.response.json().get("error", {})

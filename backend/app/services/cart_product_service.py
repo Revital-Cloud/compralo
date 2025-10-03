@@ -157,7 +157,7 @@ def update_cart_product_quantity(db: Session, id_carrito_producto: int, nueva_ca
         db.rollback()
         raise Exception(f"Error al actualizar cantidad: {str(e)}")
 
-def delete_cart_product(db: Session, id_usuario: Optional[Decimal], session_id: Optional[Decimal], id_categoria_producto: Decimal, id_linea_producto: Decimal, id_sublinea_producto: Decimal, id_producto: Decimal, cantidad: Decimal, usr_update: Decimal):
+def delete_cart_product(db: Session, id_usuario: Optional[Decimal], session_id: Optional[str], id_categoria_producto: Decimal, id_linea_producto: Decimal, id_sublinea_producto: Decimal, id_producto: Decimal, cantidad: Decimal, usr_update: Decimal):
     """
     Elimina un producto en el carrito.
     Utiliza la función de base de datos `fun_eliminar_producto_carrito` para eliminar
@@ -166,7 +166,7 @@ def delete_cart_product(db: Session, id_usuario: Optional[Decimal], session_id: 
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
         id_usuario (Optional[Decimal]): ID del usuario (para usuarios autenticados).
-        session_id (Optional[Decimal]): ID de la sesión (para usuarios anónimos).
+        session_id (Optional[str]): ID de la sesión (para usuarios anónimos, UUID v4).
         id_categoria_producto (Decimal): ID de la categoría del producto.
         id_linea_producto (Decimal): ID de la línea del producto.
         id_sublinea_producto (Decimal): ID de la sublínea del producto.

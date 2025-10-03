@@ -37,6 +37,7 @@ def get_user_addresses(db: Session, id_usuario: Decimal):
             fec_update
         FROM tab_direcciones_usuario
         WHERE id_usuario = :id_usuario 
+        ORDER BY ind_principal DESC, fec_insert DESC
         """)
         result = db.execute(query, {"id_usuario": id_usuario})
         return result.mappings().all()
@@ -189,5 +190,23 @@ def deactivate_address(db:Session, id_direccion:Decimal, id_usuario:Decimal, usr
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al desactivar dirección: {str(e)}")
-    
-    
+
+def deactivate_main_address(db:Session, id_direccion:Decimal, id_usuario:Decimal, usr_update:Decimal):
+    """
+    Desactiva o activa la dirección principal de un usuario.
+    """
+    try:
+        query = text("""
+        SELECT fun_deactivate_direccion_principal(
+            :id_direccion,
+            :id_usuario,
+            :usr_update
+        )
+        """)
+        result = db.execute(query, {'id_direccion': id_direccion, 'id_usuario': id_usuario, 'usr_update': usr_update})
+        fetched_result = result.fetchone()
+        db.commit()
+        return fetched_result[0] if fetched_result else None
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al desactivar la dirección principal: {str(e)}")

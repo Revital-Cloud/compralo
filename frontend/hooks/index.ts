@@ -2,6 +2,9 @@
 export { useAuth } from './use-auth'
 export { useLoginRedirect } from './use-role-redirect'
 
+// Favorites hooks
+export { useFavorites } from './use-favorites'
+
 // Data hooks
 export { 
   useProducts, 

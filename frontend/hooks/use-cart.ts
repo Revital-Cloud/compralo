@@ -1,19 +1,22 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCartStore } from '@/stores/cart-store';
-import { useAuth } from '@/hooks/use-auth';
-import { useEffect, useState } from 'react';
-import * as cartService from '@/services/cart.service';
-import { formatPrice } from '@/utils/format-price';
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCartStore, clearCartStorage } from "@/stores/cart-store";
+import { useAuth } from "@/hooks/use-auth";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import * as cartService from "@/services/cart.service";
+import { formatPrice } from "@/utils/format-price";
+import { toast } from "sonner";
 
 // =============================================================================
 // TIPOS Y CONSTANTES
 // =============================================================================
 
 const CART_KEYS = {
-  all: ['cart'] as const,
-  cart: (cartUser: cartService.CartUser) => ['cart', 'info', cartUser] as const,
-  products: (cartUser: cartService.CartUser) => ['cart', 'products', cartUser] as const,
-  totals: (cartUser: cartService.CartUser) => ['cart', 'totals', cartUser] as const,
+  all: ["cart"] as const,
+  cart: (cartUser: cartService.CartUser) => ["cart", "info", cartUser] as const,
+  products: (cartUser: cartService.CartUser) =>
+    ["cart", "products", cartUser] as const,
+  totals: (cartUser: cartService.CartUser) =>
+    ["cart", "totals", cartUser] as const,
 };
 
 // =============================================================================
@@ -23,12 +26,60 @@ const CART_KEYS = {
 /**
  * Valida si agregar un producto excedería el límite del carrito
  */
-function validateCartLimit(currentTotal: number, productPrice: number, quantity: number): string | null {
-  const newTotal = currentTotal + (productPrice * quantity);
+function validateCartLimit(
+  currentTotal: number,
+  productPrice: number,
+  quantity: number
+): string | null {
+  const newTotal = currentTotal + productPrice * quantity;
+  console.log("🔍 [VALIDATE LIMIT] Calculando:", {
+    currentTotal,
+    productPrice,
+    quantity,
+    newTotal,
+    limit: cartService.CART_LIMITS.MAX_TOTAL,
+    exceeds: newTotal > cartService.CART_LIMITS.MAX_TOTAL,
+  });
+
   if (newTotal > cartService.CART_LIMITS.MAX_TOTAL) {
-    return `Límite de carrito alcanzado. El máximo permitido es ${formatPrice(cartService.CART_LIMITS.MAX_TOTAL)}`;
+    const errorMsg = `Límite de carrito alcanzado. El máximo permitido es ${formatPrice(
+      cartService.CART_LIMITS.MAX_TOTAL
+    )}`;
+    console.log("❌ [VALIDATE LIMIT] Error:", errorMsg);
+    return errorMsg;
   }
   return null;
+}
+
+/**
+ * Valida si el carrito migrado excede el límite y muestra alerta
+ */
+function validateCartLimitAfterMigration(currentTotal: number): boolean {
+  console.log("🔍 [CART LIMIT] Validando límite después de migración:", {
+    currentTotal,
+    limit: cartService.CART_LIMITS.MAX_TOTAL,
+    exceeds: currentTotal > cartService.CART_LIMITS.MAX_TOTAL,
+  });
+
+  if (currentTotal > cartService.CART_LIMITS.MAX_TOTAL) {
+    const limitFormatted = formatPrice(cartService.CART_LIMITS.MAX_TOTAL);
+    const currentFormatted = formatPrice(currentTotal);
+
+    // Mostrar toast de error con información detallada
+    toast.error("Límite de carrito excedido", {
+      description: `El total de tu carrito (${currentFormatted}) excede el límite máximo permitido (${limitFormatted}). Por favor, elimina algunos productos del carrito para continuar.`,
+      duration: 8000,
+    });
+
+    console.log("❌ [CART LIMIT] Límite excedido después de migración:", {
+      currentTotal,
+      limit: cartService.CART_LIMITS.MAX_TOTAL,
+    });
+
+    return true; // Indica que se excedió el límite
+  }
+
+  return false; // No se excedió el límite
 }
 
 // =============================================================================
@@ -47,7 +98,7 @@ export function useCart() {
     error: storeError,
     cartUser,
     id_carrito,
-    
+
     // Acciones del store
     setCartId,
     setItems,
@@ -59,21 +110,23 @@ export function useCart() {
     setLoading,
     setError,
     setCartUser,
-    
+
     // Utilidades
     getItemCount,
     getCartTotal,
     hasItems,
-    findItem
+    findItem,
   } = useCartStore();
 
   // =============================================================================
   // INICIALIZACIÓN DEL USUARIO DEL CARRITO
   // =============================================================================
 
-  const currentCartUser: cartService.CartUser = authUser?.id_usuario 
-    ? { id_usuario: authUser.id_usuario }
-    : { session_id: cartUser.session_id || cartService.generateSessionId() };
+  const currentCartUser: cartService.CartUser = useMemo(() => {
+    return authUser?.id_usuario
+      ? { id_usuario: authUser.id_usuario }
+      : { session_id: cartUser.session_id || cartService.generateSessionId() };
+  }, [authUser?.id_usuario, cartUser.session_id]);
 
   // =============================================================================
   // MUTACIÓN PARA MIGRAR CARRITO (definida antes del useEffect)
@@ -85,24 +138,31 @@ export function useCart() {
   const [isMigrating, setIsMigrating] = useState(false);
 
   /**
+   * Estado para controlar errores 400 consecutivos
+   */
+  const [has400Error, setHas400Error] = useState(false);
+  const [cartExceedsLimit, setCartExceedsLimit] = useState(false);
+
+  /**
    * Mutación para migrar carrito anónimo
    */
   const migrateCartMutation = useMutation({
-    mutationFn: (migrateData: cartService.MigrateCartRequest) => {
+    mutationFn: async (migrateData: cartService.MigrateCartRequest) => {
+      // La validación ya se hizo antes de llamar a esta mutación
       return cartService.migrateAnonymousCart(migrateData);
     },
     onSuccess: () => {
-      console.log('✅ Migración exitosa - refrescando datos');
+      console.log("✅ Migración exitosa - refrescando datos");
       setIsMigrating(false);
       refetchProducts();
       refetchTotals();
       setError(null);
     },
     onError: (error: any) => {
-      console.error('❌ Error en migración:', error);
+      console.error("❌ Error en migración:", error);
       setIsMigrating(false);
-      setError(error.message || 'Error al migrar carrito');
-    }
+      setError(error.message || "Error al migrar carrito");
+    },
   });
 
   // =============================================================================
@@ -115,17 +175,19 @@ export function useCart() {
   const {
     data: cartData,
     isLoading: isLoadingCart,
-    error: cartError
+    error: cartError,
   } = useQuery({
     queryKey: CART_KEYS.cart(currentCartUser),
     queryFn: async () => {
-      console.log('🛒 Obteniendo/creando carrito para:', currentCartUser);
+      console.log("🛒 Obteniendo/creando carrito para:", currentCartUser);
       const result = await cartService.getOrCreateCart(currentCartUser);
-      console.log('🛒 Carrito obtenido/creado:', result);
+      console.log("🛒 Carrito obtenido/creado:", result);
       return result;
     },
     staleTime: 5 * 60 * 1000, // 5 minutos
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: 1,
   });
 
   /**
@@ -135,18 +197,38 @@ export function useCart() {
     data: cartProducts,
     isLoading: isLoadingProducts,
     error: productsError,
-    refetch: refetchProducts
+    refetch: refetchProducts,
   } = useQuery({
     queryKey: CART_KEYS.products(currentCartUser),
     queryFn: async () => {
-      console.log('🔍 Obteniendo productos del carrito para:', currentCartUser);
-      const result = await cartService.getCartProductsDetail(currentCartUser);
-      console.log('📦 Productos obtenidos del servidor:', result);
-      return result;
+      console.log("🔍 Obteniendo productos del carrito para:", currentCartUser);
+      try {
+        const result = await cartService.getCartProductsDetail(currentCartUser);
+        console.log("📦 Productos obtenidos del servidor:", result);
+        return result;
+      } catch (error: any) {
+        console.error("❌ Error al obtener productos del carrito:", error);
+        // Si es un error 400, retornar array vacío en lugar de lanzar error
+        if (error?.response?.status === 400) {
+          console.log("🛒 Error 400 - retornando carrito vacío");
+          return [];
+        }
+        throw error;
+      }
     },
-    enabled: !!cartData?.id_carrito,
+    enabled: !!cartData?.id_carrito && !has400Error,
     staleTime: 2 * 60 * 1000, // 2 minutos
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: (failureCount, error: any) => {
+      // No reintentar si es error 400 (Bad Request)
+      if (error?.response?.status === 400) {
+        setHas400Error(true);
+        return false;
+      }
+      // Reintentar máximo 1 vez para otros errores
+      return failureCount < 1;
+    },
   });
 
   // =============================================================================
@@ -155,57 +237,163 @@ export function useCart() {
 
   // Sincronizar usuario del carrito con el store y manejar migración
   useEffect(() => {
-    console.log('🔄 [MIGRATION] useEffect ejecutándose:', {
+    console.log("🔄 [MIGRATION] useEffect ejecutándose:", {
       authUser: authUser?.id_usuario,
       isAuthenticated,
       cartUser,
       id_carrito,
       isMigrating,
-      isPending: migrateCartMutation.isPending
+      isPending: migrateCartMutation.isPending,
     });
-    
+
+    // Resetear estado de error 400 cuando cambia el usuario
+    if (has400Error) {
+      setHas400Error(false);
+    }
+
+    // Evitar ejecutar si ya se está migrando o si la mutación está pendiente
+    if (isMigrating || migrateCartMutation.isPending) {
+      return;
+    }
+
     if (!authUser?.id_usuario && !cartUser.session_id) {
       // Usuario anónimo sin session_id - generar uno nuevo
       const newSessionId = cartService.generateSessionId();
-      console.log('🛒 Generando session_id para usuario anónimo:', newSessionId);
+      console.log(
+        "🛒 Generando session_id para usuario anónimo:",
+        newSessionId
+      );
       setCartUser({ session_id: newSessionId });
-    } else if (authUser?.id_usuario && isAuthenticated && cartUser.session_id && !cartUser.id_usuario && !isMigrating && !migrateCartMutation.isPending) {
+    } else if (
+      authUser?.id_usuario &&
+      isAuthenticated &&
+      cartUser.session_id &&
+      !cartUser.id_usuario
+    ) {
       // Usuario se acaba de autenticar y tenía carrito anónimo - migrar
-      console.log('🔄 Detectado login - migrando carrito anónimo a usuario autenticado');
-      
+      console.log(
+        "🔄 Detectado login - migrando carrito anónimo a usuario autenticado"
+      );
+
       if (id_carrito) {
         setIsMigrating(true);
         const migrateData: cartService.MigrateCartRequest = {
-          id_carrito: id_carrito
+          id_carrito: id_carrito,
         };
-        
+
         migrateCartMutation.mutate(migrateData, {
           onSuccess: () => {
-            console.log('✅ Carrito migrado exitosamente');
+            console.log("✅ Carrito migrado exitosamente");
             // Actualizar el cartUser a usuario autenticado
             setCartUser({ id_usuario: authUser.id_usuario });
             // Refrescar datos del carrito usando queryClient
             queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
             // Resetear el estado de migración
             setIsMigrating(false);
+
+            // Validar límite después de la migración (solo una vez)
+            setTimeout(() => {
+              const currentTotal = getCartTotal();
+              console.log(
+                "🔍 [POST-MIGRATION] Validando límite después de migración:",
+                {
+                  currentTotal,
+                  limit: cartService.CART_LIMITS.MAX_TOTAL,
+                  exceeds: currentTotal > cartService.CART_LIMITS.MAX_TOTAL,
+                }
+              );
+
+              if (currentTotal > cartService.CART_LIMITS.MAX_TOTAL) {
+                const limitFormatted = formatPrice(
+                  cartService.CART_LIMITS.MAX_TOTAL
+                );
+                const currentFormatted = formatPrice(currentTotal);
+
+                // Mostrar toast de error con información detallada
+                toast.error("Límite de carrito excedido", {
+                  description: `El total de tu carrito (${currentFormatted}) excede el límite máximo permitido (${limitFormatted}). Por favor, elimina algunos productos del carrito para continuar.`,
+                  duration: 8000,
+                });
+
+                setCartExceedsLimit(true);
+              } else {
+                setCartExceedsLimit(false);
+              }
+            }, 1000); // Esperar un poco para que se actualicen los datos
           },
           onError: (error) => {
-            console.error('❌ Error al migrar carrito:', error);
+            console.error("❌ Error al migrar carrito:", error);
             // Aún así actualizar a usuario autenticado
             setCartUser({ id_usuario: authUser.id_usuario });
             // Resetear el estado de migración para evitar bucle infinito
             setIsMigrating(false);
-          }
+          },
         });
       } else {
         // No hay carrito para migrar, solo actualizar usuario
         setCartUser({ id_usuario: authUser.id_usuario });
       }
-    } else if (authUser?.id_usuario && !cartUser.session_id && !cartUser.id_usuario) {
+    } else if (
+      authUser?.id_usuario &&
+      !cartUser.session_id &&
+      !cartUser.id_usuario
+    ) {
       // Usuario autenticado sin carrito configurado
       setCartUser({ id_usuario: authUser.id_usuario });
     }
-  }, [authUser?.id_usuario, isAuthenticated, cartUser, setCartUser, id_carrito, queryClient, isMigrating]);
+  }, [
+    authUser?.id_usuario,
+    isAuthenticated,
+    cartUser.session_id,
+    cartUser.id_usuario,
+    setCartUser,
+    id_carrito,
+    isMigrating,
+    migrateCartMutation.isPending,
+    has400Error,
+  ]);
+
+  // =============================================================================
+  // VALIDACIÓN DE LÍMITE DEL CARRITO
+  // =============================================================================
+
+  // Validar límite del carrito solo para usuarios autenticados
+  useEffect(() => {
+    // Solo validar si:
+    // 1. El usuario está autenticado (no anónimo)
+    // 2. Hay productos en el carrito
+    // 3. No está en proceso de migración
+    // 4. El carrito pertenece al usuario autenticado
+    if (
+      isAuthenticated &&
+      authUser?.id_usuario &&
+      items.length > 0 &&
+      !isMigrating &&
+      cartUser.id_usuario === authUser.id_usuario
+    ) {
+      const currentTotal = getCartTotal();
+      console.log("🔍 [CART LIMIT] Validando límite del carrito:", {
+        currentTotal,
+        limit: cartService.CART_LIMITS.MAX_TOTAL,
+        exceeds: currentTotal > cartService.CART_LIMITS.MAX_TOTAL,
+      });
+
+      if (currentTotal > cartService.CART_LIMITS.MAX_TOTAL) {
+        setCartExceedsLimit(true);
+      } else {
+        setCartExceedsLimit(false);
+      }
+    } else {
+      // Si no cumple las condiciones, resetear el estado
+      setCartExceedsLimit(false);
+    }
+  }, [
+    items,
+    isMigrating,
+    isAuthenticated,
+    authUser?.id_usuario,
+    cartUser.id_usuario,
+  ]);
 
   // =============================================================================
   // EFECTOS PARA SINCRONIZAR ESTADO
@@ -218,16 +406,39 @@ export function useCart() {
     }
   }, [cartData?.id_carrito, id_carrito, setCartId]);
 
+  // Limpiar estado cuando hay errores 400 persistentes
+  useEffect(() => {
+    if (has400Error) {
+      console.log("🧹 Limpiando estado debido a errores 400 persistentes");
+      setItems([]);
+      setTotals(null);
+      setError(
+        "Error de conexión con el servidor. Por favor, recarga la página."
+      );
+    }
+  }, [has400Error, setItems, setTotals, setError]);
+
   useEffect(() => {
     if (cartProducts && Array.isArray(cartProducts)) {
       // Solo actualizar si realmente cambió la longitud o los IDs
-      const currentIds = Array.isArray(items) ? items.map(item => item.id_carrito_producto).sort().join(',') : '';
-      const newIds = cartProducts.map(item => item.id_carrito_producto).sort().join(',');
-      
-      if (currentIds !== newIds || (Array.isArray(items) ? items.length : 0) !== cartProducts.length) {
-        console.log('🛒 Actualizando productos del carrito:', cartProducts);
+      const currentIds = Array.isArray(items)
+        ? items
+            .map((item) => item.id_carrito_producto)
+            .sort()
+            .join(",")
+        : "";
+      const newIds = cartProducts
+        .map((item) => item.id_carrito_producto)
+        .sort()
+        .join(",");
+
+      if (
+        currentIds !== newIds ||
+        (Array.isArray(items) ? items.length : 0) !== cartProducts.length
+      ) {
+        console.log("🛒 Actualizando productos del carrito:", cartProducts);
         setItems(cartProducts);
-        
+
         // Si no hay productos, limpiar totales
         if (cartProducts.length === 0) {
           setTotals(null);
@@ -235,16 +446,19 @@ export function useCart() {
       }
     } else if (cartProducts === null || cartProducts === undefined) {
       // Si la respuesta es null o undefined, limpiar todo
-      console.log('🛒 Limpiando carrito - respuesta vacía');
+      console.log("🛒 Limpiando carrito - respuesta vacía");
       if (Array.isArray(items) && items.length > 0) {
         setItems([]);
       }
       if (totals !== null) {
         setTotals(null);
       }
-    } else if (Array.isArray(cartProducts) && (cartProducts as any[]).length === 0) {
+    } else if (
+      Array.isArray(cartProducts) &&
+      (cartProducts as any[]).length === 0
+    ) {
       // Si es un array vacío, también limpiar
-      console.log('🛒 Carrito vacío - limpiando estado');
+      console.log("🛒 Carrito vacío - limpiando estado");
       if (Array.isArray(items) && items.length > 0) {
         setItems([]);
       }
@@ -252,7 +466,7 @@ export function useCart() {
         setTotals(null);
       }
     }
-  }, [cartProducts, items, setItems, totals, setTotals]);
+  }, [cartProducts, items, totals]);
 
   /**
    * Query para obtener los totales del carrito
@@ -261,26 +475,46 @@ export function useCart() {
     data: cartTotals,
     isLoading: isLoadingTotals,
     error: totalsError,
-    refetch: refetchTotals
+    refetch: refetchTotals,
   } = useQuery({
     queryKey: CART_KEYS.totals(currentCartUser),
     queryFn: async () => {
-      console.log('🧮 Calculando totales del carrito para:', currentCartUser);
-      const result = await cartService.calculateCartTotal(currentCartUser);
-      console.log('🧮 Totales calculados:', result);
-      return result;
+      console.log("🧮 Calculando totales del carrito para:", currentCartUser);
+      try {
+        const result = await cartService.calculateCartTotal(currentCartUser);
+        console.log("🧮 Totales calculados:", result);
+        return result;
+      } catch (error: any) {
+        console.error("❌ Error al calcular totales del carrito:", error);
+        // Si es un error 400, retornar null en lugar de lanzar error
+        if (error?.response?.status === 400) {
+          console.log("🛒 Error 400 en totales - retornando null");
+          return null;
+        }
+        throw error;
+      }
     },
-    enabled: !!cartData?.id_carrito && hasItems(),
+    enabled: !!cartData?.id_carrito && hasItems() && !has400Error,
     staleTime: 1 * 60 * 1000, // 1 minuto
     refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: (failureCount, error: any) => {
+      // No reintentar si es error 400 (Bad Request)
+      if (error?.response?.status === 400) {
+        setHas400Error(true);
+        return false;
+      }
+      // Reintentar máximo 1 vez para otros errores
+      return failureCount < 1;
+    },
   });
 
   useEffect(() => {
     if (cartTotals && cartTotals.total_final !== totals?.total_final) {
-      console.log('🧮 Actualizando totales del carrito:', cartTotals);
+      console.log("🧮 Actualizando totales del carrito:", cartTotals);
       setTotals(cartTotals);
     }
-  }, [cartTotals, totals?.total_final, setTotals]);
+  }, [cartTotals, totals?.total_final]);
 
   // =============================================================================
   // MUTATIONS
@@ -293,40 +527,65 @@ export function useCart() {
     mutationFn: async (product: cartService.CartProductCreate) => {
       // Validar límite del carrito
       const currentTotal = getCartTotal();
-      const limitError = validateCartLimit(currentTotal, product.precio_unitario_carrito, product.cantidad);
+      const items = useCartStore.getState().items;
+      console.log("🔍 [CART LIMIT] Validando límite:", {
+        currentTotal,
+        itemsCount: items.length,
+        items: items.map((item) => ({
+          id: item.id_carrito_producto,
+          name: item.nombre_producto,
+          price: item.precio_unitario,
+          quantity: item.cantidad,
+          subtotal: item.subtotal,
+        })),
+        productPrice: product.precio_unitario_carrito,
+        quantity: product.cantidad,
+        newTotal:
+          currentTotal + product.precio_unitario_carrito * product.cantidad,
+        limit: cartService.CART_LIMITS.MAX_TOTAL,
+        userType: authUser?.id_usuario ? "registered" : "anonymous",
+        sessionId: cartUser.session_id,
+      });
+
+      const limitError = validateCartLimit(
+        currentTotal,
+        product.precio_unitario_carrito,
+        product.cantidad
+      );
       if (limitError) {
+        console.log("❌ [CART LIMIT] Límite excedido:", limitError);
         throw new Error(limitError);
       }
-      
+
       const productWithUser = {
         ...product,
-        ...currentCartUser
+        ...currentCartUser,
       };
-      
-      console.log('🛒 Agregando producto al carrito:', productWithUser);
-      
+
+      console.log("🛒 Agregando producto al carrito:", productWithUser);
+
       const result = await cartService.addToCart(productWithUser);
-      console.log('✅ Respuesta del servidor al agregar producto:', result);
+      console.log("✅ Respuesta del servidor al agregar producto:", result);
       return result;
     },
     onMutate: async (product) => {
       // Optimistic update
       setLoading(true);
-      
+
       // Crear item temporal para el store
       const tempItem: cartService.CartProductDetail = {
         id_carrito_producto: Date.now(), // ID temporal
         id_producto: product.id_producto,
-        nombre_producto: 'Cargando...', // Se actualizará cuando llegue la respuesta
+        nombre_producto: "Cargando...", // Se actualizará cuando llegue la respuesta
         precio_unitario: product.precio_unitario_carrito || 0,
         cantidad: product.cantidad,
         subtotal: (product.precio_unitario_carrito || 0) * product.cantidad,
       };
-      
+
       addItem(tempItem);
     },
     onSuccess: () => {
-      console.log('✅ Producto agregado exitosamente');
+      console.log("✅ Producto agregado exitosamente");
       // Invalidar todas las queries del carrito para forzar refresco
       queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       // Refrescar datos del servidor
@@ -335,9 +594,12 @@ export function useCart() {
       setError(null);
     },
     onError: (error: any) => {
-      console.error('❌ Error al agregar producto:', error);
+      console.error("❌ Error al agregar producto:", error);
       // Mostrar errores relevantes al usuario (stock y límite)
-      if (error.message?.includes('Stock insuficiente') || error.message?.includes('Límite de carrito alcanzado')) {
+      if (
+        error.message?.includes("Stock insuficiente") ||
+        error.message?.includes("Límite de carrito alcanzado")
+      ) {
         setError(error.message);
       } else {
         setError(null); // No mostrar otros errores técnicos
@@ -348,41 +610,54 @@ export function useCart() {
     },
     onSettled: () => {
       setLoading(false);
-    }
+    },
   });
 
   /**
    * Mutación para actualizar cantidad de producto
    */
   const updateQuantityMutation = useMutation({
-    mutationFn: ({ id_carrito_producto, cantidad, stock_disponible }: { 
-      id_carrito_producto: number, 
-      cantidad: number,
-      stock_disponible?: number
+    mutationFn: ({
+      id_carrito_producto,
+      cantidad,
+      stock_disponible,
+    }: {
+      id_carrito_producto: number;
+      cantidad: number;
+      stock_disponible?: number;
     }) => {
       // Validar stock en frontend antes de enviar
       if (stock_disponible !== undefined && cantidad > stock_disponible) {
-        throw new Error(`Stock insuficiente. Disponible: ${stock_disponible}, solicitado: ${cantidad}`);
+        throw new Error(
+          `Stock insuficiente. Disponible: ${stock_disponible}, solicitado: ${cantidad}`
+        );
       }
-      
+
       if (cantidad <= 0) {
-        throw new Error('La cantidad debe ser mayor a 0');
+        throw new Error("La cantidad debe ser mayor a 0");
       }
-      
+
       // Validar límite del carrito
-      const currentItem = items.find(item => item.id_carrito_producto === id_carrito_producto);
+      const currentItem = items.find(
+        (item) => item.id_carrito_producto === id_carrito_producto
+      );
       if (currentItem) {
         const currentTotal = getCartTotal();
-        const currentItemTotal = currentItem.precio_unitario * currentItem.cantidad;
+        const currentItemTotal =
+          currentItem.precio_unitario * currentItem.cantidad;
         const newItemTotal = currentItem.precio_unitario * cantidad;
         const totalWithoutCurrentItem = currentTotal - currentItemTotal;
         const newTotal = totalWithoutCurrentItem + newItemTotal;
-        
+
         if (newTotal > cartService.CART_LIMITS.MAX_TOTAL) {
-          throw new Error(`Límite de carrito alcanzado. El máximo permitido es ${formatPrice(cartService.CART_LIMITS.MAX_TOTAL)}`);
+          throw new Error(
+            `Límite de carrito alcanzado. El máximo permitido es ${formatPrice(
+              cartService.CART_LIMITS.MAX_TOTAL
+            )}`
+          );
         }
       }
-      
+
       return cartService.updateCartItemQuantity(id_carrito_producto, cantidad);
     },
     onMutate: async ({ id_carrito_producto, cantidad }) => {
@@ -397,9 +672,11 @@ export function useCart() {
     },
     onError: (error: any) => {
       // Mostrar errores relevantes al usuario (stock, límite y cantidad)
-      if (error.message?.includes('Stock insuficiente') || 
-          error.message?.includes('cantidad debe ser mayor') || 
-          error.message?.includes('Límite de carrito alcanzado')) {
+      if (
+        error.message?.includes("Stock insuficiente") ||
+        error.message?.includes("cantidad debe ser mayor") ||
+        error.message?.includes("Límite de carrito alcanzado")
+      ) {
         setError(error.message);
       } else {
         setError(null);
@@ -407,7 +684,7 @@ export function useCart() {
       // Invalidar queries y revertir cambios
       queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       refetchProducts();
-    }
+    },
   });
 
   /**
@@ -415,7 +692,10 @@ export function useCart() {
    */
   const removeFromCartMutation = useMutation({
     mutationFn: (id_carrito_producto: number) => {
-      return cartService.removeFromCart(id_carrito_producto, currentCartUser.id_usuario);
+      return cartService.removeFromCart(
+        id_carrito_producto,
+        currentCartUser.id_usuario
+      );
     },
     onMutate: async (id_carrito_producto) => {
       // Optimistic update
@@ -428,11 +708,11 @@ export function useCart() {
       setError(null);
     },
     onError: (error: any) => {
-      setError(error.message || 'Error al eliminar producto');
+      setError(error.message || "Error al eliminar producto");
       // Invalidar queries y revertir cambios
       queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       refetchProducts();
-    }
+    },
   });
 
   /**
@@ -441,8 +721,11 @@ export function useCart() {
   const clearCartMutation = useMutation({
     mutationFn: async () => {
       // Eliminar todos los productos uno por uno
-      const promises = items.map(item => 
-        cartService.removeFromCart(item.id_carrito_producto, currentCartUser.id_usuario)
+      const promises = items.map((item) =>
+        cartService.removeFromCart(
+          item.id_carrito_producto,
+          currentCartUser.id_usuario
+        )
       );
       await Promise.all(promises);
     },
@@ -457,10 +740,10 @@ export function useCart() {
       setError(null);
     },
     onError: (error: any) => {
-      setError(error.message || 'Error al limpiar carrito');
+      setError(error.message || "Error al limpiar carrito");
       queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       refetchProducts();
-    }
+    },
   });
 
   // migrateCartMutation ya está definido arriba
@@ -468,8 +751,9 @@ export function useCart() {
   // =============================================================================
   // ESTADOS COMBINADOS
   // =============================================================================
-  
-  const isLoading = storeLoading || isLoadingCart || isLoadingProducts || isLoadingTotals;
+
+  const isLoading =
+    storeLoading || isLoadingCart || isLoadingProducts || isLoadingTotals;
   const error = storeError || cartError || productsError || totalsError;
   const total = getCartTotal();
   const itemCount = getItemCount();
@@ -489,6 +773,7 @@ export function useCart() {
     error,
     cartUser: currentCartUser,
     id_carrito,
+    cartExceedsLimit,
 
     // === ACCIONES ===
     addToCart: addToCartMutation.mutate,
@@ -499,22 +784,40 @@ export function useCart() {
 
     // === UTILIDADES ===
     findItem,
-    refetchCart: () => {
+    refetchCart: useCallback(() => {
       // Invalidar todas las queries del carrito y refrescar
       queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       refetchProducts();
       refetchTotals();
-    },
-    
+    }, [queryClient, refetchProducts, refetchTotals]),
+
+    // Función para resetear errores y reintentar
+    resetErrors: useCallback(() => {
+      setHas400Error(false);
+      setError(null);
+      // Invalidar queries para reintentar
+      queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
+    }, [queryClient, setError]),
+
     // === DEBUG ===
-    getCartStatus: () => ({
-      isAuthenticated: !!authUser?.id_usuario,
-      currentCartUser,
-      cartUser,
-      id_carrito,
-      hasItems: hasItems(),
-      itemCount,
-    }),
+    getCartStatus: useCallback(
+      () => ({
+        isAuthenticated: !!authUser?.id_usuario,
+        currentCartUser,
+        cartUser,
+        id_carrito,
+        hasItems: hasItems(),
+        itemCount,
+      }),
+      [
+        authUser?.id_usuario,
+        currentCartUser,
+        cartUser,
+        id_carrito,
+        hasItems,
+        itemCount,
+      ]
+    ),
 
     // === ESTADOS DE LAS MUTACIONES ===
     isAddingToCart: addToCartMutation.isPending,

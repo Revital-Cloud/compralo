@@ -18,7 +18,25 @@ def get_favorites(db:Session, id_usuario: Decimal):
     
     try:
         query = text("""
-        SELECT * FROM fun_select_favoritos_usuario_con_detalles(:id_usuario)
+        SELECT 
+            f.id_usuario,
+            f.id_categoria_producto,
+            f.id_linea_producto,
+            f.id_sublinea_producto,
+            f.id_producto,
+            p.nom_producto,
+            p.img_producto,
+            p.val_precio,
+            f.fec_insert
+        FROM tab_favoritos f
+        INNER JOIN tab_productos p ON (
+            f.id_categoria_producto = p.id_categoria AND
+            f.id_linea_producto = p.id_linea AND
+            f.id_sublinea_producto = p.id_sublinea AND
+            f.id_producto = p.id_producto
+        )
+        WHERE f.id_usuario = :id_usuario
+        ORDER BY f.fec_insert DESC
         """) 
         result = db.execute(query, {'id_usuario': id_usuario})
         return result.mappings().all()
@@ -28,18 +46,15 @@ def get_favorites(db:Session, id_usuario: Decimal):
     
 def create_favorite(db:Session, favorite:FavoritesCreate, usr_insert: Decimal):
     """
-    Crea un nuevo favorito en la base de datos.
+    Crea un nuevo favorito en la base de datos usando la función fun_insert_favorito.
     
-    Utiliza la función de base de datos 'fun_insert_favorito' para insertar
-    un nuevo favorito, identificado por 'id_favorito'. Los datos para la
-    inserción se toman del esquema 'FavoritesCreate' (solo campos proporcionados).
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
         favorite (FavoritesCreate): Un objeto Pydantic 'FavoritesCreate' con los datos a insertar.
+        usr_insert (Decimal): ID del usuario que está creando el favorito.
     """
     try:
-        params = favorite.model_dump()
-        params["usr_insert"] = usr_insert
+        # Usar la función de base de datos fun_insert_favorito
         query = text("""
         SELECT fun_insert_favorito(
             :id_usuario,
@@ -50,23 +65,44 @@ def create_favorite(db:Session, favorite:FavoritesCreate, usr_insert: Decimal):
             :usr_insert
         )
         """)
-        result = db.execute(query, params)
+        
+        result = db.execute(query, {
+            'id_usuario': favorite.id_usuario,
+            'id_categoria_producto': favorite.id_categoria_producto,
+            'id_linea_producto': favorite.id_linea_producto,
+            'id_sublinea_producto': favorite.id_sublinea_producto,
+            'id_producto': favorite.id_producto,
+            'usr_insert': usr_insert
+        })
+        
         fetched_result = result.fetchone()
         db.commit()
-        return fetched_result[0] if fetched_result else None
+        
+        # La función retorna un mensaje, verificar si es exitoso
+        message = fetched_result[0] if fetched_result else "Error desconocido"
+        
+        if "Error:" in message:
+            raise Exception(message)
+        
+        return {"message": message}
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al crear favorito: {str(e)}")
 
 def delete_favorite(db:Session, id_usuario: Decimal, id_categoria_producto: Decimal, id_linea_producto: Decimal, id_sublinea_producto: Decimal, id_producto: Decimal):
     """
-    Elimina un favorito existente en la base de datos.
+    Elimina un favorito existente en la base de datos usando la función fun_delete_favorito.
     
-    Utiliza la función de base de datos 'fun_delete_favorito' para eliminar
-    un favorito existente, identificado por 'id_usuario', 'id_categoria_producto',
-    'id_linea_producto', 'id_sublinea_producto' y 'id_producto'.
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        id_usuario (Decimal): ID del usuario.
+        id_categoria_producto (Decimal): ID de la categoría del producto.
+        id_linea_producto (Decimal): ID de la línea del producto.
+        id_sublinea_producto (Decimal): ID de la sublínea del producto.
+        id_producto (Decimal): ID del producto.
     """
     try:
+        # Usar la función de base de datos fun_delete_favorito
         query = text("""
         SELECT fun_delete_favorito(
             :id_usuario,
@@ -76,13 +112,25 @@ def delete_favorite(db:Session, id_usuario: Decimal, id_categoria_producto: Deci
             :id_producto
         )
         """)
-        result = db.execute(query, {'id_usuario': id_usuario, 'id_categoria_producto': id_categoria_producto, 'id_linea_producto': id_linea_producto, 'id_sublinea_producto': id_sublinea_producto, 'id_producto': id_producto})
+        
+        result = db.execute(query, {
+            'id_usuario': id_usuario,
+            'id_categoria_producto': id_categoria_producto,
+            'id_linea_producto': id_linea_producto,
+            'id_sublinea_producto': id_sublinea_producto,
+            'id_producto': id_producto
+        })
+        
         fetched_result = result.fetchone()
         db.commit()
-        if fetched_result and isinstance(fetched_result[0], str):
-            return {"message": fetched_result[0]}
-        else:
-            return {"message": "Favorito eliminado correctamente"}
+        
+        # La función retorna un mensaje, verificar si es exitoso
+        message = fetched_result[0] if fetched_result else "Error desconocido"
+        
+        if "Error:" in message:
+            raise Exception(message)
+        
+        return {"message": message}
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al eliminar favorito: {str(e)}")

@@ -8,6 +8,7 @@ import Link from "next/link"
 import type { Product } from "@/types"
 import Image from "next/image"
 import { getProductImageUrl } from "@/utils/image-helpers"
+import { useFavorites } from "@/hooks/use-favorites"
 
 interface ProductListProps {
   products: Product[]
@@ -22,6 +23,8 @@ const ProductList: React.FC<ProductListProps> = ({
   onAddToCart,
   onToggleFavorite
 }) => {
+  const { toggleFavorite, isProductFavorite } = useFavorites()
+
   const getBadgeVariant = (color?: string) => {
     switch (color) {
       case 'orange': return 'default'
@@ -38,9 +41,28 @@ const ProductList: React.FC<ProductListProps> = ({
     onAddToCart?.(productId)
   }
 
-  const handleToggleFavorite = (e: React.MouseEvent, productId: string) => {
+  const handleToggleFavorite = async (e: React.MouseEvent, productId: string) => {
     e.preventDefault()
     e.stopPropagation()
+    
+    const product = products.find(p => p.id_producto.toString() === productId)
+    if (!product) return
+
+    const isFavorite = isProductFavorite(
+      product.id_categoria,
+      product.id_linea,
+      product.id_sublinea,
+      product.id_producto
+    )
+
+    await toggleFavorite(
+      product.id_categoria,
+      product.id_linea,
+      product.id_sublinea,
+      product.id_producto,
+      isFavorite
+    )
+
     onToggleFavorite?.(productId)
   }
 
@@ -109,13 +131,13 @@ const ProductList: React.FC<ProductListProps> = ({
                       onClick={(e) => handleToggleFavorite(e, product.id_producto.toString())}
                       className={cn(
                         "w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center transition-all",
-                        product.isFavorite && "border-red-500 bg-red-50 dark:bg-red-900/20"
+                        isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto) && "border-red-500 bg-red-50 dark:bg-red-900/20"
                       )}
                     >
                       <Heart 
                         className={cn(
                           "w-3 h-3",
-                          product.isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"
+                          isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto) ? "fill-red-500 text-red-500" : "text-gray-600"
                         )}
                       />
                     </button>
@@ -131,8 +153,8 @@ const ProductList: React.FC<ProductListProps> = ({
                   </div>
                 </div>
                 
-                {/* Rating Mobile */}
-                {product.rating && (
+                {/* Rating Mobile - Comentado hasta que se agregue rating al tipo Product */}
+                {/* {product.rating && (
                   <div className="flex items-center gap-1 mt-1">
                     <div className="flex">
                       {[...Array(5)].map((_, i) => (
@@ -149,7 +171,7 @@ const ProductList: React.FC<ProductListProps> = ({
                     </div>
                     <span className="text-xs text-gray-500">({product.rating})</span>
                   </div>
-                )}
+                )} */}
               </div>
 
               {/* Desktop Layout */}
@@ -165,8 +187,8 @@ const ProductList: React.FC<ProductListProps> = ({
                     </h3>
                   </Link>
                   
-                  {/* Rating */}
-                  {product.rating && (
+                  {/* Rating - Comentado hasta que se agregue rating al tipo Product */}
+                  {/* {product.rating && (
                     <div className="flex items-center gap-1 mt-1">
                       <div className="flex">
                         {[...Array(5)].map((_, i) => (
@@ -183,7 +205,7 @@ const ProductList: React.FC<ProductListProps> = ({
                       </div>
                       <span className="text-xs text-gray-500">({product.rating})</span>
                     </div>
-                  )}
+                  )} */}
                 </div>
 
                 {/* Price */}
@@ -206,13 +228,13 @@ const ProductList: React.FC<ProductListProps> = ({
                     onClick={(e) => handleToggleFavorite(e, product.id_producto.toString())}
                     className={cn(
                       "w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center transition-all hover:border-gray-400 dark:hover:border-gray-500",
-                      product.isFavorite && "border-red-500 bg-red-50 dark:bg-red-900/20"
+                      isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto) && "border-red-500 bg-red-50 dark:bg-red-900/20"
                     )}
                   >
                     <Heart 
                       className={cn(
                         "w-4 h-4",
-                        product.isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"
+                        isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto) ? "fill-red-500 text-red-500" : "text-gray-600"
                       )}
                     />
                   </button>

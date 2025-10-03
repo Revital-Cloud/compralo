@@ -22,6 +22,7 @@ import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { PasswordStrength } from "@/components/ui/password-strength";
 import Link from "next/link";
 import {

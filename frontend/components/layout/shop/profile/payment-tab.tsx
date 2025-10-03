@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToastActions } from "@/hooks/use-toast-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CreditCard, MoreVertical, Trash2, CheckCircle, PlusCircle, Star, Edit3, Shield } from "lucide-react";
+import { CreditCard, MoreVertical, Trash2, CheckCircle, PlusCircle, Star, Edit3, Shield, X } from "lucide-react";
 import { listPaymentMethods, deletePaymentMethod, setDefaultPaymentMethod, addPaymentMethod } from "@/services/payment.service";
 import { MetodoPagoUsuario } from "@/types/payment";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +15,13 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { AddPaymentMethodDialog } from "./add-payment-method-dialog";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 
 const getBrandIcon = (brand: string) => {
     const iconClass = "w-8 h-5 text-white";
@@ -39,6 +45,7 @@ const getBrandIcon = (brand: string) => {
 const PaymentMethods = () => {
     const { showSuccess, showError } = useToastActions();
     const queryClient = useQueryClient();
+    const [isAddingMethod, setIsAddingMethod] = useState(false);
 
     const { data: paymentMethods = [], isLoading } = useQuery<MetodoPagoUsuario[]>({
         queryKey: ['paymentMethods'],
@@ -74,10 +81,13 @@ const PaymentMethods = () => {
         <div className="relative z-10 w-full">
             <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-semibold">Métodos de Pago</h3>
-                <AddPaymentMethodDialog 
-                    onAddPaymentMethod={addMutation.mutate} 
-                    isPending={addMutation.isPending}
-                />
+                <Button 
+                    onClick={() => setIsAddingMethod(true)}
+                    disabled={addMutation.isPending}
+                >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Agregar Método
+                </Button>
             </div>
 
             {isLoading ? (
@@ -140,9 +150,21 @@ const PaymentMethods = () => {
                             </CardContent>
                         </Card>
                     ))}
-                    {paymentMethods.length === 0 && (
+                    {paymentMethods.length === 0 && !isAddingMethod && (
                          <div className="md:col-span-2 lg:col-span-3 text-center py-10 border-2 border-dashed border-gray-700 rounded-lg">
                             <p className="text-gray-500">No tienes métodos de pago guardados.</p>
+                        </div>
+                    )}
+                    {isAddingMethod && (
+                        <div className="md:col-span-2 lg:col-span-3">
+                            <QuickPaymentForm
+                                onSuccess={() => {
+                                    setIsAddingMethod(false);
+                                    queryClient.invalidateQueries({ queryKey: ['paymentMethods'] });
+                                    showSuccess("Método de pago agregado exitosamente.");
+                                }}
+                                onCancel={() => setIsAddingMethod(false)}
+                            />
                         </div>
                     )}
                 </div>
@@ -174,5 +196,168 @@ const PaymentMethodsSkeleton = () => (
         ))}
     </div>
 );
+
+// Formulario rápido de método de pago (inline)
+const paymentSchema = z.object({
+    card_holder: z.string().min(1, "Nombre requerido"),
+    number: z.string().min(13).max(19),
+    exp_month: z.string().length(2),
+    exp_year: z.string().length(2),
+    cvc: z.string().min(3).max(4),
+});
+
+type QuickPaymentFormValues = z.infer<typeof paymentSchema>;
+
+function QuickPaymentForm({ 
+    onSuccess, 
+    onCancel 
+}: { 
+    onSuccess: () => void; 
+    onCancel: () => void; 
+}) {
+    const form = useForm<QuickPaymentFormValues>({
+        resolver: zodResolver(paymentSchema),
+        defaultValues: {
+            card_holder: "",
+            number: "",
+            exp_month: "",
+            exp_year: "",
+            cvc: "",
+        },
+    });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmitPayment = async (data: QuickPaymentFormValues) => {
+        setIsSubmitting(true);
+        try {
+            await addPaymentMethod(data as any);
+            onSuccess();
+        } catch (e: any) {
+            console.error("Error al agregar método de pago:", e);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <Card className="bg-gray-900/80 border-white/10 p-6">
+            <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-semibold text-white">Agregar Nuevo Método de Pago</h4>
+                <Button variant="ghost" size="sm" onClick={onCancel} className="text-gray-400 hover:text-white">
+                    <X className="h-4 w-4" />
+                </Button>
+            </div>
+            <form
+                onSubmit={form.handleSubmit(handleSubmitPayment)}
+                className="grid grid-cols-1 gap-4"
+            >
+                <div>
+                    <Label htmlFor="card_holder" className="text-gray-300">Nombre en la tarjeta</Label>
+                    <Input 
+                        id="card_holder"
+                        {...form.register("card_holder")} 
+                        placeholder="John Doe" 
+                        className="bg-gray-800 border-gray-600 text-white"
+                    />
+                    {form.formState.errors.card_holder && (
+                        <p className="text-red-400 text-xs mt-1">
+                            {form.formState.errors.card_holder.message}
+                        </p>
+                    )}
+                </div>
+                <div>
+                    <Label htmlFor="number" className="text-gray-300">Número de tarjeta</Label>
+                    <Input 
+                        id="number"
+                        {...form.register("number")} 
+                        placeholder="**** **** **** 1234" 
+                        type="number" 
+                        inputMode="numeric" 
+                        className="bg-gray-800 border-gray-600 text-white"
+                    />
+                    {form.formState.errors.number && (
+                        <p className="text-red-400 text-xs mt-1">
+                            {form.formState.errors.number.message}
+                        </p>
+                    )}
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                    <div>
+                        <Label htmlFor="exp_month" className="text-gray-300">Mes</Label>
+                        <Input 
+                            id="exp_month"
+                            {...form.register("exp_month")} 
+                            placeholder="MM" 
+                            type="number" 
+                            inputMode="numeric" 
+                            className="bg-gray-800 border-gray-600 text-white"
+                        />
+                        {form.formState.errors.exp_month && (
+                            <p className="text-red-400 text-xs mt-1">
+                                {form.formState.errors.exp_month.message}
+                            </p>
+                        )}
+                    </div>
+                    <div>
+                        <Label htmlFor="exp_year" className="text-gray-300">Año</Label>
+                        <Input 
+                            id="exp_year"
+                            {...form.register("exp_year")} 
+                            placeholder="YY" 
+                            type="number" 
+                            inputMode="numeric" 
+                            className="bg-gray-800 border-gray-600 text-white"
+                        />
+                        {form.formState.errors.exp_year && (
+                            <p className="text-red-400 text-xs mt-1">
+                                {form.formState.errors.exp_year.message}
+                            </p>
+                        )}
+                    </div>
+                    <div>
+                        <Label htmlFor="cvc" className="text-gray-300">CVC</Label>
+                        <Input 
+                            id="cvc"
+                            {...form.register("cvc")} 
+                            placeholder="123" 
+                            type="number" 
+                            inputMode="numeric" 
+                            className="bg-gray-800 border-gray-600 text-white"
+                        />
+                        {form.formState.errors.cvc && (
+                            <p className="text-red-400 text-xs mt-1">
+                                {form.formState.errors.cvc.message}
+                            </p>
+                        )}
+                    </div>
+                </div>
+                <div className="flex gap-2 pt-4">
+                    <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={onCancel}
+                        className="flex-1 border-gray-600 text-gray-300 hover:bg-gray-800"
+                    >
+                        Cancelar
+                    </Button>
+                    <Button 
+                        type="submit" 
+                        disabled={isSubmitting}
+                        className="flex-1 bg-violet-600 hover:bg-violet-700"
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Guardando...
+                            </>
+                        ) : (
+                            "Guardar Método"
+                        )}
+                    </Button>
+                </div>
+            </form>
+        </Card>
+    );
+}
 
 export default PaymentMethods; 
