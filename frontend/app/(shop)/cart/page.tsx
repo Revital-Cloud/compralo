@@ -21,9 +21,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import Loading from "@/components/ui/loading";
 import { toast } from "sonner";
 import { formatPrice } from "@/utils/format-price";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import addressService from "@/services/address.service";
-import { listPaymentMethods } from "@/services/payment.service";
+import { listPaymentMethods, addPaymentMethod } from "@/services/payment.service";
 import { payCartAndCreateOrder } from "@/services/order.service";
 import {
   Dialog,
@@ -170,6 +173,17 @@ const CartPage = () => {
   >(null);
   const [isRetryDialogOpen, setIsRetryDialogOpen] = useState(false);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+  const [isRequirementsDialogOpen, setIsRequirementsDialogOpen] = useState(false);
+  const [isQuickAddressOpen, setIsQuickAddressOpen] = useState(false);
+  const [isQuickPaymentOpen, setIsQuickPaymentOpen] = useState(false);
+  const [isAddressSelectionOpen, setIsAddressSelectionOpen] = useState(false);
+  const [isPaymentSelectionOpen, setIsPaymentSelectionOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  // Derivados para saber si falta dirección o método de pago
+  const isMissingAddress = !defaultAddress;
+  const paymentMethodsCount = Array.isArray(paymentMethods) ? paymentMethods.length : 0;
+  const isMissingPaymentMethod = paymentMethodsCount === 0;
 
   const handleCheckout = async (pmIdOverride?: number) => {
     if (!hasItems()) {
@@ -180,8 +194,9 @@ const CartPage = () => {
       setIsAuthDialogOpen(true);
       return;
     }
-    if (!defaultAddress) {
-      toast.error("Agrega una dirección de envío");
+    // Si faltan requisitos, abrir modal informativo y bloquear
+    if (isMissingAddress || isMissingPaymentMethod) {
+      setIsRequirementsDialogOpen(true);
       return;
     }
 
@@ -198,7 +213,7 @@ const CartPage = () => {
       : undefined;
 
     if (!pmObject) {
-      toast.error("Selecciona un método de pago");
+      setIsRequirementsDialogOpen(true);
       return;
     }
     if (!(pmObject as any).provider_source_id) {
@@ -470,6 +485,102 @@ const CartPage = () => {
                       ))}
                   </div>
 
+                  {/* Información de dirección y método de pago */}
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                      Información de Envío y Pago
+                    </h3>
+                    
+                    {/* Dirección */}
+                    <div className="mb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Dirección de envío</p>
+                          {defaultAddress ? (
+                            <div className="flex items-start justify-between">
+                              <div className="text-sm text-gray-900 dark:text-white flex-1">
+                                <p className="font-medium">{defaultAddress.nombre_direccion}</p>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                  {defaultAddress.calle_direccion}, {defaultAddress.ciudad}
+                                </p>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                  {defaultAddress.departamento} - {defaultAddress.codigo_postal}
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setIsAddressSelectionOpen(true)}
+                                className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
+                              >
+                                Cambiar
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4 text-amber-500" />
+                              <p className="text-sm text-amber-600 dark:text-amber-400">
+                                Falta agregar dirección
+                              </p>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setIsQuickAddressOpen(true)}
+                                className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
+                              >
+                                Agregar
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Método de pago */}
+                    <div className="mb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Método de pago</p>
+                          {defaultPaymentMethod ? (
+                            <div className="flex items-start justify-between">
+                              <div className="text-sm text-gray-900 dark:text-white flex-1">
+                                <p className="font-medium">
+                                  {defaultPaymentMethod.brand?.toUpperCase() || "Tarjeta"} •••• {defaultPaymentMethod.last_four_digits}
+                                </p>
+                                <p className="text-gray-600 dark:text-gray-400">
+                                  {defaultPaymentMethod.card_holder}
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setIsPaymentSelectionOpen(true)}
+                                className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
+                              >
+                                Cambiar
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <AlertCircle className="h-4 w-4 text-amber-500" />
+                              <p className="text-sm text-amber-600 dark:text-amber-400">
+                                Falta agregar método de pago
+                              </p>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setIsQuickPaymentOpen(true)}
+                                className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
+                              >
+                                Agregar
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">
@@ -532,6 +643,11 @@ const CartPage = () => {
                       cartExceedsLimit
                     }
                     onClick={() => {
+                      // Bloquear si faltan requisitos
+                      if (isMissingAddress || isMissingPaymentMethod) {
+                        setIsRequirementsDialogOpen(true);
+                        return;
+                      }
                       const count = Array.isArray(paymentMethods)
                         ? paymentMethods.length
                         : 0;
@@ -634,6 +750,102 @@ const CartPage = () => {
                     ))}
                 </div>
 
+                {/* Información de dirección y método de pago - Mobile */}
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    Información de Envío y Pago
+                  </h3>
+                  
+                  {/* Dirección */}
+                  <div className="mb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Dirección de envío</p>
+                        {defaultAddress ? (
+                          <div className="flex items-start justify-between">
+                            <div className="text-sm text-gray-900 dark:text-white flex-1">
+                              <p className="font-medium">{defaultAddress.nombre_direccion}</p>
+                              <p className="text-gray-600 dark:text-gray-400">
+                                {defaultAddress.calle_direccion}, {defaultAddress.ciudad}
+                              </p>
+                              <p className="text-gray-600 dark:text-gray-400">
+                                {defaultAddress.departamento} - {defaultAddress.codigo_postal}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setIsAddressSelectionOpen(true)}
+                              className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
+                            >
+                              Cambiar
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className="h-4 w-4 text-amber-500" />
+                            <p className="text-sm text-amber-600 dark:text-amber-400">
+                              Falta agregar dirección
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setIsQuickAddressOpen(true)}
+                              className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
+                            >
+                              Agregar
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Método de pago */}
+                  <div className="mb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Método de pago</p>
+                        {defaultPaymentMethod ? (
+                          <div className="flex items-start justify-between">
+                            <div className="text-sm text-gray-900 dark:text-white flex-1">
+                              <p className="font-medium">
+                                {defaultPaymentMethod.brand?.toUpperCase() || "Tarjeta"} •••• {defaultPaymentMethod.last_four_digits}
+                              </p>
+                              <p className="text-gray-600 dark:text-gray-400">
+                                {defaultPaymentMethod.card_holder}
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setIsPaymentSelectionOpen(true)}
+                              className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
+                            >
+                              Cambiar
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <AlertCircle className="h-4 w-4 text-amber-500" />
+                            <p className="text-sm text-amber-600 dark:text-amber-400">
+                              Falta agregar método de pago
+                            </p>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setIsQuickPaymentOpen(true)}
+                              className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
+                            >
+                              Agregar
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">
@@ -695,6 +907,10 @@ const CartPage = () => {
                       setIsAuthDialogOpen(true);
                       return;
                     }
+                    if (isMissingAddress || isMissingPaymentMethod) {
+                      setIsRequirementsDialogOpen(true);
+                      return;
+                    }
                     const count = Array.isArray(paymentMethods)
                       ? paymentMethods.length
                       : 0;
@@ -742,6 +958,10 @@ const CartPage = () => {
                 onClick={() => {
                   if (!isAuthenticated) {
                     setIsAuthDialogOpen(true);
+                    return;
+                  }
+                  if (isMissingAddress || isMissingPaymentMethod) {
+                    setIsRequirementsDialogOpen(true);
                     return;
                   }
                   const count = Array.isArray(paymentMethods)
@@ -802,6 +1022,229 @@ const CartPage = () => {
               Iniciar sesión
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de requisitos faltantes (dirección y/o método de pago) */}
+      <Dialog open={isRequirementsDialogOpen} onOpenChange={setIsRequirementsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>No puedes pagar todavía</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+            {isMissingAddress && (
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
+                <p>Debes agregar una dirección de envío.</p>
+              </div>
+            )}
+            {isMissingPaymentMethod && (
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
+                <p>Debes registrar un método de pago.</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2 sm:justify-end">
+            {isMissingAddress && (
+              <Button
+                variant="outline"
+                className="hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit"
+                onClick={() => {
+                  setIsRequirementsDialogOpen(false);
+                  setIsQuickAddressOpen(true);
+                }}
+              >
+                Agregar dirección
+              </Button>
+            )}
+            {isMissingPaymentMethod && (
+              <Button
+                className="bg-red-600 text-white hover:bg-red-600/90"
+                onClick={() => {
+                  setIsRequirementsDialogOpen(false);
+                  setIsQuickPaymentOpen(true);
+                }}
+              >
+                Agregar método de pago
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+       {/* Modal de selección de dirección */}
+       <Dialog open={isAddressSelectionOpen} onOpenChange={setIsAddressSelectionOpen}>
+         <DialogContent>
+           <DialogHeader>
+             <DialogTitle>Seleccionar Dirección</DialogTitle>
+           </DialogHeader>
+           <div className="space-y-3 py-2">
+             <RadioGroup
+               value={defaultAddress?.id_direccion?.toString() ?? ""}
+               onValueChange={(value) => {
+                 // Aquí se actualizaría la dirección seleccionada
+                 console.log("Dirección seleccionada:", value);
+               }}
+             >
+               {Array.isArray(addresses) &&
+                 addresses.map((address: any) => (
+                   <label
+                     key={address.id_direccion}
+                     className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                   >
+                     <RadioGroupItem value={String(address.id_direccion)} />
+                     <div className="flex-1">
+                       <div className="text-sm font-medium">
+                         {address.nombre_direccion}
+                       </div>
+                       <div className="text-xs text-gray-500 mt-1">
+                         {address.calle_direccion}, {address.ciudad}
+                       </div>
+                       <div className="text-xs text-gray-500">
+                         {address.departamento} - {address.codigo_postal}
+                       </div>
+                     </div>
+                     {address.es_principal && <Badge>Principal</Badge>}
+                   </label>
+                 ))}
+             </RadioGroup>
+           </div>
+           <DialogFooter className="flex flex-col sm:flex-row gap-2">
+             <Button
+               variant="outline"
+               onClick={() => {
+                 setIsAddressSelectionOpen(false);
+                 setIsQuickAddressOpen(true);
+               }}
+               className="hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit"
+             >
+               Agregar Nueva
+             </Button>
+             <Button
+               onClick={() => {
+                 setIsAddressSelectionOpen(false);
+                 queryClient.invalidateQueries({ queryKey: ["addresses"] });
+                 toast.success("Dirección actualizada");
+               }}
+             >
+               Confirmar
+             </Button>
+           </DialogFooter>
+         </DialogContent>
+       </Dialog>
+
+       {/* Modal de selección de método de pago */}
+       <Dialog open={isPaymentSelectionOpen} onOpenChange={setIsPaymentSelectionOpen}>
+         <DialogContent>
+           <DialogHeader>
+             <DialogTitle>Seleccionar Método de Pago</DialogTitle>
+           </DialogHeader>
+           <div className="space-y-3 py-2">
+             <RadioGroup
+               value={defaultPaymentMethod?.id_metodo_pago?.toString() ?? ""}
+               onValueChange={(value) => {
+                 // Aquí se actualizaría el método de pago seleccionado
+                 console.log("Método de pago seleccionado:", value);
+               }}
+             >
+               {Array.isArray(paymentMethods) &&
+                 paymentMethods.map((method: any) => (
+                   <label
+                     key={method.id_metodo_pago}
+                     className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                   >
+                     <RadioGroupItem value={String(method.id_metodo_pago)} />
+                     <div className="flex-1">
+                       <div className="text-sm font-medium">
+                         {method.brand?.toUpperCase() || "Tarjeta"} •••• {method.last_four_digits}
+                       </div>
+                       <div className="text-xs text-gray-500">
+                         Titular: {method.card_holder}
+                       </div>
+                     </div>
+                     {method.es_principal && <Badge>Principal</Badge>}
+                   </label>
+                 ))}
+             </RadioGroup>
+           </div>
+           <DialogFooter className="flex flex-col sm:flex-row gap-2">
+             <Button
+               variant="outline"
+               onClick={() => {
+                 setIsPaymentSelectionOpen(false);
+                 setIsQuickPaymentOpen(true);
+               }}
+               className="hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit"
+             >
+               Agregar Nuevo
+             </Button>
+             <Button
+               onClick={() => {
+                 setIsPaymentSelectionOpen(false);
+                 queryClient.invalidateQueries({ queryKey: ["paymentMethods"] });
+                 toast.success("Método de pago actualizado");
+               }}
+             >
+               Confirmar
+             </Button>
+           </DialogFooter>
+         </DialogContent>
+       </Dialog>
+
+       {/* Modal rápido para agregar dirección */}
+       <Dialog open={isQuickAddressOpen} onOpenChange={setIsQuickAddressOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agregar dirección de envío</DialogTitle>
+          </DialogHeader>
+          <QuickAddressForm
+            onSuccess={async () => {
+              setIsQuickAddressOpen(false);
+              await queryClient.invalidateQueries({ queryKey: ["addresses"] });
+              toast.success("Dirección agregada");
+              
+              // Si aún falta método de pago, abrir automáticamente ese formulario
+              if (isMissingPaymentMethod) {
+                setTimeout(() => {
+                  setIsQuickPaymentOpen(true);
+                }, 500); // Pequeño delay para que se vea el toast
+              } else {
+                // Si ya no falta nada, intentar pagar
+                setTimeout(() => {
+                  handleCheckout();
+                }, 500);
+              }
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal rápido para agregar método de pago */}
+      <Dialog open={isQuickPaymentOpen} onOpenChange={setIsQuickPaymentOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agregar método de pago</DialogTitle>
+          </DialogHeader>
+          <QuickPaymentForm
+            onSuccess={async () => {
+              setIsQuickPaymentOpen(false);
+              await queryClient.invalidateQueries({ queryKey: ["payment-methods"] });
+              toast.success("Método de pago agregado");
+              
+              // Si aún falta dirección, abrir automáticamente ese formulario
+              if (isMissingAddress) {
+                setTimeout(() => {
+                  setIsQuickAddressOpen(true);
+                }, 500); // Pequeño delay para que se vea el toast
+              } else {
+                // Si ya no falta nada, intentar pagar
+                setTimeout(() => {
+                  handleCheckout();
+                }, 500);
+              }
+            }}
+          />
         </DialogContent>
       </Dialog>
 
@@ -895,3 +1338,139 @@ const CartPage = () => {
 };
 
 export default CartPage;
+
+// Formulario rápido de dirección (inline)
+const addressSchema = z.object({
+  nombre_direccion: z.string().min(1, "Nombre requerido"),
+  calle_direccion: z.string().min(1, "Dirección requerida"),
+  ciudad: z.string().min(1, "Ciudad requerida"),
+  departamento: z.string().min(1, "Departamento requerido"),
+  codigo_postal: z.string().min(1, "Código postal requerido"),
+  barrio: z.string().min(1, "Barrio requerido"),
+  referencias: z.string().optional(),
+  complemento: z.string().optional(),
+});
+
+type QuickAddressFormValues = z.infer<typeof addressSchema>;
+
+function QuickAddressForm({ onSuccess }: { onSuccess: () => void }) {
+  const { user } = useAuth();
+  const form = useForm<QuickAddressFormValues>({
+    resolver: zodResolver(addressSchema),
+    defaultValues: {
+      nombre_direccion: "",
+      calle_direccion: "",
+      ciudad: "",
+      departamento: "",
+      codigo_postal: "",
+      barrio: "",
+      referencias: "",
+      complemento: "",
+    },
+  });
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmitAddress = async (data: QuickAddressFormValues) => {
+    if (!user?.id_usuario) return;
+    setIsSubmitting(true);
+    try {
+      await addressService.createAddress({
+        id_usuario: Number(user.id_usuario),
+        nombre_direccion: data.nombre_direccion,
+        calle_direccion: data.calle_direccion,
+        ciudad: data.ciudad,
+        departamento: data.departamento,
+        codigo_postal: data.codigo_postal,
+        barrio: data.barrio,
+        referencias: data.referencias || null,
+        complemento: data.complemento || null,
+        ind_principal: false,
+        ind_activa: true,
+      });
+      onSuccess();
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo guardar la dirección");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={form.handleSubmit(handleSubmitAddress)}
+      className="grid grid-cols-1 gap-3"
+    >
+      <Input placeholder="Nombre de la dirección" {...form.register("nombre_direccion")} />
+      <Input placeholder="Calle y número" {...form.register("calle_direccion")} />
+      <div className="grid grid-cols-2 gap-3">
+        <Input placeholder="Ciudad" {...form.register("ciudad")} />
+        <Input placeholder="Departamento" {...form.register("departamento")} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Input placeholder="Código postal" {...form.register("codigo_postal")} />
+        <Input placeholder="Barrio" {...form.register("barrio")} />
+      </div>
+      <Input placeholder="Referencias (opcional)" {...form.register("referencias")} />
+      <Input placeholder="Complemento (opcional)" {...form.register("complemento")} />
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Guardando..." : "Guardar dirección"}
+      </Button>
+    </form>
+  );
+}
+
+// Formulario rápido de método de pago (inline)
+const paymentSchema = z.object({
+  card_holder: z.string().min(1, "Nombre requerido"),
+  number: z.string().min(13).max(19),
+  exp_month: z.string().length(2),
+  exp_year: z.string().length(2),
+  cvc: z.string().min(3).max(4),
+});
+
+type QuickPaymentValues = z.infer<typeof paymentSchema>;
+
+function QuickPaymentForm({ onSuccess }: { onSuccess: () => void }) {
+  const form = useForm<QuickPaymentValues>({
+    resolver: zodResolver(paymentSchema),
+    defaultValues: {
+      card_holder: "",
+      number: "",
+      exp_month: "",
+      exp_year: "",
+      cvc: "",
+    },
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmitPayment = async (data: QuickPaymentValues) => {
+    setIsSubmitting(true);
+    try {
+      await addPaymentMethod(data as any);
+      onSuccess();
+    } catch (e: any) {
+      toast.error(e?.message || "No se pudo agregar el método de pago");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={form.handleSubmit(handleSubmitPayment)}
+      className="grid grid-cols-1 gap-3"
+    >
+      <Input placeholder="Nombre en la tarjeta" {...form.register("card_holder")} />
+      <Input placeholder="Número de tarjeta" type="number" inputMode="numeric" {...form.register("number")} />
+      <div className="grid grid-cols-3 gap-3">
+        <Input placeholder="MM" type="number" inputMode="numeric" {...form.register("exp_month")} />
+        <Input placeholder="YY" type="number" inputMode="numeric" {...form.register("exp_year")} />
+        <Input placeholder="CVC" type="number" inputMode="numeric" {...form.register("cvc")} />
+      </div>
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Guardando..." : "Guardar método"}
+      </Button>
+    </form>
+  );
+}
