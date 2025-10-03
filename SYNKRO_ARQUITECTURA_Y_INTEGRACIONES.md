@@ -45,6 +45,9 @@ frontend/
 ## 4) Hasheo y encriptamiento de contraseñas
 
 - Algoritmo: Argon2 mediante `pwdlib.PasswordHash.recommended()` configurado en `backend/app/core/jwt_utils.py`.
+- Argon2: estándar moderno (ganador del PHC), de tipo memory-hard (Argon2id),
+  resistente a ataques paralelos en GPU/ASIC/FPGA y con parámetros de
+  memoria/tiempo paralelismo ajustables; recomendado para hasheo de contraseñas.
 - Hash: `get_password_hash(password)` genera hash Argon2 almacenado en BD; nunca se guarda texto plano.
 - Verificación: `verify_password(plain, hashed)` compara aplicando Argon2 nuevamente sin exponer la contraseña.
 - Tokens JWT: `create_access_token` y `create_refresh_token` firman con `SECRET_KEY` y `ALGORITHM` configurados. `verify_token` valida firma, expiración y `type`.
