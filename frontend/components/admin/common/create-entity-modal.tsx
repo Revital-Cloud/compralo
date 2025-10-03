@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useCategories } from '@/hooks/use-categories'
+import { useAllCategories } from '@/hooks/use-categories'
 import { useLinesByCategory } from '@/hooks/use-lines'
 import { Checkbox } from '@/components/ui/checkbox'
 
@@ -33,9 +33,21 @@ export interface CreateEntityModalProps {
 
 export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({ open, onOpenChange, type, title, onSubmit, extraFields }) => {
   const form = useForm<any>({ resolver: zodResolver(schemas[type]), defaultValues: { ind_activo: true } })
-  const { data: categories = [], isLoading: loadingCategories } = useCategories()
-  const categoryId = form.watch('id_categoria') ? Number(form.watch('id_categoria')) : 0
-  const { data: lines = [], isLoading: loadingLines } = useLinesByCategory(categoryId)
+  const { data: allCategories = [], isLoading: loadingCategories } = useAllCategories()
+  const categories = React.useMemo(() => {
+    return Array.isArray(allCategories)
+      ? allCategories.map((c: any) => ({ id: c.id_categoria, name: c.nom_categoria }))
+      : []
+  }, [allCategories])
+  const watchedCategoryId = form.watch('id_categoria')
+  const categoryId = watchedCategoryId && watchedCategoryId !== '' && !isNaN(Number(watchedCategoryId)) ? Number(watchedCategoryId) : null
+  const { data: lines = [], isLoading: loadingLines } = useLinesByCategory(categoryId || 0)
+
+  // Determinar si el formulario está válido para sublíneas
+  const isSublineFormValid = React.useMemo(() => {
+    if (type !== 'subline') return true
+    return categoryId && Array.isArray(lines) && lines.length > 0
+  }, [type, categoryId, lines])
 
   const handleSubmit = form.handleSubmit(async (values) => {
     await onSubmit(values)
@@ -96,10 +108,10 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({ open, onOp
           {type === 'subline' && (
             <>
               <div className="space-y-2">
-                <Label>Categoría</Label>
+                <Label>Categoría *</Label>
                 <select className="w-full border rounded-md h-9 px-3 text-sm bg-white dark:bg-gray-900" {...form.register('id_categoria')}
                   onChange={(e) => { form.setValue('id_categoria', Number(e.target.value) || ''); form.setValue('id_linea', ''); }}>
-                  <option value="">{loadingCategories ? 'Cargando...' : 'Seleccione'}</option>
+                  <option value="">{loadingCategories ? 'Cargando...' : 'Seleccione una categoría'}</option>
                   {Array.isArray(categories) && categories.length > 0 ? (
                     categories.map((c: any, idx: number) => (
                       <option key={`cat-${c.id}-${idx}`} value={c.id}>{c.name}</option>
@@ -108,18 +120,39 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({ open, onOp
                     !loadingCategories && <option value="" disabled>No hay categorías. Cree una primero.</option>
                   )}
                 </select>
+                <p className="text-xs text-muted-foreground">Primero seleccione una categoría para habilitar las líneas</p>
               </div>
               <div className="space-y-2">
-                <Label>Línea</Label>
-                <select className="w-full border rounded-md h-9 px-3 text-sm bg-white dark:bg-gray-900" {...form.register('id_linea')} disabled={!categoryId}>
-                  <option value="">{loadingLines ? 'Cargando...' : (!categoryId ? 'Seleccione categoría' : 'Seleccione')}</option>
+                <Label>Línea *</Label>
+                <select 
+                  className={`w-full border rounded-md h-9 px-3 text-sm bg-white dark:bg-gray-900 ${
+                    !categoryId ? 'opacity-50 cursor-not-allowed' : ''
+                  }`} 
+                  {...form.register('id_linea')} 
+                  disabled={!categoryId}
+                >
+                  <option value="">
+                    {loadingLines ? 'Cargando...' : 
+                     !categoryId ? 'Seleccione categoría primero' : 
+                     'Seleccione una línea'}
+                  </option>
                   {Array.isArray(lines) && lines.length > 0 && lines.map((l: any, idx: number) => (
                     <option key={`line-${l.id_categoria}-${l.id_linea}-${idx}`} value={l.id_linea}>{l.nom_linea}</option>
                   ))}
                 </select>
+                {!categoryId && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    ⚠️ Debe seleccionar una categoría primero
+                  </p>
+                )}
+                {categoryId && Array.isArray(lines) && lines.length === 0 && !loadingLines && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    ⚠️ No hay líneas disponibles para esta categoría. Debe crear una línea primero.
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
-                <Label>Nombre</Label>
+                <Label>Nombre *</Label>
                 <Input {...form.register('nom_sublinea')} placeholder="Ej. Android" />
               </div>
             </>
@@ -136,9 +169,20 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({ open, onOp
           {extraFields}
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" className="bg-[#fec806] hover:bg-[#e6b800] text-black">Guardar</Button>
+            <Button type="button"  onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button 
+              type="submit" 
+              className="bg-[#fec806] hover:bg-[#e6b800] text-black disabled:opacity-50 disabled:cursor-not-allowed" 
+              disabled={!isSublineFormValid}
+            >
+              Guardar
+            </Button>
           </div>
+          {type === 'subline' && !isSublineFormValid && (
+            <p className="text-xs text-center text-amber-600 dark:text-amber-400 mt-2">
+              ⚠️ No se puede crear la sublínea. Primero debe crear una línea para esta categoría.
+            </p>
+          )}
         </form>
       </DialogContent>
     </Dialog>

@@ -142,6 +142,7 @@ interface ProductFormProps {
   isLoading?: boolean;
   initialData?: Partial<ProductFormData>;
   submitLabel?: string;
+  isEditing?: boolean; // Nuevo: indica si estamos editando
 }
 
 export const ProductForm: React.FC<ProductFormProps> = ({ 
@@ -149,6 +150,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   isLoading = false,
   initialData,
   submitLabel = 'CREAR PRODUCTO',
+  isEditing = false, // Por defecto, no estamos editando
 }) => {
   const { data: categories = [] } = useCategories();
   const { data: brands = [] } = useBrands();
@@ -582,6 +584,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 }}
                 className={errors.id_categoria ? 'border-red-500' : ''}
                 fullWidth
+                disabled={isEditing} // Deshabilitar al editar
               >
                 <option value="" disabled>Selecciona una categoría</option>
                 {categories.map((category) => (
@@ -592,6 +595,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               </Select>
               {errors.id_categoria && (
                 <p className="text-sm text-red-500">{errors.id_categoria.message}</p>
+              )}
+              {isEditing && (
+                <p className="text-sm text-muted-foreground">La categoría no se puede cambiar al editar</p>
               )}
             </div>
 
@@ -621,7 +627,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Label htmlFor="id_linea">Línea *</Label>
-                <span className="text-xs text-muted-foreground">(elige primero la categoría)</span>
+                {!isEditing && <span className="text-xs text-muted-foreground">(elige primero la categoría)</span>}
               </div>
               <Select 
                 value={watch('id_linea')}
@@ -631,7 +637,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   setValue('id_sublinea', '');
                 }}
                 className={errors.id_linea ? 'border-red-500' : ''}
-                disabled={!watchedCategory}
+                disabled={isEditing || !watchedCategory} // Deshabilitar al editar o si no hay categoría
                 fullWidth
               >
                 <option value="" disabled>Selecciona una línea</option>
@@ -649,13 +655,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Label htmlFor="id_sublinea">Sublínea *</Label>
-                <span className="text-xs text-muted-foreground">(elige primero la línea)</span>
+                {!isEditing && <span className="text-xs text-muted-foreground">(elige primero la línea)</span>}
               </div>
               <Select 
                 value={watch('id_sublinea')}
                 onChange={(e) => setValue('id_sublinea', e.target.value)}
                 className={errors.id_sublinea ? 'border-red-500' : ''}
-                disabled={!watchedLine}
+                disabled={isEditing || !watchedLine} // Deshabilitar al editar o si no hay línea
                 fullWidth
               >
                 <option value="" disabled>Selecciona una sublínea</option>
@@ -667,6 +673,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               </Select>
               {errors.id_sublinea && (
                 <p className="text-sm text-red-500">{errors.id_sublinea.message}</p>
+              )}
+              {isEditing && (
+                <p className="text-sm text-muted-foreground">La sublínea no se puede cambiar al editar</p>
               )}
             </div>
           </div>

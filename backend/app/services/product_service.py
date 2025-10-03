@@ -16,6 +16,7 @@ from sqlalchemy import text
 from fastapi import UploadFile
 from typing import List, Optional
 import json
+from psycopg2.extras import Json
 
 from schemas.product_schema import ProductCreate, ProductUpdate, ProductFilterParams, ProductFiltered, ProductFilterResponse, ProductFilterStats
 from services import cloudinary_service
@@ -361,14 +362,27 @@ async def create_product(db: Session, product: ProductCreate, image_files: Optio
         params = product.model_dump()
         params["usr_insert"] = usr_insert
         
-        # Convertir spcf_producto a JSON string si es dict
-        if 'spcf_producto' in params and isinstance(params['spcf_producto'], dict):
-            params['spcf_producto'] = json.dumps(params['spcf_producto'])
+        # Convertir spcf_producto a Json de psycopg2 para JSONB
+        if 'spcf_producto' in params:
+            if isinstance(params['spcf_producto'], dict):
+                params['spcf_producto'] = Json(params['spcf_producto'])
+            elif isinstance(params['spcf_producto'], str):
+                try:
+                    params['spcf_producto'] = Json(json.loads(params['spcf_producto']))
+                except json.JSONDecodeError:
+                    params['spcf_producto'] = Json({})
         
-        # ✅ Convertir img_producto a JSON string si es dict (ProductImages)
-        if 'img_producto' in params and isinstance(params['img_producto'], dict):
-            params['img_producto'] = json.dumps(params['img_producto'])
-            print(f"🔄 DEBUG: img_producto convertido a JSON: {params['img_producto']}")
+        # Convertir img_producto a Json de psycopg2 para JSONB
+        if 'img_producto' in params:
+            if isinstance(params['img_producto'], dict):
+                params['img_producto'] = Json(params['img_producto'])
+                print(f"🔄 DEBUG: img_producto convertido a Json(dict): {params['img_producto']}")
+            elif isinstance(params['img_producto'], str):
+                try:
+                    params['img_producto'] = Json(json.loads(params['img_producto']))
+                    print(f"🔄 DEBUG: img_producto convertido a Json(dict) desde string")
+                except json.JSONDecodeError:
+                    params['img_producto'] = Json({})
 
         query = text("""SELECT fun_insert_producto(
             :id_categoria, 
@@ -478,19 +492,35 @@ async def update_product(
             if key not in params:
                 params[key] = None
         
-        # Asegurar formatos como cadenas JSON cuando aplique (para compat con función SQL)
-        if 'spcf_producto' in params and isinstance(params['spcf_producto'], dict):
-            params['spcf_producto'] = json.dumps(params['spcf_producto'])
-        if 'img_producto' in params and isinstance(params['img_producto'], dict):
-            params['img_producto'] = json.dumps(params['img_producto'])
-        if 'img_producto' in params and params['img_producto'] is None:
-            # enviar objeto vacío como string
-            params['img_producto'] = '{}'
+        # Convertir spcf_producto a Json de psycopg2 para JSONB
+        if 'spcf_producto' in params and params['spcf_producto'] is not None:
+            if isinstance(params['spcf_producto'], dict):
+                params['spcf_producto'] = Json(params['spcf_producto'])
+            elif isinstance(params['spcf_producto'], str):
+                try:
+                    params['spcf_producto'] = Json(json.loads(params['spcf_producto']))
+                except json.JSONDecodeError:
+                    params['spcf_producto'] = Json({})
+        
+        # Convertir img_producto a Json de psycopg2 para JSONB
+        if 'img_producto' in params:
+            if params['img_producto'] is None:
+                # enviar objeto vacío como Json
+                params['img_producto'] = Json({})
+            elif isinstance(params['img_producto'], dict):
+                params['img_producto'] = Json(params['img_producto'])
+                print(f"🔄 DEBUG UPDATE: img_producto convertido a Json(dict)")
+            elif isinstance(params['img_producto'], str):
+                try:
+                    params['img_producto'] = Json(json.loads(params['img_producto']))
+                    print(f"🔄 DEBUG UPDATE: img_producto convertido a Json(dict) desde string")
+                except json.JSONDecodeError:
+                    params['img_producto'] = Json({})
             
         params['id_categoria'] = id_categoria
         params['id_linea'] = id_linea
         params['id_sublinea'] = id_sublinea
-        params['id_producto'] = id_producto # Añadir el id_producto del path
+        params['id_producto'] = id_producto
         params['usr_update'] = usr_update
 
         # La función SQL debe poder manejar que algunos de los otros parámetros no estén presentes

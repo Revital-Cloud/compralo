@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { getCategories } from '@/services/category.service'
+import { getCategories, getAllCategories } from '@/services/category.service'
 import { mapCategoriesToDisplay } from '@/utils/category-mapper'
 import type { CategoryDisplay } from '@/types/category'
 
@@ -84,4 +84,20 @@ export function useCategoriesActions() {
     invalidateCategories,
     refetchCategories,
   }
+}
+
+/**
+ * Hook para obtener todas las categorías (incluye inactivas) – útil en Admin
+ */
+export function useAllCategories() {
+  return useQuery({
+    queryKey: ['categories', 'all'],
+    queryFn: async () => {
+      const list = await getAllCategories()
+      return list
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 2,
+  })
 }

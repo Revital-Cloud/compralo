@@ -130,6 +130,7 @@ const ProductEditPage = () => {
             isLoading={isLoading || updateProductMutation.isPending}
             submitLabel="GUARDAR CAMBIOS"
             onSubmit={handleFormSubmit}
+            isEditing={true} // Indicar que estamos editando
           />
         </div>
 
