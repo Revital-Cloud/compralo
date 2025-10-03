@@ -48,6 +48,9 @@ class Subline(SublineBase):
     Incluye el `id_sublinea` y los campos de auditoría.
     """
     id_sublinea: Decimal
+    # Campos enriquecidos para mostrar en el frontend
+    nom_categoria: Optional[str] = None
+    nom_linea: Optional[str] = None
 class SublineCreate(SublineBase):
     """
     Esquema para la Creación de Sublineas.

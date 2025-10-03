@@ -165,6 +165,26 @@ async def get_product(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
     return product
 
+# Detalle admin con joins completos
+@router.get(
+    "/products-admin/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}",
+    response_model=Product
+)
+async def get_product_admin_detail(
+    id_categoria: Decimal,
+    id_linea: Decimal,
+    id_sublinea: Decimal,
+    id_producto: Decimal,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin()),
+):
+    product = product_service.get_product_admin_detail(
+        db, id_categoria, id_linea, id_sublinea, id_producto
+    )
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
+    return product
+
 # Productos por sublínea
 @router.get("/products/subline/{id_sublinea}", response_model=list[Product])
 async def get_products_by_subline(id_sublinea: Decimal, db: Session = Depends(get_db)):
@@ -300,6 +320,7 @@ async def update_product(
     # Datos del producto como Form fields opcionales
     nom_producto: Optional[str] = Form(None),
     spcf_producto: Optional[str] = Form(None),  # JSON como string
+    img_producto: Optional[str] = Form(None),  # JSON como string para imágenes existentes
     val_precio: Optional[Decimal] = Form(None),
     id_proveedor: Optional[Decimal] = Form(None),
     id_marca: Optional[Decimal] = Form(None),
@@ -351,6 +372,11 @@ async def update_product(
                 update_data['spcf_producto'] = json.loads(spcf_producto)
             except json.JSONDecodeError:
                 raise HTTPException(status_code=400, detail="El campo 'spcf_producto' debe ser una cadena JSON válida.")
+        if img_producto is not None:
+            try:
+                update_data['img_producto'] = json.loads(img_producto)
+            except json.JSONDecodeError:
+                raise HTTPException(status_code=400, detail="El campo 'img_producto' debe ser una cadena JSON válida.")
         if val_precio is not None:
             update_data['val_precio'] = val_precio
         if id_proveedor is not None:
@@ -440,6 +466,38 @@ async def deactivate_product(
             )
         else:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.put(
+    "/products/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}/active",
+    response_model=ResponseMessage,
+    status_code=status.HTTP_200_OK,
+)
+async def set_product_active(
+    id_categoria: Decimal,
+    id_linea: Decimal,
+    id_sublinea: Decimal,
+    id_producto: Decimal,
+    active: bool = Form(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user),
+):
+    """
+    Actualiza solo el campo ind_activo de un producto.
+    """
+    try:
+        product_service.set_product_active(
+            db,
+            id_categoria,
+            id_linea,
+            id_sublinea,
+            id_producto,
+            active,
+            current_user.id_usuario,
+        )
+        return ResponseMessage(message="Estado del producto actualizado exitosamente")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 # ==================== ENDPOINTS DE FILTROS ====================
 

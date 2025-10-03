@@ -22,6 +22,7 @@ import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select } from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { PasswordStrength } from "@/components/ui/password-strength";
 import Link from "next/link";
 import {
@@ -221,7 +222,7 @@ export function RegisterForm() {
                           disabled={isLoading}
                           onChange={(e) => field.onChange(e.target.value)}
                           value={field.value}
-                          className="w-full"
+                          className="bg-background"
                         >
                           <option value="masculino">Masculino</option>
                           <option value="femenino">Femenino</option>
@@ -245,8 +246,8 @@ export function RegisterForm() {
                           <Button
                             variant={"outline"}
                             className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
+                              "w-full pl-3 text-left font-normal hover:bg-accent/50 dark:hover:bg-accent/20 dark:hover:text-white",
+                              !field.value && "text-muted-foreground dark:text-white/90"
                             )}
                             disabled={isLoading}
                           >

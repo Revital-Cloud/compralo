@@ -21,15 +21,36 @@ interface ProductImageUploadProps {
   maxImages?: number;
   acceptedFileTypes?: string[];
   maxFileSize?: number; // en MB
+  existingImages?: any; // Imágenes existentes del producto
 }
 
 export const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
   onImagesChange,
   maxImages = 10,
   acceptedFileTypes = ['image/jpeg', 'image/png', 'image/webp'],
-  maxFileSize = 5 // 5MB por defecto
+  maxFileSize = 5, // 5MB por defecto
+  existingImages
 }) => {
   const [images, setImages] = useState<ProductImage[]>([]);
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
+
+  // Procesar imágenes existentes al cargar el componente
+  React.useEffect(() => {
+    if (existingImages) {
+      const urls: string[] = [];
+      
+      if (typeof existingImages === 'string') {
+        urls.push(existingImages);
+      } else if (existingImages.main) {
+        urls.push(existingImages.main);
+        if (existingImages.gallery && Array.isArray(existingImages.gallery)) {
+          urls.push(...existingImages.gallery);
+        }
+      }
+      
+      setExistingImageUrls(urls);
+    }
+  }, [existingImages]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newImages: ProductImage[] = acceptedFiles.map(file => ({
@@ -118,6 +139,12 @@ export const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
                 alt="Imagen principal"
                 className="w-full h-full object-cover rounded-lg"
               />
+            ) : existingImageUrls.length > 0 ? (
+              <img 
+                src={existingImageUrls[0]} 
+                alt="Imagen principal existente"
+                className="w-full h-full object-cover rounded-lg"
+              />
             ) : (
               <div className="text-center">
                 <IconCamera className="h-12 w-12 text-gray-400 mx-auto mb-2" />
@@ -163,21 +190,46 @@ export const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
           </div>
 
           {/* Lista de Imágenes */}
-          {images.length > 0 && (
+          {(images.length > 0 || existingImageUrls.length > 0) && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium">Imágenes ({images.length}/{maxImages})</h4>
-                <Button 
-                  onClick={uploadAllImages} 
-                  variant="outline" 
-                  size="sm"
-                  disabled={images.every(img => img.uploaded || img.uploading)}
-                >
-                  Subir Todas
-                </Button>
+                <h4 className="text-sm font-medium">
+                  Imágenes ({images.length + existingImageUrls.length}/{maxImages})
+                </h4>
+                {images.length > 0 && (
+                  <Button 
+                    onClick={uploadAllImages} 
+                    variant="outline" 
+                    size="sm"
+                    disabled={images.every(img => img.uploaded || img.uploading)}
+                  >
+                    Subir Todas
+                  </Button>
+                )}
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {/* Imágenes existentes */}
+                {existingImageUrls.map((url, index) => (
+                  <div key={`existing-${index}`} className="relative group">
+                    <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                      <img 
+                        src={url} 
+                        alt={`Imagen existente ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    
+                    {/* Badge de imagen existente */}
+                    <div className="absolute top-2 right-2">
+                      <Badge variant="default" className="bg-blue-100 text-blue-800">
+                        Existente
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Imágenes nuevas */}
                 {images.map((image) => (
                   <div key={image.id} className="relative group">
                     <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
@@ -239,7 +291,7 @@ export const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
           )}
 
           {/* Mensaje cuando no hay imágenes */}
-          {images.length === 0 && (
+          {images.length === 0 && existingImageUrls.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <IconCamera className="h-12 w-12 mx-auto mb-2 text-gray-300" />
               <p className="text-sm">No hay imágenes seleccionadas</p>

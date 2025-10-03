@@ -1,23 +1,72 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock bajo</title>   
-</head>
-<body>
-    <h1>Stock bajo</h1>
-    <p>El stock de los siguientes productos está bajo:</p>
-    <ul>
-        <li>ID del producto: {{ product.id }}</li>
-        <li>Nombre del producto: {{ product.name }}</li>
-        <li>Stock actual: {{ product.stock }}</li>
-        <li>Stock mínimo: {{ product.min_stock }}</li>
-        <li>Stock máximo: {{ product.max_stock }}</li>
-        <li>Stock recomendado: {{ product.recommended_stock }}</li>
-        <li>Stock crítico: {{ product.critical_stock }}</li>
-        <li>Stock en stock: {{ product.in_stock }}</li>
-        <li>Stock en pedido: {{ product.in_order }}</li>
+{% extends "base.html" %}
+
+{% block title %}Alerta de Stock Bajo - Compralo{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    ¡Alerta de Stock! ⚠️
+</div>
+
+<div class="alert alert-warning">
+    <strong>📦 Stock Bajo Detectado</strong><br>
+    El siguiente producto necesita reposición urgente:
+</div>
+
+<div class="content-block">
+    <h2>Detalles del Producto</h2>
+    <table class="table">
+        <tr>
+            <td><strong>ID del Producto:</strong></td>
+            <td>{{ product.id }}</td>
+        </tr>
+        <tr>
+            <td><strong>Nombre:</strong></td>
+            <td>{{ product.name }}</td>
+        </tr>
+        <tr>
+            <td><strong>Stock Actual:</strong></td>
+            <td style="color: #FF0000; font-weight: bold;">{{ product.stock }}</td>
+        </tr>
+        <tr>
+            <td><strong>Stock Mínimo:</strong></td>
+            <td>{{ product.min_stock }}</td>
+        </tr>
+        <tr>
+            <td><strong>Stock Máximo:</strong></td>
+            <td>{{ product.max_stock }}</td>
+        </tr>
+        <tr>
+            <td><strong>Stock Recomendado:</strong></td>
+            <td>{{ product.recommended_stock }}</td>
+        </tr>
+        <tr>
+            <td><strong>Stock Crítico:</strong></td>
+            <td>{{ product.critical_stock }}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="alert alert-danger">
+    <strong>🚨 Acción Requerida</strong><br>
+    <ul style="margin: 10px 0 0 20px; padding: 0;">
+        <li>Revisar el inventario inmediatamente</li>
+        <li>Contactar al proveedor para reposición</li>
+        <li>Considerar pausar las ventas si es necesario</li>
+        <li>Actualizar el stock en el sistema</li>
     </ul>
-</body>
-</html>
+</div>
+
+<div class="text-center">
+    <a href="{{ frontend_url }}/admin/products/{{ product.id }}" class="btn">
+        📝 Gestionar Producto
+    </a>
+    <a href="{{ frontend_url }}/admin/inventory" class="btn btn-secondary" style="margin-left: 10px;">
+        📊 Ver Inventario
+    </a>
+</div>
+
+<div class="content-block">
+    <p><strong>Equipo de Compralo</strong></p>
+    <p>Este es un email automático del sistema de gestión de inventario.</p>
+</div>
+{% endblock %}

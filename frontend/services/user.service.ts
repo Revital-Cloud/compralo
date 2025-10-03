@@ -72,6 +72,8 @@ export async function uploadAvatar(file: File): Promise<{ avatar_url: string }> 
  * Obtener lista de usuarios (para admin)
  */
 export async function getUsers(params?: UserFilters): Promise<PaginatedResponse<User>> {
+  // La API requiere JWT; apiWrapper ya inserta Authorization si hay token
+  // Este método solo reenvía los params
   return await get<PaginatedResponse<User>>('/users', { params });
 }
 

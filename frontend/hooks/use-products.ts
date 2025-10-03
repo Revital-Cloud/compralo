@@ -61,6 +61,15 @@ export function useProduct(slug: string) {
   });
 }
 
+export function useProductAdminDetail(slug: string) {
+  return useQuery({
+    queryKey: [...PRODUCT_KEYS.detail(slug), 'admin'],
+    queryFn: () => productService.getProductAdminDetail(slug),
+    enabled: !!slug,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useCreateProduct() {
   const queryClient = useQueryClient();
   
@@ -81,11 +90,23 @@ export function useUpdateProduct() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: ProductUpdate }) => 
-      productService.updateProduct(id, data),
-    onSuccess: (_, { id }) => {
+    mutationFn: ({ 
+      id_categoria, 
+      id_linea, 
+      id_sublinea, 
+      id_producto, 
+      data 
+    }: { 
+      id_categoria: number; 
+      id_linea: number; 
+      id_sublinea: number; 
+      id_producto: number; 
+      data: FormData 
+    }) => 
+      productService.updateProduct(id_categoria, id_linea, id_sublinea, id_producto, data),
+    onSuccess: (_, { id_producto }) => {
       toast.success('Producto actualizado exitosamente');
-      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.detail(id) });
+      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.detail(id_producto) });
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
     },
     onError: (error: any) => {
@@ -106,6 +127,39 @@ export function useDeleteProduct() {
     },
     onError: (error: any) => {
       const message = error?.response?.data?.detail || 'Error al eliminar el producto';
+      toast.error(message);
+    },
+  });
+}
+
+export function useDeactivateProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { id_categoria: number; id_linea: number; id_sublinea: number; id_producto: number }) =>
+      productService.deactivateProduct(params),
+    onSuccess: () => {
+      toast.success('Producto desactivado exitosamente');
+      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.admin() });
+      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Error al desactivar el producto';
+      toast.error(message);
+    },
+  });
+}
+
+export function useActivateProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (product: Product) => productService.activateProduct(product),
+    onSuccess: () => {
+      toast.success('Producto activado exitosamente');
+      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.admin() });
+      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || 'Error al activar el producto';
       toast.error(message);
     },
   });

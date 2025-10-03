@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 from middlewares.auth_middleware import AuthMiddleware
+from middlewares.security_middleware import SecurityMiddleware
 # from middlewares.role_middleware import SmartAuthMiddleware
 from routers.cms_router import router as cms_router
 from routers.provider_router import router as provider_router
@@ -46,7 +47,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Agregar middleware de autenticación (primero en la pila interna)
+# Configurar CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En producción, especificar dominios específicos
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Agregar middleware de seguridad
+app.add_middleware(SecurityMiddleware)
+
+# Agregar middleware de autenticación
 app.add_middleware(
     AuthMiddleware,
     protected_paths=[

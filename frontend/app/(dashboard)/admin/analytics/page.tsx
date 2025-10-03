@@ -23,7 +23,6 @@ import {
   IconClock,
   IconDownload
 } from "@tabler/icons-react"
-import { ExportDialog } from "@/components/excel"
 import { toast } from "sonner"
 
 // Tipos para los datos de analytics
@@ -284,15 +283,6 @@ const AnalyticsPage = () => {
             <IconRefresh className="h-4 w-4 mr-2" />
             Actualizar
           </Button>
-          <ExportDialog
-            defaultDataTypes={['analytics']}
-            onExportComplete={handleExportComplete}
-          >
-              <Button size="sm">
-                <IconDownload className="h-4 w-4 mr-2" />
-                Exportar
-              </Button>
-          </ExportDialog>
         </div>
       </div>
 

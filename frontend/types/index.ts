@@ -20,6 +20,8 @@ export * from './data';
 export type { Category } from './hierarchical';
 export type { Line } from './hierarchical';
 export type { Subline } from './hierarchical';
+// Re-export de tipos de filtros
+export * from './filters';
 
 // =============================================================================
 // TIPOS ADICIONALES PARA LA APLICACIÓN

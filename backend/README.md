@@ -30,48 +30,65 @@ backend/
 │   ├── core/                   # Configuración centralizada
 │   │   ├── config.py          # Variables de entorno y configuración
 │   │   ├── database.py        # Conexión PostgreSQL dedicada
-│   │   └── security.py        # JWT y autenticación
+│   │   ├── dependencies.py    # Dependencias de FastAPI
+│   │   └── jwt_utils.py       # Utilidades JWT
 │   │
 │   ├── middlewares/            # Middlewares personalizados
-│   │   ├── cors.py            # Configuración CORS
-│   │   ├── error_handling.py  # Manejo de errores
-│   │   └── rate_limiting.py   # Rate limiting por plan
+│   │   ├── auth_middleware.py # Middleware de autenticación
+│   │   └── role_middleware.py # Middleware de roles
 │   │
-│   ├── models/                 # Modelos SQLAlchemy
-│   │   ├── users.py           # Usuarios, roles, autenticación
-│   │   ├── products.py        # Productos, categorías, inventario
-│   │   ├── orders.py          # Pedidos, pagos, envíos
-│   │   └── business.py        # Configuración de negocio
+│   ├── routers/                # Endpoints de la API (24 routers)
+│   │   ├── auth_router.py     # Autenticación y registro
+│   │   ├── user_router.py     # Gestión de usuarios
+│   │   ├── product_router.py  # CRUD de productos con filtros
+│   │   ├── category_router.py # Gestión de categorías
+│   │   ├── lines_routers.py   # Gestión de líneas
+│   │   ├── subline_router.py  # Gestión de sublíneas
+│   │   ├── brand_router.py    # Gestión de marcas
+│   │   ├── provider_router.py # Gestión de proveedores
+│   │   ├── cart_product_router.py # Sistema de carrito
+│   │   ├── order_router.py    # Gestión de pedidos
+│   │   ├── payment_router.py  # Integración con Mercado Pago
+│   │   ├── address_router.py  # Gestión de direcciones
+│   │   ├── favorites_router.py # Sistema de favoritos
+│   │   ├── discount_router.py # Sistema de descuentos
+│   │   ├── points_router.py   # Sistema de puntos
+│   │   ├── email_router.py    # Emails con Resend
+│   │   ├── cms_router.py      # Gestión de contenido
+│   │   ├── comentary_router.py # Sistema de comentarios
+│   │   ├── exchange_router.py # Sistema de canjes
+│   │   ├── movements_inventory_router.py # Movimientos de inventario
+│   │   └── order_buy_provider_router.py # Órdenes a proveedores
 │   │
-│   ├── routers/                # Endpoints de la API
-│   │   ├── auth.py            # Autenticación y registro
-│   │   ├── users.py           # Gestión de usuarios
-│   │   ├── products.py        # CRUD de productos
-│   │   ├── orders.py          # Gestión de pedidos
-│   │   ├── payments.py        # Integración con Mercado Pago
-│   │   └── analytics.py       # Métricas y reportes
+│   ├── schemas/                # Validación Pydantic (24 schemas)
+│   │   ├── auth_schema.py     # Esquemas de autenticación
+│   │   ├── user_schema.py     # Validación de usuarios
+│   │   ├── product_schema.py  # Validación de productos
+│   │   ├── category_schema.py # Validación de categorías
+│   │   ├── cart_schema.py     # Validación de carrito
+│   │   ├── order_schema.py    # Validación de pedidos
+│   │   └── ...                # Más schemas específicos
 │   │
-│   ├── schemas/                # Validación Pydantic
-│   │   ├── auth.py            # Esquemas de autenticación
-│   │   ├── users.py           # Validación de usuarios
-│   │   ├── products.py        # Validación de productos
-│   │   └── orders.py          # Validación de pedidos
-│   │
-│   ├── services/               # Lógica de negocio
+│   ├── services/               # Lógica de negocio (27 servicios)
 │   │   ├── auth_service.py    # Lógica de autenticación
 │   │   ├── product_service.py # Lógica de productos
+│   │   ├── cart_service.py    # Lógica de carrito
 │   │   ├── order_service.py   # Procesamiento de pedidos
 │   │   ├── payment_service.py # Integración de pagos
-│   │   └── email_service.py   # Emails con Resend
+│   │   ├── email_service.py   # Emails con Resend
+│   │   └── ...                # Más servicios específicos
 │   │
-│   ├── utils/                  # Utilidades
-│   │   ├── dependencies.py    # Dependencias de FastAPI
-│   │   ├── exceptions.py      # Excepciones personalizadas
-│   │   └── helpers.py         # Funciones auxiliares
+│   ├── templates/              # Plantillas de email
+│   │   └── emails/            # Templates HTML para emails
+│   │
+│   ├── Docs/                   # Documentación técnica
+│   │   ├── DOCUMENTATION.md   # Documentación general
+│   │   ├── JWT_SETUP.md       # Configuración JWT
+│   │   ├── RESEND_IMPLEMENTATION.md # Integración Resend
+│   │   └── ...                # Más documentación
 │   │
 │   └── main.py                # Punto de entrada FastAPI
 │
-├── migrations/                 # Migraciones de BD (Alembic)
 ├── requirements.txt            # Dependencias Python
 ├── .env.example               # Plantilla de configuración
 └── README.md                  # Este archivo
@@ -100,7 +117,7 @@ backend/
 
 ### Integraciones SaaS
 
-- **Mercado Pago SDK** - Procesamiento de pagos por cliente
+- **Wompi SDK** - Procesamiento de pagos por cliente
 - **Resend** - Emails transaccionales con branding
 - **Redis** (opcional) - Cache por instancia
 
@@ -169,10 +186,10 @@ MAX_PRODUCTS=1000
 MAX_USERS=10
 FEATURES_ENABLED=analytics,inventory,marketing
 
-# Integración Mercado Pago (por cliente)
-MERCADOPAGO_ACCESS_TOKEN=TEST-client_specific_access_token
-MERCADOPAGO_PUBLIC_KEY=TEST-client_specific_public_key
-MERCADOPAGO_WEBHOOK_SECRET=client_webhook_secret
+# Integración Wompi (por cliente)
+WOMPI_ACCESS_TOKEN=TEST-client_specific_access_token
+WOMPI_PUBLIC_KEY=TEST-client_specific_public_key
+WOMPI_WEBHOOK_SECRET=client_webhook_secret
 
 # Email con branding del cliente
 RESEND_API_KEY=re_client_specific_key
@@ -197,9 +214,31 @@ REDIS_URL=redis://localhost:6379/0
 # Método recomendado (FastAPI CLI)
 fastapi dev app/main.py
 
-# Método alternativo (Uvicorn) --Linux
-python3 -m uvicorn main:app --host 10.5.213.111 --port 8000
+# Método alternativo (Uvicorn)
+python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+### 5. Verificar Instalación
+
+```bash
+# Verificar que el servidor esté funcionando
+curl http://localhost:8000/
+
+# Verificar documentación de la API
+# Abrir en navegador: http://localhost:8000/docs
+```
+
+### 6. Endpoints Principales Disponibles
+
+- **Autenticación**: `/api/auth/*`
+- **Productos**: `/api/products/*`
+- **Carrito**: `/api/cart/*`
+- **Órdenes**: `/api/orders/*`
+- **Usuarios**: `/api/users/*`
+- **Categorías**: `/api/categories/*`
+- **Marcas**: `/api/brands/*`
+- **Proveedores**: `/api/providers/*`
+- **Pagos**: `/api/payments/*`
 
 ## 🔐 Sistema de Autenticación Simplificado
 
@@ -297,58 +336,55 @@ class Product(Base):
     # Sin tenant_id - toda la tabla pertenece a este cliente
 ```
 
-## 🎯 Características SaaS por Instancia
+## 🎯 Características SaaS Implementadas
 
-### Límites Configurables por Plan
+### Sistema de Autenticación Completo
 
-```python
-# Middleware de límites basado en el plan del cliente
-class SubscriptionLimitMiddleware:
-    def __init__(self, max_products: int, max_users: int):
-        self.max_products = max_products
-        self.max_users = max_users
+- **JWT Tokens** con refresh automático
+- **Roles jerárquicos**: Admin, Employee, Customer
+- **Middleware de autenticación** automático
+- **Protección de rutas** por rol
+- **Sistema de permisos** granular
 
-    async def check_product_limit(self, db: Session):
-        current_count = db.query(Product).count()
-        if current_count >= self.max_products:
-            raise HTTPException(
-                status_code=402,
-                detail=f"Límite de productos alcanzado ({self.max_products}). Actualiza tu plan."
-            )
-```
+### Gestión de Productos Avanzada
 
-### Personalización por Sector
+- **CRUD completo** de productos
+- **Sistema de filtros** con función de base de datos optimizada
+- **Búsqueda en tiempo real** con autocompletado
+- **Gestión de inventario** con movimientos
+- **Sistema de categorías** jerárquico (3 niveles)
+- **Gestión de marcas y proveedores**
 
-```python
-# Configuración específica por tipo de negocio
-BUSINESS_CONFIG = {
-    "fashion": {
-        "product_attributes": ["talla", "color", "material", "genero"],
-        "categories": ["ropa", "calzado", "accesorios"],
-        "payment_methods": ["mercadopago", "transferencia"]
-    },
-    "electronics": {
-        "product_attributes": ["marca", "modelo", "garantia"],
-        "categories": ["smartphones", "computadoras", "audio"],
-        "payment_methods": ["mercadopago", "cuotas"]
-    }
-}
-```
+### Sistema de Carrito Funcional
 
-### API de Integraciones
+- **Carrito persistente** para usuarios anónimos y registrados
+- **Cálculos automáticos** de totales, descuentos e impuestos
+- **Migración automática** de carrito anónimo a usuario
+- **Validación de stock** en tiempo real
+- **Sistema de puntos** de fidelidad
 
-```python
-# API pública para integraciones del cliente
-@router.get("/api/v1/products")
-async def public_api_products(
-    api_key: str = Depends(validate_api_key),  # API key único del cliente
-    limit: int = Query(default=50, le=100),
-    db: Session = Depends(get_db)
-):
-    # API específica para este cliente - sin tenant_id
-    products = await product_service.get_products_for_api(db, limit=limit)
-    return {"products": products, "client": CLIENT_NAME}
-```
+### Gestión de Órdenes y Pagos
+
+- **Procesamiento de órdenes** completo
+- **Integración con Wompi** para pagos
+- **Sistema de direcciones** para envíos
+- **Tracking de órdenes** en tiempo real
+- **Gestión de proveedores** y compras
+
+### Sistema de Descuentos y Fidelidad
+
+- **Descuentos por producto** y categoría
+- **Sistema de puntos** acumulables
+- **Canjes de puntos** por productos
+- **Descuentos por usuario** personalizados
+- **Cupones de descuento** con validación
+
+### Integraciones Externas
+
+- **Resend** para emails transaccionales
+- **Wompi** para procesamiento de pagos
+- **Sistema de templates** de email personalizables
+- **Cloudinary** para gestión de imágenes (opcional)
 
 ## 🚀 Deployment de Instancia
 
@@ -393,7 +429,7 @@ async def health_check(db: Session = Depends(get_db)):
             "database": "connected",
             "plan": SUBSCRIPTION_PLAN,
             "features": FEATURES_ENABLED.split(","),
-            "mercadopago": "configured" if MERCADOPAGO_ACCESS_TOKEN else "not_configured"
+            "wompi": "configured" if WOMPI_ACCESS_TOKEN else "not_configured"
         }
 
         return {"status": "healthy", "instance": config_status}

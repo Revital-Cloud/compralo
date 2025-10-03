@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Confirmación de Orden - Compralo{% endblock %}
+
+{% block content %}
+<div class="greeting">
+    ¡Orden Confirmada! 🎉
+</div>
+
+<div class="alert alert-success">
+    <strong>✅ ¡Tu orden ha sido confirmada!</strong><br>
+    Hemos recibido tu pedido y estamos preparándolo para el envío.
+</div>
+
+<div class="content-block">
+    <h2>Detalles de tu Orden</h2>
+    <table class="table">
+        <tr>
+            <td><strong>Número de Orden:</strong></td>
+            <td>#{{ order.id }}</td>
+        </tr>
+        <tr>
+            <td><strong>Fecha:</strong></td>
+            <td>{{ order.created_at }}</td>
+        </tr>
+        <tr>
+            <td><strong>Estado:</strong></td>
+            <td><span style="background: #4caf50; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">Confirmada</span></td>
+        </tr>
+        <tr>
+            <td><strong>Total:</strong></td>
+            <td style="color: #FF0000; font-weight: bold; font-size: 18px;">${{ order.total }}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="content-block">
+    <h3>Productos en tu Orden</h3>
+    <div class="product-grid">
+        {% for item in order.items %}
+        <div class="product-card">
+            <div style="font-size: 30px; margin-bottom: 10px;">📦</div>
+            <strong>{{ item.product_name }}</strong>
+            <p style="font-size: 12px; color: #888;">Cantidad: {{ item.quantity }}</p>
+            <p style="font-size: 14px; color: #FF0000; font-weight: bold;">${{ item.price }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="content-block">
+    <h3>Información de Envío</h3>
+    <table class="table">
+        <tr>
+            <td><strong>Dirección de Envío:</strong></td>
+            <td>{{ order.shipping_address }}</td>
+        </tr>
+        <tr>
+            <td><strong>Método de Envío:</strong></td>
+            <td>{{ order.shipping_method }}</td>
+        </tr>
+        <tr>
+            <td><strong>Tiempo Estimado:</strong></td>
+            <td>{{ order.estimated_delivery }}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="alert alert-info">
+    <strong>📧 Próximos Pasos</strong><br>
+    <ul style="margin: 10px 0 0 20px; padding: 0;">
+        <li>Recibirás un email cuando tu orden sea enviada</li>
+        <li>Te notificaremos cuando esté en camino</li>
+        <li>Podrás rastrear tu envío en tiempo real</li>
+        <li>Recibirás confirmación cuando sea entregada</li>
+    </ul>
+</div>
+
+<div class="text-center">
+    <a href="{{ frontend_url }}/orders/{{ order.id }}" class="btn">
+        📋 Ver Detalles de la Orden
+    </a>
+    <a href="{{ frontend_url }}/orders" class="btn btn-secondary" style="margin-left: 10px;">
+        📊 Mis Órdenes
+    </a>
+</div>
+
+<div class="content-block">
+    <h3>¿Necesitas ayuda?</h3>
+    <p>Si tienes alguna pregunta sobre tu orden, no dudes en contactarnos:</p>
+    <div style="text-align: center; margin: 20px 0;">
+        <a href="mailto:{{ support_email }}" style="color: #FF0000; text-decoration: none; margin: 0 15px;">
+            📧 {{ support_email }}
+        </a>
+        <a href="{{ frontend_url }}/chat" style="color: #FF0000; text-decoration: none; margin: 0 15px;">
+            💬 Chat en vivo
+        </a>
+    </div>
+</div>
+
+<div class="text-center" style="margin: 30px 0;">
+    <p style="font-size: 18px; color: #FF0000; font-weight: 600;">
+        ¡Gracias por elegir Compralo! 🛒
+    </p>
+    <p style="color: #888;">
+        Tu satisfacción es nuestra prioridad.
+    </p>
+</div>
+{% endblock %}

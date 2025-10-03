@@ -71,6 +71,28 @@ export async function getProductByIds(
 }
 
 /**
+ * Obtener producto con detalle admin (joins completos)
+ * Formato esperado: "{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}"
+ */
+export async function getProductAdminDetail(
+  ids:
+    | string
+    | {
+        id_categoria: string | number
+        id_linea: string | number
+        id_sublinea: string | number
+        id_producto: string | number
+      }
+): Promise<Product> {
+  const slug =
+    typeof ids === 'string'
+      ? ids
+      : `${ids.id_categoria}-${ids.id_linea}-${ids.id_sublinea}-${ids.id_producto}`
+
+  return await get<Product>(`/products-admin/${slug}`)
+}
+
+/**
  * Crear nuevo producto
  */
 export async function createProduct(productData: ProductCreate): Promise<Product> {
@@ -113,8 +135,18 @@ export async function createProductWithImages(
 /**
  * Actualizar producto
  */
-export async function updateProduct(id: number, productData: ProductUpdate): Promise<Product> {
-  return await put<Product>(`/products/${id}`, productData);
+export async function updateProduct(
+  id_categoria: number, 
+  id_linea: number, 
+  id_sublinea: number, 
+  id_producto: number, 
+  productData: FormData
+): Promise<Product> {
+  return await put<Product>(`/products/${id_categoria}-${id_linea}-${id_sublinea}-${id_producto}`, productData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
 }
 
 /**
@@ -122,6 +154,29 @@ export async function updateProduct(id: number, productData: ProductUpdate): Pro
  */
 export async function deleteProduct(id: number): Promise<ApiResponse> {
   return await del<ApiResponse>(`/products/${id}`);
+}
+
+/**
+ * Desactivar producto por IDs compuestos
+ */
+export async function deactivateProduct(params: {
+  id_categoria: number;
+  id_linea: number;
+  id_sublinea: number;
+  id_producto: number;
+}): Promise<ApiResponse> {
+  const slug = `${params.id_categoria}-${params.id_linea}-${params.id_sublinea}-${params.id_producto}`;
+  return await put<ApiResponse>(`/products/${slug}/deactivate`);
+}
+
+/**
+ * Activar producto (actualiza ind_activo=true) con endpoint dedicado
+ */
+export async function activateProduct(product: Product): Promise<ApiResponse> {
+  const slug = `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`;
+  const formData = new FormData();
+  formData.append('active', 'true');
+  return await put<ApiResponse>(`/products/${slug}/active`, formData);
 }
 
 /**
@@ -455,9 +510,12 @@ const productService = {
   // Productos
   getProducts,
   getProductByIds,
+  getProductAdminDetail,
   createProduct,
   updateProduct,
   deleteProduct,
+  deactivateProduct,
+  activateProduct,
   searchProducts,
   getProductsByCategory,
   getProductsByBrand,

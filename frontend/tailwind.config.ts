@@ -1,8 +1,7 @@
 // tailwind.config.ts
-const {heroui} = require("@heroui/theme");
+import type { Config } from "tailwindcss";
 
-/** @type {import('tailwindcss').Config} */
-module.exports = {
+const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
@@ -90,5 +89,7 @@ module.exports = {
     },
   },
   darkMode: "class",
-  plugins: [require("tailwindcss-animate")],
+  plugins: [],
 };
+
+export default config;

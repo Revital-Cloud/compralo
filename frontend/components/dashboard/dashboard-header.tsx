@@ -1,8 +1,7 @@
 'use client'
 
-import React from 'react'
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select } from "@/components/ui/select"
 import { IconCalendar, IconRefresh } from "@tabler/icons-react"
 
 interface DashboardHeaderProps {
@@ -39,16 +38,11 @@ export const DashboardHeader = ({
       </div>
     </div>
     <div className="flex items-center space-x-2">
-      <Select value={timeRange} onValueChange={onTimeRangeChange}>
-        <SelectTrigger className="w-32">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="weekly">Semanal</SelectItem>
-          <SelectItem value="monthly">Mensual</SelectItem>
-          <SelectItem value="quarterly">Trimestral</SelectItem>
-          <SelectItem value="yearly">Anual</SelectItem>
-        </SelectContent>
+      <Select value={timeRange} onChange={(e) => onTimeRangeChange(e.target.value)} className="w-32">
+        <option value="weekly">Semanal</option>
+        <option value="monthly">Mensual</option>
+        <option value="quarterly">Trimestral</option>
+        <option value="yearly">Anual</option>
       </Select>
       <Button 
         variant="outline" 

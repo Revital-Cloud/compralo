@@ -16,6 +16,7 @@ from sqlalchemy import text
 from fastapi import UploadFile
 from typing import List, Optional
 import json
+from psycopg2.extras import Json
 
 from schemas.product_schema import ProductCreate, ProductUpdate, ProductFilterParams, ProductFiltered, ProductFilterResponse, ProductFilterStats
 from services import cloudinary_service
@@ -38,49 +39,64 @@ def get_products_admin(db: Session, params: dict):
         list: Lista de productos con información completa para admin
     """
     try:
-        query = text("""
+        # Mapear campo de orden a columna SQL segura
+        ordenar_por = (params or {}).get('ordenar_por', 'nombre')
+        orden = (params or {}).get('orden', 'ASC')
+
+        order_column_map = {
+            'nombre': 'p.nom_producto',
+            'precio': 'p.val_precio',
+            'stock': 'p.num_stock',
+            'fecha': 'p.fec_insert',
+            'categoria': 'c.nom_categoria',
+            'marca': 'm.nom_marca',
+        }
+        order_column = order_column_map.get(str(ordenar_por).lower(), 'p.nom_producto')
+        order_direction = 'DESC' if str(orden).upper() == 'DESC' else 'ASC'
+
+        # Usar CTE + DISTINCT ON y COUNT(*) OVER() para obtener total sin subconsulta costosa
+        # DISTINCT ON requiere que las columnas de DISTINCT estén primero en ORDER BY
+        query = text(f"""
+            WITH base AS (
+                SELECT DISTINCT ON (p.id_categoria, p.id_linea, p.id_sublinea, p.id_producto)
+                    p.id_categoria::text,
+                    p.id_linea::text,
+                    p.id_sublinea::text,
+                    p.id_producto::text,
+                    c.nom_categoria,
+                    l.nom_linea,
+                    s.nom_sublinea,
+                    p.nom_producto,
+                    p.spcf_producto,
+                    p.img_producto,
+                    p.val_precio::text,
+                    p.num_stock,
+                    p.id_proveedor::text,
+                    p.id_marca::text,
+                    pr.nom_proveedor,
+                    m.nom_marca,
+                    p.fec_insert::text,
+                    p.ind_activo as ind_activo_producto,
+                    c.ind_activo as ind_activo_categoria,
+                    l.ind_activo as ind_activo_linea,
+                    s.ind_activo as ind_activo_sublinea,
+                    pr.ind_activo as ind_activo_proveedor,
+                    m.ind_activo as ind_activo_marca
+                FROM tab_productos p
+                INNER JOIN tab_categorias c ON p.id_categoria = c.id_categoria
+                INNER JOIN tab_lineas l ON p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria
+                INNER JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea
+                INNER JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
+                INNER JOIN tab_marcas m ON p.id_marca = m.id_marca
+                ORDER BY p.id_categoria, p.id_linea, p.id_sublinea, p.id_producto, {order_column} {order_direction}
+            )
             SELECT 
-                p.id_categoria::text,
-                p.id_linea::text,
-                p.id_sublinea::text,
-                p.id_producto::text,
-                c.nom_categoria, 
-                l.nom_linea, 
-                s.nom_sublinea, 
-                p.nom_producto, 
-                p.spcf_producto, 
-                p.img_producto, 
-                p.val_precio::text, 
-                p.num_stock, 
-                p.id_proveedor::text,
-                p.id_marca::text,
-                pr.nom_proveedor, 
-                m.nom_marca,
-                p.fec_insert::text,
-                p.ind_activo as ind_activo_producto,
-                c.ind_activo as ind_activo_categoria,
-                l.ind_activo as ind_activo_linea,
-                s.ind_activo as ind_activo_sublinea,
-                pr.ind_activo as ind_activo_proveedor,
-                m.ind_activo as ind_activo_marca,
-                (SELECT COUNT(DISTINCT p2.id_categoria || '-' || p2.id_linea || '-' || p2.id_sublinea || '-' || p2.id_producto) 
-                 FROM tab_productos p2
-                 INNER JOIN tab_categorias c2 ON p2.id_categoria = c2.id_categoria
-                 INNER JOIN tab_lineas l2 ON p2.id_linea = l2.id_linea AND p2.id_categoria = l2.id_categoria
-                 INNER JOIN tab_sublineas s2 ON p2.id_sublinea = s2.id_sublinea AND p2.id_linea = s2.id_linea
-                 INNER JOIN tab_proveedores pr2 ON p2.id_proveedor = pr2.id_proveedor
-                 INNER JOIN tab_marcas m2 ON p2.id_marca = m2.id_marca
-                ) as total_registros
-            FROM tab_productos p
-            INNER JOIN tab_categorias c ON p.id_categoria = c.id_categoria
-            INNER JOIN tab_lineas l ON p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria
-            INNER JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea
-            INNER JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
-            INNER JOIN tab_marcas m ON p.id_marca = m.id_marca
-            ORDER BY p.nom_producto ASC
+                *,
+                COUNT(*) OVER() AS total_registros
+            FROM base
             LIMIT :limit OFFSET :offset
         """)
-        
+
         result = db.execute(query, params)
         return result.mappings().all()
     except Exception as e:
@@ -189,6 +205,71 @@ def get_product(
         db.rollback()
         raise Exception(f"Error al obtener el producto: {str(e)}")
 
+def get_product_admin_detail(
+    db: Session,
+    id_categoria: Decimal,
+    id_linea: Decimal,
+    id_sublinea: Decimal,
+    id_producto: Decimal,
+):
+    """
+    Obtiene un producto con información completa (joins) para edición en admin.
+    """
+    try:
+        query = text(
+            """
+            SELECT 
+                p.id_categoria::text,
+                p.id_linea::text,
+                p.id_sublinea::text,
+                p.id_producto::text,
+                c.nom_categoria, 
+                l.nom_linea, 
+                s.nom_sublinea, 
+                p.nom_producto, 
+                p.spcf_producto, 
+                p.img_producto, 
+                p.val_precio::text, 
+                p.num_stock, 
+                p.id_proveedor::text,
+                p.id_marca::text,
+                pr.nom_proveedor, 
+                m.nom_marca,
+                p.usr_insert::text,
+                p.fec_insert::text,
+                p.usr_update::text,
+                p.fec_update::text,
+                p.ind_activo as ind_activo_producto,
+                c.ind_activo as ind_activo_categoria,
+                l.ind_activo as ind_activo_linea,
+                s.ind_activo as ind_activo_sublinea,
+                pr.ind_activo as ind_activo_proveedor,
+                m.ind_activo as ind_activo_marca
+            FROM tab_productos p
+            INNER JOIN tab_categorias c ON p.id_categoria = c.id_categoria
+            INNER JOIN tab_lineas l ON p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria
+            INNER JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea
+            INNER JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
+            INNER JOIN tab_marcas m ON p.id_marca = m.id_marca
+            WHERE p.id_categoria = :id_categoria
+              AND p.id_linea = :id_linea
+              AND p.id_sublinea = :id_sublinea
+              AND p.id_producto = :id_producto
+            LIMIT 1
+            """
+        )
+        params = {
+            'id_categoria': id_categoria,
+            'id_linea': id_linea,
+            'id_sublinea': id_sublinea,
+            'id_producto': id_producto,
+        }
+        result = db.execute(query, params).mappings().first()
+        return result
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener detalle admin del producto: {str(e)}")
+
 #create product
 async def create_product(db: Session, product: ProductCreate, image_files: Optional[List[UploadFile]] = None, usr_insert: Decimal = None):
     """
@@ -209,6 +290,36 @@ async def create_product(db: Session, product: ProductCreate, image_files: Optio
                       SQL no devuelve el resultado esperado.
     """
     try:
+        # Validación de integridad referencial a nivel de aplicación
+        # 1) La línea debe pertenecer a la categoría
+        validate_line = db.execute(text(
+            """
+            SELECT 1
+            FROM tab_lineas l
+            WHERE l.id_linea = :id_linea AND l.id_categoria = :id_categoria
+            """
+        ), {
+            'id_linea': product.id_linea,
+            'id_categoria': product.id_categoria
+        }).first()
+
+        if not validate_line:
+            raise Exception("La línea seleccionada no pertenece a la categoría indicada")
+
+        # 2) La sublínea debe pertenecer a la línea
+        validate_subline = db.execute(text(
+            """
+            SELECT 1
+            FROM tab_sublineas s
+            WHERE s.id_sublinea = :id_sublinea AND s.id_linea = :id_linea
+            """
+        ), {
+            'id_sublinea': product.id_sublinea,
+            'id_linea': product.id_linea
+        }).first()
+
+        if not validate_subline:
+            raise Exception("La sublínea seleccionada no pertenece a la línea indicada")
         print(f"🔍 DEBUG: image_files recibidos en servicio: {image_files}")
         print(f"🔍 DEBUG: Tipo de image_files: {type(image_files)}")
         
@@ -251,14 +362,27 @@ async def create_product(db: Session, product: ProductCreate, image_files: Optio
         params = product.model_dump()
         params["usr_insert"] = usr_insert
         
-        # Convertir spcf_producto a JSON string si es dict
-        if 'spcf_producto' in params and isinstance(params['spcf_producto'], dict):
-            params['spcf_producto'] = json.dumps(params['spcf_producto'])
+        # Convertir spcf_producto a Json de psycopg2 para JSONB
+        if 'spcf_producto' in params:
+            if isinstance(params['spcf_producto'], dict):
+                params['spcf_producto'] = Json(params['spcf_producto'])
+            elif isinstance(params['spcf_producto'], str):
+                try:
+                    params['spcf_producto'] = Json(json.loads(params['spcf_producto']))
+                except json.JSONDecodeError:
+                    params['spcf_producto'] = Json({})
         
-        # ✅ Convertir img_producto a JSON string si es dict (ProductImages)
-        if 'img_producto' in params and isinstance(params['img_producto'], dict):
-            params['img_producto'] = json.dumps(params['img_producto'])
-            print(f"🔄 DEBUG: img_producto convertido a JSON: {params['img_producto']}")
+        # Convertir img_producto a Json de psycopg2 para JSONB
+        if 'img_producto' in params:
+            if isinstance(params['img_producto'], dict):
+                params['img_producto'] = Json(params['img_producto'])
+                print(f"🔄 DEBUG: img_producto convertido a Json(dict): {params['img_producto']}")
+            elif isinstance(params['img_producto'], str):
+                try:
+                    params['img_producto'] = Json(json.loads(params['img_producto']))
+                    print(f"🔄 DEBUG: img_producto convertido a Json(dict) desde string")
+                except json.JSONDecodeError:
+                    params['img_producto'] = Json({})
 
         query = text("""SELECT fun_insert_producto(
             :id_categoria, 
@@ -351,20 +475,52 @@ async def update_product(
             # No modificar img_producto si no hay nuevas imágenes
         
         params = product.model_dump(exclude_unset=True) # Solo incluye campos que se proporcionaron
+
+        # Asegurar que TODAS las llaves esperadas por la función SQL existan
+        # aunque sea con valor None, para evitar errores de bind parameter faltante
+        expected_keys = [
+            'nom_producto',
+            'spcf_producto',
+            'img_producto',
+            'val_precio',
+            'id_proveedor',
+            'id_marca',
+            'num_stock',
+            'ind_activo',
+        ]
+        for key in expected_keys:
+            if key not in params:
+                params[key] = None
         
-        # Convertir spcf_producto a JSON string si es dict
-        if 'spcf_producto' in params and isinstance(params['spcf_producto'], dict):
-            params['spcf_producto'] = json.dumps(params['spcf_producto'])
+        # Convertir spcf_producto a Json de psycopg2 para JSONB
+        if 'spcf_producto' in params and params['spcf_producto'] is not None:
+            if isinstance(params['spcf_producto'], dict):
+                params['spcf_producto'] = Json(params['spcf_producto'])
+            elif isinstance(params['spcf_producto'], str):
+                try:
+                    params['spcf_producto'] = Json(json.loads(params['spcf_producto']))
+                except json.JSONDecodeError:
+                    params['spcf_producto'] = Json({})
         
-        # ✅ Convertir img_producto a JSON string si es dict (ProductImages)
-        if 'img_producto' in params and isinstance(params['img_producto'], dict):
-            params['img_producto'] = json.dumps(params['img_producto'])
-            print(f"🔄 DEBUG UPDATE: img_producto convertido a JSON: {params['img_producto']}")
+        # Convertir img_producto a Json de psycopg2 para JSONB
+        if 'img_producto' in params:
+            if params['img_producto'] is None:
+                # enviar objeto vacío como Json
+                params['img_producto'] = Json({})
+            elif isinstance(params['img_producto'], dict):
+                params['img_producto'] = Json(params['img_producto'])
+                print(f"🔄 DEBUG UPDATE: img_producto convertido a Json(dict)")
+            elif isinstance(params['img_producto'], str):
+                try:
+                    params['img_producto'] = Json(json.loads(params['img_producto']))
+                    print(f"🔄 DEBUG UPDATE: img_producto convertido a Json(dict) desde string")
+                except json.JSONDecodeError:
+                    params['img_producto'] = Json({})
             
         params['id_categoria'] = id_categoria
         params['id_linea'] = id_linea
         params['id_sublinea'] = id_sublinea
-        params['id_producto'] = id_producto # Añadir el id_producto del path
+        params['id_producto'] = id_producto
         params['usr_update'] = usr_update
 
         # La función SQL debe poder manejar que algunos de los otros parámetros no estén presentes
@@ -449,6 +605,50 @@ def deactivate_product(
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al desactivar el producto: {str(e)}")
+
+
+def set_product_active(
+    db: Session,
+    category_id: Decimal,
+    line_id: Decimal,
+    subline_id: Decimal,
+    product_id: Decimal,
+    active: bool,
+    usr_update: Decimal,
+):
+    """
+    Actualiza únicamente el campo ind_activo de un producto.
+
+    Evita depender de la función fun_update_producto y no requiere otros campos.
+    """
+    try:
+        query = text(
+            """
+            SELECT fun_set_producto_activo(
+              :id_categoria,
+              :id_linea,
+              :id_sublinea,
+              :id_producto,
+              :active,
+              :usr_update
+            )
+            """
+        )
+        params = {
+            'id_categoria': category_id,
+            'id_linea': line_id,
+            'id_sublinea': subline_id,
+            'id_producto': product_id,
+            'active': active,
+            'usr_update': usr_update,
+        }
+        result = db.execute(query, params)
+        fetched = result.fetchone()
+        db.commit()
+        return fetched[0] if fetched else None
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al actualizar estado del producto: {str(e)}")
 
 #filter products
 def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterResponse:

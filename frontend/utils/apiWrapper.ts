@@ -56,7 +56,6 @@ function setupInterceptors(instance: AxiosInstance): void {
       // Endpoints que NO requieren autenticación
       const publicEndpoints = [
         '/login', 
-        '/users', 
         '/refresh', 
         '/auth/forgot-password', 
         '/auth/reset-password',
@@ -106,7 +105,6 @@ function setupInterceptors(instance: AxiosInstance): void {
       // Endpoints que NO deben intentar refresh automático
       const publicEndpoints = [
         '/login', 
-        '/users', 
         '/refresh', 
         '/auth/forgot-password', 
         '/auth/reset-password',

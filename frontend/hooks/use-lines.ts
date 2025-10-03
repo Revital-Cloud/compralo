@@ -25,7 +25,7 @@ export const useLinesByCategory = (categoryId: number) => {
   return useQuery({
     queryKey: ['lines', 'category', categoryId],
     queryFn: () => lineService.getLinesByCategory(categoryId),
-    enabled: !!categoryId,
+    enabled: !!categoryId && categoryId > 0,
   });
 };
 
