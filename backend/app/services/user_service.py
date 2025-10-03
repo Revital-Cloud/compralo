@@ -128,7 +128,9 @@ def create_users(db: Session, user: UserCreate):
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al crear el usuario: {str(e)}")
+        error_msg = str(e)
+        # Re-lanzar el error original para que el router pueda manejarlo específicamente
+        raise Exception(error_msg)
     
 def update_user(db: Session, id_usuario: Decimal, user: UserUpdate, current_user_id: Decimal):
     """

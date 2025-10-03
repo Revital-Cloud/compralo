@@ -123,13 +123,24 @@ async def create_users(
         raise  # Re-lanzar HTTPExceptions específicas
     except Exception as e:
         error_msg = str(e)
-        # Capturar errores de FOREIGN KEY constraint específicos
-        if "foreign key constraint" in error_msg.lower() or "violates foreign key" in error_msg.lower():
+        # Capturar errores de duplicación de clave primaria (cédula duplicada)
+        if "uniqueviolation" in error_msg.lower() or "llave duplicada" in error_msg.lower() or "duplicate key" in error_msg.lower():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Error de clave foránea. Verifique los datos de entrada."
+                detail="La cédula ingresada ya está registrada en el sistema"
             )
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_msg)
+        # Capturar errores de FOREIGN KEY constraint específicos
+        elif "foreign key constraint" in error_msg.lower() or "violates foreign key" in error_msg.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Error de clave foránea. Verifique los datos de entrada."
+            )
+        # Para otros errores, mostrar un mensaje genérico
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Error al crear el usuario. Verifique los datos e inténtelo de nuevo."
+            )
     
 @router.put("/users/{id_usuario}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_user(
