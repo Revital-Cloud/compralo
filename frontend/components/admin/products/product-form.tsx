@@ -16,6 +16,7 @@ import { useCategories, useBrands } from "@/hooks/use-products";
 import { useAllLines, useLinesByCategory } from "@/hooks/use-lines";
 import { useSublinesByLine } from "@/hooks/use-sublines";
 import { useAllProviders } from "@/hooks/use-providers";
+import { useFormXSSValidation } from "@/hooks/use-xss-validation";
 import { toast } from "sonner";
 
 // Presets de especificaciones por tipo de producto
@@ -156,6 +157,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const { data: brands = [] } = useBrands();
   const { data: providers = [] } = useAllProviders();
   const { data: allLines = [] } = useAllLines();
+  
+  // Hook de validación XSS
+  const { validateForm } = useFormXSSValidation('product-form');
 
   const {
     register,
@@ -374,8 +378,16 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       .toString()
       .replace(/\./g, '');
 
-    const formattedData = {
+    // Sanitizar datos del formulario contra XSS
+    const sanitizedData = validateForm({
       ...data,
+      nom_producto: data.nom_producto,
+      des_producto: data.des_producto,
+      spcf_producto: { ...baseSpecs, ...presetSpecs, ...customSpecsObj }
+    });
+
+    const formattedData = {
+      ...sanitizedData,
       // sincronizar descripción corta al campo des_producto para compatibilidad
       des_producto: baseSpecs.descripcion_corta || data.des_producto,
       // construir spcf unificado con todos los campos

@@ -7,7 +7,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "verify-api": "node scripts/verify-api-connection.js"
   },
   "dependencies": {
     "@heroui/image": "^2.2.13",
