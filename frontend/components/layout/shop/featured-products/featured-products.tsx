@@ -3,14 +3,20 @@
 import { motion } from "framer-motion"
 import { ShoppingCart, Star, Heart, Eye } from "lucide-react"
 import { useProductsHomePage } from "@/hooks/use-products"
+import { useCart } from "@/hooks/use-cart"
 import { formatPrice } from "@/utils/format-price"
 import { getProductImageUrl } from "@/utils/image-helpers"
 import { getProductDescription } from "@/utils/product-helpers"
 import Image from "next/image"
 import { Product } from "@/types/product"
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 
 const FeaturedProducts = () => {
+  const router = useRouter()
+  const [addingToCart, setAddingToCart] = useState<number | null>(null)
+  
   const { 
     data: products, 
     isLoading, 
@@ -18,6 +24,56 @@ const FeaturedProducts = () => {
     refetch,
     isError 
   } = useProductsHomePage()
+
+  // Hook del carrito
+  const { 
+    addToCart, 
+    isAddingToCart,
+    error: cartError 
+  } = useCart()
+
+  // Función para manejar agregar al carrito
+  const handleAddToCart = async (product: Product) => {
+    try {
+      setAddingToCart(product.id_producto)
+      
+      // Crear el item del carrito con la estructura esperada
+      const cartItem = {
+        id_carrito: 0, // Se asignará automáticamente
+        id_categoria_producto: product.id_categoria,
+        id_linea_producto: product.id_linea,
+        id_sublinea_producto: product.id_sublinea,
+        id_producto: product.id_producto,
+        cantidad: 1,
+        precio_unitario_carrito: product.val_precio,
+        precio_unitario: product.val_precio,
+        subtotal: product.val_precio,
+        // Campos adicionales para el carrito
+        nom_producto: product.nom_producto,
+        img_producto: product.img_producto,
+        spcf_producto: product.spcf_producto
+      }
+
+      await addToCart(cartItem)
+      toast.success(`${product.nom_producto} agregado al carrito`)
+    } catch (error) {
+      console.error('Error al agregar al carrito:', error)
+      toast.error('Error al agregar el producto al carrito')
+    } finally {
+      setAddingToCart(null)
+    }
+  }
+
+  // Función para navegar a detalles del producto usando ID compuesto
+  const handleViewDetails = (product: Product) => {
+    const productSlug = `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`
+    router.push(`/products/${productSlug}`)
+  }
+
+  // Función para manejar el botón "Ver Todos los Productos"
+  const handleViewAllProducts = () => {
+    router.push('/products')
+  }
 
   // Animation variants - memoized to prevent re-creation on each render
   const containerVariants = useMemo(() => ({
@@ -306,16 +362,24 @@ const FeaturedProducts = () => {
                       variants={buttonVariants}
                       initial="rest"
                       whileHover="hover"
-                      className="w-full bg-gradient-to-r from-[#FF8C00] to-[#fec806] hover:from-[#E67E00] hover:to-[#E6B800] text-white font-semibold py-3 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 cursor-pointer"
+                      onClick={() => handleAddToCart(product)}
+                      disabled={addingToCart === product.id_producto || isAddingToCart}
+                      className="w-full bg-gradient-to-r from-[#FF8C00] to-[#fec806] hover:from-[#E67E00] hover:to-[#E6B800] disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 cursor-pointer"
                     >
                       <ShoppingCart className="w-4 h-4" />
-                      <span>Agregar al Carrito</span>
+                      <span>
+                        {addingToCart === product.id_producto || isAddingToCart 
+                          ? 'Agregando...' 
+                          : 'Agregar al Carrito'
+                        }
+                      </span>
                     </motion.button>
                     
                     <motion.button
                       variants={buttonVariants}
                       initial="rest"
                       whileHover="hover"
+                      onClick={() => handleViewDetails(product)}
                       className="w-full border-2 border-[#ec2538] dark:border-red-400 text-[#ec2538] dark:text-red-400 hover:bg-[#ec2538] dark:hover:bg-red-400 hover:!text-white dark:hover:!text-white font-medium py-2 rounded-lg transition-all duration-300 cursor-pointer"
                     >
                       Ver Detalles
@@ -339,6 +403,7 @@ const FeaturedProducts = () => {
           transition={{ duration: 0.8, delay: 1 }}
         >
           <motion.button 
+            onClick={handleViewAllProducts}
             className="bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-bold py-4 px-8 rounded-xl shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300 text-lg cursor-pointer"
             whileHover={{ 
               scale: 1.05,
