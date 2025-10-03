@@ -16,7 +16,7 @@ class Cart(BaseModel):
     """
     id_carrito: int = Field(..., description="Identificador del carrito.")
     id_usuario: Optional[Decimal] = Field(None, description="Identificador del usuario.")
-    session_id: Optional[Decimal] = Field(None, description="ID de la sesión para usuarios anónimos.")
+    session_id: Optional[str] = Field(None, description="ID de la sesión para usuarios anónimos (UUID v4).")
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
     fec_insert: Optional[datetime] = Field(None, description="Fecha de inserción del registro.")
     usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
@@ -38,7 +38,7 @@ class CartProductBase(BaseModel):
     """
     id_carrito: Optional[int] = Field(None, description="Identificador del carrito.")
     id_usuario: Optional[Decimal] = Field(None, description="Identificador del usuario.")
-    session_id: Optional[Decimal] = Field(None, description="ID de la sesión para usuarios anónimos.")
+    session_id: Optional[str] = Field(None, description="ID de la sesión para usuarios anónimos (UUID v4).")
     id_categoria_producto: Decimal = Field(..., description="Identificador de la categoría del producto.")
     id_linea_producto: Decimal = Field(..., description="Identificador de la línea del producto.")
     id_sublinea_producto: Decimal = Field(..., description="Identificador de la sublínea del producto.")
@@ -101,7 +101,7 @@ class GetCartUser(BaseModel):
     - session_id: Para usuarios anónimos
     """
     id_usuario: Optional[Decimal] = Field(None, description="ID del usuario registrado (opcional).")
-    session_id: Optional[Decimal] = Field(None, description="ID de la sesión para usuarios anónimos (opcional).")
+    session_id: Optional[str] = Field(None, description="ID de la sesión para usuarios anónimos (opcional).")
     
     @model_validator(mode='after')
     def validate_at_least_one_parameter(self):
@@ -114,8 +114,8 @@ class GetCartDetail(BaseModel):
     """
     Esquema para Obtener Detalle del Carrito.
     """
-    id_usuario: Optional[Decimal] = Field(None, description="ID del usuario registrado (opcional).")
-    session_id: Optional[Decimal] = Field(None, description="ID de la sesión para usuarios anónimos (opcional).")
+    id_usuario: Optional[int] = Field(None, description="ID del usuario registrado (opcional).")
+    session_id: Optional[str] = Field(None, description="ID de la sesión para usuarios anónimos (opcional).")
 
 
 class CartResponse(BaseModel):
@@ -130,7 +130,7 @@ class CalculateTotalCart(BaseModel):
     Esquema para el Cálculo del Total del Carrito.
     """
     id_usuario: Optional[Decimal] = Field(None, description="ID del usuario registrado (opcional).")
-    session_id: Optional[Decimal] = Field(None, description="ID de la sesión para usuarios anónimos (opcional).")
+    session_id: Optional[str] = Field(None, description="ID de la sesión para usuarios anónimos (opcional).")
     id_canje_aplicar: Optional[Decimal] = Field(None, description="ID del canje a aplicar.")
     
     @model_validator(mode='after')
