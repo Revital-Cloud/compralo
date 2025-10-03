@@ -14,6 +14,8 @@ interface ProductImage {
   preview: string;
   uploaded: boolean;
   uploading: boolean;
+  loaded: boolean;
+  error: boolean;
 }
 
 interface ProductImageUploadProps {
@@ -52,16 +54,38 @@ export const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
     }
   }, [existingImages]);
 
+  // Limpiar URLs de preview al desmontar el componente
+  React.useEffect(() => {
+    return () => {
+      images.forEach(image => {
+        if (image.preview.startsWith('blob:')) {
+          URL.revokeObjectURL(image.preview);
+        }
+      });
+    };
+  }, [images]);
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newImages: ProductImage[] = acceptedFiles.map(file => ({
-      id: Math.random().toString(36).substr(2, 9),
-      file,
-      preview: URL.createObjectURL(file),
-      uploaded: false,
-      uploading: false
-    }));
+    console.log('Archivos aceptados:', acceptedFiles);
+    
+    const newImages: ProductImage[] = acceptedFiles.map(file => {
+      const previewUrl = URL.createObjectURL(file);
+      console.log('URL de preview generada:', previewUrl);
+      
+      return {
+        id: Math.random().toString(36).substr(2, 9),
+        file,
+        preview: previewUrl,
+        uploaded: false,
+        uploading: false,
+        loaded: false,
+        error: false
+      };
+    });
 
     const updatedImages = [...images, ...newImages].slice(0, maxImages);
+    console.log('Imágenes actualizadas:', updatedImages);
+    
     setImages(updatedImages);
     onImagesChange(updatedImages);
 
@@ -73,7 +97,9 @@ export const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': acceptedFileTypes
+      'image/jpeg': ['.jpg', '.jpeg'],
+      'image/png': ['.png'],
+      'image/webp': ['.webp']
     },
     maxSize: maxFileSize * 1024 * 1024, // Convertir MB a bytes
     multiple: true,
@@ -81,6 +107,11 @@ export const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
   });
 
   const removeImage = (imageId: string) => {
+    const imageToRemove = images.find(img => img.id === imageId);
+    if (imageToRemove && imageToRemove.preview.startsWith('blob:')) {
+      URL.revokeObjectURL(imageToRemove.preview);
+    }
+    
     const updatedImages = images.filter(img => img.id !== imageId);
     setImages(updatedImages);
     onImagesChange(updatedImages);
@@ -193,18 +224,13 @@ export const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
           {(images.length > 0 || existingImageUrls.length > 0) && (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Imágenes ({images.length + existingImageUrls.length}/{maxImages})
                 </h4>
                 {images.length > 0 && (
-                  <Button 
-                    onClick={uploadAllImages} 
-                    variant="outline" 
-                    size="sm"
-                    disabled={images.every(img => img.uploaded || img.uploading)}
-                  >
-                    Subir Todas
-                  </Button>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Las imágenes se subirán al crear el producto
+                  </p>
                 )}
               </div>
 
@@ -229,60 +255,106 @@ export const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
                   </div>
                 ))}
 
-                {/* Imágenes nuevas */}
+                {/* Imágenes nuevas - ENFOQUE SIMPLIFICADO */}
                 {images.map((image) => (
                   <div key={image.id} className="relative group">
-                    <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                    {/* Contenedor de imagen */}
+                    <div 
+                      className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900"
+                      style={{
+                        backgroundImage: `url(${image.preview})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat'
+                      }}
+                    >
+                      {/* Spinner de carga */}
+                      {!image.loaded && (
+                        <div className="w-full h-full flex items-center justify-center bg-white/90 dark:bg-gray-900/90">
+                          <div className="text-center">
+                            <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-500 border-t-transparent mx-auto mb-2"></div>
+                            <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Cargando...</p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Mensaje de error */}
+                      {image.loaded && image.error && (
+                        <div className="w-full h-full flex items-center justify-center bg-red-50/95 dark:bg-red-900/50">
+                          <div className="text-center p-4">
+                            <IconCamera className="h-10 w-10 mx-auto mb-2 text-red-500" />
+                            <p className="text-xs font-semibold text-red-700 dark:text-red-300">Error al cargar</p>
+                            <p className="text-xs text-red-600 dark:text-red-400 mt-1 truncate max-w-[150px] mx-auto">
+                              {image.file.name}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Imagen invisible para activar eventos */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img 
                         src={image.preview} 
-                        alt="Preview"
-                        className="w-full h-full object-cover"
+                        alt={image.file.name}
+                        className="hidden"
+                        onLoad={(e) => {
+                          console.log('✅ Imagen cargada:', image.file.name);
+                          const img = e.currentTarget;
+                          console.log('📐 Dimensiones:', {
+                            natural: `${img.naturalWidth}x${img.naturalHeight}`,
+                            tipo: image.file.type,
+                            tamaño: `${(image.file.size / 1024).toFixed(1)} KB`
+                          });
+                          setImages(prev => prev.map(img => 
+                            img.id === image.id ? { ...img, loaded: true, error: false } : img
+                          ));
+                        }}
+                        onError={() => {
+                          console.error('❌ Error:', image.file.name);
+                          setImages(prev => prev.map(img => 
+                            img.id === image.id ? { ...img, loaded: true, error: true } : img
+                          ));
+                        }}
                       />
                     </div>
                     
-                    {/* Overlay con acciones */}
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 flex items-center justify-center">
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-2">
-                        {!image.uploaded && !image.uploading && (
+                    {/* Overlay con acciones - SOLO cuando la imagen está cargada */}
+                    {image.loaded && !image.error && (
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-all duration-300 flex items-center justify-center rounded-lg">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                           <Button
                             size="sm"
-                            onClick={() => uploadImage(image)}
-                            className="bg-white text-black hover:bg-gray-100"
+                            variant="destructive"
+                            onClick={() => removeImage(image.id)}
+                            className="shadow-lg"
                           >
-                            Subir
+                            <IconTrash className="h-4 w-4 mr-2" />
+                            Eliminar
                           </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => removeImage(image.id)}
-                          className="bg-white text-red-600 hover:bg-red-50"
-                        >
-                          <IconTrash className="h-4 w-4" />
-                        </Button>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
-                    {/* Badges de estado */}
+                    {/* Badge de estado */}
                     <div className="absolute top-2 right-2">
-                      {image.uploading && (
-                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                          Subiendo...
-                        </Badge>
-                      )}
-                      {image.uploaded && (
-                        <Badge variant="default" className="bg-green-100 text-green-800">
-                          <IconCheck className="h-3 w-3 mr-1" />
-                          Subida
+                      {image.loaded && !image.error && (
+                        <Badge variant="outline" className="bg-white/95 dark:bg-gray-800/95 shadow-lg backdrop-blur-sm">
+                          <IconCheck className="h-3 w-3 mr-1 text-green-600" />
+                          Listo
                         </Badge>
                       )}
                     </div>
 
                     {/* Información del archivo */}
                     <div className="absolute bottom-2 left-2 right-2">
-                      <p className="text-xs text-white bg-black bg-opacity-70 px-2 py-1 rounded truncate">
-                        {image.file.name}
-                      </p>
+                      <div className="bg-black/75 backdrop-blur-sm px-3 py-1.5 rounded-md">
+                        <p className="text-xs font-medium text-white truncate">
+                          {image.file.name}
+                        </p>
+                        <p className="text-[10px] text-gray-300">
+                          {(image.file.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
                     </div>
                   </div>
                 ))}

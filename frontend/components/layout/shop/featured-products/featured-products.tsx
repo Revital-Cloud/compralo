@@ -284,7 +284,7 @@ const FeaturedProducts = () => {
         >
           {products?.slice(0, 4)?.map((product: Product) => (
             <motion.div
-              key={product.id_producto}
+              key={`${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
               variants={cardVariants}
               whileHover={{ 
                 y: -8,

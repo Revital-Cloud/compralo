@@ -130,7 +130,7 @@ export const ProductsGrid: React.FC<ProductsGridProps> = ({
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
       {products.map((product) => (
         <ProductCard 
-          key={product.id_producto} 
+          key={`${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
           product={product} 
           onDelete={onDelete}
         />

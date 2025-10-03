@@ -127,30 +127,52 @@ def deactivate_subline(db: Session, id_categoria: Decimal, id_linea: Decimal, id
         db.rollback()
         raise Exception(f"Error al desactivar sublinea: {str(e)}")
 
-def get_sublines_by_line(db: Session, id_linea: Decimal):
+def get_sublines_by_line(db: Session, id_linea: Decimal, id_categoria: Decimal = None):
     """
     Obtiene todas las sublíneas de una línea específica.
+    Si se proporciona id_categoria, filtra también por categoría.
     """
     try:
-        query = text("""
-        SELECT
-            s.id_categoria,
-            s.id_linea,
-            s.id_sublinea,
-            s.nom_sublinea,
-            c.nom_categoria,
-            l.nom_linea,
-            s.ind_activo,
-            s.usr_insert,
-            s.fec_insert,
-            s.usr_update,
-            s.fec_update
-        FROM tab_sublineas s
-        LEFT JOIN tab_lineas l ON l.id_linea = s.id_linea AND l.id_categoria = s.id_categoria
-        LEFT JOIN tab_categorias c ON c.id_categoria = s.id_categoria
-        WHERE s.id_linea = :id_linea AND s.ind_activo = true
-        """)
-        result = db.execute(query, {"id_linea": id_linea})
+        if id_categoria:
+            query = text("""
+            SELECT
+                s.id_categoria,
+                s.id_linea,
+                s.id_sublinea,
+                s.nom_sublinea,
+                c.nom_categoria,
+                l.nom_linea,
+                s.ind_activo,
+                s.usr_insert,
+                s.fec_insert,
+                s.usr_update,
+                s.fec_update
+            FROM tab_sublineas s
+            LEFT JOIN tab_lineas l ON l.id_linea = s.id_linea AND l.id_categoria = s.id_categoria
+            LEFT JOIN tab_categorias c ON c.id_categoria = s.id_categoria
+            WHERE s.id_linea = :id_linea AND s.id_categoria = :id_categoria AND s.ind_activo = true
+            """)
+            result = db.execute(query, {"id_linea": id_linea, "id_categoria": id_categoria})
+        else:
+            query = text("""
+            SELECT
+                s.id_categoria,
+                s.id_linea,
+                s.id_sublinea,
+                s.nom_sublinea,
+                c.nom_categoria,
+                l.nom_linea,
+                s.ind_activo,
+                s.usr_insert,
+                s.fec_insert,
+                s.usr_update,
+                s.fec_update
+            FROM tab_sublineas s
+            LEFT JOIN tab_lineas l ON l.id_linea = s.id_linea AND l.id_categoria = s.id_categoria
+            LEFT JOIN tab_categorias c ON c.id_categoria = s.id_categoria
+            WHERE s.id_linea = :id_linea AND s.ind_activo = true
+            """)
+            result = db.execute(query, {"id_linea": id_linea})
         return result.mappings().all()
     except Exception as e:
         db.rollback()

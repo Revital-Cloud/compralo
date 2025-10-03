@@ -8,6 +8,7 @@ import {
   ProductForm, 
   ProductImageUpload 
 } from "@/components/admin/products";
+import { SuccessModal } from "@/components/ui/success-modal";
 import { useCreateProduct } from "@/hooks/use-products";
 import * as productService from "@/services/product.service";
 import type { ProductCreate } from '@/types';
@@ -15,6 +16,7 @@ import type { ProductCreate } from '@/types';
 const ProductCreatePage = () => {
   const router = useRouter();
   const [selectedImages, setSelectedImages] = useState<any[]>([]);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   // Hook para crear productos
   const createProductMutation = useCreateProduct();
@@ -51,13 +53,26 @@ const ProductCreatePage = () => {
         await productService.createProductWithImages(productData, []);
       }
       
-      // Redirigir a la lista de productos
-      router.push('/admin/products');
+      // Mostrar modal de éxito
+      setShowSuccessModal(true);
       
     } catch (error) {
       // El error ya se maneja en el hook
       console.error('Error al crear producto:', error);
     }
+  };
+
+  // Manejar continuar después del éxito
+  const handleContinue = () => {
+    setShowSuccessModal(false);
+    // Refrescar la página para mostrar los datos actualizados
+    window.location.reload();
+  };
+
+  // Manejar volver a la lista
+  const handleGoBack = () => {
+    setShowSuccessModal(false);
+    router.push('/admin/products');
   };
 
   // Manejar cambio de imágenes
@@ -66,30 +81,44 @@ const ProductCreatePage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <ProductCreateHeader />
+    <>
+      <div className="space-y-6">
+        {/* Header */}
+        <ProductCreateHeader />
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {/* Form Section */}
-        <div className="xl:col-span-2">
-          <ProductForm 
-            onSubmit={handleFormSubmit}
-            isLoading={createProductMutation.isPending}
-          />
-        </div>
+        {/* Main Content */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          {/* Form Section */}
+          <div className="xl:col-span-2">
+            <ProductForm 
+              onSubmit={handleFormSubmit}
+              isLoading={createProductMutation.isPending}
+            />
+          </div>
 
-        {/* Image Upload Section */}
-        <div className="xl:col-span-1">
-          <ProductImageUpload 
-            onImagesChange={handleImagesChange}
-            maxImages={10}
-            maxFileSize={5}
-          />
+          {/* Image Upload Section */}
+          <div className="xl:col-span-1">
+            <ProductImageUpload 
+              onImagesChange={handleImagesChange}
+              maxImages={10}
+              maxFileSize={5}
+            />
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Modal de éxito */}
+      <SuccessModal
+        open={showSuccessModal}
+        onOpenChange={setShowSuccessModal}
+        title="¡Producto creado exitosamente!"
+        description="El producto ha sido creado y agregado al catálogo. ¿Qué deseas hacer ahora?"
+        onContinue={handleContinue}
+        onGoBack={handleGoBack}
+        continueText="Crear otro producto"
+        goBackText="Ver lista de productos"
+      />
+    </>
   );
 };
 

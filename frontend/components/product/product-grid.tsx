@@ -68,7 +68,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
       {products.map((product, index) => (
         <Link
-          key={product.id_producto}
+          key={`${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
           href={`/products/${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
           className="group cursor-pointer w-full transition-all duration-300"
         >

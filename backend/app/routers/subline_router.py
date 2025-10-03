@@ -33,18 +33,19 @@ async def get_sublines(db:Session = Depends(get_db)):
 
 # Ruta para obtener sublíneas por línea
 @router.get("/sublines/line/{id_linea}", response_model=list[Subline])
-async def get_sublines_by_line(id_linea: Decimal, db: Session = Depends(get_db)):
+async def get_sublines_by_line(id_linea: Decimal, id_categoria: Decimal = None, db: Session = Depends(get_db)):
     """
     Obtiene todas las sublíneas de una línea específica.
 
     Args:
         id_linea (Decimal): ID de la línea.
+        id_categoria (Decimal, optional): ID de la categoría para filtrar también por categoría.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
 
     Returns:
         list[Subline]: Lista de sublíneas de la línea especificada.
     """
-    sublines = subline_service.get_sublines_by_line(db, id_linea)
+    sublines = subline_service.get_sublines_by_line(db, id_linea, id_categoria)
     if not sublines:
         return []  # Retornar lista vacía en lugar de error
     return sublines

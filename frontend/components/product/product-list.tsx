@@ -89,7 +89,7 @@ const ProductList: React.FC<ProductListProps> = ({
     <div className="space-y-3">
       {products.map((product) => (
         <div
-          key={product.id_producto}
+          key={`${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
           className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-all duration-200 overflow-hidden"
         >
           <div className="flex items-center p-4">

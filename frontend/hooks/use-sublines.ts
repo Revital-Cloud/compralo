@@ -20,10 +20,10 @@ export const useAllSublines = () => {
   });
 };
 
-export const useSublinesByLine = (lineId: number) => {
+export const useSublinesByLine = (lineId: number, categoryId?: number) => {
   return useQuery({
-    queryKey: ['sublines', 'line', lineId],
-    queryFn: () => sublineService.getSublinesByLine(lineId),
+    queryKey: ['sublines', 'line', lineId, categoryId],
+    queryFn: () => sublineService.getSublinesByLine(lineId, categoryId),
     enabled: !!lineId,
   });
 };

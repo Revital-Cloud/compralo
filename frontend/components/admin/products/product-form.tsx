@@ -295,7 +295,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   
   // Obtener sublíneas filtradas por línea seleccionada
   const { data: sublinesByLine = [] } = useSublinesByLine(
-    watchedLine ? parseInt(watchedLine) : 0
+    watchedLine ? parseInt(watchedLine) : 0,
+    watchedCategory ? parseInt(watchedCategory) : undefined
   );
 
   // Usar líneas filtradas por categoría si hay una seleccionada, sino todas las líneas
@@ -429,8 +430,175 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               className={errors.nom_producto ? 'border-red-500' : ''}
             />
             {errors.nom_producto && (
-              <p className="text-sm text-red-500">{errors.nom_producto.message}</p>
+              <p className="text-sm text-red-600">{errors.nom_producto.message}</p>
             )}
+          </div>
+
+          {/* Categoría y Marca */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="id_categoria">Categoría *</Label>
+              <Select 
+                value={watch('id_categoria')}
+                onChange={(e) => {
+                  setValue('id_categoria', e.target.value);
+                  // Al cambiar categoría, reiniciar línea y sublínea
+                  setValue('id_linea', '');
+                  setValue('id_sublinea', '');
+                }}
+                className={errors.id_categoria ? 'border-red-500' : ''}
+                fullWidth
+                disabled={isEditing} // Deshabilitar al editar
+              >
+                <option value="" disabled>Selecciona una categoría</option>
+                {categories.map((category) => (
+                  <option key={`cat-${category.id_categoria}`} value={category.id_categoria.toString()}>
+                    {category.nom_categoria}
+                  </option>
+                ))}
+              </Select>
+              {errors.id_categoria && (
+                <p className="text-sm text-red-600">{errors.id_categoria.message}</p>
+              )}
+              {isEditing && (
+                <p className="text-sm text-muted-foreground">La categoría no se puede cambiar al editar</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="id_marca">Marca *</Label>
+              <Select 
+                value={watch('id_marca')}
+                onChange={(e) => setValue('id_marca', e.target.value)}
+                className={errors.id_marca ? 'border-red-500' : ''}
+                fullWidth
+              >
+                <option value="" disabled>Selecciona una marca</option>
+                {brands.map((brand) => (
+                  <option key={brand.id_marca} value={brand.id_marca.toString()}>
+                    {brand.nom_marca}
+                  </option>
+                ))}
+              </Select>
+              {errors.id_marca && (
+                <p className="text-sm text-red-600">{errors.id_marca.message}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Línea y Sublínea */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="id_linea">Línea *</Label>
+                {!isEditing && <span className="text-xs text-muted-foreground">(elige primero la categoría)</span>}
+              </div>
+              <Select 
+                value={watch('id_linea')}
+                onChange={(e) => {
+                  setValue('id_linea', e.target.value);
+                  // Limpiar sublínea cuando cambie la línea
+                  setValue('id_sublinea', '');
+                }}
+                className={errors.id_linea ? 'border-red-500' : ''}
+                disabled={isEditing || !watchedCategory} // Deshabilitar al editar o si no hay categoría
+                fullWidth
+              >
+                <option value="" disabled>Selecciona una línea</option>
+                {uniqueLines.map((line) => (
+                  <option key={`line-${line.id_linea}`} value={line.id_linea.toString()}>
+                    {line.nom_linea}
+                  </option>
+                ))}
+              </Select>
+              {errors.id_linea && (
+                <p className="text-sm text-red-600">{errors.id_linea.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="id_sublinea">Sublínea *</Label>
+                {!isEditing && <span className="text-xs text-muted-foreground">(elige primero la línea)</span>}
+              </div>
+              <Select 
+                value={watch('id_sublinea')}
+                onChange={(e) => setValue('id_sublinea', e.target.value)}
+                className={errors.id_sublinea ? 'border-red-500' : ''}
+                disabled={isEditing || !watchedLine} // Deshabilitar al editar o si no hay línea
+                fullWidth
+              >
+                <option value="" disabled>Selecciona una sublínea</option>
+                {uniqueSublines.map((subline) => (
+                  <option key={`subline-${subline.id_sublinea}`} value={subline.id_sublinea.toString()}>
+                    {subline.nom_sublinea}
+                  </option>
+                ))}
+              </Select>
+              {errors.id_sublinea && (
+                <p className="text-sm text-red-600">{errors.id_sublinea.message}</p>
+              )}
+              {isEditing && (
+                <p className="text-sm text-muted-foreground">La sublínea no se puede cambiar al editar</p>
+              )}
+            </div>
+          </div>
+
+          {/* Proveedor */}
+          <div className="space-y-2">
+            <Label htmlFor="id_proveedor">Proveedor *</Label>
+            <Select 
+              value={watch('id_proveedor')}
+              onChange={(e) => setValue('id_proveedor', e.target.value)}
+              className={errors.id_proveedor ? 'border-red-500' : ''}
+              fullWidth
+            >
+              <option value="" disabled>Selecciona un proveedor</option>
+              {providers.map((provider) => (
+                <option key={provider.id_proveedor} value={provider.id_proveedor.toString()}>
+                  {provider.nom_proveedor}
+                </option>
+              ))}
+            </Select>
+            {errors.id_proveedor && (
+              <p className="text-sm text-red-600">{errors.id_proveedor.message}</p>
+            )}
+          </div>
+
+          {/* Precio y Stock */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="val_precio">Precio *</Label>
+              <Input
+                id="val_precio"
+                value={watch('val_precio')}
+                onChange={(e) => {
+                  const formatted = formatCurrency(e.target.value);
+                  setValue('val_precio', formatted);
+                }}
+                inputMode="numeric"
+                placeholder="0"
+                className={errors.val_precio ? 'border-red-500' : ''}
+              />
+              {errors.val_precio && (
+                <p className="text-sm text-red-600">{errors.val_precio.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="num_stock">Stock *</Label>
+              <Input
+                id="num_stock"
+                {...register('num_stock')}
+                placeholder="0"
+                type="number"
+                min="0"
+                className={errors.num_stock ? 'border-red-500' : ''}
+              />
+              {errors.num_stock && (
+                <p className="text-sm text-red-600">{errors.num_stock.message}</p>
+              )}
+            </div>
           </div>
 
           {/* Especificaciones del Producto */}
@@ -455,7 +623,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 className={errors.des_producto ? 'border-red-500' : ''}
               />
               {errors.des_producto && (
-                <p className="text-sm text-red-500">{errors.des_producto.message}</p>
+                <p className="text-sm text-red-600">{errors.des_producto.message}</p>
               )}
             </div>
 
@@ -517,7 +685,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                       <div key={field.key} className="space-y-2">
                         <Label>
                           {field.label}
-                          {field.required && <span className="text-red-500 ml-1">*</span>}
+                          {field.required && <span className="text-red-600 ml-1">*</span>}
                         </Label>
                         <Input
                           value={presetSpecs[field.key] || ''}
@@ -581,182 +749,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
           {/* Campo oculto para compatibilidad con esquema des_producto */}
           <input type="hidden" value={baseSpecs.descripcion_corta} {...register('des_producto')} />
-
-          {/* Categoría y Marca */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="id_categoria">Categoría *</Label>
-              <Select 
-                value={watch('id_categoria')}
-                onChange={(e) => {
-                  setValue('id_categoria', e.target.value);
-                  // Al cambiar categoría, reiniciar línea y sublínea
-                  setValue('id_linea', '');
-                  setValue('id_sublinea', '');
-                }}
-                className={errors.id_categoria ? 'border-red-500' : ''}
-                fullWidth
-                disabled={isEditing} // Deshabilitar al editar
-              >
-                <option value="" disabled>Selecciona una categoría</option>
-                {categories.map((category) => (
-                  <option key={`cat-${category.id_categoria}`} value={category.id_categoria.toString()}>
-                    {category.nom_categoria}
-                  </option>
-                ))}
-              </Select>
-              {errors.id_categoria && (
-                <p className="text-sm text-red-500">{errors.id_categoria.message}</p>
-              )}
-              {isEditing && (
-                <p className="text-sm text-muted-foreground">La categoría no se puede cambiar al editar</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="id_marca">Marca *</Label>
-              <Select 
-                value={watch('id_marca')}
-                onChange={(e) => setValue('id_marca', e.target.value)}
-                className={errors.id_marca ? 'border-red-500' : ''}
-                fullWidth
-              >
-                <option value="" disabled>Selecciona una marca</option>
-                {brands.map((brand) => (
-                  <option key={brand.id_marca} value={brand.id_marca.toString()}>
-                    {brand.nom_marca}
-                  </option>
-                ))}
-              </Select>
-              {errors.id_marca && (
-                <p className="text-sm text-red-500">{errors.id_marca.message}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Línea y Sublínea */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="id_linea">Línea *</Label>
-                {!isEditing && <span className="text-xs text-muted-foreground">(elige primero la categoría)</span>}
-              </div>
-              <Select 
-                value={watch('id_linea')}
-                onChange={(e) => {
-                  setValue('id_linea', e.target.value);
-                  // Limpiar sublínea cuando cambie la línea
-                  setValue('id_sublinea', '');
-                }}
-                className={errors.id_linea ? 'border-red-500' : ''}
-                disabled={isEditing || !watchedCategory} // Deshabilitar al editar o si no hay categoría
-                fullWidth
-              >
-                <option value="" disabled>Selecciona una línea</option>
-                {uniqueLines.map((line) => (
-                  <option key={`line-${line.id_linea}`} value={line.id_linea.toString()}>
-                    {line.nom_linea}
-                  </option>
-                ))}
-              </Select>
-              {errors.id_linea && (
-                <p className="text-sm text-red-500">{errors.id_linea.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="id_sublinea">Sublínea *</Label>
-                {!isEditing && <span className="text-xs text-muted-foreground">(elige primero la línea)</span>}
-              </div>
-              <Select 
-                value={watch('id_sublinea')}
-                onChange={(e) => setValue('id_sublinea', e.target.value)}
-                className={errors.id_sublinea ? 'border-red-500' : ''}
-                disabled={isEditing || !watchedLine} // Deshabilitar al editar o si no hay línea
-                fullWidth
-              >
-                <option value="" disabled>Selecciona una sublínea</option>
-                {uniqueSublines.map((subline) => (
-                  <option key={`subline-${subline.id_sublinea}`} value={subline.id_sublinea.toString()}>
-                    {subline.nom_sublinea}
-                  </option>
-                ))}
-              </Select>
-              {errors.id_sublinea && (
-                <p className="text-sm text-red-500">{errors.id_sublinea.message}</p>
-              )}
-              {isEditing && (
-                <p className="text-sm text-muted-foreground">La sublínea no se puede cambiar al editar</p>
-              )}
-            </div>
-          </div>
-
-          {/* Proveedor */}
-          <div className="space-y-2">
-            <Label htmlFor="id_proveedor">Proveedor *</Label>
-            <Select 
-              value={watch('id_proveedor')}
-              onChange={(e) => setValue('id_proveedor', e.target.value)}
-              className={errors.id_proveedor ? 'border-red-500' : ''}
-              fullWidth
-            >
-              <option value="" disabled>Selecciona un proveedor</option>
-              {providers.map((provider) => (
-                <option key={provider.id_proveedor} value={provider.id_proveedor.toString()}>
-                  {provider.nom_proveedor}
-                </option>
-              ))}
-            </Select>
-            {errors.id_proveedor && (
-              <p className="text-sm text-red-500">{errors.id_proveedor.message}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Precios y Stock */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Precios y Stock</CardTitle>
-          <CardDescription>Información de precios e inventario</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="val_precio">Precio *</Label>
-              <Input
-                id="val_precio"
-                value={watch('val_precio')}
-                onChange={(e) => {
-                  const formatted = formatCurrency(e.target.value);
-                  setValue('val_precio', formatted);
-                }}
-                inputMode="numeric"
-                placeholder="0"
-                className={errors.val_precio ? 'border-red-500' : ''}
-              />
-              {errors.val_precio && (
-                <p className="text-sm text-red-500">{errors.val_precio.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="num_stock">Stock *</Label>
-              <Input
-                id="num_stock"
-                {...register('num_stock')}
-                placeholder="0"
-                type="number"
-                min="0"
-                className={errors.num_stock ? 'border-red-500' : ''}
-              />
-              {errors.num_stock && (
-                <p className="text-sm text-red-500">{errors.num_stock.message}</p>
-              )}
-            </div>
-          </div>
-
         </CardContent>
       </Card>
 
@@ -804,7 +796,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         <Button 
           type="submit" 
           disabled={isLoading}
-          className="bg-black hover:bg-gray-800 text-white"
+          className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
         >
           {isLoading ? 'GUARDANDO...' : submitLabel}
         </Button>

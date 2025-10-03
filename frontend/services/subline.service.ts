@@ -6,8 +6,9 @@ class SublineService {
     return apiWrapper.get(`/sublines`);
   }
 
-  async getSublinesByLine(lineId: number): Promise<Subline[]> {
-    return apiWrapper.get(`/sublines/line/${lineId}`);
+  async getSublinesByLine(lineId: number, categoryId?: number): Promise<Subline[]> {
+    const params = categoryId ? `?id_categoria=${categoryId}` : '';
+    return apiWrapper.get(`/sublines/line/${lineId}${params}`);
   }
 
   async getSubline(sublineId: number): Promise<Subline> {

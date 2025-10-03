@@ -84,7 +84,7 @@ export default function SublinesProductsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {products.map((product) => (
             <ProductCard
-              key={product.id_producto}
+              key={`${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
               product={product}
               onClick={() => router.push(`/products/${product.id_producto}`)}
             />

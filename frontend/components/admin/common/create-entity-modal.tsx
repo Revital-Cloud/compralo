@@ -36,7 +36,7 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({ open, onOp
   const { data: allCategories = [], isLoading: loadingCategories } = useAllCategories()
   const categories = React.useMemo(() => {
     return Array.isArray(allCategories)
-      ? allCategories.map((c: any) => ({ id: c.id_categoria, name: c.nom_categoria }))
+      ? allCategories.map((c: any) => ({ id: Number(c.id_categoria), name: c.nom_categoria }))
       : []
   }, [allCategories])
   const watchedCategoryId = form.watch('id_categoria')
