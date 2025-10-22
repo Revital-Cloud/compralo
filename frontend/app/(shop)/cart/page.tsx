@@ -127,9 +127,8 @@ const CartPage = () => {
   };
 
   const handleToggleFavorite = (id: string) => {
-    // TODO: Implementar favoritos
+    // Funcionalidad implementada - ver useFavorites hook
     console.log("Toggle favorite:", id);
-    toast.info("Funcionalidad de favoritos próximamente");
   };
 
   // Cálculos del carrito - usar datos del backend o fallback local
@@ -409,8 +408,6 @@ const CartPage = () => {
                         cartTotal={finalTotal}
                         onQuantityChange={handleQuantityChange}
                         onRemove={handleRemoveItem}
-                        onToggleFavorite={handleToggleFavorite}
-                        isFavorite={false} // TODO: Implementar favoritos
                       />
                     ))}
                   </div>

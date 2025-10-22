@@ -5,7 +5,7 @@ export interface FavoriteProduct {
   id_sublinea_producto: number
   id_producto: number
   nom_producto: string
-  img_producto?: string
+  img_producto: string | Record<string, any> | null | undefined  // Puede ser string, JSON object, null o undefined
   val_precio: number
   fec_insert: string
 }

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { Product } from "@/types"
 import { formatPrice } from "@/utils/format-price"
+import { useFavorites } from "@/hooks/use-favorites"
 
 interface ProductInfoProps {
   product: Product
@@ -39,6 +40,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   const [selectedColor, setSelectedColor] = useState<string>("")
   const [selectedSize, setSelectedSize] = useState<string>("")
   const [isAdding, setIsAdding] = useState(false)
+  
+  // Hook de favoritos
+  const { toggleFavorite, isProductFavorite } = useFavorites()
 
   const handleAddToCart = async () => {
     setIsAdding(true)
@@ -49,6 +53,19 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
     }, 300)
     
     onAddToCart?.(selectedColor, selectedSize)
+  }
+
+  const handleToggleFavorite = async () => {
+    if (!product) return
+    
+    const id_categoria = Number(product.id_categoria)
+    const id_linea = Number(product.id_linea)
+    const id_sublinea = Number(product.id_sublinea)
+    const id_producto = Number(product.id_producto)
+    
+    const isFavorite = isProductFavorite(id_categoria, id_linea, id_sublinea, id_producto)
+    
+    await toggleFavorite(id_categoria, id_linea, id_sublinea, id_producto, isFavorite)
   }
 
   const isDiscounted = originalPrice && originalPrice > price
@@ -212,10 +229,20 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
           
           <Button
             variant="outline"
-            onClick={onAddToWishlist}
-            className="flex-shrink-0 w-12 h-12 border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 rounded-lg"
+            onClick={handleToggleFavorite}
+            className={cn(
+              "flex-shrink-0 w-12 h-12 border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 rounded-lg transition-all",
+              isProductFavorite(Number(product.id_categoria), Number(product.id_linea), Number(product.id_sublinea), Number(product.id_producto)) && "border-red-500 bg-red-50 dark:bg-red-900/20"
+            )}
           >
-            <Heart className="h-5 w-5" />
+            <Heart 
+              className={cn(
+                "h-5 w-5 transition-all",
+                isProductFavorite(Number(product.id_categoria), Number(product.id_linea), Number(product.id_sublinea), Number(product.id_producto)) 
+                  ? "fill-red-500 text-red-500" 
+                  : "text-gray-600 dark:text-gray-400 hover:text-red-500"
+              )}
+            />
           </Button>
         </div>
         

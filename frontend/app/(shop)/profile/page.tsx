@@ -9,7 +9,6 @@ import { profileSchema } from "@/schemas/user.schema";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   CreditCard, 
-  Heart, 
   MapPin, 
   Package, 
   Settings, 
@@ -23,7 +22,6 @@ import {
   OrdersTab,
   AddressesTab,
   PaymentTab,
-  WishlistTab,
   SettingsTab
 } from "@/components/layout/shop/profile";
 
@@ -165,32 +163,30 @@ export default function ProfilePage() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="profile" className="flex items-center space-x-2">
-              <User className="w-4 h-4" />
-              <span className="hidden sm:inline">Perfil</span>
-            </TabsTrigger>
-            <TabsTrigger value="orders" className="flex items-center space-x-2">
-              <Package className="w-4 h-4" />
-              <span className="hidden sm:inline">Órdenes</span>
-            </TabsTrigger>
-            <TabsTrigger value="addresses" className="flex items-center space-x-2">
-              <MapPin className="w-4 h-4" />
-              <span className="hidden sm:inline">Direcciones</span>
-            </TabsTrigger>
-            <TabsTrigger value="payment" className="flex items-center space-x-2">
-              <CreditCard className="w-4 h-4" />
-              <span className="hidden sm:inline">Pagos</span>
-            </TabsTrigger>
-            <TabsTrigger value="wishlist" className="flex items-center space-x-2">
-              <Heart className="w-4 h-4" />
-              <span className="hidden sm:inline">Favoritos</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center space-x-2">
-              <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Configuración</span>
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex justify-center">
+            <TabsList className="grid w-full max-w-4xl grid-cols-5">
+              <TabsTrigger value="profile" className="flex items-center space-x-2">
+                <User className="w-4 h-4" />
+                <span className="hidden sm:inline">Perfil</span>
+              </TabsTrigger>
+              <TabsTrigger value="orders" className="flex items-center space-x-2">
+                <Package className="w-4 h-4" />
+                <span className="hidden sm:inline">Órdenes</span>
+              </TabsTrigger>
+              <TabsTrigger value="addresses" className="flex items-center space-x-2">
+                <MapPin className="w-4 h-4" />
+                <span className="hidden sm:inline">Direcciones</span>
+              </TabsTrigger>
+              <TabsTrigger value="payment" className="flex items-center space-x-2">
+                <CreditCard className="w-4 h-4" />
+                <span className="hidden sm:inline">Pagos</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center space-x-2">
+                <Settings className="w-4 h-4" />
+                <span className="hidden sm:inline">Configuración</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* Profile Tab */}
           <TabsContent value="profile">
@@ -217,10 +213,6 @@ export default function ProfilePage() {
             <PaymentTab />
           </TabsContent>
 
-          {/* Wishlist Tab */}
-          <TabsContent value="wishlist">
-            <WishlistTab />
-          </TabsContent>
 
           {/* Settings Tab */}
           <TabsContent value="settings">

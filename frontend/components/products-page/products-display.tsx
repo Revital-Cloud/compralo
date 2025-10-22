@@ -91,9 +91,8 @@ export const ProductsDisplay = ({
   }
 
   const handleToggleFavorite = (productId: string) => {
-    // TODO: Implementar favoritos
+    // Funcionalidad implementada en product-grid.tsx y product-list.tsx con useFavorites
     console.log(`Toggle favorito: ${productId}`)
-    toast.info('Funcionalidad de favoritos próximamente')
   }
 
   // Función para manejar la eliminación de filtros individuales

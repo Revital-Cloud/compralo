@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Heart } from 'lucide-react'
 import { formatPrice } from '@/utils/format-price'
+import { cn } from '@/lib/utils'
 
 interface ProductCardProps {
   id: string
@@ -87,14 +88,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-3 right-3 z-10 h-8 w-8 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          className="absolute top-3 right-3 z-10 h-8 w-8 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 opacity-0 group-hover:opacity-100 transition-all duration-300 cursor-pointer hover:scale-110"
           onClick={(e) => {
             e.stopPropagation()
             onToggleFavorite?.(id)
           }}
         >
           <Heart 
-            className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600 dark:text-gray-400'}`} 
+            className={cn(
+              "h-4 w-4 transition-all",
+              isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-600 dark:text-gray-400 hover:text-red-500'
+            )}
           />
         </Button>
       </div>

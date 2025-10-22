@@ -35,6 +35,7 @@ export default function RootLayout({
           geistSans.variable,
           geistMono.variable
         )}
+        suppressHydrationWarning={true}
       >
         <AuthProvider>
           <ThemeProvider

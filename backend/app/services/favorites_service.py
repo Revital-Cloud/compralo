@@ -13,10 +13,12 @@ def get_favorites(db:Session, id_usuario: Decimal):
         id_usuario (Decimal): El ID del usuario del cual obtener los favoritos.
     
     Returns:
-        Lista de favoritos del usuario especificado.
+        Lista de favoritos del usuario especificado con detalles del producto.
     """
     
     try:
+        # SQLAlchemy convierte automáticamente JSONB a dict en Python
+        # FastAPI luego lo serializa a JSON en la respuesta
         query = text("""
         SELECT 
             f.id_usuario,
@@ -82,12 +84,19 @@ def create_favorite(db:Session, favorite:FavoritesCreate, usr_insert: Decimal):
         message = fetched_result[0] if fetched_result else "Error desconocido"
         
         if "Error:" in message:
+            # Si el error es de duplicado, lanzar excepción con mensaje específico
+            if "ya está en favoritos" in message:
+                raise Exception("El producto ya está en tus favoritos")
             raise Exception(message)
         
         return {"message": message}
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al crear favorito: {str(e)}")
+        error_msg = str(e)
+        # Mantener mensaje específico de duplicado
+        if "ya está en favoritos" in error_msg or "ya está en tus favoritos" in error_msg:
+            raise Exception("El producto ya está en tus favoritos")
+        raise Exception(f"Error al crear favorito: {error_msg}")
 
 def delete_favorite(db:Session, id_usuario: Decimal, id_categoria_producto: Decimal, id_linea_producto: Decimal, id_sublinea_producto: Decimal, id_producto: Decimal):
     """

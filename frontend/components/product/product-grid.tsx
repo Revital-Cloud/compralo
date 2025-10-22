@@ -23,29 +23,70 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 }) => {
   const { toggleFavorite, isProductFavorite } = useFavorites()
 
-  const handleToggleFavorite = async (e: React.MouseEvent, productId: string) => {
+  const handleToggleFavorite = async (e: React.MouseEvent, productKey: string) => {
     e.preventDefault()
     e.stopPropagation()
     
-    const product = products.find(p => p.id_producto.toString() === productId)
-    if (!product) return
+    // Parsear el key compuesto: "categoria-linea-sublinea-producto"
+    const [cat, lin, sub, prod] = productKey.split('-')
+    
+    const product = products.find(p => 
+      p.id_categoria.toString() === cat &&
+      p.id_linea.toString() === lin &&
+      p.id_sublinea.toString() === sub &&
+      p.id_producto.toString() === prod
+    )
+    
+    if (!product) {
+      console.error('❌ Producto no encontrado:', productKey)
+      return
+    }
+
+    // Log: Ver IDs originales del producto (antes de conversión)
+    console.log('📦 Producto original:', {
+      id_categoria: product.id_categoria,
+      id_linea: product.id_linea,
+      id_sublinea: product.id_sublinea,
+      id_producto: product.id_producto,
+      nombre: product.nom_producto,
+      tipos: {
+        categoria: typeof product.id_categoria,
+        linea: typeof product.id_linea,
+        sublinea: typeof product.id_sublinea,
+        producto: typeof product.id_producto
+      }
+    })
+
+    // Convertir strings a numbers explícitamente
+    const id_categoria = Number(product.id_categoria)
+    const id_linea = Number(product.id_linea)
+    const id_sublinea = Number(product.id_sublinea)
+    const id_producto = Number(product.id_producto)
+
+    console.log('🔍 ProductGrid - IDs convertidos:', {
+      id_categoria,
+      id_linea,
+      id_sublinea,
+      id_producto,
+      nombre: product.nom_producto
+    })
 
     const isFavorite = isProductFavorite(
-      product.id_categoria,
-      product.id_linea,
-      product.id_sublinea,
-      product.id_producto
+      id_categoria,
+      id_linea,
+      id_sublinea,
+      id_producto
     )
 
     await toggleFavorite(
-      product.id_categoria,
-      product.id_linea,
-      product.id_sublinea,
-      product.id_producto,
+      id_categoria,
+      id_linea,
+      id_sublinea,
+      id_producto,
       isFavorite
     )
 
-    onToggleFavorite?.(productId)
+    onToggleFavorite?.(product.id_producto.toString())
   }
 
   if (loading) {
@@ -85,18 +126,19 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 
             {/* Botón de favorito - solo visible en hover */}
             <button
-              onClick={(e) => handleToggleFavorite(e, product.id_producto.toString())}
+              onClick={(e) => handleToggleFavorite(e, `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`)}
               className={cn(
                 "absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 dark:bg-gray-800/80 flex items-center justify-center transition-all duration-300",
-                "opacity-0 group-hover:opacity-100"
+                "opacity-0 group-hover:opacity-100",
+                "cursor-pointer hover:bg-white dark:hover:bg-gray-700 hover:scale-110"
               )}
             >
               <Heart 
                 className={cn(
-                  "w-4 h-4",
+                  "w-4 h-4 transition-all",
                   isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto)
                     ? "fill-red-500 text-red-500"
-                    : "text-gray-600 dark:text-gray-400"
+                    : "text-gray-600 dark:text-gray-400 hover:text-red-500"
                 )}
               />
             </button>

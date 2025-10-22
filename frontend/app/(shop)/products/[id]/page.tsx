@@ -83,11 +83,6 @@ const ProductPage = () => {
     addToCart(cartProductData)
   }
 
-  const handleAddToWishlist = () => {
-    if (!product) return
-    // Aquí iría la lógica para agregar a favoritos
-    console.log("Agregado a lista de deseos:", product.nom_producto)
-  }
 
   const handleViewCart = () => {
     // Navegar al carrito real
@@ -182,7 +177,6 @@ const ProductPage = () => {
               sizes={sizes}
               isNew={false} // Por defecto no es nuevo
               onAddToCart={handleAddToCart}
-              onAddToWishlist={handleAddToWishlist}
             />
           </div>
         </div>

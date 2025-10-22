@@ -5,10 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Star } from "lucide-react";
 import { getInitials } from "@/lib/utils";
-import { User } from "@/types/user";
+import { UserPublic } from "@/types/auth";
 
 interface ProfileHeaderProps {
-  user: User;
+  user: UserPublic;
   isEditing: boolean;
   onEditToggle: () => void;
 }

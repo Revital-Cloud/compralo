@@ -41,29 +41,55 @@ const ProductList: React.FC<ProductListProps> = ({
     onAddToCart?.(productId)
   }
 
-  const handleToggleFavorite = async (e: React.MouseEvent, productId: string) => {
+  const handleToggleFavorite = async (e: React.MouseEvent, productKey: string) => {
     e.preventDefault()
     e.stopPropagation()
     
-    const product = products.find(p => p.id_producto.toString() === productId)
-    if (!product) return
+    // Parsear el key compuesto: "categoria-linea-sublinea-producto"
+    const [cat, lin, sub, prod] = productKey.split('-')
+    
+    const product = products.find(p => 
+      p.id_categoria.toString() === cat &&
+      p.id_linea.toString() === lin &&
+      p.id_sublinea.toString() === sub &&
+      p.id_producto.toString() === prod
+    )
+    
+    if (!product) {
+      console.error('❌ Producto no encontrado:', productKey)
+      return
+    }
+
+    // Convertir strings a numbers explícitamente
+    const id_categoria = Number(product.id_categoria)
+    const id_linea = Number(product.id_linea)
+    const id_sublinea = Number(product.id_sublinea)
+    const id_producto = Number(product.id_producto)
+
+    console.log('🔍 ProductList - IDs del producto:', {
+      id_categoria,
+      id_linea,
+      id_sublinea,
+      id_producto,
+      nombre: product.nom_producto
+    })
 
     const isFavorite = isProductFavorite(
-      product.id_categoria,
-      product.id_linea,
-      product.id_sublinea,
-      product.id_producto
+      id_categoria,
+      id_linea,
+      id_sublinea,
+      id_producto
     )
 
     await toggleFavorite(
-      product.id_categoria,
-      product.id_linea,
-      product.id_sublinea,
-      product.id_producto,
+      id_categoria,
+      id_linea,
+      id_sublinea,
+      id_producto,
       isFavorite
     )
 
-    onToggleFavorite?.(productId)
+    onToggleFavorite?.(product.id_producto.toString())
   }
 
   if (loading) {
@@ -128,16 +154,17 @@ const ProductList: React.FC<ProductListProps> = ({
                   
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={(e) => handleToggleFavorite(e, product.id_producto.toString())}
+                      onClick={(e) => handleToggleFavorite(e, `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`)}
                       className={cn(
                         "w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center transition-all",
+                        "cursor-pointer hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:scale-110",
                         isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto) && "border-red-500 bg-red-50 dark:bg-red-900/20"
                       )}
                     >
                       <Heart 
                         className={cn(
-                          "w-3 h-3",
-                          isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto) ? "fill-red-500 text-red-500" : "text-gray-600"
+                          "w-3 h-3 transition-all",
+                          isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto) ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-500"
                         )}
                       />
                     </button>
@@ -225,16 +252,17 @@ const ProductList: React.FC<ProductListProps> = ({
                 {/* Actions */}
                 <div className="col-span-4 flex items-center justify-end gap-2">
                   <button
-                    onClick={(e) => handleToggleFavorite(e, product.id_producto.toString())}
+                    onClick={(e) => handleToggleFavorite(e, `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`)}
                     className={cn(
-                      "w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center transition-all hover:border-gray-400 dark:hover:border-gray-500",
+                      "w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center transition-all",
+                      "cursor-pointer hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:scale-110",
                       isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto) && "border-red-500 bg-red-50 dark:bg-red-900/20"
                     )}
                   >
                     <Heart 
                       className={cn(
-                        "w-4 h-4",
-                        isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto) ? "fill-red-500 text-red-500" : "text-gray-600"
+                        "w-4 h-4 transition-all",
+                        isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto) ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-500"
                       )}
                     />
                   </button>

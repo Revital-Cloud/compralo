@@ -42,7 +42,14 @@ export const useFavorites = (): UseFavoritesReturn => {
       toast.success('Producto agregado a favoritos')
     },
     onError: (error: any) => {
-      toast.error(error.message || 'Error al agregar a favoritos')
+      // Manejar error específico de duplicado
+      const errorMessage = error?.response?.data?.detail || error.message || ''
+      
+      if (errorMessage.includes('ya existe') || errorMessage.includes('duplicado') || errorMessage.includes('duplicate') || errorMessage.includes('ya está en tus favoritos') || error?.response?.status === 400) {
+        toast.warning('Este producto ya está en tus favoritos')
+      } else {
+        toast.error('Error al agregar a favoritos')
+      }
     }
   })
 
@@ -150,6 +157,15 @@ export const useFavorites = (): UseFavoritesReturn => {
       toast.error('Debes iniciar sesión para gestionar favoritos')
       return
     }
+
+    // Debug: Ver qué IDs se están enviando
+    console.log('🔍 Toggle Favorito - IDs enviados:', {
+      id_categoria_producto,
+      id_linea_producto,
+      id_sublinea_producto,
+      id_producto,
+      isFavorite
+    })
 
     if (isFavorite) {
       await removeFromFavorites(

@@ -147,12 +147,13 @@ const FavoritesPage: React.FC = () => {
                 <Link
                   href={`/products/${product.id_categoria_producto}-${product.id_linea_producto}-${product.id_sublinea_producto}-${product.id_producto}`}
                 >
-                  <div className="aspect-square overflow-hidden rounded-t-lg">
+                  <div className="relative aspect-square bg-gray-100 dark:bg-gray-800 overflow-hidden rounded-t-lg">
                     <Image
                       src={getProductImageUrl(product.img_producto)}
                       alt={product.nom_producto}
-                      fill
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      width={400}
+                      height={400}
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />
                   </div>
                 </Link>

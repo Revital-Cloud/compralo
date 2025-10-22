@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
-import { Heart, Trash2, Minus, Plus } from 'lucide-react'
+import { Trash2, Minus, Plus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { formatPrice } from '@/utils/format-price'
 import { toast } from 'sonner'
@@ -21,8 +21,6 @@ interface CartItemProps {
   cartTotal?: number
   onQuantityChange: (id: string, quantity: number, stock_disponible?: number) => void
   onRemove: (id: string) => void
-  onToggleFavorite: (id: string) => void
-  isFavorite?: boolean
 }
 
 const CartItem: React.FC<CartItemProps> = ({
@@ -38,9 +36,7 @@ const CartItem: React.FC<CartItemProps> = ({
   stock_disponible,
   cartTotal = 0,
   onQuantityChange,
-  onRemove,
-  onToggleFavorite,
-  isFavorite = false
+  onRemove
 }) => {
   const [isUpdating, setIsUpdating] = useState(false)
   
@@ -141,17 +137,6 @@ const CartItem: React.FC<CartItemProps> = ({
 
           {/* Acciones del producto */}
           <div className="flex gap-2 justify-end sm:justify-start">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700"
-              onClick={() => onToggleFavorite(id)}
-              disabled={isUpdating}
-            >
-              <Heart 
-                className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400 dark:text-gray-500'}`} 
-              />
-            </Button>
             <Button
               variant="ghost"
               size="icon"

@@ -7,10 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { User } from "@/types/user";
+import { UserPublic } from "@/types/auth";
 
 interface ProfileTabProps {
-  user: User;
+  user: UserPublic;
   form: UseFormReturn<z.infer<typeof profileSchema>>;
   isEditing: boolean;
   onSubmit: (values: z.infer<typeof profileSchema>) => void;

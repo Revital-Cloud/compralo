@@ -40,6 +40,10 @@ export interface UserPublic {
   ape_usuario: string;
   email_usuario: string;
   id_rol?: number;
+  cel_usuario?: string;
+  des_direccion?: string;
+  fec_nacimiento?: string;
+  ind_genero?: boolean;
 }
 
 export interface ChangePasswordRequest {

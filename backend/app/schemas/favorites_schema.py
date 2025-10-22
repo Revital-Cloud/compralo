@@ -10,7 +10,7 @@ así como un esquema para mensajes de respuesta genéricos.
 from datetime import datetime, date
 from decimal import Decimal
 from pydantic import BaseModel, Field
-from typing import Optional,Dict,Any
+from typing import Optional, Dict, Any, Union
 
 class FavoritesBase(BaseModel):
     """
@@ -71,7 +71,7 @@ class FavoriteDetails(FavoritesBase):
     información del producto obtenido a través de un JOIN.
     """
     nom_producto: str
-    img_producto: Optional[str]
+    img_producto: Optional[Union[str, Dict[str, Any], Any]] = None  # Puede ser string, JSON object o None
     val_precio: Decimal
     
     class Config:

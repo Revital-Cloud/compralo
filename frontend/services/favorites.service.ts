@@ -1,27 +1,5 @@
 import apiWrapper from '@/utils/apiWrapper'
-
-export interface FavoriteProduct {
-  id_usuario: number
-  id_categoria_producto: number
-  id_linea_producto: number
-  id_sublinea_producto: number
-  id_producto: number
-  nom_producto: string
-  img_producto?: string
-  val_precio: number
-  fec_insert: string
-}
-
-export interface CreateFavoriteRequest {
-  id_categoria_producto: number
-  id_linea_producto: number
-  id_sublinea_producto: number
-  id_producto: number
-}
-
-export interface FavoritesResponse {
-  message: string
-}
+import { FavoriteProduct, CreateFavoriteRequest, FavoritesResponse } from '@/types/favorites'
 
 class FavoritesService {
   private baseUrl = '/favorites'
@@ -43,6 +21,7 @@ class FavoritesService {
    */
   async addToFavorites(favoriteData: CreateFavoriteRequest): Promise<FavoritesResponse> {
     try {
+      console.log('📤 Enviando a backend - Datos del favorito:', favoriteData)
       return await apiWrapper.post<FavoritesResponse>(this.baseUrl, favoriteData)
     } catch (error) {
       console.error('Error adding to favorites:', error)
