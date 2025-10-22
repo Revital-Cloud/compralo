@@ -207,6 +207,7 @@ const ProductsPage = () => {
                 src={imgUrl}
                 alt={row.original.nom_producto}
                 fill
+                sizes="48px"
                 className="object-cover"
               />
             ) : (

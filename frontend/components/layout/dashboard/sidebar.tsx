@@ -110,12 +110,6 @@ const data = {
       url: "/admin/analytics",
       icon: IconChartBar,
       section: "otros"
-    },
-    {
-      title: "Envíos",
-      url: "/admin/shipping",
-      icon: IconTruck,
-      section: "otros"
     }
   ],
   navSecondary: [
