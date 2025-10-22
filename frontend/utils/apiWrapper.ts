@@ -249,8 +249,15 @@ export async function get<T>(endpoint: string, config?: AxiosRequestConfig): Pro
  */
 export async function post<T>(endpoint: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
   const api = getApiInstance();
-  const response = await api.post<T>(endpoint, data, config);
-  return response.data;
+  console.log("🔍 [API] POST request:", { endpoint, data, config });
+  try {
+    const response = await api.post<T>(endpoint, data, config);
+    console.log("✅ [API] POST response:", response.status, response.data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ [API] POST error:", error);
+    throw error;
+  }
 }
 
 /**

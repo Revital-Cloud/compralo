@@ -108,6 +108,7 @@ const CartItem: React.FC<CartItemProps> = ({
     }
   }
 
+
   return (
     <div className="flex flex-col sm:flex-row gap-4 p-4 sm:p-6">
       {/* Imagen del producto */}
@@ -213,6 +214,7 @@ const CartItem: React.FC<CartItemProps> = ({
             </span>
           </div>
         </div>
+
 
         {/* Precio */}
         <div className="flex items-center gap-3">

@@ -26,7 +26,7 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
       <HoverCardTrigger asChild>
         {trigger}
       </HoverCardTrigger>
-      <HoverCardContent align="end" sideOffset={8} className="w-80 p-0 overflow-hidden bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
+      <HoverCardContent align="end" sideOffset={8} className="w-96 p-0 overflow-hidden bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white">
         <div className="border-b border-gray-200 dark:border-gray-700 px-4 py-3 bg-gray-50 dark:bg-gray-800">
           <div className="flex items-center justify-between text-sm">
             <span className="font-medium">Tu carrito</span>
@@ -49,11 +49,13 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
                         <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">IMG</div>
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 pr-4">
                       <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{item.nombre_producto}</p>
                       <p className="truncate text-xs text-gray-600 dark:text-gray-300">x{item.cantidad} · ${item.precio_unitario.toLocaleString('es-CO')}</p>
                     </div>
-                    <div className="text-sm font-semibold whitespace-nowrap">${item.subtotal.toLocaleString('es-CO')}</div>
+                    <div className="text-sm font-semibold text-right min-w-[100px] whitespace-nowrap">
+                      ${item.subtotal.toLocaleString('es-CO')}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -62,7 +64,7 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
             <div className="px-4 py-3 space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600 dark:text-gray-300">Total</span>
-                <span className="font-semibold text-gray-900 dark:text-white">${Number(total ?? 0).toLocaleString('es-CO')}</span>
+                <span className="font-semibold text-gray-900 dark:text-white text-right min-w-[100px] whitespace-nowrap">${Number(total ?? 0).toLocaleString('es-CO')}</span>
               </div>
               <div className="flex gap-2">
               <Link href="/cart" className="w-full">

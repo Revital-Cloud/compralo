@@ -86,6 +86,7 @@ const CartPage = () => {
   // Hook del carrito con datos reales
   const {
     items,
+    itemsWithBasic,
     totals,
     itemCount,
     total,
@@ -105,11 +106,11 @@ const CartPage = () => {
 
   // Funciones para manejar el carrito
   const handleQuantityChange = async (
-    id: string,
+    id: string | number,
     cantidad: number,
     stock_disponible?: number
   ) => {
-    const id_carrito_producto = parseInt(id);
+    const id_carrito_producto = typeof id === 'string' ? parseInt(id) : id;
     try {
       updateQuantity({ id_carrito_producto, cantidad, stock_disponible });
     } catch (error) {
@@ -117,8 +118,8 @@ const CartPage = () => {
     }
   };
 
-  const handleRemoveItem = async (id: string) => {
-    const id_carrito_producto = parseInt(id);
+  const handleRemoveItem = async (id: string | number) => {
+    const id_carrito_producto = typeof id === 'string' ? parseInt(id) : id;
     try {
       removeFromCart(id_carrito_producto);
     } catch (error) {
@@ -391,7 +392,27 @@ const CartPage = () => {
                   </div>
                 )}
 
-                {hasItems() && Array.isArray(items) ? (
+                {hasItems() && Array.isArray(itemsWithBasic) && itemsWithBasic.length > 0 ? (
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {itemsWithBasic.map((item) => (
+                      <CartItem
+                        key={item.id_carrito_producto}
+                        id={item.id_carrito_producto.toString()}
+                        name={item.nombre_producto}
+                        brand={item.basic_info.marca || "Sin marca"}
+                        color={item.basic_info.color || "Sin especificar"}
+                        size="Único"
+                        price={item.precio_unitario_carrito}
+                        quantity={item.cantidad}
+                        image={item.imagen_url || "/placeholder-product.jpg"}
+                        stock_disponible={item.stock_disponible}
+                        cartTotal={finalTotal}
+                        onQuantityChange={handleQuantityChange}
+                        onRemove={handleRemoveItem}
+                      />
+                    ))}
+                  </div>
+                ) : hasItems() && Array.isArray(items) ? (
                   <div className="divide-y divide-gray-200 dark:divide-gray-700">
                     {items.map((item) => (
                       <CartItem
