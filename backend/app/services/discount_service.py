@@ -207,3 +207,66 @@ def deactivate_activate_discount(db:Session, id_descuento:Decimal, activar:bool,
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al desactivar o activar descuento: {str(e)}")
+
+
+def get_discount_stats(db: Session):
+    """
+    Obtiene estadísticas generales de descuentos para el panel de administración.
+    
+    Args:
+        db (Session): Sesión de base de datos
+        
+    Returns:
+        dict: Estadísticas de descuentos
+    """
+    try:
+        query = text("""
+        SELECT 
+            COUNT(*) FILTER (WHERE ind_activo = TRUE) as total_activos,
+            COUNT(*) FILTER (WHERE ind_activo = FALSE) as total_inactivos,
+            (SELECT COUNT(*) FROM tab_canjes_puntos_descuentos) as total_canjes,
+            (SELECT COALESCE(SUM(puntos_utilizados), 0) FROM tab_canjes_puntos_descuentos) as total_puntos_canjeados
+        FROM tab_descuentos
+        """)
+        result = db.execute(query)
+        return result.mappings().first()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener estadísticas de descuentos: {str(e)}")
+
+
+def get_discount_exchanges(db: Session, id_descuento: Decimal):
+    """
+    Obtiene el historial de canjes de un descuento específico.
+    
+    Args:
+        db (Session): Sesión de base de datos
+        id_descuento (Decimal): ID del descuento
+        
+    Returns:
+        list: Lista de canjes del descuento
+    """
+    try:
+        query = text("""
+        SELECT 
+            c.id_canje, 
+            c.id_usuario, 
+            u.nom_usuario, 
+            u.ape_usuario, 
+            u.email_usuario,
+            c.puntos_utilizados, 
+            c.ind_utilizado, 
+            c.fec_utilizacion, 
+            c.fec_expiracion_canje,
+            c.fec_insert as fec_canje, 
+            c.id_orden_aplicado
+        FROM tab_canjes_puntos_descuentos c
+        JOIN tab_usuarios u ON c.id_usuario = u.id_usuario
+        WHERE c.id_descuento = :id_descuento
+        ORDER BY c.fec_insert DESC
+        """)
+        result = db.execute(query, {"id_descuento": id_descuento})
+        return result.mappings().all()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener canjes del descuento: {str(e)}")

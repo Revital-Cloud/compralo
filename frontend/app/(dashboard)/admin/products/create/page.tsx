@@ -25,8 +25,9 @@ const ProductCreatePage = () => {
   const handleFormSubmit = async (formData: any) => {
     try {
       // Preparar datos del producto
-      const productData: ProductCreate = {
+      const productData: any = {
         ...formData,
+        val_precio: formData.val_precio,
         // Aquí podrías procesar las imágenes si es necesario
         img_producto: selectedImages.length > 0 ? {
           main: selectedImages[0]?.preview || '',

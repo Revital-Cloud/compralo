@@ -260,4 +260,16 @@ export function useProductsAdmin(params: ProductAdminParams = {}) {
     refetchOnReconnect: false,
     gcTime: 5 * 60 * 1000, // 5 minutos en cache
   });
+}
+
+/**
+ * Hook para obtener productos por sublínea (compatibilidad)
+ */
+export function useProductsBySubline(id_subline: string) {
+  return useQuery({
+    queryKey: ['products', 'subline', id_subline],
+    queryFn: () => productService.getProducts({ id_subline }),
+    enabled: !!id_subline,
+    staleTime: 5 * 60 * 1000,
+  });
 } 

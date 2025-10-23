@@ -147,3 +147,33 @@ async def validate_discount(
         return ValidateDiscountResponse(aplicable=aplicable, mensaje=mensaje)
     except Exception as e:
         return ValidateDiscountResponse(aplicable=False, mensaje=f"Error al validar descuento: {str(e)}")
+
+# Endpoints Admin
+@router.get("/admin/stats", status_code=status.HTTP_200_OK)
+async def get_discount_stats(
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin())
+):
+    """
+    Obtiene estadísticas generales de descuentos (solo admin).
+    """
+    try:
+        stats = discount_service.get_discount_stats(db)
+        return stats
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.get("/{id_descuento}/admin/canjes", status_code=status.HTTP_200_OK)
+async def get_discount_exchanges(
+    id_descuento: Decimal,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin())
+):
+    """
+    Obtiene el historial de canjes de un descuento específico (solo admin).
+    """
+    try:
+        exchanges = discount_service.get_discount_exchanges(db, id_descuento)
+        return exchanges
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

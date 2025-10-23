@@ -16,17 +16,16 @@ import { toast } from 'sonner'
 
 const discountSchema = z.object({
   des_descuento: z.string().min(3, 'La descripción debe tener al menos 3 caracteres'),
-  tipo_descuento: z.enum(['porcentaje', 'monto_fijo'], {
-    required_error: 'Seleccione un tipo de descuento'
-  }),
-  val_descuento: z.string().min(1, 'El valor es requerido'),
-  monto_min_compra: z.string().optional(),
-  val_puntos_requeridos: z.string().optional(),
-  cod_cupon: z.string().optional(),
+  tipo_calculo: z.boolean(),
+  val_porce_descuento: z.number().optional(),
+  val_monto_descuento: z.number().optional(),
+  min_valor_pedido: z.number().optional(),
+  costo_puntos_canje: z.number().optional(),
+  codigo_descuento: z.string().optional(),
   fec_inicio: z.string().optional(),
   fec_fin: z.string().optional(),
-  max_usos: z.string().optional(),
-  ind_activo: z.boolean().optional().default(true),
+  max_usos_total: z.number().optional(),
+  ind_activo: z.boolean(),
 })
 
 type DiscountFormData = z.infer<typeof discountSchema>
@@ -38,12 +37,12 @@ const CreateDiscountPage = () => {
   const form = useForm<DiscountFormData>({
     resolver: zodResolver(discountSchema),
     defaultValues: {
-      tipo_descuento: 'porcentaje',
+      tipo_calculo: true,
       ind_activo: true,
     }
   })
 
-  const tipoDescuento = form.watch('tipo_descuento')
+  const tipoDescuento = form.watch('tipo_calculo')
 
   const handleSubmit = form.handleSubmit(async (values) => {
     try {
@@ -60,6 +59,8 @@ const CreateDiscountPage = () => {
       <CatalogHeader 
         title="Crear Descuento"
         description="Define un nuevo descuento o cupón para tu tienda"
+        createLabel=""
+        onCreateClick={() => {}}
       />
 
       <Card>
@@ -87,40 +88,40 @@ const CreateDiscountPage = () => {
             {/* Tipo y Valor */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="tipo_descuento">Tipo de Descuento *</Label>
+                <Label htmlFor="tipo_calculo">Tipo de Descuento *</Label>
                 <select
-                  id="tipo_descuento"
-                  {...form.register('tipo_descuento')}
+                  id="tipo_calculo"
+                  {...form.register('tipo_calculo', { valueAsNumber: false })}
                   className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
                 >
-                  <option value="porcentaje">Porcentaje (%)</option>
-                  <option value="monto_fijo">Monto Fijo ($)</option>
+                  <option value="true">Porcentaje (%)</option>
+                  <option value="false">Monto Fijo ($)</option>
                 </select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="val_descuento">
-                  Valor del Descuento * {tipoDescuento === 'porcentaje' ? '(%)' : '($)'}
+                <Label htmlFor="val_porce_descuento">
+                  Valor del Descuento * {tipoDescuento ? '(%)' : '($)'}
                 </Label>
                 <Input
-                  id="val_descuento"
+                  id="val_porce_descuento"
                   type="number"
                   step="0.01"
-                  {...form.register('val_descuento')}
-                  placeholder={tipoDescuento === 'porcentaje' ? 'Ej: 15' : 'Ej: 50000'}
+                  {...form.register('val_porce_descuento', { valueAsNumber: true })}
+                  placeholder={tipoDescuento ? 'Ej: 15' : 'Ej: 50000'}
                 />
-                {form.formState.errors.val_descuento && (
-                  <p className="text-sm text-red-600">{form.formState.errors.val_descuento.message}</p>
+                {form.formState.errors.val_porce_descuento && (
+                  <p className="text-sm text-red-600">{form.formState.errors.val_porce_descuento.message}</p>
                 )}
               </div>
             </div>
 
             {/* Código de cupón */}
             <div className="space-y-2">
-              <Label htmlFor="cod_cupon">Código de Cupón (Opcional)</Label>
+              <Label htmlFor="codigo_descuento">Código de Cupón (Opcional)</Label>
               <Input
-                id="cod_cupon"
-                {...form.register('cod_cupon')}
+                id="codigo_descuento"
+                {...form.register('codigo_descuento')}
                 placeholder="Ej: BLACKFRIDAY2024"
                 className="uppercase"
               />
@@ -132,23 +133,23 @@ const CreateDiscountPage = () => {
             {/* Restricciones */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="monto_min_compra">Monto Mínimo de Compra ($)</Label>
+                <Label htmlFor="min_valor_pedido">Monto Mínimo de Compra ($)</Label>
                 <Input
-                  id="monto_min_compra"
+                  id="min_valor_pedido"
                   type="number"
                   step="0.01"
-                  {...form.register('monto_min_compra')}
+                  {...form.register('min_valor_pedido', { valueAsNumber: true })}
                   placeholder="Ej: 100000"
                 />
                 <p className="text-xs text-muted-foreground">Opcional</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="val_puntos_requeridos">Puntos Requeridos</Label>
+                <Label htmlFor="costo_puntos_canje">Puntos Requeridos</Label>
                 <Input
-                  id="val_puntos_requeridos"
+                  id="costo_puntos_canje"
                   type="number"
-                  {...form.register('val_puntos_requeridos')}
+                  {...form.register('costo_puntos_canje', { valueAsNumber: true })}
                   placeholder="Ej: 500"
                 />
                 <p className="text-xs text-muted-foreground">Para canje con puntos</p>
@@ -178,11 +179,11 @@ const CreateDiscountPage = () => {
 
             {/* Máximo de usos */}
             <div className="space-y-2">
-              <Label htmlFor="max_usos">Máximo de Usos</Label>
+              <Label htmlFor="max_usos_total">Máximo de Usos</Label>
               <Input
-                id="max_usos"
+                id="max_usos_total"
                 type="number"
-                {...form.register('max_usos')}
+                {...form.register('max_usos_total', { valueAsNumber: true })}
                 placeholder="Ej: 100 (dejar vacío para ilimitado)"
               />
               <p className="text-xs text-muted-foreground">

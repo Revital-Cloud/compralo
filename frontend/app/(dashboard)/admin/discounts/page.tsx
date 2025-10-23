@@ -2,14 +2,16 @@
 
 import React, { useMemo, useState } from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
-import { useDiscounts, useToggleDiscountStatus, useCreateDiscount, useUpdateDiscount } from '@/hooks/use-discounts'
+import { useDiscounts, useToggleDiscountStatus, useCreateDiscount, useUpdateDiscount, useDiscountStats } from '@/hooks/use-discounts'
 import { CreateDiscountModal } from '@/components/admin/discounts/create-discount-modal'
 import { EditDiscountModal } from '@/components/admin/discounts/edit-discount-modal'
+import { DiscountStatsCards } from '@/components/admin/discounts/discount-stats-cards'
+import { DiscountExchangesModal } from '@/components/admin/discounts/discount-exchanges-modal'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Pencil, Power } from 'lucide-react'
+import { Pencil, Power, Eye } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { toast } from 'sonner'
@@ -32,6 +34,7 @@ interface Discount {
 
 const DiscountsPage = () => {
   const { data, isLoading, isError } = useDiscounts()
+  const { data: stats } = useDiscountStats()
   const toggleStatusMutation = useToggleDiscountStatus()
   const createMutation = useCreateDiscount()
   const updateMutation = useUpdateDiscount()
@@ -45,11 +48,13 @@ const DiscountsPage = () => {
   // Modales
   const [openCreate, setOpenCreate] = useState(false)
   const [openEdit, setOpenEdit] = useState(false)
+  const [openExchanges, setOpenExchanges] = useState(false)
   const [editing, setEditing] = useState<Discount | null>(null)
+  const [selectedDiscount, setSelectedDiscount] = useState<{ id: string; name: string } | null>(null)
 
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
-    let rows = data as Discount[]
+    let rows = data as any[]
     
     if (search) {
       const q = search.toLowerCase()
@@ -163,6 +168,20 @@ const DiscountsPage = () => {
           <Button 
             variant="outline" 
             size="icon" 
+            aria-label="Ver canjes"
+            onClick={() => {
+              setSelectedDiscount({
+                id: row.original.id_descuento,
+                name: row.original.des_descuento
+              })
+              setOpenExchanges(true)
+            }}
+          >
+            <Eye className="w-4 h-4" />
+          </Button>
+          <Button 
+            variant="outline" 
+            size="icon" 
             aria-label="Editar descuento"
             onClick={() => {
               setEditing(row.original)
@@ -237,6 +256,9 @@ const DiscountsPage = () => {
         }}
       />
 
+      {/* Estadísticas */}
+      {stats && <DiscountStatsCards stats={stats} />}
+
       {/* Filtros */}
       <div className="flex flex-col sm:flex-row gap-4">
         <Input
@@ -290,6 +312,16 @@ const DiscountsPage = () => {
         <div className="text-center py-12 text-muted-foreground">
           No se encontraron descuentos
         </div>
+      )}
+
+      {/* Modal de canjes */}
+      {selectedDiscount && (
+        <DiscountExchangesModal
+          open={openExchanges}
+          onOpenChange={setOpenExchanges}
+          discountId={selectedDiscount.id}
+          discountName={selectedDiscount.name}
+        />
       )}
     </div>
   )

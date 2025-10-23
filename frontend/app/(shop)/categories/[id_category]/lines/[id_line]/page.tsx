@@ -7,6 +7,7 @@ import { useLine } from '@/hooks/use-lines';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ChevronRight, Package, ArrowLeft } from 'lucide-react';
+import type { Subline } from '@/types/hierarchical';
 
 export default function LinePage() {
   const params = useParams();
@@ -77,9 +78,6 @@ export default function LinePage() {
                   </div>
                   <div>
                     <CardTitle className="text-base">{subline.nom_sublinea}</CardTitle>
-                    {subline.desc_sublinea && (
-                      <p className="text-xs text-gray-600">{subline.desc_sublinea}</p>
-                    )}
                   </div>
                 </div>
               </CardHeader>

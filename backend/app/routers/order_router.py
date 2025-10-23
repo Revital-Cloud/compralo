@@ -14,7 +14,7 @@ from decimal import Decimal
 import asyncio
 
 from core.database import get_db
-from core.dependencies import get_current_user
+from core.dependencies import get_current_user, require_admin
 from schemas.auth_schema import UserInToken
 from schemas.order_schema import Order, OrderCreate, ResponseMessage, CreateOrderResponse 
 from schemas.payment_schema import PayOrderPayload
@@ -329,3 +329,67 @@ async def pay_cart_and_create_order(
         raise HTTPException(status_code=e.response.status_code, detail=f"Error de Wompi: {error_details.get('reason') or error_details.get('messages')}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
+# Endpoints Admin
+@router.get("/admin/all", status_code=status.HTTP_200_OK)
+async def get_all_orders_admin(
+    limit: int = 50,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin())
+):
+    """
+    Obtiene todas las órdenes para el panel de administración (solo admin).
+    """
+    try:
+        orders = order_service.get_all_orders_admin(db, limit, offset)
+        return orders
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.get("/admin/stats", status_code=status.HTTP_200_OK)
+async def get_order_stats_admin(
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin())
+):
+    """
+    Obtiene estadísticas de órdenes para el panel de administración (solo admin).
+    """
+    try:
+        stats = order_service.get_order_stats_admin(db)
+        return stats
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.get("/admin/{id_orden}", status_code=status.HTTP_200_OK)
+async def get_order_detail_admin(
+    id_orden: int,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin())
+):
+    """
+    Obtiene el detalle completo de una orden para el panel de administración (solo admin).
+    """
+    try:
+        order_detail = order_service.get_order_detail_admin(db, id_orden)
+        if not order_detail:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
+        return order_detail
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.put("/admin/{id_orden}/status", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def update_order_status_admin(
+    id_orden: int,
+    new_status: int = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin())
+):
+    """
+    Actualiza el estado de una orden (solo admin).
+    """
+    try:
+        order_service.update_order_status_admin(db, id_orden, new_status, current_user.id_usuario)
+        return ResponseMessage(message="Estado de orden actualizado exitosamente")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

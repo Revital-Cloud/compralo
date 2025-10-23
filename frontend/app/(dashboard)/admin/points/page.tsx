@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
-import { useActivePointsRate } from '@/hooks/use-points'
+import { useActivePointsRate, useAllUsersWithPoints } from '@/hooks/use-points'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { IconCoins, IconCalendar, IconCheck } from '@tabler/icons-react'
@@ -10,58 +10,126 @@ import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { CreatePointsConfigModal } from '@/components/admin/points/create-points-config-modal'
-import userService from '@/services/user.service'
-import { useQuery } from '@tanstack/react-query'
+import { PointsStatsCards } from '@/components/admin/points/points-stats-cards'
+import { UserPointsHistoryModal } from '@/components/admin/points/user-points-history-modal'
+import { Input } from '@/components/ui/input'
+import type { UserWithPoints } from '@/types/points'
 
 const PointsPage = () => {
   const { data: activeRates } = useActivePointsRate()
+  const { data: users = [], isLoading, isError } = useAllUsersWithPoints()
   const [openConfig, setOpenConfig] = useState(false)
+  const [openHistory, setOpenHistory] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<{ id: string; name: string } | null>(null)
+  const [search, setSearch] = useState('')
 
-  const { data: users = [], isLoading, isError } = useQuery({
-    queryKey: ['users', 'all-for-points'],
-    queryFn: () => userService.getUsers(),
-  })
+  const filteredUsers = useMemo(() => {
+    if (!search) return users
+    const q = search.toLowerCase()
+    return users.filter(user => 
+      user.nom_usuario.toLowerCase().includes(q) ||
+      user.ape_usuario.toLowerCase().includes(q) ||
+      user.email_usuario.toLowerCase().includes(q)
+    )
+  }, [users, search])
 
-  const columns: ColumnDef<any>[] = [
-    { accessorKey: 'id_usuario', header: 'ID', cell: ({ row }) => <span className="text-muted-foreground">{row.original.id_usuario}</span> },
-    { accessorKey: 'nom_usuario', header: 'Nombre', cell: ({ row }) => <span className="font-medium">{row.original.nom_usuario} {row.original.ape_usuario}</span> },
-    { accessorKey: 'email_usuario', header: 'Email' },
-    { accessorKey: 'cel_usuario', header: 'Teléfono', cell: ({ row }) => <span className="text-sm">{row.original.cel_usuario || '-'}</span> },
-    { id: 'puntos', header: 'Puntos', cell: ({ row }) => <span className="font-semibold">-</span> },
-    { accessorKey: 'ind_activo', header: 'Estado', cell: ({ row }) => (<Badge className={row.original.ind_activo ? 'bg-[#fec806] text-black' : 'bg-red-100 text-red-800'}>{row.original.ind_activo ? 'Activo' : 'Inactivo'}</Badge>) },
+  const columns: ColumnDef<UserWithPoints>[] = [
+    { 
+      accessorKey: 'id_usuario', 
+      header: 'ID', 
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.id_usuario}</span> 
+    },
+    { 
+      accessorKey: 'nom_usuario', 
+      header: 'Nombre', 
+      cell: ({ row }) => (
+        <span className="font-medium">
+          {row.original.nom_usuario} {row.original.ape_usuario}
+        </span>
+      ) 
+    },
+    { 
+      accessorKey: 'email_usuario', 
+      header: 'Email' 
+    },
+    { 
+      accessorKey: 'cel_usuario', 
+      header: 'Teléfono', 
+      cell: ({ row }) => <span className="text-sm">{row.original.cel_usuario || '-'}</span> 
+    },
+    { 
+      id: 'puntos_disponibles', 
+      header: 'Puntos Disponibles', 
+      cell: ({ row }) => (
+        <span className="font-semibold text-blue-600">
+          {row.original.puntos_disponibles.toLocaleString()}
+        </span>
+      ) 
+    },
+    { 
+      id: 'puntos_totales_ganados', 
+      header: 'Total Ganados', 
+      cell: ({ row }) => (
+        <span className="text-sm text-green-600">
+          {row.original.puntos_totales_ganados.toLocaleString()}
+        </span>
+      ) 
+    },
+    { 
+      id: 'puntos_totales_canjeados', 
+      header: 'Total Canjeados', 
+      cell: ({ row }) => (
+        <span className="text-sm text-orange-600">
+          {row.original.puntos_totales_canjeados.toLocaleString()}
+        </span>
+      ) 
+    },
+    { 
+      id: 'fec_ultimo_canje', 
+      header: 'Último Canje', 
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.original.fec_ultimo_canje 
+            ? new Date(row.original.fec_ultimo_canje).toLocaleDateString('es-CO')
+            : '-'
+          }
+        </span>
+      ) 
+    },
+    { 
+      accessorKey: 'ind_activo', 
+      header: 'Estado', 
+      cell: ({ row }) => (
+        <Badge className={row.original.ind_activo ? 'bg-[#fec806] text-black' : 'bg-red-100 text-red-800'}>
+          {row.original.ind_activo ? 'Activo' : 'Inactivo'}
+        </Badge>
+      ) 
+    },
   ]
 
-  const rows = useMemo(() => Array.isArray(users) ? users : [], [users])
+  const actions: ColumnDef<UserWithPoints>[] = [
+    {
+      id: 'actions',
+      header: 'Acciones',
+      cell: ({ row }) => (
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => {
+            setSelectedUser({
+              id: row.original.id_usuario,
+              name: `${row.original.nom_usuario} ${row.original.ape_usuario}`
+            })
+            setOpenHistory(true)
+          }}
+        >
+          Ver Historial
+        </Button>
+      ),
+    },
+  ]
 
   const activeRate = Array.isArray(activeRates) && activeRates.length > 0 ? activeRates[0] : null
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    try {
-      if (activeRate) {
-        await updateMutation.mutateAsync({
-          id: activeRate.id_config_puntos,
-          data: formData,
-        })
-        toast.success('Configuración actualizada exitosamente')
-      } else {
-        await createMutation.mutateAsync(formData)
-        toast.success('Configuración creada exitosamente')
-      }
-      
-      // Limpiar formulario
-      setFormData({
-        pesos_por_punto: '',
-        puntos_por_peso: '',
-        fec_inicio: '',
-        fec_fin: '',
-        ind_activo: true,
-      })
-    } catch (error) {
-      toast.error('Error al guardar la configuración')
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -126,19 +194,38 @@ const PointsPage = () => {
         </div>
       )}
 
+      {/* Estadísticas de usuarios */}
+      <PointsStatsCards users={users} />
+
+      {/* Búsqueda */}
+      <div className="flex items-center space-x-4">
+        <Input
+          placeholder="Buscar por nombre o email..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-sm"
+        />
+      </div>
+
       {/* Tabla de usuarios con puntos */}
       {isLoading && <div className="text-sm text-muted-foreground">Cargando usuarios...</div>}
       {isError && <div className="text-sm text-red-600">No se pudieron cargar los usuarios.</div>}
-      {!isLoading && !isError && Array.isArray(rows) && (
-        <DataTable columns={columns} data={rows} pageSize={10} />
+      {!isLoading && !isError && Array.isArray(filteredUsers) && (
+        <DataTable 
+          columns={[...columns, ...actions]} 
+          data={filteredUsers} 
+          pageSize={10} 
+        />
       )}
 
-      {isLoading && (
-        <div className="text-sm text-muted-foreground">Cargando configuración...</div>
-      )}
-
-      {isError && (
-        <div className="text-sm text-red-600">No se pudo cargar la configuración de puntos.</div>
+      {/* Modal de historial */}
+      {selectedUser && (
+        <UserPointsHistoryModal
+          open={openHistory}
+          onOpenChange={setOpenHistory}
+          userId={selectedUser.id}
+          userName={selectedUser.name}
+        />
       )}
     </div>
   )

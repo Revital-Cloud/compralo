@@ -145,6 +145,7 @@ export interface UserBase {
   ind_genero: boolean;
   cel_usuario: string;
   fec_nacimiento?: string;
+  ind_activo: boolean;
 }
 
 export interface UserCreate extends UserBase {}
@@ -159,6 +160,7 @@ export interface UserUpdate {
   ind_genero?: boolean;
   cel_usuario?: string;
   fec_nacimiento?: string;
+  ind_activo?: boolean;
 }
 
 export interface User extends UserBase {
