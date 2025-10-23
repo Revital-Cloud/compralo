@@ -1,12 +1,13 @@
 "use client"
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useFavorites } from '@/hooks/use-favorites'
 import { useAuth } from '@/hooks/use-auth'
+import { useCart } from '@/hooks/use-cart'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Heart, ShoppingCart, ArrowLeft, Trash2 } from 'lucide-react'
+import { Heart, ShoppingCart, ArrowLeft, Trash2, Check } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { formatPrice } from '@/utils/format-price'
@@ -14,11 +15,17 @@ import { getProductImageUrl } from '@/utils/image-helpers'
 import { cn } from '@/lib/utils'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { motion } from 'framer-motion'
 
 const FavoritesPage: React.FC = () => {
   const { user } = useAuth()
   const { favorites, isLoading, removeFromFavorites, toggleFavorite } = useFavorites()
+  const { addToCart } = useCart()
   const router = useRouter()
+  
+  // Estado local para controlar el loading de cada botón individualmente
+  const [loadingProducts, setLoadingProducts] = useState<Set<string>>(new Set())
 
   // Si no hay usuario autenticado, redirigir al login
   if (!user) {
@@ -40,9 +47,43 @@ const FavoritesPage: React.FC = () => {
     )
   }
 
-  const handleAddToCart = (product: any) => {
-    // TODO: Implementar lógica para agregar al carrito
-    console.log('Agregar al carrito:', product)
+  const handleAddToCart = async (product: any) => {
+    // Crear un ID único para este producto
+    const productKey = `${product.id_categoria_producto}-${product.id_linea_producto}-${product.id_sublinea_producto}-${product.id_producto}`
+    
+    try {
+      // Marcar este producto como cargando
+      setLoadingProducts(prev => new Set(prev).add(productKey))
+      
+      const cartProduct = {
+        id_categoria_producto: product.id_categoria_producto,
+        id_linea_producto: product.id_linea_producto,
+        id_sublinea_producto: product.id_sublinea_producto,
+        id_producto: product.id_producto,
+        cantidad: 1,
+        precio_unitario_carrito: product.val_precio,
+      }
+
+      await addToCart(cartProduct)
+      
+      toast.success('¡Producto agregado al carrito!', {
+        description: `${product.nom_producto} se ha agregado correctamente`,
+        duration: 3000,
+      })
+    } catch (error: any) {
+      console.error('Error al agregar al carrito:', error)
+      toast.error('Error al agregar al carrito', {
+        description: error.message || 'No se pudo agregar el producto al carrito',
+        duration: 4000,
+      })
+    } finally {
+      // Quitar el loading de este producto específico
+      setLoadingProducts(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(productKey)
+        return newSet
+      })
+    }
   }
 
   if (isLoading) {
@@ -189,11 +230,28 @@ const FavoritesPage: React.FC = () => {
                   <div className="flex gap-2 pt-2">
                     <Button
                       size="sm"
-                      className="flex-1 bg-black text-white hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600"
+                      disabled={loadingProducts.has(`${product.id_categoria_producto}-${product.id_linea_producto}-${product.id_sublinea_producto}-${product.id_producto}`)}
+                      className={cn(
+                        "flex-1 bg-black text-white hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 transition-all duration-300",
+                        loadingProducts.has(`${product.id_categoria_producto}-${product.id_linea_producto}-${product.id_sublinea_producto}-${product.id_producto}`) && "scale-95 bg-green-600 dark:bg-green-600"
+                      )}
                       onClick={() => handleAddToCart(product)}
                     >
-                      <ShoppingCart className="w-4 h-4 mr-1" />
-                      Agregar
+                      {loadingProducts.has(`${product.id_categoria_producto}-${product.id_linea_producto}-${product.id_sublinea_producto}-${product.id_producto}`) ? (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="flex items-center gap-2"
+                        >
+                          <Check className="w-4 h-4" />
+                          ¡Agregado!
+                        </motion.div>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-4 h-4 mr-1" />
+                          Agregar
+                        </>
+                      )}
                     </Button>
                     
                     <Button

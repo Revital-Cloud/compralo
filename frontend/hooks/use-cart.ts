@@ -231,6 +231,48 @@ export function useCart() {
     },
   });
 
+  /**
+   * Query para obtener los productos del carrito con información básica (marca y color)
+   */
+  const {
+    data: cartProductsWithBasic,
+    isLoading: isLoadingProductsWithBasic,
+    error: productsWithBasicError,
+    refetch: refetchProductsWithBasic,
+  } = useQuery({
+    queryKey: [...CART_KEYS.products(currentCartUser), "with-basic"],
+    queryFn: async () => {
+      console.log("🔍 Obteniendo productos del carrito con info básica para:", currentCartUser);
+      try {
+        const result = await cartService.getCartProductsWithBasicInfo(currentCartUser);
+        console.log("📦 Productos con info básica obtenidos del servidor:", result);
+        return result;
+      } catch (error: any) {
+        console.error("❌ Error al obtener productos del carrito con info básica:", error);
+        // Si es un error 400, retornar array vacío en lugar de lanzar error
+        if (error?.response?.status === 400) {
+          console.log("🛒 Error 400 - retornando carrito vacío");
+          return [];
+        }
+        throw error;
+      }
+    },
+    enabled: !!cartData?.id_carrito && !has400Error,
+    staleTime: 2 * 60 * 1000, // 2 minutos
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    retry: (failureCount, error: any) => {
+      // No reintentar si es error 400 (Bad Request)
+      if (error?.response?.status === 400) {
+        setHas400Error(true);
+        return false;
+      }
+      // Reintentar máximo 1 vez para otros errores
+      return failureCount < 1;
+    },
+  });
+
+
   // =============================================================================
   // MIGRACIÓN AUTOMÁTICA DE CARRITO
   // =============================================================================
@@ -753,8 +795,8 @@ export function useCart() {
   // =============================================================================
 
   const isLoading =
-    storeLoading || isLoadingCart || isLoadingProducts || isLoadingTotals;
-  const error = storeError || cartError || productsError || totalsError;
+    storeLoading || isLoadingCart || isLoadingProducts || isLoadingProductsWithBasic || isLoadingTotals;
+  const error = storeError || cartError || productsError || productsWithBasicError || totalsError;
   const total = getCartTotal();
   const itemCount = getItemCount();
 
@@ -774,6 +816,10 @@ export function useCart() {
     cartUser: currentCartUser,
     id_carrito,
     cartExceedsLimit,
+    
+    // === DATOS CON INFORMACIÓN BÁSICA ===
+    itemsWithBasic: cartProductsWithBasic || [],
+    isLoadingWithBasic: isLoadingProductsWithBasic,
 
     // === ACCIONES ===
     addToCart: addToCartMutation.mutate,
@@ -788,8 +834,9 @@ export function useCart() {
       // Invalidar todas las queries del carrito y refrescar
       queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       refetchProducts();
+      refetchProductsWithBasic();
       refetchTotals();
-    }, [queryClient, refetchProducts, refetchTotals]),
+    }, [queryClient, refetchProducts, refetchProductsWithBasic, refetchTotals]),
 
     // Función para resetear errores y reintentar
     resetErrors: useCallback(() => {

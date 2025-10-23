@@ -116,6 +116,13 @@ class GetCartDetail(BaseModel):
     """
     id_usuario: Optional[int] = Field(None, description="ID del usuario registrado (opcional).")
     session_id: Optional[str] = Field(None, description="ID de la sesión para usuarios anónimos (opcional).")
+    
+    @model_validator(mode='after')
+    def validate_at_least_one_parameter(self):
+        """Valida que al menos uno de los parámetros sea proporcionado."""
+        if not self.id_usuario and not self.session_id:
+            raise ValueError("Debe proporcionar al menos 'id_usuario' o 'session_id'")
+        return self
 
 
 class CartResponse(BaseModel):
@@ -173,6 +180,28 @@ class CartTotalResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class ProductBasicInfo(BaseModel):
+    """
+    Esquema simple para información básica del producto (marca y color).
+    """
+    marca: Optional[str] = Field(None, description="Marca del producto")
+    color: Optional[str] = Field(None, description="Color del producto")
+
+class CartItemWithBasicInfo(BaseModel):
+    """
+    Esquema para productos del carrito con información básica (marca y color).
+    """
+    id_carrito_producto: Decimal = Field(..., description="ID del producto en el carrito")
+    id_carrito: int = Field(..., description="ID del carrito")
+    cantidad: Decimal = Field(..., description="Cantidad del producto")
+    precio_unitario_carrito: Decimal = Field(..., description="Precio unitario en el carrito")
+    subtotal: Decimal = Field(..., description="Subtotal del producto")
+    nombre_producto: str = Field(..., description="Nombre del producto")
+    imagen_url: Optional[str] = Field(None, description="URL de la imagen")
+    stock_disponible: int = Field(..., description="Stock disponible")
+    basic_info: ProductBasicInfo = Field(..., description="Información básica del producto")
 
 class ResponseMessage(BaseModel):
     """

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import Optional
 
-from schemas.cart_product_schemas import CalculateTotalCart, CartProductCreate, CartProductDelete, GetCartDetail, MigrateCartAnonymous, GetCartUser
+from schemas.cart_product_schemas import CalculateTotalCart, CartProductCreate, CartProductDelete, GetCartDetail, MigrateCartAnonymous, GetCartUser, CartItemWithBasicInfo, ProductBasicInfo
 
 def get_cart(db:Session):
     """
@@ -445,4 +445,108 @@ def calculate_total_cart(db:Session, calculate_total_cart:CalculateTotalCart):
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al calcular total del carrito: {str(e)}")
+
+def get_cart_with_basic_info(db: Session, get_cart_detail: GetCartDetail):
+    """
+    Obtiene el carrito con información básica (marca y color) de los productos.
     
+    Args:
+        db (Session): Sesión de base de datos.
+        get_cart_detail (GetCartDetail): Datos del usuario (id_usuario o session_id).
+    
+    Returns:
+        list[CartItemWithBasicInfo]: Lista de productos en el carrito con información básica.
+    """
+    try:
+        params = get_cart_detail.model_dump()
+        
+        # Query simple para obtener marca y color
+        query = text("""
+        SELECT 
+            cp.id_carrito_producto,
+            cp.id_carrito,
+            cp.cantidad,
+            cp.precio_unitario_carrito,
+            (cp.cantidad * cp.precio_unitario_carrito) as subtotal,
+            p.nom_producto,
+            p.img_producto,
+            p.num_stock,
+            m.nom_marca,
+            p.spcf_producto
+        FROM tab_carrito_productos cp
+        JOIN tab_carritos c ON cp.id_carrito = c.id_carrito
+        JOIN tab_productos p ON (
+            cp.id_categoria_producto = p.id_categoria AND
+            cp.id_linea_producto = p.id_linea AND
+            cp.id_sublinea_producto = p.id_sublinea AND
+            cp.id_producto = p.id_producto
+        )
+        LEFT JOIN tab_marcas m ON p.id_marca = m.id_marca
+        WHERE (c.id_usuario = :id_usuario OR c.session_id = :session_id)
+        AND (c.id_usuario IS NOT NULL OR c.session_id IS NOT NULL)
+        """)
+        
+        result = db.execute(query, params)
+        cart_items = result.fetchall()
+        
+        if not cart_items:
+            return []
+        
+        cart_with_basic_info = []
+        for item in cart_items:
+            # Extraer marca
+            marca = item[8] if item[8] else "Sin marca"
+            
+            # Extraer color del JSONB
+            spcf_data = item[9] if item[9] else {}
+            color = None
+            
+            if spcf_data:
+                if isinstance(spcf_data, str):
+                    try:
+                        import json
+                        spcf_data = json.loads(spcf_data)
+                    except:
+                        spcf_data = {}
+                
+                color = spcf_data.get('color') if spcf_data else None
+            
+            # Extraer imagen principal
+            img_data = item[6] if item[6] else {}
+            imagen_url = None
+            if img_data:
+                try:
+                    if isinstance(img_data, dict) and 'main' in img_data:
+                        imagen_url = img_data['main']
+                    elif isinstance(img_data, dict) and 'url' in img_data:
+                        imagen_url = img_data['url']
+                except:
+                    pass
+            
+            # Crear información básica
+            basic_info = ProductBasicInfo(
+                marca=marca,
+                color=color
+            )
+            
+            # Crear item del carrito con información básica
+            cart_item = CartItemWithBasicInfo(
+                id_carrito_producto=item[0],
+                id_carrito=item[1],
+                cantidad=item[2],
+                precio_unitario_carrito=item[3],
+                subtotal=item[4],
+                nombre_producto=item[5],
+                imagen_url=imagen_url,
+                stock_disponible=item[7],
+                basic_info=basic_info
+            )
+            
+            cart_with_basic_info.append(cart_item)
+        
+        return cart_with_basic_info
+        
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener carrito con información básica: {str(e)}")
+

@@ -17,6 +17,11 @@ export interface CartUser {
   session_id?: string;
 }
 
+export interface GetCartDetail {
+  id_usuario?: number;
+  session_id?: string;
+}
+
 export interface CartResponse {
   id_carrito: number;
   message: string;
@@ -79,6 +84,7 @@ export interface CartProductDetail {
   sublinea?: string;
   stock_disponible?: number; // Stock disponible del producto
 }
+
 
 export interface MigrateCartRequest {
   id_carrito: number;
@@ -174,6 +180,7 @@ export async function calculateCartTotal(
   });
 }
 
+
 /**
  * Migra un carrito anónimo a un usuario registrado
  */
@@ -181,4 +188,38 @@ export async function migrateAnonymousCart(
   migrateData: MigrateCartRequest
 ): Promise<ResponseMessage> {
   return await post<ResponseMessage>("/migrar", migrateData);
+}
+
+export interface ProductBasicInfo {
+  marca?: string;
+  color?: string;
+}
+
+export interface CartItemWithBasicInfo {
+  id_carrito_producto: number;
+  id_carrito: number;
+  cantidad: number;
+  precio_unitario_carrito: number;
+  subtotal: number;
+  nombre_producto: string;
+  imagen_url?: string;
+  stock_disponible: number;
+  basic_info: ProductBasicInfo;
+}
+
+/**
+ * Obtiene los productos del carrito con información básica (marca y color)
+ */
+export async function getCartProductsWithBasicInfo(
+  cartUser: CartUser
+): Promise<CartItemWithBasicInfo[]> {
+  const cartDetail: GetCartDetail = {
+    id_usuario: cartUser.id_usuario,
+    session_id: cartUser.session_id
+  };
+  
+  return await post<CartItemWithBasicInfo[]>(
+    "/carrito-productos-basico",
+    cartDetail
+  );
 }

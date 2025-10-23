@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user, get_current_user_optional
 from schemas.auth_schema import UserInToken
-from schemas.cart_product_schemas import CalculateTotalCart, CartProductCreate, CartProduct, GetCartDetail, GetCartUser, MigrateCartAnonymous, ResponseMessage, CartResponse, Cart, CartTotalResponse
+from schemas.cart_product_schemas import CalculateTotalCart, CartProductCreate, CartProduct, GetCartDetail, GetCartUser, MigrateCartAnonymous, ResponseMessage, CartResponse, Cart, CartTotalResponse, CartItemWithBasicInfo
 from services import cart_product_service
 from typing import Optional
 
@@ -331,5 +331,21 @@ async def calculate_total_cart(
         if cart_total_result is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se pudo calcular el total del carrito")
         return cart_total_result
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.post("/carrito-productos-basico", response_model=list[CartItemWithBasicInfo], status_code=status.HTTP_200_OK)
+async def get_cart_products_with_basic_info(
+    get_cart_detail: GetCartDetail = Body(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene todos los productos en el carrito con información básica (marca y color).
+    """
+    try:
+        cart_products_with_basic = cart_product_service.get_cart_with_basic_info(db, get_cart_detail)
+        if not cart_products_with_basic:
+            return []
+        return cart_products_with_basic
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
