@@ -55,6 +55,56 @@ async def create_comentary(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
+@router.get("/comentaries/product/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}")
+async def get_comentaries_by_product(
+    id_categoria:Decimal,
+    id_linea:Decimal,
+    id_sublinea:Decimal,
+    id_producto:Decimal,
+    db:Session = Depends(get_db)
+):
+    """
+    Obtiene todos los comentarios activos de un producto específico.
+    
+    Args:
+        id_categoria (Decimal): El ID de la categoría.
+        id_linea (Decimal): El ID de la línea.
+        id_sublinea (Decimal): El ID de la sublínea.
+        id_producto (Decimal): El ID del producto.
+        db (Session): La sesión de base de datos SQLAlchemy.
+        
+    Returns:
+        list: Lista de comentarios del producto con información del usuario.
+    """
+    try:
+        comentarios = comentary_service.get_comentaries_by_product(db, id_categoria, id_linea, id_sublinea, id_producto)
+        return {"success": True, "data": [dict(row) for row in comentarios], "total": len(comentarios)}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.get("/comentaries/order/{id_orden}/reviewed-products")
+async def get_reviewed_products_in_order(
+    id_orden: int,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Obtiene la lista de productos que el usuario ya ha reseñado en una orden específica.
+    
+    Args:
+        id_orden (int): El ID de la orden.
+        db (Session): La sesión de base de datos SQLAlchemy.
+        current_user (UserInToken): Información del usuario autenticado.
+        
+    Returns:
+        dict: Lista de claves de productos ya reseñados.
+    """
+    try:
+        reviewed_products = comentary_service.get_reviewed_products_in_order(db, id_orden, current_user.id_usuario)
+        return {"success": True, "data": reviewed_products}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 @router.put("/comentaries/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}-{id_comentario}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def deactivate_comentary(
     id_categoria:Decimal,

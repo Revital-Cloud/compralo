@@ -382,16 +382,21 @@ CREATE TABLE IF NOT EXISTS tab_comentarios (
     id_sublinea                 DECIMAL(10) 	NOT NULL,
     id_producto                 DECIMAL(10) 	NOT NULL,
     id_usuario                  DECIMAL(10) 	NOT NULL,
+    id_orden                    DECIMAL(10) 	NOT NULL,  -- ID de la orden asociada al comentario
     id_comentario              DECIMAL(10) 	NOT NULL,
     comentario                  VARCHAR 		NOT NULL CHECK (LENGTH(TRIM(comentario)) >= 3),
+    calificacion                INT 		NOT NULL CHECK (calificacion >= 1 AND calificacion <= 5),
     ind_activo                  BOOLEAN 		NOT NULL DEFAULT TRUE,
     usr_insert                  DECIMAL(10) 	NOT NULL,
     fec_insert                  TIMESTAMP WITHOUT TIME ZONE NOT NULL,
 	usr_update					DECIMAL(10),
 	fec_update					TIMESTAMP WITHOUT TIME ZONE,
     FOREIGN KEY (id_usuario) REFERENCES tab_usuarios(id_usuario),
+    FOREIGN KEY (id_orden) REFERENCES tab_ordenes(id_orden),
     FOREIGN KEY (id_categoria,id_linea,id_sublinea,id_producto) REFERENCES tab_productos(id_categoria, id_linea, id_sublinea, id_producto),
-    PRIMARY KEY (id_comentario,id_categoria,id_linea,id_sublinea,id_producto)
+    PRIMARY KEY (id_comentario,id_categoria,id_linea,id_sublinea,id_producto),
+    -- Restricción UNIQUE: Un usuario solo puede hacer una reseña por producto por orden
+    CONSTRAINT uq_comentario_usuario_producto_orden UNIQUE (id_usuario, id_orden, id_categoria, id_linea, id_sublinea, id_producto)
 );
 
 
