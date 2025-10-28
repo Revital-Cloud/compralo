@@ -146,17 +146,20 @@ BEGIN
         val_porce_descuento, val_monto_descuento, aplica_a,
         id_categoria, id_linea, id_sublinea, id_producto_aplica,
         id_categoria_aplica, id_marca_aplica, id_linea_aplica, id_sublinea_aplica,
-        fec_inicio, fec_fin, max_usos_total, costo_puntos_canje,
+        min_valor_pedido, ind_es_para_cumpleanos,
+        fec_inicio, fec_fin, ind_activo,
+        max_usos_total, costo_puntos_canje, ind_canjeable_puntos,
         codigo_descuento, max_usos_por_usuario, dias_semana_aplica,
         horas_inicio, horas_fin,
-        usr_insert
+        solo_primera_compra, monto_minimo_producto, cantidad_minima_producto, requiere_codigo,
+        usr_insert, fec_insert
     ) VALUES (
         v_nuevo_id,                     -- ID generado automáticamente
         p_nom_descuento,                -- Nombre del descuento
         p_des_descuento,                -- Descripción del descuento
         p_tipo_calculo,                 -- Tipo de cálculo (porcentaje/monto)
-        p_val_porce_descuento,          -- Valor porcentual
-        p_val_monto_descuento,          -- Valor de monto fijo
+        COALESCE(p_val_porce_descuento, 0), -- Valor porcentual (default 0)
+        COALESCE(p_val_monto_descuento, 0), -- Valor de monto fijo (default 0)
         p_aplica_a,                     -- Tipo de aplicación
         p_id_categoria,                 -- Categoría (si aplica)
         p_id_linea,                     -- Línea (si aplica)
@@ -166,16 +169,25 @@ BEGIN
         p_id_marca_aplica,              -- Marca específica (si aplica)
         p_id_linea_aplica,              -- Línea específica (si aplica)
         p_id_sublinea_aplica,           -- Sublínea específica (si aplica)
+        COALESCE(p_min_valor_pedido, 0), -- Monto mínimo pedido (default 0)
+        COALESCE(p_ind_es_para_cumpleanos, FALSE), -- Es para cumpleaños (default FALSE)
         p_fec_inicio,                   -- Fecha de inicio
         p_fec_fin,                      -- Fecha de fin
+        COALESCE(p_ind_activo, TRUE),    -- Ind activo (default TRUE)
         p_max_usos_total,               -- Máximo usos total
         p_costo_puntos_canje,           -- Costo en puntos para canje
+        COALESCE(p_ind_canjeable_puntos, FALSE), -- Canjeable por puntos (default FALSE)
         p_codigo_descuento,             -- Código único del descuento
         p_max_usos_por_usuario,         -- Máximo usos por usuario
         p_dias_semana_aplica,           -- Días de la semana que aplica
         p_horas_inicio,                 -- Hora de inicio
         p_horas_fin,                    -- Hora de fin
-        p_usr_operacion                -- Usuario que crea el descuento
+        COALESCE(p_solo_primera_compra, FALSE), -- Solo primera compra (default FALSE)
+        COALESCE(p_monto_minimo_producto, 0), -- Monto mínimo producto (default 0)
+        COALESCE(p_cantidad_minima_producto, 1), -- Cantidad mínima producto (default 1)
+        COALESCE(p_requiere_codigo, FALSE), -- Requiere código (default FALSE)
+        p_usr_operacion,                -- Usuario que crea el descuento
+        NOW()                           -- Fecha de inserción (automática)
     );
 
     -- RESPUESTA: Confirmar éxito de la inserción

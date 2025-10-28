@@ -52,8 +52,8 @@ const UsersPage = () => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
   })
 
-  const users = usersResponse?.items || usersResponse || []
-  const totalUsers = Array.isArray(usersResponse) ? users.length : (usersResponse?.total || users.length || 0)
+  const users = Array.isArray(usersResponse) ? usersResponse : (usersResponse?.items || [])
+  const totalUsers = Array.isArray(usersResponse) ? usersResponse.length : (usersResponse?.total || 0)
 
   // Calcular estadísticas
   const userStats = {

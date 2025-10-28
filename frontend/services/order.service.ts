@@ -1,7 +1,10 @@
-import api from '@/utils/apiWrapper';
-
-// Nota: Eliminamos las funciones de crear/pagar orden directamente.
-// El flujo soportado es pagar el carrito y, solo si Wompi APRUEBA, crear la orden.
+import { get, post, put } from '@/utils/apiWrapper'
+import type { 
+  Order, 
+  OrderDetail, 
+  OrderStats, 
+  OrderFilters 
+} from '@/types/order'
 
 export interface PayCartAndCreateOrderRequest {
   payment_method_id: number;
@@ -17,15 +20,41 @@ export interface PayCartAndCreateOrderResponse {
   transaction_id?: string;
 }
 
-// (Se eliminan createOrder y payOrder para evitar usos accidentales)
+export const orderService = {
+  // Admin endpoints
+  async getAllOrders(filters?: OrderFilters): Promise<Order[]> {
+    const params = new URLSearchParams()
+    if (filters?.limit) params.append('limit', filters.limit.toString())
+    if (filters?.offset) params.append('offset', filters.offset.toString())
+    
+    const queryString = params.toString()
+    const url = `/admin/orders/all${queryString ? `?${queryString}` : ''}`
+    return get<Order[]>(url)
+  },
 
-export async function payCartAndCreateOrder(
-  cartId: number,
-  payload: PayCartAndCreateOrderRequest
-): Promise<PayCartAndCreateOrderResponse> {
-  const res = await api.post<PayCartAndCreateOrderResponse>(`/cart/${cartId}/pay`, payload);
-  return res;
+  async getOrderStats(): Promise<OrderStats> {
+    return get<OrderStats>('/admin/stats')
+  },
+
+  async getOrderDetail(orderId: string): Promise<OrderDetail> {
+    return get<OrderDetail>(`/admin/${orderId}`)
+  },
+
+  async updateOrderStatus(orderId: string, status: number): Promise<{ message: string }> {
+    return put<{ message: string }>(`/admin/${orderId}/status`, { new_status: status })
+  },
+
+  // Cliente endpoints (mantener compatibilidad)
+  async payCartAndCreateOrder(
+    cartId: number,
+    payload: PayCartAndCreateOrderRequest
+  ): Promise<PayCartAndCreateOrderResponse> {
+    const res = await post<PayCartAndCreateOrderResponse>(`/cart/${cartId}/pay`, payload);
+    return res;
+  }
 }
 
-const orderService = { payCartAndCreateOrder };
-export default orderService; 
+// Export individual functions for backward compatibility
+export const payCartAndCreateOrder = orderService.payCartAndCreateOrder
+
+export default orderService 

@@ -82,9 +82,47 @@ def create_discount(db:Session, discount:DiscountCreate, usr_insert:Decimal):
     un nuevo descuento, identificado por `id_descuento`. Los datos para la
     inserción se toman del esquema `DiscountCreate` (solo campos proporcionados).
     """
+    import json
     try:
         params = discount.model_dump()
-        params["usr_insert"] = usr_insert
+        
+        # Preparar todos los parámetros que la función SQL espera
+        # Nota: El orden y nombre de parámetros debe coincidir exactamente con la función SQL
+        sql_params = {
+            'nom_descuento': params.get('nom_descuento'),
+            'des_descuento': params.get('des_descuento'),
+            'tipo_calculo': params.get('tipo_calculo'),
+            'val_porce_descuento': params.get('val_porce_descuento'),
+            'val_monto_descuento': params.get('val_monto_descuento'),
+            'aplica_a': params.get('aplica_a'),
+            'id_categoria': params.get('id_categoria'),
+            'id_linea': params.get('id_linea'),
+            'id_sublinea': params.get('id_sublinea'),
+            'id_producto_aplica': params.get('id_producto_aplica'),
+            'id_categoria_aplica': params.get('id_categoria_aplica'),
+            'id_marca_aplica': params.get('id_marca_aplica'),
+            'id_linea_aplica': params.get('id_linea_aplica'),
+            'id_sublinea_aplica': params.get('id_sublinea_aplica'),
+            'min_valor_pedido': params.get('min_valor_pedido'),
+            'ind_es_para_cumpleanos': params.get('ind_es_para_cumpleanos'),
+            'fec_inicio': params.get('fec_inicio'),
+            'fec_fin': params.get('fec_fin'),
+            'ind_activo': params.get('ind_activo'),
+            'max_usos_total': params.get('max_usos_total'),
+            'costo_puntos_canje': params.get('costo_puntos_canje'),
+            'ind_canjeable_puntos': params.get('ind_canjeable_puntos'),
+            'codigo_descuento': params.get('codigo_descuento'),
+            'max_usos_por_usuario': params.get('max_usos_por_usuario'),
+            'dias_semana_aplica': params.get('dias_semana_aplica'),
+            'horas_inicio': params.get('horas_inicio'),
+            'horas_fin': params.get('horas_fin'),
+            'solo_primera_compra': params.get('solo_primera_compra'),
+            'monto_minimo_producto': params.get('monto_minimo_producto'),
+            'cantidad_minima_producto': params.get('cantidad_minima_producto'),
+            'requiere_codigo': params.get('requiere_codigo'),
+            'usr_operacion': usr_insert  # Nombre correcto del parámetro en la función SQL
+        }
+        
         query = text("""
         SELECT fun_insert_descuento(
             :nom_descuento,
@@ -118,13 +156,24 @@ def create_discount(db:Session, discount:DiscountCreate, usr_insert:Decimal):
             :monto_minimo_producto,
             :cantidad_minima_producto,
             :requiere_codigo,
-            :usr_insert
+            :usr_operacion
         )
         """)
-        result = db.execute(query, params)
+        result = db.execute(query, sql_params)
         fetched_result = result.fetchone()
         db.commit()
-        return fetched_result[0] if fetched_result else None
+        
+        # La función devuelve un JSON, necesitamos parsearlo
+        if fetched_result and fetched_result[0]:
+            result_json = json.loads(fetched_result[0]) if isinstance(fetched_result[0], str) else fetched_result[0]
+            
+            # Verificar si la operación fue exitosa
+            if result_json.get('success') == False:
+                raise Exception(result_json.get('message', 'Error desconocido al crear descuento'))
+            
+            return result_json.get('id_descuento')
+        
+        raise Exception('No se pudo crear el descuento')
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al crear descuento: {str(e)}")
@@ -207,3 +256,66 @@ def deactivate_activate_discount(db:Session, id_descuento:Decimal, activar:bool,
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al desactivar o activar descuento: {str(e)}")
+
+
+def get_discount_stats(db: Session):
+    """
+    Obtiene estadísticas generales de descuentos para el panel de administración.
+    
+    Args:
+        db (Session): Sesión de base de datos
+        
+    Returns:
+        dict: Estadísticas de descuentos
+    """
+    try:
+        query = text("""
+        SELECT 
+            COUNT(*) FILTER (WHERE ind_activo = TRUE) as total_activos,
+            COUNT(*) FILTER (WHERE ind_activo = FALSE) as total_inactivos,
+            (SELECT COUNT(*) FROM tab_canjes_puntos_descuentos) as total_canjes,
+            (SELECT COALESCE(SUM(puntos_utilizados), 0) FROM tab_canjes_puntos_descuentos) as total_puntos_canjeados
+        FROM tab_descuentos
+        """)
+        result = db.execute(query)
+        return result.mappings().first()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener estadísticas de descuentos: {str(e)}")
+
+
+def get_discount_exchanges(db: Session, id_descuento: Decimal):
+    """
+    Obtiene el historial de canjes de un descuento específico.
+    
+    Args:
+        db (Session): Sesión de base de datos
+        id_descuento (Decimal): ID del descuento
+        
+    Returns:
+        list: Lista de canjes del descuento
+    """
+    try:
+        query = text("""
+        SELECT 
+            c.id_canje, 
+            c.id_usuario, 
+            u.nom_usuario, 
+            u.ape_usuario, 
+            u.email_usuario,
+            c.puntos_utilizados, 
+            c.ind_utilizado, 
+            c.fec_utilizacion, 
+            c.fec_expiracion_canje,
+            c.fec_insert as fec_canje, 
+            c.id_orden_aplicado
+        FROM tab_canjes_puntos_descuentos c
+        JOIN tab_usuarios u ON c.id_usuario = u.id_usuario
+        WHERE c.id_descuento = :id_descuento
+        ORDER BY c.fec_insert DESC
+        """)
+        result = db.execute(query, {"id_descuento": id_descuento})
+        return result.mappings().all()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener canjes del descuento: {str(e)}")

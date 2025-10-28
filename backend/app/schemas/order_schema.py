@@ -97,3 +97,16 @@ class CreateOrderResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+class OrderStats(BaseModel):
+    """
+    Esquema para estadísticas de órdenes para el panel de administración.
+    """
+    total: Optional[int] = Field(default=0, description="Total de órdenes")
+    pendiente: Optional[int] = Field(default=0, description="Órdenes pendientes")
+    completada: Optional[int] = Field(default=0, description="Órdenes completadas")
+    cancelada: Optional[int] = Field(default=0, description="Órdenes canceladas")
+    total_ventas: Optional[Decimal] = Field(default=Decimal('0'), description="Total de ventas completadas")
+    
+    class Config:
+        from_attributes = True

@@ -65,10 +65,22 @@ async def create_discount(
         ResponseMessage: Mensaje de confirmación.
     """
     try:
-        discount_service.create_discount(db, discount_data, current_user.id_usuario)
+        result = discount_service.create_discount(db, discount_data, current_user.id_usuario)
         return ResponseMessage(message="Descuento creado exitosamente")
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        error_detail = str(e)
+        import traceback
+        print(f"ERROR en create_discount: {error_detail}")
+        print(f"Traceback: {traceback.format_exc()}")
+        # Si es un error de validación de Pydantic, lanzar 422
+        if "validation" in error_detail.lower() or "Invalid" in error_detail:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=error_detail
+            )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_detail)
 
 @router.put("/discounts/{id_descuento}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_discount(
@@ -147,3 +159,33 @@ async def validate_discount(
         return ValidateDiscountResponse(aplicable=aplicable, mensaje=mensaje)
     except Exception as e:
         return ValidateDiscountResponse(aplicable=False, mensaje=f"Error al validar descuento: {str(e)}")
+
+# Endpoints Admin
+@router.get("/admin/stats", status_code=status.HTTP_200_OK)
+async def get_discount_stats(
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin())
+):
+    """
+    Obtiene estadísticas generales de descuentos (solo admin).
+    """
+    try:
+        stats = discount_service.get_discount_stats(db)
+        return stats
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.get("/{id_descuento}/admin/canjes", status_code=status.HTTP_200_OK)
+async def get_discount_exchanges(
+    id_descuento: Decimal,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin())
+):
+    """
+    Obtiene el historial de canjes de un descuento específico (solo admin).
+    """
+    try:
+        exchanges = discount_service.get_discount_exchanges(db, id_descuento)
+        return exchanges
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

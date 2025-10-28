@@ -13,6 +13,7 @@ export interface UserBase {
   ind_genero: boolean;
   cel_usuario: string;
   fec_nacimiento?: string;
+  ind_activo: boolean;
 }
 
 export interface UserCreate extends Omit<UserBase, 'id_usuario'> {
@@ -29,6 +30,7 @@ export interface UserUpdate {
   ind_genero?: boolean;
   cel_usuario?: string;
   fec_nacimiento?: string;
+  ind_activo?: boolean;
 }
 
 export interface User extends UserBase {

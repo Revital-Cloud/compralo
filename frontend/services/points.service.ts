@@ -1,54 +1,13 @@
 import { get, post, put } from '@/utils/apiWrapper'
-
-export interface PointsConfig {
-  id_config_puntos: string
-  pesos_por_punto: string
-  puntos_por_peso: string
-  fec_inicio: string
-  fec_fin?: string
-  ind_activo: boolean
-  fec_insert?: string
-  fec_update?: string
-}
-
-export interface PointsConfigCreate {
-  pesos_por_punto: string
-  puntos_por_peso: string
-  fec_inicio: string
-  fec_fin?: string
-  ind_activo?: boolean
-}
-
-export interface PointsConfigUpdate {
-  pesos_por_punto?: string
-  puntos_por_peso?: string
-  fec_inicio?: string
-  fec_fin?: string
-  ind_activo?: boolean
-}
-
-export interface PointsPerUser {
-  id_usuario: string
-  total_puntos: string
-  puntos_disponibles: string
-  puntos_canjeados: string
-}
-
-export interface PointsHistory {
-  id_historial: string
-  id_usuario: string
-  tipo_movimiento: string
-  val_puntos: string
-  id_pedido?: string
-  id_descuento?: string
-  des_movimiento?: string
-  fec_insert: string
-}
-
-export interface PointsHistoryResponse {
-  historial: PointsHistory[]
-  total_registros: number
-}
+import type { 
+  PointsConfig, 
+  PointsConfigCreate, 
+  PointsConfigUpdate, 
+  PointsPerUser, 
+  PointsHistoryResponse,
+  UserWithPoints,
+  PointsStats
+} from '@/types/points'
 
 export const pointsService = {
   // Configuración de puntos (Admin)
@@ -71,6 +30,15 @@ export const pointsService = {
 
   async getPointsHistory(): Promise<PointsHistoryResponse> {
     return get<PointsHistoryResponse>('/historial-puntos')
+  },
+
+  // Admin endpoints
+  async getAllUsersWithPoints(): Promise<UserWithPoints[]> {
+    return get<UserWithPoints[]>('/admin/all')
+  },
+
+  async getUserPointsHistory(userId: string): Promise<PointsHistoryResponse> {
+    return get<PointsHistoryResponse>(`/admin/user/${userId}/history`)
   }
 }
 
