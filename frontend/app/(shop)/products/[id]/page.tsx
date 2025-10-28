@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { ProductGallery, ProductInfo, RelatedProducts } from "@/components/product"
 import CartToast from "@/components/ui/cart-toast"
+import { ReviewsSection } from "@/components/ui/reviews-section"
 import { useProduct } from "@/hooks/use-products"
 import { useCart } from "@/hooks/use-cart"
 import Loading from "@/components/ui/loading"
@@ -182,10 +183,10 @@ const ProductPage = () => {
         </div>
 
         {/* Product Details Section */}
-        <div className="border-t border-gray-200 dark:border-gray-700 pt-8 md:pt-16">
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-16 md:pt-24">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Stock Information */}
-            <div className="space-y-4">
+            <div className="space-y-4 pb-8">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Información de Stock
               </h3>
@@ -206,18 +207,27 @@ const ProductPage = () => {
             </div>
 
             {/* Product Specifications */}
-            <div className="space-y-4">
+            <div className="space-y-4 pb-8">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Especificaciones
               </h3>
               <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 {product.spcf_producto && typeof product.spcf_producto === 'object' ? (
-                  Object.entries(product.spcf_producto).map(([key, value]) => (
-                    <div key={key} className="flex justify-between">
-                      <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
-                      <span>{String(value)}</span>
-                    </div>
-                  ))
+                  Object.entries(product.spcf_producto)
+                    .filter(([key, value]) => {
+                      // Filtrar valores que no tengan información útil
+                      if (value === null || value === undefined) return false
+                      if (typeof value === 'string' && value.trim() === '') return false
+                      if (Array.isArray(value) && value.length === 0) return false
+                      if (typeof value === 'object' && Object.keys(value).length === 0) return false
+                      return true
+                    })
+                    .map(([key, value]) => (
+                      <div key={key} className="flex justify-between">
+                        <span className="font-medium capitalize">{key.replace(/_/g, ' ')}:</span>
+                        <span>{Array.isArray(value) ? value.join(', ') : String(value)}</span>
+                      </div>
+                    ))
                 ) : (
                   <p>Sin especificaciones disponibles</p>
                 )}
@@ -225,7 +235,7 @@ const ProductPage = () => {
             </div>
 
             {/* Product Metadata */}
-            <div className="space-y-4">
+            <div className="space-y-4 pb-8">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Información del Producto
               </h3>
@@ -236,27 +246,35 @@ const ProductPage = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Categoría:</span>
-                  <span>{product.id_categoria}</span>
+                  <span>{product.nom_categoria || product.id_categoria}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Línea:</span>
-                  <span>{product.id_linea}</span>
+                  <span>{product.nom_linea || product.id_linea}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Sub-línea:</span>
-                  <span>{product.id_sublinea}</span>
+                  <span>{product.nom_sublinea || product.id_sublinea}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Marca:</span>
-                  <span>{product.id_marca}</span>
+                  <span>{product.nom_marca || product.id_marca}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Proveedor:</span>
-                  <span>{product.id_proveedor}</span>
+                  <span>{product.nom_proveedor || product.id_proveedor}</span>
                 </div>
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-8 md:pt-16">
+          <ReviewsSection
+            productId={`${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
+            productName={product.nom_producto}
+          />
         </div>
 
         {/* Related Products Section */}

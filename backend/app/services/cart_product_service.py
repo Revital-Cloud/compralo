@@ -321,6 +321,9 @@ def get_cart_detail(db:Session, get_cart_detail:GetCartDetail):
         for producto in productos:
             product_dict = {
                 'id_carrito_producto': producto.get('id_carrito_producto'),
+                'id_categoria_producto': producto.get('id_categoria_producto'),
+                'id_linea_producto': producto.get('id_linea_producto'),
+                'id_sublinea_producto': producto.get('id_sublinea_producto'),
                 'id_producto': producto.get('id_producto'),
                 'nombre_producto': producto.get('nombre_producto'),
                 'precio_unitario': float(producto.get('precio_unitario', 0)),

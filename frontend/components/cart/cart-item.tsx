@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Trash2, Minus, Plus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -9,6 +11,8 @@ import { CART_LIMITS } from '@/services/cart.service'
 
 interface CartItemProps {
   id: string
+  productId?: number
+  productSlug?: string
   name: string
   brand: string
   color: string
@@ -25,6 +29,8 @@ interface CartItemProps {
 
 const CartItem: React.FC<CartItemProps> = ({
   id,
+  productId,
+  productSlug,
   name,
   brand,
   color,
@@ -39,6 +45,7 @@ const CartItem: React.FC<CartItemProps> = ({
   onRemove
 }) => {
   const [isUpdating, setIsUpdating] = useState(false)
+  const router = useRouter()
   
   // Deshabilitar "+" si el siguiente incremento excede stock o el límite de carrito
   const isPlusDisabled = (() => {
@@ -109,16 +116,32 @@ const CartItem: React.FC<CartItemProps> = ({
   }
 
 
+  // Debug: verificar si productId se está pasando
+  console.log('CartItem productId:', productId, 'name:', name)
+
+  const handleImageClick = () => {
+    const slug = productSlug || (productId ? String(productId) : undefined)
+    if (slug) {
+      console.log('Navigating to product slug:', slug)
+      router.push(`/products/${slug}`)
+    }
+  }
+
   return (
     <div className="flex flex-col sm:flex-row gap-4 p-4 sm:p-6">
       {/* Imagen del producto */}
       <div className="relative w-full h-32 sm:w-24 sm:h-24 md:w-32 md:h-32 flex-shrink-0 mx-auto sm:mx-0">
-        <Image
-          src={image}
-          alt={name}
-          fill
-          className="object-cover rounded-xl"
-        />
+        <div 
+          onClick={handleImageClick}
+          className={`${productId ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
+        >
+          <Image
+            src={image}
+            alt={name}
+            fill
+            className="object-cover rounded-xl"
+          />
+        </div>
       </div>
 
       {/* Información del producto */}
