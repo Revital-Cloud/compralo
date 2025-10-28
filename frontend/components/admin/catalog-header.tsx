@@ -9,10 +9,11 @@ interface CatalogHeaderProps {
   title: string
   description?: string
   createUrl?: string
-  createLabel: string
+  createLabel?: string
   onExport?: () => void
   onImportClick?: () => void
   onCreateClick?: () => void
+  showImportButton?: boolean
 }
 
 export const CatalogHeader: React.FC<CatalogHeaderProps> = ({
@@ -23,6 +24,7 @@ export const CatalogHeader: React.FC<CatalogHeaderProps> = ({
   onExport,
   onImportClick,
   onCreateClick,
+  showImportButton = true,
 }) => {
   return (
     <div className="flex items-center justify-between">
@@ -41,24 +43,28 @@ export const CatalogHeader: React.FC<CatalogHeaderProps> = ({
           </Button>
         )}
 
-        <Button variant="outline" onClick={onImportClick}>
-          <IconUpload className="h-4 w-4 mr-2" />
-          Importar
-        </Button>
-
-        {onCreateClick ? (
-          <Button className="bg-[#fec806] hover:bg-[#e6b800] text-black" onClick={onCreateClick}>
-            <IconPlus className="h-4 w-4 mr-2" />
-            {createLabel}
+        {showImportButton && (
+          <Button variant="outline" onClick={onImportClick}>
+            <IconUpload className="h-4 w-4 mr-2" />
+            Importar
           </Button>
-        ) : (
-          createUrl && (
-            <Link href={createUrl}>
-              <Button className="bg-[#fec806] hover:bg-[#e6b800] text-black">
-                <IconPlus className="h-4 w-4 mr-2" />
-                {createLabel}
-              </Button>
-            </Link>
+        )}
+
+        {(onCreateClick || createUrl) && createLabel && (
+          onCreateClick ? (
+            <Button className="bg-[#fec806] hover:bg-[#e6b800] text-black" onClick={onCreateClick}>
+              <IconPlus className="h-4 w-4 mr-2" />
+              {createLabel}
+            </Button>
+          ) : (
+            createUrl && (
+              <Link href={createUrl}>
+                <Button className="bg-[#fec806] hover:bg-[#e6b800] text-black">
+                  <IconPlus className="h-4 w-4 mr-2" />
+                  {createLabel}
+                </Button>
+              </Link>
+            )
           )
         )}
       </div>

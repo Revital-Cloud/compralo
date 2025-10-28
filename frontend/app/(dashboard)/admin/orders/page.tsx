@@ -194,8 +194,7 @@ const OrdersPage = () => {
       <CatalogHeader 
         title="Órdenes"
         description="Gestiona todas las órdenes de tu tienda"
-        createLabel=""
-        onCreateClick={() => {}} // Sin botón crear
+        showImportButton={false}
       />
 
       {/* Estadísticas */}
