@@ -16,7 +16,7 @@ import asyncio
 from core.database import get_db
 from core.dependencies import get_current_user, require_admin
 from schemas.auth_schema import UserInToken
-from schemas.order_schema import Order, OrderCreate, ResponseMessage, CreateOrderResponse 
+from schemas.order_schema import Order, OrderCreate, ResponseMessage, CreateOrderResponse, OrderStats 
 from schemas.payment_schema import PayOrderPayload
 from services.wompi_service import wompi_service
 from services import order_service
@@ -331,7 +331,7 @@ async def pay_cart_and_create_order(
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
 # Endpoints Admin
-@router.get("/admin/all", status_code=status.HTTP_200_OK)
+@router.get("/admin/orders/all", status_code=status.HTTP_200_OK)
 async def get_all_orders_admin(
     limit: int = 50,
     offset: int = 0,
@@ -343,11 +343,12 @@ async def get_all_orders_admin(
     """
     try:
         orders = order_service.get_all_orders_admin(db, limit, offset)
+        print(f"📊 [DEBUG] Órdenes obtenidas: {orders}")
         return orders
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-@router.get("/admin/stats", status_code=status.HTTP_200_OK)
+@router.get("/admin/stats", response_model=OrderStats, status_code=status.HTTP_200_OK)
 async def get_order_stats_admin(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(require_admin())

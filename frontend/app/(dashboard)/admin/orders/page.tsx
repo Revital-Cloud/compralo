@@ -29,12 +29,14 @@ const OrdersPage = () => {
     // Filtrar por búsqueda
     if (filters.search) {
       const q = filters.search.toLowerCase()
-      filtered = filtered.filter(order => 
-        order.id_orden.toLowerCase().includes(q) ||
-        order.nom_usuario.toLowerCase().includes(q) ||
-        order.ape_usuario.toLowerCase().includes(q) ||
-        order.email_usuario.toLowerCase().includes(q)
-      )
+      filtered = filtered.filter(order => {
+        const id = (order.id_orden || '').toLowerCase()
+        const nom = (order.nom_usuario || '').toLowerCase()
+        const ape = (order.ape_usuario || '').toLowerCase()
+        const email = (order.email_usuario || '').toLowerCase()
+        
+        return id.includes(q) || nom.includes(q) || ape.includes(q) || email.includes(q)
+      })
     }
 
     // Filtrar por estado
@@ -45,13 +47,27 @@ const OrdersPage = () => {
     // Filtrar por fechas
     if (filters.dateFrom) {
       const fromDate = new Date(filters.dateFrom)
-      filtered = filtered.filter(order => new Date(order.fec_pedido) >= fromDate)
+      filtered = filtered.filter(order => {
+        if (!order.fec_pedido) return false
+        try {
+          return new Date(order.fec_pedido) >= fromDate
+        } catch {
+          return false
+        }
+      })
     }
 
     if (filters.dateTo) {
       const toDate = new Date(filters.dateTo)
       toDate.setHours(23, 59, 59, 999) // Incluir todo el día
-      filtered = filtered.filter(order => new Date(order.fec_pedido) <= toDate)
+      filtered = filtered.filter(order => {
+        if (!order.fec_pedido) return false
+        try {
+          return new Date(order.fec_pedido) <= toDate
+        } catch {
+          return false
+        }
+      })
     }
 
     return filtered
@@ -62,46 +78,66 @@ const OrdersPage = () => {
       accessorKey: 'id_orden', 
       header: 'ID Orden', 
       cell: ({ row }) => (
-        <span className="font-mono text-sm">{row.original.id_orden}</span>
+        <span className="font-mono text-sm">{row.original.id_orden || '-'}</span>
       ) 
     },
     { 
       id: 'cliente', 
       header: 'Cliente', 
-      cell: ({ row }) => (
-        <div className="space-y-1">
-          <div className="font-medium">{row.original.nom_usuario} {row.original.ape_usuario}</div>
-          <div className="text-sm text-muted-foreground">{row.original.email_usuario}</div>
-        </div>
-      ) 
+      cell: ({ row }) => {
+        const nomUsuario = row.original.nom_usuario ?? ''
+        const apeUsuario = row.original.ape_usuario ?? ''
+        const emailUsuario = row.original.email_usuario ?? ''
+        
+        return (
+          <div className="space-y-1">
+            <div className="font-medium">{nomUsuario} {apeUsuario}</div>
+            <div className="text-sm text-muted-foreground">{emailUsuario}</div>
+          </div>
+        )
+      }
     },
     { 
       accessorKey: 'fec_pedido', 
       header: 'Fecha', 
-      cell: ({ row }) => (
-        <div className="text-sm">
-          {new Date(row.original.fec_pedido).toLocaleDateString('es-CO')}
-        </div>
-      ) 
+      cell: ({ row }) => {
+        const fecha = row.original.fec_pedido
+        if (!fecha) return <div className="text-sm">-</div>
+        
+        try {
+          return (
+            <div className="text-sm">
+              {new Date(fecha).toLocaleDateString('es-CO')}
+            </div>
+          )
+        } catch {
+          return <div className="text-sm">-</div>
+        }
+      }
     },
     { 
       accessorKey: 'ind_estado', 
       header: 'Estado', 
-      cell: ({ row }) => <OrderStatusBadge status={row.original.ind_estado} />
+      cell: ({ row }) => <OrderStatusBadge status={row.original.ind_estado ?? 0} />
     },
     { 
       id: 'monto', 
       header: 'Monto', 
-      cell: ({ row }) => (
-        <div className="text-right">
-          <div className="font-semibold">${row.original.val_total_pedido.toLocaleString('es-CO')}</div>
-          {row.original.val_total_descuentos > 0 && (
-            <div className="text-sm text-green-600">
-              -${row.original.val_total_descuentos.toLocaleString('es-CO')} desc.
-            </div>
-          )}
-        </div>
-      ) 
+      cell: ({ row }) => {
+        const valTotal = row.original.val_total_pedido ?? 0
+        const valDescuentos = row.original.val_total_descuentos ?? 0
+        
+        return (
+          <div className="text-right">
+            <div className="font-semibold">${valTotal.toLocaleString('es-CO')}</div>
+            {valDescuentos > 0 && (
+              <div className="text-sm text-green-600">
+                -${valDescuentos.toLocaleString('es-CO')} desc.
+              </div>
+            )}
+          </div>
+        )
+      } 
     },
     { 
       id: 'items_count', 

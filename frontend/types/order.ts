@@ -46,11 +46,11 @@ export interface OrderDetail {
 }
 
 export interface OrderStats {
-  total: number
-  pendiente: number
-  completada: number
-  cancelada: number
-  total_ventas: number
+  total?: number
+  pendiente?: number
+  completada?: number
+  cancelada?: number
+  total_ventas?: number
 }
 
 export interface OrderFilters {

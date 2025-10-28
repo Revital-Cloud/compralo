@@ -28,7 +28,7 @@ export const orderService = {
     if (filters?.offset) params.append('offset', filters.offset.toString())
     
     const queryString = params.toString()
-    const url = `/admin/all${queryString ? `?${queryString}` : ''}`
+    const url = `/admin/orders/all${queryString ? `?${queryString}` : ''}`
     return get<Order[]>(url)
   },
 

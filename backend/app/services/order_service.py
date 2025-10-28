@@ -57,20 +57,39 @@ def get_all_orders_admin(db: Session, limit: int = 50, offset: int = 0):
             u.nom_usuario, 
             u.ape_usuario, 
             u.email_usuario,
-            o.val_total_productos, 
-            o.val_total_descuentos, 
-            o.val_total_pedido,
+            COALESCE(o.val_total_productos, 0) as val_total_productos, 
+            COALESCE(o.val_total_descuentos, 0) as val_total_descuentos, 
+            COALESCE(o.val_total_pedido, 0) as val_total_pedido,
             o.ind_estado, 
             o.metodo_pago, 
             o.detalle_descuentos_aplicados,
             (SELECT COUNT(*) FROM tab_orden_productos op WHERE op.id_orden = o.id_orden) as items_count
         FROM tab_ordenes o
-        JOIN tab_usuarios u ON o.id_usuario = u.id_usuario
+        INNER JOIN tab_usuarios u ON o.id_usuario = u.id_usuario
         ORDER BY o.fec_pedido DESC
         LIMIT :limit OFFSET :offset
         """)
         result = db.execute(query, {"limit": limit, "offset": offset})
-        return result.mappings().all()
+        orders = result.mappings().all()
+        
+        # Convertir RowMapping a dict y normalizar valores
+        orders_list = []
+        for order in orders:
+            order_dict = dict(order)  # Convertir RowMapping a dict
+            
+            # Convertir valores None a valores por defecto
+            order_dict['val_total_productos'] = order_dict.get('val_total_productos') or 0
+            order_dict['val_total_descuentos'] = order_dict.get('val_total_descuentos') or 0
+            order_dict['val_total_pedido'] = order_dict.get('val_total_pedido') or 0
+            order_dict['items_count'] = order_dict.get('items_count') or 0
+            order_dict['nom_usuario'] = order_dict.get('nom_usuario') or ''
+            order_dict['ape_usuario'] = order_dict.get('ape_usuario') or ''
+            order_dict['email_usuario'] = order_dict.get('email_usuario') or ''
+            order_dict['metodo_pago'] = order_dict.get('metodo_pago') or ''
+            
+            orders_list.append(order_dict)
+            
+        return orders_list
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener órdenes para admin: {str(e)}")
@@ -97,7 +116,20 @@ def get_order_stats_admin(db: Session):
         FROM tab_ordenes
         """)
         result = db.execute(query)
-        return result.mappings().first()
+        stats = result.mappings().first()
+        
+        # Convertir valores a los tipos correctos
+        if stats:
+            # Asegurar que todos los conteos sean int
+            stats['total'] = int(stats.get('total', 0))
+            stats['pendiente'] = int(stats.get('pendiente', 0))
+            stats['completada'] = int(stats.get('completada', 0))
+            stats['cancelada'] = int(stats.get('cancelada', 0))
+            # total_ventas ya debería ser Decimal por defecto
+            if stats.get('total_ventas') is None:
+                stats['total_ventas'] = Decimal('0')
+        
+        return stats
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener estadísticas de órdenes: {str(e)}")

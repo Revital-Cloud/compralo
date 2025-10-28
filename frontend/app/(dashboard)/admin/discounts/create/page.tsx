@@ -15,10 +15,12 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 
 const discountSchema = z.object({
+  nom_descuento: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   des_descuento: z.string().min(3, 'La descripción debe tener al menos 3 caracteres'),
   tipo_calculo: z.boolean(),
   val_porce_descuento: z.number().optional(),
   val_monto_descuento: z.number().optional(),
+  aplica_a: z.string().optional(),
   min_valor_pedido: z.number().optional(),
   costo_puntos_canje: z.number().optional(),
   codigo_descuento: z.string().optional(),
@@ -46,11 +48,44 @@ const CreateDiscountPage = () => {
 
   const handleSubmit = form.handleSubmit(async (values) => {
     try {
-      await createMutation.mutateAsync(values)
+      // Preparar datos para enviar al backend
+      const payload: any = {
+        nom_descuento: values.nom_descuento || values.des_descuento,
+        des_descuento: values.des_descuento,
+        tipo_calculo: values.tipo_calculo,
+        val_porce_descuento: values.tipo_calculo ? values.val_porce_descuento : null,
+        val_monto_descuento: !values.tipo_calculo ? (values.val_monto_descuento || values.val_porce_descuento) : null,
+        aplica_a: values.aplica_a || 'todos',
+        min_valor_pedido: values.min_valor_pedido,
+        codigo_descuento: values.codigo_descuento,
+        costo_puntos_canje: values.costo_puntos_canje,
+        fec_inicio: values.fec_inicio,
+        fec_fin: values.fec_fin,
+        max_usos_total: values.max_usos_total,
+        ind_activo: values.ind_activo,
+      }
+
+      await createMutation.mutateAsync(payload)
       toast.success('Descuento creado exitosamente')
       router.push('/admin/discounts')
     } catch (error: any) {
-      toast.error(error?.response?.data?.detail || 'Error al crear el descuento')
+      console.error('Error creating discount:', error)
+      let errorMessage = 'Error al crear el descuento'
+      
+      if (error?.response?.data?.detail) {
+        const detail = error.response.data.detail
+        if (Array.isArray(detail)) {
+          errorMessage = detail.map((d: any) => d.msg || d).join(', ')
+        } else if (typeof detail === 'string') {
+          errorMessage = detail
+        } else {
+          errorMessage = JSON.stringify(detail)
+        }
+      } else if (error?.message) {
+        errorMessage = error.message
+      }
+      
+      toast.error(errorMessage)
     }
   })
 
@@ -72,13 +107,26 @@ const CreateDiscountPage = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Nombre del descuento */}
+            <div className="space-y-2">
+              <Label htmlFor="nom_descuento">Nombre del Descuento *</Label>
+              <Input
+                id="nom_descuento"
+                {...form.register('nom_descuento')}
+                placeholder="Ej: Black Friday 2024"
+              />
+              {form.formState.errors.nom_descuento && (
+                <p className="text-sm text-red-600">{form.formState.errors.nom_descuento.message}</p>
+              )}
+            </div>
+
             {/* Descripción */}
             <div className="space-y-2">
               <Label htmlFor="des_descuento">Descripción del Descuento *</Label>
               <Input
                 id="des_descuento"
                 {...form.register('des_descuento')}
-                placeholder="Ej: Descuento Black Friday 2024"
+                placeholder="Ej: Descuento especial por tiempo limitado"
               />
               {form.formState.errors.des_descuento && (
                 <p className="text-sm text-red-600">{form.formState.errors.des_descuento.message}</p>

@@ -5,12 +5,12 @@ import { Badge } from '@/components/ui/badge'
 import type { Order } from '@/types/order'
 
 interface OrderStatusBadgeProps {
-  status: number
+  status: number | undefined
 }
 
 export const OrderStatusBadge = ({ status }: OrderStatusBadgeProps) => {
-  const getStatusConfig = (status: number) => {
-    switch (status) {
+  const getStatusConfig = (status: number | undefined) => {
+    switch (status ?? 0) {
       case 1: // Pendiente
         return {
           label: 'Pendiente',

@@ -65,10 +65,22 @@ async def create_discount(
         ResponseMessage: Mensaje de confirmación.
     """
     try:
-        discount_service.create_discount(db, discount_data, current_user.id_usuario)
+        result = discount_service.create_discount(db, discount_data, current_user.id_usuario)
         return ResponseMessage(message="Descuento creado exitosamente")
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        error_detail = str(e)
+        import traceback
+        print(f"ERROR en create_discount: {error_detail}")
+        print(f"Traceback: {traceback.format_exc()}")
+        # Si es un error de validación de Pydantic, lanzar 422
+        if "validation" in error_detail.lower() or "Invalid" in error_detail:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=error_detail
+            )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=error_detail)
 
 @router.put("/discounts/{id_descuento}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_discount(

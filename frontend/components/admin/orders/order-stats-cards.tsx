@@ -11,6 +11,13 @@ interface OrderStatsCardsProps {
 }
 
 export const OrderStatsCards = ({ stats }: OrderStatsCardsProps) => {
+  // Valores por defecto para evitar errores de undefined
+  const total = stats?.total ?? 0
+  const pendiente = stats?.pendiente ?? 0
+  const completada = stats?.completada ?? 0
+  const cancelada = stats?.cancelada ?? 0
+  const totalVentas = stats?.total_ventas ?? 0
+
   return (
     <div className="grid gap-4 md:grid-cols-5">
       <Card>
@@ -19,7 +26,7 @@ export const OrderStatsCards = ({ stats }: OrderStatsCardsProps) => {
           <IconShoppingCart className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.total}</div>
+          <div className="text-2xl font-bold">{total.toLocaleString('es-CO')}</div>
           <p className="text-xs text-muted-foreground">
             Todas las órdenes
           </p>
@@ -32,7 +39,7 @@ export const OrderStatsCards = ({ stats }: OrderStatsCardsProps) => {
           <IconClock className="h-4 w-4 text-yellow-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-yellow-600">{stats.pendiente}</div>
+          <div className="text-2xl font-bold text-yellow-600">{pendiente.toLocaleString('es-CO')}</div>
           <p className="text-xs text-muted-foreground">
             En proceso
           </p>
@@ -45,7 +52,7 @@ export const OrderStatsCards = ({ stats }: OrderStatsCardsProps) => {
           <IconCheck className="h-4 w-4 text-green-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">{stats.completada}</div>
+          <div className="text-2xl font-bold text-green-600">{completada.toLocaleString('es-CO')}</div>
           <p className="text-xs text-muted-foreground">
             Entregadas
           </p>
@@ -58,7 +65,7 @@ export const OrderStatsCards = ({ stats }: OrderStatsCardsProps) => {
           <IconX className="h-4 w-4 text-red-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-red-600">{stats.cancelada}</div>
+          <div className="text-2xl font-bold text-red-600">{cancelada.toLocaleString('es-CO')}</div>
           <p className="text-xs text-muted-foreground">
             Canceladas
           </p>
@@ -72,7 +79,7 @@ export const OrderStatsCards = ({ stats }: OrderStatsCardsProps) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-blue-600">
-            ${stats.total_ventas.toLocaleString('es-CO')}
+            ${totalVentas.toLocaleString('es-CO')}
           </div>
           <p className="text-xs text-muted-foreground">
             Ventas completadas
