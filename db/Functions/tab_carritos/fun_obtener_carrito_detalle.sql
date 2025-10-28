@@ -17,6 +17,7 @@
  *     "productos": [
  *       {
  *         "id_carrito_producto": number,
+ *         "id_producto": number,
  *         "nombre_producto": string,
  *         "cantidad": number,
  *         "precio_unitario": number,
@@ -63,6 +64,10 @@ BEGIN
                 json_agg(
                     json_build_object(
                         'id_carrito_producto', cp.id_carrito_producto,
+                        'id_categoria_producto', cp.id_categoria_producto,
+                        'id_linea_producto', cp.id_linea_producto,
+                        'id_sublinea_producto', cp.id_sublinea_producto,
+                        'id_producto', cp.id_producto,
                         'nombre_producto', p.nom_producto,
                         'cantidad', cp.cantidad,
                         'precio_unitario', cp.precio_unitario_carrito,

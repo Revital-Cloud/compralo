@@ -20,6 +20,7 @@ def get_comentaries(db:Session):
             id_usuario,
             id_comentario,
             comentario,
+            calificacion,
             ind_activo,
             usr_insert,
             fec_insert,
@@ -58,7 +59,9 @@ def create_comentary(db:Session, comentary:ComentaryCreate, id_usuario:Decimal):
             :id_sublinea,
             :id_producto,
             :id_usuario,
+            :id_orden,
             :comentario,
+            :calificacion,
             :usr_insert
         )
         """)
@@ -70,6 +73,76 @@ def create_comentary(db:Session, comentary:ComentaryCreate, id_usuario:Decimal):
         db.rollback()
         raise Exception(f"Error al crear comentario: {str(e)}")
        
+def get_comentaries_by_product(db:Session, id_categoria:Decimal, id_linea:Decimal, id_sublinea:Decimal, id_producto:Decimal):
+    """
+    Obtiene todos los comentarios activos de un producto específico con información del usuario.
+    """
+    try:
+        query = text("""
+            SELECT 
+                c.id_comentario,
+                c.id_categoria,
+                c.id_linea,
+                c.id_sublinea,
+                c.id_producto,
+                c.id_usuario,
+                c.comentario,
+                c.calificacion,
+                c.ind_activo,
+                c.fec_insert,
+                u.nom_usuario as nombre_usuario,
+                u.email_usuario
+            FROM tab_comentarios c
+            INNER JOIN tab_usuarios u ON c.id_usuario = u.id_usuario
+            WHERE c.id_categoria = :id_categoria
+              AND c.id_linea = :id_linea
+              AND c.id_sublinea = :id_sublinea
+              AND c.id_producto = :id_producto
+              AND c.ind_activo = TRUE
+            ORDER BY c.fec_insert DESC
+        """)
+        
+        result = db.execute(query, {
+            "id_categoria": id_categoria,
+            "id_linea": id_linea,
+            "id_sublinea": id_sublinea,
+            "id_producto": id_producto
+        })
+        
+        return result.mappings().all()
+        
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener comentarios del producto: {str(e)}")
+
+def get_reviewed_products_in_order(db: Session, id_orden: int, id_usuario: int) -> list:
+    """
+    Obtiene la lista de productos que el usuario ya ha reseñado en una orden específica.
+    
+    Args:
+        db (Session): Sesión de base de datos.
+        id_orden (int): ID de la orden.
+        id_usuario (int): ID del usuario.
+        
+    Returns:
+        list: Lista de strings con formato "id_categoria-id_linea-id_sublinea-id_producto"
+    """
+    try:
+        query = text("""
+            SELECT DISTINCT
+                CONCAT(c.id_categoria, '-', c.id_linea, '-', c.id_sublinea, '-', c.id_producto) as product_key
+            FROM tab_comentarios c
+            WHERE c.id_orden = :id_orden
+              AND c.id_usuario = :id_usuario
+              AND c.ind_activo = TRUE
+        """)
+        
+        result = db.execute(query, {"id_orden": id_orden, "id_usuario": id_usuario})
+        return [row[0] for row in result.fetchall()]
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener productos reseñados: {str(e)}")
+
 def deactivate_comentary(db:Session, id_categoria:Decimal, id_linea:Decimal, id_sublinea:Decimal, id_producto:Decimal, id_usuario:Decimal, id_comentario:Decimal, usr_update:Decimal):
     """
     Desactiva un comentario existente en la base de datos.

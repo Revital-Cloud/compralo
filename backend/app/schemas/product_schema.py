@@ -134,6 +134,11 @@ class Product(ProductBase): # Este será el modelo de respuesta principal
         fec_insert (datetime): Fecha y hora de inserción del registro.
         usr_update (Optional[str]): Usuario que realizó la última actualización.
         fec_update (Optional[datetime]): Fecha y hora de la última actualización.
+        nom_categoria (Optional[str]): Nombre de la categoría.
+        nom_linea (Optional[str]): Nombre de la línea.
+        nom_sublinea (Optional[str]): Nombre de la sublínea.
+        nom_marca (Optional[str]): Nombre de la marca.
+        nom_proveedor (Optional[str]): Nombre del proveedor.
     """
     id_producto: Decimal # El ID principal del producto, generalmente se incluye en la respuesta
     
@@ -142,6 +147,13 @@ class Product(ProductBase): # Este será el modelo de respuesta principal
     fec_insert: datetime
     usr_update: Optional[Decimal] = None
     fec_update: Optional[datetime] = None
+    
+    # Campos de nombres de las tablas relacionadas (opcionales)
+    nom_categoria: Optional[str] = None
+    nom_linea: Optional[str] = None
+    nom_sublinea: Optional[str] = None
+    nom_marca: Optional[str] = None
+    nom_proveedor: Optional[str] = None
 
 # Esquemas para filtros de productos
 class ProductAdminResponse(BaseModel):

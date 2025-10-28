@@ -160,36 +160,46 @@ def get_product(
     db: Session
     ):
     """
-    Obtiene un producto específico de la base de datos.
+    Obtiene un producto específico de la base de datos con nombres de categoría, línea, sublínea, marca y proveedor.
 
-    Ejecuta una consulta SQL para seleccionar un producto por su ID y devuelve
-    el resultado como un diccionario (RowMapping).
+    Ejecuta una consulta SQL con JOINs para seleccionar un producto por su ID y devuelve
+    el resultado como un diccionario (RowMapping) incluyendo los nombres de las tablas relacionadas.
     """
     try:
         query = text(
             """SELECT 
-                id_categoria,
-                id_linea,
-                id_sublinea,
-                id_producto,
-                nom_producto,
-                spcf_producto,
-                img_producto,
-                val_precio,
-                id_proveedor,
-                id_marca,
-                num_stock,
-                ind_activo,
-                usr_insert,
-                fec_insert,
-                usr_update,
-                fec_update 
-            FROM tab_productos 
+                p.id_categoria,
+                p.id_linea,
+                p.id_sublinea,
+                p.id_producto,
+                p.nom_producto,
+                p.spcf_producto,
+                p.img_producto,
+                p.val_precio,
+                p.id_proveedor,
+                p.id_marca,
+                p.num_stock,
+                p.ind_activo,
+                p.usr_insert,
+                p.fec_insert,
+                p.usr_update,
+                p.fec_update,
+                c.nom_categoria,
+                l.nom_linea,
+                s.nom_sublinea,
+                m.nom_marca,
+                pr.nom_proveedor
+            FROM tab_productos p
+            LEFT JOIN tab_categorias c ON p.id_categoria = c.id_categoria
+            LEFT JOIN tab_lineas l ON p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria
+            LEFT JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea AND p.id_categoria = s.id_categoria
+            LEFT JOIN tab_marcas m ON p.id_marca = m.id_marca
+            LEFT JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
             WHERE 
-                id_categoria = :id_categoria AND
-                id_linea = :id_linea AND 
-                id_sublinea = :id_sublinea AND
-                id_producto = :id_producto
+                p.id_categoria = :id_categoria AND
+                p.id_linea = :id_linea AND 
+                p.id_sublinea = :id_sublinea AND
+                p.id_producto = :id_producto
                 """)
         result = db.execute(
             query, 

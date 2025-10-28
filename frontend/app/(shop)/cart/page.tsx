@@ -392,45 +392,39 @@ const CartPage = () => {
                   </div>
                 )}
 
-                {hasItems() && Array.isArray(itemsWithBasic) && itemsWithBasic.length > 0 ? (
+                {hasItems() && Array.isArray(items) ? (
                   <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {itemsWithBasic.map((item) => (
-                      <CartItem
-                        key={item.id_carrito_producto}
-                        id={item.id_carrito_producto.toString()}
-                        name={item.nombre_producto}
-                        brand={item.basic_info.marca || "Sin marca"}
-                        color={item.basic_info.color || "Sin especificar"}
-                        size="Único"
-                        price={item.precio_unitario_carrito}
-                        quantity={item.cantidad}
-                        image={item.imagen_url || "/placeholder-product.jpg"}
-                        stock_disponible={item.stock_disponible}
-                        cartTotal={finalTotal}
-                        onQuantityChange={handleQuantityChange}
-                        onRemove={handleRemoveItem}
-                      />
-                    ))}
-                  </div>
-                ) : hasItems() && Array.isArray(items) ? (
-                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {items.map((item) => (
-                      <CartItem
-                        key={item.id_carrito_producto}
-                        id={item.id_carrito_producto.toString()}
-                        name={item.nombre_producto}
-                        brand={item.marca || "Sin marca"}
-                        color={item.categoria || "Sin especificar"}
-                        size={item.sublinea || "Único"}
-                        price={item.precio_unitario}
-                        quantity={item.cantidad}
-                        image={item.imagen_url || "/placeholder-product.jpg"}
-                        stock_disponible={item.stock_disponible}
-                        cartTotal={finalTotal}
-                        onQuantityChange={handleQuantityChange}
-                        onRemove={handleRemoveItem}
-                      />
-                    ))}
+                    {items.map((item) => {
+                      const slug = [
+                        item.id_categoria_producto,
+                        item.id_linea_producto,
+                        item.id_sublinea_producto,
+                        item.id_producto,
+                      ].every((v) => typeof v === 'number' && !Number.isNaN(v as number))
+                        ? `${item.id_categoria_producto}-${item.id_linea_producto}-${item.id_sublinea_producto}-${item.id_producto}`
+                        : undefined
+                      console.log('Cart page - full item data:', item)
+                      console.log('Cart page - item:', item.nombre_producto, 'productSlug:', slug)
+                      return (
+                        <CartItem
+                          key={item.id_carrito_producto}
+                          id={item.id_carrito_producto.toString()}
+                          productId={item.id_producto}
+                          productSlug={slug}
+                          name={item.nombre_producto}
+                          brand={item.marca || "Sin marca"}
+                          color={item.categoria || "Sin especificar"}
+                          size={item.sublinea || "Único"}
+                          price={item.precio_unitario}
+                          quantity={item.cantidad}
+                          image={item.imagen_url || "/placeholder-product.jpg"}
+                          stock_disponible={item.stock_disponible}
+                          cartTotal={finalTotal}
+                          onQuantityChange={handleQuantityChange}
+                          onRemove={handleRemoveItem}
+                        />
+                      )
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-16">

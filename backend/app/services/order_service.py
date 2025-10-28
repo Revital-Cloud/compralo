@@ -405,6 +405,9 @@ def get_order_with_items(db: Session, id_orden: Decimal):
             SELECT 
                 op.id_orden,
                 op.id_orden_producto AS id_item,
+                op.id_categoria_producto AS id_categoria,
+                op.id_linea_producto AS id_linea,
+                op.id_sublinea_producto AS id_sublinea,
                 op.id_producto,
                 p.nom_producto AS product_name,
                 op.cant_producto AS quantity,
@@ -423,7 +426,7 @@ def get_order_with_items(db: Session, id_orden: Decimal):
         )
         result_items = db.execute(query_items, {"id_orden": id_orden})
         items = [dict(row) for row in result_items.mappings().all()]
-    except Exception:
+    except Exception as e:
         # 3) Fallback: intentar una función si existe
         try:
             query_fn = text("SELECT fun_obtener_orden_detalle(:id_orden)")
@@ -434,7 +437,7 @@ def get_order_with_items(db: Session, id_orden: Decimal):
                     items = payload
                 elif isinstance(payload, dict):
                     items = payload.get("items", payload.get("productos", []))
-        except Exception:
+        except Exception as e2:
             items = []
 
     # 4) Unir y devolver

@@ -56,6 +56,7 @@ BEGIN
         RETURN 'Error: El ID de comentarios es obligatorio y debe ser mayor a 0';
     END IF;
 
+
     -- OPERACIÓN: Desactivar el comentario
     UPDATE tab_comentarios SET 
         ind_activo = FALSE,

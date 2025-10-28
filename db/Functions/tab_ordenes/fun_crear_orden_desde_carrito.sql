@@ -428,9 +428,17 @@ BEGIN
             SELECT * FROM tab_carrito_productos WHERE id_carrito = p_id_carrito
         LOOP
             INSERT INTO tab_orden_productos (
-                id_orden_producto, id_categoria_producto, id_linea_producto,
-                id_sublinea_producto, id_producto, id_orden, cant_producto,
-                precio_unitario_orden, subtotal, usr_insert, fec_insert
+                id_orden_producto,
+                id_categoria_producto,
+                id_linea_producto,
+                id_sublinea_producto,
+                id_producto,
+                id_orden,
+                cant_producto,
+                precio_unitario_orden,
+                subtotal,
+                usr_insert,
+                fec_insert
             ) VALUES (
                 (SELECT COALESCE(MAX(id_orden_producto), 0) + 1 FROM tab_orden_productos),
                 v_producto_record.id_categoria_producto,

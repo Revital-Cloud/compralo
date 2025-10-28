@@ -22,6 +22,7 @@ class ComentaryBase(BaseModel):
         id_producto (Decimal): Identificador del producto.
         id_usuario (Decimal): Identificador del usuario.
         comentario (str): Comentario del usuario.
+        calificacion (int): Calificación del producto (1-5 estrellas).
         usr_insert (Optional[Decimal]): Usuario que insertó el registro.
     """
     id_categoria: Decimal = Field(..., description="Identificador de la categoría.")
@@ -30,6 +31,7 @@ class ComentaryBase(BaseModel):
     id_producto: Decimal = Field(..., description="Identificador del producto.")
     id_usuario: Decimal = Field(..., description="Identificador del usuario.")
     comentario: str = Field(..., description="Comentario del usuario.")
+    calificacion: int = Field(..., ge=1, le=5, description="Calificación del producto (1-5 estrellas).")
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
     
     class Config:
@@ -55,7 +57,9 @@ class ComentaryCreate(BaseModel):
     id_linea: Decimal = Field(..., description="Identificador de la linea.")
     id_sublinea: Decimal = Field(..., description="Identificador de la sublinea.")
     id_producto: Decimal = Field(..., description="Identificador del producto.")
+    id_orden: Decimal = Field(..., description="ID de la orden asociada al comentario.")
     comentario: str = Field(..., description="Comentario del usuario.")
+    calificacion: int = Field(..., ge=1, le=5, description="Calificación del producto (1-5 estrellas).")
     
     class Config:
         from_attributes = True

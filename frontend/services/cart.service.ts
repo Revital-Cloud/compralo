@@ -71,6 +71,9 @@ export interface CartTotalResponse {
 
 export interface CartProductDetail {
   id_carrito_producto: number;
+  id_categoria_producto?: number;
+  id_linea_producto?: number;
+  id_sublinea_producto?: number;
   id_producto: number;
   nombre_producto: string;
   descripcion_producto?: string;

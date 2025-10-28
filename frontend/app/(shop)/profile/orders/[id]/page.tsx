@@ -5,6 +5,20 @@ import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 
+interface OrderProductItem {
+  id_item?: number;
+  id_categoria?: number;
+  id_linea?: number;
+  id_sublinea?: number;
+  id_producto?: number;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  product_image?: string | null;
+  item_discounts?: any;
+}
+
 interface OrderDetail {
   id_orden: number;
   fec_insert: string;
@@ -13,6 +27,7 @@ interface OrderDetail {
   val_total_pedido: number;
   ind_estado: number;
   des_observaciones?: string | null;
+  items?: OrderProductItem[];
 }
 
 function formatStatus(state: number) {
@@ -44,7 +59,7 @@ export default function OrderDetailPage() {
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['order-detail', id],
-    queryFn: async () => await api.get<OrderDetail>(`/orders/${id}`),
+    queryFn: async () => await api.get<OrderDetail>(`/orders/${id}/detail`),
     enabled: !!id,
   });
 
@@ -70,6 +85,26 @@ export default function OrderDetailPage() {
           <span className="text-muted-foreground">Estado</span>
           <span>{formatStatus(order.ind_estado)}</span>
         </div>
+        
+        {order.items && order.items.length > 0 && (
+          <div className="pt-2">
+            <p className="font-medium mb-3">Productos</p>
+            <div className="space-y-3">
+              {order.items.map((it, idx) => (
+                <div key={idx} className="flex items-center justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate">{it.product_name}</p>
+                    <p className="text-sm text-muted-foreground">Cantidad: {it.quantity}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm">${Number(it.unit_price).toLocaleString()} c/u</p>
+                    <p className="font-semibold">${Number(it.total_price).toLocaleString()}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="flex justify-between">
           <span className="text-muted-foreground">Subtotal</span>
           <span>${Number(order.val_total_productos).toLocaleString()}</span>
