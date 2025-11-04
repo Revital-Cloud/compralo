@@ -28,6 +28,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import addressService from "@/services/address.service";
 import { listPaymentMethods, addPaymentMethod } from "@/services/payment.service";
 import { payCartAndCreateOrder } from "@/services/order.service";
+import { discountService } from "@/services/discount.service";
 import {
   Dialog,
   DialogContent,
@@ -78,6 +79,8 @@ const cartTexts = {
 const CartPage = () => {
   const router = useRouter();
   const [promoCode, setPromoCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<{ codigo: string; descuento: any } | null>(null);
+  const [isApplyingCode, setIsApplyingCode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Hook de autenticación
@@ -130,6 +133,56 @@ const CartPage = () => {
   const handleToggleFavorite = (id: string) => {
     // Funcionalidad implementada - ver useFavorites hook
     console.log("Toggle favorite:", id);
+  };
+
+  // Función para aplicar código de descuento
+  const handleApplyPromoCode = async () => {
+    if (!promoCode.trim()) {
+      toast.error("Por favor ingresa un código de descuento");
+      return;
+    }
+
+    if (!user?.id_usuario) {
+      toast.error("Debes iniciar sesión para aplicar un código de descuento");
+      return;
+    }
+
+    setIsApplyingCode(true);
+    try {
+      // Validar el código en el contexto del carrito actual
+      const validation = await discountService.validateDiscountForCart(
+        promoCode.trim(),
+        id_carrito ? Number(id_carrito) : undefined
+      );
+      
+      if (validation && validation.es_aplicable) {
+        setAppliedDiscount({ 
+          codigo: promoCode.trim().toUpperCase(), 
+          descuento: validation.descuento,
+          descuento_calculado: validation.descuento_calculado,
+          total_con_descuento: validation.total_con_descuento
+        });
+        toast.success(`Código "${promoCode.trim().toUpperCase()}" aplicado correctamente`);
+      }
+    } catch (error: any) {
+      if (error?.response?.status === 404) {
+        toast.error("Código de descuento no encontrado o no válido");
+      } else if (error?.response?.status === 400) {
+        toast.error(error?.response?.data?.detail || "El código de descuento no es aplicable a tu carrito actual");
+      } else {
+        toast.error("Error al validar el código de descuento");
+      }
+      setAppliedDiscount(null);
+    } finally {
+      setIsApplyingCode(false);
+    }
+  };
+
+  // Función para remover código aplicado
+  const handleRemovePromoCode = () => {
+    setAppliedDiscount(null);
+    setPromoCode("");
+    toast.success("Código de descuento removido");
   };
 
   // Cálculos del carrito - usar datos del backend o fallback local
@@ -254,7 +307,7 @@ const CartPage = () => {
       const payResp = await payCartAndCreateOrder(Number(id_carrito), {
         payment_method_id: Number(effectivePM),
         id_direccion: Number(defaultAddress.id_direccion),
-        codigo_descuento: null,
+        codigo_descuento: appliedDiscount?.codigo || null,
         des_observaciones: null,
         id_canje: null,
       });
@@ -721,18 +774,59 @@ const CartPage = () => {
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                       {texts.promoCode}
                     </p>
-                    <div className="flex gap-2">
-                      <Input
-                        type="text"
-                        placeholder="Código promocional"
-                        value={promoCode}
-                        onChange={(e) => setPromoCode(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button variant="outline" size="sm">
-                        Aplicar
-                      </Button>
-                    </div>
+                    {appliedDiscount ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                              Código aplicado: {appliedDiscount.codigo}
+                            </p>
+                            <p className="text-xs text-green-600 dark:text-green-400">
+                              {appliedDiscount.descuento.nom_descuento}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleRemovePromoCode}
+                            className="text-green-600 hover:text-green-700 dark:text-green-400"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          type="text"
+                          placeholder="Código promocional"
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              handleApplyPromoCode();
+                            }
+                          }}
+                          className="flex-1 uppercase"
+                          disabled={isApplyingCode}
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleApplyPromoCode}
+                          disabled={isApplyingCode || !promoCode.trim()}
+                        >
+                          {isApplyingCode ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Aplicando...
+                            </>
+                          ) : (
+                            "Aplicar"
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

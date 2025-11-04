@@ -118,7 +118,7 @@ def get_order_stats_admin(db: Session):
         result = db.execute(query)
         stats = result.mappings().first()
         
-        # Convertir valores a los tipos correctos
+        # Convertir valores a los tipos correctos y asegurar que siempre devuelva un dict
         if stats:
             # Asegurar que todos los conteos sean int
             stats['total'] = int(stats.get('total', 0))
@@ -128,6 +128,15 @@ def get_order_stats_admin(db: Session):
             # total_ventas ya debería ser Decimal por defecto
             if stats.get('total_ventas') is None:
                 stats['total_ventas'] = Decimal('0')
+        else:
+            # Si no hay resultados, devolver valores por defecto
+            stats = {
+                'total': 0,
+                'pendiente': 0,
+                'completada': 0,
+                'cancelada': 0,
+                'total_ventas': Decimal('0')
+            }
         
         return stats
     except Exception as e:

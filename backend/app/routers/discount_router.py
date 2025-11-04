@@ -29,6 +29,107 @@ async def get_discounts(db:Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error: {str(e)}")
 
+@router.get("/discounts/by-code/{codigo}", response_model=Discount, summary="Obtiene un descuento por su código")
+async def get_discount_by_code(
+    codigo: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene un descuento activo por su código de cupón.
+    
+    Args:
+        codigo (str): Código del descuento a buscar
+        db (Session): Sesión de base de datos
+        
+    Returns:
+        Discount: Descuento encontrado o error 404 si no existe
+    """
+    try:
+        discount = discount_service.get_discount_by_code(db, codigo)
+        if not discount:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Código de descuento no encontrado o no válido")
+        return discount
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error: {str(e)}")
+
+@router.post("/discounts/validate-for-cart", summary="Valida código de descuento para el carrito actual")
+async def validate_discount_for_cart(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Valida si un código de descuento es aplicable al carrito actual del usuario.
+    
+    Body esperado:
+        codigo (str): Código del descuento a validar
+        id_carrito (int, opcional): ID del carrito (se busca si no se proporciona)
+    
+    Returns:
+        dict: Información del descuento y validación
+    """
+    try:
+        codigo = payload.get('codigo', '').strip()
+        id_carrito = payload.get('id_carrito')
+        
+        if not codigo:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El código de descuento es requerido"
+            )
+        
+        result = discount_service.validate_discount_for_cart(
+            db, 
+            codigo, 
+            current_user.id_usuario,
+            Decimal(id_carrito) if id_carrito else None
+        )
+        if not result:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail="Código de descuento no encontrado o no válido"
+            )
+        if not result['es_aplicable']:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El código de descuento no es aplicable a tu carrito actual"
+            )
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Error al validar descuento: {str(e)}"
+        )
+
+@router.get("/discounts/active", response_model=list[Discount], summary="Obtiene descuentos activos disponibles para usuarios")
+async def get_active_discounts(
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene todos los descuentos activos disponibles para usuarios.
+    Solo retorna descuentos que están activos, dentro de sus fechas de vigencia
+    y con usos disponibles.
+    
+    Args:
+        limit (int): Límite de resultados a retornar (default: 50)
+        db (Session): Sesión de base de datos
+        
+    Returns:
+        list[Discount]: Lista de descuentos activos disponibles
+    """
+    try:
+        discounts = discount_service.get_active_discounts(db, limit)
+        if not discounts:
+            return []
+        return discounts
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error: {str(e)}")
+
 @router.get("/discounts/exchangeable/{id_usuario}", response_model=list[DiscountExchangeableResponse], summary="Obtiene todos los descuentos canjeables (Cliente)")
 async def get_discount_exchangeable(
     id_usuario: Decimal,

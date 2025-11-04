@@ -16,7 +16,10 @@ export const OrderStatsCards = ({ stats }: OrderStatsCardsProps) => {
   const pendiente = stats?.pendiente ?? 0
   const completada = stats?.completada ?? 0
   const cancelada = stats?.cancelada ?? 0
-  const totalVentas = stats?.total_ventas ?? 0
+  // Convertir total_ventas a número si viene como string (Decimal desde backend)
+  const totalVentas = typeof stats?.total_ventas === 'string' 
+    ? parseFloat(stats.total_ventas) || 0
+    : (stats?.total_ventas ?? 0)
 
   return (
     <div className="grid gap-4 md:grid-cols-5">

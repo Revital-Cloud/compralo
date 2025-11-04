@@ -18,6 +18,10 @@ export const defaultMenuItems: NavItem[] = [
     href: "/products"
   },
   {
+    text: "Descuentos",
+    href: "/discounts"
+  },
+  {
     text: "Ofertas",
     href: "/ofertas"
   },

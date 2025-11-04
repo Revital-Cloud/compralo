@@ -28,6 +28,9 @@ const discountSchema = z.object({
   aplica_a: z.string().default('total_pedido'),
   // IDs condicionales
   id_producto_aplica: z.string().optional(),
+  id_categoria_producto: z.string().optional(), // Para producto específico
+  id_linea_producto: z.string().optional(), // Para producto específico
+  id_sublinea_producto: z.string().optional(), // Para producto específico
   id_categoria_aplica: z.string().optional(),
   id_marca_aplica: z.string().optional(),
   id_categoria_linea: z.string().optional(),
@@ -234,6 +237,23 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
               <select
                 id="id_producto_aplica"
                 {...form.register('id_producto_aplica')}
+                onChange={(e) => {
+                  const selectedProductId = e.target.value
+                  if (selectedProductId) {
+                    const selectedProduct = products.find(p => p.id_producto.toString() === selectedProductId)
+                    if (selectedProduct) {
+                      form.setValue('id_producto_aplica', selectedProductId)
+                      form.setValue('id_categoria_producto', selectedProduct.id_categoria?.toString() || '')
+                      form.setValue('id_linea_producto', selectedProduct.id_linea?.toString() || '')
+                      form.setValue('id_sublinea_producto', selectedProduct.id_sublinea?.toString() || '')
+                    }
+                  } else {
+                    form.setValue('id_producto_aplica', '')
+                    form.setValue('id_categoria_producto', '')
+                    form.setValue('id_linea_producto', '')
+                    form.setValue('id_sublinea_producto', '')
+                  }
+                }}
                 className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
               >
                 <option value="">Selecciona un producto</option>
