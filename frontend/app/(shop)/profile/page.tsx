@@ -79,9 +79,15 @@ export default function ProfilePage() {
   }, [isAuthenticated, isLoadingUser, user, router, form, isHydrated]);
 
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
-    const updatedValues = Object.fromEntries(
-      Object.entries(values).filter(([_, value]) => value !== "" && value !== null)
-    );
+    // Filtrar valores vacíos y null, pero mantener los que realmente tienen datos
+    const updatedValues: any = {};
+    if (values.nom_usuario && values.nom_usuario.trim() !== "") updatedValues.nom_usuario = values.nom_usuario.trim();
+    if (values.ape_usuario && values.ape_usuario.trim() !== "") updatedValues.ape_usuario = values.ape_usuario.trim();
+    if (values.email_usuario && values.email_usuario.trim() !== "") updatedValues.email_usuario = values.email_usuario.trim();
+    if (values.cel_usuario && values.cel_usuario.trim() !== "") updatedValues.cel_usuario = values.cel_usuario.trim();
+    // fec_nacimiento no se puede actualizar, se omite
+    // password_usuario se omite ya que se quitó del formulario
+    // des_direccion no está en el esquema UserUpdate del backend, se omite
 
     if (Object.keys(updatedValues).length === 0) {
       toast.info("No hay cambios para guardar.");
@@ -92,8 +98,10 @@ export default function ProfilePage() {
       await updateProfile(updatedValues);
       toast.success("¡Perfil actualizado con éxito!");
       setIsEditing(false);
-    } catch (error) {
-      toast.error("No se pudo actualizar el perfil. Inténtalo de nuevo.");
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.detail || error?.message || "No se pudo actualizar el perfil. Inténtalo de nuevo.";
+      toast.error(errorMessage);
+      console.error("Error al actualizar perfil:", error);
     }
   };
 

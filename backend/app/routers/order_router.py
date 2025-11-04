@@ -37,7 +37,7 @@ async def get_orders(
     """
     orders = order_service.get_orders_by_user(db, current_user.id_usuario)
     if orders is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron órdenes")
+        return []
     return orders
 
 @router.get(

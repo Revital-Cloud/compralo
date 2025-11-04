@@ -154,9 +154,33 @@ def update_user(db: Session, id_usuario: Decimal, user: UserUpdate, current_user
     """
     
     try:
-        update_params = user.model_dump(exclude_unset=True)
-        update_params["id_usuario"] = id_usuario
-        update_params["usr_update"] = str(current_user_id)
+        # Obtener el usuario actual para usar sus valores en campos no actualizados
+        existing_user = get_user(db, id_usuario)
+        if not existing_user:
+            raise Exception("Usuario no encontrado")
+        
+        # Preparar parámetros de actualización, usando valores existentes si no se proporcionan
+        update_params = {
+            "id_usuario": id_usuario,
+            "nom_usuario": user.nom_usuario if user.nom_usuario is not None else existing_user['nom_usuario'],
+            "ape_usuario": user.ape_usuario if user.ape_usuario is not None else existing_user['ape_usuario'],
+            "email_usuario": user.email_usuario if user.email_usuario is not None else existing_user['email_usuario'],
+            "password_usuario": user.password_usuario if user.password_usuario is not None else existing_user['password_usuario'],
+            "ind_genero": user.ind_genero if user.ind_genero is not None else existing_user['ind_genero'],
+            "cel_usuario": user.cel_usuario if user.cel_usuario is not None else existing_user['cel_usuario'],
+            "fec_nacimiento": user.fec_nacimiento if user.fec_nacimiento is not None else existing_user['fec_nacimiento'],
+            "usr_update": str(current_user_id)
+        }
+        
+        # Convertir fec_nacimiento a formato adecuado si es necesario
+        if update_params["fec_nacimiento"] and isinstance(update_params["fec_nacimiento"], str):
+            # Ya está en formato string, mantenerlo
+            pass
+        elif update_params["fec_nacimiento"]:
+            # Si es datetime, convertir a string
+            from datetime import datetime
+            if isinstance(update_params["fec_nacimiento"], datetime):
+                update_params["fec_nacimiento"] = update_params["fec_nacimiento"].strftime('%Y-%m-%d')
         
         query = text("""SELECT fun_update_usuarios(
             :id_usuario, :nom_usuario, :ape_usuario, :email_usuario, :password_usuario,

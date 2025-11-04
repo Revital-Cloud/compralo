@@ -96,6 +96,9 @@ class UserPublic(BaseModel):
     ape_usuario: str = Field(..., description="Apellido del usuario.")
     email_usuario: str = Field(..., description="Email del usuario.")
     id_rol: Optional[Decimal] = Field(None, description="Identificador del rol del usuario.")
+    cel_usuario: Optional[str] = Field(None, description="Número de celular del usuario.")
+    fec_nacimiento: Optional[str] = Field(None, description="Fecha de nacimiento del usuario.")
+    des_direccion: Optional[str] = Field(None, description="Dirección del usuario.")
     
     class Config:
         from_attributes = True

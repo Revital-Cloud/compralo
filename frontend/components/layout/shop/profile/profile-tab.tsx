@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { UserPublic } from "@/types/auth";
+import { useAccountStats } from "@/hooks/use-account-stats";
 
 interface ProfileTabProps {
   user: UserPublic;
@@ -17,6 +18,7 @@ interface ProfileTabProps {
 }
 
 export default function ProfileTab({ user, form, isEditing, onSubmit }: ProfileTabProps) {
+  const { data: stats, isLoading } = useAccountStats(user.id_usuario);
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">
@@ -79,23 +81,9 @@ export default function ProfileTab({ user, form, isEditing, onSubmit }: ProfileT
                     id="fec_nacimiento" 
                     type="date" 
                     {...form.register("fec_nacimiento")}
-                    disabled={!isEditing} 
+                    disabled={true} 
                   />
                 </div>
-                {isEditing && (
-                  <div className="grid gap-2">
-                    <Label htmlFor="password_usuario">Nueva Contraseña (Opcional)</Label>
-                    <Input 
-                      id="password_usuario" 
-                      type="password" 
-                      placeholder="••••••••"
-                      {...form.register("password_usuario")}
-                    />
-                    {form.formState.errors.password_usuario && (
-                      <p className="text-sm text-red-500">{form.formState.errors.password_usuario.message}</p>
-                    )}
-                  </div>
-                )}
               </div>
             </form>
           </CardContent>
@@ -109,22 +97,46 @@ export default function ProfileTab({ user, form, isEditing, onSubmit }: ProfileT
           <CardContent className="space-y-4">
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Total gastado</span>
-              <span className="text-lg font-bold text-green-600">$0.00</span>
+              <span className="text-lg font-bold text-green-600">
+                {isLoading ? (
+                  <span className="text-muted-foreground">Cargando...</span>
+                ) : (
+                  `$${(stats?.totalSpent || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                )}
+              </span>
             </div>
             <Separator />
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Órdenes completadas</span>
-              <span className="text-lg font-bold">0</span>
+              <span className="text-lg font-bold">
+                {isLoading ? (
+                  <span className="text-muted-foreground">Cargando...</span>
+                ) : (
+                  stats?.completedOrders || 0
+                )}
+              </span>
             </div>
             <Separator />
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Productos favoritos</span>
-              <span className="text-lg font-bold">0</span>
+              <span className="text-lg font-bold">
+                {isLoading ? (
+                  <span className="text-muted-foreground">Cargando...</span>
+                ) : (
+                  stats?.favoriteProducts || 0
+                )}
+              </span>
             </div>
             <Separator />
             <div className="flex justify-between items-center">
               <span className="text-sm font-medium">Puntos de fidelidad</span>
-              <span className="text-lg font-bold text-purple-600">0</span>
+              <span className="text-lg font-bold text-purple-600">
+                {isLoading ? (
+                  <span className="text-muted-foreground">Cargando...</span>
+                ) : (
+                  (stats?.loyaltyPoints || 0).toLocaleString('es-CO')
+                )}
+              </span>
             </div>
           </CardContent>
         </Card>
