@@ -286,7 +286,7 @@ def get_cart_user(db:Session, get_cart_user:GetCartUser):
     
 def get_cart_detail(db:Session, get_cart_detail:GetCartDetail):
     """
-    Obtiene a detalle el carrito de un usuario usando la función SQL fun_obtener_carrito_detalle.
+    Obtiene a detalle el carrito de un usuario con JOIN a marcas y sublineas.
     Args:
         db (Session): Sesión de base de datos.
         get_cart_detail (GetCartDetail): Datos del usuario (id_usuario o session_id).
@@ -297,59 +297,87 @@ def get_cart_detail(db:Session, get_cart_detail:GetCartDetail):
         params = get_cart_detail.model_dump()
         print(f"🔍 [BACKEND] Obteniendo detalle del carrito con parámetros: {params}")
         
+        # Query directo con JOIN a marcas y sublineas
         query = text("""
-        SELECT fun_obtener_carrito_detalle(:id_usuario, :session_id)
+        SELECT 
+            cp.id_carrito_producto,
+            cp.id_categoria_producto,
+            cp.id_linea_producto,
+            cp.id_sublinea_producto,
+            cp.id_producto,
+            p.nom_producto,
+            cp.cantidad,
+            cp.precio_unitario_carrito,
+            (cp.cantidad * cp.precio_unitario_carrito) as subtotal,
+            p.num_stock,
+            p.img_producto,
+            m.nom_marca,
+            sl.nom_sublinea,
+            cat.nom_categoria
+        FROM tab_carrito_productos cp
+        JOIN tab_carritos c ON cp.id_carrito = c.id_carrito
+        JOIN tab_productos p ON (
+            cp.id_categoria_producto = p.id_categoria AND
+            cp.id_linea_producto = p.id_linea AND
+            cp.id_sublinea_producto = p.id_sublinea AND
+            cp.id_producto = p.id_producto
+            AND p.ind_activo = TRUE
+        )
+        LEFT JOIN tab_marcas m ON p.id_marca = m.id_marca
+        LEFT JOIN tab_sublineas sl ON (
+            p.id_categoria = sl.id_categoria AND
+            p.id_linea = sl.id_linea AND
+            p.id_sublinea = sl.id_sublinea
+        )
+        LEFT JOIN tab_categorias cat ON p.id_categoria = cat.id_categoria
+        WHERE (c.id_usuario = :id_usuario OR c.session_id = :session_id)
+        AND (c.id_usuario IS NOT NULL OR c.session_id IS NOT NULL)
+        ORDER BY cp.fec_insert DESC
         """)
+        
         result = db.execute(query, params)
-        fetched_result = result.fetchone()
+        cart_items = result.fetchall()
         
-        print(f"🔍 [BACKEND] Resultado de la consulta: {fetched_result}")
+        print(f"🔍 [BACKEND] Resultado de la consulta: {len(cart_items)} items")
         
-        if not fetched_result or not fetched_result[0]:
+        if not cart_items:
             print("🔍 [BACKEND] No se encontraron productos en el carrito")
             return []
         
-        cart_data = fetched_result[0]
-        print(f"🔍 [BACKEND] Datos del carrito obtenidos: {cart_data}")
-        
-        # Extraer la lista de productos del JSON
-        productos = cart_data.get('productos', [])
-        print(f"🔍 [BACKEND] Productos extraídos: {productos}")
-        
         # Convertir productos a la estructura esperada por el frontend
         products_list = []
-        for producto in productos:
-            product_dict = {
-                'id_carrito_producto': producto.get('id_carrito_producto'),
-                'id_categoria_producto': producto.get('id_categoria_producto'),
-                'id_linea_producto': producto.get('id_linea_producto'),
-                'id_sublinea_producto': producto.get('id_sublinea_producto'),
-                'id_producto': producto.get('id_producto'),
-                'nombre_producto': producto.get('nombre_producto'),
-                'precio_unitario': float(producto.get('precio_unitario', 0)),
-                'cantidad': int(producto.get('cantidad', 0)),
-                'subtotal': float(producto.get('subtotal', 0)),
-                'stock_disponible': int(producto.get('stock_disponible', 0)),
-                'imagen_url': None,
-                'categoria': None,
-                'marca': None,
-                'linea': None,
-                'sublinea': None
-            }
-            
-            # Procesar imagen_producto si existe
-            if producto.get('imagen_producto'):
+        for item in cart_items:
+            # Procesar imagen_producto
+            imagen_url = None
+            if item[10]:  # img_producto
                 try:
                     import json
-                    img_data = producto.get('imagen_producto')
+                    img_data = item[10]
                     if isinstance(img_data, str):
                         img_data = json.loads(img_data)
                     if isinstance(img_data, dict) and 'main' in img_data:
-                        product_dict['imagen_url'] = img_data['main']
+                        imagen_url = img_data['main']
                     elif isinstance(img_data, dict) and 'url' in img_data:
-                        product_dict['imagen_url'] = img_data['url']
+                        imagen_url = img_data['url']
                 except:
-                    pass  # Si no se puede parsear, mantener None
+                    pass
+            
+            product_dict = {
+                'id_carrito_producto': item[0],
+                'id_categoria_producto': item[1],
+                'id_linea_producto': item[2],
+                'id_sublinea_producto': item[3],
+                'id_producto': item[4],
+                'nombre_producto': item[5],
+                'cantidad': int(item[6]),
+                'precio_unitario': float(item[7]),
+                'subtotal': float(item[8]),
+                'stock_disponible': int(item[9]),
+                'imagen_url': imagen_url,
+                'marca': item[11],  # nom_marca
+                'sublinea': item[12],  # nom_sublinea
+                'categoria': item[13]  # nom_categoria
+            }
             
             products_list.append(product_dict)
         

@@ -151,12 +151,11 @@ const CartItem: React.FC<CartItemProps> = ({
             <h3 className="font-bold text-lg text-gray-900 dark:text-white break-words mb-1">
               {name}
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-              {brand}
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500">
-              {color}
-            </p>
+            {brand && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                {brand}
+              </p>
+            )}
           </div>
 
           {/* Acciones del producto */}

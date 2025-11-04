@@ -57,23 +57,37 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if method == "OPTIONS":
             return await call_next(request)
 
-        # Verificar si la ruta necesita protección
-        needs_auth = any(path.startswith(protected_path) for protected_path in self.protected_paths)
-        
-        # Para rutas administrativas, solo requerir admin en métodos de escritura
+        # Inicializar variables
+        needs_auth = False
         needs_admin = False
-        
+        users_path_handled = False
+
         # Caso especial: POST a /api/users es público (registro)
+        # PUT a /api/users/{id} permite que un usuario actualice su propio perfil
         if path.startswith("/api/users"):
+            users_path_handled = True
             if method == "POST":
                 return await call_next(request)  # Permitir registro público
-            elif method in ["GET", "PUT", "DELETE", "PATCH"]:
-                needs_admin = True  # Otras operaciones de usuarios son admin-only
-        # Para el resto de rutas admin
-        elif any(path.startswith(admin_path) for admin_path in self.admin_only_paths):
+            elif method == "PUT":
+                # Para PUT, requerir autenticación pero no necesariamente admin
+                # El router verificará que sea el mismo usuario o admin
+                needs_auth = True
+                needs_admin = False
+            elif method in ["GET", "DELETE", "PATCH"]:
+                # Otras operaciones de usuarios son admin-only
+                needs_auth = True
+                needs_admin = True
+        
+        # Verificar si la ruta necesita protección (si no se estableció en el caso especial de /api/users)
+        if not needs_auth:
+            needs_auth = any(path.startswith(protected_path) for protected_path in self.protected_paths)
+        
+        # Para rutas administrativas, solo requerir admin en métodos de escritura
+        # PERO solo si no es el caso especial de /api/users que ya manejamos arriba
+        if not users_path_handled and not needs_admin and any(path.startswith(admin_path) for admin_path in self.admin_only_paths):
             if method in ["POST", "PUT", "DELETE", "PATCH"]:
                 needs_admin = True
-            # Para GET, no requerimos ser admin
+                needs_auth = True
         
         if needs_auth or needs_admin:
             try:
@@ -110,7 +124,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     current_user = auth_service.get_current_user(db, token)
                     
                     # Verificar si necesita permisos de administrador
+                    # IMPORTANTE: Para PUT en /api/users/{id}, el router verificará los permisos
                     if needs_admin and current_user.id_rol != 1:
+                        logger.warning(f"Acceso denegado: {method} {path} - Usuario {current_user.id_usuario} (rol: {current_user.id_rol}) necesita admin")
                         raise HTTPException(
                             status_code=status.HTTP_403_FORBIDDEN,
                             detail="Se requieren permisos de administrador para realizar esta operación"
@@ -119,7 +135,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     # Agregar información del usuario a la request
                     request.state.current_user = current_user
                     
-                    logger.info(f"Usuario {current_user.email_usuario} accedió a {method} {path}")
+                    logger.info(f"Usuario {current_user.id_usuario} (rol: {current_user.id_rol}) accediendo a {method} {path} - needs_admin: {needs_admin}, needs_auth: {needs_auth}")
                     
                 finally:
                     db.close()

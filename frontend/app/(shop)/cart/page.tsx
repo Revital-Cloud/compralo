@@ -412,8 +412,8 @@ const CartPage = () => {
                           productId={item.id_producto}
                           productSlug={slug}
                           name={item.nombre_producto}
-                          brand={item.marca || "Sin marca"}
-                          color={item.categoria || "Sin especificar"}
+                          brand={item.marca || ""}
+                          color={item.categoria || ""}
                           size={item.sublinea || "Único"}
                           price={item.precio_unitario}
                           quantity={item.cantidad}
@@ -505,7 +505,7 @@ const CartPage = () => {
                               {item.nombre_producto}
                             </p>
                             <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                              {item.marca || "Sin marca"} • {texts.size}{" "}
+                              {item.marca && `${item.marca} • `}{texts.size}{" "}
                               {item.sublinea || "Único"} • {texts.quantity}{" "}
                               {item.cantidad}
                             </p>
@@ -774,7 +774,7 @@ const CartPage = () => {
                             {item.nombre_producto}
                           </p>
                           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                            {item.marca || "Sin marca"} • {texts.size}{" "}
+                            {item.marca && `${item.marca} • `}{texts.size}{" "}
                             {item.sublinea || "Único"} • {texts.quantity}{" "}
                             {item.cantidad}
                           </p>

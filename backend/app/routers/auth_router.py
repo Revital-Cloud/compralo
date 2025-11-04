@@ -93,13 +93,24 @@ async def get_current_user_info(
     if full_user is None:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
+    # Convertir fec_nacimiento a string si existe (datetime a string)
+    fec_nacimiento_str = None
+    if full_user.get('fec_nacimiento'):
+        if isinstance(full_user['fec_nacimiento'], datetime):
+            fec_nacimiento_str = full_user['fec_nacimiento'].strftime('%Y-%m-%d')
+        else:
+            fec_nacimiento_str = str(full_user['fec_nacimiento'])
+    
     # Retornar solo la información segura
     return UserPublic(
-        id_usuario=full_user.id_usuario,
-        nom_usuario=full_user.nom_usuario,
-        ape_usuario=full_user.ape_usuario,
-        email_usuario=full_user.email_usuario,
-        id_rol=full_user.id_rol
+        id_usuario=full_user['id_usuario'],
+        nom_usuario=full_user['nom_usuario'],
+        ape_usuario=full_user['ape_usuario'],
+        email_usuario=full_user['email_usuario'],
+        id_rol=full_user.get('id_rol'),
+        cel_usuario=full_user.get('cel_usuario'),
+        fec_nacimiento=fec_nacimiento_str,
+        des_direccion=None  # Las direcciones están en tab_direcciones_usuario, no en tab_usuarios
     )
 
 @router.post("/change-password", response_model=ResponseMessage)
