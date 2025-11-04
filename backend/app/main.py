@@ -37,6 +37,7 @@ from routers.order_router import router as order_router
 from routers.order_buy_provider_router import router as order_buy_provider_router
 from routers.movements_inventory_router import router as movements_inventory_router
 from routers.dashboard_router import router as dashboard_router
+from routers.analytics_router import router as analytics_router
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -163,6 +164,10 @@ app.include_router(exchange_router, prefix=settings.API_STR)
 # Incluye el router de dashboard ANTES del router de órdenes para evitar conflictos de rutas
 # La ruta /admin/dashboard debe evaluarse antes de /admin/{id_orden}
 app.include_router(dashboard_router, prefix=settings.API_STR)
+
+# Incluye el router de analytics ANTES del router de órdenes para evitar conflictos de rutas
+# La ruta /admin/analytics debe evaluarse antes de /admin/{id_orden}
+app.include_router(analytics_router, prefix=settings.API_STR)
 
 # Incluye el router de órdenes con un prefijo de API.
 app.include_router(order_router, prefix=settings.API_STR)
