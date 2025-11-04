@@ -21,7 +21,32 @@ const OrdersPage = () => {
   })
   
   const { data: orders = [], isLoading, isError } = useAllOrders(filters)
-  const { data: stats } = useOrderStats()
+  const { data: stats, isLoading: isLoadingStats } = useOrderStats()
+  
+  // Usar estadísticas del API si están disponibles, de lo contrario calcular desde las órdenes
+  const calculatedStats = useMemo(() => {
+    // Si hay stats del API (incluso si total es 0), usarlas
+    if (stats && stats.total !== undefined) {
+      return stats
+    }
+    
+    // Fallback: calcular desde las órdenes cargadas (solo como respaldo temporal)
+    const total = orders.length
+    const pendiente = orders.filter(o => o.ind_estado === 1).length
+    const completada = orders.filter(o => o.ind_estado === 2).length
+    const cancelada = orders.filter(o => o.ind_estado === 3).length
+    const totalVentas = orders
+      .filter(o => o.ind_estado === 2)
+      .reduce((sum, o) => sum + (o.val_total_pedido || 0), 0)
+    
+    return {
+      total,
+      pendiente,
+      completada,
+      cancelada,
+      total_ventas: totalVentas
+    }
+  }, [stats, orders])
 
   const filteredOrders = useMemo(() => {
     let filtered = orders
@@ -198,7 +223,7 @@ const OrdersPage = () => {
       />
 
       {/* Estadísticas */}
-      {stats && <OrderStatsCards stats={stats} />}
+      <OrderStatsCards stats={calculatedStats} />
 
       {/* Filtros */}
       <OrderFilters
