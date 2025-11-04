@@ -43,7 +43,10 @@ export const transformDiscountPayload = (values: any): any => {
     requiere_codigo: values.requiere_codigo || false,
     // IDs condicionales según "aplica_a"
     ...(values.aplica_a === 'producto_especifico' && values.id_producto_aplica && {
-      id_producto_aplica: parseInt(values.id_producto_aplica)
+      id_producto_aplica: parseInt(values.id_producto_aplica),
+      id_categoria: values.id_categoria_producto ? parseInt(values.id_categoria_producto) : undefined,
+      id_linea: values.id_linea_producto ? parseInt(values.id_linea_producto) : undefined,
+      id_sublinea: values.id_sublinea_producto ? parseInt(values.id_sublinea_producto) : undefined,
     }),
     ...(values.aplica_a === 'categoria_especifica' && values.id_categoria_aplica && {
       id_categoria_aplica: parseInt(values.id_categoria_aplica)
@@ -76,6 +79,24 @@ export const discountService = {
   // Descuentos básicos
   async getDiscounts(): Promise<Discount[]> {
     return get<Discount[]>('/discounts')
+  },
+
+  // Obtener descuentos activos para usuarios (público)
+  async getActiveDiscounts(limit: number = 50): Promise<Discount[]> {
+    return get<Discount[]>(`/discounts/active?limit=${limit}`)
+  },
+
+  // Buscar descuento por código de cupón
+  async getDiscountByCode(codigo: string): Promise<Discount> {
+    return get<Discount>(`/discounts/by-code/${codigo.toUpperCase()}`)
+  },
+
+  // Validar código de descuento para el carrito actual
+  async validateDiscountForCart(codigo: string, id_carrito?: number): Promise<any> {
+    return post<any>('/discounts/validate-for-cart', {
+      codigo: codigo.toUpperCase(),
+      id_carrito: id_carrito || undefined
+    })
   },
 
   async createDiscount(values: any): Promise<{ message: string }> {

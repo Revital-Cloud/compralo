@@ -9,6 +9,12 @@ import { cn } from "@/lib/utils"
 import { Product } from "@/types"
 import { formatPrice } from "@/utils/format-price"
 import { useFavorites } from "@/hooks/use-favorites"
+import { useActiveDiscounts } from "@/hooks/use-discounts"
+import { 
+  getApplicableDiscount, 
+  calculateDiscountedPrice, 
+  calculateDiscountPercentage 
+} from "@/utils/discount-utils"
 
 interface ProductInfoProps {
   product: Product
@@ -43,6 +49,20 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   
   // Hook de favoritos
   const { toggleFavorite, isProductFavorite } = useFavorites()
+  
+  // Obtener descuentos activos
+  const { data: discounts } = useActiveDiscounts()
+  
+  // Verificar si hay descuento aplicable
+  const applicableDiscount = discounts ? getApplicableDiscount(product, discounts) : null
+  const originalPriceValue = parseFloat(price.toString())
+  const discountedPrice = applicableDiscount 
+    ? calculateDiscountedPrice(originalPriceValue, applicableDiscount)
+    : originalPriceValue
+  const hasDiscount = applicableDiscount && discountedPrice < originalPriceValue
+  const discountPercentage = hasDiscount 
+    ? calculateDiscountPercentage(originalPriceValue, discountedPrice)
+    : 0
 
   const handleAddToCart = async () => {
     setIsAdding(true)
@@ -68,11 +88,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
     await toggleFavorite(id_categoria, id_linea, id_sublinea, id_producto, isFavorite)
   }
 
-  const isDiscounted = originalPrice && originalPrice > price
-  const discountPercentage = isDiscounted 
-    ? Math.round(((originalPrice - price) / originalPrice) * 100)
-    : 0
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -88,19 +103,21 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       </div>
 
       {/* Price */}
-      <div className="flex items-baseline gap-3">
-        <span className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-          {formatPrice(price, 'COP')}
-        </span>
-        {isDiscounted && (
-          <>
-            <span className="text-lg text-gray-500 line-through">
-              {formatPrice(originalPrice, 'COP')}
+      <div className="flex items-baseline gap-3 flex-nowrap">
+        <div className="flex items-baseline gap-3 flex-1 min-w-0">
+          <span className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white whitespace-nowrap">
+            {formatPrice(hasDiscount ? discountedPrice : price, 'COP')}
+          </span>
+          {hasDiscount && (
+            <span className="text-lg text-gray-500 line-through whitespace-nowrap flex-shrink-0">
+              {formatPrice(originalPriceValue, 'COP')}
             </span>
-            <Badge variant="destructive">
-              -{discountPercentage}%
-            </Badge>
-          </>
+          )}
+        </div>
+        {hasDiscount && (
+          <Badge variant="destructive" className="text-sm whitespace-nowrap flex-shrink-0">
+            -{discountPercentage}% OFF
+          </Badge>
         )}
       </div>
 
