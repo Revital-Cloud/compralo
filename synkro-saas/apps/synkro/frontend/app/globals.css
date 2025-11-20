@@ -1,0 +1,246 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Synkro Color Palette */
+    --synkro-black: 0 0% 11%; /* #1c1c1c */
+    --synkro-green: 142 64% 65%; /* #63e581 */
+    --synkro-white: 0 0% 100%; /* #ffffff */
+
+    /* Light Theme - Synkro Colors */
+    --background: 0 0% 100%; /* White background */
+    --foreground: 0 0% 11%; /* Synkro black text */
+
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 0 0% 11%; /* Black text on cards */
+
+    --popover: 0 0% 100%; /* White popovers */
+    --popover-foreground: 0 0% 11%; /* Black text on popovers */
+
+    --primary: 142 64% 65%; /* Synkro green as primary */
+    --primary-foreground: 0 0% 100%; /* White text on green */
+
+    --secondary: 0 0% 96%; /* Light gray secondary */
+    --secondary-foreground: 0 0% 11%; /* Black text on secondary */
+
+    --muted: 0 0% 96%; /* Light gray muted */
+    --muted-foreground: 0 0% 45%; /* Medium gray text */
+
+    --accent: 142 64% 65%; /* Synkro green accent */
+    --accent-foreground: 0 0% 100%; /* White text on accent */
+
+    --destructive: 0 84% 60%; /* Red for errors */
+    --destructive-foreground: 0 0% 100%; /* White text on red */
+
+    --border: 0 0% 90%; /* Light gray borders */
+    --input: 0 0% 90%; /* Light gray inputs */
+    --ring: 142 64% 65%; /* Synkro green focus rings */
+
+    /* Chart colors using Synkro palette */
+    --chart-1: 142 64% 65%; /* Synkro green */
+    --chart-2: 0 0% 11%; /* Synkro black */
+    --chart-3: 0 0% 100%; /* White */
+    --chart-4: 142 64% 65%; /* Synkro green variant */
+    --chart-5: 0 0% 45%; /* Medium gray */
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark Theme - Synkro Colors - Consistente con Synkro Black */
+    --background: 0 0% 11%; /* Synkro black background */
+    --foreground: 0 0% 100%; /* White text */
+
+    --card: 0 0% 11%; /* Synkro black cards */
+    --card-foreground: 0 0% 100%; /* White text on cards */
+
+    --popover: 0 0% 11%; /* Synkro black popovers */
+    --popover-foreground: 0 0% 100%; /* White text on popovers */
+
+    --primary: 142 64% 65%; /* Synkro green as primary */
+    --primary-foreground: 0 0% 11%; /* Black text on green */
+
+    --secondary: 0 0% 11%; /* Synkro black secondary */
+    --secondary-foreground: 0 0% 100%; /* White text on secondary */
+
+    --muted: 0 0% 11%; /* Synkro black muted */
+    --muted-foreground: 0 0% 64%; /* Light gray text */
+
+    --accent: 142 64% 65%; /* Synkro green accent */
+    --accent-foreground: 0 0% 11%; /* Black text on accent */
+
+    --destructive: 0 63% 31%; /* Darker red for errors */
+    --destructive-foreground: 0 0% 100%; /* White text on red */
+
+    --border: 0 0% 11%; /* Synkro black borders */
+    --input: 0 0% 11%; /* Synkro black inputs */
+    --ring: 142 64% 65%; /* Synkro green focus rings */
+
+    /* Chart colors for dark theme */
+    --chart-1: 142 64% 65%; /* Synkro green */
+    --chart-2: 0 0% 100%; /* White */
+    --chart-3: 0 0% 11%; /* Synkro black */
+    --chart-4: 142 64% 65%; /* Synkro green variant */
+    --chart-5: 0 0% 64%; /* Light gray */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html,
+  body {
+    overflow-x: hidden;
+  }
+  * {
+    max-width: 100%;
+  }
+}
+
+/* Synkro-specific utility classes */
+@layer utilities {
+  .text-synkro-green {
+    color: hsl(142 64% 65%);
+  }
+
+  .bg-synkro-green {
+    background-color: hsl(142 64% 65%);
+  }
+
+  .border-synkro-green {
+    border-color: hsl(142 64% 65%);
+  }
+
+  .text-synkro-black {
+    color: hsl(0 0% 11%);
+  }
+
+  .bg-synkro-black {
+    background-color: hsl(0 0% 11%);
+  }
+
+  .border-synkro-black {
+    border-color: hsl(0 0% 11%);
+  }
+
+  /* Nuevas utilidades para fondos consistentes */
+  .bg-synkro-section {
+    background-color: hsl(0 0% 11%);
+  }
+
+  .bg-synkro-section-alt {
+    background-color: hsl(0 0% 13%);
+  }
+
+  .border-synkro-section {
+    border-color: hsl(0 0% 11%);
+  }
+}
+
+/* Custom animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(2rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(2rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(-2rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(99, 229, 129, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(99, 229, 129, 0.6);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s ease-out forwards;
+}
+
+.animate-slide-left {
+  animation: slide-left 0.6s ease-out forwards;
+}
+
+.animate-slide-right {
+  animation: slide-right 0.6s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.6s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
