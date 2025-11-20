@@ -158,7 +158,7 @@ export function PricingCards() {
                         key={featureIndex}
                         className="flex items-start gap-3"
                       >
-                        <Check className="w-5 h-5 text-synkro-green flex-shrink-0 mt-0.5" />
+                        <Check className="w-5 h-5 text-synkro-green shrink-0 mt-0.5" />
                         <span className="text-sm text-gray-700 dark:text-gray-300">
                           {feature}
                         </span>
@@ -166,7 +166,7 @@ export function PricingCards() {
                     ))}
                     {plan.limitations.map((limitation, limitIndex) => (
                       <div key={limitIndex} className="flex items-start gap-3">
-                        <div className="w-5 h-5 flex-shrink-0 mt-0.5 flex items-center justify-center">
+                        <div className="w-5 h-5 shrink-0 mt-0.5 flex items-center justify-center">
                           <div className="w-2 h-0.5 bg-gray-400" />
                         </div>
                         <span className="text-sm text-gray-500 dark:text-gray-500">
@@ -183,7 +183,7 @@ export function PricingCards() {
                       "w-full",
                       plan.variant === "synkro" &&
                         "bg-synkro-green hover:bg-synkro-green/90 text-synkro-black",
-                      plan.variant === "outline" &&
+                      plan.variant === "outline-solid" &&
                         "border-synkro-green text-synkro-green hover:bg-synkro-green hover:text-synkro-black"
                     )}
                   >

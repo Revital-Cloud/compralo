@@ -81,7 +81,7 @@ export function ScrollToTop() {
         {/* Botón principal */}
         <button
           onClick={scrollToTop}
-          className="group relative w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-synkro-green to-synkro-green/80 text-synkro-black shadow-2xl hover:shadow-synkro-green/30 transition-all duration-300 hover:scale-110 hover:from-synkro-green/90 hover:to-synkro-green/70 flex items-center justify-center backdrop-blur-sm border border-synkro-green/20 z-10"
+          className="group relative w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-linear-to-br from-synkro-green to-synkro-green/80 text-synkro-black shadow-2xl hover:shadow-synkro-green/30 transition-all duration-300 hover:scale-110 hover:from-synkro-green/90 hover:to-synkro-green/70 flex items-center justify-center backdrop-blur-xs border border-synkro-green/20 z-10"
           aria-label="Volver arriba"
         >
           {/* Efecto de pulso en hover */}
@@ -91,7 +91,7 @@ export function ScrollToTop() {
           <ArrowUp className="h-3 w-3 sm:h-5 sm:w-5 relative z-10 transition-transform duration-300 group-hover:-translate-y-0.5" />
 
           {/* Efecto de brillo */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-t from-transparent via-white/10 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 rounded-full bg-linear-to-t from-transparent via-white/10 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         </button>
       </div>
     </div>

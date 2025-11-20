@@ -45,7 +45,7 @@ export function FAQSection() {
                 </span>
                 <ChevronDown
                   className={cn(
-                    "w-5 h-5 text-gray-500 dark:text-synkro-green transition-transform duration-200 flex-shrink-0",
+                    "w-5 h-5 text-gray-500 dark:text-synkro-green transition-transform duration-200 shrink-0",
                     openItems.includes(index) && "rotate-180"
                   )}
                 />

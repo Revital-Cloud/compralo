@@ -30,7 +30,7 @@ export const Contact2 = ({
   return (
     <section id="contact" className="py-32 bg-white dark:bg-synkro-black">
       <div className="container">
-        <div className="mx-auto flex max-w-screen-xl flex-col justify-between gap-10 lg:flex-row lg:gap-20">
+        <div className="mx-auto flex max-w-(--breakpoint-xl) flex-col justify-between gap-10 lg:flex-row lg:gap-20">
           <div className="mx-auto flex max-w-sm flex-col justify-between gap-10">
             <div className="text-center lg:text-left">
               <h1 className="mb-2 text-5xl font-semibold lg:mb-1 lg:text-6xl text-synkro-green">
@@ -71,7 +71,7 @@ export const Contact2 = ({
               </ul>
             </div>
           </div>
-          <div className="mx-auto flex max-w-screen-md flex-col gap-6 rounded-lg border border-synkro-green/20 p-10 bg-gray-50 dark:bg-synkro-black backdrop-blur-sm">
+          <div className="mx-auto flex max-w-(--breakpoint-md) flex-col gap-6 rounded-lg border border-synkro-green/20 p-10 bg-gray-50 dark:bg-synkro-black backdrop-blur-xs">
             <div className="flex gap-4">
               <div className="grid w-full items-center gap-1.5">
                 <Label

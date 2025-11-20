@@ -152,7 +152,7 @@ export default function ProcessFlow({
           {/* Línea de progreso - Posicionada arriba de las cards */}
           <div className="absolute -top-8 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 rounded-full hidden lg:block">
             <div
-              className="h-full bg-gradient-to-r from-synkro-green to-synkro-green/80 rounded-full transition-all duration-1000 ease-out"
+              className="h-full bg-linear-to-r from-synkro-green to-synkro-green/80 rounded-full transition-all duration-1000 ease-out"
               style={{
                 width: `${((currentStep + 1) / steps.length) * 100}%`,
               }}
@@ -179,7 +179,7 @@ export default function ProcessFlow({
                         className={cn(
                           "h-full transition-all duration-1000",
                           index < currentStep
-                            ? "bg-gradient-to-r from-synkro-green to-synkro-green/80"
+                            ? "bg-linear-to-r from-synkro-green to-synkro-green/80"
                             : "bg-transparent"
                         )}
                         style={{
@@ -282,11 +282,11 @@ export default function ProcessFlow({
 
         {/* Información del paso actual */}
         <div className="mt-12 lg:mt-16">
-          <Card className="bg-gradient-to-r from-synkro-green/5 to-synkro-green/10 dark:from-synkro-green/10 dark:to-synkro-green/5 border-synkro-green/20">
+          <Card className="bg-linear-to-r from-synkro-green/5 to-synkro-green/10 dark:from-synkro-green/10 dark:to-synkro-green/5 border-synkro-green/20">
             <CardContent className="p-6 lg:p-8">
               <div className="flex items-center gap-4 mb-4">
                 <div
-                  className={`w-12 h-12 rounded-full bg-gradient-to-r ${steps[currentStep].gradient} flex items-center justify-center text-white`}
+                  className={`w-12 h-12 rounded-full bg-linear-to-r ${steps[currentStep].gradient} flex items-center justify-center text-white`}
                 >
                   {(() => {
                     const CurrentIcon = steps[currentStep].icon;

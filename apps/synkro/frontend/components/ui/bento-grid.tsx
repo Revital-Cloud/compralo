@@ -91,12 +91,12 @@ function BentoGrid({ items = itemsSample }: BentoGridProps) {
                 : "opacity-0 group-hover:opacity-100"
             } transition-opacity duration-300`}
           >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(99,229,129,0.05)_1px,transparent_1px)] bg-[length:4px_4px]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,0,0,0.02)_1px,transparent_1px)] dark:bg-[radial-gradient(circle_at_center,rgba(99,229,129,0.05)_1px,transparent_1px)] bg-size-[4px_4px]" />
           </div>
 
           <div className="relative flex flex-col space-y-3">
             <div className="flex items-center justify-between">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-black/5 dark:bg-synkro-green/10 group-hover:bg-gradient-to-br transition-all duration-300">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-black/5 dark:bg-synkro-green/10 group-hover:bg-linear-to-br transition-all duration-300">
                 {item.icon}
               </div>
               {item.status && (

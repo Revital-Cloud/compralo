@@ -8,7 +8,7 @@ type PresetType =
   | "fade"
   | "slide"
   | "scale"
-  | "blur"
+  | "blur-sm"
   | "blur-slide"
   | "zoom"
   | "flip"

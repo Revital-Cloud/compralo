@@ -103,7 +103,7 @@ export function SecuritySection() {
               className="bg-white dark:bg-synkro-black border border-gray-200 dark:border-synkro-green/20 rounded-lg p-6 hover:shadow-lg transition-shadow"
             >
               <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">{feature.icon}</div>
+                <div className="shrink-0">{feature.icon}</div>
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                     {feature.title}
