@@ -44,16 +44,28 @@ console.log(`🚀 Iniciando backend de ecommerce...`);
 console.log(`📁 Directorio: ${backendPath}`);
 console.log(`⚙️  Comando: ${command} ${args.join(' ')}`);
 
-const child = spawn(command, args, {
+// En Windows, cuando usamos shell: true, si la ruta tiene espacios necesitamos entrecomillarla
+// La mejor forma es pasar todo como un string cuando hay espacios
+let spawnCommand = command;
+let spawnArgs = args;
+const spawnOptions = {
   stdio: 'inherit',
-  shell: isWindows,
-  cwd: backendPath
-});
+  cwd: backendPath,
+  shell: isWindows
+};
+
+if (isWindows && command.includes(' ')) {
+  // Si la ruta tiene espacios, entrecomillarla y pasar todo como string
+  spawnCommand = `"${command}" ${args.join(' ')}`;
+  spawnArgs = [];
+}
+
+const child = spawn(spawnCommand, spawnArgs, spawnOptions);
 
 child.on('error', (error) => {
   console.error(`❌ Error al ejecutar el backend: ${error.message}`);
   console.error(`💡 Asegúrate de que FastAPI esté instalado en el entorno virtual.`);
-  console.error(`💡 Ejecuta: cd apps/ecommerce/backend && python -m venv venv && .\\venv\\Scripts\\activate && pip install -r requirements.txt`);
+  console.error(`📝 Ejecuta: cd apps/ecommerce/backend && python -m venv venv && .\\venv\\Scripts\\activate && pip install -r requirements.txt`);
   process.exit(1);
 });
 
