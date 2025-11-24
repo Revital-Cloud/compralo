@@ -99,4 +99,113 @@ export const deletePaymentMethod = async (paymentMethodId: number): Promise<ApiR
 
 export const setDefaultPaymentMethod = async (paymentMethodId: number): Promise<ApiResponse<null>> => {
     return api.put<ApiResponse<null>>(`/payment/set-default-method/${paymentMethodId}`);
+};
+
+// Servicios para transacciones Wompi
+export interface CreateWompiTransactionPayload {
+    amount: number;
+    payment_method_type: "PSE" | "CARD" | "CASH" | "CREDIT";
+    payment_method_data?: {
+        type: string;
+        user_type?: number; // 0: natural, 1: jurídica
+        user_legal_id_type?: string; // "CC" o "NIT"
+        user_legal_id?: string;
+        financial_institution_code?: string;
+        payment_description?: string;
+        reference_one?: string; // IP del cliente
+        reference_two?: string; // Fecha apertura producto (yyyymmdd)
+        reference_three?: string; // Número documento beneficiario
+    };
+    customer_data?: {
+        phone_number: string;
+        full_name: string;
+    };
+    redirect_url?: string;
+}
+
+export interface WompiTransactionResponse {
+    data: {
+        id: string;
+        status: string;
+        payment_method?: {
+            extra?: {
+                async_payment_url?: string;
+            };
+        };
+    };
+}
+
+export const getFinancialInstitutions = async (): Promise<any> => {
+    try {
+        const response = await api.get('/orders/wompi/financial-institutions');
+        return response;
+    } catch (error: any) {
+        console.error('Error obteniendo instituciones financieras:', error);
+        throw error;
+    }
+};
+
+export const createWompiTransaction = async (
+    payload: CreateWompiTransactionPayload
+): Promise<WompiTransactionResponse> => {
+    try {
+        const response = await api.post<WompiTransactionResponse>(
+            '/orders/wompi/create-transaction',
+            payload
+        );
+        return response;
+    } catch (error: any) {
+        console.error('Error creando transacción Wompi:', error);
+        throw error;
+    }
+};
+
+export const getWompiTransaction = async (transactionId: string): Promise<any> => {
+    try {
+        const response = await api.get(`/orders/wompi/transaction/${transactionId}`);
+        return response;
+    } catch (error: any) {
+        console.error('Error obteniendo transacción Wompi:', error);
+        throw error;
+    }
+};
+
+// Función helper para obtener la IP del cliente (para reference_one en PSE)
+export const getClientIP = async (): Promise<string> => {
+    try {
+        const response = await fetch('https://api.ipify.org?format=json');
+        const data = await response.json();
+        return data.ip;
+    } catch (error) {
+        console.error('Error obteniendo IP:', error);
+        return '';
+    }
+};
+
+// Función para hacer long polling hasta obtener async_payment_url
+export const pollForAsyncPaymentUrl = async (
+    transactionId: string,
+    maxAttempts: number = 30,
+    intervalMs: number = 2000
+): Promise<string | null> => {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+            const transaction = await getWompiTransaction(transactionId);
+            const asyncPaymentUrl = transaction?.data?.payment_method?.extra?.async_payment_url;
+            
+            if (asyncPaymentUrl) {
+                return asyncPaymentUrl;
+            }
+            
+            // Esperar antes del siguiente intento
+            await new Promise(resolve => setTimeout(resolve, intervalMs));
+        } catch (error) {
+            console.error(`Error en intento ${attempt + 1}:`, error);
+            if (attempt < maxAttempts - 1) {
+                await new Promise(resolve => setTimeout(resolve, intervalMs));
+            }
+        }
+    }
+    
+    return null;
 }; 
