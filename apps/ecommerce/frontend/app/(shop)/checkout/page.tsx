@@ -18,7 +18,7 @@ import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { formatPrice } from "@/utils/format-price";
 import { ChevronLeft, Truck, Package, CreditCard, Lock, Plus, X } from "lucide-react";
-import { WompiPaymentModal } from "@/components/payment/wompi-payment-modal";
+import WompiModal from "@/components/payment/wompi-modal";
 import { toast } from "sonner";
 import addressService from "@/services/address.service";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -146,97 +146,15 @@ const CheckoutPage = () => {
     setIsWompiModalOpen(true);
   };
 
-  const handleSelectPaymentMethod = async (method: "card" | "pse" | "cash" | "credit") => {
-    try {
-      setIsWompiModalOpen(false);
+  const handlePaymentResult = (result: any) => {
+    console.log("Resultado del pago:", result);
+    
+    if (result.transaction) {
+      const transaction = result.transaction;
       
-      // Importar servicios de pago
-      const { createWompiTransaction, pollForAsyncPaymentUrl } = await import("@/services/payment.service");
-      
-      // Preparar datos según el método de pago
-      let paymentMethodType: "PSE" | "CARD" | "CASH" | "CREDIT" = "CARD";
-      let paymentMethodData: any = {};
-      let customerData: any = {};
-      let needsAsyncUrl = false;
-      
-      if (method === "pse") {
-        paymentMethodType = "PSE";
-        needsAsyncUrl = true;
-        // Para PSE necesitamos información adicional del usuario
-        if (!user) {
-          toast.error("Debes estar autenticado para pagar con PSE");
-          return;
-        }
-        
-        // TODO: Crear formulario para seleccionar banco y tipo de persona
-        // Por ahora usamos valores por defecto
-        paymentMethodData = {
-          type: "PSE",
-          user_type: 0, // 0: natural, 1: jurídica
-          user_legal_id_type: "CC", // CC o NIT
-          user_legal_id: "", // Se debe obtener del usuario o formulario
-          financial_institution_code: "", // Se debe seleccionar del listado
-          payment_description: `Pago a Phonetify, ref: ${Date.now()}`.substring(0, 64),
-        };
-        
-        customerData = {
-          phone_number: user.cel_usuario || "",
-          full_name: `${user.nom_usuario} ${user.ape_usuario}`,
-        };
-        
-        toast.info("Para PSE, se necesita información adicional. Implementando formulario...");
-        // Por ahora retornamos, luego implementaremos el formulario
-        return;
-      } else if (method === "card") {
-        paymentMethodType = "CARD";
-        // Para tarjetas, se necesita tokenizar primero o usar una guardada
-        toast.info("Para pagar con tarjeta, se necesita tokenizar o seleccionar una guardada");
-        return;
-      } else if (method === "cash") {
-        paymentMethodType = "CASH";
-        needsAsyncUrl = true;
-      } else if (method === "credit") {
-        paymentMethodType = "CREDIT";
-      }
-      
-      // Crear transacción
-      const transactionResponse = await createWompiTransaction({
-        amount: finalTotal,
-        payment_method_type: paymentMethodType,
-        payment_method_data: Object.keys(paymentMethodData).length > 0 ? paymentMethodData : undefined,
-        customer_data: Object.keys(customerData).length > 0 ? customerData : undefined,
-        redirect_url: `${window.location.origin}/checkout/payment-result`,
-      });
-      
-      const transactionId = transactionResponse.data?.id;
-      
-      if (!transactionId) {
-        toast.error("Error al crear la transacción");
-        return;
-      }
-      
-      // Para métodos asíncronos, hacer polling para obtener async_payment_url
-      if (needsAsyncUrl) {
-        toast.loading("Preparando pago...", { id: "payment-loading" });
-        
-        const asyncPaymentUrl = await pollForAsyncPaymentUrl(transactionId);
-        
-        if (asyncPaymentUrl) {
-          toast.dismiss("payment-loading");
-          // Redirigir al usuario a la URL de pago
-          window.location.href = asyncPaymentUrl;
-        } else {
-          toast.dismiss("payment-loading");
-          toast.error("No se pudo obtener la URL de pago. Intenta nuevamente.");
-        }
-      } else {
-        // Para métodos síncronos, verificar estado inmediatamente
-        toast.success("Transacción creada exitosamente");
-      }
-      
-    } catch (error: any) {
-      console.error("Error al procesar pago:", error);
-      toast.error(error.response?.data?.detail || error.message || "Error al procesar el pago");
+      // El widget ya maneja la redirección y los mensajes de toast
+      // Aquí podríamos agregar lógica adicional si es necesaria
+      console.log("Transacción completada:", transaction);
     }
   };
 
@@ -335,11 +253,28 @@ const CheckoutPage = () => {
       </div>
 
       {/* Modal de Wompi */}
-      <WompiPaymentModal
+      <WompiModal
         isOpen={isWompiModalOpen}
         onClose={() => setIsWompiModalOpen(false)}
-        total={finalTotal}
-        onSelectPaymentMethod={handleSelectPaymentMethod}
+        amount={finalTotal * 100} // Convertir a centavos
+        customerData={{
+          email: user?.email_usuario,
+          fullName: `${informationForm.getValues().nombre} ${informationForm.getValues().apellidos}`,
+          phoneNumber: informationForm.getValues().celular,
+          phoneNumberPrefix: "+57",
+          legalId: paymentForm.getValues().numeroIdentificacion,
+          legalIdType: paymentForm.getValues().tipoIdentificacion
+        }}
+        shippingAddress={{
+          addressLine1: informationForm.getValues().direccion,
+          addressLine2: informationForm.getValues().complemento,
+          city: informationForm.getValues().ciudad,
+          region: informationForm.getValues().departamento,
+          country: "CO",
+          name: `${informationForm.getValues().nombre} ${informationForm.getValues().apellidos}`,
+          phoneNumber: informationForm.getValues().celular
+        }}
+        onPaymentResult={handlePaymentResult}
       />
     </div>
   );
@@ -1173,7 +1108,7 @@ function OrderSummary({
           {Array.isArray(items) &&
             items.map((item) => (
               <div key={item.id_carrito_producto} className="flex gap-3">
-                <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden flex-shrink-0">
+                <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded overflow-hidden shrink-0">
                   {item.imagen_url ? (
                     <img
                       src={item.imagen_url}
