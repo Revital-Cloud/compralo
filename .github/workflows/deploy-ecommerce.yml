@@ -1,0 +1,42 @@
+name: Deploy Ecommerce
+
+on:
+  push:
+    branches:
+      - main
+      - staging
+      - '**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Determinar entorno según branch
+        id: envcheck
+        run: |
+          if [[ "${GITHUB_REF##*/}" == "main" ]]; then
+            echo "DIR=prod" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF##*/}" == "staging" ]]; then
+            echo "DIR=staging" >> $GITHUB_ENV
+          else
+            echo "DIR=dev" >> $GITHUB_ENV
+          fi
+
+      - name: Conectar por SSH y desplegar Ecommerce
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -euo pipefail
+            cd /srv/synkro/containers/${DIR}
+            echo "→ Deploy Ecommerce en entorno: ${DIR}"
+            docker compose pull
+            docker compose build ecommerce-frontend ecommerce-backend
+            docker compose up -d --force-recreate ecommerce-frontend ecommerce-backend
