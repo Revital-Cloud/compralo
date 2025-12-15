@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion"
 import { Check, ShoppingCart, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@repo/ui"
 import { useState, useEffect } from "react"
 
 interface CartToastProps {

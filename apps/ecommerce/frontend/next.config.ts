@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  transpilePackages: ['@repo/ui'],
   serverExternalPackages: ['@node-rs/argon2'],
   // Configuración de imágenes
   images: {

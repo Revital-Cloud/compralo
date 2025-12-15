@@ -1,8 +1,8 @@
 'use client'
 
 import React from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui'
+import { Badge } from '@repo/ui'
 import { IconShoppingCart, IconClock, IconCheck, IconX, IconCash } from '@tabler/icons-react'
 import type { OrderStats } from '@/types/order'
 

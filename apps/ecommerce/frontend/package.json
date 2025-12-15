@@ -11,6 +11,7 @@
     "verify-api": "node scripts/verify-api-connection.js"
   },
   "dependencies": {
+    "@repo/ui": "workspace:*",
     "@heroui/image": "^2.2.13",
     "@heroui/system": "^2.4.17",
     "@heroui/theme": "^2.4.17",

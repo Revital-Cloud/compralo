@@ -1,14 +1,14 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@repo/ui'
+import { Button } from '@repo/ui'
+import { Input } from '@repo/ui'
+import { Label } from '@repo/ui'
+import { Switch } from '@repo/ui'
 import { useActivePointsRate, useCreatePointsConfig, useUpdatePointsConfig } from '@/hooks/use-points'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@repo/ui'
+import { Popover, PopoverContent, PopoverTrigger } from '@repo/ui'
 
 interface Props {
   open: boolean

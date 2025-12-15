@@ -1,9 +1,9 @@
 ﻿"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
-import { Button } from "@/components/ui/button";
-import { ReviewForm } from "@/components/ui/review-form";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui";
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerClose } from "@repo/ui";
+import { Button } from "@repo/ui";
+import { ReviewForm } from "@repo/ui";
 import { Package, X, MessageSquare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/utils/apiWrapper";

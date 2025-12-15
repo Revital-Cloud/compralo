@@ -15,10 +15,10 @@ import {
     DialogTrigger,
     DialogFooter,
     DialogClose
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+} from "@repo/ui";
+import { Button } from "@repo/ui";
+import { Input } from "@repo/ui";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui";
 import { PlusCircle, Loader2 } from "lucide-react";
 
 // Define el schema del formulario con Zod

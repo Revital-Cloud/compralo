@@ -11,7 +11,7 @@ import { providerService } from '@/services/provider.service'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
-import { Button } from '@/components/ui/button'
+import { Button } from '@repo/ui'
 import { Pencil, Power } from 'lucide-react'
 
 interface Provider {

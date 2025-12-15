@@ -9,8 +9,8 @@ import { useProductsAdmin, useDeactivateProduct, useActivateProduct } from "@/ho
 import type { Product } from '@/types/product';
 import DataTable from '@/components/tables/table';
 import { ColumnDef } from '@tanstack/react-table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@repo/ui';
+import { Badge } from '@repo/ui';
 import { Pencil, Power, Eye } from 'lucide-react';
 import { formatPrice } from '@/utils/format-price';
 import Image from 'next/image';

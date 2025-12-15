@@ -1,7 +1,7 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@repo/ui"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui"
 import { Home, Search, ArrowLeft, HelpCircle, AlertTriangle, RefreshCw } from "lucide-react"
 import Link from "next/link"
 import EcommerceHeader from "@/components/layout/shop/header/header"

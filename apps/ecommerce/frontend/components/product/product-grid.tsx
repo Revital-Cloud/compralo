@@ -6,7 +6,7 @@ import Link from "next/link"
 import Image from "next/image"
 import { useFavorites } from "@/hooks/use-favorites"
 import { useActiveDiscounts } from "@/hooks/use-discounts"
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@repo/ui"
 
 import type { Product } from '@/types'
 import { getProductImageUrl } from "@/utils/image-helpers"

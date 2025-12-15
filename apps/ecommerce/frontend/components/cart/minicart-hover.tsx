@@ -3,9 +3,9 @@
 import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@repo/ui"
+import { Button } from "@repo/ui"
+import { ScrollArea } from "@repo/ui"
 import { useCart } from "@/hooks/use-cart"
 
 interface MiniCartHoverProps {

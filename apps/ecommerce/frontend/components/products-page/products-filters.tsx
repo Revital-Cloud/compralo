@@ -1,7 +1,7 @@
 import { X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@repo/ui"
+import { Checkbox } from "@repo/ui"
+import { Badge } from "@repo/ui"
 
 interface ProductsFiltersProps {
   showFilters: boolean

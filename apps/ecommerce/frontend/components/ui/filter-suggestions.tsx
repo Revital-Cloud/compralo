@@ -1,5 +1,5 @@
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@repo/ui"
+import { Badge } from "@repo/ui"
 import { X, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
 

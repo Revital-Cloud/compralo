@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button"
+import { Button } from "@repo/ui"
 import { Search, FilterX, Package, ShoppingBag } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { 

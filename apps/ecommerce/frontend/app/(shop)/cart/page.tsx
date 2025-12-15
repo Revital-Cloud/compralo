@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Button } from "@repo/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
+import { Input } from "@repo/ui";
 import CartItem from "@/components/cart/cart-item";
 import { ProductCard } from "@/components/product/product-card";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@repo/ui";
 import {
   X,
   ShoppingBag,
@@ -17,8 +17,8 @@ import {
 } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import Loading from "@/components/ui/loading";
+import { Alert, AlertDescription } from "@repo/ui";
+import Loading from "@repo/ui";
 import { toast } from "sonner";
 import { formatPrice } from "@/utils/format-price";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -35,8 +35,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+} from "@repo/ui";
+import { RadioGroup, RadioGroupItem } from "@repo/ui";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,7 +46,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogDescription,
-} from "@/components/ui/alert-dialog";
+} from "@repo/ui";
 import { useRouter } from "next/navigation";
 import { AuthModal } from "@/components/auth/auth-modal";
 

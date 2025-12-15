@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { UniversalFilters } from '@/components/ui/universal-filters';
+import { UniversalFilters } from '@repo/ui';
 import { useFilterOptions } from '@/hooks/use-filter-options';
 import { FilterConfig, SortOption, StockStats } from '@/types/filters';
 

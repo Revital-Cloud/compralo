@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { ProductGallery, ProductInfo, RelatedProducts } from "@/components/product"
-import CartToast from "@/components/ui/cart-toast"
-import { ReviewsSection } from "@/components/ui/reviews-section"
+import CartToast from "@repo/ui"
+import { ReviewsSection } from "@repo/ui"
 import { useProduct } from "@/hooks/use-products"
 import { useCart } from "@/hooks/use-cart"
-import Loading from "@/components/ui/loading"
+import Loading from "@repo/ui"
 import { toast } from "sonner"
 
 const ProductPage = () => {

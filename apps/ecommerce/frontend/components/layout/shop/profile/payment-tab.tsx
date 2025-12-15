@@ -2,25 +2,25 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToastActions } from "@/hooks/use-toast-actions";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@repo/ui";
+import { Card, CardContent } from "@repo/ui";
 import { CreditCard, MoreVertical, Trash2, CheckCircle, PlusCircle, Star, Edit3, Shield, X } from "lucide-react";
 import { listPaymentMethods, deletePaymentMethod, setDefaultPaymentMethod, addPaymentMethod } from "@/services/payment.service";
 import { MetodoPagoUsuario } from "@/types/payment";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@repo/ui";
+import { Badge } from "@repo/ui";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@repo/ui";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Input } from "@repo/ui";
+import { Label } from "@repo/ui";
 import { Loader2 } from "lucide-react";
 
 const getBrandIcon = (brand: string) => {

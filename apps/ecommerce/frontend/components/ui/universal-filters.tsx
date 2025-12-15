@@ -1,11 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Select } from "@/components/ui/select";
+import { Card, CardContent } from "@repo/ui";
+import { Input } from "@repo/ui";
+import { Button } from "@repo/ui";
+import { Badge } from "@repo/ui";
+import { Select } from "@repo/ui";
 import {
   IconSearch,
   IconFilter,

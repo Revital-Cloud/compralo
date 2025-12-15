@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Button } from "@/components/ui/button";
+import { Button } from "@repo/ui";
 import { IconPlus } from "@tabler/icons-react";
 import Link from "next/link";
-import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { Breadcrumb } from '@repo/ui';
 
 interface ProductsHeaderProps { }
 

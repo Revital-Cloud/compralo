@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Button } from "@/components/ui/button";
+import { Button } from "@repo/ui";
 import { IconArrowLeft } from "@tabler/icons-react";
 import Link from "next/link";
 

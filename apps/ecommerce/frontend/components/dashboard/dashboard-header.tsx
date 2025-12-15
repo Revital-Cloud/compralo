@@ -1,7 +1,7 @@
 'use client'
 
-import { Button } from "@/components/ui/button"
-import { Select } from "@/components/ui/select"
+import { Button } from "@repo/ui"
+import { Select } from "@repo/ui"
 import { IconCalendar, IconRefresh } from "@tabler/icons-react"
 
 interface DashboardHeaderProps {

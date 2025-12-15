@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@repo/ui"
 
 interface ProductPricingProps {
   price: string

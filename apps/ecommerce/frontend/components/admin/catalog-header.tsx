@@ -2,7 +2,7 @@
 
 import React from 'react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
+import { Button } from '@repo/ui'
 import { IconDownload, IconPlus, IconUpload } from '@tabler/icons-react'
 
 interface CatalogHeaderProps {

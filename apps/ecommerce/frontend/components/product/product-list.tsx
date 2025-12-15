@@ -1,8 +1,8 @@
 "use client"
 
 import { Heart, ShoppingCart, Star } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@repo/ui"
+import { Badge } from "@repo/ui"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import type { Product } from "@/types"
