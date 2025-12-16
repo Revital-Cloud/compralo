@@ -1,26 +1,27 @@
-# Synkro Landing Page
+# Synkro Frontend - Landing Page y Panel SaaS 🎨
 
-> La plataforma e-commerce todo-en-uno diseñada para el mercado colombiano
+> Landing page moderna y panel de control para la plataforma SaaS de e-commerce
 
 ## 🚀 Descripción
 
-Landing page moderna y responsive para Synkro, una plataforma SaaS de e-commerce integral que incluye:
+Frontend de Synkro que incluye:
 
-- 📊 Panel de estadísticas en tiempo real
-- 📦 Gestor de productos simplificado con SEO automático
-- 💳 Integración nativa con Wompi, Stripe y PayPal
-- 📝 CMS headless integrado y flexible
-- 🎯 Herramientas de marketing y descuentos configurables
+- 🌐 **Landing page pública** - Marketing y conversión
+- 📊 **Panel de control SaaS** (futuro) - Gestión de instancias de clientes
+- 🎯 **Páginas de marketing** - Features, pricing, testimonios
+- 📝 **CMS headless** - Contenido gestionable
+- 🎨 **Diseño moderno** - Responsive con dark mode
 
 ## 🛠️ Stack Tecnológico
 
-- **Framework**: Next.js 15+
+- **Framework**: Next.js 16+ (App Router)
 - **React**: 19+
-- **UI Components**: ShadcnUI
-- **Styling**: Tailwind CSS
+- **TypeScript**: Tipado estático completo
+- **UI Components**: shadcn/ui
+- **Styling**: Tailwind CSS 3
 - **Animations**: Framer Motion
-- **TypeScript**: Para type safety
-- **Deployment**: Vercel (recomendado)
+- **State Management**: React Query, Zustand
+- **Package Manager**: pnpm (monorepo)
 
 ## 📁 Estructura del Proyecto
 
@@ -46,38 +47,43 @@ synkro_landing/
 
 ## 🚀 Inicio Rápido
 
-1. **Clonar el repositorio**
+### Desde el Monorepo (Recomendado)
 
 ```bash
-git clone <repository-url>
-cd synkro_landing
+# Desde la raíz del monorepo (code/)
+pnpm install          # Instala todas las dependencias
+pnpm dev             # Ejecuta todos los proyectos
+
+# O solo este proyecto:
+cd apps/synkro/frontend
+pnpm dev
 ```
 
-2. **Instalar dependencias**
+### Standalone (si es necesario)
 
 ```bash
-npm install
+cd apps/synkro/frontend
+
+# Instalar dependencias
+pnpm install
+
+# Configurar variables de entorno
+cp .env.local.example .env.local
+
+# Ejecutar en desarrollo
+pnpm dev
 ```
 
-3. **Ejecutar en desarrollo**
-
-```bash
-npm run dev
-```
-
-4. **Abrir en el navegador**
-
-```
-http://localhost:3000
-```
+La aplicación estará disponible en: **http://localhost:3001** (puerto diferente al e-commerce)
 
 ## 📝 Scripts Disponibles
 
 ```bash
-npm run dev          # Servidor de desarrollo
-npm run build        # Build de producción
-npm run start        # Servidor de producción
-npm run lint         # Linter ESLint
+pnpm dev          # Servidor de desarrollo
+pnpm build        # Build de producción
+pnpm start        # Servidor de producción
+pnpm lint         # Linter ESLint
+pnpm type-check   # Verificación de tipos TypeScript
 ```
 
 ## 🎨 Características Implementadas
@@ -127,7 +133,8 @@ import { heroContent, appConfig } from '@/content';
 
 ## 🔗 Enlaces Importantes
 
-- **App Principal**: https://app.synkro.com
+- **Landing Page**: https://synkro.com
+- **App Principal (E-commerce)**: https://app.synkro.com
 - **Registro**: https://app.synkro.com/register
 - **Documentación**: https://docs.synkro.com
 - **Soporte**: https://support.synkro.com

@@ -1,4 +1,6 @@
-# Hero Carousel Atomizado
+# Hero Carousel Atomizado 🎠
+
+**Carousel hero modular con soporte para CMS headless y dark mode**
 
 El componente `hero.tsx` ha sido atomizado en componentes más pequeños para facilitar el mantenimiento, integración con CMS headless y soporte completo para dark mode.
 
@@ -159,4 +161,14 @@ const cmsProducts = [
 - **Desktop**: Layout completo de 2 columnas
 - **Navegación**: Botones ocultos en mobile, indicadores siempre visibles
 
-El hero carousel ahora es completamente modular, compatible con CMS headless y tiene soporte nativo para dark mode, manteniendo toda la funcionalidad original pero con una arquitectura mucho más escalable y mantenible. 
+El hero carousel ahora es completamente modular, compatible con CMS headless y tiene soporte nativo para dark mode, manteniendo toda la funcionalidad original pero con una arquitectura mucho más escalable y mantenible.
+
+## 📚 Documentación Relacionada
+
+- [Frontend E-commerce README](../../../../README.md)
+- [Componentes de Layout](../README.md)
+- [Sistema de Dark Mode](../../../../Docs/DARK_MODE_IMPLEMENTATION.md)
+
+---
+
+**Hero Carousel** - Carousel hero modular y escalable 🎠 

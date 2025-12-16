@@ -1,8 +1,22 @@
-# Synkro Backend
+# Synkro Backend - API de Gestión SaaS 🚀
 
-Backend API para la plataforma Synkro.
+**API para gestión centralizada de instancias de clientes**
 
-## Estructura del Proyecto
+El backend de Synkro está diseñado para gestionar el panel de control SaaS que permite crear, configurar y administrar las instancias aisladas de clientes. Este backend maneja la lógica de negocio de la plataforma SaaS, no la lógica de e-commerce individual.
+
+## 🎯 Propósito
+
+Este backend gestiona:
+- **Creación y configuración de instancias** de clientes
+- **Gestión de planes de suscripción** (Starter, Business, Enterprise)
+- **Panel de control SaaS** para administradores de Synkro
+- **Billing y facturación** de clientes
+- **Monitoreo y analytics** de todas las instancias
+- **Gestión de usuarios** del panel SaaS
+
+> **Nota**: Este backend es diferente al backend de e-commerce (`apps/ecommerce/backend`). Este maneja la plataforma SaaS, mientras que el otro maneja la lógica de cada tienda individual.
+
+## 🏗️ Estructura del Proyecto
 
 ```
 backend/
@@ -20,8 +34,16 @@ backend/
 │   │   └── security_middleware.py # Middleware de seguridad
 │   │
 │   ├── routers/                # Endpoints de la API
+│   │   ├── instances/         # Gestión de instancias de clientes
+│   │   ├── subscriptions/     # Gestión de suscripciones
+│   │   ├── billing/           # Facturación y pagos
+│   │   └── analytics/         # Analytics de la plataforma
+│   │
 │   ├── schemas/                # Validación Pydantic
 │   ├── services/               # Lógica de negocio
+│   │   ├── instance_service.py # Lógica de instancias
+│   │   ├── deployment_service.py # Lógica de deployment
+│   │   └── billing_service.py # Lógica de facturación
 │   │
 │   └── main.py                # Punto de entrada FastAPI
 │
@@ -71,7 +93,25 @@ pip install -r requirements.txt
 Crear un archivo `.env` en la raíz del backend con las siguientes variables:
 
 ```env
+# Base de datos de gestión SaaS
+DATABASE_URL=postgresql://user:password@localhost:5432/synkro_saas
 
+# JWT para autenticación del panel SaaS
+JWT_SECRET_KEY=your_super_secret_jwt_key_here
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Configuración de la plataforma
+PLATFORM_NAME=Synkro
+PLATFORM_DOMAIN=synkro.com
+
+# Integraciones
+STRIPE_SECRET_KEY=sk_test_...  # Para billing
+RESEND_API_KEY=re_...          # Para emails transaccionales
+
+# Docker/Deployment
+DOCKER_REGISTRY=registry.synkro.com
+DEPLOYMENT_NAMESPACE=synkro-instances
 ```
 
 ### 3. Iniciar Servidor de Desarrollo
@@ -94,16 +134,33 @@ curl http://localhost:8000/
 # Abrir en navegador: http://localhost:8000/docs
 ```
 
+## 🚧 Estado del Proyecto
+
+Este backend está en **desarrollo activo**. Las funcionalidades principales incluyen:
+
+### ✅ Planificado
+- [ ] API de gestión de instancias
+- [ ] Sistema de suscripciones y planes
+- [ ] Integración con sistemas de billing
+- [ ] Panel de control para administradores
+- [ ] Deployment automatizado de instancias
+- [ ] Monitoreo y analytics de instancias
+
+### 🔄 En Desarrollo
+- Estructura base del proyecto
+- Configuración de base de datos
+- Sistema de autenticación
+
 ## 📚 Documentación de la API
 
 ### Swagger UI Automático
 
-- **Desarrollo**: http://localhost:8000/docs
+- **Desarrollo**: http://localhost:8001/docs (puerto diferente al e-commerce)
 - **Producción**: https://api.synkro.com/docs
 
 ### ReDoc
 
-- **Desarrollo**: http://localhost:8000/redoc
+- **Desarrollo**: http://localhost:8001/redoc
 
 ## 🔧 Comandos Útiles
 
@@ -124,7 +181,25 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 python -c "from app.core.config import settings; print(settings.dict())"
 ```
 
+## 🔄 Diferencias con Backend de E-commerce
+
+| Aspecto | Backend Synkro (Este) | Backend E-commerce |
+|---------|----------------------|-------------------|
+| **Propósito** | Gestión de la plataforma SaaS | Lógica de cada tienda individual |
+| **Usuarios** | Administradores de Synkro | Clientes, empleados, compradores |
+| **Base de Datos** | Base de datos central de gestión | Base de datos por instancia de cliente |
+| **Endpoints** | `/api/instances`, `/api/subscriptions` | `/api/products`, `/api/orders` |
+| **Deployment** | Una instancia central | Una instancia por cliente |
+
+## 🤝 Contribución
+
+Este backend está en desarrollo activo. Para contribuir:
+
+1. Revisa la arquitectura del monorepo en el README principal
+2. Asegúrate de mantener la separación con el backend de e-commerce
+3. Sigue las convenciones de código establecidas
+
 ---
 
-**Synkro Backend** - API escalable y moderna 🚀
+**Synkro Backend** - API de gestión SaaS escalable y moderna 🚀
 

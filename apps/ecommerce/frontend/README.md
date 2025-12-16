@@ -250,19 +250,28 @@ frontend/
 ```bash
 # Versiones requeridas
 Node.js 18+
-npm 9+ (o yarn/pnpm)
+pnpm 10+ (gestor de paquetes del monorepo)
 Git
 ```
 
 ### 1. Preparar Entorno
+
+**Desde el Monorepo (Recomendado):**
+
 ```bash
+# Desde la raíz del monorepo (code/)
+pnpm install          # Instala todas las dependencias del monorepo
+
+# Luego navega al frontend:
+cd apps/ecommerce/frontend
+```
+
+**Standalone (si es necesario):**
+
+```bash
+cd apps/ecommerce/frontend
+
 # Instalar dependencias
-npm install
-
-# O con yarn
-yarn install
-
-# O con pnpm
 pnpm install
 ```
 
@@ -314,18 +323,26 @@ NEXT_PUBLIC_CUSTOM_DOMAIN=https://tienda.empresa-abc.com
 ```
 
 ### 3. Iniciar Desarrollo
+
+**Desde el Monorepo:**
+
 ```bash
-# Servidor de desarrollo
-npm run dev
+# Desde la raíz del monorepo (code/)
+pnpm dev              # Ejecuta todos los proyectos en paralelo
 
-# O con yarn
-yarn dev
-
-# O con pnpm
+# O solo este proyecto:
+cd apps/ecommerce/frontend
 pnpm dev
 ```
 
-La aplicación estará disponible en: http://localhost:3000
+**Standalone:**
+
+```bash
+cd apps/ecommerce/frontend
+pnpm dev
+```
+
+La aplicación estará disponible en: **http://localhost:3000**
 
 ## 🎨 Personalización por Cliente
 
@@ -801,19 +818,35 @@ module.exports = {
 ```
 
 ### Build para Producción
+
+**Desde el Monorepo:**
+
 ```bash
+# Desde la raíz del monorepo (code/)
+pnpm build            # Build de todos los proyectos
+
+# O solo este proyecto:
+cd apps/ecommerce/frontend
+pnpm build
+```
+
+**Standalone:**
+
+```bash
+cd apps/ecommerce/frontend
+
 # Build optimizado para producción
-npm run build
+pnpm build
 
 # Verificar tipos antes del build
-npm run type-check
+pnpm type-check
 
 # Lint y formateo
-npm run lint:fix
-npm run format
+pnpm lint:fix
+pnpm format
 
 # Iniciar servidor de producción
-npm start
+pnpm start
 ```
 
 ### Docker para Cliente Específico
@@ -874,43 +907,43 @@ CMD ["node", "server.js"]
 ### Desarrollo
 ```bash
 # Servidor de desarrollo con hot reload
-npm run dev
+pnpm dev
 
 # Verificación de tipos en tiempo real
-npm run type-check -- --watch
+pnpm type-check -- --watch
 
 # Lint con corrección automática
-npm run lint:fix
+pnpm lint:fix
 
 # Formateo de código
-npm run format
+pnpm format
 ```
 
 ### Testing (cuando se implemente)
 ```bash
 # Ejecutar tests unitarios
-npm run test
+pnpm test
 
 # Tests con coverage
-npm run test:coverage
+pnpm test:coverage
 
 # Tests de integración
-npm run test:integration
+pnpm test:integration
 
 # Tests E2E
-npm run test:e2e
+pnpm test:e2e
 ```
 
 ### Build y Análisis
 ```bash
 # Build de producción
-npm run build
+pnpm build
 
 # Análisis del bundle
-npm run build:analyze
+pnpm build:analyze
 
 # Verificar build localmente
-npm run start
+pnpm start
 ```
 
 ## 🎯 Ventajas del Frontend Aislado
