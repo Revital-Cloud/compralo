@@ -18,7 +18,7 @@ import {
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription } from "@repo/ui";
-import Loading from "@repo/ui";
+import { Loading } from "@repo/ui";
 import { toast } from "sonner";
 import { formatPrice } from "@/utils/format-price";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
