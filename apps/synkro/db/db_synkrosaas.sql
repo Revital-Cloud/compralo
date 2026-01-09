@@ -126,6 +126,7 @@ CREATE TABLE tab_planes (
 CREATE INDEX idx_planes_estado ON tab_planes(estado_plan);
 CREATE INDEX idx_planes_nombre ON tab_planes(nom_plan);
 
+
 -- ============================================================
 -- TABLA: tab_clientes
 -- Descripción: Empresas/clientes que contratan el servicio
