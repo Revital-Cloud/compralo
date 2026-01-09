@@ -536,7 +536,7 @@ const CartPage = () => {
           </div>
 
           {/* Resumen del Pedido - Desktop */}
-          <div className="hidden lg:block lg:w-80 lg:flex-shrink-0">
+          <div className="hidden lg:block lg:w-80 lg:shrink-0">
             <div className="sticky top-8" style={{ alignSelf: "flex-start" }}>
               <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg">
                 <CardHeader className="pb-4 border-b border-gray-200 dark:border-gray-700">
@@ -563,7 +563,7 @@ const CartPage = () => {
                               {item.cantidad}
                             </p>
                           </div>
-                          <div className="flex-shrink-0">
+                          <div className="shrink-0">
                             <span className="font-bold text-gray-900 dark:text-white text-base">
                               {formatPrice(item.subtotal)}
                             </span>
@@ -873,7 +873,7 @@ const CartPage = () => {
                             {item.cantidad}
                           </p>
                         </div>
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                           <span className="font-bold text-gray-900 dark:text-white text-base">
                             {formatPrice(item.subtotal)}
                           </span>
