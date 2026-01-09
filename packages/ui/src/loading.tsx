@@ -107,6 +107,7 @@ const Loading: React.FC<LoadingProps> = ({
       {renderContent()}
     </div>
   )
+
   
 }
 
