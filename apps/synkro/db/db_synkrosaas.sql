@@ -9,6 +9,7 @@
 -- ELIMINACIÓN DE OBJETOS EXISTENTES (SI EXISTEN)
 -- ============================================================
 
+
 -- Eliminar vistas primero
 DROP VIEW IF EXISTS vw_resumen_instancias;
 DROP VIEW IF EXISTS vw_metricas_agregadas;
