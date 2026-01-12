@@ -2,7 +2,7 @@
 -- * BASE DE DATOS SYNKRO SAAS - PANEL DE CONTROL         *
 -- * Gestión de Instancias de E-Commerce                  *
 -- * CREADO POR: Synkro Team                              *
--- * Fecha: Noviembre 2025                                *
+-- * Fecha: Diciembre 2025                                *
 -- *********************************************************
 
 -- ============================================================
@@ -36,6 +36,7 @@ DROP TYPE IF EXISTS enum_metodo_pago;
 DROP TYPE IF EXISTS enum_region_deployment;
 DROP TYPE IF EXISTS enum_tipo_metrica;
 DROP TYPE IF EXISTS enum_unidad_medida;
+DROP TYPE IF EXISTS enum_rol_synkro;
 
 -- Eliminar tablas en orden de dependencias
 DROP TABLE IF EXISTS tab_historial_planes;
@@ -43,7 +44,8 @@ DROP TABLE IF EXISTS tab_uso_recursos;
 DROP TABLE IF EXISTS tab_reg_del;
 DROP TABLE IF EXISTS tab_auditoria;
 DROP TABLE IF EXISTS tab_metricas_instancias;
-DROP TABLE IF EXISTS tab_facturacion;
+DROP TABLE IF EXISTS tab_facturacion_detalle;
+DROP TABLE IF EXISTS tab_facturacion_cabecera;
 DROP TABLE IF EXISTS tab_suscripciones;
 DROP TABLE IF EXISTS tab_dominios;
 DROP TABLE IF EXISTS tab_deployments;
@@ -53,12 +55,13 @@ DROP TABLE IF EXISTS tab_planes;
 DROP TABLE IF EXISTS tab_usuarios_synkro;
 
 -- Eliminar secuencias
--- seq_usuarios_synkro eliminada - ya no se necesita
 -- seq_clientes eliminada - se usa identificacion_fiscal como ID
+DROP SEQUENCE IF EXISTS seq_usuarios_synkro;
 DROP SEQUENCE IF EXISTS seq_instancias;
 DROP SEQUENCE IF EXISTS seq_planes;
 DROP SEQUENCE IF EXISTS seq_suscripciones;
 DROP SEQUENCE IF EXISTS seq_facturacion;
+DROP SEQUENCE IF EXISTS seq_facturacion_detalle;
 DROP SEQUENCE IF EXISTS seq_deployments;
 DROP SEQUENCE IF EXISTS seq_dominios;
 DROP SEQUENCE IF EXISTS seq_metricas;
@@ -74,6 +77,7 @@ CREATE SEQUENCE seq_instancias START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_planes START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_suscripciones START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_facturacion START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_facturacion_detalle START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_deployments START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_dominios START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_metricas START WITH 1 INCREMENT BY 1;
@@ -81,6 +85,7 @@ CREATE SEQUENCE seq_auditoria START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_reg_del START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_uso_recursos START WITH 1 INCREMENT BY 1;
 CREATE SEQUENCE seq_historial_planes START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE seq_usuarios_synkro START WITH 1 INCREMENT BY 1;
 
 -- ============================================================
 -- CREACIÓN DE TIPOS ENUM
@@ -106,11 +111,32 @@ CREATE TYPE enum_metodo_pago AS ENUM ('tarjeta', 'transferencia', 'paypal', 'str
 CREATE TYPE enum_region_deployment AS ENUM ('us-east-1', 'us-west-2', 'sa-east-1', 'eu-west-1', 'eu-central-1', 'ap-southeast-1', 'ap-northeast-1', 'custom');
 CREATE TYPE enum_tipo_metrica AS ENUM ('uptime', 'response_time', 'cpu', 'memory', 'storage', 'traffic', 'orders', 'revenue', 'errors', 'latency', 'requests');
 CREATE TYPE enum_unidad_medida AS ENUM ('ms', 'percent', 'gb', 'mb', 'count', 'usd', 'req_per_sec', 's', 'other');
+CREATE TYPE enum_rol_synkro AS ENUM ('admin_synkro', 'soporte', 'ventas');
 
 -- ============================================================
--- TABLA: tab_usuarios_synkro ELIMINADA
--- Descripción: Ya no se necesita - el cliente gestiona su propia instancia
+-- TABLA: tab_usuarios_synkro
+-- Descripción: Usuarios administradores de la plataforma Synkro (super admins, soporte, ventas, etc.)
 -- ============================================================
+
+CREATE TABLE tab_usuarios_synkro (
+    id_usuario DECIMAL(10,0) PRIMARY KEY DEFAULT nextval('seq_usuarios_synkro'),
+    nom_usuario VARCHAR NOT NULL,
+    ape_usuario VARCHAR NOT NULL,
+    email_usuario VARCHAR NOT NULL UNIQUE,
+    password_usuario VARCHAR NOT NULL, -- Hash de la contraseña (usar Argon2 como en ecommerce)
+    rol_synkro enum_rol_synkro NOT NULL, -- Rol del usuario (admin_synkro, soporte, ventas)
+    ind_activo BOOLEAN DEFAULT true, -- Si el usuario puede acceder al panel
+    fecha_ultimo_acceso TIMESTAMP WITHOUT TIME ZONE,
+    usr_insert VARCHAR NOT NULL, -- Email del admin que creó el registro
+    fec_insert TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    usr_update VARCHAR, -- Email del admin que actualizó el registro
+    fec_update TIMESTAMP WITHOUT TIME ZONE
+);
+
+-- Índices para usuarios_synkro
+CREATE INDEX idx_usuarios_synkro_email ON tab_usuarios_synkro(email_usuario);
+CREATE INDEX idx_usuarios_synkro_rol ON tab_usuarios_synkro(rol_synkro);
+CREATE INDEX idx_usuarios_synkro_activo ON tab_usuarios_synkro(ind_activo);
 
 -- ============================================================
 -- TABLA: tab_planes
@@ -161,6 +187,12 @@ CREATE TABLE tab_clientes (
     fecha_activacion TIMESTAMP WITHOUT TIME ZONE,
     fecha_ultimo_acceso TIMESTAMP WITHOUT TIME ZONE,
     notas_internas TEXT,
+    -- Campos de autenticación y acceso
+    password_cliente VARCHAR, -- Hash de la contraseña (usar Argon2 como en ecommerce)
+    ind_activo BOOLEAN DEFAULT true, -- Si el cliente puede acceder al panel
+    -- NOTA: Todos los registros en tab_clientes son implícitamente "Cliente"
+    -- Los Admin Synkro están en tab_usuarios_synkro
+    -- Campos de auditoría
     usr_insert VARCHAR NOT NULL, -- Email o identificación fiscal del cliente que creó el registro
     fec_insert TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     usr_update VARCHAR, -- Email o identificación fiscal del cliente que actualizó el registro
@@ -169,7 +201,9 @@ CREATE TABLE tab_clientes (
 
 -- Índices para clientes
 CREATE INDEX idx_clientes_email ON tab_clientes(email_contacto);
+CREATE INDEX idx_clientes_email_principal ON tab_clientes(email_contacto_principal); -- Para login
 CREATE INDEX idx_clientes_estado ON tab_clientes(estado_cliente);
+CREATE INDEX idx_clientes_activo ON tab_clientes(ind_activo); -- Para filtrar clientes activos
 -- idx_clientes_identificacion no necesario - identificacion_fiscal es PK (índice automático)
 CREATE INDEX idx_clientes_tipo_identificacion ON tab_clientes(tipo_identificacion);
 
@@ -260,49 +294,97 @@ CREATE INDEX idx_suscripciones_fecha_proximo_pago_estado ON tab_suscripciones(fe
     WHERE estado_suscripcion = 'activa' AND fecha_proximo_pago IS NOT NULL;
 
 -- ============================================================
--- TABLA: tab_facturacion
--- Descripción: Facturas y pagos de suscripciones
+-- TABLA: tab_facturacion_cabecera
+-- Descripción: Cabecera de facturas de suscripciones
 -- ============================================================
 
-CREATE TABLE tab_facturacion (
+CREATE TABLE tab_facturacion_cabecera (
     id_factura DECIMAL(10,0) PRIMARY KEY DEFAULT nextval('seq_facturacion'),
     id_suscripcion DECIMAL(10,0) NOT NULL,
     identificacion_fiscal_cliente VARCHAR NOT NULL,
     num_factura VARCHAR NOT NULL UNIQUE,
-    concepto_factura VARCHAR NOT NULL,
-    subtotal DECIMAL(10,2) NOT NULL,
+    -- Totales (calculados desde el detalle)
+    subtotal DECIMAL(10,2) NOT NULL DEFAULT 0,
     impuestos DECIMAL(10,2) DEFAULT 0,
     descuentos DECIMAL(10,2) DEFAULT 0,
-    total DECIMAL(10,2) NOT NULL,
+    total DECIMAL(10,2) NOT NULL DEFAULT 0,
     moneda enum_moneda NOT NULL DEFAULT 'USD',
+    -- Estado y pago
     estado_pago enum_estado_pago NOT NULL DEFAULT 'pendiente',
     metodo_pago enum_metodo_pago,
     fecha_emision TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     fecha_vencimiento TIMESTAMP WITHOUT TIME ZONE,
     fecha_pago TIMESTAMP WITHOUT TIME ZONE,
     referencia_pago VARCHAR, -- Referencia de pago externa (Wompi, Stripe, etc.)
+    -- Información adicional
+    periodo_facturado_desde TIMESTAMP WITHOUT TIME ZONE, -- Inicio del período facturado
+    periodo_facturado_hasta TIMESTAMP WITHOUT TIME ZONE, -- Fin del período facturado
     notas TEXT,
+    -- Campos de auditoría
     usr_insert VARCHAR NOT NULL, -- Email o identificación fiscal del cliente que creó el registro
     fec_insert TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     usr_update VARCHAR, -- Email o identificación fiscal del cliente que actualizó el registro
     fec_update TIMESTAMP WITHOUT TIME ZONE,
-    CONSTRAINT fk_factura_suscripcion FOREIGN KEY (id_suscripcion) REFERENCES tab_suscripciones(id_suscripcion),
-    CONSTRAINT fk_factura_cliente FOREIGN KEY (identificacion_fiscal_cliente) REFERENCES tab_clientes(identificacion_fiscal)
+    CONSTRAINT fk_factura_cabecera_suscripcion FOREIGN KEY (id_suscripcion) REFERENCES tab_suscripciones(id_suscripcion),
+    CONSTRAINT fk_factura_cabecera_cliente FOREIGN KEY (identificacion_fiscal_cliente) REFERENCES tab_clientes(identificacion_fiscal)
 );
 
--- Índices para facturación
-CREATE INDEX idx_facturacion_suscripcion ON tab_facturacion(id_suscripcion);
-CREATE INDEX idx_facturacion_cliente ON tab_facturacion(identificacion_fiscal_cliente);
-CREATE INDEX idx_facturacion_estado ON tab_facturacion(estado_pago);
-CREATE INDEX idx_facturacion_num_factura ON tab_facturacion(num_factura);
-CREATE INDEX idx_facturacion_fecha_emision ON tab_facturacion(fecha_emision);
-CREATE INDEX idx_facturacion_fecha_vencimiento ON tab_facturacion(fecha_vencimiento);
+-- Índices para facturación cabecera
+CREATE INDEX idx_facturacion_cabecera_suscripcion ON tab_facturacion_cabecera(id_suscripcion);
+CREATE INDEX idx_facturacion_cabecera_cliente ON tab_facturacion_cabecera(identificacion_fiscal_cliente);
+CREATE INDEX idx_facturacion_cabecera_estado ON tab_facturacion_cabecera(estado_pago);
+CREATE INDEX idx_facturacion_cabecera_num_factura ON tab_facturacion_cabecera(num_factura);
+CREATE INDEX idx_facturacion_cabecera_fecha_emision ON tab_facturacion_cabecera(fecha_emision);
+CREATE INDEX idx_facturacion_cabecera_fecha_vencimiento ON tab_facturacion_cabecera(fecha_vencimiento);
+CREATE INDEX idx_facturacion_cabecera_periodo ON tab_facturacion_cabecera(periodo_facturado_desde, periodo_facturado_hasta);
 -- Índices compuestos para consultas frecuentes
-CREATE INDEX idx_facturacion_cliente_estado ON tab_facturacion(identificacion_fiscal_cliente, estado_pago)
+CREATE INDEX idx_facturacion_cabecera_cliente_estado ON tab_facturacion_cabecera(identificacion_fiscal_cliente, estado_pago)
     WHERE estado_pago = 'pendiente';
-CREATE INDEX idx_facturacion_suscripcion_estado ON tab_facturacion(id_suscripcion, estado_pago);
-CREATE INDEX idx_facturacion_fecha_vencimiento_estado ON tab_facturacion(fecha_vencimiento, estado_pago)
+CREATE INDEX idx_facturacion_cabecera_suscripcion_estado ON tab_facturacion_cabecera(id_suscripcion, estado_pago);
+CREATE INDEX idx_facturacion_cabecera_fecha_vencimiento_estado ON tab_facturacion_cabecera(fecha_vencimiento, estado_pago)
     WHERE fecha_vencimiento IS NOT NULL AND estado_pago = 'pendiente';
+
+-- ============================================================
+-- TABLA: tab_facturacion_detalle
+-- Descripción: Detalle de líneas de factura (conceptos, servicios, etc.)
+-- ============================================================
+
+CREATE TABLE tab_facturacion_detalle (
+    id_detalle DECIMAL(10,0) PRIMARY KEY DEFAULT nextval('seq_facturacion_detalle'),
+    id_factura DECIMAL(10,0) NOT NULL,
+    num_linea INTEGER NOT NULL, -- Número de línea en la factura (1, 2, 3, ...)
+    concepto VARCHAR NOT NULL, -- Descripción del concepto (ej: "Suscripción Plan Business - Enero 2025")
+    cantidad DECIMAL(10,2) DEFAULT 1, -- Cantidad (puede ser 1 para suscripciones, o más para otros conceptos)
+    precio_unitario DECIMAL(10,2) NOT NULL, -- Precio por unidad
+    descuento_linea DECIMAL(10,2) DEFAULT 0, -- Descuento aplicado a esta línea
+    subtotal_linea DECIMAL(10,2) NOT NULL, -- (cantidad * precio_unitario) - descuento_linea
+    impuesto_linea DECIMAL(10,2) DEFAULT 0, -- Impuestos de esta línea
+    total_linea DECIMAL(10,2) NOT NULL, -- subtotal_linea + impuesto_linea
+    -- Información adicional
+    id_plan DECIMAL(10,0), -- Plan asociado (si aplica)
+    id_instancia DECIMAL(10,0), -- Instancia asociada (si aplica)
+    metadata_json JSONB, -- Información adicional en formato JSON
+    -- Campos de auditoría
+    usr_insert VARCHAR NOT NULL,
+    fec_insert TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    usr_update VARCHAR,
+    fec_update TIMESTAMP WITHOUT TIME ZONE,
+    CONSTRAINT fk_factura_detalle_cabecera FOREIGN KEY (id_factura) REFERENCES tab_facturacion_cabecera(id_factura) ON DELETE CASCADE,
+    CONSTRAINT fk_factura_detalle_plan FOREIGN KEY (id_plan) REFERENCES tab_planes(id_plan) ON DELETE SET NULL,
+    CONSTRAINT fk_factura_detalle_instancia FOREIGN KEY (id_instancia) REFERENCES tab_instancias(id_instancia) ON DELETE SET NULL,
+    CONSTRAINT chk_num_linea_positivo CHECK (num_linea > 0),
+    CONSTRAINT chk_cantidad_positiva CHECK (cantidad > 0),
+    CONSTRAINT chk_precio_unitario_positivo CHECK (precio_unitario > 0),
+    CONSTRAINT chk_subtotal_linea_positivo CHECK (subtotal_linea >= 0),
+    CONSTRAINT chk_total_linea_positivo CHECK (total_linea >= 0),
+    CONSTRAINT uq_factura_num_linea UNIQUE (id_factura, num_linea) -- Una factura no puede tener líneas duplicadas
+);
+
+-- Índices para facturación detalle
+CREATE INDEX idx_facturacion_detalle_factura ON tab_facturacion_detalle(id_factura);
+CREATE INDEX idx_facturacion_detalle_plan ON tab_facturacion_detalle(id_plan);
+CREATE INDEX idx_facturacion_detalle_instancia ON tab_facturacion_detalle(id_instancia);
+CREATE INDEX idx_facturacion_detalle_metadata_gin ON tab_facturacion_detalle USING GIN (metadata_json);
 
 -- ============================================================
 -- TABLA: tab_deployments
@@ -707,6 +789,11 @@ ALTER TABLE tab_clientes
 ADD CONSTRAINT chk_email_contacto_principal_valido 
 CHECK (fn_validar_email(email_contacto_principal));
 
+-- Constraint: Validar email de usuarios_synkro
+ALTER TABLE tab_usuarios_synkro
+ADD CONSTRAINT chk_email_usuario_valido 
+CHECK (fn_validar_email(email_usuario));
+
 -- Constraint: Fechas lógicas en suscripciones
 ALTER TABLE tab_suscripciones
 ADD CONSTRAINT chk_fecha_fin_mayor_inicio 
@@ -716,22 +803,26 @@ ALTER TABLE tab_suscripciones
 ADD CONSTRAINT chk_fecha_proximo_pago_futura 
 CHECK (fecha_proximo_pago IS NULL OR fecha_proximo_pago >= fecha_inicio);
 
--- Constraint: Fechas lógicas en facturación
-ALTER TABLE tab_facturacion
+-- Constraint: Fechas lógicas en facturación cabecera
+ALTER TABLE tab_facturacion_cabecera
 ADD CONSTRAINT chk_fecha_vencimiento_mayor_emision 
 CHECK (fecha_vencimiento IS NULL OR fecha_vencimiento >= fecha_emision);
 
-ALTER TABLE tab_facturacion
+ALTER TABLE tab_facturacion_cabecera
 ADD CONSTRAINT chk_fecha_pago_mayor_emision 
 CHECK (fecha_pago IS NULL OR fecha_pago >= fecha_emision);
 
-ALTER TABLE tab_facturacion
+ALTER TABLE tab_facturacion_cabecera
 ADD CONSTRAINT chk_total_positivo 
-CHECK (total > 0);
+CHECK (total >= 0);
 
-ALTER TABLE tab_facturacion
+ALTER TABLE tab_facturacion_cabecera
 ADD CONSTRAINT chk_subtotal_positivo 
-CHECK (subtotal > 0);
+CHECK (subtotal >= 0);
+
+ALTER TABLE tab_facturacion_cabecera
+ADD CONSTRAINT chk_periodo_facturado_valido 
+CHECK (periodo_facturado_hasta IS NULL OR periodo_facturado_desde IS NULL OR periodo_facturado_hasta >= periodo_facturado_desde);
 
 -- Constraint: Valores monetarios positivos en planes
 ALTER TABLE tab_planes
@@ -914,6 +1005,366 @@ CREATE TRIGGER trg_validar_transicion_estado_suscripcion
     EXECUTE FUNCTION fn_validar_transicion_estado_suscripcion();
 
 -- ============================================================
+-- FUNCIONES DE FACTURACIÓN AUTOMÁTICA
+-- ============================================================
+
+-- Función: Generar número de factura único
+CREATE OR REPLACE FUNCTION fn_generar_num_factura()
+RETURNS VARCHAR AS $$
+DECLARE
+    prefijo VARCHAR := 'FAC-';
+    anio VARCHAR := TO_CHAR(CURRENT_DATE, 'YYYY');
+    mes VARCHAR := TO_CHAR(CURRENT_DATE, 'MM');
+    num_secuencia INTEGER;
+    num_factura VARCHAR;
+BEGIN
+    -- Obtener el siguiente número de secuencia del mes actual
+    SELECT COALESCE(MAX(CAST(SUBSTRING(num_factura FROM '[0-9]+$') AS INTEGER)), 0) + 1
+    INTO num_secuencia
+    FROM tab_facturacion_cabecera
+    WHERE num_factura LIKE prefijo || anio || '-' || mes || '-%';
+    
+    -- Formato: FAC-YYYY-MM-XXXXX (ej: FAC-2025-12-00001)
+    num_factura := prefijo || anio || '-' || mes || '-' || LPAD(num_secuencia::TEXT, 5, '0');
+    
+    RETURN num_factura;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Función: Actualizar totales de factura desde el detalle
+CREATE OR REPLACE FUNCTION fn_actualizar_totales_factura(p_id_factura DECIMAL)
+RETURNS void AS $$
+DECLARE
+    v_subtotal DECIMAL(10,2);
+    v_impuestos DECIMAL(10,2);
+    v_descuentos DECIMAL(10,2);
+    v_total DECIMAL(10,2);
+BEGIN
+    -- Calcular totales desde el detalle
+    SELECT 
+        COALESCE(SUM(subtotal_linea), 0),
+        COALESCE(SUM(impuesto_linea), 0),
+        COALESCE(SUM(descuento_linea), 0),
+        COALESCE(SUM(total_linea), 0)
+    INTO v_subtotal, v_impuestos, v_descuentos, v_total
+    FROM tab_facturacion_detalle
+    WHERE id_factura = p_id_factura;
+    
+    -- Actualizar la cabecera
+    UPDATE tab_facturacion_cabecera
+    SET 
+        subtotal = v_subtotal,
+        impuestos = v_impuestos,
+        descuentos = v_descuentos,
+        total = v_total,
+        fec_update = CURRENT_TIMESTAMP
+    WHERE id_factura = p_id_factura;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger: Actualizar totales automáticamente cuando se modifica el detalle
+CREATE OR REPLACE FUNCTION trg_actualizar_totales_factura()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM fn_actualizar_totales_factura(COALESCE(NEW.id_factura, OLD.id_factura));
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_actualizar_totales_factura_after_insert
+    AFTER INSERT ON tab_facturacion_detalle
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_actualizar_totales_factura();
+
+CREATE TRIGGER trg_actualizar_totales_factura_after_update
+    AFTER UPDATE ON tab_facturacion_detalle
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_actualizar_totales_factura();
+
+CREATE TRIGGER trg_actualizar_totales_factura_after_delete
+    AFTER DELETE ON tab_facturacion_detalle
+    FOR EACH ROW
+    EXECUTE FUNCTION trg_actualizar_totales_factura();
+
+-- Función: Generar factura para una suscripción (mensual o anual)
+CREATE OR REPLACE FUNCTION fn_generar_factura_suscripcion(
+    p_id_suscripcion DECIMAL,
+    p_periodo_desde TIMESTAMP,
+    p_periodo_hasta TIMESTAMP,
+    p_usuario_insert VARCHAR DEFAULT 'system'
+)
+RETURNS DECIMAL AS $$
+DECLARE
+    v_suscripcion RECORD;
+    v_cliente RECORD;
+    v_plan RECORD;
+    v_id_factura DECIMAL;
+    v_num_factura VARCHAR;
+    v_precio DECIMAL(10,2);
+    v_fecha_vencimiento TIMESTAMP;
+    v_periodo_nombre VARCHAR;
+BEGIN
+    -- Obtener información de la suscripción
+    SELECT s.*, c.identificacion_fiscal, c.email_contacto
+    INTO v_suscripcion
+    FROM tab_suscripciones s
+    JOIN tab_clientes c ON s.identificacion_fiscal_cliente = c.identificacion_fiscal
+    WHERE s.id_suscripcion = p_id_suscripcion
+    AND s.estado_suscripcion = 'activa';
+    
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Suscripción no encontrada o no activa: %', p_id_suscripcion;
+    END IF;
+    
+    -- Obtener información del plan
+    SELECT * INTO v_plan
+    FROM tab_planes
+    WHERE id_plan = v_suscripcion.id_plan;
+    
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Plan no encontrado: %', v_suscripcion.id_plan;
+    END IF;
+    
+    -- Determinar precio según tipo de facturación
+    IF v_suscripcion.tipo_facturacion = 'anual' AND v_plan.precio_anual IS NOT NULL THEN
+        v_precio := v_plan.precio_anual;
+    ELSE
+        v_precio := v_suscripcion.precio_actual;
+    END IF;
+    
+    -- Generar número de factura
+    v_num_factura := fn_generar_num_factura();
+    
+    -- Calcular fecha de vencimiento (30 días después de la emisión)
+    v_fecha_vencimiento := CURRENT_TIMESTAMP + INTERVAL '30 days';
+    
+    -- Generar nombre del período
+    v_periodo_nombre := TO_CHAR(p_periodo_desde, 'Mon YYYY');
+    IF p_periodo_hasta IS NOT NULL AND p_periodo_hasta != p_periodo_desde THEN
+        v_periodo_nombre := v_periodo_nombre || ' - ' || TO_CHAR(p_periodo_hasta, 'Mon YYYY');
+    END IF;
+    
+    -- Crear cabecera de factura
+    INSERT INTO tab_facturacion_cabecera (
+        id_suscripcion,
+        identificacion_fiscal_cliente,
+        num_factura,
+        subtotal,
+        impuestos,
+        descuentos,
+        total,
+        moneda,
+        estado_pago,
+        fecha_emision,
+        fecha_vencimiento,
+        periodo_facturado_desde,
+        periodo_facturado_hasta,
+        notas,
+        usr_insert,
+        fec_insert
+    ) VALUES (
+        p_id_suscripcion,
+        v_suscripcion.identificacion_fiscal,
+        v_num_factura,
+        0, -- Se calculará desde el detalle
+        0,
+        0,
+        0,
+        v_plan.moneda,
+        'pendiente',
+        CURRENT_TIMESTAMP,
+        v_fecha_vencimiento,
+        p_periodo_desde,
+        p_periodo_hasta,
+        'Facturación automática - ' || v_periodo_nombre,
+        p_usuario_insert,
+        CURRENT_TIMESTAMP
+    ) RETURNING id_factura INTO v_id_factura;
+    
+    -- Crear detalle de factura
+    INSERT INTO tab_facturacion_detalle (
+        id_factura,
+        num_linea,
+        concepto,
+        cantidad,
+        precio_unitario,
+        descuento_linea,
+        subtotal_linea,
+        impuesto_linea,
+        total_linea,
+        id_plan,
+        id_instancia,
+        metadata_json,
+        usr_insert,
+        fec_insert
+    ) VALUES (
+        v_id_factura,
+        1,
+        'Suscripción ' || v_plan.nom_plan || ' - ' || v_periodo_nombre,
+        1,
+        v_precio,
+        0,
+        v_precio,
+        0,
+        v_precio,
+        v_plan.id_plan,
+        v_suscripcion.id_instancia,
+        jsonb_build_object(
+            'tipo_facturacion', v_suscripcion.tipo_facturacion,
+            'periodo_desde', p_periodo_desde,
+            'periodo_hasta', p_periodo_hasta
+        ),
+        p_usuario_insert,
+        CURRENT_TIMESTAMP
+    );
+    
+    -- Los totales se actualizarán automáticamente por el trigger
+    
+    RETURN v_id_factura;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Función: Generar facturas mensuales para todas las suscripciones activas
+CREATE OR REPLACE FUNCTION fn_generar_facturas_mensuales(
+    p_fecha_periodo DATE DEFAULT CURRENT_DATE,
+    p_usuario_insert VARCHAR DEFAULT 'system'
+)
+RETURNS TABLE(
+    id_factura DECIMAL,
+    num_factura VARCHAR,
+    identificacion_fiscal_cliente VARCHAR,
+    total DECIMAL(10,2),
+    estado VARCHAR
+) AS $$
+DECLARE
+    v_suscripcion RECORD;
+    v_periodo_desde TIMESTAMP;
+    v_periodo_hasta TIMESTAMP;
+    v_id_factura DECIMAL;
+    v_factura_existente BOOLEAN;
+BEGIN
+    -- Calcular período (mes completo)
+    v_periodo_desde := DATE_TRUNC('month', p_fecha_periodo);
+    v_periodo_hasta := (DATE_TRUNC('month', p_fecha_periodo) + INTERVAL '1 month - 1 day')::DATE + TIME '23:59:59';
+    
+    -- Cursor para recorrer suscripciones activas con facturación mensual
+    FOR v_suscripcion IN
+        SELECT s.id_suscripcion, s.identificacion_fiscal_cliente, s.tipo_facturacion
+        FROM tab_suscripciones s
+        WHERE s.estado_suscripcion = 'activa'
+        AND s.tipo_facturacion = 'mensual'
+        AND (
+            s.fecha_proximo_pago IS NULL 
+            OR DATE_TRUNC('month', s.fecha_proximo_pago) = DATE_TRUNC('month', p_fecha_periodo)
+        )
+    LOOP
+        -- Verificar si ya existe una factura para este período
+        SELECT EXISTS(
+            SELECT 1
+            FROM tab_facturacion_cabecera fc
+            WHERE fc.id_suscripcion = v_suscripcion.id_suscripcion
+            AND fc.periodo_facturado_desde = v_periodo_desde
+            AND fc.periodo_facturado_hasta = v_periodo_hasta
+        ) INTO v_factura_existente;
+        
+        -- Solo generar si no existe
+        IF NOT v_factura_existente THEN
+            BEGIN
+                v_id_factura := fn_generar_factura_suscripcion(
+                    v_suscripcion.id_suscripcion,
+                    v_periodo_desde,
+                    v_periodo_hasta,
+                    p_usuario_insert
+                );
+                
+                -- Retornar información de la factura generada
+                RETURN QUERY
+                SELECT fc.id_factura, fc.num_factura, fc.identificacion_fiscal_cliente, fc.total, fc.estado_pago::VARCHAR
+                FROM tab_facturacion_cabecera fc
+                WHERE fc.id_factura = v_id_factura;
+                
+            EXCEPTION WHEN OTHERS THEN
+                -- Log error pero continuar con otras suscripciones
+                RAISE WARNING 'Error al generar factura para suscripción %: %', v_suscripcion.id_suscripcion, SQLERRM;
+            END;
+        END IF;
+    END LOOP;
+    
+    RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Función: Generar facturas anuales para todas las suscripciones activas
+CREATE OR REPLACE FUNCTION fn_generar_facturas_anuales(
+    p_anio INTEGER DEFAULT EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER,
+    p_usuario_insert VARCHAR DEFAULT 'system'
+)
+RETURNS TABLE(
+    id_factura DECIMAL,
+    num_factura VARCHAR,
+    identificacion_fiscal_cliente VARCHAR,
+    total DECIMAL(10,2),
+    estado VARCHAR
+) AS $$
+DECLARE
+    v_suscripcion RECORD;
+    v_periodo_desde TIMESTAMP;
+    v_periodo_hasta TIMESTAMP;
+    v_id_factura DECIMAL;
+    v_factura_existente BOOLEAN;
+BEGIN
+    -- Calcular período (año completo)
+    v_periodo_desde := DATE_TRUNC('year', DATE(p_anio || '-01-01'));
+    v_periodo_hasta := (DATE_TRUNC('year', DATE(p_anio || '-01-01')) + INTERVAL '1 year - 1 day')::DATE + TIME '23:59:59';
+    
+    -- Cursor para recorrer suscripciones activas con facturación anual
+    FOR v_suscripcion IN
+        SELECT s.id_suscripcion, s.identificacion_fiscal_cliente, s.tipo_facturacion
+        FROM tab_suscripciones s
+        WHERE s.estado_suscripcion = 'activa'
+        AND s.tipo_facturacion = 'anual'
+        AND (
+            s.fecha_proximo_pago IS NULL 
+            OR EXTRACT(YEAR FROM s.fecha_proximo_pago) = p_anio
+        )
+    LOOP
+        -- Verificar si ya existe una factura para este período
+        SELECT EXISTS(
+            SELECT 1
+            FROM tab_facturacion_cabecera fc
+            WHERE fc.id_suscripcion = v_suscripcion.id_suscripcion
+            AND fc.periodo_facturado_desde = v_periodo_desde
+            AND fc.periodo_facturado_hasta = v_periodo_hasta
+        ) INTO v_factura_existente;
+        
+        -- Solo generar si no existe
+        IF NOT v_factura_existente THEN
+            BEGIN
+                v_id_factura := fn_generar_factura_suscripcion(
+                    v_suscripcion.id_suscripcion,
+                    v_periodo_desde,
+                    v_periodo_hasta,
+                    p_usuario_insert
+                );
+                
+                -- Retornar información de la factura generada
+                RETURN QUERY
+                SELECT fc.id_factura, fc.num_factura, fc.identificacion_fiscal_cliente, fc.total, fc.estado_pago::VARCHAR
+                FROM tab_facturacion_cabecera fc
+                WHERE fc.id_factura = v_id_factura;
+                
+            EXCEPTION WHEN OTHERS THEN
+                -- Log error pero continuar con otras suscripciones
+                RAISE WARNING 'Error al generar factura para suscripción %: %', v_suscripcion.id_suscripcion, SQLERRM;
+            END;
+        END IF;
+    END LOOP;
+    
+    RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
+-- ============================================================
 -- VISTAS ÚTILES
 -- ============================================================
 
@@ -999,12 +1450,18 @@ INSERT INTO tab_planes (nom_plan, desc_plan, precio_mensual, precio_anual, max_p
 -- COMENTARIOS EN TABLAS Y COLUMNAS
 -- ============================================================
 
--- tab_usuarios_synkro eliminada - el cliente gestiona su propia instancia
+COMMENT ON TABLE tab_usuarios_synkro IS 'Usuarios administradores de la plataforma Synkro (super admins, soporte, ventas, etc.)';
 COMMENT ON TABLE tab_planes IS 'Planes de suscripción disponibles para clientes';
-COMMENT ON TABLE tab_clientes IS 'Empresas/clientes que contratan el servicio SaaS';
+COMMENT ON TABLE tab_clientes IS 'Empresas/clientes que contratan el servicio SaaS. Incluye autenticación para acceso al panel de control. Todos los registros son implícitamente "Cliente"';
+COMMENT ON COLUMN tab_clientes.password_cliente IS 'Hash de la contraseña del cliente (usar Argon2 como en ecommerce)';
+COMMENT ON COLUMN tab_clientes.ind_activo IS 'Indica si el cliente puede acceder al panel de control';
+COMMENT ON COLUMN tab_usuarios_synkro.password_usuario IS 'Hash de la contraseña del usuario admin (usar Argon2 como en ecommerce)';
+COMMENT ON COLUMN tab_usuarios_synkro.rol_synkro IS 'Rol del usuario admin (admin_synkro, soporte, ventas)';
+COMMENT ON COLUMN tab_usuarios_synkro.ind_activo IS 'Indica si el usuario admin puede acceder al panel';
 COMMENT ON TABLE tab_instancias IS 'Instancias de e-commerce creadas para cada cliente';
 COMMENT ON TABLE tab_suscripciones IS 'Suscripciones activas de clientes a planes';
-COMMENT ON TABLE tab_facturacion IS 'Facturas y pagos de suscripciones';
+COMMENT ON TABLE tab_facturacion_cabecera IS 'Cabecera de facturas de suscripciones';
+COMMENT ON TABLE tab_facturacion_detalle IS 'Detalle de líneas de factura (conceptos, servicios, etc.)';
 COMMENT ON TABLE tab_deployments IS 'Historial de deployments de instancias';
 COMMENT ON TABLE tab_dominios IS 'Dominios asociados a instancias';
 COMMENT ON TABLE tab_metricas_instancias IS 'Métricas y monitoreo de instancias';
@@ -1025,13 +1482,29 @@ COMMENT ON TABLE tab_historial_planes IS 'Historial de cambios de plan en suscri
 --    - Índice GIN en metadata_json para búsquedas eficientes
 --    - Mantiene DECIMAL(10,0) con secuencia seq_metricas
 
--- 2. ÍNDICES COMPUESTOS ADICIONALES
+-- 2. ESTRUCTURA DE FACTURACIÓN (CABECERA Y DETALLE)
+--    - tab_facturacion_cabecera: Información general de la factura (totales, estado, fechas)
+--    - tab_facturacion_detalle: Líneas de factura con conceptos, precios, descuentos
+--    - Los totales de la cabecera se calculan automáticamente desde el detalle mediante triggers
+--    - Soporte para múltiples líneas por factura (flexibilidad para agregar conceptos adicionales)
+
+-- 3. FUNCIONES DE FACTURACIÓN AUTOMÁTICA
+--    - fn_generar_num_factura(): Genera número de factura único con formato FAC-YYYY-MM-XXXXX
+--    - fn_actualizar_totales_factura(): Actualiza totales de cabecera desde el detalle
+--    - fn_generar_factura_suscripcion(): Genera factura individual para una suscripción
+--    - fn_generar_facturas_mensuales(): Genera facturas mensuales para todas las suscripciones activas
+--    - fn_generar_facturas_anuales(): Genera facturas anuales para todas las suscripciones activas
+--    - Uso de cursors para procesar múltiples suscripciones eficientemente
+--    - Validación para evitar facturas duplicadas por período
+
+-- 4. ÍNDICES COMPUESTOS ADICIONALES
 --    - idx_suscripciones_cliente_estado: Para consultas de suscripciones activas por cliente
 --    - idx_suscripciones_instancia_estado: Para consultas de suscripciones activas por instancia
 --    - idx_suscripciones_fecha_proximo_pago_estado: Para facturación programada
---    - idx_facturacion_cliente_estado: Para facturas pendientes por cliente
---    - idx_facturacion_suscripcion_estado: Para facturas por suscripción
---    - idx_facturacion_fecha_vencimiento_estado: Para facturas vencidas
+--    - idx_facturacion_cabecera_cliente_estado: Para facturas pendientes por cliente
+--    - idx_facturacion_cabecera_suscripcion_estado: Para facturas por suscripción
+--    - idx_facturacion_cabecera_fecha_vencimiento_estado: Para facturas vencidas
+--    - idx_facturacion_cabecera_periodo: Para búsquedas por período facturado
 --    - idx_instancias_cliente_estado: Para instancias activas por cliente
 --    - idx_instancias_estado_fecha_activacion: Para consultas de activación
 --    - idx_auditoria_cliente_fecha: Para auditoría por cliente ordenada por fecha
@@ -1078,6 +1551,12 @@ COMMENT ON TABLE tab_historial_planes IS 'Historial de cambios de plan en suscri
 --    - Ejecutar fn_crear_particion_metricas_mes_siguiente() mensualmente (recomendado día 1 de cada mes)
 --    - Ejecutar fn_eliminar_particiones_metricas_antiguas(N) periódicamente para limpiar datos antiguos
 --    - Revisar y ajustar las fechas de las particiones iniciales según la fecha de implementación
+--    - FACTURACIÓN AUTOMÁTICA:
+--      * Ejecutar fn_generar_facturas_mensuales() el día 1 de cada mes para facturar el mes anterior
+--      * Ejecutar fn_generar_facturas_anuales() el día 1 de enero para facturar el año anterior
+--      * Configurar cron job o pg_cron para ejecución automática:
+--        SELECT cron.schedule('generar-facturas-mensuales', '0 0 1 * *', 'SELECT fn_generar_facturas_mensuales();');
+--        SELECT cron.schedule('generar-facturas-anuales', '0 0 1 1 *', 'SELECT fn_generar_facturas_anuales();');
 --    - Los triggers de validación de estado pueden ser deshabilitados temporalmente si es necesario:
 --      ALTER TABLE tab_clientes DISABLE TRIGGER trg_validar_transicion_estado_cliente;
 --      ALTER TABLE tab_instancias DISABLE TRIGGER trg_validar_transicion_estado_instancia;

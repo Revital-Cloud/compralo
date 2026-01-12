@@ -13,7 +13,8 @@ Cada tabla tiene su propia carpeta con funciones de:
 ✅ **tab_clientes** - Clientes/empresas
 ✅ **tab_instancias** - Instancias de e-commerce
 ✅ **tab_suscripciones** - Suscripciones activas
-✅ **tab_facturacion** - Facturas y pagos
+✅ **tab_facturacion_cabecera** - Cabecera de facturas
+✅ **tab_facturacion_detalle** - Detalle de líneas de factura
 ✅ **tab_deployments** - Historial de deployments
 ✅ **tab_dominios** - Dominios asociados
 ✅ **tab_uso_recursos** - Tracking de uso de recursos
@@ -68,6 +69,53 @@ SELECT fun_update_cliente(
 
 -- Ejemplo: Eliminar (soft delete)
 SELECT fun_delete_plan(1);
+
+-- Ejemplo: Crear factura (cabecera + detalle)
+-- 1. Crear cabecera
+SELECT fun_insert_factura_cabecera(
+    1,                            -- id_suscripcion
+    '900123456-7',                -- identificacion_fiscal_cliente
+    NULL,                         -- num_factura (se genera automáticamente)
+    'USD',                        -- moneda
+    'pendiente',                  -- estado_pago
+    NULL,                         -- metodo_pago
+    CURRENT_TIMESTAMP,            -- fecha_emision
+    CURRENT_TIMESTAMP + INTERVAL '30 days', -- fecha_vencimiento
+    DATE_TRUNC('month', CURRENT_DATE), -- periodo_facturado_desde
+    DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month - 1 day', -- periodo_facturado_hasta
+    NULL,                         -- referencia_pago
+    NULL,                         -- notas
+    'admin@synkro.com'           -- usr_insert
+);
+-- Retorna: {"success": true, "id_factura": 1, "num_factura": "FAC-2025-12-00001"}
+
+-- 2. Agregar línea de detalle
+SELECT fun_insert_factura_detalle(
+    1,                            -- id_factura (del resultado anterior)
+    NULL,                         -- num_linea (se genera automáticamente)
+    'Suscripción Plan Business - Diciembre 2025', -- concepto
+    1,                            -- cantidad
+    79.99,                        -- precio_unitario
+    0,                            -- descuento_linea
+    0,                            -- impuesto_linea
+    2,                            -- id_plan
+    1,                            -- id_instancia
+    NULL,                         -- metadata_json
+    'admin@synkro.com'           -- usr_insert
+);
+-- Los totales de la cabecera se actualizan automáticamente
+
+-- Ejemplo: Actualizar estado de pago de factura
+SELECT fun_update_factura_cabecera(
+    1,                            -- id_factura
+    'pagado',                     -- estado_pago
+    'tarjeta',                    -- metodo_pago
+    NULL,                         -- fecha_vencimiento (no cambiar)
+    CURRENT_TIMESTAMP,            -- fecha_pago
+    'WMPI-TXN-12345',            -- referencia_pago
+    NULL,                         -- notas
+    'admin@synkro.com'           -- usr_update
+);
 ```
 
 ## Triggers de Auditoría
