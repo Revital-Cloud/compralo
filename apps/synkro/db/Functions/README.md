@@ -19,6 +19,7 @@ Cada tabla tiene su propia carpeta con funciones de:
 ✅ **tab_dominios** - Dominios asociados
 ✅ **tab_uso_recursos** - Tracking de uso de recursos
 ✅ **tab_historial_planes** - Historial de cambios de plan
+✅ **tab_usuarios_synkro** - Usuarios administradores de Synkro
 
 ## Tablas sin funciones CRUD
 
@@ -114,6 +115,41 @@ SELECT fun_update_factura_cabecera(
     CURRENT_TIMESTAMP,            -- fecha_pago
     'WMPI-TXN-12345',            -- referencia_pago
     NULL,                         -- notas
+    'admin@synkro.com'           -- usr_update
+);
+
+-- Ejemplo: Crear usuario administrador de Synkro
+SELECT fun_insert_usuario_synkro(
+    'Juan',                       -- nom_usuario
+    'Pérez',                      -- ape_usuario
+    'juan.perez@synkro.com',     -- email_usuario
+    '$argon2id$v=19$m=65536,t=3,p=4$...', -- password_usuario (hash Argon2)
+    'admin_synkro',              -- rol_synkro (admin_synkro, soporte, ventas)
+    true,                         -- ind_activo
+    'admin@synkro.com'           -- usr_insert
+);
+
+-- Ejemplo: Actualizar usuario (cambiar contraseña)
+SELECT fun_update_usuario_synkro(
+    1,                            -- id_usuario
+    NULL,                         -- nom_usuario (no cambiar)
+    NULL,                         -- ape_usuario (no cambiar)
+    NULL,                         -- email_usuario (no cambiar)
+    '$argon2id$v=19$m=65536,t=3,p=4$...', -- password_usuario (nuevo hash)
+    NULL,                         -- rol_synkro (no cambiar)
+    NULL,                         -- ind_activo (no cambiar)
+    'admin@synkro.com'           -- usr_update
+);
+
+-- Ejemplo: Desactivar usuario (en lugar de eliminar)
+SELECT fun_update_usuario_synkro(
+    1,                            -- id_usuario
+    NULL,                         -- nom_usuario (no cambiar)
+    NULL,                         -- ape_usuario (no cambiar)
+    NULL,                         -- email_usuario (no cambiar)
+    NULL,                         -- password_usuario (no cambiar)
+    NULL,                         -- rol_synkro (no cambiar)
+    false,                        -- ind_activo (desactivar)
     'admin@synkro.com'           -- usr_update
 );
 ```
