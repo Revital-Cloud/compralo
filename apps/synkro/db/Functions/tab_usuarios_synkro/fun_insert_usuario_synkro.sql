@@ -23,8 +23,8 @@ CREATE OR REPLACE FUNCTION fun_insert_usuario_synkro(
     p_email_usuario tab_usuarios_synkro.email_usuario%TYPE,
     p_password_usuario tab_usuarios_synkro.password_usuario%TYPE,
     p_rol_synkro tab_usuarios_synkro.rol_synkro%TYPE,
-    p_ind_activo tab_usuarios_synkro.ind_activo%TYPE DEFAULT true,
-    p_usr_insert tab_usuarios_synkro.usr_insert%TYPE
+    p_usr_insert tab_usuarios_synkro.usr_insert%TYPE,
+    p_ind_activo tab_usuarios_synkro.ind_activo%TYPE DEFAULT true
 ) RETURNS JSON AS
 $$
 DECLARE

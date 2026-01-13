@@ -3,14 +3,14 @@
  */
 CREATE OR REPLACE FUNCTION fun_update_deployment(
     p_id_deployment tab_deployments.id_deployment%TYPE,
+    p_usr_update tab_deployments.usr_update%TYPE,
     p_version_deploy tab_deployments.version_deploy%TYPE DEFAULT NULL,
     p_tipo_deploy tab_deployments.tipo_deploy%TYPE DEFAULT NULL,
     p_estado_deploy tab_deployments.estado_deploy%TYPE DEFAULT NULL,
     p_ambiente tab_deployments.ambiente%TYPE DEFAULT NULL,
     p_logs_deploy tab_deployments.logs_deploy%TYPE DEFAULT NULL,
     p_fecha_fin tab_deployments.fecha_fin%TYPE DEFAULT NULL,
-    p_duracion_segundos tab_deployments.duracion_segundos%TYPE DEFAULT NULL,
-    p_usr_update tab_deployments.usr_update%TYPE
+    p_duracion_segundos tab_deployments.duracion_segundos%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 BEGIN

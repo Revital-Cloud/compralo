@@ -20,13 +20,13 @@
  */
 CREATE OR REPLACE FUNCTION fun_update_usuario_synkro(
     p_id_usuario tab_usuarios_synkro.id_usuario%TYPE,
+    p_usr_update tab_usuarios_synkro.usr_update%TYPE,
     p_nom_usuario tab_usuarios_synkro.nom_usuario%TYPE DEFAULT NULL,
     p_ape_usuario tab_usuarios_synkro.ape_usuario%TYPE DEFAULT NULL,
     p_email_usuario tab_usuarios_synkro.email_usuario%TYPE DEFAULT NULL,
     p_password_usuario tab_usuarios_synkro.password_usuario%TYPE DEFAULT NULL,
     p_rol_synkro tab_usuarios_synkro.rol_synkro%TYPE DEFAULT NULL,
-    p_ind_activo tab_usuarios_synkro.ind_activo%TYPE DEFAULT NULL,
-    p_usr_update tab_usuarios_synkro.usr_update%TYPE
+    p_ind_activo tab_usuarios_synkro.ind_activo%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 DECLARE

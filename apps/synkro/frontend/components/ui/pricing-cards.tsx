@@ -1,82 +1,111 @@
 "use client";
 
-import { Check, Star, Zap, Building, ShoppingBag } from "lucide-react";
+import Link from "next/link";
+import { Check, Star, Zap, Building, ShoppingBag, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { isAuthenticated } from "@/utils/apiWrapper";
 
 const pricingPlans = [
   {
     id: "emprendedor",
-    name: "Emprendedor",
+    name: "Starter",
     description:
-      "Ideal para quienes inician su aventura en el e-commerce y necesitan lo esencial para vender.",
+      "Perfect for those starting their e-commerce journey with essential selling features.",
     price: "$29",
-    period: "/mes",
+    period: "/month",
+    annualPrice: "$290",
+    annualSavings: "Save $58",
     icon: ShoppingBag,
     features: [
-      "Hasta 100 productos",
-      "Panel de estadísticas básico",
-      "Integración con Wompi",
-      "1 usuario administrador",
-      "Soporte por email",
-      "SSL incluido",
+      "Up to 100 products",
+      "Basic analytics dashboard",
+      "Wompi integration",
+      "1 admin user",
+      "Email support",
+      "SSL included",
     ],
-    limitations: ["Sin CMS headless", "Sin webhooks"],
-    cta: "Comenzar Ahora",
+    limitations: ["No headless CMS", "No webhooks"],
+    cta: "Get Started",
+    ctaLink: "#get-started",
     variant: "outline" as const,
     popular: false,
   },
   {
     id: "profesional",
-    name: "Profesional",
+    name: "Professional",
     description:
-      "Perfecto para negocios en crecimiento que buscan más herramientas y personalización.",
+      "Ideal for growing businesses that need more tools and customization options.",
     price: "$79",
-    period: "/mes",
+    period: "/month",
+    annualPrice: "$790",
+    annualSavings: "Save $158",
     icon: Zap,
     features: [
-      "Productos ilimitados",
-      "Panel de estadísticas avanzado",
-      "CMS headless incluido",
-      "Todas las pasarelas + Webhooks",
-      "Hasta 5 usuarios administradores",
-      "Soporte prioritario",
-      "API completa",
-      "Backups automáticos",
+      "Unlimited products",
+      "Advanced analytics + reports",
+      "Headless CMS included",
+      "All payment gateways + Webhooks",
+      "Up to 5 admin users",
+      "Priority support",
+      "Full API access",
+      "Automatic backups",
     ],
     limitations: [],
-    cta: "Elegir Plan",
+    cta: "Start Free Trial",
+    ctaLink: "#get-started",
     variant: "synkro" as const,
     popular: true,
   },
   {
     id: "corporativo",
-    name: "Corporativo",
+    name: "Enterprise",
     description:
-      "Soluciones a medida para grandes empresas con volumen alto de ventas y requerimientos específicos.",
+      "Custom solutions for large businesses with high volume and specific requirements.",
     price: "Custom",
     period: "",
+    annualPrice: "",
+    annualSavings: "",
     icon: Building,
     features: [
-      "Todo del plan Profesional",
-      "Usuarios ilimitados",
-      "Integraciones personalizadas",
-      "SLA garantizado",
-      "Soporte prioritario",
-      "Consultoría especializada",
-      "Infraestructura dedicada",
-      "Migración asistida",
+      "Everything in Professional",
+      "Unlimited users",
+      "Custom integrations",
+      "Guaranteed SLA",
+      "Dedicated support",
+      "Specialized consulting",
+      "Dedicated infrastructure",
+      "Assisted migration",
     ],
     limitations: [],
-    cta: "Contactar Ventas",
+    cta: "Contact Sales",
+    ctaLink: "#contact",
     variant: "outline" as const,
     popular: false,
   },
 ];
 
 export function PricingCards() {
+  const { user, isLoading } = useAuth();
+  const isLoggedIn = isAuthenticated() && !!user;
+
+  const handleCTAClick = (plan: typeof pricingPlans[0]) => {
+    // If logged in, go to subscription page
+    if (isLoggedIn) {
+      window.location.href = "/subscription";
+      return;
+    }
+    
+    // Otherwise scroll to the appropriate section
+    const element = document.querySelector(plan.ctaLink);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <section
       id="pricing"
@@ -86,14 +115,14 @@ export function PricingCards() {
         {/* Header */}
         <div className="text-center mb-16">
           <Badge variant="synkro" className="mb-4">
-            Precios Synkro
+            Pricing Plans
           </Badge>
           <h2 className="text-3xl md:text-5xl font-regular tracking-tighter mb-4 text-gray-900 dark:text-white">
-            Planes Flexibles para Tu Crecimiento
+            Flexible Plans for Your Growth
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Elige el plan de Synkro que mejor se adapte al tamaño y las
-            necesidades de tu negocio online.
+            Choose the Synkro plan that best fits your business size and needs.
+            Start free, upgrade as you grow.
           </p>
         </div>
 
@@ -105,9 +134,9 @@ export function PricingCards() {
               <Card
                 key={plan.id}
                 className={cn(
-                  "relative transition-all duration-300 hover:shadow-xl",
+                  "relative transition-all duration-300 hover:shadow-xl group",
                   plan.popular
-                    ? "border-2 border-synkro-green shadow-lg shadow-synkro-green/20 scale-105"
+                    ? "border-2 border-synkro-green shadow-lg shadow-synkro-green/20 lg:scale-105"
                     : "border border-gray-200 dark:border-synkro-green/20 hover:border-synkro-green/40",
                   "bg-white dark:bg-synkro-black"
                 )}
@@ -115,16 +144,16 @@ export function PricingCards() {
                 {/* Popular Badge */}
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-synkro-green text-synkro-black px-4 py-1">
+                    <Badge className="bg-synkro-green text-synkro-black px-4 py-1 font-medium">
                       <Star className="w-3 h-3 mr-1" />
-                      Más Popular
+                      Most Popular
                     </Badge>
                   </div>
                 )}
 
                 <CardHeader className="text-center pb-4">
                   <div className="flex justify-center mb-4">
-                    <div className="w-12 h-12 rounded-full bg-synkro-green/10 dark:bg-synkro-green/20 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-synkro-green/10 dark:bg-synkro-green/20 flex items-center justify-center group-hover:scale-110 transition-transform">
                       <Icon className="w-6 h-6 text-synkro-green" />
                     </div>
                   </div>
@@ -149,6 +178,11 @@ export function PricingCards() {
                         </span>
                       )}
                     </div>
+                    {plan.annualSavings && (
+                      <p className="text-sm text-synkro-green mt-1 font-medium">
+                        {plan.annualSavings} with annual billing
+                      </p>
+                    )}
                   </div>
 
                   {/* Features */}
@@ -178,16 +212,18 @@ export function PricingCards() {
 
                   {/* CTA Button */}
                   <Button
+                    onClick={() => handleCTAClick(plan)}
                     variant={plan.variant}
                     className={cn(
-                      "w-full",
+                      "w-full group/btn",
                       plan.variant === "synkro" &&
                         "bg-synkro-green hover:bg-synkro-green/90 text-synkro-black",
-                      plan.variant === "outline-solid" &&
-                        "border-synkro-green text-synkro-green hover:bg-synkro-green hover:text-synkro-black"
+                      plan.variant === "outline" &&
+                        "border-synkro-green/50 text-synkro-green hover:bg-synkro-green hover:text-synkro-black"
                     )}
                   >
-                    {plan.cta}
+                    <span>{isLoggedIn ? "Manage Plan" : plan.cta}</span>
+                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                   </Button>
                 </CardContent>
               </Card>
@@ -196,16 +232,29 @@ export function PricingCards() {
         </div>
 
         {/* Additional Info */}
-        <div className="text-center mt-12">
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            ¿No estás seguro de qué plan elegir?
+        <div className="text-center mt-12 space-y-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            All plans include a 14-day free trial. No credit card required.
           </p>
-          <Button
-            variant="outline"
-            className="border-synkro-green text-synkro-green hover:bg-synkro-green hover:text-synkro-black"
-          >
-            Comparar Planes Detalladamente
-          </Button>
+          {isLoggedIn ? (
+            <Button asChild variant="outline" className="border-synkro-green text-synkro-green hover:bg-synkro-green hover:text-synkro-black">
+              <Link href="/subscription">
+                View Full Plan Comparison
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              className="border-synkro-green text-synkro-green hover:bg-synkro-green hover:text-synkro-black"
+              onClick={() => {
+                document.querySelector("#get-started")?.scrollIntoView({ behavior: "smooth" });
+              }}
+            >
+              Compare Plans in Detail
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </section>

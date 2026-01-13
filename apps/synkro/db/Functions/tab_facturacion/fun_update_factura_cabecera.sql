@@ -23,13 +23,13 @@
  */
 CREATE OR REPLACE FUNCTION fun_update_factura_cabecera(
     p_id_factura tab_facturacion_cabecera.id_factura%TYPE,
+    p_usr_update tab_facturacion_cabecera.usr_update%TYPE,
     p_estado_pago tab_facturacion_cabecera.estado_pago%TYPE DEFAULT NULL,
     p_metodo_pago tab_facturacion_cabecera.metodo_pago%TYPE DEFAULT NULL,
     p_fecha_vencimiento tab_facturacion_cabecera.fecha_vencimiento%TYPE DEFAULT NULL,
     p_fecha_pago tab_facturacion_cabecera.fecha_pago%TYPE DEFAULT NULL,
     p_referencia_pago tab_facturacion_cabecera.referencia_pago%TYPE DEFAULT NULL,
-    p_notas tab_facturacion_cabecera.notas%TYPE DEFAULT NULL,
-    p_usr_update tab_facturacion_cabecera.usr_update%TYPE
+    p_notas tab_facturacion_cabecera.notas%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 DECLARE

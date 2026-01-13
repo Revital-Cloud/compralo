@@ -3,11 +3,11 @@
  */
 CREATE OR REPLACE FUNCTION fun_update_dominio(
     p_id_dominio tab_dominios.id_dominio%TYPE,
+    p_usr_update tab_dominios.usr_update%TYPE,
     p_estado_dominio tab_dominios.estado_dominio%TYPE DEFAULT NULL,
     p_ssl_habilitado tab_dominios.ssl_habilitado%TYPE DEFAULT NULL,
     p_fecha_ssl_emision tab_dominios.fecha_ssl_emision%TYPE DEFAULT NULL,
-    p_fecha_ssl_vencimiento tab_dominios.fecha_ssl_vencimiento%TYPE DEFAULT NULL,
-    p_usr_update tab_dominios.usr_update%TYPE
+    p_fecha_ssl_vencimiento tab_dominios.fecha_ssl_vencimiento%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 BEGIN

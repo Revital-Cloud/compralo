@@ -6,16 +6,16 @@
  */
 CREATE OR REPLACE FUNCTION fun_insert_historial_plan(
     p_id_suscripcion tab_historial_planes.id_suscripcion%TYPE,
-    p_id_plan_anterior tab_historial_planes.id_plan_anterior%TYPE DEFAULT NULL,
     p_id_plan_nuevo tab_historial_planes.id_plan_nuevo%TYPE,
-    p_precio_anterior tab_historial_planes.precio_anterior%TYPE DEFAULT NULL,
     p_precio_nuevo tab_historial_planes.precio_nuevo%TYPE,
     p_tipo_cambio tab_historial_planes.tipo_cambio%TYPE,
-    p_fecha_cambio tab_historial_planes.fecha_cambio%TYPE DEFAULT CURRENT_TIMESTAMP,
     p_fecha_efectiva tab_historial_planes.fecha_efectiva%TYPE,
+    p_usr_insert tab_historial_planes.usr_insert%TYPE,
+    p_id_plan_anterior tab_historial_planes.id_plan_anterior%TYPE DEFAULT NULL,
+    p_precio_anterior tab_historial_planes.precio_anterior%TYPE DEFAULT NULL,
+    p_fecha_cambio tab_historial_planes.fecha_cambio%TYPE DEFAULT CURRENT_TIMESTAMP,
     p_motivo_cambio tab_historial_planes.motivo_cambio%TYPE DEFAULT NULL,
-    p_usuario_email tab_historial_planes.usuario_email%TYPE DEFAULT NULL,
-    p_usr_insert tab_historial_planes.usr_insert%TYPE
+    p_usuario_email tab_historial_planes.usuario_email%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 DECLARE

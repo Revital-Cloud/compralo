@@ -29,6 +29,7 @@
 CREATE OR REPLACE FUNCTION fun_insert_factura_cabecera(
     p_id_suscripcion tab_facturacion_cabecera.id_suscripcion%TYPE,
     p_identificacion_fiscal_cliente tab_facturacion_cabecera.identificacion_fiscal_cliente%TYPE,
+    p_usr_insert tab_facturacion_cabecera.usr_insert%TYPE,
     p_num_factura tab_facturacion_cabecera.num_factura%TYPE DEFAULT NULL,
     p_moneda tab_facturacion_cabecera.moneda%TYPE DEFAULT 'USD',
     p_estado_pago tab_facturacion_cabecera.estado_pago%TYPE DEFAULT 'pendiente',
@@ -38,8 +39,7 @@ CREATE OR REPLACE FUNCTION fun_insert_factura_cabecera(
     p_periodo_facturado_desde tab_facturacion_cabecera.periodo_facturado_desde%TYPE DEFAULT NULL,
     p_periodo_facturado_hasta tab_facturacion_cabecera.periodo_facturado_hasta%TYPE DEFAULT NULL,
     p_referencia_pago tab_facturacion_cabecera.referencia_pago%TYPE DEFAULT NULL,
-    p_notas tab_facturacion_cabecera.notas%TYPE DEFAULT NULL,
-    p_usr_insert tab_facturacion_cabecera.usr_insert%TYPE
+    p_notas tab_facturacion_cabecera.notas%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 DECLARE

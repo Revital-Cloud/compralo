@@ -28,21 +28,21 @@
  */
 CREATE OR REPLACE FUNCTION fun_insert_cliente(
     p_identificacion_fiscal tab_clientes.identificacion_fiscal%TYPE,
-    p_tipo_identificacion tab_clientes.tipo_identificacion%TYPE DEFAULT 'NIT',
     p_nom_empresa tab_clientes.nom_empresa%TYPE,
     p_email_contacto tab_clientes.email_contacto%TYPE,
+    p_nom_contacto_principal tab_clientes.nom_contacto_principal%TYPE,
+    p_email_contacto_principal tab_clientes.email_contacto_principal%TYPE,
+    p_usr_insert tab_clientes.usr_insert%TYPE,
+    p_tipo_identificacion tab_clientes.tipo_identificacion%TYPE DEFAULT 'NIT',
     p_telefono_contacto tab_clientes.telefono_contacto%TYPE DEFAULT NULL,
     p_direccion_empresa tab_clientes.direccion_empresa%TYPE DEFAULT NULL,
     p_ciudad tab_clientes.ciudad%TYPE DEFAULT NULL,
     p_pais tab_clientes.pais%TYPE DEFAULT 'CO',
-    p_nom_contacto_principal tab_clientes.nom_contacto_principal%TYPE,
-    p_email_contacto_principal tab_clientes.email_contacto_principal%TYPE,
     p_telefono_contacto_principal tab_clientes.telefono_contacto_principal%TYPE DEFAULT NULL,
     p_estado_cliente tab_clientes.estado_cliente%TYPE DEFAULT 'prospecto',
     p_notas_internas tab_clientes.notas_internas%TYPE DEFAULT NULL,
     p_password_cliente tab_clientes.password_cliente%TYPE DEFAULT NULL,
-    p_ind_activo tab_clientes.ind_activo%TYPE DEFAULT true,
-    p_usr_insert tab_clientes.usr_insert%TYPE
+    p_ind_activo tab_clientes.ind_activo%TYPE DEFAULT true
 ) RETURNS JSON AS
 $$
 DECLARE

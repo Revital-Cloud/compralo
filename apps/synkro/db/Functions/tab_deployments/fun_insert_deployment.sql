@@ -4,13 +4,13 @@
 CREATE OR REPLACE FUNCTION fun_insert_deployment(
     p_id_instancia tab_deployments.id_instancia%TYPE,
     p_version_deploy tab_deployments.version_deploy%TYPE,
+    p_usr_insert tab_deployments.usr_insert%TYPE,
     p_tipo_deploy tab_deployments.tipo_deploy%TYPE DEFAULT 'manual',
     p_estado_deploy tab_deployments.estado_deploy%TYPE DEFAULT 'iniciado',
     p_ambiente tab_deployments.ambiente%TYPE DEFAULT 'produccion',
     p_logs_deploy tab_deployments.logs_deploy%TYPE DEFAULT NULL,
     p_fecha_inicio tab_deployments.fecha_inicio%TYPE DEFAULT CURRENT_TIMESTAMP,
-    p_iniciado_por tab_deployments.iniciado_por%TYPE DEFAULT NULL,
-    p_usr_insert tab_deployments.usr_insert%TYPE
+    p_iniciado_por tab_deployments.iniciado_por%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 DECLARE

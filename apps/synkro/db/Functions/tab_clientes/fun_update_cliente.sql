@@ -29,6 +29,7 @@
  */
 CREATE OR REPLACE FUNCTION fun_update_cliente(
     p_identificacion_fiscal tab_clientes.identificacion_fiscal%TYPE,
+    p_usr_update tab_clientes.usr_update%TYPE,
     p_tipo_identificacion tab_clientes.tipo_identificacion%TYPE DEFAULT NULL,
     p_nom_empresa tab_clientes.nom_empresa%TYPE DEFAULT NULL,
     p_email_contacto tab_clientes.email_contacto%TYPE DEFAULT NULL,
@@ -43,8 +44,7 @@ CREATE OR REPLACE FUNCTION fun_update_cliente(
     p_fecha_ultimo_acceso tab_clientes.fecha_ultimo_acceso%TYPE DEFAULT NULL,
     p_notas_internas tab_clientes.notas_internas%TYPE DEFAULT NULL,
     p_password_cliente tab_clientes.password_cliente%TYPE DEFAULT NULL,
-    p_ind_activo tab_clientes.ind_activo%TYPE DEFAULT NULL,
-    p_usr_update tab_clientes.usr_update%TYPE
+    p_ind_activo tab_clientes.ind_activo%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 DECLARE

@@ -26,16 +26,16 @@
  */
 CREATE OR REPLACE FUNCTION fun_insert_factura_detalle(
     p_id_factura tab_facturacion_detalle.id_factura%TYPE,
-    p_num_linea tab_facturacion_detalle.num_linea%TYPE DEFAULT NULL,
     p_concepto tab_facturacion_detalle.concepto%TYPE,
-    p_cantidad tab_facturacion_detalle.cantidad%TYPE DEFAULT 1,
     p_precio_unitario tab_facturacion_detalle.precio_unitario%TYPE,
+    p_usr_insert tab_facturacion_detalle.usr_insert%TYPE,
+    p_num_linea tab_facturacion_detalle.num_linea%TYPE DEFAULT NULL,
+    p_cantidad tab_facturacion_detalle.cantidad%TYPE DEFAULT 1,
     p_descuento_linea tab_facturacion_detalle.descuento_linea%TYPE DEFAULT 0,
     p_impuesto_linea tab_facturacion_detalle.impuesto_linea%TYPE DEFAULT 0,
     p_id_plan tab_facturacion_detalle.id_plan%TYPE DEFAULT NULL,
     p_id_instancia tab_facturacion_detalle.id_instancia%TYPE DEFAULT NULL,
-    p_metadata_json tab_facturacion_detalle.metadata_json%TYPE DEFAULT NULL,
-    p_usr_insert tab_facturacion_detalle.usr_insert%TYPE
+    p_metadata_json tab_facturacion_detalle.metadata_json%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 DECLARE
