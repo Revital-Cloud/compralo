@@ -1,8 +1,8 @@
 'use client'
 
-import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
+import { Input } from '@repo/ui'
+import { Select } from '@repo/ui'
+import { Button } from '@repo/ui'
 
 interface DiscountFiltersProps {
   search: string

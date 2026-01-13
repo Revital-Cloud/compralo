@@ -5,7 +5,7 @@ import { useProductsBySubline } from '@/hooks/use-products';
 import { useCategory } from '@/hooks/use-categories';
 import { useLine } from '@/hooks/use-lines';
 import { useSubline } from '@/hooks/use-sublines';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@repo/ui';
 import { ChevronRight, ArrowLeft, Package } from 'lucide-react';
 import { ProductCard } from '@/components/cards/ProductCard';
 

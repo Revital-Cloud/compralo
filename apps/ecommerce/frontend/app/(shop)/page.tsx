@@ -2,8 +2,8 @@ import EcommerceHeroCarousel from "@/components/layout/shop/hero/hero";
 import FeaturedCategories from "@/components/layout/shop/featured-categories/featured-categories";
 import FeaturedProducts from "@/components/layout/shop/featured-products/featured-products";
 import TestimonialsSection from "@/components/layout/shop/testimonials/testimonials";
-import { CookieBanner } from "@/components/ui/cookie-banner";
-import { NoSSR } from "@/components/ui/no-ssr";
+import { CookieBanner } from "@repo/ui";
+import { NoSSR } from "@repo/ui";
 
 export default function Home() {
   return (

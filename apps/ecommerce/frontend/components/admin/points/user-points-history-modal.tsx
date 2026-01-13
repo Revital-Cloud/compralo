@@ -7,9 +7,9 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+} from '@repo/ui'
+import { Badge } from '@repo/ui'
+import { Button } from '@repo/ui'
 import { IconX, IconPlus, IconMinus, IconClock } from '@tabler/icons-react'
 import { useUserPointsHistory } from '@/hooks/use-points'
 import type { PointsMovement } from '@/types/points'

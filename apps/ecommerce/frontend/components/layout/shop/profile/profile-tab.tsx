@@ -3,10 +3,10 @@
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
 import { profileSchema } from "@/schemas/user.schema";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui";
+import { Input } from "@repo/ui";
+import { Label } from "@repo/ui";
+import { Separator } from "@repo/ui";
 import { UserPublic } from "@/types/auth";
 import { useAccountStats } from "@/hooks/use-account-stats";
 

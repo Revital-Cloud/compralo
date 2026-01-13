@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui";
+import { Button } from "@repo/ui";
+import { Badge } from "@repo/ui";
 import { IconUpload, IconX, IconCheck, IconCamera, IconTrash } from "@tabler/icons-react";
 import { useDropzone } from 'react-dropzone';
 import { toast } from "sonner";

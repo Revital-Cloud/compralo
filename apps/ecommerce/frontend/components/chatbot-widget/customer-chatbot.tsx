@@ -1,11 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Button } from "@repo/ui"
+import { Card } from "@repo/ui"
+import { Input } from "@repo/ui"
+import { ScrollArea } from "@repo/ui"
+import { Avatar, AvatarFallback } from "@repo/ui"
 import { ArrowLeft, Send, Package, Truck, ShoppingBag, HelpCircle } from "lucide-react"
 import Link from "next/link"
 

@@ -9,7 +9,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@repo/ui"
 import { cn } from "@/lib/utils"
 import { type NavItem } from "@/lib/menu-config"
 

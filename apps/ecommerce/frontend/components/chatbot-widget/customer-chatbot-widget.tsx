@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Button } from "@repo/ui"
+import { Card } from "@repo/ui"
+import { Input } from "@repo/ui"
+import { ScrollArea } from "@repo/ui"
+import { Avatar, AvatarFallback } from "@repo/ui"
 import { Send, Package, Truck, ShoppingBag, HelpCircle, MessageCircle, X, ArrowLeft, Sparkles } from "lucide-react"
 
 type Message = {

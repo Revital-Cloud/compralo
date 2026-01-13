@@ -1,16 +1,16 @@
 'use client'
 
 import React from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@repo/ui'
+import { Button } from '@repo/ui'
+import { Input } from '@repo/ui'
+import { Label } from '@repo/ui'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAllCategories } from '@/hooks/use-categories'
 import { useLinesByCategory } from '@/hooks/use-lines'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Checkbox } from '@repo/ui'
 
 type EntityType = 'category' | 'brand' | 'provider' | 'line' | 'subline'
 

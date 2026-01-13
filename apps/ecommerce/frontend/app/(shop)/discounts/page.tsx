@@ -1,8 +1,8 @@
 "use client"
 
 import { useActiveDiscounts } from "@/hooks/use-discounts"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui"
+import { Badge } from "@repo/ui"
 import { Tag, Calendar, Percent, DollarSign, ShoppingCart, Loader2 } from "lucide-react"
 import { formatPrice } from "@/utils/format-price"
 import { cn } from "@/lib/utils"

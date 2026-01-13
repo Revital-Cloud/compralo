@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Button } from "@/components/ui/button";
+import { Button } from "@repo/ui";
 import {
   Form,
   FormControl,
@@ -11,18 +11,18 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+} from "@repo/ui";
+import { Input } from "@repo/ui";
 import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import { ArrowLeft, Loader2, CalendarIcon } from 'lucide-react';
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar } from "@repo/ui";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Select } from "@/components/ui/select";
-import { PasswordStrength } from "@/components/ui/password-strength";
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui";
+import { Select } from "@repo/ui";
+import { PasswordStrength } from "@repo/ui";
 import Link from "next/link";
 import {
   Card,
@@ -30,7 +30,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@repo/ui";
 import { useRouter } from "next/navigation";
 import { registerSchema } from "@/schemas/auth.schema";
 import type { RegisterRequest } from "@/types";

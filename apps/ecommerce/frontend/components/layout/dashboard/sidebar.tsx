@@ -35,7 +35,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@repo/ui"
 
 const data = {
   navMain: [

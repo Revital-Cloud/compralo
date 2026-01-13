@@ -1,16 +1,16 @@
 'use client';
 
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { Button } from "@repo/ui"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { PasswordStrength } from "@/components/ui/password-strength"
+} from "@repo/ui"
+import { Label } from "@repo/ui"
+import { PasswordStrength } from "@repo/ui"
 import Link from "next/link"
 import { ArrowLeft, Loader2, CheckCircle } from "lucide-react"
 import { useState, useEffect } from "react"

@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Select } from "@/components/ui/select"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui"
+import { Button } from "@repo/ui"
+import { Select } from "@repo/ui"
 import { IconDownload } from "@tabler/icons-react"
 
 interface SalesDataPoint {

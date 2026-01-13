@@ -1,4 +1,6 @@
-# Footer Atomizado
+# Footer Atomizado 📄
+
+**Footer modular con soporte para CMS headless y dark mode**
 
 El componente `footer.tsx` ha sido atomizado en componentes más pequeños para facilitar el mantenimiento, integración con CMS headless y soporte completo para dark mode.
 
@@ -123,4 +125,14 @@ Cada componente acepta props para personalización:
     { label: "Categoría 2", href: "/cat2" }
   ]}
 />
-``` 
+```
+
+## 📚 Documentación Relacionada
+
+- [Frontend E-commerce README](../../../../README.md)
+- [Componentes de Layout](../README.md)
+- [Sistema de Dark Mode](../../../../Docs/DARK_MODE_IMPLEMENTATION.md)
+
+---
+
+**Footer Components** - Footer modular y configurable 📄 

@@ -1,8 +1,8 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@repo/ui";
+import { Badge } from "@repo/ui";
+import { Button } from "@repo/ui";
 import { Edit, Star } from "lucide-react";
 import { getInitials } from "@/lib/utils";
 import { UserPublic } from "@/types/auth";

@@ -1,6 +1,8 @@
-# Profile Components - Componentes Atomizados
+# Profile Components - Componentes Atomizados 👤
 
-Los componentes de perfil han sido atomizados para mejorar la modularidad, mantenibilidad y organización del código.
+**Componentes modulares para la gestión de perfiles de usuario**
+
+Los componentes de perfil han sido atomizados para mejorar la modularidad, mantenibilidad y organización del código. Cada componente es independiente y reutilizable.
 
 ## Estructura
 
@@ -132,12 +134,23 @@ Todos los componentes soportan dark mode usando las clases de Tailwind:
 - `text-muted-foreground` para textos secundarios
 - Variables CSS automáticas para temas
 
-## Próximas Mejoras
+## 🚀 Próximas Mejoras
 
 - [ ] Integración con APIs reales
-- [ ] Estados de carga
-- [ ] Validación mejorada
-- [ ] Animaciones de transición
+- [ ] Estados de carga mejorados
+- [ ] Validación mejorada con Zod
+- [ ] Animaciones de transición con Framer Motion
 - [ ] Componentes más granulares
-- [ ] Tests unitarios
-- [ ] Storybook documentation 
+- [ ] Tests unitarios con Vitest
+- [ ] Storybook documentation
+- [ ] Internacionalización (i18n)
+
+## 📚 Documentación Relacionada
+
+- [Frontend E-commerce README](../../../../README.md)
+- [Componentes de Layout](../README.md)
+- [Sistema de Autenticación](../../../../Docs/AUTH_GUIDE.md)
+
+---
+
+**Profile Components** - Componentes modulares para gestión de perfiles 👤 

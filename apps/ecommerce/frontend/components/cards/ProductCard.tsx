@@ -1,6 +1,6 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@repo/ui';
 import { Package } from 'lucide-react';
 import ProductGallery from '../product/product-gallery';
 import { formatPrice } from '@/utils/format-price';

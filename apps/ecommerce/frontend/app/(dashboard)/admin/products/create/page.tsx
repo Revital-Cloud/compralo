@@ -8,7 +8,7 @@ import {
   ProductForm, 
   ProductImageUpload 
 } from "@/components/admin/products";
-import { SuccessModal } from "@/components/ui/success-modal";
+import { SuccessModal } from "@repo/ui";
 import { useCreateProduct } from "@/hooks/use-products";
 import * as productService from "@/services/product.service";
 import type { ProductCreate } from '@/types';

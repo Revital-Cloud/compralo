@@ -4,8 +4,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useSublinesByLine } from '@/hooks/use-sublines';
 import { useCategory } from '@/hooks/use-categories';
 import { useLine } from '@/hooks/use-lines';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@repo/ui';
+import { Badge } from '@repo/ui';
 import { ChevronRight, Package, ArrowLeft } from 'lucide-react';
 import type { Subline } from '@/types/hierarchical';
 

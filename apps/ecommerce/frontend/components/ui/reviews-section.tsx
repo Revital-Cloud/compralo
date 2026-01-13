@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ReviewForm } from "@/components/ui/review-form";
+import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui";
+import { Button } from "@repo/ui";
+import { ReviewForm } from "@repo/ui";
 import { MessageSquare, User, Calendar } from "lucide-react";
 import { getProductComments, createComment, Comment } from "@/services/review.service";
-import { StarRating } from "@/components/ui/star-rating";
+import { StarRating } from "@repo/ui";
 import { toast } from "sonner";
 
 interface ReviewsSectionProps {

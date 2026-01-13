@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@repo/ui";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from "@repo/ui";
 import { useRouter } from "next/navigation";
 import { LogIn, UserPlus } from "lucide-react";
 

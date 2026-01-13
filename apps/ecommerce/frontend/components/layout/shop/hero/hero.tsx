@@ -1,11 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@repo/ui"
 import { Star, TrendingUp, Shield, Zap } from "lucide-react"
 import { motion } from "framer-motion"
-import RotatingText from "@/components/ui/rotating-text"
-import "@/components/ui/rotating-text.css"
+import { RotatingText } from "@repo/ui"
 import BgDecorativeElements from "./components/bg-decorative-elements"
 
 const EcommerceHeroCarousel: React.FC = () => {

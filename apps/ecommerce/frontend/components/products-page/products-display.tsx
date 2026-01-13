@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button"
-import Loading from "@/components/ui/loading"
+import { Button } from "@repo/ui"
+import Loading from "@repo/ui"
 import { ProductGrid, ProductList } from "@/components/product"
-import { EmptyProductsState } from "@/components/ui/empty-state"
-import { FilterSuggestions } from "@/components/ui/filter-suggestions"
+import { EmptyProductsState } from "@repo/ui"
+import { FilterSuggestions } from "@repo/ui"
 import { useCart } from "@/hooks/use-cart"
 import { toast } from "sonner"
 

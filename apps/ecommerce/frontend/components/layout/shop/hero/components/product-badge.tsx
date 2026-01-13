@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { Award } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@repo/ui"
 
 interface ProductBadgeProps {
   badge: string

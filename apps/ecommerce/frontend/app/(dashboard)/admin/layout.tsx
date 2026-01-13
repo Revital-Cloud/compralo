@@ -1,6 +1,6 @@
 'use client';
 
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
+import { SidebarProvider, SidebarInset } from "@repo/ui"
 import { AppSidebar } from "@/components/layout/dashboard/sidebar";
 import AdminHeader from "@/components/layout/dashboard/admin-header";
 import { AdminGuard } from "@/components/auth/route-guard";

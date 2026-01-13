@@ -1,6 +1,8 @@
-# Dashboard Components
+# Dashboard Components 📊
 
-Esta carpeta contiene todos los componentes modulares del dashboard administrativo de Synkro.
+**Componentes modulares del dashboard administrativo de Synkro**
+
+Esta carpeta contiene todos los componentes modulares del dashboard administrativo de Synkro. Los componentes han sido refactorizados desde un archivo monolítico de 617 líneas a una estructura modular y mantenible.
 
 ## 🏗️ Estructura
 
@@ -177,4 +179,14 @@ Todos los componentes están completamente traducidos al español:
 - **Clientes**: Nombres hispanos realistas
 - **Fechas**: Formato español (es-ES)
 - **Categorías**: "Zapatillas", "Casual", "Running"
-- **Métricas**: "vendidos", "órdenes", "ingresos" 
+- **Métricas**: "vendidos", "órdenes", "ingresos"
+
+## 📚 Documentación Relacionada
+
+- [Frontend E-commerce README](../../README.md)
+- [Sistema de Autenticación](../../Docs/AUTH_GUIDE.md)
+- [React Query Setup](../../Docs/REACT_QUERY_GUIDE.md)
+
+---
+
+**Dashboard Components** - Componentes modulares del dashboard administrativo 📊 

@@ -4,7 +4,7 @@ import * as React from "react"
 import { Moon, Sun } from "lucide-react"
 import { useThemeState } from "@/hooks/use-theme"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@repo/ui"
 
 export function ThemeToggle() {
   const { toggleTheme, currentTheme, mounted } = useThemeState()

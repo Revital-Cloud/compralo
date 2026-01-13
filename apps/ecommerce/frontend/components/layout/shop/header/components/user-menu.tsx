@@ -10,7 +10,7 @@ import {
   ChevronDown,
   ShoppingBag,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@repo/ui"
 import { useAuth } from "@/hooks/use-auth"
 import Link from "next/link"
 

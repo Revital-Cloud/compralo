@@ -5,8 +5,8 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Input } from '@repo/ui';
+import { Label } from '@repo/ui';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import { useXSSValidation } from '@/hooks/use-xss-validation';
 import { cn } from '@/lib/utils';

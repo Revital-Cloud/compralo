@@ -1,0 +1,12 @@
+name: Deploy Synkro (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aviso
+        run: |
+          echo "Este workflow queda manual. Usa 'Deploy Synkro stack' (deploy-ecommerce.yml) para despliegues automáticos."

@@ -1,6 +1,6 @@
 import { Grid, List, Filter } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@repo/ui"
+import { Badge } from "@repo/ui"
 
 const sortOptions = [
   { value: 'nombre-asc', label: 'Nombre (A-Z)' },

@@ -130,11 +130,19 @@ backend/
 Python 3.13+
 PostgreSQL 15+
 Git
+pnpm (para el monorepo)
 ```
 
 ### 1. Preparar Entorno
 
 ```bash
+# Desde la raíz del monorepo (code/)
+# Las dependencias del frontend se instalan con:
+pnpm install
+
+# Para el backend, navega a la carpeta:
+cd apps/ecommerce/backend
+
 # Crear entorno virtual
 python -m venv venv
 
@@ -142,7 +150,7 @@ python -m venv venv
 # Windows
 .\venv\Scripts\activate
 # Linux/Mac
-source venv/Scripts/activate
+source venv/bin/activate
 
 # Instalar dependencias
 pip install -r requirements.txt
@@ -211,11 +219,15 @@ REDIS_URL=redis://localhost:6379/0
 ### 4. Iniciar Servidor de Desarrollo
 
 ```bash
+# Desde apps/ecommerce/backend/
 # Método recomendado (FastAPI CLI)
 fastapi dev app/main.py
 
 # Método alternativo (Uvicorn)
 python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# O desde la raíz del monorepo (si está configurado en turbo.json):
+# pnpm dev
 ```
 
 ### 5. Verificar Instalación

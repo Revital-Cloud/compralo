@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { CookieSettings } from "@/components/ui/cookie-settings"
-import { NoSSR } from "@/components/ui/no-ssr"
+import { CookieSettings } from "@repo/ui"
+import { NoSSR } from "@repo/ui"
 
 interface LegalLink {
   label: string

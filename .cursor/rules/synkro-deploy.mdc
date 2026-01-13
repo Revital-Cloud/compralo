@@ -1,0 +1,247 @@
+---
+alwaysApply: true
+---
+# Cursor Rules — Synkro (Infra / Containers / Deploy)
+
+> **Contexto:** Este archivo describe cómo está organizada la **infraestructura en Docker** y cómo deben funcionar los despliegues via SSH + GitHub Actions. Aplica a la carpeta de `containers` en el servidor (o repo de infra equivalente).
+
+---
+
+## 1. Estructura real en el servidor
+
+En el servidor Ubuntu, la estructura relevante es:
+
+```bash
+/srv/synkro/
+    code/              # REPO DE CÓDIGO (monorepo con pnpm + Turborepo)
+        apps/
+            ecommerce/
+                backend/
+                frontend/
+            synkro/
+                backend/
+                frontend/
+
+    containers/        # REPO / CARPETA DE INFRA (docker-compose + Dockerfiles por entorno)
+        base/
+        dev/
+        staging/
+        prod/
+```
+
+- `code/` → contiene sólo el **código fuente** (monorepo).  
+- `containers/` → contiene la **orquestación Docker** y configuración por entorno.
+
+**Regla clave:** No mover código de `code/` a `containers/`. `containers/` se encarga solo de cómo se ejecuta y despliega el código existente.
+
+---
+
+## 2. Servicios y Dockerfiles
+
+Ya existen estos servicios en los `docker-compose` de los entornos:
+
+```yaml
+services:
+  synkro-frontend:
+  synkro-backend:
+  ecommerce-frontend:
+  ecommerce-backend:
+```
+
+Cada uno tiene su propio Dockerfile en el árbol de código:
+
+```bash
+/srv/synkro/code/apps/ecommerce/frontend/Dockerfile
+/srv/synkro/code/apps/ecommerce/backend/Dockerfile
+/srv/synkro/code/apps/synkro/frontend/Dockerfile
+/srv/synkro/code/apps/synkro/backend/Dockerfile
+```
+
+**Reglas para Cursor al tocar compose / Dockerfiles desde `containers`:**
+
+- Asumir que el **contexto de build** referencia a rutas bajo `/srv/synkro/code`.
+- No duplicar Dockerfiles dentro de `containers/` si ya existen en el repo de código.
+- Si se necesita ajustar build args o env vars:
+  - Hacerlo vía `docker-compose.yml` (usando `environment`, `env_file`, `build.args`, etc.).
+  - No hardcodear secretos ni credenciales.
+
+---
+
+## 3. Traefik y red global
+
+En `containers/base/` existe:
+
+```bash
+containers/base/
+  traefik.yml
+  dynamic/
+      routers.yml
+```
+
+- Aquí se define **Traefik** y la **network global**.
+- Los otros entornos (`dev`, `staging`, `prod`) deben:
+  - Usar la misma network compartida definida en `base`.
+  - Definir `labels` de Traefik en sus servicios para routing (hostname, middlewares, etc.).
+
+**Reglas:**
+
+1. No duplicar configuraciones complejas de Traefik si pueden centralizarse en `base/dynamic/`.
+2. Cada `docker-compose` de entorno debe:
+   - Conectarse a la network común.
+   - Definir sólo los labels específicos para su dominio / subdominio (dev, staging, prod).
+3. Al agregar nuevos servicios, añadir labels coherentes con el patrón ya existente.
+
+---
+
+## 4. Entornos y mapeo de ramas
+
+El flujo de ramas y entornos es:
+
+- `main` → **producción** → usa `containers/prod/`
+- `staging` → **staging** → usa `containers/staging/`
+- cualquier otra branch → **desarrollo (dev)** → usa `containers/dev/`
+
+**Regla para cualquier pipeline / script de deploy:**
+
+1. Detectar la rama.
+2. Traducirla a la ruta correcta:
+   - `main` → `/srv/synkro/containers/prod`
+   - `staging` → `/srv/synkro/containers/staging`
+   - otra → `/srv/synkro/containers/dev`
+3. Ejecutar los comandos de despliegue **únicamente en esa carpeta**.
+
+No mezclar entornos ni levantar servicios de otro entorno por error.
+
+---
+
+## 5. Comandos estándar de despliegue
+
+Cuando GitHub Actions se conecta al servidor por SSH y entra al directorio del entorno correspondiente (`dev`, `staging` o `prod`), debe ejecutar, en este orden:
+
+```bash
+docker compose pull
+docker compose build
+docker compose up -d --force-recreate
+```
+
+Opcionalmente, para limpieza de imágenes antiguas y contenedores colgantes:
+
+```bash
+docker system prune -af
+```
+
+**Reglas:**
+
+- No eliminar volúmenes importantes automáticamente por script sin confirmación (base de datos, archivos persistentes, etc.).
+- `docker system prune -af` debe usarse con criterio (idealmente manual o comentado en workflows con explicación).
+
+---
+
+## 6. GitHub Actions — lineamientos generales
+
+Existen 2 workflows deseados (en este repo o en el de código, pero apuntando siempre al servidor y a estas rutas):
+
+1. **Workflow de staging + producción**
+   - Dispara en `push` a:
+     - `staging`
+     - `main`
+   - Lógica de selección de entorno según la rama.
+2. **Workflow de dev**
+   - Dispara en cualquier otra branch (o push a `dev` / PRs, según diseño).
+   - Siempre despliega a `/srv/synkro/containers/dev`.
+
+### Reglas para workflows (`.github/workflows/*.yml`)
+
+- La conexión SSH debe usar:
+  - Host, usuario, puerto → desde **GitHub Secrets**.
+  - Llave privada `~/.ssh/id_ed25519` del servidor → guardada como **secret** en GitHub (ej: `SSH_KEY`), **NUNCA** en el repo.
+- La llave pública `id_ed25519.pub` se configura como **Deploy Key** en el repositorio.
+- Dentro del paso `run` de SSH:
+  - Cambiar a la carpeta correcta (`cd /srv/synkro/containers/<entorno>`).
+  - Ejecutar los comandos estándar de despliegue.
+- No exponer secretos en logs (`set -x` con cuidado).
+
+Ejemplo de pseudo-paso (solo como guía, no copiar sin revisar):
+
+```yaml
+- name: Deploy to server
+  run: |
+    ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+      cd /srv/synkro/containers/PROD_O_STAGING_O_DEV
+      docker compose pull
+      docker compose build
+      docker compose up -d --force-recreate
+      # docker system prune -af  # <- usar con cuidado
+    EOF
+```
+
+> Cursor: cuando generes workflows, ajusta nombres de secrets, usuario y host según las convenciones reales del repo. No inventes valores productivos.
+
+---
+
+## 7. Uso de pnpm y Turborepo en el contexto de Docker
+
+Aunque este repo es de infra, el build de los contenedores de frontend debe:
+
+- Usar **`pnpm` como gestor de paquetes** (no usar `npm install` ni `yarn`).
+- Respetar que el monorepo está gestionado con **Turborepo**.
+
+En los Dockerfiles de frontends (definidos en `code/apps/...` pero usados desde aquí):
+
+- Utilizar comandos equivalentes a:
+  - `pnpm install --frozen-lockfile` (o según configuración real).
+  - `pnpm turbo build` o `pnpm build` según script del app.
+
+**Regla:**  
+Desde `containers/` no se debe cambiar la lógica de build propia del monorepo; sólo se deben **invocar los comandos correctos** expuestos por los Dockerfiles y `package.json` del repo de código.
+
+---
+
+## 8. Buenas prácticas para docker-compose en este proyecto
+
+Al editar `docker-compose.yml` en `dev`, `staging` o `prod`:
+
+1. **Rutas de código:**
+   - Montar o usar contextos que apunten a `/srv/synkro/code/...`.
+   - Evitar path hardcodeados que luego no coincidan con lo que realmente hay en el servidor.
+2. **Variables de entorno:**
+   - Usar `.env` por entorno (no versionado) cuando haya secretos o configuraciones sensibles.
+   - Para variables no sensibles (e.g. `NODE_ENV`, `ENVIRONMENT`), se pueden definir en `docker-compose.yml`.
+3. **Redes:**
+   - Conectar todos los servicios HTTP a la network que Traefik espera (definida en `base`).  
+   - Usar un único nombre coherente entre todos los archivos (`external: true` si ya existe).
+4. **Nombres de contenedores y servicios:**
+   - Mantener `service.name` estable (`synkro-frontend`, `synkro-backend`, etc.) para que los labels de Traefik y dependencias sigan funcionando.
+
+---
+
+## 9. Traefik — patrones de configuración
+
+Sin detallar el contenido exacto de `traefik.yml` y `dynamic/routers.yml`, las reglas son:
+
+- Definir routers, middlewares y services en `dynamic/` que sean **reutilizables** entre entornos cuando tenga sentido.
+- Para diferencias entre entornos (dominios distintos como `dev.synkro.com`, `staging.synkro.com`, `synkro.com`):
+  - Ajustar las labels de Traefik en los `docker-compose` por entorno.
+- No poner secretos (tokens, passwords) dentro de los archivos estáticos de Traefik.
+
+Cuando se agregue un nuevo servicio HTTP:
+
+1. Crear / ajustar su definición de router (hostname, path, middlewares) en `dynamic/` o mediante labels.
+2. Asegurarse de que el servicio pertenece a la misma network que Traefik.
+3. Probar primero en `dev` antes de replicar en `staging` o `prod`.
+
+---
+
+## 10. Cómo debe trabajar Cursor en este repo de infra
+
+1. **Entender siempre el entorno objetivo** (dev, staging, prod) según el contexto de la rama o workflow.
+2. **No romper la compatibilidad** con el monorepo de código:
+   - No cambiar paths de build sin revisar el layout real de `/srv/synkro/code`.
+   - No asumir que el código vive dentro de `containers/`.
+3. **Respetar la idea de despliegues automatizados via GitHub Actions + SSH:**
+   - No introducir pasos manuales innecesarios.
+   - Mantener los comandos de despliegue simples y consistentes.
+4. **Mantener Traefik centralizado en `base/`** y usar labels + networks correctos en los demás entornos.
+5. **Documentar cambios relevantes** en comentarios dentro de los `docker-compose` o en archivos README/MD dentro de cada carpeta de entorno.
+
+Si hay duda entre crear algo ad-hoc rápido o seguir la estructura base (`base/`, `dev/`, `staging/`, `prod/` + Traefik + red global), **priorizar mantener y extender la arquitectura actual.**

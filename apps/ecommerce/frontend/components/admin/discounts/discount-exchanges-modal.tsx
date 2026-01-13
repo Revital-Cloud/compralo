@@ -7,9 +7,9 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+} from '@repo/ui'
+import { Badge } from '@repo/ui'
+import { Button } from '@repo/ui'
 import { IconX, IconCheck, IconClock, IconAlertCircle } from '@tabler/icons-react'
 import { useDiscountExchanges } from '@/hooks/use-discounts'
 import type { DiscountExchange } from '@/types/discount'

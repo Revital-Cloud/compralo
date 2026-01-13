@@ -1,10 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Button } from "@repo/ui";
+import { Card, CardContent } from "@repo/ui";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@repo/ui";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@repo/ui";
+import { Input } from "@repo/ui";
 import { MapPin, Pencil, Trash2, Eye, Star, Power } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import addressService from "@/services/address.service";

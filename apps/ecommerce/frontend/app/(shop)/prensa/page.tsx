@@ -1,6 +1,6 @@
 "use client"
 
-import { UnderConstruction } from "@/components/ui/under-construction"
+import { UnderConstruction } from "@repo/ui"
 
 export default function PressPage() {
   return (

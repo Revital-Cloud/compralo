@@ -9,8 +9,8 @@ import {
 import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
-import { Button, buttonVariants } from "@/components/ui/button"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Button, buttonVariants } from "@repo/ui"
+import { Popover, PopoverContent, PopoverTrigger } from "@repo/ui"
 
 function Calendar({
   className,

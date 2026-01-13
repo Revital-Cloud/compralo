@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { UniversalFilters } from '@/components/ui/universal-filters';
+import { UniversalFilters } from '@repo/ui';
 import { FilterConfig, SortOption } from '@/types/filters';
 
 interface CategoriesFiltersProps {

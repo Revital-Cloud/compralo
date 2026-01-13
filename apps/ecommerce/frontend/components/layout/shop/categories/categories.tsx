@@ -1,7 +1,7 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@repo/ui";
+import { Badge } from "@repo/ui";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "next-themes";
