@@ -148,12 +148,14 @@ export function HeroSection() {
                     <>
                       <div className="bg-synkro-green/10 rounded-[14px] border border-synkro-green/20 p-0.5">
                         <Button
+                          asChild
                           size="lg"
                           className="rounded-xl px-6 text-base bg-synkro-green hover:bg-synkro-green/90 text-synkro-black font-medium"
-                          onClick={() => scrollToSection("#get-started")}
                         >
-                          <span>Get Started Free</span>
-                          <ArrowRight className="ml-2 h-5 w-5" />
+                          <Link href="/register">
+                            <span>Get Started Free</span>
+                            <ArrowRight className="ml-2 h-5 w-5" />
+                          </Link>
                         </Button>
                       </div>
                       <Button

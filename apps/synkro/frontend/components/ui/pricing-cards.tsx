@@ -30,7 +30,7 @@ const pricingPlans = [
     ],
     limitations: ["No headless CMS", "No webhooks"],
     cta: "Get Started",
-    ctaLink: "#get-started",
+    ctaLink: "/register",
     variant: "outline" as const,
     popular: false,
   },
@@ -56,7 +56,7 @@ const pricingPlans = [
     ],
     limitations: [],
     cta: "Start Free Trial",
-    ctaLink: "#get-started",
+    ctaLink: "/register",
     variant: "synkro" as const,
     popular: true,
   },
@@ -99,10 +99,15 @@ export function PricingCards() {
       return;
     }
     
-    // Otherwise scroll to the appropriate section
-    const element = document.querySelector(plan.ctaLink);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
+    // For hash links, scroll to section
+    if (plan.ctaLink.startsWith("#")) {
+      const element = document.querySelector(plan.ctaLink);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    } else {
+      // For regular routes, navigate
+      window.location.href = plan.ctaLink;
     }
   };
 
@@ -244,15 +249,11 @@ export function PricingCards() {
               </Link>
             </Button>
           ) : (
-            <Button
-              variant="outline"
-              className="border-synkro-green text-synkro-green hover:bg-synkro-green hover:text-synkro-black"
-              onClick={() => {
-                document.querySelector("#get-started")?.scrollIntoView({ behavior: "smooth" });
-              }}
-            >
-              Compare Plans in Detail
-              <ArrowRight className="ml-2 h-4 w-4" />
+            <Button asChild variant="outline" className="border-synkro-green text-synkro-green hover:bg-synkro-green hover:text-synkro-black">
+              <Link href="/register">
+                Sign Up Now
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
           )}
         </div>

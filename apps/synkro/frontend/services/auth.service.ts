@@ -15,6 +15,8 @@ import type {
   ResetPasswordConfirm,
   ResponseMessage,
   RefreshTokenRequest,
+  RegisterRequest,
+  RegisterResponse,
 } from '@/types';
 import { getStoredRefreshToken } from '@/utils/apiWrapper';
 
@@ -29,6 +31,19 @@ export async function login(credentials: LoginRequest): Promise<TokenResponse> {
   const tokens = await post<TokenResponse>('/auth/login', credentials);
   
   // Almacenar tokens automáticamente
+  storeTokens(tokens.access_token, tokens.refresh_token);
+  
+  return tokens;
+}
+
+/**
+ * Register a new user (public registration)
+ * Creates a new client account with 'trial' status and auto-login
+ */
+export async function register(data: RegisterRequest): Promise<RegisterResponse> {
+  const tokens = await post<RegisterResponse>('/auth/register', data);
+  
+  // Store tokens for auto-login
   storeTokens(tokens.access_token, tokens.refresh_token);
   
   return tokens;
@@ -109,6 +124,7 @@ export async function logoutWithToken(refreshTokenValue: string): Promise<Respon
 
 const authService = {
   login,
+  register,
   logout,
   refreshToken,
   getCurrentUser,

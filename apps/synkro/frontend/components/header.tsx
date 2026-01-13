@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu, X, LogIn, LayoutDashboard, ArrowRight } from "lucide-react";
+import { Menu, X, LogIn, LayoutDashboard, ArrowRight, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeSwitcherButton } from "@/components/ui/theme-switcher-button";
@@ -181,25 +181,16 @@ export const Header = () => {
                       </Link>
                     </Button>
 
-                    {/* Get Started Button */}
+                    {/* Sign Up Button */}
                     <Button
                       asChild
                       size="sm"
                       className="bg-synkro-green hover:bg-synkro-green/90 text-synkro-black font-medium"
                     >
-                      <a
-                        href="#get-started"
-                        onClick={e => {
-                          e.preventDefault();
-                          document
-                            .querySelector("#get-started")
-                            ?.scrollIntoView({ behavior: "smooth" });
-                          setMenuState(false);
-                        }}
-                      >
-                        <span>Get Started</span>
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </a>
+                      <Link href="/register">
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        <span>Sign Up</span>
+                      </Link>
                     </Button>
                   </>
                 )}

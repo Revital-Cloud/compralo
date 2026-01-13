@@ -4,12 +4,16 @@ Archivo Principal de la Aplicacion FastAPI - Synkro SaaS.
 Este modulo inicializa la aplicacion FastAPI, define rutas basicas,
 configura middlewares y registra todos los routers del sistema.
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 import logging
+
+from slowapi.errors import RateLimitExceeded
 
 from middlewares.security_middleware import SecurityMiddleware
 from core.config import settings
+from core.rate_limiter import limiter
 
 # Importar routers
 from routers.auth_router import router as auth_router
@@ -27,6 +31,21 @@ from routers.historial_plan_router import router as historial_plan_router
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    """
+    Custom handler for rate limit exceeded errors.
+    Returns a JSON response with a user-friendly message.
+    """
+    return JSONResponse(
+        status_code=429,
+        content={
+            "detail": "Too many requests. Please try again later.",
+            "retry_after": exc.detail
+        }
+    )
+
 
 app = FastAPI(
     title="Synkro SaaS API",
@@ -57,6 +76,10 @@ El sistema usa JWT con dos tipos de usuarios:
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Configurar Rate Limiter en la app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 # Configurar CORS
 app.add_middleware(

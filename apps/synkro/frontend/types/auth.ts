@@ -41,3 +41,29 @@ export interface ResetPasswordConfirm {
   token: string;
   new_password: string;
 }
+
+/**
+ * Registration types
+ */
+export type IdentificationType = 'NIT' | 'EIN' | 'RFC' | 'CUIT' | 'RUT' | 'NIF' | 'CIF' | 'CNPJ' | 'RUC' | 'OTRO';
+export type CountryCode = 'CO' | 'US' | 'MX' | 'AR' | 'CL' | 'PE' | 'EC' | 'PA' | 'UY' | 'BR' | 'ES' | 'OTRO';
+
+export interface RegisterRequest {
+  // Company info
+  nom_empresa: string;
+  identificacion_fiscal: string;
+  tipo_identificacion?: IdentificationType;
+  pais?: CountryCode;
+  ciudad?: string;
+  
+  // Contact info
+  nom_contacto_principal: string;
+  email_contacto_principal: string;
+  telefono_contacto?: string;
+  
+  // Account credentials
+  password: string;
+}
+
+// RegisterResponse is the same as TokenResponse (auto-login after registration)
+export type RegisterResponse = TokenResponse;

@@ -175,10 +175,10 @@ export default function LoginPage() {
           <div className="mt-6 text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{' '}
             <Link 
-              href="/#contact" 
+              href="/register" 
               className="text-synkro-green hover:underline font-medium"
             >
-              Contact us
+              Sign up
             </Link>
           </div>
         </CardContent>

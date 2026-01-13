@@ -8,8 +8,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { 
   LayoutDashboard, 
   LogIn, 
-  FileText, 
-  HelpCircle,
+  UserPlus,
   Mail,
   Facebook,
   Instagram,
@@ -21,8 +20,8 @@ import { isAuthenticated } from "@/utils/apiWrapper";
 
 const platformLinks = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, authRequired: true },
-  { title: "Login", href: "/login", icon: LogIn, authRequired: false },
-  { title: "Get Started", href: "#get-started", icon: FileText, authRequired: false },
+  { title: "Login", href: "/login", icon: LogIn, authRequired: false, hideWhenAuth: true },
+  { title: "Sign Up", href: "/register", icon: UserPlus, authRequired: false, hideWhenAuth: true },
 ];
 
 const productLinks = [
@@ -122,8 +121,8 @@ export function Footer() {
                     if (link.authRequired && !isLoggedIn) {
                       return null;
                     }
-                    // Hide login link if logged in
-                    if (link.title === "Login" && isLoggedIn) {
+                    // Hide login/signup links if logged in
+                    if (link.hideWhenAuth && isLoggedIn) {
                       return null;
                     }
                     const Icon = link.icon;
@@ -131,7 +130,6 @@ export function Footer() {
                       <li key={link.title}>
                         <Link
                           href={link.href}
-                          onClick={(e) => handleScrollLink(e, link.href)}
                           className="text-sm text-muted-foreground hover:text-synkro-green transition-colors inline-flex items-center gap-2"
                         >
                           <Icon className="h-4 w-4" />

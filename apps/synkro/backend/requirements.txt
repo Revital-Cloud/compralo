@@ -1,4 +1,5 @@
 annotated-types==0.7.0
+slowapi==0.1.9
 anyio==4.9.0
 argon2-cffi==23.1.0
 argon2-cffi-bindings==21.2.0

@@ -3,7 +3,7 @@ Servicio de autenticación unificado.
 
 Contiene la lógica de negocio para la autenticación de usuarios
 (admins de Synkro y clientes), incluyendo login, verificación de 
-credenciales y manejo de tokens.
+credenciales, registro público y manejo de tokens.
 """
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -11,7 +11,8 @@ from decimal import Decimal
 from typing import Optional, Union
 
 from core.jwt_utils import verify_password, get_password_hash, create_access_token, create_refresh_token, verify_token
-from schemas.auth_schema import LoginRequest, TokenResponse, UserInToken
+from schemas.auth_schema import LoginRequest, TokenResponse, UserInToken, RegisterRequest
+from schemas.cliente_schema import ClienteCreate
 from services import usuario_synkro_service, cliente_service
 
 
@@ -298,3 +299,93 @@ def change_password(db: Session, current_user: UserInToken, current_password: st
         cliente_service.update_password(db, user["identificacion_fiscal"], hashed_password, current_user.email)
     
     return True
+
+
+def register_user(db: Session, register_data: RegisterRequest) -> TokenResponse:
+    """
+    Registers a new client (public registration).
+    
+    Creates a new client account with 'trial' status.
+    The client can login immediately but needs to select a plan
+    before creating an e-commerce instance.
+    
+    Args:
+        db (Session): Database session
+        register_data (RegisterRequest): Registration data
+        
+    Returns:
+        TokenResponse: Access and refresh tokens (auto-login)
+        
+    Raises:
+        HTTPException: If email or tax ID already exists
+    """
+    # Check if email already exists (in clients)
+    existing_client_email = cliente_service.get_cliente_by_email(db, register_data.email_contacto_principal)
+    if existing_client_email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An account with this email already exists"
+        )
+    
+    # Check if email exists in admins (for security)
+    existing_admin = usuario_synkro_service.get_usuario_by_email(db, register_data.email_contacto_principal)
+    if existing_admin:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An account with this email already exists"
+        )
+    
+    # Check if tax ID already exists
+    existing_client_id = cliente_service.get_cliente(db, register_data.identificacion_fiscal)
+    if existing_client_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="An account with this tax ID already exists"
+        )
+    
+    # Hash the password
+    hashed_password = get_password_hash(register_data.password)
+    
+    # Create client data
+    cliente_data = ClienteCreate(
+        identificacion_fiscal=register_data.identificacion_fiscal,
+        tipo_identificacion=register_data.tipo_identificacion or "NIT",
+        nom_empresa=register_data.nom_empresa,
+        email_contacto=register_data.email_contacto_principal,  # Use same email for company contact
+        telefono_contacto=register_data.telefono_contacto,
+        direccion_empresa=None,
+        ciudad=register_data.ciudad,
+        pais=register_data.pais or "CO",
+        nom_contacto_principal=register_data.nom_contacto_principal,
+        email_contacto_principal=register_data.email_contacto_principal,
+        telefono_contacto_principal=register_data.telefono_contacto,
+        estado_cliente="trial",  # New registrations start as trial
+        notas_internas=None,
+        password_cliente=hashed_password,
+        ind_activo=True
+    )
+    
+    # Create the client
+    result = cliente_service.create_cliente(db, cliente_data, "self-registration")
+    
+    if not result or not result.get("success"):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.get("message", "Failed to create account") if result else "Failed to create account"
+        )
+    
+    # Generate tokens for auto-login
+    token_data = {
+        "sub": register_data.identificacion_fiscal,
+        "email": register_data.email_contacto_principal,
+        "user_type": "cliente"
+    }
+    
+    access_token = create_access_token(data=token_data)
+    refresh_token = create_refresh_token(data=token_data)
+    
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user_type="cliente"
+    )

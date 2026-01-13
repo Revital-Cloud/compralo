@@ -2,14 +2,15 @@
 Router de Autenticación.
 
 Define los endpoints de autenticación unificados para admins de Synkro y clientes.
-Incluye login, refresh token, logout, cambio de contraseña, etc.
+Incluye login, refresh token, logout, cambio de contraseña, registro público, etc.
 """
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 
 from core.database import get_db
 from core.dependencies import get_current_user
 from core.token_blacklist import add_token_to_blacklist, is_token_blacklisted
+from core.rate_limiter import limiter
 from schemas.auth_schema import (
     LoginRequest, 
     TokenResponse, 
@@ -18,7 +19,8 @@ from schemas.auth_schema import (
     ChangePasswordRequest,
     ResetPasswordRequest,
     ResetPasswordConfirm,
-    ResponseMessage
+    ResponseMessage,
+    RegisterRequest
 )
 from services import auth_service
 
@@ -43,6 +45,37 @@ def login(
         TokenResponse: Tokens de acceso y refresco, incluyendo el tipo de usuario
     """
     return auth_service.login_user(db, login_data)
+
+
+@router.post("/register", response_model=TokenResponse)
+@limiter.limit("5/minute")
+@limiter.limit("20/hour")
+def register(
+    request: Request,
+    register_data: RegisterRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Public registration endpoint for new clients.
+    
+    Creates a new client account with 'trial' status.
+    The client can login immediately but needs to select a plan
+    before creating an e-commerce instance.
+    
+    Rate limited to prevent abuse:
+    - 5 attempts per minute per IP
+    - 20 attempts per hour per IP
+    
+    - **nom_empresa**: Company name
+    - **identificacion_fiscal**: Tax ID (NIT, EIN, etc.)
+    - **nom_contacto_principal**: Primary contact name
+    - **email_contacto_principal**: Email for login
+    - **password**: Account password (min 8 characters)
+    
+    Returns:
+        TokenResponse: Access and refresh tokens (auto-login after registration)
+    """
+    return auth_service.register_user(db, register_data)
 
 
 @router.post("/refresh", response_model=TokenResponse)

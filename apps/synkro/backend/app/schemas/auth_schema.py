@@ -116,3 +116,77 @@ class ResponseMessage(BaseModel):
     """Schema para mensajes de respuesta genéricos."""
     message: str
     success: bool = True
+
+
+class RegisterRequest(BaseModel):
+    """
+    Schema for public user registration.
+    
+    Creates a new client with 'trial' status.
+    Required fields are minimal to reduce friction during signup.
+    """
+    # Company info
+    nom_empresa: str = Field(
+        ..., 
+        min_length=2,
+        max_length=200,
+        description="Company name"
+    )
+    identificacion_fiscal: str = Field(
+        ..., 
+        min_length=5,
+        max_length=20,
+        description="Tax ID (NIT, EIN, etc.)"
+    )
+    tipo_identificacion: Optional[Literal["NIT", "EIN", "RFC", "CUIT", "RUT", "NIF", "CIF", "CNPJ", "RUC", "OTRO"]] = Field(
+        "NIT",
+        description="Type of tax identification"
+    )
+    pais: Optional[Literal["CO", "US", "MX", "AR", "CL", "PE", "EC", "PA", "UY", "BR", "ES", "OTRO"]] = Field(
+        "CO",
+        description="Country code"
+    )
+    ciudad: Optional[str] = Field(
+        None,
+        max_length=100,
+        description="City"
+    )
+    
+    # Contact info
+    nom_contacto_principal: str = Field(
+        ..., 
+        min_length=2,
+        max_length=100,
+        description="Primary contact name"
+    )
+    email_contacto_principal: EmailStr = Field(
+        ..., 
+        description="Primary contact email (used for login)"
+    )
+    telefono_contacto: Optional[str] = Field(
+        None,
+        max_length=20,
+        description="Contact phone number"
+    )
+    
+    # Account credentials
+    password: str = Field(
+        ..., 
+        min_length=8,
+        description="Account password (minimum 8 characters)"
+    )
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "nom_empresa": "Mi Empresa SAS",
+                "identificacion_fiscal": "900123456-1",
+                "tipo_identificacion": "NIT",
+                "pais": "CO",
+                "ciudad": "Bogotá",
+                "nom_contacto_principal": "Juan Pérez",
+                "email_contacto_principal": "juan@miempresa.com",
+                "telefono_contacto": "+57 300 123 4567",
+                "password": "securePassword123"
+            }
+        }

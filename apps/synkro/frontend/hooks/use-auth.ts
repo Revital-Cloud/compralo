@@ -16,6 +16,7 @@ import type {
   ChangePasswordRequest,
   ResetPasswordRequest,
   ResetPasswordConfirm,
+  RegisterRequest,
 } from '@/types';
 
 // Keys para las queries (para cache management)
@@ -193,6 +194,35 @@ export function useConfirmPasswordReset() {
     },
     onError: (error: any) => {
       const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al restablecer contraseña';
+      toast.error(message);
+    },
+  });
+}
+
+/**
+ * Hook for user registration (public)
+ * Creates a new client account and auto-login
+ */
+export function useRegister() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: RegisterRequest) => authService.register(data),
+    onSuccess: async () => {
+      toast.success('Account created successfully! Welcome to Synkro.');
+      
+      // Fetch user data after registration
+      await queryClient.fetchQuery<UserInToken>({ 
+        queryKey: AUTH_KEYS.currentUser 
+      });
+      
+      // Redirect to dashboard
+      if (typeof window !== 'undefined') {
+        window.location.href = '/dashboard';
+      }
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Failed to create account';
       toast.error(message);
     },
   });
