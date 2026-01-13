@@ -676,15 +676,24 @@ CREATE TABLE tab_uso_recursos (
             ELSE (almacenamiento_actual_gb / max_almacenamiento_gb::DECIMAL * 100)
         END
     ) STORED,
-    -- Alertas
+    -- Alertas (calculadas directamente desde columnas base, no desde columnas generadas)
     ind_alerta_productos BOOLEAN GENERATED ALWAYS AS (
-        porcentaje_uso_productos IS NOT NULL AND porcentaje_uso_productos >= 80
+        CASE 
+            WHEN max_productos IS NULL OR max_productos = 0 THEN FALSE
+            ELSE (productos_actuales::DECIMAL / max_productos::DECIMAL * 100) >= 80
+        END
     ) STORED,
     ind_alerta_usuarios BOOLEAN GENERATED ALWAYS AS (
-        porcentaje_uso_usuarios IS NOT NULL AND porcentaje_uso_usuarios >= 80
+        CASE 
+            WHEN max_usuarios IS NULL OR max_usuarios = 0 THEN FALSE
+            ELSE (usuarios_actuales::DECIMAL / max_usuarios::DECIMAL * 100) >= 80
+        END
     ) STORED,
     ind_alerta_almacenamiento BOOLEAN GENERATED ALWAYS AS (
-        porcentaje_uso_almacenamiento IS NOT NULL AND porcentaje_uso_almacenamiento >= 80
+        CASE 
+            WHEN max_almacenamiento_gb IS NULL OR max_almacenamiento_gb = 0 THEN FALSE
+            ELSE (almacenamiento_actual_gb / max_almacenamiento_gb::DECIMAL * 100) >= 80
+        END
     ) STORED,
     usr_insert VARCHAR NOT NULL, -- Email o NIT del cliente que creó el registro
     fec_insert TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,

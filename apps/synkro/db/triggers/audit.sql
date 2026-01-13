@@ -43,7 +43,10 @@ FOR EACH ROW EXECUTE FUNCTION fun_audit_tablas();
 CREATE OR REPLACE TRIGGER tri_audit_suscripciones BEFORE INSERT OR UPDATE OR DELETE ON tab_suscripciones
 FOR EACH ROW EXECUTE FUNCTION fun_audit_tablas();
 
-CREATE OR REPLACE TRIGGER tri_audit_facturacion BEFORE INSERT OR UPDATE OR DELETE ON tab_facturacion
+CREATE OR REPLACE TRIGGER tri_audit_facturacion_cabecera BEFORE INSERT OR UPDATE OR DELETE ON tab_facturacion_cabecera
+FOR EACH ROW EXECUTE FUNCTION fun_audit_tablas();
+
+CREATE OR REPLACE TRIGGER tri_audit_facturacion_detalle BEFORE INSERT OR UPDATE OR DELETE ON tab_facturacion_detalle
 FOR EACH ROW EXECUTE FUNCTION fun_audit_tablas();
 
 CREATE OR REPLACE TRIGGER tri_audit_deployments BEFORE INSERT OR UPDATE OR DELETE ON tab_deployments

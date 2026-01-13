@@ -32,17 +32,17 @@ export type ClientStatus = 'prospecto' | 'activo' | 'suspendido' | 'cancelado' |
 
 export interface ClientBase {
   identificacion_fiscal: string;
-  tipo_identificacion?: TipoIdentificacion;
+  tipo_identificacion?: IdentificationType;
   nom_empresa: string;
   email_contacto: string;
   telefono_contacto?: string | null;
   direccion_empresa?: string | null;
   ciudad?: string | null;
-  pais?: Country;
+  pais?: Pais;
   nom_contacto_principal: string;
   email_contacto_principal: string;
   telefono_contacto_principal?: string | null;
-  estado_cliente?: EstadoCliente;
+  estado_cliente?: ClientStatus;
   notas_internas?: string | null;
 }
 
@@ -51,18 +51,18 @@ export interface ClientCreate extends ClientBase {
   ind_activo?: boolean;
 }
 
-export interface ClienteUpdate {
-  tipo_identificacion?: TipoIdentificacion;
+export interface ClientUpdate {
+  tipo_identificacion?: IdentificationType;
   nom_empresa?: string;
   email_contacto?: string;
   telefono_contacto?: string | null;
   direccion_empresa?: string | null;
   ciudad?: string | null;
-  pais?: Country;
+  pais?: Pais;
   nom_contacto_principal?: string;
   email_contacto_principal?: string;
   telefono_contacto_principal?: string | null;
-  estado_cliente?: EstadoCliente;
+  estado_cliente?: ClientStatus;
   notas_internas?: string | null;
   password_cliente?: string;
   ind_activo?: boolean;

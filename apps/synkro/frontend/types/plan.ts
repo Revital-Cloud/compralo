@@ -33,7 +33,7 @@ export interface PlanBase {
   max_usuarios?: number | null;
   max_almacenamiento_gb?: number | null;
   features_json?: Record<string, any> | null;
-  estado_plan?: PlanStatus;
+  estado_plan?: EstadoPlan;
 }
 
 export interface PlanCreate extends PlanBase {}
@@ -48,7 +48,7 @@ export interface PlanUpdate {
   max_usuarios?: number | null;
   max_almacenamiento_gb?: number | null;
   features_json?: Record<string, any> | null;
-  estado_plan?: PlanStatus;
+  estado_plan?: EstadoPlan;
 }
 
 export interface PlanPublic {
