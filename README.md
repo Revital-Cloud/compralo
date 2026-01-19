@@ -12,40 +12,97 @@ Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a
 
 ### ✅ Funcionalidades Implementadas
 
-#### Backend (FastAPI)
-- **Autenticación JWT** completa con roles (Admin, Employee, Customer)
-- **Gestión de productos** con filtros avanzados y búsqueda
-- **Sistema de carrito** con persistencia y cálculos automáticos
-- **Gestión de órdenes** y pagos integrados
-- **Sistema de categorías** jerárquico (Categorías → Líneas → Sublíneas)
-- **Gestión de marcas y proveedores**
-- **Sistema de descuentos** y puntos de fidelidad
-- **Gestión de usuarios** con perfiles completos
-- **Sistema de direcciones** para envíos
-- **Integración con Wompi** para pagos
-- **Sistema de emails** con Resend
-- **API de inventario** y movimientos de stock
-- **Middleware de autenticación** y autorización por roles
+#### 🛍️ synkro_ecommerce (Aplicación E-Commerce por Instancia)
 
-#### Frontend (Next.js 15)
-- **Interfaz de tienda** completa con catálogo de productos
-- **Sistema de filtros** avanzado con búsqueda en tiempo real
-- **Carrito de compras** funcional con persistencia
-- **Dashboard administrativo** para gestión de productos
-- **Sistema de autenticación** con login/registro
-- **Gestión de categorías, líneas y sublíneas**
-- **Gestión de marcas y proveedores**
-- **Sistema de favoritos** para usuarios
-- **Interfaz responsive** con modo oscuro
-- **Sistema de cookies** con compliance GDPR
-- **Estados vacíos** mejorados con ilustraciones
-- **Integración completa** con backend API
+**Backend (FastAPI)**:
+- ✅ **Autenticación JWT** completa con roles (Admin, Employee, Customer)
+- ✅ **Gestión de productos** con filtros avanzados y búsqueda (24+ endpoints)
+- ✅ **Sistema de carrito** con persistencia y cálculos automáticos
+- ✅ **Gestión de órdenes** y pagos integrados
+- ✅ **Sistema de categorías** jerárquico (Categorías → Líneas → Sublíneas)
+- ✅ **Gestión de marcas y proveedores**
+- ✅ **Sistema de descuentos** y puntos de fidelidad
+- ✅ **Gestión de usuarios** con perfiles completos
+- ✅ **Sistema de direcciones** para envíos
+- ✅ **Integración con Wompi** para pagos
+- ✅ **Sistema de emails** con Resend (templates HTML)
+- ✅ **API de inventario** y movimientos de stock
+- ✅ **Middleware de autenticación** y autorización por roles
+- ✅ **Analytics y dashboards** con KPIs
+
+**Frontend (Next.js 15)**:
+- ✅ **Interfaz de tienda** completa con catálogo de productos
+- ✅ **Sistema de filtros** avanzado con búsqueda en tiempo real
+- ✅ **Carrito de compras** funcional con persistencia
+- ✅ **Dashboard administrativo** para gestión de productos
+- ✅ **Sistema de autenticación** con login/registro
+- ✅ **Gestión de categorías, líneas y sublíneas**
+- ✅ **Gestión de marcas y proveedores**
+- ✅ **Sistema de favoritos** para usuarios
+- ✅ **Interfaz responsive** con modo oscuro
+- ✅ **Sistema de cookies** con compliance GDPR
+- ✅ **Estados vacíos** mejorados con ilustraciones
+- ✅ **Integración completa** con backend API
+
+**Base de Datos**:
+- ✅ Esquema completo con 30+ tablas
+- ✅ Funciones almacenadas por módulo
+- ✅ Triggers automáticos
+- ✅ Vistas materializadas para analytics
+
+#### 🎛️ synkro_panel (Panel de Control SaaS)
+
+**Backend (FastAPI)**:
+- ✅ **Autenticación JWT** para usuarios SaaS
+- ✅ **Gestión de instancias** (crear, configurar, monitorear)
+- ✅ **Gestión de clientes** (empresas que contratan Synkro)
+- ✅ **Gestión de planes** de suscripción (Starter, Business, Enterprise)
+- ✅ **Gestión de suscripciones** activas
+- ✅ **Sistema de facturación** y pagos recurrentes
+- ✅ **Gestión de deployments** (configuración de infraestructura)
+- ✅ **Gestión de dominios** personalizados
+- ✅ **Monitoreo de uso de recursos** por instancia
+- ✅ **Historial de planes** (cambios de plan)
+- ✅ **Rate limiting** y seguridad
+
+**Frontend (Next.js 15)**:
+- ✅ **Landing page** de marketing con secciones:
+  - Hero section con CTA
+  - Sección de características
+  - Comparación de planes
+  - FAQ
+  - Contacto
+- ✅ **Panel de control** para clientes SaaS:
+  - Dashboard con overview de instancia
+  - Gestión de suscripción y plan
+  - Facturación y pagos
+  - Configuración de dominio
+  - Monitoreo de recursos
+  - Configuración de cuenta y seguridad
+- ✅ **Sistema de autenticación** (login/registro)
+- ✅ **Interfaz responsive** con modo oscuro
+- ✅ **Componentes UI** con shadcn/ui
+
+**Base de Datos**:
+- ✅ Esquema completo para gestión SaaS
+- ✅ Funciones almacenadas por módulo
+- ✅ Triggers de auditoría
 
 ### 🚧 En Desarrollo
-- **Proceso de checkout** completo
-- **Gestión de órdenes** del lado del usuario
-- **Dashboard de analytics** avanzado
-- **Sistema de notificaciones**
+
+#### synkro_ecommerce:
+- ⏳ **Proceso de checkout** completo (parcialmente implementado)
+- ⏳ **Gestión de órdenes** del lado del usuario (historial completo)
+- ⏳ **Dashboard de analytics** avanzado con más métricas
+- ⏳ **Sistema de notificaciones** en tiempo real
+- ⏳ **Sistema de reviews** y comentarios de productos
+
+#### synkro_panel:
+- ⏳ **Panel administrativo** completo para Synkro (gestión de todas las instancias)
+- ⏳ **Automatización de deployments** (integración con Docker/CI-CD)
+- ⏳ **Sistema de alertas** por uso de recursos
+- ⏳ **Integración con pasarelas de pago** para facturación automática
+- ⏳ **Dashboard de analytics** de la plataforma SaaS completa
 
 ## 🏢 Modelo de Negocio SaaS
 
@@ -93,48 +150,200 @@ Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a
 
 ```
 synkro/                          # Repositorio GitHub (solo código fuente)
-├── synkro_ecommerce/            # Aplicación de e-commerce por instancia SaaS
-│   ├── backend/                 # FastAPI (API e-commerce)
-│   │   ├── app/                 # Código de la aplicación
-│   │   │   ├── core/            # Configuración
-│   │   │   ├── models/          # Modelos SQLAlchemy
-│   │   │   ├── routers/         # Endpoints API
+├── synkro_ecommerce/            # 🛍️ APLICACIÓN E-COMMERCE (por instancia cliente)
+│   ├── backend/                 # FastAPI - API REST de e-commerce
+│   │   ├── app/
+│   │   │   ├── core/            # Configuración (DB, JWT, dependencias)
+│   │   │   ├── middlewares/     # Auth, roles, seguridad
+│   │   │   ├── routers/         # 24+ endpoints (productos, carrito, órdenes, pagos, etc.)
 │   │   │   ├── schemas/         # Validación Pydantic
 │   │   │   ├── services/        # Lógica de negocio
-│   │   │   └── main.py          # Punto de entrada
+│   │   │   ├── templates/       # Templates de emails (Resend)
+│   │   │   └── main.py          # Punto de entrada FastAPI
 │   │   ├── requirements.txt
 │   │   └── README.md
-│   ├── frontend/                # Next.js (tienda de cliente)
-│   │   ├── app/                 # App Router (Next.js 15+)
-│   │   ├── components/          # Componentes reutilizables
-│   │   │   └── ui/              # Componentes UI (shadcn/ui)
-│   │   ├── lib/                 # Utilidades y configuración
+│   ├── frontend/                # Next.js 15 - Tienda del cliente
+│   │   ├── app/
+│   │   │   ├── (auth)/          # Login, registro, recuperación contraseña
+│   │   │   ├── (shop)/          # Catálogo, productos, carrito, checkout
+│   │   │   └── (dashboard)/     # Panel admin (productos, órdenes, analytics)
+│   │   ├── components/          # Componentes React reutilizables
+│   │   │   └── ui/              # Componentes shadcn/ui
+│   │   ├── hooks/               # Custom hooks React
+│   │   ├── services/            # Servicios API (productos, carrito, etc.)
+│   │   ├── stores/              # Estado global (Zustand)
+│   │   ├── types/               # Tipos TypeScript
+│   │   ├── utils/               # Utilidades (API wrapper, helpers)
+│   │   ├── lib/                 # Configuración (theme, menu, footer)
+│   │   ├── providers/           # Providers (auth, query, theme)
 │   │   ├── public/              # Assets estáticos
 │   │   ├── package.json
 │   │   └── README.md
-│   └── db/                      # Scripts y esquemas de base de datos
-├── synkro_panel/                # Landing + panel de control SaaS
-│   ├── backend/                 # API gestión de instancias
-│   │   ├── app/                 # Código de la aplicación
+│   └── db/                      # Base de datos PostgreSQL
+│       ├── db_synkro.sql        # Esquema completo
+│       ├── Functions/           # Funciones almacenadas por tabla
+│       ├── triggers/            # Triggers de BD
+│       └── views/               # Vistas materializadas
+│
+├── synkro_panel/                # 🎛️ PANEL DE CONTROL SAAS (gestión de instancias)
+│   ├── backend/                 # FastAPI - API gestión SaaS
+│   │   ├── app/
+│   │   │   ├── core/            # Configuración (DB, JWT, rate limiting)
+│   │   │   ├── middlewares/     # Auth, roles, seguridad
+│   │   │   ├── routers/         # Endpoints SaaS (instancias, clientes, planes, facturación)
+│   │   │   ├── schemas/         # Validación Pydantic
+│   │   │   ├── services/        # Lógica de negocio SaaS
+│   │   │   └── main.py          # Punto de entrada FastAPI
 │   │   ├── requirements.txt
 │   │   └── README.md
-│   ├── frontend/                # Landing / panel SaaS
-│   │   ├── app/                 # App Router
-│   │   ├── components/          # Componentes
-│   │   │   └── ui/              # Componentes UI (shadcn/ui)
+│   ├── frontend/                # Next.js 15 - Landing + Panel SaaS
+│   │   ├── app/
+│   │   │   ├── page.tsx         # Landing page (marketing)
+│   │   │   ├── login/           # Login para clientes SaaS
+│   │   │   ├── register/        # Registro de nuevos clientes
+│   │   │   └── (dashboard)/     # Panel de control SaaS
+│   │   │       ├── dashboard/   # Overview de instancias
+│   │   │       ├── instance/    # Gestión de instancias
+│   │   │       ├── subscription/# Gestión de suscripciones
+│   │   │       ├── billing/     # Facturación y pagos
+│   │   │       ├── resources/   # Uso de recursos
+│   │   │       └── settings/    # Configuración de cuenta
+│   │   ├── components/
+│   │   │   ├── ui/              # Componentes shadcn/ui
+│   │   │   ├── dashboard/       # Componentes del dashboard
+│   │   │   ├── layout/          # Layout components (sidebar, header)
+│   │   │   └── auth/            # Componentes de autenticación
+│   │   ├── hooks/               # Custom hooks React
+│   │   ├── services/            # Servicios API (instancias, clientes, etc.)
+│   │   ├── types/               # Tipos TypeScript
+│   │   ├── utils/               # Utilidades
+│   │   ├── providers/           # Providers (query)
+│   │   ├── public/              # Assets estáticos (logos, imágenes)
 │   │   ├── package.json
 │   │   └── README.md
-│   └── db/                      # Scripts y esquemas de base de datos
+│   └── db/                      # Base de datos PostgreSQL SaaS
+│       ├── db_synkrosaas.sql    # Esquema completo
+│       ├── Functions/            # Funciones almacenadas por tabla
+│       └── triggers/            # Triggers de BD
+│
 ├── docs/                         # Documentación del proyecto
-├── package.json                  # Root package.json (solo utilidades)
 └── README.md                     # Este archivo
 ```
+
+### 🎯 Explicación de Cada Aplicación
+
+#### 🛍️ **synkro_ecommerce** - Aplicación de E-Commerce (por Instancia Cliente)
+
+**Propósito**: Esta es la aplicación que se despliega **una vez por cada cliente SaaS**. Cada cliente tiene su propia instancia completa e independiente.
+
+**Backend (`synkro_ecommerce/backend`)**:
+- **FastAPI** con 24+ routers que manejan toda la lógica de e-commerce
+- **Funcionalidades principales**:
+  - Autenticación JWT (Admin, Employee, Customer)
+  - Gestión de productos, categorías, líneas, sublíneas
+  - Sistema de carrito y órdenes
+  - Integración con Wompi para pagos
+  - Sistema de puntos y descuentos
+  - Gestión de inventario y movimientos de stock
+  - Emails transaccionales con Resend
+  - Analytics y dashboards
+- **Base de datos**: PostgreSQL dedicada por cliente (`db_synkro.sql`)
+
+**Frontend (`synkro_ecommerce/frontend`)**:
+- **Next.js 15** con App Router
+- **Interfaz de tienda** completa para clientes finales:
+  - Catálogo de productos con filtros avanzados
+  - Carrito de compras con persistencia
+  - Proceso de checkout
+  - Perfil de usuario y órdenes
+  - Sistema de favoritos
+- **Dashboard administrativo** para gestionar:
+  - Productos, categorías, marcas, proveedores
+  - Órdenes y pagos
+  - Usuarios y roles
+  - Analytics y KPIs
+
+**Cuándo se usa**: Cada vez que un cliente SaaS necesita su propia tienda online. Se despliega como una instancia completamente aislada con su propia BD y configuración.
+
+---
+
+#### 🎛️ **synkro_panel** - Panel de Control SaaS (Gestión Centralizada)
+
+**Propósito**: Esta es la aplicación que permite a **Synkro (la empresa)** gestionar todas las instancias de clientes, suscripciones, facturación y el proceso de onboarding de nuevos clientes.
+
+**Backend (`synkro_panel/backend`)**:
+- **FastAPI** para gestión SaaS centralizada
+- **Funcionalidades principales**:
+  - Gestión de **instancias** de clientes (crear, configurar, monitorear)
+  - Gestión de **clientes** (empresas que contratan Synkro)
+  - Gestión de **planes** de suscripción (Starter, Business, Enterprise)
+  - Gestión de **suscripciones** activas
+  - **Facturación** y pagos recurrentes
+  - **Deployments** (configuración de infraestructura por cliente)
+  - **Dominios** personalizados por cliente
+  - **Uso de recursos** (monitoreo de consumo)
+  - **Historial de planes** (cambios de plan)
+- **Base de datos**: PostgreSQL centralizada (`db_synkrosaas.sql`) que almacena metadatos de todas las instancias
+
+**Frontend (`synkro_panel/frontend`)**:
+- **Next.js 15** con App Router
+- **Landing page** de marketing para atraer nuevos clientes
+- **Panel de control** para clientes SaaS que incluye:
+  - Dashboard con overview de su instancia
+  - Gestión de su suscripción y plan
+  - Facturación y pagos
+  - Configuración de dominio personalizado
+  - Monitoreo de uso de recursos
+  - Configuración de cuenta y seguridad
+- **Panel administrativo** (futuro) para que Synkro gestione todas las instancias
+
+**Cuándo se usa**: 
+- **Landing page**: Para marketing y captación de nuevos clientes
+- **Panel de cliente**: Cuando un cliente SaaS necesita gestionar su instancia, cambiar de plan, ver facturación, etc.
+- **Panel admin**: Para que Synkro gestione todas las instancias de forma centralizada
+
+---
+
+### 🔄 Relación entre las Aplicaciones
+
+```
+┌───────────────────────────────────────────────────────────┐
+│                    synkro_panel                           │
+│  (Gestión SaaS - Una sola instancia para Synkro)          │
+│                                                           │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
+│  │  Cliente A   │  │  Cliente B   │  │  Cliente C   │     │
+│  │  Plan: Pro   │  │  Plan: Basic │  │  Plan: Pro   │     │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘     │
+└─────────┼─────────────────┼─────────────────┼─────────────┘
+          │                 │                 │
+          ▼                 ▼                 ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│ synkro_ecommerce│ │ synkro_ecommerce│ │ synkro_ecommerce│
+│  (Instancia A)  │ │  (Instancia B)  │ │  (Instancia C)  │
+│                 │ │                 │ │                 │
+│ • BD propia     │ │ • BD propia     │ │ • BD propia     │
+│ • Dominio:      │ │ • Dominio:      │ │ • Dominio:      │
+│   tienda-a.com  │ │   tienda-b.com  │ │   tienda-c.com  │
+│ • Config única  │ │ • Config única  │ │ • Config única  │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
+```
+
+**Flujo típico**:
+1. Un cliente potencial visita la **landing page** (`synkro_panel`)
+2. Se registra y elige un plan en **synkro_panel**
+3. Se crea una nueva **instancia** en `synkro_panel/backend`
+4. Se despliega automáticamente una nueva instancia de **synkro_ecommerce** para ese cliente
+5. El cliente gestiona su tienda desde **synkro_ecommerce**
+6. El cliente gestiona su suscripción desde **synkro_panel**
+
+---
 
 > **Nota**: 
 > - Cada proyecto (`synkro_ecommerce` y `synkro_panel`) funciona de forma **independiente** sin necesidad de workspaces o monorepo tools.
 > - Los componentes UI están copiados localmente en cada `frontend/components/ui/` siguiendo el estándar de [shadcn/ui](https://ui.shadcn.com/).
 > - Cada frontend tiene su propio `package.json` y se gestiona independientemente.
-> - Este repositorio contiene solo el código fuente. La configuración de deployment (Docker, Traefik, etc.) se gestiona en un repositorio/ubicación separada.
+> - Este repositorio contiene solo el código fuente. La configuración de deployment (Docker, Traefik, etc.) se gestiona en `/srv/synkro/containers/`.
 
 ## 🚀 Inicio Rápido (Desarrollo)
 
@@ -143,17 +352,35 @@ synkro/                          # Repositorio GitHub (solo código fuente)
 - **Python 3.13+**
 - **Node.js 18+**
 - **PostgreSQL 15+**
+- **pnpm** (gestor de paquetes para frontends)
 - **Git**
 
 ### 1. Clonar el Repositorio
 
 ```bash
-# El repositorio contiene solo el código fuente (carpeta /code)
+# El repositorio contiene solo el código fuente
 git clone https://github.com/KevinBermudezC/synkro.git
 cd synkro
 ```
 
-### 2. Configurar Backend de E-commerce
+---
+
+## 🛍️ Configuración de synkro_ecommerce (E-Commerce)
+
+### 2.1. Configurar Base de Datos
+
+```bash
+# Crear base de datos PostgreSQL
+createdb synkro_ecommerce
+
+# Importar esquema
+psql synkro_ecommerce < synkro_ecommerce/db/db_synkro.sql
+
+# (Opcional) Importar funciones almacenadas
+# psql synkro_ecommerce < synkro_ecommerce/db/Functions/[archivo].sql
+```
+
+### 2.2. Configurar Backend
 
 ```bash
 cd synkro_ecommerce/backend
@@ -162,20 +389,24 @@ cd synkro_ecommerce/backend
 python -m venv venv
 
 # Activar entorno virtual
-# Windows
-.\venv\Scripts\activate
-# Linux/Mac
+# Linux/Mac:
 source venv/bin/activate
+# Windows:
+# .\venv\Scripts\activate
 
 # Instalar dependencias
 pip install -r requirements.txt
 
 # Configurar variables de entorno
 cp .env.example .env
-# Editar .env con tu configuración de BD
+# Editar .env con tu configuración de BD:
+# DATABASE_URL=postgresql://usuario:password@localhost:5432/synkro_ecommerce
+# JWT_SECRET=tu_secret_key_aqui
+# WOMPI_ACCESS_TOKEN=tu_token_wompi
+# RESEND_API_KEY=tu_key_resend
 ```
 
-### 3. Configurar Frontend de E-commerce
+### 2.3. Configurar Frontend
 
 ```bash
 cd ../frontend
@@ -185,29 +416,69 @@ pnpm install
 
 # Configurar variables de entorno
 cp .env.local.example .env.local
-# Editar .env.local con la URL de tu backend
+# Editar .env.local con:
+# NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-### 4. Configurar Backend de Synkro Panel
+### 2.4. Ejecutar synkro_ecommerce
 
 ```bash
-cd ../../synkro_panel/backend
+# Terminal 1 - Backend
+cd synkro_ecommerce/backend
+source venv/bin/activate  # Linux/Mac
+fastapi dev app/main.py
+
+# Terminal 2 - Frontend
+cd synkro_ecommerce/frontend
+pnpm dev
+```
+
+**URLs**:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:8000
+- API Docs: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+---
+
+## 🎛️ Configuración de synkro_panel (Panel SaaS)
+
+### 3.1. Configurar Base de Datos
+
+```bash
+# Crear base de datos PostgreSQL
+createdb synkro_saas
+
+# Importar esquema
+psql synkro_saas < synkro_panel/db/db_synkrosaas.sql
+
+# (Opcional) Importar funciones almacenadas
+# psql synkro_saas < synkro_panel/db/Functions/[archivo].sql
+```
+
+### 3.2. Configurar Backend
+
+```bash
+cd synkro_panel/backend
 
 # Crear entorno virtual
 python -m venv venv
 
 # Activar entorno virtual
 source venv/bin/activate  # Linux/Mac
-# o .\venv\Scripts\activate  # Windows
+# .\venv\Scripts\activate  # Windows
 
 # Instalar dependencias
 pip install -r requirements.txt
 
 # Configurar variables de entorno
 cp .env.example .env
+# Editar .env con tu configuración de BD:
+# DATABASE_URL=postgresql://usuario:password@localhost:5432/synkro_saas
+# JWT_SECRET=tu_secret_key_aqui
 ```
 
-### 5. Configurar Frontend de Synkro Panel
+### 3.3. Configurar Frontend
 
 ```bash
 cd ../frontend
@@ -217,51 +488,53 @@ pnpm install
 
 # Configurar variables de entorno
 cp .env.local.example .env.local
+# Editar .env.local con:
+# NEXT_PUBLIC_API_URL=http://localhost:8001
 ```
 
-### 6. Ejecutar en Desarrollo
-
-Cada proyecto se ejecuta de forma independiente:
+### 3.4. Ejecutar synkro_panel
 
 ```bash
-# Terminal 1 - Backend E-commerce
-cd synkro_ecommerce/backend
-source venv/bin/activate  # o .\venv\Scripts\activate en Windows
-fastapi dev app/main.py
-
-# Terminal 2 - Frontend E-commerce
-cd synkro_ecommerce/frontend
-pnpm dev
-
-# Terminal 3 - Backend Synkro Panel (opcional)
+# Terminal 3 - Backend
 cd synkro_panel/backend
 source venv/bin/activate
 fastapi dev app/main.py
 
-# Terminal 4 - Frontend Synkro Panel
+# Terminal 4 - Frontend
 cd synkro_panel/frontend
 pnpm dev
 ```
 
-- **Backend E-commerce**: http://localhost:8000
-- **Frontend E-commerce**: http://localhost:3000
-- **Backend Synkro Panel**: http://localhost:8001 (si está ejecutándose)
-- **Frontend Synkro Panel**: http://localhost:3001
-- **API Docs E-commerce**: http://localhost:8000/docs
-- **ReDoc E-commerce**: http://localhost:8000/redoc
+**URLs**:
+- Frontend (Landing + Panel): http://localhost:3001
+- Backend API: http://localhost:8001
+- API Docs: http://localhost:8001/docs
 
-### 5. Accesos por Defecto
+---
 
-#### Usuarios de Prueba
+## 👤 Accesos por Defecto
+
+### synkro_ecommerce (Usuarios de la tienda)
+
 - **Admin**: admin@synkro.com / admin123
 - **Employee**: empleado@synkro.com / empleado123
 - **Customer**: cliente@synkro.com / cliente123
 
-#### Funcionalidades Disponibles
-- **Tienda**: Navegación completa de productos con filtros
-- **Carrito**: Agregar/eliminar productos, persistencia
-- **Admin**: Gestión completa de productos, categorías, marcas
-- **Autenticación**: Login/registro con JWT
+### synkro_panel (Usuarios del panel SaaS)
+
+- **Cliente SaaS**: (crear desde el registro en la landing page)
+- **Admin Synkro**: (configurar según necesidad)
+
+---
+
+## 📝 Notas de Desarrollo
+
+- Cada aplicación funciona **independientemente** y puede ejecutarse por separado
+- Los frontends usan **pnpm** como gestor de paquetes
+- Los backends usan **FastAPI** con hot-reload en modo desarrollo
+- Las bases de datos son **completamente separadas** (una para e-commerce, otra para SaaS)
+- Para desarrollo local, puedes ejecutar solo `synkro_ecommerce` si solo trabajas en la tienda
+- Para desarrollo local, puedes ejecutar solo `synkro_panel` si solo trabajas en el panel SaaS
 
 ## 🏗️ Deployment de Instancias de Cliente
 
