@@ -1,4 +1,5 @@
 annotated-types==0.7.0
+slowapi==0.1.9
 anyio==4.9.0
 argon2-cffi==23.1.0
 argon2-cffi-bindings==21.2.0
@@ -53,6 +54,6 @@ typing-inspection==0.4.0
 typing_extensions==4.13.2
 urllib3==2.4.0
 uvicorn==0.34.2
+uvloop==0.22.1
 watchfiles==1.0.5
 websockets==15.0.1
-

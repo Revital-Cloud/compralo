@@ -3,6 +3,7 @@
  */
 CREATE OR REPLACE FUNCTION fun_update_suscripcion(
     p_id_suscripcion tab_suscripciones.id_suscripcion%TYPE,
+    p_usr_update tab_suscripciones.usr_update%TYPE,
     p_id_plan tab_suscripciones.id_plan%TYPE DEFAULT NULL,
     p_id_instancia tab_suscripciones.id_instancia%TYPE DEFAULT NULL,
     p_tipo_facturacion tab_suscripciones.tipo_facturacion%TYPE DEFAULT NULL,
@@ -12,8 +13,7 @@ CREATE OR REPLACE FUNCTION fun_update_suscripcion(
     p_estado_suscripcion tab_suscripciones.estado_suscripcion%TYPE DEFAULT NULL,
     p_metodo_pago tab_suscripciones.metodo_pago%TYPE DEFAULT NULL,
     p_fecha_cancelacion tab_suscripciones.fecha_cancelacion%TYPE DEFAULT NULL,
-    p_motivo_cancelacion tab_suscripciones.motivo_cancelacion%TYPE DEFAULT NULL,
-    p_usr_update tab_suscripciones.usr_update%TYPE
+    p_motivo_cancelacion tab_suscripciones.motivo_cancelacion%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 BEGIN

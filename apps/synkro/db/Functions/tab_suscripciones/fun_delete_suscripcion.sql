@@ -18,7 +18,7 @@ BEGIN
 
     -- Verificar facturas pendientes
     SELECT COUNT(*) INTO v_facturas_pendientes
-    FROM tab_facturacion
+    FROM tab_facturacion_cabecera
     WHERE id_suscripcion = p_id_suscripcion AND estado_pago = 'pendiente';
 
     IF v_facturas_pendientes > 0 THEN

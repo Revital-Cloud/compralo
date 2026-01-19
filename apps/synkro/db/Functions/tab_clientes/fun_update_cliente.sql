@@ -18,15 +18,18 @@
  *   - p_estado_cliente: Estado del cliente (opcional)
  *   - p_fecha_ultimo_acceso: Fecha de último acceso (opcional)
  *   - p_notas_internas: Notas internas (opcional)
+ *   - p_password_cliente: Hash de la contraseña nueva (opcional, solo si se quiere cambiar)
+ *   - p_ind_activo: Si el cliente puede acceder al panel (opcional)
  *   - p_usr_update: Usuario que actualiza el registro (obligatorio)
  * 
  * RETORNA: JSON con resultado de la operación
  * 
  * AUTOR: Sistema DB_Synkro SaaS
- * FECHA: 2026
+ * FECHA: Enero 2026
  */
 CREATE OR REPLACE FUNCTION fun_update_cliente(
     p_identificacion_fiscal tab_clientes.identificacion_fiscal%TYPE,
+    p_usr_update tab_clientes.usr_update%TYPE,
     p_tipo_identificacion tab_clientes.tipo_identificacion%TYPE DEFAULT NULL,
     p_nom_empresa tab_clientes.nom_empresa%TYPE DEFAULT NULL,
     p_email_contacto tab_clientes.email_contacto%TYPE DEFAULT NULL,
@@ -40,11 +43,14 @@ CREATE OR REPLACE FUNCTION fun_update_cliente(
     p_estado_cliente tab_clientes.estado_cliente%TYPE DEFAULT NULL,
     p_fecha_ultimo_acceso tab_clientes.fecha_ultimo_acceso%TYPE DEFAULT NULL,
     p_notas_internas tab_clientes.notas_internas%TYPE DEFAULT NULL,
-    p_usr_update tab_clientes.usr_update%TYPE
+    p_password_cliente tab_clientes.password_cliente%TYPE DEFAULT NULL,
+    p_ind_activo tab_clientes.ind_activo%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 DECLARE
     v_cliente_existe INTEGER;
+    v_email_existe INTEGER;
+    v_email_actual VARCHAR;
 BEGIN
     -- Validación: Identificación fiscal
     IF p_identificacion_fiscal IS NULL OR TRIM(p_identificacion_fiscal) = '' THEN
@@ -62,16 +68,32 @@ BEGIN
         );
     END IF;
 
-    -- Validación: Verificar si el cliente existe
-    SELECT COUNT(*) INTO v_cliente_existe
+    -- Validación: Verificar si el cliente existe y obtener email actual
+    SELECT COUNT(*), email_contacto_principal INTO v_cliente_existe, v_email_actual
     FROM tab_clientes
-    WHERE identificacion_fiscal = p_identificacion_fiscal;
+    WHERE identificacion_fiscal = p_identificacion_fiscal
+    GROUP BY email_contacto_principal;
 
     IF v_cliente_existe = 0 THEN
         RETURN json_build_object(
             'success', false,
             'message', 'El cliente no existe'
         );
+    END IF;
+
+    -- Validación: Verificar unicidad de email si se está cambiando
+    IF p_email_contacto_principal IS NOT NULL AND p_email_contacto_principal != v_email_actual THEN
+        SELECT COUNT(*) INTO v_email_existe
+        FROM tab_clientes
+        WHERE email_contacto_principal = p_email_contacto_principal
+        AND identificacion_fiscal != p_identificacion_fiscal;
+
+        IF v_email_existe > 0 THEN
+            RETURN json_build_object(
+                'success', false,
+                'message', 'Ya existe otro cliente con este email de contacto principal'
+            );
+        END IF;
     END IF;
 
     -- Actualizar el cliente (solo los campos proporcionados)
@@ -90,6 +112,8 @@ BEGIN
         estado_cliente = COALESCE(p_estado_cliente, estado_cliente),
         fecha_ultimo_acceso = COALESCE(p_fecha_ultimo_acceso, fecha_ultimo_acceso),
         notas_internas = COALESCE(p_notas_internas, notas_internas),
+        password_cliente = COALESCE(p_password_cliente, password_cliente),
+        ind_activo = COALESCE(p_ind_activo, ind_activo),
         usr_update = p_usr_update,
         fec_update = CURRENT_TIMESTAMP
     WHERE identificacion_fiscal = p_identificacion_fiscal;

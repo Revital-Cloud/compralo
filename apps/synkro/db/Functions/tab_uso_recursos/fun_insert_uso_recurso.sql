@@ -7,14 +7,14 @@
 CREATE OR REPLACE FUNCTION fun_insert_uso_recurso(
     p_id_instancia tab_uso_recursos.id_instancia%TYPE,
     p_id_suscripcion tab_uso_recursos.id_suscripcion%TYPE,
+    p_usr_insert tab_uso_recursos.usr_insert%TYPE,
     p_fecha_medicion tab_uso_recursos.fecha_medicion%TYPE DEFAULT CURRENT_TIMESTAMP,
     p_productos_actuales tab_uso_recursos.productos_actuales%TYPE DEFAULT 0,
     p_usuarios_actuales tab_uso_recursos.usuarios_actuales%TYPE DEFAULT 0,
     p_almacenamiento_actual_gb tab_uso_recursos.almacenamiento_actual_gb%TYPE DEFAULT 0,
     p_max_productos tab_uso_recursos.max_productos%TYPE DEFAULT NULL,
     p_max_usuarios tab_uso_recursos.max_usuarios%TYPE DEFAULT NULL,
-    p_max_almacenamiento_gb tab_uso_recursos.max_almacenamiento_gb%TYPE DEFAULT NULL,
-    p_usr_insert tab_uso_recursos.usr_insert%TYPE
+    p_max_almacenamiento_gb tab_uso_recursos.max_almacenamiento_gb%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 DECLARE

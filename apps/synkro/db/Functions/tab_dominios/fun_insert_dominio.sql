@@ -4,12 +4,12 @@
 CREATE OR REPLACE FUNCTION fun_insert_dominio(
     p_id_instancia tab_dominios.id_instancia%TYPE,
     p_nom_dominio tab_dominios.nom_dominio%TYPE,
+    p_usr_insert tab_dominios.usr_insert%TYPE,
     p_tipo_dominio tab_dominios.tipo_dominio%TYPE DEFAULT 'subdominio',
     p_estado_dominio tab_dominios.estado_dominio%TYPE DEFAULT 'pendiente',
     p_ssl_habilitado tab_dominios.ssl_habilitado%TYPE DEFAULT FALSE,
     p_fecha_ssl_emision tab_dominios.fecha_ssl_emision%TYPE DEFAULT NULL,
-    p_fecha_ssl_vencimiento tab_dominios.fecha_ssl_vencimiento%TYPE DEFAULT NULL,
-    p_usr_insert tab_dominios.usr_insert%TYPE
+    p_fecha_ssl_vencimiento tab_dominios.fecha_ssl_vencimiento%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 DECLARE

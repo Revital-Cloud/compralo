@@ -6,15 +6,15 @@
 CREATE OR REPLACE FUNCTION fun_insert_suscripcion(
     p_identificacion_fiscal_cliente tab_suscripciones.identificacion_fiscal_cliente%TYPE,
     p_id_plan tab_suscripciones.id_plan%TYPE,
+    p_precio_actual tab_suscripciones.precio_actual%TYPE,
+    p_usr_insert tab_suscripciones.usr_insert%TYPE,
     p_id_instancia tab_suscripciones.id_instancia%TYPE DEFAULT NULL,
     p_tipo_facturacion tab_suscripciones.tipo_facturacion%TYPE DEFAULT 'mensual',
-    p_precio_actual tab_suscripciones.precio_actual%TYPE,
     p_fecha_inicio tab_suscripciones.fecha_inicio%TYPE DEFAULT CURRENT_TIMESTAMP,
     p_fecha_fin tab_suscripciones.fecha_fin%TYPE DEFAULT NULL,
     p_fecha_proximo_pago tab_suscripciones.fecha_proximo_pago%TYPE DEFAULT NULL,
     p_estado_suscripcion tab_suscripciones.estado_suscripcion%TYPE DEFAULT 'activa',
-    p_metodo_pago tab_suscripciones.metodo_pago%TYPE DEFAULT NULL,
-    p_usr_insert tab_suscripciones.usr_insert%TYPE
+    p_metodo_pago tab_suscripciones.metodo_pago%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 DECLARE

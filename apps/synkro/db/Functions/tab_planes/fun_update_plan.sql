@@ -24,6 +24,7 @@
  */
 CREATE OR REPLACE FUNCTION fun_update_plan(
     p_id_plan tab_planes.id_plan%TYPE,
+    p_usr_update tab_planes.usr_update%TYPE,
     p_nom_plan tab_planes.nom_plan%TYPE DEFAULT NULL,
     p_desc_plan tab_planes.desc_plan%TYPE DEFAULT NULL,
     p_precio_mensual tab_planes.precio_mensual%TYPE DEFAULT NULL,
@@ -33,8 +34,7 @@ CREATE OR REPLACE FUNCTION fun_update_plan(
     p_max_usuarios tab_planes.max_usuarios%TYPE DEFAULT NULL,
     p_max_almacenamiento_gb tab_planes.max_almacenamiento_gb%TYPE DEFAULT NULL,
     p_features_json tab_planes.features_json%TYPE DEFAULT NULL,
-    p_estado_plan tab_planes.estado_plan%TYPE DEFAULT NULL,
-    p_usr_update tab_planes.usr_update%TYPE
+    p_estado_plan tab_planes.estado_plan%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 DECLARE

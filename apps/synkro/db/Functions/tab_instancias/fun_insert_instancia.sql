@@ -30,19 +30,19 @@ CREATE OR REPLACE FUNCTION fun_insert_instancia(
     p_identificacion_fiscal_cliente tab_instancias.identificacion_fiscal_cliente%TYPE,
     p_nom_instancia tab_instancias.nom_instancia%TYPE,
     p_slug_instancia tab_instancias.slug_instancia%TYPE,
+    p_db_nombre tab_instancias.db_nombre%TYPE,
+    p_usr_insert tab_instancias.usr_insert%TYPE,
     p_subdominio tab_instancias.subdominio%TYPE DEFAULT NULL,
     p_dominio_personalizado tab_instancias.dominio_personalizado%TYPE DEFAULT NULL,
     p_estado_instancia tab_instancias.estado_instancia%TYPE DEFAULT 'creando',
     p_version_instancia tab_instancias.version_instancia%TYPE DEFAULT '1.0.0',
-    p_db_nombre tab_instancias.db_nombre%TYPE,
     p_db_host tab_instancias.db_host%TYPE DEFAULT NULL,
     p_db_puerto tab_instancias.db_puerto%TYPE DEFAULT 5432,
     p_db_usuario tab_instancias.db_usuario%TYPE DEFAULT NULL,
     p_backend_url tab_instancias.backend_url%TYPE DEFAULT NULL,
     p_frontend_url tab_instancias.frontend_url%TYPE DEFAULT NULL,
     p_region_deployment tab_instancias.region_deployment%TYPE DEFAULT 'us-east-1',
-    p_config_json tab_instancias.config_json%TYPE DEFAULT NULL,
-    p_usr_insert tab_instancias.usr_insert%TYPE
+    p_config_json tab_instancias.config_json%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 DECLARE

@@ -5,6 +5,7 @@
  */
 CREATE OR REPLACE FUNCTION fun_update_instancia(
     p_id_instancia tab_instancias.id_instancia%TYPE,
+    p_usr_update tab_instancias.usr_update%TYPE,
     p_nom_instancia tab_instancias.nom_instancia%TYPE DEFAULT NULL,
     p_subdominio tab_instancias.subdominio%TYPE DEFAULT NULL,
     p_dominio_personalizado tab_instancias.dominio_personalizado%TYPE DEFAULT NULL,
@@ -17,8 +18,7 @@ CREATE OR REPLACE FUNCTION fun_update_instancia(
     p_frontend_url tab_instancias.frontend_url%TYPE DEFAULT NULL,
     p_region_deployment tab_instancias.region_deployment%TYPE DEFAULT NULL,
     p_config_json tab_instancias.config_json%TYPE DEFAULT NULL,
-    p_fecha_ultimo_deploy tab_instancias.fecha_ultimo_deploy%TYPE DEFAULT NULL,
-    p_usr_update tab_instancias.usr_update%TYPE
+    p_fecha_ultimo_deploy tab_instancias.fecha_ultimo_deploy%TYPE DEFAULT NULL
 ) RETURNS JSON AS
 $$
 BEGIN

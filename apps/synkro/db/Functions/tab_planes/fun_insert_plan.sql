@@ -23,16 +23,16 @@
  */
 CREATE OR REPLACE FUNCTION fun_insert_plan(
     p_nom_plan tab_planes.nom_plan%TYPE,
-    p_desc_plan tab_planes.desc_plan%TYPE DEFAULT NULL,
     p_precio_mensual tab_planes.precio_mensual%TYPE,
+    p_usr_insert tab_planes.usr_insert%TYPE,
+    p_desc_plan tab_planes.desc_plan%TYPE DEFAULT NULL,
     p_precio_anual tab_planes.precio_anual%TYPE DEFAULT NULL,
     p_moneda tab_planes.moneda%TYPE DEFAULT 'USD',
     p_max_productos tab_planes.max_productos%TYPE DEFAULT NULL,
     p_max_usuarios tab_planes.max_usuarios%TYPE DEFAULT NULL,
     p_max_almacenamiento_gb tab_planes.max_almacenamiento_gb%TYPE DEFAULT NULL,
     p_features_json tab_planes.features_json%TYPE DEFAULT NULL,
-    p_estado_plan tab_planes.estado_plan%TYPE DEFAULT 'activo',
-    p_usr_insert tab_planes.usr_insert%TYPE
+    p_estado_plan tab_planes.estado_plan%TYPE DEFAULT 'activo'
 ) RETURNS JSON AS
 $$
 DECLARE

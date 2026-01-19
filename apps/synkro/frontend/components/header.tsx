@@ -3,14 +3,16 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogIn, LayoutDashboard, ArrowRight, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeSwitcherButton } from "@/components/ui/theme-switcher-button";
+import { useAuth } from "@/hooks/use-auth";
+import { isAuthenticated } from "@/utils/apiWrapper";
 
 const menuItems = [
   { name: "Features", href: "#features" },
-  { name: "Seguridad", href: "#security" },
+  { name: "Security", href: "#security" },
   { name: "Pricing", href: "#pricing" },
   { name: "FAQ", href: "#faq" },
 ];
@@ -23,7 +25,7 @@ const Logo = ({ className }: { className?: string }) => {
         "group flex items-center space-x-3 transition-all duration-300 hover:scale-105",
         className
       )}
-      aria-label="Synkro - Ir al inicio"
+      aria-label="Synkro - Go to home"
     >
       {/* Logo Image */}
       <div className="relative">
@@ -53,9 +55,10 @@ const Logo = ({ className }: { className?: string }) => {
 };
 
 export const Header = () => {
-  // Renamed HeroHeader to Header
   const [menuState, setMenuState] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const { user, isLoading } = useAuth();
+  const isLoggedIn = isAuthenticated() && !!user;
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -64,6 +67,7 @@ export const Header = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
   return (
     <header>
       <nav
@@ -74,7 +78,7 @@ export const Header = () => {
           className={cn(
             "mx-auto mt-2 max-w-6xl px-4 sm:px-6 transition-all duration-300 lg:px-12",
             isScrolled &&
-              "bg-background/50 max-w-4xl rounded-2xl border backdrop-blur-lg lg:px-5"
+              "bg-background/80 max-w-4xl rounded-2xl border backdrop-blur-lg lg:px-5"
           )}
         >
           <div className="relative flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-0 lg:py-4">
@@ -83,7 +87,7 @@ export const Header = () => {
 
               <button
                 onClick={() => setMenuState(!menuState)}
-                aria-label={menuState == true ? "Close Menu" : "Open Menu"}
+                aria-label={menuState ? "Close Menu" : "Open Menu"}
                 className="relative z-20 -m-2.5 -mr-4 block cursor-pointer p-2.5 lg:hidden"
               >
                 <Menu className="in-data-[state=active]:rotate-180 group-data-[state=active]:scale-0 group-data-[state=active]:opacity-0 m-auto size-6 duration-200" />
@@ -91,6 +95,7 @@ export const Header = () => {
               </button>
             </div>
 
+            {/* Desktop Navigation - Center */}
             <div className="absolute inset-0 m-auto hidden size-fit lg:block">
               <ul className="flex gap-8 text-sm">
                 {menuItems.map((item, index) => (
@@ -112,7 +117,9 @@ export const Header = () => {
               </ul>
             </div>
 
-            <div className="bg-background group-data-[state=active]:block lg:group-data-[state=active]:flex mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border p-6 shadow-2xl shadow-zinc-300/20 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none dark:shadow-none dark:lg:bg-transparent">
+            {/* Desktop & Mobile Menu */}
+            <div className="bg-background group-data-[state=active]:block lg:group-data-[state=active]:flex mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border p-6 shadow-2xl shadow-zinc-300/20 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-4 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none dark:shadow-none dark:lg:bg-transparent">
+              {/* Mobile Menu */}
               <div className="lg:hidden">
                 <ul className="space-y-6 text-base">
                   {menuItems.map((item, index) => (
@@ -133,36 +140,60 @@ export const Header = () => {
                     </li>
                   ))}
                   <li className="flex items-center">
-                    <span className="text-muted-foreground mr-2">Tema</span>
+                    <span className="text-muted-foreground mr-2">Theme</span>
                     <ThemeSwitcherButton />
                   </li>
                 </ul>
               </div>
-              <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit">
+
+              {/* Action Buttons */}
+              <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit lg:items-center">
                 <ThemeSwitcherButton className="hidden lg:flex" />
-                <Button
-                  asChild
-                  size="sm"
-                  className={cn(
-                    isScrolled ? "lg:inline-flex" : "hidden",
-                    "hidden lg:inline-flex bg-synkro-green hover:bg-synkro-green/90 text-synkro-black"
-                  )}
-                >
-                  <Link href="#contact">
-                    <span>Contáctanos</span>
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  size="sm"
-                  className={cn(
-                    "lg:hidden bg-synkro-green hover:bg-synkro-green/90 text-synkro-black"
-                  )}
-                >
-                  <Link href="#contact">
-                    <span>Contáctanos</span>
-                  </Link>
-                </Button>
+                
+                {isLoading ? (
+                  // Loading state
+                  <div className="h-9 w-24 animate-pulse rounded-md bg-muted" />
+                ) : isLoggedIn ? (
+                  // Authenticated user
+                  <Button
+                    asChild
+                    size="sm"
+                    className="bg-synkro-green hover:bg-synkro-green/90 text-synkro-black font-medium"
+                  >
+                    <Link href="/dashboard">
+                      <LayoutDashboard className="mr-2 h-4 w-4" />
+                      <span>Dashboard</span>
+                    </Link>
+                  </Button>
+                ) : (
+                  // Not authenticated
+                  <>
+                    {/* Login Button */}
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Link href="/login">
+                        <LogIn className="mr-2 h-4 w-4" />
+                        <span>Login</span>
+                      </Link>
+                    </Button>
+
+                    {/* Sign Up Button */}
+                    <Button
+                      asChild
+                      size="sm"
+                      className="bg-synkro-green hover:bg-synkro-green/90 text-synkro-black font-medium"
+                    >
+                      <Link href="/register">
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        <span>Sign Up</span>
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
