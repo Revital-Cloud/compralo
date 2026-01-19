@@ -27,6 +27,78 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
+@router.get("/wompi/financial-institutions")
+async def get_wompi_financial_institutions(
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """Obtiene la lista de instituciones financieras para PSE"""
+    try:
+        institutions = await wompi_service.get_financial_institutions()
+        return institutions
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener instituciones financieras: {str(e)}")
+
+@router.post("/wompi/create-transaction")
+async def create_wompi_transaction(
+    payload: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Crea una transacción en Wompi desde el checkout.
+    
+    Body esperado:
+    - amount: float (monto total)
+    - payment_method_type: str ("PSE", "CARD", etc.)
+    - payment_method_data: dict (datos específicos del método de pago)
+    - customer_data: dict (datos del cliente para PSE)
+    - redirect_url: str (URL de redirección después del pago)
+    """
+    try:
+        amount = float(payload.get("amount", 0))
+        payment_method_type = payload.get("payment_method_type", "CARD")
+        payment_method_data = payload.get("payment_method_data")
+        customer_data = payload.get("customer_data")
+        redirect_url = payload.get("redirect_url")
+        
+        if amount <= 0:
+            raise HTTPException(status_code=400, detail="El monto debe ser mayor a 0")
+        
+        amount_in_cents = int(amount * 100)
+        
+        # Construir redirect_url si no se proporciona
+        if not redirect_url:
+            from core.config import settings
+            redirect_url = f"{settings.FRONTEND_URL}/checkout/payment-result"
+        
+        transaction_response = await wompi_service.create_transaction(
+            amount_in_cents=amount_in_cents,
+            customer_email=current_user.email_usuario,
+            payment_method_type=payment_method_type,
+            payment_method_data=payment_method_data,
+            customer_data=customer_data,
+            redirect_url=redirect_url
+        )
+        
+        return transaction_response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al crear transacción: {str(e)}")
+
+@router.get("/wompi/transaction/{transaction_id}")
+async def get_wompi_transaction(
+    transaction_id: str,
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """Obtiene el estado de una transacción de Wompi"""
+    try:
+        transaction = await wompi_service.get_transaction(transaction_id)
+        return transaction
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener transacción: {str(e)}")
+
 @router.get("/orders", response_model=List[Order])
 async def get_orders(
     db:Session = Depends(get_db),

@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@repo/ui"
 import { ThemeProvider } from "@/providers/theme-provider"
 import { AuthProvider } from "@/providers/auth-provider"
+import QueryProvider from "@/providers/query-provider"
 import { cn } from "@/lib/utils";
 import { RefreshTokenProvider } from "@/components/providers/refresh-token-provider";
 
@@ -43,19 +44,21 @@ export default function RootLayout({
         )}
         suppressHydrationWarning={true}
       >
-        <AuthProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <RefreshTokenProvider>
-              {children}
-              <Toaster richColors />
-            </RefreshTokenProvider>
-          </ThemeProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <RefreshTokenProvider>
+                {children}
+                <Toaster richColors />
+              </RefreshTokenProvider>
+            </ThemeProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

@@ -13,6 +13,10 @@ NEXT_PUBLIC_API_URL_LOCAL=http://localhost:8000/api
 
 # Configuración de Wompi (Pagos)
 NEXT_PUBLIC_WOMPI_PUBLIC_KEY=pub_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+NEXT_PUBLIC_WOMPI_INTEGRITY_SECRET=test_integrity_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Nota: El INTEGRITY_SECRET es diferente de la llave pública
+# Se obtiene desde el dashboard de Wompi en "Desarrolladores > Secretos para integración técnica"
 ```
 
 ### Variables Opcionales
