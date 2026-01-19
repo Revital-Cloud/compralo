@@ -246,34 +246,35 @@ frontend/
 
 ## 🚀 Instalación y Configuración
 
+### ⚙️ Gestor de Paquetes
+
+Este proyecto utiliza **pnpm** como gestor de paquetes exclusivo. La configuración está garantizada mediante:
+
+- `packageManager: "pnpm@10.28.0"` en `package.json`
+- Archivo `.npmrc` con configuración de pnpm
+- Scripts optimizados para pnpm
+
+**No uses `npm` o `yarn`** - El proyecto está configurado para usar pnpm automáticamente.
+
 ### Prerrequisitos
 ```bash
 # Versiones requeridas
 Node.js 18+
-pnpm 10+ (gestor de paquetes del monorepo)
+pnpm 10.28.0 (gestor de paquetes requerido)
 Git
 ```
 
 ### 1. Preparar Entorno
 
-**Desde el Monorepo (Recomendado):**
-
 ```bash
-# Desde la raíz del monorepo (code/)
-pnpm install          # Instala todas las dependencias del monorepo
+# Navegar al directorio del frontend
+cd synkro_ecommerce/frontend
 
-# Luego navega al frontend:
-cd apps/ecommerce/frontend
-```
-
-**Standalone (si es necesario):**
-
-```bash
-cd apps/ecommerce/frontend
-
-# Instalar dependencias
+# Instalar dependencias con pnpm
 pnpm install
 ```
+
+> **Nota:** Este proyecto usa `pnpm` como gestor de paquetes. Asegúrate de tener `pnpm@10.28.0` instalado. El archivo `.npmrc` y `packageManager` en `package.json` garantizan el uso correcto de pnpm.
 
 ### 2. Configurar Variables de Entorno
 ```bash
@@ -324,25 +325,17 @@ NEXT_PUBLIC_CUSTOM_DOMAIN=https://tienda.empresa-abc.com
 
 ### 3. Iniciar Desarrollo
 
-**Desde el Monorepo:**
-
 ```bash
-# Desde la raíz del monorepo (code/)
-pnpm dev              # Ejecuta todos los proyectos en paralelo
+# Desde el directorio del frontend
+cd synkro_ecommerce/frontend
 
-# O solo este proyecto:
-cd apps/ecommerce/frontend
-pnpm dev
-```
-
-**Standalone:**
-
-```bash
-cd apps/ecommerce/frontend
+# Iniciar servidor de desarrollo
 pnpm dev
 ```
 
 La aplicación estará disponible en: **http://localhost:3000**
+
+> **Nota:** El proyecto está configurado para usar `pnpm` automáticamente. Si intentas usar `npm` o `yarn`, recibirás una advertencia gracias a la configuración de `packageManager` en `package.json`.
 
 ## 🎨 Personalización por Cliente
 
@@ -819,21 +812,9 @@ module.exports = {
 
 ### Build para Producción
 
-**Desde el Monorepo:**
-
 ```bash
-# Desde la raíz del monorepo (code/)
-pnpm build            # Build de todos los proyectos
-
-# O solo este proyecto:
-cd apps/ecommerce/frontend
-pnpm build
-```
-
-**Standalone:**
-
-```bash
-cd apps/ecommerce/frontend
+# Desde el directorio del frontend
+cd synkro_ecommerce/frontend
 
 # Build optimizado para producción
 pnpm build
@@ -847,59 +828,6 @@ pnpm format
 
 # Iniciar servidor de producción
 pnpm start
-```
-
-### Docker para Cliente Específico
-```dockerfile
-# Dockerfile para instancia del cliente
-FROM node:18-alpine AS base
-
-# Install dependencies only when needed
-FROM base AS deps
-WORKDIR /app
-
-# Copy package files
-COPY package.json package-lock.json* ./
-RUN npm ci --only=production
-
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
-
-# Build with client-specific environment variables
-ARG NEXT_PUBLIC_CLIENT_NAME
-ARG NEXT_PUBLIC_BRAND_PRIMARY_COLOR
-ARG NEXT_PUBLIC_API_URL
-
-ENV NEXT_PUBLIC_CLIENT_NAME=$NEXT_PUBLIC_CLIENT_NAME
-ENV NEXT_PUBLIC_BRAND_PRIMARY_COLOR=$NEXT_PUBLIC_BRAND_PRIMARY_COLOR
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
-
-RUN npm run build
-
-# Production image
-FROM base AS runner
-WORKDIR /app
-
-ENV NODE_ENV production
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
-EXPOSE 3000
-
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-CMD ["node", "server.js"]
 ```
 
 ## 📚 Comandos Útiles

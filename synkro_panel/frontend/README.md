@@ -21,7 +21,7 @@ Frontend de Synkro que incluye:
 - **Styling**: Tailwind CSS 3
 - **Animations**: Framer Motion
 - **State Management**: React Query, Zustand
-- **Package Manager**: pnpm (monorepo)
+- **Package Manager**: pnpm 10.28.0 (requerido)
 
 ## 📁 Estructura del Proyecto
 
@@ -47,34 +47,35 @@ synkro_landing/
 
 ## 🚀 Inicio Rápido
 
-### Desde el Monorepo (Recomendado)
+### ⚙️ Gestor de Paquetes
+
+Este proyecto utiliza **pnpm** como gestor de paquetes exclusivo. La configuración está garantizada mediante:
+
+- `packageManager: "pnpm@10.28.0"` en `package.json`
+- Archivo `.npmrc` con configuración de pnpm
+- Scripts optimizados para pnpm
+
+**No uses `npm` o `yarn`** - El proyecto está configurado para usar pnpm automáticamente.
+
+### Instalación y Configuración
 
 ```bash
-# Desde la raíz del monorepo (code/)
-pnpm install          # Instala todas las dependencias
-pnpm dev             # Ejecuta todos los proyectos
+# Navegar al directorio del frontend
+cd synkro_panel/frontend
 
-# O solo este proyecto:
-cd apps/synkro/frontend
-pnpm dev
-```
-
-### Standalone (si es necesario)
-
-```bash
-cd apps/synkro/frontend
-
-# Instalar dependencias
+# Instalar dependencias con pnpm
 pnpm install
 
-# Configurar variables de entorno
-cp .env.local.example .env.local
+# Configurar variables de entorno (si existe el archivo de ejemplo)
+cp .env.local.example .env.local 2>/dev/null || echo "No .env.local.example found"
 
 # Ejecutar en desarrollo
 pnpm dev
 ```
 
-La aplicación estará disponible en: **http://localhost:3001** (puerto diferente al e-commerce)
+La aplicación estará disponible en: **http://localhost:3000**
+
+> **Nota:** Este proyecto usa `pnpm@10.28.0` como gestor de paquetes. El archivo `.npmrc` y `packageManager` en `package.json` garantizan el uso correcto de pnpm. Si intentas usar `npm` o `yarn`, recibirás una advertencia.
 
 ## 📝 Scripts Disponibles
 
