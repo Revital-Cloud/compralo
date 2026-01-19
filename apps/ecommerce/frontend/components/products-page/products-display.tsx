@@ -1,5 +1,4 @@
-import { Button } from "@repo/ui"
-import Loading from "@repo/ui"
+import { Button, Loading } from "@repo/ui"
 import { ProductGrid, ProductList } from "@/components/product"
 import { EmptyProductsState } from "@repo/ui"
 import { FilterSuggestions } from "@repo/ui"

@@ -79,13 +79,22 @@ class WompiService:
         self,
         amount_in_cents: int,
         customer_email: str,
-        payment_source_id: str,
-        reference: str
+        payment_source_id: str = None,
+        reference: str = None,
+        payment_method_type: str = "CARD",
+        payment_method_data: Dict[str, Any] = None,
+        customer_data: Dict[str, Any] = None,
+        redirect_url: str = None
     ) -> Dict[str, Any]:
         """
-        Crea una transacción (un cobro) utilizando una fuente de pago ya existente.
+        Crea una transacción en Wompi.
+        Soporta tanto pagos con tarjeta guardada como métodos nuevos (PSE, etc.)
         """
         currency = "COP"
+        if not reference:
+            import uuid
+            reference = f"tx-{uuid.uuid4()}"
+        
         signature = self._build_signature(reference, amount_in_cents, currency)
 
         endpoint = f"transactions"
@@ -93,18 +102,38 @@ class WompiService:
             "amount_in_cents": amount_in_cents,
             "currency": currency,
             "customer_email": customer_email,
-            # En pagos con fuente guardada, el payment_source_id va al nivel raíz
-            "payment_source_id": payment_source_id,
             "reference": reference,
             "signature": signature,
-            # Parámetros adicionales del método de pago
-            "payment_method": {
-                "type": "CARD",
-                "installments": 1,
-            },
         }
 
+        # Si hay payment_source_id, es un pago con tarjeta guardada
+        if payment_source_id:
+            payload["payment_source_id"] = payment_source_id
+            payload["payment_method"] = {
+                "type": "CARD",
+                "installments": 1,
+            }
+        else:
+            # Pago con método nuevo (PSE, etc.)
+            if payment_method_data:
+                payload["payment_method"] = payment_method_data
+            else:
+                payload["payment_method"] = {
+                    "type": payment_method_type,
+                }
+            
+            if customer_data:
+                payload["customer_data"] = customer_data
+
+        if redirect_url:
+            payload["redirect_url"] = redirect_url
+
         return await self._request("post", endpoint, data=payload)
+    
+    async def get_financial_institutions(self) -> Dict[str, Any]:
+        """Obtiene la lista de instituciones financieras para PSE"""
+        endpoint = "pse/financial_institutions"
+        return await self._request("get", endpoint)
 
     async def get_transaction(self, transaction_id: str) -> Dict[str, Any]:
         """Obtiene el detalle de una transacción por id."""

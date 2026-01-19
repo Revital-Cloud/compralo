@@ -49,6 +49,7 @@ import {
 } from "@repo/ui";
 import { useRouter } from "next/navigation";
 import { AuthModal } from "@/components/auth/auth-modal";
+import { WompiPaymentModal } from "@/components/payment/wompi-payment-modal";
 
 const cartTexts = {
   es: {
@@ -244,6 +245,7 @@ const CartPage = () => {
   const [isQuickPaymentOpen, setIsQuickPaymentOpen] = useState(false);
   const [isAddressSelectionOpen, setIsAddressSelectionOpen] = useState(false);
   const [isPaymentSelectionOpen, setIsPaymentSelectionOpen] = useState(false);
+  const [isWompiModalOpen, setIsWompiModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Derivados para saber si falta dirección o método de pago
@@ -258,6 +260,41 @@ const CartPage = () => {
   const getPayButtonMessage = () => {
     if (isPaying) return "Procesando…";
     return texts.checkout; // Siempre retorna "Pagar" a menos que esté procesando
+  };
+
+  const handleOpenPaymentModal = () => {
+    if (!hasItems()) {
+      toast.error("Tu carrito está vacío");
+      return;
+    }
+    if (!user?.id_usuario) {
+      setIsAuthDialogOpen(true);
+      return;
+    }
+    // Si faltan requisitos, abrir modal informativo y bloquear
+    if (isMissingAddress || isMissingPaymentMethod) {
+      setIsRequirementsDialogOpen(true);
+      return;
+    }
+    // Abrir modal de selección de método de pago Wompi
+    setIsWompiModalOpen(true);
+  };
+
+  const handleSelectPaymentMethod = (method: "card" | "pse" | "cash" | "credit") => {
+    // Cerrar el modal de Wompi
+    setIsWompiModalOpen(false);
+    
+    // Por ahora solo mostrar un mensaje, luego implementaremos la lógica de pago
+    toast.info(`Método de pago seleccionado: ${method}`);
+    
+    // TODO: Implementar la lógica de pago según el método seleccionado
+    // Por ahora, si es tarjeta, usar el flujo existente
+    if (method === "card") {
+      handleCheckout();
+    } else {
+      // Para otros métodos, mostrar mensaje de que está en desarrollo
+      toast.info("Esta opción de pago estará disponible pronto");
+    }
   };
 
   const handleCheckout = async (pmIdOverride?: number) => {
@@ -572,124 +609,6 @@ const CartPage = () => {
                       ))}
                   </div>
 
-                  {/* Información de dirección y método de pago */}
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                      Información de Envío y Pago
-                    </h3>
-                    
-                    {/* Dirección */}
-                    <div className="mb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Dirección de envío</p>
-                          {defaultAddress ? (
-                            <div className="flex items-start justify-between">
-                              <div className="text-sm text-gray-900 dark:text-white flex-1">
-                                <p className="font-medium">{defaultAddress.nombre_direccion}</p>
-                                <p className="text-gray-600 dark:text-gray-400">
-                                  {defaultAddress.calle_direccion}, {defaultAddress.ciudad}
-                                </p>
-                                <p className="text-gray-600 dark:text-gray-400">
-                                  {defaultAddress.departamento} - {defaultAddress.codigo_postal}
-                                </p>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedAddressId(defaultAddress?.id_direccion?.toString() ?? null);
-                                  setIsAddressSelectionOpen(true);
-                                }}
-                                className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
-                              >
-                                Cambiar
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <AlertCircle className="h-4 w-4 text-amber-500" />
-                                <p className="text-sm text-amber-600 dark:text-amber-400">
-                                  Falta agregar dirección
-                                </p>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  if (!isAuthenticated) {
-                                    setIsAuthDialogOpen(true);
-                                    return;
-                                  }
-                                  setIsQuickAddressOpen(true);
-                                }}
-                                className="text-xs h-8 w-20 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
-                              >
-                                Agregar
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Método de pago */}
-                    <div className="mb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Método de pago</p>
-                          {defaultPaymentMethod ? (
-                            <div className="flex items-start justify-between">
-                              <div className="text-sm text-gray-900 dark:text-white flex-1">
-                                <p className="font-medium">
-                                  {defaultPaymentMethod.brand?.toUpperCase() || "Tarjeta"} •••• {defaultPaymentMethod.last_four_digits}
-                                </p>
-                                <p className="text-gray-600 dark:text-gray-400">
-                                  {defaultPaymentMethod.card_holder}
-                                </p>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedPaymentMethodId(defaultPaymentMethod?.id_metodo_pago?.toString() ?? null);
-                                  setIsPaymentSelectionOpen(true);
-                                }}
-                                className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
-                              >
-                                Cambiar
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <AlertCircle className="h-4 w-4 text-amber-500" />
-                                <p className="text-sm text-amber-600 dark:text-amber-400">
-                                  Falta agregar método de pago
-                                </p>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  if (!isAuthenticated) {
-                                    setIsAuthDialogOpen(true);
-                                    return;
-                                  }
-                                  setIsQuickPaymentOpen(true);
-                                }}
-                                className="text-xs h-8 w-20 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
-                              >
-                                Agregar
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-400">
@@ -756,7 +675,7 @@ const CartPage = () => {
                         setIsAuthDialogOpen(true);
                         return;
                       }
-                      handleCheckout();
+                      router.push("/checkout");
                     }}
                   >
                     {pendingOrderId ? (
@@ -882,124 +801,6 @@ const CartPage = () => {
                     ))}
                 </div>
 
-                {/* Información de dirección y método de pago - Mobile */}
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
-                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
-                    Información de Envío y Pago
-                  </h3>
-                  
-                  {/* Dirección */}
-                  <div className="mb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Dirección de envío</p>
-                        {defaultAddress ? (
-                          <div className="flex items-start justify-between">
-                            <div className="text-sm text-gray-900 dark:text-white flex-1">
-                              <p className="font-medium">{defaultAddress.nombre_direccion}</p>
-                              <p className="text-gray-600 dark:text-gray-400">
-                                {defaultAddress.calle_direccion}, {defaultAddress.ciudad}
-                              </p>
-                              <p className="text-gray-600 dark:text-gray-400">
-                                {defaultAddress.departamento} - {defaultAddress.codigo_postal}
-                              </p>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedAddressId(defaultAddress?.id_direccion?.toString() ?? null);
-                                setIsAddressSelectionOpen(true);
-                              }}
-                              className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
-                            >
-                              Cambiar
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <AlertCircle className="h-4 w-4 text-amber-500" />
-                              <p className="text-sm text-amber-600 dark:text-amber-400">
-                                Falta agregar dirección
-                              </p>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                if (!isAuthenticated) {
-                                  setIsAuthDialogOpen(true);
-                                  return;
-                                }
-                                setIsQuickAddressOpen(true);
-                              }}
-                              className="text-xs h-8 w-20 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
-                            >
-                              Agregar
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Método de pago */}
-                  <div className="mb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Método de pago</p>
-                        {defaultPaymentMethod ? (
-                          <div className="flex items-start justify-between">
-                            <div className="text-sm text-gray-900 dark:text-white flex-1">
-                              <p className="font-medium">
-                                {defaultPaymentMethod.brand?.toUpperCase() || "Tarjeta"} •••• {defaultPaymentMethod.last_four_digits}
-                              </p>
-                              <p className="text-gray-600 dark:text-gray-400">
-                                {defaultPaymentMethod.card_holder}
-                              </p>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setSelectedPaymentMethodId(defaultPaymentMethod?.id_metodo_pago?.toString() ?? null);
-                                setIsPaymentSelectionOpen(true);
-                              }}
-                              className="text-xs h-6 px-2 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600 ml-2"
-                            >
-                              Cambiar
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <AlertCircle className="h-4 w-4 text-amber-500" />
-                              <p className="text-sm text-amber-600 dark:text-amber-400">
-                                Falta agregar método de pago
-                              </p>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                if (!isAuthenticated) {
-                                  setIsAuthDialogOpen(true);
-                                  return;
-                                }
-                                setIsQuickPaymentOpen(true);
-                              }}
-                              className="text-xs h-8 w-20 hover:bg-black/5 dark:hover:bg-white/10 hover:text-inherit border-gray-300 dark:border-gray-600"
-                            >
-                              Agregar
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">
@@ -1114,7 +915,7 @@ const CartPage = () => {
                     setIsAuthDialogOpen(true);
                     return;
                   }
-                  handleCheckout();
+                  router.push("/checkout");
                 }}
               >
                 {getPayButtonMessage()}
@@ -1476,6 +1277,14 @@ const CartPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de selección de método de pago Wompi */}
+      <WompiPaymentModal
+        isOpen={isWompiModalOpen}
+        onClose={() => setIsWompiModalOpen(false)}
+        total={finalTotal}
+        onSelectPaymentMethod={handleSelectPaymentMethod}
+      />
     </div>
   );
 };
