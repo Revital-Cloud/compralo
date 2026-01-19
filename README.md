@@ -8,7 +8,7 @@ Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a
 
 **Versión**: V1.0 - Funcionalidades Core Implementadas  
 **Progreso**: 85% completado  
-**Última actualización**: Septiembre 2025
+**Última actualización**: Enero 2026
 
 ### ✅ Funcionalidades Implementadas
 
@@ -89,44 +89,52 @@ Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a
 - **Resend** - Emails transaccionales con branding personalizado
 - **Docker** - Containerización para deployment de instancias
 
-## 📁 Estructura del Proyecto (Monorepo)
+## 📁 Estructura del Proyecto
 
 ```
 synkro/                          # Repositorio GitHub (solo código fuente)
-├── apps/
-│   ├── ecommerce/               # Aplicación de e-commerce por instancia SaaS
-│   │   ├── backend/             # FastAPI (API e-commerce)
-│   │   │   ├── app/             # Código de la aplicación
-│   │   │   │   ├── core/        # Configuración
-│   │   │   │   ├── models/      # Modelos SQLAlchemy
-│   │   │   │   ├── routers/     # Endpoints API
-│   │   │   │   ├── schemas/     # Validación Pydantic
-│   │   │   │   ├── services/    # Lógica de negocio
-│   │   │   │   └── main.py      # Punto de entrada
-│   │   │   ├── requirements.txt
-│   │   │   └── README.md
-│   │   └── frontend/            # Next.js (tienda de cliente)
-│   │       ├── app/             # App Router (Next.js 15+)
-│   │       ├── components/      # Componentes reutilizables
-│   │       ├── lib/             # Utilidades y configuración
-│   │       ├── public/          # Assets estáticos
-│   │       ├── package.json
-│   │       └── README.md
-│   └── synkro/                  # Landing + futuro panel de control SaaS
-│       ├── backend/             # (futuro) API gestión de instancias
-│       └── frontend/            # Landing / panel SaaS
-│           ├── app/             # App Router
-│           ├── components/      # Componentes de landing
-│           ├── package.json
-│           └── README.md
-├── packages/                     # Paquetes compartidos
-│   ├── eslint-config/           # Config ESLint compartida
-│   └── typescript-config/       # Config TS compartida
-├── package.json                  # Root package.json
+├── synkro_ecommerce/            # Aplicación de e-commerce por instancia SaaS
+│   ├── backend/                 # FastAPI (API e-commerce)
+│   │   ├── app/                 # Código de la aplicación
+│   │   │   ├── core/            # Configuración
+│   │   │   ├── models/          # Modelos SQLAlchemy
+│   │   │   ├── routers/         # Endpoints API
+│   │   │   ├── schemas/         # Validación Pydantic
+│   │   │   ├── services/        # Lógica de negocio
+│   │   │   └── main.py          # Punto de entrada
+│   │   ├── requirements.txt
+│   │   └── README.md
+│   ├── frontend/                # Next.js (tienda de cliente)
+│   │   ├── app/                 # App Router (Next.js 15+)
+│   │   ├── components/          # Componentes reutilizables
+│   │   │   └── ui/              # Componentes UI (shadcn/ui)
+│   │   ├── lib/                 # Utilidades y configuración
+│   │   ├── public/              # Assets estáticos
+│   │   ├── package.json
+│   │   └── README.md
+│   └── db/                      # Scripts y esquemas de base de datos
+├── synkro_panel/                # Landing + panel de control SaaS
+│   ├── backend/                 # API gestión de instancias
+│   │   ├── app/                 # Código de la aplicación
+│   │   ├── requirements.txt
+│   │   └── README.md
+│   ├── frontend/                # Landing / panel SaaS
+│   │   ├── app/                 # App Router
+│   │   ├── components/          # Componentes
+│   │   │   └── ui/              # Componentes UI (shadcn/ui)
+│   │   ├── package.json
+│   │   └── README.md
+│   └── db/                      # Scripts y esquemas de base de datos
+├── docs/                         # Documentación del proyecto
+├── package.json                  # Root package.json (solo utilidades)
 └── README.md                     # Este archivo
 ```
 
-> **Nota**: Este repositorio contiene solo el código fuente. La configuración de deployment (Docker, Traefik, etc.) se gestiona en un repositorio/ubicación separada.
+> **Nota**: 
+> - Cada proyecto (`synkro_ecommerce` y `synkro_panel`) funciona de forma **independiente** sin necesidad de workspaces o monorepo tools.
+> - Los componentes UI están copiados localmente en cada `frontend/components/ui/` siguiendo el estándar de [shadcn/ui](https://ui.shadcn.com/).
+> - Cada frontend tiene su propio `package.json` y se gestiona independientemente.
+> - Este repositorio contiene solo el código fuente. La configuración de deployment (Docker, Traefik, etc.) se gestiona en un repositorio/ubicación separada.
 
 ## 🚀 Inicio Rápido (Desarrollo)
 
@@ -145,21 +153,10 @@ git clone https://github.com/KevinBermudezC/synkro.git
 cd synkro
 ```
 
-### 2. Instalar Dependencias del Monorepo
+### 2. Configurar Backend de E-commerce
 
 ```bash
-# Instalar pnpm si no lo tienes
-npm install -g pnpm
-
-# Instalar todas las dependencias del monorepo
-# (Desde la raíz del repositorio clonado)
-pnpm install
-```
-
-### 3. Configurar Backend de E-commerce
-
-```bash
-cd apps/ecommerce/backend
+cd synkro_ecommerce/backend
 
 # Crear entorno virtual
 python -m venv venv
@@ -178,43 +175,80 @@ cp .env.example .env
 # Editar .env con tu configuración de BD
 ```
 
-### 4. Configurar Frontend de E-commerce
+### 3. Configurar Frontend de E-commerce
 
 ```bash
-cd ../../ecommerce/frontend
+cd ../frontend
 
-# Las dependencias ya están instaladas desde la raíz
+# Instalar dependencias
+pnpm install
+
 # Configurar variables de entorno
 cp .env.local.example .env.local
 # Editar .env.local con la URL de tu backend
 ```
 
-### 5. Ejecutar en Desarrollo
+### 4. Configurar Backend de Synkro Panel
 
 ```bash
-# Desde la raíz del repositorio
-# Ejecuta todos los proyectos en paralelo
-pnpm dev
+cd ../../synkro_panel/backend
 
-# O ejecutar proyectos individuales:
+# Crear entorno virtual
+python -m venv venv
+
+# Activar entorno virtual
+source venv/bin/activate  # Linux/Mac
+# o .\venv\Scripts\activate  # Windows
+
+# Instalar dependencias
+pip install -r requirements.txt
+
+# Configurar variables de entorno
+cp .env.example .env
+```
+
+### 5. Configurar Frontend de Synkro Panel
+
+```bash
+cd ../frontend
+
+# Instalar dependencias
+pnpm install
+
+# Configurar variables de entorno
+cp .env.local.example .env.local
+```
+
+### 6. Ejecutar en Desarrollo
+
+Cada proyecto se ejecuta de forma independiente:
+
+```bash
 # Terminal 1 - Backend E-commerce
-cd apps/ecommerce/backend
+cd synkro_ecommerce/backend
+source venv/bin/activate  # o .\venv\Scripts\activate en Windows
 fastapi dev app/main.py
 
 # Terminal 2 - Frontend E-commerce
-cd apps/ecommerce/frontend
+cd synkro_ecommerce/frontend
 pnpm dev
 
-# Terminal 3 - Frontend Synkro (Landing)
-cd apps/synkro/frontend
+# Terminal 3 - Backend Synkro Panel (opcional)
+cd synkro_panel/backend
+source venv/bin/activate
+fastapi dev app/main.py
+
+# Terminal 4 - Frontend Synkro Panel
+cd synkro_panel/frontend
 pnpm dev
 ```
 
 - **Backend E-commerce**: http://localhost:8000
 - **Frontend E-commerce**: http://localhost:3000
-- **Frontend Synkro (Landing)**: http://localhost:3001
-- **API Docs**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+- **Backend Synkro Panel**: http://localhost:8001 (si está ejecutándose)
+- **Frontend Synkro Panel**: http://localhost:3001
+- **API Docs E-commerce**: http://localhost:8000/docs
+- **ReDoc E-commerce**: http://localhost:8000/redoc
 
 ### 5. Accesos por Defecto
 
@@ -317,10 +351,10 @@ services:
 
 ## 📚 Documentación
 
-- **[Backend E-commerce](./apps/ecommerce/backend/README.md)** - Documentación detallada del backend
-- **[Frontend E-commerce](./apps/ecommerce/frontend/README.md)** - Guía del frontend y componentes
-- **[Frontend Synkro](./apps/synkro/frontend/README.md)** - Documentación de la landing page
-- **[Backend Synkro](./apps/synkro/backend/README.md)** - Documentación del backend de gestión
+- **[Backend E-commerce](./synkro_ecommerce/backend/README.md)** - Documentación detallada del backend
+- **[Frontend E-commerce](./synkro_ecommerce/frontend/README.md)** - Guía del frontend y componentes
+- **[Frontend Synkro Panel](./synkro_panel/frontend/README.md)** - Documentación de la landing page y panel
+- **[Backend Synkro Panel](./synkro_panel/backend/README.md)** - Documentación del backend de gestión
 - **API Interactive**: Swagger UI disponible en cada instancia en `/docs`
 
 ## 🤝 Contribución
