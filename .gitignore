@@ -15,9 +15,6 @@ node_modules
 # Testing
 coverage
 
-# Turbo
-.turbo
-
 # Vercel
 .vercel
 
@@ -37,3 +34,9 @@ yarn-error.log*
 .DS_Store
 *.pem
 apps/ecommerce/backend/app/.env.production
+
+
+.cursor/*
+.vscode/*
+.cursor/rules/synkro-deploy.mdc
+.cursor/rules/synkro.mdc

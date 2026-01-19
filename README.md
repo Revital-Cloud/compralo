@@ -122,8 +122,7 @@ synkro/                          # Repositorio GitHub (solo código fuente)
 ├── packages/                     # Paquetes compartidos
 │   ├── eslint-config/           # Config ESLint compartida
 │   └── typescript-config/       # Config TS compartida
-├── turbo.json                    # Configuración Turborepo
-├── package.json                  # Root workspace (pnpm)
+├── package.json                  # Root package.json
 └── README.md                     # Este archivo
 ```
 

@@ -1,6 +1,6 @@
 # Guía: Actualización de Dependencias en Synkro
 
-Esta guía explica cómo agregar nuevas dependencias (paquetes) al frontend o backend y qué hacer con Turborepo y Docker.
+Esta guía explica cómo agregar nuevas dependencias (paquetes) al frontend o backend y qué hacer con Docker.
 
 ---
 
@@ -119,38 +119,37 @@ docker compose up -d --force-recreate
 
 ---
 
-## ⚡ Turborepo: ¿Necesita actualización?
+## ⚡ Builds: Comandos por App
 
-### Respuesta corta: **NO necesita actualización manual**
+### Respuesta corta: **Cada app se construye independientemente**
 
-Turborepo funciona con los comandos que ya están definidos en `turbo.json` y los `package.json` de cada app. Cuando agregas dependencias:
+Ya no usamos Turborepo. Cada aplicación tiene su propio `package.json` y se construye de forma independiente.
 
-1. **No necesitas modificar `turbo.json`** - Las tareas (`build`, `dev`, `lint`) ya están definidas
-2. **No necesitas modificar `package.json` raíz** - Solo se actualizan los `package.json` de los apps/packages específicos
+Cuando agregas dependencias:
 
-### Comandos útiles de Turborepo
+1. **Actualiza el `package.json`** de la app correspondiente
+2. **Ejecuta `pnpm install`** en el directorio de la app
+3. **Ejecuta `pnpm build` o `pnpm dev`** según necesites
+
+### Comandos por App
 
 ```bash
-# Desde la raíz del monorepo (/srv/synkro/code/)
-
-# Build de todos los proyectos
+# Ecommerce Frontend
+cd apps/ecommerce/frontend
+pnpm install
 pnpm build
-# o
-pnpm turbo build
-
-# Build solo de un proyecto específico
-pnpm turbo build --filter frontend-tienda-virtual
-
-# Ejecutar dev de todos los proyectos
 pnpm dev
 
-# Ejecutar lint de todos los proyectos
-pnpm lint
+# Synkro Frontend  
+cd apps/synkro/frontend
+pnpm install
+pnpm build
+pnpm dev
 ```
 
-### ¿Cuándo modificar `turbo.json`?
+### ¿Cuándo modificar configuración?
 
-Solo necesitas modificar `turbo.json` si:
+Solo necesitas modificar configuración si:
 - Quieres agregar una **nueva tarea** (ej: `test`, `type-check`)
 - Quieres cambiar las **dependencias entre tareas** (`dependsOn`)
 - Quieres cambiar los **outputs** de una tarea (ej: agregar más carpetas de salida)
@@ -289,7 +288,7 @@ Cuando agregues una nueva dependencia:
   - Backend: `requirements.txt`
 - [ ] Push y deploy (Docker se reconstruirá automáticamente)
 - [ ] **NO** modificar Dockerfiles manualmente (ya están configurados)
-- [ ] **NO** modificar `turbo.json` (solo si agregas nuevas tareas)
+- [ ] Cada app tiene su propia configuración independiente
 
 ---
 

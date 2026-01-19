@@ -1,5 +1,0 @@
-pyproject.toml
-backend_auth.egg-info/PKG-INFO
-backend_auth.egg-info/SOURCES.txt
-backend_auth.egg-info/dependency_links.txt
-backend_auth.egg-info/top_level.txt

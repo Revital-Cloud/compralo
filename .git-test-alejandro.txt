@@ -1,3 +1,0 @@
-# Test commit - Verificación de credenciales de Alejandro
-Este archivo es solo para probar que los commits usan las credenciales correctas.
-
