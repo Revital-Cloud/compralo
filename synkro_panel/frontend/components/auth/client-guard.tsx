@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { Loading } from "@/components/ui";
@@ -19,6 +19,12 @@ interface ClientGuardProps {
 export function ClientGuard({ children }: ClientGuardProps) {
   const router = useRouter();
   const { user, isAuthenticated, isLoading } = useAuth();
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Only set mounted state after hydration to avoid SSR mismatch
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     // Wait for auth check to complete
@@ -39,8 +45,8 @@ export function ClientGuard({ children }: ClientGuardProps) {
     }
   }, [isAuthenticated, isLoading, user, router]);
 
-  // Show loading while checking auth
-  if (isLoading) {
+  // Show loading while checking auth or during initial mount
+  if (isLoading || !isMounted) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -51,13 +57,13 @@ export function ClientGuard({ children }: ClientGuardProps) {
     );
   }
 
-  // Not authenticated or wrong user type - show nothing while redirecting
+  // Not authenticated or wrong user type - show loading while redirecting
   if (!isAuthenticated || (user && user.user_type !== 'cliente')) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
           <Loading size="lg" />
-          <p className="text-muted-foreground">Redirecting...</p>
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     );

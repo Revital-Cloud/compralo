@@ -22,7 +22,11 @@ export function InstanceOverviewCard({
 }: InstanceOverviewCardProps) {
   if (loading) {
     return (
-      <Card className={cn('transition-all duration-200', className)}>
+      <Card className={cn(
+        'transition-all duration-200',
+        'hover:shadow-lg dark:hover:shadow-[0_8px_16px_-4px_rgb(0,0,0,0.6)]',
+        className
+      )}>
         <CardHeader className="flex flex-row items-center justify-between">
           <Skeleton className="h-6 w-32" />
           <Skeleton className="h-6 w-20" />
@@ -45,9 +49,13 @@ export function InstanceOverviewCard({
   // No instance exists - show CTA to create
   if (!instance) {
     return (
-      <Card className={cn('transition-all duration-200 border-dashed', className)}>
+      <Card className={cn(
+        'transition-all duration-200 border-dashed border-2',
+        'hover:border-solid hover:shadow-lg dark:hover:shadow-[0_8px_16px_-4px_rgb(0,0,0,0.6)]',
+        className
+      )}>
         <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-          <div className="rounded-full bg-muted p-4 mb-4">
+          <div className="rounded-full bg-muted/50 dark:bg-muted/30 p-4 mb-4 border border-border/50">
             <Server className="h-8 w-8 text-muted-foreground" />
           </div>
           <h3 className="text-lg font-semibold mb-2">No instance yet</h3>
@@ -68,7 +76,11 @@ export function InstanceOverviewCard({
   }
 
   return (
-    <Card className={cn('transition-all duration-200 hover:shadow-md', className)}>
+    <Card className={cn(
+      'transition-all duration-200',
+      'hover:shadow-lg dark:hover:shadow-[0_8px_16px_-4px_rgb(0,0,0,0.6)]',
+      className
+    )}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <div className="space-y-1">
           <CardTitle className="text-lg">{instance.nom_instancia}</CardTitle>

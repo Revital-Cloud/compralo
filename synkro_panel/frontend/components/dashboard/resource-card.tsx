@@ -78,7 +78,11 @@ export function ResourceCard({
 }: ResourceCardProps) {
   if (loading) {
     return (
-      <Card className={cn('transition-all duration-200', className)}>
+      <Card className={cn(
+        'transition-all duration-200',
+        'hover:shadow-lg dark:hover:shadow-[0_8px_16px_-4px_rgb(0,0,0,0.6)]',
+        className
+      )}>
         {showTitle && (
           <CardHeader>
             <Skeleton className="h-5 w-32" />
@@ -104,7 +108,11 @@ export function ResourceCard({
 
   if (!resourceUsage) {
     return (
-      <Card className={cn('transition-all duration-200', className)}>
+      <Card className={cn(
+        'transition-all duration-200',
+        'hover:shadow-lg dark:hover:shadow-[0_8px_16px_-4px_rgb(0,0,0,0.6)]',
+        className
+      )}>
         {showTitle && (
           <CardHeader>
             <CardTitle className="text-lg">Resource Usage</CardTitle>
@@ -138,7 +146,11 @@ export function ResourceCard({
   };
 
   return (
-    <Card className={cn('transition-all duration-200 hover:shadow-md', className)}>
+    <Card className={cn(
+      'transition-all duration-200',
+      'hover:shadow-lg dark:hover:shadow-[0_8px_16px_-4px_rgb(0,0,0,0.6)]',
+      className
+    )}>
       {showTitle && (
         <CardHeader>
           <CardTitle className="text-lg">Resource Usage</CardTitle>

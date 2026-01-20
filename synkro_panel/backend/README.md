@@ -14,7 +14,7 @@ Este backend gestiona:
 - **Monitoreo y analytics** de todas las instancias
 - **Gestión de usuarios** del panel SaaS
 
-> **Nota**: Este backend es diferente al backend de e-commerce (`apps/ecommerce/backend`). Este maneja la plataforma SaaS, mientras que el otro maneja la lógica de cada tienda individual.
+> **Nota**: Este backend es diferente al backend de e-commerce (`synkro_ecommerce/backend`). Este maneja la plataforma SaaS, mientras que el otro maneja la lógica de cada tienda individual.
 
 ## 🏗️ Estructura del Proyecto
 
@@ -117,12 +117,17 @@ DEPLOYMENT_NAMESPACE=synkro-instances
 ### 3. Iniciar Servidor de Desarrollo
 
 ```bash
-# Método recomendado (FastAPI CLI)
-fastapi dev app/main.py
+# Método recomendado (Script con PYTHONPATH configurado)
+./run_dev.sh
+
+# Método alternativo (FastAPI CLI con PYTHONPATH)
+PYTHONPATH=./app fastapi dev app/main.py --port 8001
 
 # Método alternativo (Uvicorn)
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+PYTHONPATH=./app uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 ```
+
+**Nota importante**: El proyecto requiere que el directorio `app/` esté en el PYTHONPATH para que las importaciones funcionen correctamente. El script `run_dev.sh` configura esto automáticamente.
 
 ### 4. Verificar Instalación
 

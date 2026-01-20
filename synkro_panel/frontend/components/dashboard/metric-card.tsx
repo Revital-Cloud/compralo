@@ -37,7 +37,11 @@ export function MetricCard({
 
   if (loading) {
     return (
-      <Card className={cn('transition-all duration-200', className)}>
+      <Card className={cn(
+        'transition-all duration-200',
+        'hover:shadow-lg dark:hover:shadow-[0_8px_16px_-4px_rgb(0,0,0,0.6)]',
+        className
+      )}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-8 w-8 rounded-lg" />
@@ -51,13 +55,18 @@ export function MetricCard({
   }
 
   return (
-    <Card className={cn('transition-all duration-200 hover:shadow-md', className)}>
+    <Card className={cn(
+      'transition-all duration-200',
+      'hover:shadow-lg dark:hover:shadow-[0_8px_16px_-4px_rgb(0,0,0,0.6)]',
+      'hover:border-border dark:hover:border-border',
+      className
+    )}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
         </CardTitle>
         {Icon && (
-          <div className="rounded-lg bg-muted p-2">
+          <div className="rounded-lg bg-muted/50 dark:bg-muted/30 p-2 border border-border/50">
             <Icon className="h-4 w-4 text-muted-foreground" />
           </div>
         )}

@@ -34,7 +34,7 @@ function SubscriptionCard({
 }) {
   if (loading) {
     return (
-      <Card>
+      <Card className="hover:shadow-lg dark:hover:shadow-[0_8px_16px_-4px_rgb(0,0,0,0.6)] transition-all duration-200">
         <CardHeader>
           <Skeleton className="h-5 w-32" />
         </CardHeader>
@@ -50,9 +50,9 @@ function SubscriptionCard({
 
   if (!subscription) {
     return (
-      <Card className="border-dashed">
+      <Card className="border-dashed border-2 hover:border-solid hover:shadow-lg dark:hover:shadow-[0_8px_16px_-4px_rgb(0,0,0,0.6)] transition-all duration-200">
         <CardContent className="flex flex-col items-center justify-center py-10 text-center">
-          <div className="rounded-full bg-muted p-4 mb-4">
+          <div className="rounded-full bg-muted/50 dark:bg-muted/30 p-4 mb-4 border border-border/50">
             <CreditCard className="h-8 w-8 text-muted-foreground" />
           </div>
           <h3 className="text-lg font-semibold mb-2">No active subscription</h3>
@@ -88,7 +88,7 @@ function SubscriptionCard({
   };
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="hover:shadow-lg dark:hover:shadow-[0_8px_16px_-4px_rgb(0,0,0,0.6)] transition-all duration-200">
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-lg">Current Plan</CardTitle>
         <StatusBadge status={subscription.estado_suscripcion} />
@@ -133,7 +133,7 @@ function SubscriptionCard({
 // Quick Actions Card
 function QuickActionsCard({ instance }: { instance?: InstancePublic | null }) {
   return (
-    <Card>
+    <Card className="hover:shadow-lg dark:hover:shadow-[0_8px_16px_-4px_rgb(0,0,0,0.6)] transition-all duration-200">
       <CardHeader>
         <CardTitle className="text-lg">Quick Actions</CardTitle>
       </CardHeader>

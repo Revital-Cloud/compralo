@@ -150,21 +150,21 @@ def create_cliente(db: Session, cliente: ClienteCreate, usr_insert: str) -> dict
         query = text("""
             SELECT fun_insert_cliente(
                 :identificacion_fiscal,
-                :tipo_identificacion::enum_tipo_identificacion,
                 :nom_empresa,
                 :email_contacto,
+                :nom_contacto_principal,
+                :email_contacto_principal,
+                :usr_insert,
+                CAST(:tipo_identificacion AS enum_tipo_identificacion),
                 :telefono_contacto,
                 :direccion_empresa,
                 :ciudad,
-                :pais::enum_pais,
-                :nom_contacto_principal,
-                :email_contacto_principal,
+                CAST(:pais AS enum_pais),
                 :telefono_contacto_principal,
-                :estado_cliente::enum_estado_cliente,
+                CAST(:estado_cliente AS enum_estado_cliente),
                 :notas_internas,
                 :password_cliente,
-                :ind_activo,
-                :usr_insert
+                :ind_activo
             )
         """)
         
@@ -214,22 +214,22 @@ def update_cliente(db: Session, identificacion_fiscal: str, cliente: ClienteUpda
         query = text("""
             SELECT fun_update_cliente(
                 :identificacion_fiscal,
-                :tipo_identificacion::enum_tipo_identificacion,
+                :usr_update,
+                CAST(:tipo_identificacion AS enum_tipo_identificacion),
                 :nom_empresa,
                 :email_contacto,
                 :telefono_contacto,
                 :direccion_empresa,
                 :ciudad,
-                :pais::enum_pais,
+                CAST(:pais AS enum_pais),
                 :nom_contacto_principal,
                 :email_contacto_principal,
                 :telefono_contacto_principal,
-                :estado_cliente::enum_estado_cliente,
+                CAST(:estado_cliente AS enum_estado_cliente),
                 :fecha_ultimo_acceso,
                 :notas_internas,
                 :password_cliente,
-                :ind_activo,
-                :usr_update
+                :ind_activo
             )
         """)
         

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui"
 import { X, Cookie, Shield, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useCookies } from "@/hooks/use-cookies"
+import { useCookies } from "@/components/ui/hooks/use-cookies"
 
 interface CookieBannerProps {
   className?: string

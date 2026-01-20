@@ -128,8 +128,8 @@
     --destructive: 0 84% 60%; /* Red for errors */
     --destructive-foreground: 0 0% 100%; /* White text on red */
 
-    --border: 0 0% 90%; /* Light gray borders */
-    --input: 0 0% 90%; /* Light gray inputs */
+    --border: 0 0% 85%; /* Slightly darker borders for better visibility */
+    --input: 0 0% 95%; /* Light gray inputs */
     --ring: 142 64% 65%; /* Synkro green focus rings */
 
     /* Chart colors using Synkro palette */
@@ -147,7 +147,7 @@
     --background: 0 0% 11%; /* Synkro black background */
     --foreground: 0 0% 100%; /* White text */
 
-    --card: 0 0% 11%; /* Synkro black cards */
+    --card: 0 0% 15%; /* Slightly lighter than background for contrast */
     --card-foreground: 0 0% 100%; /* White text on cards */
 
     --popover: 0 0% 11%; /* Synkro black popovers */
@@ -168,8 +168,8 @@
     --destructive: 0 63% 31%; /* Darker red for errors */
     --destructive-foreground: 0 0% 100%; /* White text on red */
 
-    --border: 0 0% 11%; /* Synkro black borders */
-    --input: 0 0% 11%; /* Synkro black inputs */
+    --border: 0 0% 20%; /* Lighter borders for visibility */
+    --input: 0 0% 15%; /* Slightly lighter inputs */
     --ring: 142 64% 65%; /* Synkro green focus rings */
 
     /* Chart colors for dark theme */

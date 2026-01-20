@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui";
 import { Input } from "@/components/ui";
 import { Button } from "@/components/ui";
 import { Badge } from "@/components/ui";
-import { Select } from "@/components/ui";
+import { NativeSelect } from "@/components/ui/native-select";
 import {
   IconSearch,
   IconFilter,
@@ -54,7 +54,7 @@ export const UniversalFilters: React.FC<UniversalFiltersProps> = ({
 
       case 'select':
         return (
-          <Select 
+          <NativeSelect 
             value={filter.value || "all"} 
             onChange={(e) => filter.onChange?.(e.target.value === "all" ? "" : e.target.value)}
             className="h-9 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20"
@@ -69,7 +69,7 @@ export const UniversalFilters: React.FC<UniversalFiltersProps> = ({
                 {option.label || option.nombre}
               </option>
             ))}
-          </Select>
+          </NativeSelect>
         );
 
       default:

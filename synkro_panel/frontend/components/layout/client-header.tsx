@@ -37,16 +37,16 @@ export function ClientHeader() {
   const pageTitle = getPageTitle(pathname);
 
   return (
-    <header className="flex h-[--header-height] shrink-0 items-center gap-2 border-b border-sidebar-border bg-background transition-colors duration-200">
-      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
+    <header className="flex h-[--header-height] shrink-0 items-center gap-3 border-b border-sidebar-border bg-background transition-colors duration-200 py-2">
+      <div className="flex w-full items-center gap-3 px-6 lg:px-8">
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
-          className="mx-2 my-auto data-[orientation=vertical]:h-6 bg-border"
+          className="mx-3 my-auto data-[orientation=vertical]:h-6 bg-border"
         />
-        <h1 className="text-base font-medium text-foreground">{pageTitle}</h1>
+        <h1 className="text-lg sm:text-xl font-medium text-foreground leading-tight">{pageTitle}</h1>
       </div>
-      <div className="ml-auto flex items-center gap-2 px-4">
+      <div className="ml-auto flex items-center gap-3 px-6 lg:px-8">
         {/* Notifications button (placeholder for future functionality) */}
         <button 
           className="relative p-2 rounded-lg hover:bg-muted transition-colors"

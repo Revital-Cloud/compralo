@@ -12,7 +12,7 @@ from schemas.auth_schema import (
     ResponseMessage
 )
 
-from schemas.usuario_synkro_schema import (
+from .usuario_synkro_schema import (
     UsuarioSynkroBase,
     UsuarioSynkroCreate,
     UsuarioSynkroUpdate,
@@ -21,7 +21,7 @@ from schemas.usuario_synkro_schema import (
     UsuarioSynkroInDB
 )
 
-from schemas.cliente_schema import (
+from .cliente_schema import (
     ClienteBase,
     ClienteCreate,
     ClienteUpdate,
@@ -30,7 +30,7 @@ from schemas.cliente_schema import (
     ClienteInDB
 )
 
-from schemas.plan_schema import (
+from .plan_schema import (
     PlanBase,
     PlanCreate,
     PlanUpdate,
@@ -38,7 +38,7 @@ from schemas.plan_schema import (
     PlanPublic
 )
 
-from schemas.instancia_schema import (
+from .instancia_schema import (
     InstanciaBase,
     InstanciaCreate,
     InstanciaUpdate,
@@ -46,7 +46,7 @@ from schemas.instancia_schema import (
     InstanciaPublic
 )
 
-from schemas.suscripcion_schema import (
+from .suscripcion_schema import (
     SuscripcionBase,
     SuscripcionCreate,
     SuscripcionUpdate,
@@ -54,7 +54,7 @@ from schemas.suscripcion_schema import (
     SuscripcionPublic
 )
 
-from schemas.facturacion_schema import (
+from .facturacion_schema import (
     FacturaDetalleBase,
     FacturaDetalleCreate,
     FacturaDetalleUpdate,
@@ -67,7 +67,7 @@ from schemas.facturacion_schema import (
     FacturaConDetalle
 )
 
-from schemas.deployment_schema import (
+from .deployment_schema import (
     DeploymentBase,
     DeploymentCreate,
     DeploymentUpdate,
@@ -75,7 +75,7 @@ from schemas.deployment_schema import (
     DeploymentPublic
 )
 
-from schemas.dominio_schema import (
+from .dominio_schema import (
     DominioBase,
     DominioCreate,
     DominioUpdate,
@@ -83,14 +83,14 @@ from schemas.dominio_schema import (
     DominioPublic
 )
 
-from schemas.uso_recurso_schema import (
+from .uso_recurso_schema import (
     UsoRecursoBase,
     UsoRecursoCreate,
     UsoRecurso,
     UsoRecursoPublic
 )
 
-from schemas.historial_plan_schema import (
+from .historial_plan_schema import (
     HistorialPlanBase,
     HistorialPlanCreate,
     HistorialPlan,

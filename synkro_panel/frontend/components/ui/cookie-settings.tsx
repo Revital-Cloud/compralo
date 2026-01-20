@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui"
 import { Label } from "@/components/ui"
 import { Separator } from "@/components/ui"
 import { Settings, Cookie, Shield, BarChart3, Target } from "lucide-react"
-import { useCookies } from "@/hooks/use-cookies"
+import { useCookies } from "@/components/ui/hooks/use-cookies"
 
 export function CookieSettings() {
   const { cookieConsent, updateCookiePreferences, revokeConsent } = useCookies()
