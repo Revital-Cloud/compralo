@@ -12,6 +12,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui';
+import { useTranslations, useLocale } from 'next-intl';
 import { MetricCard } from '@/components/dashboard';
 import {
   useAdminOverviewMetrics,
@@ -28,6 +29,8 @@ import {
 type DateRangeKey = '30d' | '90d' | '180d';
 
 export default function AdminDashboardPage() {
+  const t = useTranslations();
+  const locale = useLocale();
   const [range, setRange] = useState<DateRangeKey>('30d');
 
   const { data: overview, isLoading: loadingOverview } = useAdminOverviewMetrics();
@@ -70,37 +73,37 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Panel de administración
+            {t('admin.title')}
           </h1>
           <p className="text-muted-foreground">
-            Vista global de clientes, instancias y facturación de Synkro.
+            {t('admin.subtitle')}
           </p>
         </div>
         <Tabs value={range} onValueChange={(v) => setRange(v as DateRangeKey)}>
           <TabsList>
-            <TabsTrigger value="30d">Últimos 30 días</TabsTrigger>
-            <TabsTrigger value="90d">Últimos 90 días</TabsTrigger>
-            <TabsTrigger value="180d">Últimos 180 días</TabsTrigger>
+            <TabsTrigger value="30d">{t('admin.dateRange.30d')}</TabsTrigger>
+            <TabsTrigger value="90d">{t('admin.dateRange.90d')}</TabsTrigger>
+            <TabsTrigger value="180d">{t('admin.dateRange.180d')}</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         <MetricCard
-          title="Clientes activos"
+          title={t('admin.metrics.activeClients')}
           value={totalClientes}
           icon={Users}
           loading={loadingOverview}
         />
         <MetricCard
-          title="Instancias totales"
+          title={t('admin.metrics.totalInstances')}
           value={totalInstancias}
           icon={Server}
           loading={loadingOverview}
         />
         <MetricCard
-          title="MRR aproximado"
-          value={new Intl.NumberFormat('es-CO', {
+          title={t('admin.metrics.approximateMRR')}
+          value={new Intl.NumberFormat(locale, {
             style: 'currency',
             currency: 'USD',
           }).format(mrrActual)}
@@ -108,8 +111,8 @@ export default function AdminDashboardPage() {
           loading={loadingOverview}
         />
         <MetricCard
-          title="Ingresos 30 días"
-          value={new Intl.NumberFormat('es-CO', {
+          title={t('admin.metrics.revenue30Days')}
+          value={new Intl.NumberFormat(locale, {
             style: 'currency',
             currency: 'USD',
           }).format(ingresos30)}
@@ -121,7 +124,7 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Ingresos</CardTitle>
+            <CardTitle>{t('admin.charts.revenue')}</CardTitle>
           </CardHeader>
           <CardContent>
             <RevenueAreaChart
@@ -133,7 +136,7 @@ export default function AdminDashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Embudo de clientes (6 meses)</CardTitle>
+            <CardTitle>{t('admin.charts.clientsFunnel')}</CardTitle>
           </CardHeader>
           <CardContent>
             <ClientsFunnelChart
@@ -146,7 +149,7 @@ export default function AdminDashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Instancias por plan</CardTitle>
+          <CardTitle>{t('admin.charts.instancesByPlan')}</CardTitle>
         </CardHeader>
         <CardContent>
           <InstancesByPlanBarChart

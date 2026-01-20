@@ -7,7 +7,7 @@ import { ArrowRight, LayoutDashboard, Sparkles, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AnimatedGroup } from "@/components/ui/animated-group";
 import { Header } from "./header";
-import { heroContent } from "@/content";
+import { useTranslations } from 'next-intl';
 import { useAuth } from "@/hooks/use-auth";
 import { isAuthenticated } from "@/utils/apiWrapper";
 
@@ -23,7 +23,7 @@ const transitionVariants = {
       filter: "blur(0px)",
       y: 0,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         bounce: 0.3,
         duration: 1.5,
       },
@@ -32,6 +32,7 @@ const transitionVariants = {
 };
 
 export function HeroSection() {
+  const t = useTranslations();
   const { user, isLoading } = useAuth();
   const isLoggedIn = isAuthenticated() && !!user;
 
@@ -90,10 +91,10 @@ export function HeroSection() {
                   </a>
 
                   <h1 className="mt-8 max-w-4xl mx-auto text-balance text-5xl md:text-6xl lg:mt-16 xl:text-7xl animate-float">
-                    {heroContent.title}
+                    {t('hero.title')}
                   </h1>
                   <p className="mx-auto mt-8 max-w-2xl text-balance text-lg text-muted-foreground">
-                    {heroContent.subtitle}
+                    {t('hero.subtitle')}
                   </p>
                 </AnimatedGroup>
 
@@ -153,7 +154,7 @@ export function HeroSection() {
                           className="rounded-xl px-6 text-base bg-synkro-green hover:bg-synkro-green/90 text-synkro-black font-medium"
                         >
                           <Link href="/register">
-                            <span>Get Started Free</span>
+                            <span>{t('navigation.ctaButton')}</span>
                             <ArrowRight className="ml-2 h-5 w-5" />
                           </Link>
                         </Button>

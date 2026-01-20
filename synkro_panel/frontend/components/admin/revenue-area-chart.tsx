@@ -45,12 +45,13 @@ export function RevenueAreaChart({ data, loading }: RevenueAreaChartProps) {
           <XAxis dataKey="fechaLabel" tickLine={false} axisLine={false} />
           <YAxis tickLine={false} axisLine={false} />
           <Tooltip
-            formatter={(value: number) =>
-              new Intl.NumberFormat('es-CO', {
+            formatter={(value: number | undefined) => {
+              if (value === undefined) return '';
+              return new Intl.NumberFormat('es-CO', {
                 style: 'currency',
                 currency: 'USD',
-              }).format(value)
-            }
+              }).format(value);
+            }}
           />
           <Area
             type="monotone"

@@ -45,7 +45,7 @@ export interface ResetPasswordConfirm {
 /**
  * Registration types
  */
-export type IdentificationType = 'NIT' | 'EIN' | 'RFC' | 'CUIT' | 'RUT' | 'NIF' | 'CIF' | 'CNPJ' | 'RUC' | 'OTRO';
+import type { IdentificationType } from './common';
 export type CountryCode = 'CO' | 'US' | 'MX' | 'AR' | 'CL' | 'PE' | 'EC' | 'PA' | 'UY' | 'BR' | 'ES' | 'OTRO';
 
 export interface RegisterRequest {

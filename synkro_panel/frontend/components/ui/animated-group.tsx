@@ -8,6 +8,7 @@ type PresetType =
   | "fade"
   | "slide"
   | "scale"
+  | "blur"
   | "blur-sm"
   | "blur-slide"
   | "zoom"
@@ -70,6 +71,13 @@ const presetVariants: Record<
     container: defaultContainerVariants,
     item: {
       hidden: { opacity: 0, filter: "blur(4px)" },
+      visible: { opacity: 1, filter: "blur(0px)" },
+    },
+  },
+  "blur-sm": {
+    container: defaultContainerVariants,
+    item: {
+      hidden: { opacity: 0, filter: "blur(2px)" },
       visible: { opacity: 1, filter: "blur(0px)" },
     },
   },

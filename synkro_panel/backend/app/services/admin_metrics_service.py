@@ -355,7 +355,128 @@ def get_instances_by_plan(db: Session) -> List[Dict[str, Any]]:
         db.rollback()
         raise Exception(f"Error al obtener instancias por plan: {exc}") from exc
 
-              COUNT(*) FILTER (WHERE estado_cliente = 'trial') AS trials,
+
+def get_general_metrics(db: Session) -> Dict[str, Any]:
+    """
+    Métricas generales del dashboard de administración.
+    """
+    try:
+        # Total de clientes
+        total_clientes = db.execute(
+            text("SELECT COUNT(*) FROM tab_clientes")
+        ).scalar()
+
+        # Total de instancias
+        total_instancias = db.execute(
+            text("SELECT COUNT(*) FROM tab_instancias")
+        ).scalar()
+
+        # Instancias por estado
+        instancias_por_estado_rows = db.execute(
+            text(
+                """
+                SELECT
+                    estado_instancia,
+                    COUNT(*) AS total
+                FROM tab_instancias
+                GROUP BY estado_instancia
+                """
+            )
+        ).mappings()
+        instancias_por_estado: Dict[str, int] = {
+            str(row["estado_instancia"]): int(row["total"]) for row in instancias_por_estado_rows
+        }
+
+        # Instancias por región
+        instancias_por_region_rows = db.execute(
+            text(
+                """
+                SELECT
+                    region_deployment,
+                    COUNT(*) AS total
+                FROM tab_instancias
+                GROUP BY region_deployment
+                """
+            )
+        ).mappings()
+        instancias_por_region: Dict[str, int] = {
+            str(row["region_deployment"]): int(row["total"]) for row in instancias_por_region_rows
+        }
+
+        # MRR actual (Monthly Recurring Revenue)
+        mrr_rows = db.execute(
+            text(
+                """
+                SELECT
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN tipo_facturacion = 'mensual' THEN precio_actual
+                                WHEN tipo_facturacion = 'anual' THEN precio_actual / 12
+                                WHEN tipo_facturacion = 'trimestral' THEN precio_actual / 3
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    ) AS mrr
+                FROM tab_suscripciones
+                WHERE estado_suscripcion = 'activa'
+                """
+            )
+        ).mappings()
+        mrr_actual: float = _to_float(next(mrr_rows, {}).get("mrr", 0))
+
+        # Ingresos últimos 30 días
+        ingresos_30_dias_rows = db.execute(
+            text(
+                """
+                SELECT
+                    COALESCE(SUM(total), 0) AS total
+                FROM tab_facturacion_cabecera
+                WHERE fecha_emision >= CURRENT_DATE - INTERVAL '30 days'
+                AND estado_pago = 'pagado'
+                """
+            )
+        ).mappings()
+        ingresos_ultimos_30_dias: float = _to_float(next(ingresos_30_dias_rows, {}).get("total", 0))
+
+        # Ingresos por plan
+        ingresos_plan_rows = db.execute(
+            text(
+                """
+                SELECT
+                    p.nom_plan,
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN s.tipo_facturacion = 'mensual' THEN s.precio_actual
+                                WHEN s.tipo_facturacion = 'anual' THEN s.precio_actual / 12
+                                WHEN s.tipo_facturacion = 'trimestral' THEN s.precio_actual / 3
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    ) AS mrr_plan
+                FROM tab_suscripciones s
+                JOIN tab_planes p ON s.id_plan = p.id_plan
+                WHERE s.estado_suscripcion = 'activa'
+                GROUP BY p.nom_plan
+                ORDER BY p.nom_plan
+                """
+            )
+        ).mappings()
+        ingresos_por_plan: Dict[str, float] = {
+            str(row["nom_plan"]): _to_float(row["mrr_plan"]) for row in ingresos_plan_rows
+        }
+
+        # Funnel últimos 6 meses basado en fecha de inserción de clientes
+        funnel_rows = db.execute(
+            text(
+                """
+                SELECT
+                    date_trunc('month', fec_insert)::date AS periodo,
+                    COUNT(*) AS registros,
+                    COUNT(*) FILTER (WHERE estado_cliente = 'trial') AS trials,
                     COUNT(*) FILTER (WHERE estado_cliente = 'activo') AS activos
                 FROM tab_clientes
                 WHERE fec_insert >= (date_trunc('month', CURRENT_DATE) - INTERVAL '5 months')

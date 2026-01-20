@@ -15,46 +15,48 @@ import {
   Twitter,
   Linkedin,
 } from "lucide-react";
+import { useTranslations } from 'next-intl';
 import { useAuth } from "@/hooks/use-auth";
 import { isAuthenticated } from "@/utils/apiWrapper";
 
-const platformLinks = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, authRequired: true },
-  { title: "Login", href: "/login", icon: LogIn, authRequired: false, hideWhenAuth: true },
-  { title: "Sign Up", href: "/register", icon: UserPlus, authRequired: false, hideWhenAuth: true },
-];
-
-const productLinks = [
-  { title: "Features", href: "#features" },
-  { title: "Pricing", href: "#pricing" },
-  { title: "Security", href: "#security" },
-  { title: "FAQ", href: "#faq" },
-];
-
-const companyLinks = [
-  { title: "About Us", href: "/about" },
-  { title: "Privacy Policy", href: "/privacy" },
-  { title: "Terms of Service", href: "/terms" },
-  { title: "Contact", href: "#contact" },
-];
-
-const resourceLinks = [
-  { title: "Documentation", href: "/docs" },
-  { title: "Blog", href: "/blog" },
-  { title: "Support", href: "/help" },
-  { title: "Changelog", href: "/changelog" },
-];
-
-const socialLinks = [
-  { title: "Facebook", href: "https://facebook.com/synkro", icon: Facebook },
-  { title: "Instagram", href: "https://instagram.com/synkro", icon: Instagram },
-  { title: "Twitter", href: "https://twitter.com/synkro", icon: Twitter },
-  { title: "LinkedIn", href: "https://linkedin.com/company/synkro", icon: Linkedin },
-];
-
 export function Footer() {
+  const t = useTranslations();
   const { user } = useAuth();
   const isLoggedIn = isAuthenticated() && !!user;
+
+  const platformLinks = [
+    { title: t('dashboard.title'), href: "/dashboard", icon: LayoutDashboard, authRequired: true },
+    { title: t('auth.login.submitButton'), href: "/login", icon: LogIn, authRequired: false, hideWhenAuth: true },
+    { title: t('auth.register.submitButton'), href: "/register", icon: UserPlus, authRequired: false, hideWhenAuth: true },
+  ];
+
+  const productLinks = [
+    { title: t('footer.sections.product.links.features'), href: "#features" },
+    { title: t('footer.sections.product.links.pricing'), href: "#pricing" },
+    { title: t('navigation.menuItems.security'), href: "#security" },
+    { title: t('navigation.menuItems.faq'), href: "#faq" },
+  ];
+
+  const companyLinks = [
+    { title: t('footer.sections.company.links.about'), href: "/about" },
+    { title: t('footer.sections.company.links.privacy'), href: "/privacy" },
+    { title: t('footer.sections.company.links.terms'), href: "/terms" },
+    { title: t('footer.sections.company.links.contact'), href: "#contact" },
+  ];
+
+  const resourceLinks = [
+    { title: t('footer.sections.resources.links.docs'), href: "/docs" },
+    { title: t('footer.sections.resources.links.blog'), href: "/blog" },
+    { title: t('footer.sections.resources.links.support'), href: "/help" },
+    { title: t('footer.sections.resources.links.changelog'), href: "/changelog" },
+  ];
+
+  const socialLinks = [
+    { title: t('footer.sections.social.links.facebook'), href: "https://facebook.com/synkro", icon: Facebook },
+    { title: t('footer.sections.social.links.instagram'), href: "https://instagram.com/synkro", icon: Instagram },
+    { title: t('footer.sections.social.links.twitter'), href: "https://twitter.com/synkro", icon: Twitter },
+    { title: t('footer.sections.social.links.linkedin'), href: "https://linkedin.com/company/synkro", icon: Linkedin },
+  ];
 
   const handleScrollLink = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith("#")) {
@@ -84,8 +86,7 @@ export function Footer() {
               <span className="text-2xl font-bold text-synkro-green">Synkro</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-xs">
-              The all-in-one e-commerce platform designed for the Colombian market. 
-              Build, manage, and scale your online store with ease.
+              {t('footer.company.description')}
             </p>
             {/* Social Links */}
             <div className="flex gap-4 pt-4">
@@ -113,7 +114,7 @@ export function Footer() {
               {/* Platform */}
               <div>
                 <h3 className="text-sm font-semibold text-synkro-green mb-4">
-                  Platform
+                  {t('footer.sections.platform.label')}
                 </h3>
                 <ul className="space-y-3">
                   {platformLinks.map((link) => {
@@ -144,7 +145,7 @@ export function Footer() {
               {/* Product */}
               <div>
                 <h3 className="text-sm font-semibold text-synkro-green mb-4">
-                  Product
+                  {t('footer.sections.product.label')}
                 </h3>
                 <ul className="space-y-3">
                   {productLinks.map((link) => (
@@ -164,7 +165,7 @@ export function Footer() {
               {/* Company */}
               <div>
                 <h3 className="text-sm font-semibold text-synkro-green mb-4">
-                  Company
+                  {t('footer.sections.company.label')}
                 </h3>
                 <ul className="space-y-3">
                   {companyLinks.map((link) => (
@@ -193,7 +194,7 @@ export function Footer() {
               {/* Resources */}
               <div>
                 <h3 className="text-sm font-semibold text-synkro-green mb-4">
-                  Resources
+                  {t('footer.sections.resources.label')}
                 </h3>
                 <ul className="space-y-3">
                   {resourceLinks.map((link) => (
@@ -218,7 +219,7 @@ export function Footer() {
         <div className="mx-auto max-w-7xl px-6 py-6">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Synkro. All rights reserved.
+              {t('footer.copyright', { year: new Date().getFullYear() })}
             </p>
             <div className="flex items-center gap-4">
               <a

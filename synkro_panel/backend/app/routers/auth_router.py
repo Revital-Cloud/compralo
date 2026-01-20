@@ -31,6 +31,7 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 @limiter.limit("10/minute")
 @limiter.limit("100/hour")
 def login(
+    request: Request,
     login_data: LoginRequest,
     db: Session = Depends(get_db)
 ):
@@ -189,6 +190,7 @@ def verify_token(
 @limiter.limit("5/minute")
 @limiter.limit("20/hour")
 def forgot_password(
+    request: Request,
     reset_data: ResetPasswordRequest,
     db: Session = Depends(get_db)
 ):
@@ -214,6 +216,7 @@ def forgot_password(
 @limiter.limit("5/minute")
 @limiter.limit("20/hour")
 def reset_password(
+    request: Request,
     reset_confirm: ResetPasswordConfirm,
     db: Session = Depends(get_db)
 ):

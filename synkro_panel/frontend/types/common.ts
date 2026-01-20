@@ -2,6 +2,18 @@
  * Tipos comunes utilizados en toda la aplicación
  */
 
+export type IdentificationType =
+  | 'NIT'
+  | 'EIN'
+  | 'RFC'
+  | 'CUIT'
+  | 'RUT'
+  | 'NIF'
+  | 'CIF'
+  | 'CNPJ'
+  | 'RUC'
+  | 'OTRO';
+
 export interface ApiResponse<T = any> {
   data?: T;
   message?: string;

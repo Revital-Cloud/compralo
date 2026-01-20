@@ -1,4 +1,7 @@
+"use client";
+
 import React from "react";
+import { useTranslations } from 'next-intl';
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,12 +24,16 @@ interface Contact2Props {
 }
 
 export const Contact2 = ({
-  title = "Contáctanos",
-  description = "Estamos disponibles para responder tus preguntas, brindarte soporte técnico o discutir cómo Synkro puede impulsar tu negocio online.",
+  title,
+  description,
   phone = "+34 912 345 678",
   email = "info@synkro.com",
   web = { label: "synkro.com", url: "https://synkro.com" },
 }: Contact2Props) => {
+  const t = useTranslations();
+  
+  const displayTitle = title || t('contact.title');
+  const displayDescription = description || t('contact.subtitle');
   return (
     <section id="contact" className="py-32 bg-white dark:bg-synkro-black">
       <div className="container">
@@ -34,23 +41,23 @@ export const Contact2 = ({
           <div className="mx-auto flex max-w-sm flex-col justify-between gap-10">
             <div className="text-center lg:text-left">
               <h1 className="mb-2 text-5xl font-semibold lg:mb-1 lg:text-6xl text-synkro-green">
-                {title}
+                {displayTitle}
               </h1>
-              <p className="text-muted-foreground">{description}</p>
+              <p className="text-muted-foreground">{displayDescription}</p>
             </div>
             <div className="mx-auto w-fit lg:mx-0">
               <h3 className="mb-6 text-center text-2xl font-semibold lg:text-left text-synkro-green">
-                Datos de Contacto
+                {t('contact.contactInfo')}
               </h3>
               <ul className="ml-4 list-disc space-y-2">
                 <li>
                   <span className="font-bold text-synkro-green">
-                    Teléfono:{" "}
+                    {t('contact.phone')}:{" "}
                   </span>
                   <span className="text-muted-foreground">{phone}</span>
                 </li>
                 <li>
-                  <span className="font-bold text-synkro-green">Email: </span>
+                  <span className="font-bold text-synkro-green">{t('contact.email')}: </span>
                   <a
                     href={`mailto:${email}`}
                     className="underline text-synkro-green hover:text-synkro-green/80"
@@ -59,7 +66,7 @@ export const Contact2 = ({
                   </a>
                 </li>
                 <li>
-                  <span className="font-bold text-synkro-green">Web: </span>
+                  <span className="font-bold text-synkro-green">{t('contact.web')}: </span>
                   <a
                     href={web.url}
                     target="_blank"
@@ -78,12 +85,12 @@ export const Contact2 = ({
                   htmlFor="firstname"
                   className="text-synkro-green font-semibold"
                 >
-                  Nombre
+                  {t('contact.form.firstName')}
                 </Label>
                 <Input
                   type="text"
                   id="firstname"
-                  placeholder="Tu nombre"
+                  placeholder={t('contact.form.firstNamePlaceholder')}
                   className="border-synkro-green/20 focus:border-synkro-green focus:ring-synkro-green/20 bg-white dark:bg-synkro-black"
                 />
               </div>
@@ -92,12 +99,12 @@ export const Contact2 = ({
                   htmlFor="lastname"
                   className="text-synkro-green font-semibold"
                 >
-                  Apellidos
+                  {t('contact.form.lastName')}
                 </Label>
                 <Input
                   type="text"
                   id="lastname"
-                  placeholder="Tus apellidos"
+                  placeholder={t('contact.form.lastNamePlaceholder')}
                   className="border-synkro-green/20 focus:border-synkro-green focus:ring-synkro-green/20 bg-white dark:bg-synkro-black"
                 />
               </div>
@@ -107,12 +114,12 @@ export const Contact2 = ({
                 htmlFor="email"
                 className="text-synkro-green font-semibold"
               >
-                Email
+                {t('contact.form.emailLabel')}
               </Label>
               <Input
                 type="email"
                 id="email"
-                placeholder="tu@email.com"
+                placeholder={t('contact.form.emailPlaceholder')}
                 className="border-synkro-green/20 focus:border-synkro-green focus:ring-synkro-green/20 bg-white dark:bg-synkro-black"
               />
             </div>
@@ -121,12 +128,12 @@ export const Contact2 = ({
                 htmlFor="company"
                 className="text-synkro-green font-semibold"
               >
-                Empresa
+                {t('contact.form.companyLabel')}
               </Label>
               <Input
                 type="text"
                 id="company"
-                placeholder="Nombre de tu empresa"
+                placeholder={t('contact.form.companyPlaceholder')}
                 className="border-synkro-green/20 focus:border-synkro-green focus:ring-synkro-green/20 bg-white dark:bg-synkro-black"
               />
             </div>
@@ -135,25 +142,25 @@ export const Contact2 = ({
                 htmlFor="interest"
                 className="text-synkro-green font-semibold"
               >
-                ¿Qué te interesa?
+                {t('contact.form.interest')}
               </Label>
               <Select>
                 <SelectTrigger className="border-synkro-green/20 focus:border-synkro-green focus:ring-synkro-green/20 bg-white dark:bg-synkro-black">
-                  <SelectValue placeholder="Selecciona una opción" />
+                  <SelectValue placeholder={t('contact.form.selectOption')} />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-synkro-black border-synkro-green/20">
                   <SelectItem value="tienda">
-                    Crear una tienda online
+                    {t('contact.form.options.store')}
                   </SelectItem>
                   <SelectItem value="migrar">
-                    Migrar mi tienda actual
+                    {t('contact.form.options.migrate')}
                   </SelectItem>
                   <SelectItem value="integracion">
-                    Integraciones con otras plataformas
+                    {t('contact.form.options.integration')}
                   </SelectItem>
-                  <SelectItem value="demo">Solicitar una demo</SelectItem>
-                  <SelectItem value="soporte">Soporte técnico</SelectItem>
-                  <SelectItem value="otro">Otro motivo</SelectItem>
+                  <SelectItem value="demo">{t('contact.form.options.demo')}</SelectItem>
+                  <SelectItem value="soporte">{t('contact.form.options.support')}</SelectItem>
+                  <SelectItem value="otro">{t('contact.form.options.other')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -162,16 +169,16 @@ export const Contact2 = ({
                 htmlFor="message"
                 className="text-synkro-green font-semibold"
               >
-                Mensaje
+                {t('contact.form.messageLabel')}
               </Label>
               <Textarea
-                placeholder="Escribe tu mensaje aquí..."
+                placeholder={t('contact.form.messagePlaceholder')}
                 id="message"
                 className="border-synkro-green/20 focus:border-synkro-green focus:ring-synkro-green/20 min-h-[120px] bg-white dark:bg-synkro-black"
               />
             </div>
             <Button variant="synkro" className="w-full">
-              Enviar Mensaje
+              {t('contact.form.submitButton')}
             </Button>
           </div>
         </div>

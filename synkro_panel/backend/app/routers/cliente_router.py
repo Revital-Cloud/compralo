@@ -251,13 +251,13 @@ def update_cliente(
         current_user.email
     )
     
-        if result and result.get("success"):
-            return ResponseMessage(message="Client updated successfully", success=True)
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=result.get("message", "Error updating client") if result else "Error updating client"
-            )
+    if result and result.get("success"):
+        return ResponseMessage(message="Client updated successfully", success=True)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result.get("message", "Error updating client") if result else "Error updating client"
+        )
 
 
 @router.delete("/{identificacion_fiscal}", response_model=ResponseMessage)

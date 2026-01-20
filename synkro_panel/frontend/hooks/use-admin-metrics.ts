@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import adminMetricsService from '@/services/admin-metrics.service';
+import type { AdminOverviewMetrics } from '@/types';
 import type {
-  AdminOverviewMetrics,
   RevenueTimeseriesResponse,
   ClientsTimeseriesResponse,
   InstancesByPlanResponse,

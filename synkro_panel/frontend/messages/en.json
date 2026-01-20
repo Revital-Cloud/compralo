@@ -1,0 +1,468 @@
+{
+  "common": {
+    "welcome": "Welcome back",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "search": "Search",
+    "filter": "Filter",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "optional": "Optional",
+    "required": "Required",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Info"
+  },
+  "hero": {
+    "title": "The All-in-One E-commerce Platform for Colombia",
+    "subtitle": "Create, manage and scale your online store with our comprehensive platform. Real-time statistics dashboard, product manager with automatic SEO, headless CMS and marketing tools.",
+    "primaryButton": "Create My Store",
+    "secondaryButton": "Request Demo",
+    "features": [
+      "Native Wompi integration for Colombia",
+      "Detailed real-time statistics dashboard",
+      "Simplified product manager with automatic SEO",
+      "Integrated, flexible and powerful headless CMS"
+    ]
+  },
+  "navigation": {
+    "logo": "Synkro",
+    "menuItems": {
+      "features": "Features",
+      "security": "Security",
+      "pricing": "Pricing",
+      "faq": "FAQ"
+    },
+    "ctaButton": "Get Started Free"
+  },
+  "features": {
+    "title": "Everything you need to sell online",
+    "subtitle": "A complete platform designed specifically for the Colombian market",
+    "items": {
+      "statistics": {
+        "title": "Detailed Statistics Dashboard",
+        "meta": "Real-time",
+        "description": "Visualize sales, conversions, best-selling products and customer behavior with interactive dashboards and exportable reports.",
+        "status": "Active",
+        "tags": ["Analytics", "Reports", "KPIs"]
+      },
+      "products": {
+        "title": "Advanced Product Manager",
+        "meta": "Bulk upload + SEO",
+        "description": "Manage inventory, variants, dynamic pricing, categories and automatic SEO optimization for each product.",
+        "status": "Optimized",
+        "tags": ["Inventory", "SEO", "Catalog"]
+      },
+      "wompi": {
+        "title": "Wompi Payments",
+        "meta": "Main gateway",
+        "description": "Native Wompi integration for Colombia. Discount configuration, coupons and points programs.",
+        "status": "Integrated",
+        "tags": ["Wompi", "Payments", "Discounts"]
+      },
+      "cms": {
+        "title": "Headless CMS + Integrated Blog",
+        "meta": "API-First",
+        "description": "Manage content, custom pages, SEO blog and landing pages without technical limitations.",
+        "tags": ["CMS", "Blog", "API"]
+      },
+      "marketing": {
+        "title": "Marketing Tools",
+        "description": "Configurable discounts, points system and automated campaigns"
+      },
+      "payments": {
+        "title": "Secure Payments",
+        "description": "Complete integration with Wompi for the Colombian market"
+      }
+    }
+  },
+  "security": {
+    "title": "Enterprise-Level Security",
+    "subtitle": "Your store and data are protected with the highest security standards",
+    "badge": "Security and Reliability",
+    "heading": "Your Business, Protected",
+    "subheading": "Enterprise-level infrastructure with the highest security certifications so you can focus on selling.",
+    "trustIndicators": "Companies trust our security:",
+    "items": {
+      "ssl": {
+        "title": "SSL/TLS Encryption",
+        "description": "All communications protected with military-grade encryption.",
+        "status": "Active"
+      },
+      "pci": {
+        "title": "PCI DSS Certification",
+        "description": "Full compliance with security standards for payment processing.",
+        "status": "Certified"
+      },
+      "backups": {
+        "title": "Automatic Backups",
+        "description": "Daily automatic backups with recovery in less than 4 hours.",
+        "status": "Daily"
+      },
+      "monitoring": {
+        "title": "Continuous Monitoring",
+        "description": "Infrastructure supervision to ensure maximum availability"
+      },
+      "uptime": {
+        "title": "99.9% Uptime",
+        "description": "Redundant infrastructure with availability guarantee.",
+        "status": "SLA"
+      },
+      "audits": {
+        "title": "Security Audits",
+        "description": "Monthly security reviews and penetration testing.",
+        "status": "Monthly"
+      },
+      "gdpr": {
+        "title": "GDPR Compliance",
+        "description": "Compliance with international data protection regulations.",
+        "status": "Compliant"
+      }
+    },
+    "stats": {
+      "uptime": "Guaranteed Uptime",
+      "recovery": "Recovery Time",
+      "encryption": "SSL Encryption",
+      "monitoring": "Security Monitoring"
+    }
+  },
+  "pricing": {
+    "title": "Plans that adapt to your business",
+    "subtitle": "Start free and scale as you grow",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": "$0",
+        "period": "/month",
+        "description": "Perfect to start your online store",
+        "features": [
+          "Up to 100 products",
+          "Basic Wompi integration",
+          "Basic statistics dashboard",
+          "Email support",
+          "SSL included",
+          ".synkro.com domain"
+        ],
+        "cta": "Start Now"
+      },
+      "professional": {
+        "name": "Professional",
+        "price": "$49",
+        "period": "/month",
+        "description": "For growing businesses",
+        "features": [
+          "Unlimited products",
+          "All payment integrations",
+          "Advanced dashboard + analytics",
+          "Complete headless CMS",
+          "Priority support",
+          "Custom domain",
+          "Marketing automation",
+          "Complete API"
+        ],
+        "cta": "Choose Plan"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Custom",
+        "period": "",
+        "description": "Custom solutions for large companies",
+        "features": [
+          "Everything from Professional plan",
+          "Priority support",
+          "Custom integrations",
+          "Guaranteed SLA",
+          "Specialized consulting",
+          "Dedicated infrastructure"
+        ],
+        "cta": "Contact Sales"
+      }
+    }
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "We answer the most common questions about Synkro",
+    "notFound": "Can't find the answer you're looking for?",
+    "contactUs": "Contact us directly",
+    "questions": {
+      "wompi": {
+        "question": "What does the Wompi integration include?",
+        "answer": "Our Wompi integration includes payment processing with credit/debit cards, PSE, Nequi and other popular methods in Colombia. Automatic webhook configuration, payment status handling and automatic reconciliation."
+      },
+      "cms": {
+        "question": "How does the CMS work?",
+        "answer": "Our CMS allows you to create basic pages, blog posts and content for your store visually and easily. Perfect to start without technical complications."
+      },
+      "support": {
+        "question": "What kind of technical support do you offer?",
+        "answer": "We offer email support on all plans, priority chat on the Professional plan, and priority support on the Enterprise plan. We also include complete documentation, video tutorials and monthly webinars."
+      },
+      "customization": {
+        "question": "Can I customize my store design?",
+        "answer": "Yes, we include pre-designed templates and a basic visual editor to customize colors, logos and content. Ideal to start quickly with a professional design."
+      },
+      "security": {
+        "question": "How do you handle security and compliance?",
+        "answer": "We comply with PCI DSS standards for payments, use SSL/TLS encryption, daily automatic backups, and follow security best practices. All data is protected and stored on certified servers."
+      }
+    }
+  },
+  "contact": {
+    "title": "Ready to get started?",
+    "subtitle": "We're available to answer your questions, provide technical support or discuss how Synkro can boost your online business.",
+    "contactInfo": "Contact Information",
+    "phone": "Phone",
+    "email": "Email",
+    "web": "Web",
+    "form": {
+      "firstName": "First Name",
+      "firstNamePlaceholder": "Your first name",
+      "lastName": "Last Name",
+      "lastNamePlaceholder": "Your last name",
+      "nameLabel": "Full name",
+      "emailLabel": "Email",
+      "emailPlaceholder": "your@email.com",
+      "companyLabel": "Company",
+      "companyPlaceholder": "Your company name",
+      "interest": "What interests you?",
+      "selectOption": "Select an option",
+      "options": {
+        "store": "Create an online store",
+        "migrate": "Migrate my current store",
+        "integration": "Integrations with other platforms",
+        "demo": "Request a demo",
+        "support": "Technical support",
+        "other": "Other reason"
+      },
+      "messageLabel": "Message",
+      "messagePlaceholder": "Write your message here...",
+      "submitButton": "Send Message"
+    }
+  },
+  "footer": {
+    "company": {
+      "name": "Synkro",
+      "description": "The all-in-one e-commerce platform designed for the Colombian market. Build, manage, and scale your online store with ease."
+    },
+    "sections": {
+      "platform": {
+        "label": "Platform"
+      },
+      "product": {
+        "label": "Product",
+        "links": {
+          "features": "Features",
+          "pricing": "Pricing",
+          "testimonials": "Testimonials",
+          "integrations": "Integrations"
+        }
+      },
+      "company": {
+        "label": "Company",
+        "links": {
+          "faq": "FAQ",
+          "about": "About Us",
+          "privacy": "Privacy Policy",
+          "terms": "Terms of Service",
+          "contact": "Contact"
+        }
+      },
+      "resources": {
+        "label": "Resources",
+        "links": {
+          "blog": "Blog",
+          "changelog": "Updates",
+          "docs": "Documentation",
+          "support": "Support"
+        }
+      },
+      "social": {
+        "label": "Follow Us",
+        "links": {
+          "facebook": "Facebook",
+          "instagram": "Instagram",
+          "twitter": "Twitter",
+          "linkedin": "LinkedIn"
+        }
+      }
+    },
+    "copyright": "© {year} Synkro. All rights reserved."
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "description": "Sign in to access your panel",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "you@company.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "••••••••",
+      "forgotPassword": "Forgot your password?",
+      "submitButton": "Sign in",
+      "submitting": "Signing in...",
+      "noAccount": "Don't have an account yet?",
+      "registerLink": "Sign up",
+      "backToHome": "Back to home"
+    },
+    "register": {
+      "title": "Create your account",
+      "description": "Start your e-commerce journey with Synkro",
+      "nameLabel": "Full name",
+      "emailLabel": "Email address",
+      "passwordLabel": "Password",
+      "confirmPasswordLabel": "Confirm password",
+      "submitButton": "Create account",
+      "submitting": "Creating account...",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Sign in"
+    },
+    "forgotPassword": {
+      "title": "Forgot password",
+      "description": "Enter your email and we'll send you a reset link",
+      "emailLabel": "Email address",
+      "submitButton": "Send reset link",
+      "submitting": "Sending...",
+      "backToLogin": "Back to login"
+    },
+    "resetPassword": {
+      "title": "Reset password",
+      "description": "Enter your new password",
+      "passwordLabel": "New password",
+      "confirmPasswordLabel": "Confirm new password",
+      "submitButton": "Reset password",
+      "submitting": "Resetting..."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back{name, select, other {, {name}}!}",
+    "subtitle": "Here's a summary of your e-commerce platform status.",
+    "metrics": {
+      "instanceStatus": "Instance Status",
+      "currentPlan": "Current Plan",
+      "pendingInvoices": "Pending Invoices",
+      "resourceUsage": "Resource Usage"
+    },
+    "values": {
+      "active": "Active",
+      "noInstance": "No instance",
+      "noPlan": "No plan",
+      "allPaid": "All paid",
+      "pendingPayment": "Pending payment",
+      "productsUsed": "Products used"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "viewStore": "View my store",
+      "manageInstance": "Manage instance",
+      "viewInvoices": "View invoices",
+      "resourceUsage": "Resource usage"
+    },
+    "subscription": {
+      "title": "Current Plan",
+      "started": "Started",
+      "nextPayment": "Next payment",
+      "manageSubscription": "Manage Subscription"
+    }
+  },
+  "subscription": {
+    "title": "Subscription",
+    "subtitle": "Manage your subscription and billing preferences.",
+    "currentPlan": {
+      "title": "Current Plan",
+      "description": "Your active subscription",
+      "noSubscription": {
+        "title": "No Active Subscription",
+        "description": "Choose a plan below to get started with Synkro."
+      },
+      "started": "Started",
+      "nextPayment": "Next payment",
+      "planFeatures": "Plan Features",
+      "planLimits": "Plan Limits",
+      "products": "Products",
+      "users": "Users",
+      "storage": "GB Storage"
+    },
+    "availablePlans": {
+      "title": "Available Plans",
+      "subtitle": "Upgrade or downgrade your plan at any time.",
+      "subtitleNoSubscription": "Choose the plan that best fits your needs.",
+      "currentPlanBadge": "Current Plan",
+      "upgrade": "Upgrade",
+      "downgrade": "Downgrade",
+      "selectPlan": "Select Plan",
+      "perMonth": "/month",
+      "perYear": "/year",
+      "or": "or",
+      "save20": " (save 20%)",
+      "unlimited": "unlimited",
+      "upTo": "Up to {count} products",
+      "upToUsers": "Up to {count} users",
+      "unlimitedProducts": "Up to unlimited products",
+      "unlimitedUsers": "Up to unlimited users"
+    },
+    "planHistory": {
+      "title": "Plan History",
+      "noHistory": "No plan changes recorded yet.",
+      "priceChanged": "Price changed: {oldPrice} → {newPrice}",
+      "reason": "Reason: {reason}"
+    },
+    "changePlan": {
+      "title": "Change Plan",
+      "description": "Are you sure you want to change to the {planName} plan?",
+      "newPrice": "Your new price will be {price}/month.",
+      "reasonLabel": "Reason for change",
+      "reasonPlaceholder": "e.g. Need more products or users",
+      "cancel": "Cancel",
+      "confirm": "Confirm Change",
+      "applying": "Applying..."
+    }
+  },
+  "billing": {
+    "title": "Billing",
+    "subtitle": "Manage your invoices and payment methods"
+  },
+  "instance": {
+    "title": "Instance",
+    "subtitle": "Manage your e-commerce instance"
+  },
+  "resources": {
+    "title": "Resources",
+    "subtitle": "Monitor your resource usage"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account settings"
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "subtitle": "Global view of clients, instances and Synkro billing.",
+    "dateRange": {
+      "30d": "Last 30 days",
+      "90d": "Last 90 days",
+      "180d": "Last 180 days"
+    },
+    "metrics": {
+      "activeClients": "Active Clients",
+      "totalInstances": "Total Instances",
+      "approximateMRR": "Approximate MRR",
+      "revenue30Days": "Revenue 30 days"
+    },
+    "charts": {
+      "revenue": "Revenue",
+      "clientsFunnel": "Clients Funnel (6 months)",
+      "instancesByPlan": "Instances by Plan"
+    }
+  }
+}

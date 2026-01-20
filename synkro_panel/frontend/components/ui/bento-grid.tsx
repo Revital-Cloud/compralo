@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useTranslations } from 'next-intl';
 import { TrendingUp, ShoppingCart, Settings, LayoutGrid } from "lucide-react";
 
 export interface BentoItem {
@@ -19,54 +20,53 @@ interface BentoGridProps {
   items?: BentoItem[];
 }
 
-const itemsSample: BentoItem[] = [
-  {
-    title: "Panel de Estadísticas Detallado",
-    meta: "En tiempo real",
-    description:
-      "Visualiza ventas, conversiones, productos más vendidos y comportamiento de clientes con dashboards interactivos y reportes exportables.",
-    icon: <TrendingUp className="w-4 h-4 text-synkro-green" />,
-    status: "Activo",
-    tags: ["Analytics", "Reportes", "KPIs"],
-    colSpan: 2,
-    hasPersistentHover: true,
-  },
-  {
-    title: "Gestor de Productos Avanzado",
-    meta: "Carga masiva + SEO",
-    description:
-      "Administra inventario, variantes, precios dinámicos, categorías y optimización SEO automática para cada producto.",
-    icon: <ShoppingCart className="w-4 h-4 text-synkro-green" />,
-    status: "Optimizado",
-    tags: ["Inventario", "SEO", "Catálogo"],
-  },
-  {
-    title: "CMS Headless + Blog Integrado",
-    meta: "API-First",
-    description:
-      "Gestiona contenido, páginas personalizadas, blog para SEO y landing pages sin limitaciones técnicas.",
-    icon: <LayoutGrid className="w-4 h-4 text-synkro-green" />,
-    tags: ["CMS", "Blog", "API"],
-    colSpan: 2,
-  },
-  {
-    title: "Pagos con Wompi",
-    meta: "Pasarela principal",
-    description:
-      "Integración nativa con Wompi para Colombia. Configuración de descuentos, cupones y programas de puntos.",
-    icon: <Settings className="w-4 h-4 text-synkro-green" />,
-    status: "Integrado",
-    tags: ["Wompi", "Pagos", "Descuentos"],
-  },
-];
+function BentoGrid({ items }: BentoGridProps) {
+  const t = useTranslations();
+  
+  const itemsSample: BentoItem[] = [
+    {
+      title: t('features.items.statistics.title'),
+      meta: t('features.items.statistics.meta'),
+      description: t('features.items.statistics.description'),
+      icon: <TrendingUp className="w-4 h-4 text-synkro-green" />,
+      status: t('features.items.statistics.status'),
+      tags: t.raw('features.items.statistics.tags') as string[],
+      colSpan: 2,
+      hasPersistentHover: true,
+    },
+    {
+      title: t('features.items.products.title'),
+      meta: t('features.items.products.meta'),
+      description: t('features.items.products.description'),
+      icon: <ShoppingCart className="w-4 h-4 text-synkro-green" />,
+      status: t('features.items.products.status'),
+      tags: t.raw('features.items.products.tags') as string[],
+    },
+    {
+      title: t('features.items.cms.title'),
+      meta: t('features.items.cms.meta'),
+      description: t('features.items.cms.description'),
+      icon: <LayoutGrid className="w-4 h-4 text-synkro-green" />,
+      tags: t.raw('features.items.cms.tags') as string[],
+      colSpan: 2,
+    },
+    {
+      title: t('features.items.wompi.title'),
+      meta: t('features.items.wompi.meta'),
+      description: t('features.items.wompi.description'),
+      icon: <Settings className="w-4 h-4 text-synkro-green" />,
+      status: t('features.items.wompi.status'),
+      tags: t.raw('features.items.wompi.tags') as string[],
+    },
+  ];
 
-function BentoGrid({ items = itemsSample }: BentoGridProps) {
+  const displayItems = items || itemsSample;
   return (
     <div
       id="features"
       className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 max-w-7xl mx-auto py-20 lg:py-32 bg-white dark:bg-synkro-black overflow-hidden"
     >
-      {items.map((item, index) => (
+      {displayItems.map((item, index) => (
         <div
           key={index}
           className={cn(

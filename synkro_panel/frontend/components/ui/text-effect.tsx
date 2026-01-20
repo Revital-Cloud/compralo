@@ -9,7 +9,7 @@ import {
 } from "framer-motion";
 import React from "react";
 
-type PresetType = "blur-sm" | "shake" | "scale" | "fade" | "slide";
+type PresetType = "blur" | "blur-sm" | "shake" | "scale" | "fade" | "slide";
 
 type TextEffectProps = {
   children: string;
@@ -58,6 +58,14 @@ const presetVariants: Record<
   PresetType,
   { container: Variants; item: Variants }
 > = {
+  "blur-sm": {
+    container: defaultContainerVariants,
+    item: {
+      hidden: { opacity: 0, filter: "blur(4px)" },
+      visible: { opacity: 1, filter: "blur(0px)" },
+      exit: { opacity: 0, filter: "blur(4px)" },
+    },
+  },
   blur: {
     container: defaultContainerVariants,
     item: {

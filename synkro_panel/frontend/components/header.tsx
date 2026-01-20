@@ -7,15 +7,9 @@ import { Menu, X, LogIn, LayoutDashboard, ArrowRight, UserPlus } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeSwitcherButton } from "@/components/ui/theme-switcher-button";
+import { useTranslations } from 'next-intl';
 import { useAuth } from "@/hooks/use-auth";
 import { isAuthenticated } from "@/utils/apiWrapper";
-
-const menuItems = [
-  { name: "Features", href: "#features" },
-  { name: "Security", href: "#security" },
-  { name: "Pricing", href: "#pricing" },
-  { name: "FAQ", href: "#faq" },
-];
 
 const Logo = ({ className }: { className?: string }) => {
   return (
@@ -55,10 +49,18 @@ const Logo = ({ className }: { className?: string }) => {
 };
 
 export const Header = () => {
+  const t = useTranslations();
   const [menuState, setMenuState] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
   const { user, isLoading } = useAuth();
   const isLoggedIn = isAuthenticated() && !!user;
+
+  const menuItems = [
+    { name: t('navigation.menuItems.features'), href: "#features" },
+    { name: t('navigation.menuItems.security'), href: "#security" },
+    { name: t('navigation.menuItems.pricing'), href: "#pricing" },
+    { name: t('navigation.menuItems.faq'), href: "#faq" },
+  ];
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -162,7 +164,7 @@ export const Header = () => {
                   >
                     <Link href="/dashboard">
                       <LayoutDashboard className="mr-2 h-4 w-4" />
-                      <span>Dashboard</span>
+                      <span>{t('dashboard.title')}</span>
                     </Link>
                   </Button>
                 ) : (
@@ -177,7 +179,7 @@ export const Header = () => {
                     >
                       <Link href="/login">
                         <LogIn className="mr-2 h-4 w-4" />
-                        <span>Login</span>
+                        <span>{t('auth.login.submitButton')}</span>
                       </Link>
                     </Button>
 
@@ -189,7 +191,7 @@ export const Header = () => {
                     >
                       <Link href="/register">
                         <UserPlus className="mr-2 h-4 w-4" />
-                        <span>Sign Up</span>
+                        <span>{t('auth.register.submitButton')}</span>
                       </Link>
                     </Button>
                   </>

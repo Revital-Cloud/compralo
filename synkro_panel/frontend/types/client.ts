@@ -2,17 +2,7 @@
  * Client Types
  */
 
-export type IdentificationType =
-  | 'NIT'
-  | 'EIN'
-  | 'RFC'
-  | 'CUIT'
-  | 'RUT'
-  | 'NIF'
-  | 'CIF'
-  | 'CNPJ'
-  | 'RUC'
-  | 'OTRO';
+import type { IdentificationType } from './common';
 
 export type Pais =
   | 'CO'

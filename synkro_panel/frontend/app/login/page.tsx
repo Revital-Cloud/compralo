@@ -15,11 +15,13 @@ import {
   Input,
   Label,
 } from "@/components/ui";
+import { useTranslations } from 'next-intl';
 
 import { useLogin, useAuth } from '@/hooks/use-auth';
 import { isAuthenticated } from '@/utils/apiWrapper';
 
 export default function LoginPage() {
+  const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
@@ -74,7 +76,7 @@ export default function LoginPage() {
         <Button variant="ghost" asChild>
           <Link href="/">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Volver al inicio
+            {t('auth.login.backToHome')}
           </Link>
         </Button>
       </div>
@@ -95,19 +97,19 @@ export default function LoginPage() {
               <span className="text-2xl font-bold text-synkro-green">Synkro</span>
             </div>
           </Link>
-          <CardTitle className="text-xl">Bienvenido de nuevo</CardTitle>
+          <CardTitle className="text-xl">{t('auth.login.title')}</CardTitle>
           <CardDescription>
-            Inicia sesión para acceder a tu panel
+            {t('auth.login.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Correo electrónico</Label>
+              <Label htmlFor="email">{t('auth.login.emailLabel')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@company.com"
+                placeholder={t('auth.login.emailPlaceholder')}
                 value={formData.email}
                 onChange={(e) => setFormData(prev => ({ 
                   ...prev, 
@@ -121,19 +123,19 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Contraseña</Label>
+                <Label htmlFor="password">{t('auth.login.passwordLabel')}</Label>
                 <Link 
                   href="/forgot-password" 
                   className="text-xs text-synkro-green hover:underline"
                 >
-                  ¿Olvidaste tu contraseña?
+                  {t('auth.login.forgotPassword')}
                 </Link>
               </div>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="••••••••"
+                  placeholder={t('auth.login.passwordPlaceholder')}
                   value={formData.password}
                   onChange={(e) => setFormData(prev => ({ 
                     ...prev, 
@@ -164,21 +166,21 @@ export default function LoginPage() {
               {loginMutation.isPending ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Iniciando sesión...
+                  {t('auth.login.submitting')}
                 </>
               ) : (
-              'Iniciar sesión'
+              t('auth.login.submitButton')
               )}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            ¿Aún no tienes una cuenta?{' '}
+            {t('auth.login.noAccount')}{' '}
             <Link 
               href="/register" 
               className="text-synkro-green hover:underline font-medium"
             >
-              Regístrate
+              {t('auth.login.registerLink')}
             </Link>
           </div>
         </CardContent>
@@ -186,7 +188,7 @@ export default function LoginPage() {
 
       {/* Footer */}
       <p className="mt-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Synkro. Todos los derechos reservados.
+        {t('footer.copyright', { year: new Date().getFullYear() })}
       </p>
     </div>
   );

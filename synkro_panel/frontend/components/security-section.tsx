@@ -3,6 +3,7 @@
 import React from "react";
 import { Shield, Lock, Database, Zap, CheckCircle, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useTranslations } from 'next-intl';
 
 interface SecurityFeature {
   icon: React.ReactNode;
@@ -11,57 +12,54 @@ interface SecurityFeature {
   status: string;
 }
 
-const securityFeatures: SecurityFeature[] = [
-  {
-    icon: <Shield className="w-6 h-6 text-synkro-green" />,
-    title: "Certificación PCI DSS",
-    description:
-      "Cumplimiento total con estándares de seguridad para procesamiento de pagos.",
-    status: "Certificado",
-  },
-  {
-    icon: <Lock className="w-6 h-6 text-synkro-green" />,
-    title: "Encriptación SSL/TLS",
-    description:
-      "Todas las comunicaciones protegidas con encriptación de grado militar.",
-    status: "Activo",
-  },
-  {
-    icon: <Database className="w-6 h-6 text-synkro-green" />,
-    title: "Backups Automáticos",
-    description:
-      "Respaldos diarios automáticos con recuperación en menos de 4 horas.",
-    status: "Diario",
-  },
-  {
-    icon: <Zap className="w-6 h-6 text-synkro-green" />,
-    title: "Uptime 99.9%",
-    description: "Infraestructura redundante con garantía de disponibilidad.",
-    status: "SLA",
-  },
-  {
-    icon: <CheckCircle className="w-6 h-6 text-synkro-green" />,
-    title: "Auditorías de Seguridad",
-    description: "Revisiones mensuales de seguridad y pruebas de penetración.",
-    status: "Mensual",
-  },
-  {
-    icon: <Globe className="w-6 h-6 text-synkro-green" />,
-    title: "GDPR Compliance",
-    description:
-      "Cumplimiento con regulaciones de protección de datos internacionales.",
-    status: "Compliant",
-  },
-];
-
-const stats = [
-  { value: "99.9%", label: "Uptime Garantizado" },
-  { value: "<4h", label: "Tiempo de Recuperación" },
-  { value: "256-bit", label: "Encriptación SSL" },
-  { value: "24h", label: "Monitoreo de Seguridad" },
-];
-
 export function SecuritySection() {
+  const t = useTranslations();
+
+  const securityFeatures: SecurityFeature[] = [
+    {
+      icon: <Shield className="w-6 h-6 text-synkro-green" />,
+      title: t('security.items.pci.title'),
+      description: t('security.items.pci.description'),
+      status: t('security.items.pci.status'),
+    },
+    {
+      icon: <Lock className="w-6 h-6 text-synkro-green" />,
+      title: t('security.items.ssl.title'),
+      description: t('security.items.ssl.description'),
+      status: t('security.items.ssl.status'),
+    },
+    {
+      icon: <Database className="w-6 h-6 text-synkro-green" />,
+      title: t('security.items.backups.title'),
+      description: t('security.items.backups.description'),
+      status: t('security.items.backups.status'),
+    },
+    {
+      icon: <Zap className="w-6 h-6 text-synkro-green" />,
+      title: t('security.items.uptime.title'),
+      description: t('security.items.uptime.description'),
+      status: t('security.items.uptime.status'),
+    },
+    {
+      icon: <CheckCircle className="w-6 h-6 text-synkro-green" />,
+      title: t('security.items.audits.title'),
+      description: t('security.items.audits.description'),
+      status: t('security.items.audits.status'),
+    },
+    {
+      icon: <Globe className="w-6 h-6 text-synkro-green" />,
+      title: t('security.items.gdpr.title'),
+      description: t('security.items.gdpr.description'),
+      status: t('security.items.gdpr.status'),
+    },
+  ];
+
+  const stats = [
+    { value: "99.9%", label: t('security.stats.uptime') },
+    { value: "<4h", label: t('security.stats.recovery') },
+    { value: "256-bit", label: t('security.stats.encryption') },
+    { value: "24h", label: t('security.stats.monitoring') },
+  ];
   return (
     <section
       id="security"
@@ -70,14 +68,13 @@ export function SecuritySection() {
       <div className="container mx-auto max-w-7xl px-6">
         <div className="text-center mb-16">
           <Badge variant="synkro" className="mb-4">
-            Seguridad y Confiabilidad
+            {t('security.badge')}
           </Badge>
           <h2 className="text-3xl md:text-5xl font-regular tracking-tighter mb-4 dark:text-white">
-            Tu Negocio, Protegido
+            {t('security.heading')}
           </h2>
           <p className="text-lg text-muted-foreground dark:text-gray-400 max-w-2xl mx-auto">
-            Infraestructura de nivel empresarial con las más altas
-            certificaciones de seguridad para que te enfoques en vender.
+            {t('security.subheading')}
           </p>
         </div>
 
@@ -123,7 +120,7 @@ export function SecuritySection() {
         {/* Trust Indicators */}
         <div className="mt-16 text-center">
           <p className="text-muted-foreground dark:text-gray-400 mb-6">
-            Confían en nuestra seguridad empresas como:
+            {t('security.trustIndicators')}
           </p>
           <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
             <div className="text-2xl font-bold text-gray-400 dark:text-gray-500">
