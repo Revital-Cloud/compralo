@@ -213,29 +213,29 @@ export default function BillingPage() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Billing</h1>
+        <h1 className="text-2xl font-bold">Facturación</h1>
         <p className="text-muted-foreground mt-1">
-          View and manage your invoices and payment history.
+          Consulta y gestiona tus facturas y el historial de pagos.
         </p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <MetricCard
-          title="Total Paid"
+          title="Total pagado"
           value={formatPrice(totalPaid)}
           icon={DollarSign}
           loading={loadingAll}
         />
         <MetricCard
-          title="Pending"
+          title="Pendiente"
           value={formatPrice(totalPending)}
           icon={Clock}
           loading={loadingPending}
           valueClassName={totalPending > 0 ? 'text-amber-600 dark:text-amber-400' : undefined}
         />
         <MetricCard
-          title="Total Invoices"
+          title="Total de facturas"
           value={allInvoices?.length || 0}
           icon={Receipt}
           loading={loadingAll}
@@ -266,20 +266,20 @@ export default function BillingPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
-            Invoices
+            Facturas
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4">
               <TabsTrigger value="all">
-                All ({allInvoices?.length || 0})
+                Todas ({allInvoices?.length || 0})
               </TabsTrigger>
               <TabsTrigger value="pending">
-                Pending ({pendingInvoices?.length || 0})
+                Pendientes ({pendingInvoices?.length || 0})
               </TabsTrigger>
               <TabsTrigger value="paid">
-                Paid ({paidInvoices.length})
+                Pagadas ({paidInvoices.length})
               </TabsTrigger>
             </TabsList>
 
@@ -287,7 +287,7 @@ export default function BillingPage() {
               <InvoicesList 
                 invoices={allInvoices || []}
                 loading={loadingAll}
-                emptyMessage="No invoices found."
+                emptyMessage="No se encontraron facturas."
               />
             </TabsContent>
 
@@ -295,7 +295,7 @@ export default function BillingPage() {
               <InvoicesList 
                 invoices={pendingInvoices || []}
                 loading={loadingPending}
-                emptyMessage="No pending invoices. You're all caught up!"
+                emptyMessage="No tienes facturas pendientes. ¡Estás al día!"
               />
             </TabsContent>
 
@@ -303,7 +303,7 @@ export default function BillingPage() {
               <InvoicesList 
                 invoices={paidInvoices}
                 loading={loadingAll}
-                emptyMessage="No paid invoices yet."
+                emptyMessage="Aún no tienes facturas pagadas."
               />
             </TabsContent>
           </Tabs>

@@ -99,37 +99,37 @@ export default function RegisterPage() {
     const newErrors: Record<string, string> = {};
 
     if (!formData.nom_empresa.trim()) {
-      newErrors.nom_empresa = 'Company name is required';
+      newErrors.nom_empresa = 'El nombre de la empresa es obligatorio';
     }
 
     if (!formData.identificacion_fiscal.trim()) {
-      newErrors.identificacion_fiscal = 'Tax ID is required';
+      newErrors.identificacion_fiscal = 'La identificación fiscal es obligatoria';
     } else if (formData.identificacion_fiscal.length < 5) {
-      newErrors.identificacion_fiscal = 'Tax ID must be at least 5 characters';
+      newErrors.identificacion_fiscal = 'La identificación fiscal debe tener al menos 5 caracteres';
     }
 
     if (!formData.nom_contacto_principal.trim()) {
-      newErrors.nom_contacto_principal = 'Contact name is required';
+      newErrors.nom_contacto_principal = 'El nombre del contacto es obligatorio';
     }
 
     if (!formData.email_contacto_principal.trim()) {
-      newErrors.email_contacto_principal = 'Email is required';
+      newErrors.email_contacto_principal = 'El correo electrónico es obligatorio';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email_contacto_principal)) {
-      newErrors.email_contacto_principal = 'Please enter a valid email';
+      newErrors.email_contacto_principal = 'Ingresa un correo electrónico válido';
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = 'La contraseña es obligatoria';
     } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+      newErrors.password = 'La contraseña debe tener al menos 8 caracteres';
     }
 
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = 'Las contraseñas no coinciden';
     }
 
     if (!acceptTerms) {
-      newErrors.acceptTerms = 'You must accept the terms and conditions';
+      newErrors.acceptTerms = 'Debes aceptar los términos y condiciones';
     }
 
     setErrors(newErrors);
@@ -172,7 +172,7 @@ export default function RegisterPage() {
         <Button variant="ghost" asChild>
           <Link href="/">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
+            Volver al inicio
           </Link>
         </Button>
       </div>
@@ -193,9 +193,9 @@ export default function RegisterPage() {
               <span className="text-2xl font-bold text-synkro-green">Synkro</span>
             </div>
           </Link>
-          <CardTitle className="text-xl">Create your account</CardTitle>
+          <CardTitle className="text-xl">Crea tu cuenta</CardTitle>
           <CardDescription>
-            Start your e-commerce journey with Synkro
+            Comienza tu experiencia e‑commerce con Synkro
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -204,13 +204,13 @@ export default function RegisterPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <Building2 className="h-4 w-4" />
-                Company Information
+                Información de la empresa
               </div>
               
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="nom_empresa">
-                    Company Name <span className="text-red-500">*</span>
+                    Nombre de la empresa <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="nom_empresa"
@@ -227,7 +227,7 @@ export default function RegisterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="identificacion_fiscal">
-                    Tax ID <span className="text-red-500">*</span>
+                    NIT / Identificación fiscal <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="identificacion_fiscal"
@@ -243,7 +243,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="tipo_identificacion">ID Type</Label>
+                  <Label htmlFor="tipo_identificacion">Tipo de identificación</Label>
                   <Select
                     value={formData.tipo_identificacion}
                     onValueChange={(value) => updateField('tipo_identificacion', value)}
@@ -263,7 +263,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="pais">Country</Label>
+                  <Label htmlFor="pais">País</Label>
                   <Select
                     value={formData.pais}
                     onValueChange={(value) => updateField('pais', value)}
@@ -283,7 +283,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="ciudad">City</Label>
+                  <Label htmlFor="ciudad">Ciudad</Label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -303,13 +303,13 @@ export default function RegisterPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <User className="h-4 w-4" />
-                Contact Information
+                Información de contacto
               </div>
               
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="nom_contacto_principal">
-                    Contact Name <span className="text-red-500">*</span>
+                    Nombre del contacto <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="nom_contacto_principal"
@@ -325,7 +325,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="telefono_contacto">Phone</Label>
+                  <Label htmlFor="telefono_contacto">Teléfono</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -342,7 +342,7 @@ export default function RegisterPage() {
 
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="email_contacto_principal">
-                    Email <span className="text-red-500">*</span>
+                    Correo electrónico <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -368,13 +368,13 @@ export default function RegisterPage() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <Lock className="h-4 w-4" />
-                Account Security
+                Seguridad de la cuenta
               </div>
               
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="password">
-                    Password <span className="text-red-500">*</span>
+                    Contraseña <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
                     <Input
@@ -403,13 +403,13 @@ export default function RegisterPage() {
                     <p className="text-xs text-red-500">{errors.password}</p>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    Minimum 8 characters
+                    Mínimo 8 caracteres
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">
-                    Confirm Password <span className="text-red-500">*</span>
+                    Confirmar contraseña <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
                     <Input
@@ -468,13 +468,13 @@ export default function RegisterPage() {
                   </div>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  I agree to the{' '}
+                  Acepto los{' '}
                   <Link href="/terms" className="text-synkro-green hover:underline">
-                    Terms of Service
+                    Términos y Condiciones
                   </Link>{' '}
-                  and{' '}
+                  y la{' '}
                   <Link href="/privacy" className="text-synkro-green hover:underline">
-                    Privacy Policy
+                    Política de Privacidad
                   </Link>
                 </span>
               </label>
@@ -492,21 +492,21 @@ export default function RegisterPage() {
               {registerMutation.isPending ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Creating account...
+                  Creando cuenta...
                 </>
               ) : (
-                'Create Account'
+                'Crear cuenta'
               )}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
+            ¿Ya tienes una cuenta?{' '}
             <Link 
               href="/login" 
               className="text-synkro-green hover:underline font-medium"
             >
-              Sign in
+              Inicia sesión
             </Link>
           </div>
         </CardContent>
@@ -514,7 +514,7 @@ export default function RegisterPage() {
 
       {/* Footer */}
       <p className="mt-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Synkro. All rights reserved.
+        © {new Date().getFullYear()} Synkro. Todos los derechos reservados.
       </p>
     </div>
   );

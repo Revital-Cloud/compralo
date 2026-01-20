@@ -7,7 +7,7 @@ de clientes a planes.
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import Optional, List
+from typing import Optional, List, Literal
 
 from schemas.suscripcion_schema import SuscripcionCreate, SuscripcionUpdate
 
@@ -218,3 +218,49 @@ def get_suscripciones_activas(db: Session, identificacion_fiscal_cliente: str = 
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener suscripciones activas: {str(e)}")
+
+
+def cambiar_plan_suscripcion(
+    db: Session,
+    id_suscripcion: Decimal,
+    id_plan_nuevo: Decimal,
+    usuario_email: str,
+    motivo_cambio: Optional[str] = None,
+    tipo_cambio: Literal["upgrade", "downgrade", "lateral"] = "lateral",
+) -> dict:
+    """
+    Cambia el plan de una suscripción existente llamando a la función SQL dedicada.
+
+    Esta función se apoya en la lógica de la base de datos para:
+    - Validar límites del plan actual vs nuevo.
+    - Calcular prorrateos y fechas efectivas.
+    - Registrar el historial de cambio de plan.
+    """
+    try:
+        query = text("""
+            SELECT fun_cambiar_plan_suscripcion(
+                :id_suscripcion,
+                :id_plan_nuevo,
+                :usuario_email,
+                :motivo_cambio,
+                :tipo_cambio::enum_tipo_cambio
+            )
+        """)
+
+        params = {
+            "id_suscripcion": id_suscripcion,
+            "id_plan_nuevo": id_plan_nuevo,
+            "usuario_email": usuario_email,
+            "motivo_cambio": motivo_cambio,
+            "tipo_cambio": tipo_cambio,
+        }
+
+        result = db.execute(query, params)
+        fetched_result = result.fetchone()
+        db.commit()
+
+        return fetched_result[0] if fetched_result else None
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al cambiar plan de suscripción: {str(e)}")
+

@@ -3,14 +3,20 @@
  */
 
 import { get, post, put } from '@/utils/apiWrapper';
-import type { SubscriptionPublic, SubscriptionCreate, SubscriptionUpdate, ResponseMessage } from '@/types';
+import type {
+  SubscriptionPublic,
+  SubscriptionCreate,
+  SubscriptionUpdate,
+  ActiveSubscriptionWithPlan,
+  ResponseMessage,
+} from '@/types';
 
 export async function getSubscriptions(): Promise<SubscriptionPublic[]> {
   return await get<SubscriptionPublic[]>('/suscripciones');
 }
 
-export async function getActiveSubscriptions(): Promise<any[]> {
-  return await get<any[]>('/suscripciones/activas');
+export async function getActiveSubscriptions(): Promise<ActiveSubscriptionWithPlan[]> {
+  return await get<ActiveSubscriptionWithPlan[]>('/suscripciones/activas');
 }
 
 export async function getSubscription(idSubscription: number | string): Promise<SubscriptionPublic> {
@@ -32,6 +38,26 @@ export async function cancelSubscription(idSubscription: number | string, motivo
   } as SubscriptionUpdate);
 }
 
+export async function changeSubscriptionPlan(
+  idSubscription: number | string,
+  idPlanNuevo: number | string,
+  tipoCambio: 'upgrade' | 'downgrade' | 'lateral',
+  motivo?: string,
+): Promise<ResponseMessage> {
+  const params = new URLSearchParams({
+    id_plan_nuevo: String(idPlanNuevo),
+    tipo_cambio: tipoCambio,
+  });
+  if (motivo) {
+    params.append('motivo_cambio', motivo);
+  }
+
+  return await post<ResponseMessage>(
+    `/suscripciones/${idSubscription}/cambiar-plan?${params.toString()}`,
+    {},
+  );
+}
+
 const subscriptionService = {
   getSubscriptions,
   getActiveSubscriptions,
@@ -39,6 +65,7 @@ const subscriptionService = {
   createSubscription,
   updateSubscription,
   cancelSubscription,
+  changeSubscriptionPlan,
 };
 
 export default subscriptionService;

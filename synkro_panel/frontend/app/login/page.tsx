@@ -74,7 +74,7 @@ export default function LoginPage() {
         <Button variant="ghost" asChild>
           <Link href="/">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
+            Volver al inicio
           </Link>
         </Button>
       </div>
@@ -95,15 +95,15 @@ export default function LoginPage() {
               <span className="text-2xl font-bold text-synkro-green">Synkro</span>
             </div>
           </Link>
-          <CardTitle className="text-xl">Welcome back</CardTitle>
+          <CardTitle className="text-xl">Bienvenido de nuevo</CardTitle>
           <CardDescription>
-            Sign in to access your dashboard
+            Inicia sesión para acceder a tu panel
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Correo electrónico</Label>
               <Input
                 id="email"
                 type="email"
@@ -121,12 +121,12 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">Contraseña</Label>
                 <Link 
                   href="/forgot-password" 
                   className="text-xs text-synkro-green hover:underline"
                 >
-                  Forgot password?
+                  ¿Olvidaste tu contraseña?
                 </Link>
               </div>
               <div className="relative">
@@ -164,21 +164,21 @@ export default function LoginPage() {
               {loginMutation.isPending ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
+                  Iniciando sesión...
                 </>
               ) : (
-                'Sign in'
+              'Iniciar sesión'
               )}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
+            ¿Aún no tienes una cuenta?{' '}
             <Link 
               href="/register" 
               className="text-synkro-green hover:underline font-medium"
             >
-              Sign up
+              Regístrate
             </Link>
           </div>
         </CardContent>
@@ -186,7 +186,7 @@ export default function LoginPage() {
 
       {/* Footer */}
       <p className="mt-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Synkro. All rights reserved.
+        © {new Date().getFullYear()} Synkro. Todos los derechos reservados.
       </p>
     </div>
   );

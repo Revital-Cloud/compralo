@@ -61,3 +61,10 @@ export interface SubscriptionPublic {
   fecha_cancelacion?: string | null;
   motivo_cancelacion?: string | null;
 }
+
+export interface ActiveSubscriptionWithPlan extends SubscriptionPublic {
+  nom_plan: string;
+  max_productos?: number | string | null;
+  max_usuarios?: number | string | null;
+  max_almacenamiento_gb?: number | string | null;
+}

@@ -5,7 +5,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import billingService from '@/services/billing.service';
-import type { InvoicePublic, InvoiceWithDetails, InvoiceHeaderCreate, InvoiceHeaderUpdate } from '@/types';
+import type {
+  InvoicePublic,
+  InvoiceWithDetails,
+  InvoiceHeaderCreate,
+  InvoiceHeaderUpdate,
+  InvoicePending,
+} from '@/types';
 
 export const BILLING_KEYS = {
   all: ['billing'] as const,
@@ -27,7 +33,7 @@ export function useInvoices() {
 export function usePendingInvoices() {
   return useQuery({
     queryKey: BILLING_KEYS.pending(),
-    queryFn: () => billingService.getPendingInvoices(),
+    queryFn: (): Promise<InvoicePending[]> => billingService.getPendingInvoices(),
     staleTime: 5 * 60 * 1000,
   });
 }

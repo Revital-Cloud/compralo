@@ -15,7 +15,7 @@ import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { useInstances } from '@/hooks/use-instances';
 import { useActiveSubscriptions } from '@/hooks/use-subscriptions';
-import { useResourceUsage } from '@/hooks/use-resource-usage';
+import { useLatestResourceUsage } from '@/hooks/use-resource-usage';
 import { usePendingInvoices } from '@/hooks/use-billing';
 import { usePlan } from '@/hooks/use-planes';
 
@@ -187,13 +187,10 @@ export default function DashboardPage() {
   // Get plan details for the subscription
   const { data: plan, isLoading: loadingPlan } = usePlan(activeSubscription?.id_plan || '');
   
-  // Get resource usage for the instance
-  const { data: resourceUsage, isLoading: loadingResources } = useResourceUsage(
-    instance?.id_instancia
+  // Get latest resource usage for the instance (optimized endpoint)
+  const { data: latestResourceUsage, isLoading: loadingResources } = useLatestResourceUsage(
+    instance?.id_instancia ?? ''
   );
-  
-  // Get latest resource usage
-  const latestResourceUsage = resourceUsage && resourceUsage.length > 0 ? resourceUsage[0] : null;
   
   // Calculate metrics
   const pendingInvoicesCount = pendingInvoices?.length || 0;
@@ -207,42 +204,42 @@ export default function DashboardPage() {
       {/* Welcome Header */}
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          Welcome back{user?.nombre ? `, ${user.nombre}` : ''}!
+          Bienvenido de nuevo{user?.nombre ? `, ${user.nombre}` : ''}!
         </h1>
         <p className="text-muted-foreground mt-1">
-          Here&apos;s an overview of your e-commerce platform.
+          Aquí tienes un resumen del estado de tu plataforma e‑commerce.
         </p>
       </div>
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Instance Status"
-          value={instance ? 'Active' : 'No Instance'}
+          title="Estado de la instancia"
+          value={instance ? 'Activa' : 'Sin instancia'}
           icon={Server}
           loading={loadingInstances}
           valueClassName={instance?.estado_instancia === 'activa' ? 'text-green-600 dark:text-green-400' : undefined}
         />
         <MetricCard
-          title="Current Plan"
-          value={plan?.nom_plan || 'No Plan'}
+          title="Plan actual"
+          value={plan?.nom_plan || 'Sin plan'}
           icon={CreditCard}
           loading={loadingSubscriptions || loadingPlan}
         />
         <MetricCard
-          title="Pending Invoices"
+          title="Facturas pendientes"
           value={pendingInvoicesCount}
-          description={pendingInvoicesCount > 0 ? 'Awaiting payment' : 'All paid'}
+          description={pendingInvoicesCount > 0 ? 'Pendiente de pago' : 'Todo pagado'}
           icon={Receipt}
           loading={loadingInvoices}
           valueClassName={pendingInvoicesCount > 0 ? 'text-amber-600 dark:text-amber-400' : undefined}
         />
         <MetricCard
-          title="Resource Usage"
+          title="Uso de recursos"
           value={latestResourceUsage 
             ? `${latestResourceUsage.porcentaje_uso_productos || 0}%` 
             : 'N/A'}
-          description="Products used"
+          description="Productos usados"
           icon={BarChart3}
           loading={loadingResources}
         />

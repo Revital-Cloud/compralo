@@ -5,7 +5,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import subscriptionService from '@/services/subscription.service';
-import type { SubscriptionPublic, SubscriptionCreate, SubscriptionUpdate } from '@/types';
+import type {
+  SubscriptionPublic,
+  SubscriptionCreate,
+  SubscriptionUpdate,
+  ActiveSubscriptionWithPlan,
+} from '@/types';
 
 export const SUBSCRIPTION_KEYS = {
   all: ['subscriptions'] as const,
@@ -27,7 +32,7 @@ export function useSubscriptions() {
 export function useActiveSubscriptions() {
   return useQuery({
     queryKey: SUBSCRIPTION_KEYS.active(),
-    queryFn: () => subscriptionService.getActiveSubscriptions(),
+    queryFn: (): Promise<ActiveSubscriptionWithPlan[]> => subscriptionService.getActiveSubscriptions(),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -90,6 +95,42 @@ export function useCancelSubscription() {
     },
     onError: (error: any) => {
       const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al cancelar suscripción';
+      toast.error(message);
+    },
+  });
+}
+
+export function useChangeSubscriptionPlan() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      idSubscription,
+      idPlanNuevo,
+      tipoCambio,
+      motivo,
+    }: {
+      idSubscription: number | string;
+      idPlanNuevo: number | string;
+      tipoCambio: 'upgrade' | 'downgrade' | 'lateral';
+      motivo?: string;
+    }) =>
+      subscriptionService.changeSubscriptionPlan(
+        idSubscription,
+        idPlanNuevo,
+        tipoCambio,
+        motivo,
+      ),
+    onSuccess: () => {
+      toast.success('Subscription plan updated successfully');
+      queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.active() });
+    },
+    onError: (error: any) => {
+      const message =
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        'Error updating subscription plan';
       toast.error(message);
     },
   });

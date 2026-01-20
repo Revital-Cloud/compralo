@@ -29,7 +29,7 @@ The symlinks created are local to each developer and are not versioned in git. A
 You can also install Vercel's React Best Practices globally (recommended):
 
 ```bash
-npx add-skill vercel-labs/agent-skills --skill vercel-react-best-practices --skill web-design-guidelines -a cursor
+npx add-skill vercel-labs/agent-skills
 ```
 
 This installs skills globally (`~/.cursor/skills/`) that complement our project-specific skills. See [skills/SKILLS_INTEGRATION.md](./skills/SKILLS_INTEGRATION.md) for details.

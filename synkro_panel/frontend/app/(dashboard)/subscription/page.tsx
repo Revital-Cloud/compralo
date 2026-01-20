@@ -27,7 +27,7 @@ import {
   DialogFooter,
 } from "@/components/ui";
 
-import { useActiveSubscriptions } from '@/hooks/use-subscriptions';
+import { useActiveSubscriptions, useChangeSubscriptionPlan } from '@/hooks/use-subscriptions';
 import { usePlans, usePlan } from '@/hooks/use-planes';
 import { usePlanHistory } from '@/hooks/use-plan-history';
 import { StatusBadge } from '@/components/dashboard';
@@ -332,6 +332,7 @@ function PlanHistoryTimeline({
 export default function SubscriptionPage() {
   const [selectedPlan, setSelectedPlan] = useState<PlanPublic | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [changeReason, setChangeReason] = useState('');
 
   const { data: subscriptions, isLoading: loadingSubscription } = useActiveSubscriptions();
   const { data: plans, isLoading: loadingPlans } = usePlans(true);
@@ -354,14 +355,42 @@ export default function SubscriptionPage() {
 
   const handlePlanSelect = (plan: PlanPublic) => {
     setSelectedPlan(plan);
+    setChangeReason('');
     setShowConfirmDialog(true);
   };
 
   const handleConfirmChange = () => {
-    // TODO: Implement plan change mutation
-    console.log('Changing to plan:', selectedPlan);
-    setShowConfirmDialog(false);
-    setSelectedPlan(null);
+    if (!selectedPlan || !activeSubscription) {
+      return;
+    }
+
+    const selectedPrice =
+      typeof selectedPlan.precio_mensual === 'string'
+        ? parseFloat(selectedPlan.precio_mensual)
+        : selectedPlan.precio_mensual;
+
+    const tipoCambio: 'upgrade' | 'downgrade' | 'lateral' =
+      currentPlanPrice === undefined || selectedPrice === currentPlanPrice
+        ? 'lateral'
+        : selectedPrice > (currentPlanPrice ?? 0)
+          ? 'upgrade'
+          : 'downgrade';
+
+    changePlanMutation.mutate(
+      {
+        idSubscription: activeSubscription.id_suscripcion,
+        idPlanNuevo: selectedPlan.id_plan,
+        tipoCambio,
+        motivo: changeReason || undefined,
+      },
+      {
+        onSuccess: () => {
+          setShowConfirmDialog(false);
+          setSelectedPlan(null);
+          setChangeReason('');
+        },
+      },
+    );
   };
 
   return (
@@ -442,12 +471,31 @@ export default function SubscriptionPage() {
               )}
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="reason" className="text-sm">
+              Reason for change <span className="text-xs text-muted-foreground">(optional)</span>
+            </Label>
+            <Input
+              id="reason"
+              placeholder="e.g. Need more products or users"
+              value={changeReason}
+              onChange={(e) => setChangeReason(e.target.value)}
+              disabled={changePlanMutation.isPending}
+            />
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleConfirmChange}>
-              Confirm Change
+            <Button onClick={handleConfirmChange} disabled={changePlanMutation.isPending || !selectedPlan}>
+              {changePlanMutation.isPending ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Applying...
+                </>
+              ) : (
+                'Confirm Change'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

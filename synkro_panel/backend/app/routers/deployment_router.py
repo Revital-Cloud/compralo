@@ -30,7 +30,7 @@ def get_deployments(
     Clientes solo ven deployments de sus instancias.
     """
     if current_user.user_type == "cliente":
-        # Verificar que la instancia pertenece al cliente
+        # Para clientes, siempre filtrar por sus propias instancias.
         if id_instancia:
             instancia = instancia_service.get_instancia(db, id_instancia)
             if not instancia or instancia.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
@@ -39,12 +39,11 @@ def get_deployments(
                     detail="No tienes permisos para ver estos deployments"
                 )
         else:
-            # Si no se especifica instancia, obtener solo de sus instancias
+            # Si no se especifica instancia, obtener el ID de su primera instancia (si existe)
             instancias = instancia_service.get_instancias(db, current_user.identificacion_fiscal)
             if not instancias:
                 return []
-            # Por simplicidad, retornamos vacio si no especifica instancia
-            return []
+            id_instancia = instancias[0].get("id_instancia")
     
     deployments = deployment_service.get_deployments(db, id_instancia)
     return [DeploymentPublic(**dict(d)) for d in deployments]

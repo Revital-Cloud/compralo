@@ -4,7 +4,7 @@ Router de Suscripciones.
 Define los endpoints CRUD para la gestion de suscripciones.
 """
 from decimal import Decimal
-from typing import List
+from typing import List, Optional, Literal
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -165,3 +165,69 @@ def delete_suscripcion(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=result.get("message", "Error al eliminar suscripcion") if result else "Error al eliminar suscripcion"
         )
+
+
+@router.post("/{id_suscripcion}/cambiar-plan", response_model=ResponseMessage)
+def cambiar_plan(
+    id_suscripcion: Decimal,
+    id_plan_nuevo: Decimal,
+    motivo_cambio: Optional[str] = None,
+    tipo_cambio: Literal["upgrade", "downgrade", "lateral"] = "lateral",
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user),
+):
+    """
+    Cambia el plan de una suscripción existente.
+
+    - Los clientes solo pueden cambiar sus propias suscripciones activas.
+    - Los admins de Synkro pueden cambiar cualquier suscripción.
+    - La lógica de validación de límites y prorrateos vive en la base de datos.
+    """
+    suscripcion = suscripcion_service.get_suscripcion(db, id_suscripcion)
+    if not suscripcion:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Suscripcion no encontrada",
+        )
+
+    # Verificar permisos de acceso
+    if current_user.user_type == "cliente" and suscripcion.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permisos para modificar esta suscripcion",
+        )
+
+    # Solo suscripciones activas pueden cambiar de plan
+    if suscripcion.get("estado_suscripcion") != "activa":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Solo las suscripciones activas pueden cambiar de plan",
+        )
+
+    try:
+        result = suscripcion_service.cambiar_plan_suscripcion(
+            db=db,
+            id_suscripcion=id_suscripcion,
+            id_plan_nuevo=id_plan_nuevo,
+            usuario_email=current_user.email,
+            motivo_cambio=motivo_cambio,
+            tipo_cambio=tipo_cambio,
+        )
+    except Exception as exc:
+        # Normalizar errores de dominio a HTTP 400
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+    if result and result.get("success"):
+        return ResponseMessage(
+            message=result.get("message", "Plan de suscripcion actualizado correctamente"),
+            success=True,
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=result.get("message", "Error al cambiar plan de suscripcion") if result else "Error al cambiar plan de suscripcion",
+    )
+

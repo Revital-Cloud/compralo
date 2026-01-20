@@ -38,7 +38,11 @@ def get_dominios(
                     detail="No tienes permisos para ver estos dominios"
                 )
         else:
-            return []
+            # Si no se especifica instancia, tomar la primera instancia del cliente (si existe)
+            instancias = instancia_service.get_instancias(db, current_user.identificacion_fiscal)
+            if not instancias:
+                return []
+            id_instancia = instancias[0].get("id_instancia")
     
     dominios = dominio_service.get_dominios(db, id_instancia)
     return [DominioPublic(**dict(d)) for d in dominios]

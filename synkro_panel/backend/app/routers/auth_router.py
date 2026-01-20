@@ -28,6 +28,8 @@ router = APIRouter(prefix="/api/auth", tags=["Autenticación"])
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("10/minute")
+@limiter.limit("100/hour")
 def login(
     login_data: LoginRequest,
     db: Session = Depends(get_db)
@@ -184,6 +186,8 @@ def verify_token(
 
 
 @router.post("/forgot-password", response_model=ResponseMessage)
+@limiter.limit("5/minute")
+@limiter.limit("20/hour")
 def forgot_password(
     reset_data: ResetPasswordRequest,
     db: Session = Depends(get_db)
@@ -198,8 +202,8 @@ def forgot_password(
     Returns:
         ResponseMessage: Mensaje de confirmación (siempre éxito por seguridad)
     """
-    # TODO: Implementar envío de email con token de reset
-    # Por ahora retornamos éxito sin hacer nada por seguridad
+    # La lógica interna no revela si el email existe o no
+    auth_service.request_password_reset(db, reset_data.email)
     return ResponseMessage(
         message="Si el email existe, recibirás instrucciones para resetear tu contraseña",
         success=True
@@ -207,6 +211,8 @@ def forgot_password(
 
 
 @router.post("/reset-password", response_model=ResponseMessage)
+@limiter.limit("5/minute")
+@limiter.limit("20/hour")
 def reset_password(
     reset_confirm: ResetPasswordConfirm,
     db: Session = Depends(get_db)
@@ -220,9 +226,8 @@ def reset_password(
     Returns:
         ResponseMessage: Mensaje de confirmación
     """
-    # TODO: Implementar lógica de reset de contraseña
-    # Por ahora retornamos error no implementado
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Funcionalidad de reset de contraseña pendiente de implementar"
+    auth_service.reset_password(db, reset_confirm.token, reset_confirm.new_password)
+    return ResponseMessage(
+        message="Contraseña actualizada correctamente",
+        success=True,
     )
