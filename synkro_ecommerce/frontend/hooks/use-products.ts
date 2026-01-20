@@ -132,6 +132,29 @@ export function useDeleteProduct() {
   });
 }
 
+export function useDeactivateActivateProduct() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ params, activar }: { params: { id_categoria: number; id_linea: number; id_sublinea: number; id_producto: number }; activar: boolean }) => {
+      const result = await productService.deactivateActivateProduct(params, activar);
+      if (!result || (result as any).message === undefined) {
+        throw new Error('No se recibió confirmación del servidor');
+      }
+      return result;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.admin() });
+      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
+      toast.success(variables.activar ? 'Producto activado exitosamente' : 'Producto desactivado exitosamente');
+    },
+    onError: (error: any, variables) => {
+      console.error(`Error al ${variables.activar ? 'activar' : 'desactivar'} producto:`, error);
+      const errorMessage = error?.response?.data?.detail || error?.message || `Error al ${variables.activar ? 'activar' : 'desactivar'} el producto`;
+      toast.error(errorMessage);
+    },
+  });
+}
+
 export function useDeactivateProduct() {
   const queryClient = useQueryClient();
   return useMutation({

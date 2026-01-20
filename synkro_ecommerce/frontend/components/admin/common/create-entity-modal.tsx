@@ -17,7 +17,12 @@ type EntityType = 'category' | 'brand' | 'provider' | 'line' | 'subline'
 const schemas: Record<EntityType, z.ZodSchema<any>> = {
   category: z.object({ nom_categoria: z.string().min(2, 'Requerido'), ind_activo: z.boolean().optional().default(true) }),
   brand: z.object({ nom_marca: z.string().min(2, 'Requerido'), ind_activo: z.boolean().optional().default(true) }),
-  provider: z.object({ nom_proveedor: z.string().min(2, 'Requerido'), ind_activo: z.boolean().optional().default(true) }),
+  provider: z.object({ 
+    nom_proveedor: z.string().min(2, 'Requerido'), 
+    email: z.string().email('Email inválido').min(1, 'Requerido'),
+    tel_proveedor: z.coerce.number({ message: 'Teléfono requerido' }).positive('Teléfono debe ser positivo'),
+    ind_activo: z.boolean().optional().default(true) 
+  }),
   line: z.object({ id_categoria: z.coerce.number({ message: 'Seleccione una categoría' }).positive(), nom_linea: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
   subline: z.object({ id_categoria: z.coerce.number({ message: 'Seleccione una categoría' }).positive(), id_linea: z.coerce.number({ message: 'Seleccione una línea' }).positive(), nom_sublinea: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
 }
@@ -77,10 +82,37 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({ open, onOp
           )}
 
           {type === 'provider' && (
+            <>
             <div className="space-y-2">
-              <Label>Nombre</Label>
+                <Label>Nombre *</Label>
               <Input {...form.register('nom_proveedor')} placeholder="Ej. Importaciones XYZ" />
+                {form.formState.errors.nom_proveedor && (
+                  <p className="text-xs text-red-600">{form.formState.errors.nom_proveedor.message as string}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Email *</Label>
+                <Input 
+                  type="email" 
+                  {...form.register('email')} 
+                  placeholder="Ej. contacto@importacionesxyz.com" 
+                />
+                {form.formState.errors.email && (
+                  <p className="text-xs text-red-600">{form.formState.errors.email.message as string}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Teléfono *</Label>
+                <Input 
+                  type="tel" 
+                  {...form.register('tel_proveedor')} 
+                  placeholder="Ej. 3001234567" 
+                />
+                {form.formState.errors.tel_proveedor && (
+                  <p className="text-xs text-red-600">{form.formState.errors.tel_proveedor.message as string}</p>
+                )}
             </div>
+            </>
           )}
 
           {type === 'line' && (

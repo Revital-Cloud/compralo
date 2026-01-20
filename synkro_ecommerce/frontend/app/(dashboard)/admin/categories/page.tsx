@@ -3,7 +3,7 @@
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { EmptyState } from '@/components/admin/empty-states'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getAllCategories, updateCategory, deactivateCategory } from '@/services/category.service'
+import { getAllCategories, updateCategory, deactivateActivateCategory } from '@/services/category.service'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Button } from "@/components/ui"
@@ -14,6 +14,7 @@ import { EditEntityModal } from '@/components/admin/common/edit-entity-modal'
 import { useMemo, useState } from 'react'
 import { CategoriesFilters } from '@/components/admin/categories/categories-filters'
 import type { Category } from '@/types/category'
+import { toast } from 'sonner'
 
 const CategoriesPage = () => {
   const queryClient = useQueryClient()
@@ -55,14 +56,25 @@ const CategoriesPage = () => {
     return rows
   }, [data, search, sortBy, sortOrder])
 
-  const deactivateMutation = useMutation({
-    mutationFn: (id_categoria: number) => deactivateCategory(id_categoria),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categories', 'all'] }),
-  })
-
-  const activateMutation = useMutation({
-    mutationFn: (id_categoria: number) => updateCategory(id_categoria, { ind_activo: true }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['categories', 'all'] }),
+  const deactivateActivateCategoryMutation = useMutation({
+    mutationFn: async ({ id_categoria, activar }: { id_categoria: number; activar: boolean }) => {
+      const { deactivateActivateCategory } = await import('@/services/category.service')
+      const result = await deactivateActivateCategory(id_categoria, activar)
+      // Verificar que realmente se cambió el estado
+      if (!result || (result as any).message === undefined) {
+        throw new Error('No se recibió confirmación del servidor')
+      }
+      return result
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['categories', 'all'] })
+      toast.success(variables.activar ? 'Categoría activada exitosamente' : 'Categoría desactivada exitosamente')
+    },
+    onError: (error: any, variables) => {
+      console.error(`Error al ${variables.activar ? 'activar' : 'desactivar'} categoría:`, error)
+      const errorMessage = error?.response?.data?.detail || error?.message || `Error al ${variables.activar ? 'activar' : 'desactivar'} la categoría`
+      toast.error(errorMessage)
+    },
   })
 
   const [openCreate, setOpenCreate] = useState(false)
@@ -103,32 +115,35 @@ const CategoriesPage = () => {
     {
       id: 'actions',
       header: 'Acciones',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" aria-label="Editar categoría" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
-            <Pencil className="w-4 h-4" />
-          </Button>
-          {row.original.ind_activo ? (
+      cell: ({ row }) => {
+        const isActive = Boolean(row.original.ind_activo)
+        const isPending = deactivateActivateCategoryMutation.isPending
+        
+        return (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" aria-label="Editar categoría" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
+              <Pencil className="w-4 h-4" />
+            </Button>
             <Button
-              variant="destructive"
+              variant={isActive ? "default" : "destructive"}
               size="icon"
-              aria-label="Desactivar"
-              onClick={() => deactivateMutation.mutate(row.original.id_categoria as unknown as number)}
+              aria-label={isActive ? "Desactivar" : "Activar"}
+              onClick={() => {
+                const id = Number(row.original.id_categoria)
+                if (isNaN(id)) {
+                  toast.error('ID de categoría inválido')
+                  return
+                }
+                deactivateActivateCategoryMutation.mutate({ id_categoria: id, activar: !isActive })
+              }}
+              disabled={isPending}
+              className={isActive ? "bg-green-600 hover:bg-green-700 text-white" : ""}
             >
               <Power className="w-4 h-4" />
             </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              size="icon"
-              aria-label="Activar"
-              onClick={() => activateMutation.mutate(row.original.id_categoria as unknown as number)}
-            >
-              <Power className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-      ),
+          </div>
+        )
+      },
     },
   ]
 

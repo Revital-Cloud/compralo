@@ -6,7 +6,7 @@ from core.dependencies import get_current_user
 from schemas.auth_schema import UserInToken
 
 # Importar los esquemas de líneas
-from schemas.lines_schema import LineCreate, LineUpdate, Line, ResponseMessage
+from schemas.lines_schema import LineCreate, LineUpdate, Line, ResponseMessage, ToggleRequest
 
 from services import lines_service
 
@@ -120,7 +120,37 @@ async def update_line(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Error al actualizar la línea: {str(e)}")
 
-# Ruta para desactivar una línea existente
+# Ruta para activar/desactivar una línea existente
+@router.put("/lines/{id_categoria}-{id_linea}/toggle", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def toggle_line(
+    id_categoria: Decimal,
+    id_linea: Decimal,
+    toggle_data: ToggleRequest = Body(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    activar = toggle_data.activar
+    """
+    Activa o desactiva una línea existente en la base de datos.
+    Aplica cascada a sublíneas, productos y comentarios relacionados.
+
+    Args:
+        id_categoria (Decimal): ID de la categoría a la que pertenece la línea.
+        id_linea (Decimal): ID de la línea a activar/desactivar.
+        activar (bool): True para activar, False para desactivar.
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+
+    Returns:
+        ResponseMessage: Mensaje de confirmación con detalles de elementos afectados.
+    """
+    try:
+        result = lines_service.deactivate_activate_line(db, id_categoria, id_linea, current_user.id_usuario, activar)
+        message = result if result else f"Línea {'activada' if activar else 'desactivada'} exitosamente"
+        return ResponseMessage(message=message)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+# Ruta para desactivar una línea existente (mantener compatibilidad)
 @router.put("/lines/{id_categoria}-{id_linea}/deactivate", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def deactivate_line(
     id_categoria: Decimal,
@@ -130,6 +160,7 @@ async def deactivate_line(
 ):
     """
     Desactiva una línea existente en la base de datos.
+    Mantiene compatibilidad con endpoints existentes.
 
     Args:
         id_categoria (Decimal): ID de la categoría a la que pertenece la línea.
@@ -140,7 +171,8 @@ async def deactivate_line(
         ResponseMessage: Mensaje de confirmación.
     """
     try:
-        lines_service.deactivate_line(db, id_categoria, id_linea, current_user.id_usuario)
-        return ResponseMessage(message="Línea desactivada exitosamente")
+        result = lines_service.deactivate_line(db, id_categoria, id_linea, current_user.id_usuario)
+        message = result if result else "Línea desactivada exitosamente"
+        return ResponseMessage(message=message)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

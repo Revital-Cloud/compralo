@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui"
 import { Pencil, Power } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { LinesFilters } from '@/components/admin/lines/lines-filters'
+import { toast } from 'sonner'
 
 const LinesPage = () => {
   const queryClient = useQueryClient()
@@ -68,25 +69,22 @@ const LinesPage = () => {
   const [openEdit, setOpenEdit] = useState(false)
   const [editing, setEditing] = useState<any | null>(null)
 
-  const activateMutation = useMutation({
-    mutationFn: async (params: { id_categoria: number; id_linea: number; nom_linea: string }) => {
-      // Activar enviando update con toda la info necesaria e ind_activo=true
-      return lineService.updateLine(params.id_categoria, params.id_linea, {
-        nom_linea: params.nom_linea,
-        ind_activo: true,
-      })
+  const deactivateActivateLineMutation = useMutation({
+    mutationFn: async ({ id_categoria, id_linea, activar }: { id_categoria: number; id_linea: number; activar: boolean }) => {
+      const result = await lineService.deactivateActivateLine(id_categoria, id_linea, activar)
+      if (!result || (result as any).message === undefined) {
+        throw new Error('No se recibió confirmación del servidor')
+      }
+      return result
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['lines', 'all'] })
+      toast.success(variables.activar ? 'Línea activada exitosamente' : 'Línea desactivada exitosamente')
     },
-  })
-
-  const deactivateMutation = useMutation({
-    mutationFn: async (params: { id_categoria: number; id_linea: number }) => {
-      return lineService.deactivateLine(params.id_categoria, params.id_linea)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['lines', 'all'] })
+    onError: (error: any, variables) => {
+      console.error(`Error al ${variables.activar ? 'activar' : 'desactivar'} línea:`, error)
+      const errorMessage = error?.response?.data?.detail || error?.message || `Error al ${variables.activar ? 'activar' : 'desactivar'} la línea`
+      toast.error(errorMessage)
     },
   })
 
@@ -145,31 +143,20 @@ const LinesPage = () => {
           <Button variant="outline" size="icon" aria-label="Editar línea" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
             <Pencil />
           </Button>
-          {row.original.ind_activo === true ? (
-            <Button
-              variant="destructive"
-              size="icon"
-              aria-label="Desactivar línea"
-              onClick={() => {
-                const { id_categoria, id_linea } = row.original as any
-                deactivateMutation.mutate({ id_categoria, id_linea })
-              }}
-            >
-              <Power />
-            </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              size="icon"
-              aria-label="Activar línea"
-              onClick={() => {
-                const { id_categoria, id_linea, nom_linea } = row.original as any
-                activateMutation.mutate({ id_categoria, id_linea, nom_linea })
-              }}
-            >
-              <Power />
-            </Button>
-          )}
+          <Button
+            variant={row.original.ind_activo ? "default" : "destructive"}
+            size="icon"
+            aria-label={row.original.ind_activo ? "Desactivar línea" : "Activar línea"}
+            onClick={() => {
+              const { id_categoria, id_linea } = row.original as any
+              const isActive = Boolean(row.original.ind_activo)
+              deactivateActivateLineMutation.mutate({ id_categoria, id_linea, activar: !isActive })
+            }}
+            disabled={deactivateActivateLineMutation.isPending}
+            className={row.original.ind_activo ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+          >
+            <Power />
+          </Button>
         </div>
       ),
     },

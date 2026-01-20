@@ -78,6 +78,10 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
   const [brands, setBrands] = useState<any[]>([])
   const [lines, setLines] = useState<any[]>([])
   const [sublines, setSublines] = useState<any[]>([])
+  
+  // Estados para controlar los Popovers de fechas
+  const [openStartDate, setOpenStartDate] = useState(false)
+  const [openEndDate, setOpenEndDate] = useState(false)
 
   const form = useForm<DiscountFormData>({ 
     resolver: zodResolver(discountSchema),
@@ -92,6 +96,15 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
       cantidad_minima_producto: '1',
     }
   })
+  
+  // Función para convertir string de fecha a Date sin problemas de timezone
+  const parseDateString = (dateString: string | undefined): Date | undefined => {
+    if (!dateString) return undefined
+    // Parsear YYYY-MM-DD directamente sin timezone
+    const [year, month, day] = dateString.split('-').map(Number)
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return undefined
+    return new Date(year, month - 1, day)
+  }
 
   const tipoDescuento = form.watch('tipo_descuento')
   const aplicaA = form.watch('aplica_a')
@@ -180,7 +193,17 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
   const handleSubmit = form.handleSubmit(async (values) => {
     await onSubmit(values)
     onOpenChange(false)
+    setOpenStartDate(false)
+    setOpenEndDate(false)
   })
+  
+  // Resetear estados de Popovers cuando se cierra el modal
+  useEffect(() => {
+    if (!open) {
+      setOpenStartDate(false)
+      setOpenEndDate(false)
+    }
+  }, [open])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -513,7 +536,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="fec_inicio">Fecha de Inicio *</Label>
-              <Popover>
+              <Popover open={openStartDate} onOpenChange={setOpenStartDate}>
                 <PopoverTrigger asChild>
                   <Button type="button" variant="outline" className="w-full justify-start">
                     {form.watch('fec_inicio')
@@ -530,7 +553,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                       date.setHours(0, 0, 0, 0)
                       return date < today
                     }}
-                    selected={form.watch('fec_inicio') ? new Date(form.watch('fec_inicio') + 'T00:00:00') : undefined}
+                    selected={parseDateString(form.watch('fec_inicio'))}
                     onSelect={(date) => {
                       if (date) {
                         const year = date.getFullYear()
@@ -538,6 +561,8 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                         const day = String(date.getDate()).padStart(2, '0')
                         const dateString = `${year}-${month}-${day}`
                         form.setValue('fec_inicio', dateString)
+                        // Cerrar el Popover después de seleccionar
+                        setOpenStartDate(false)
                       } else {
                         form.setValue('fec_inicio', '')
                       }
@@ -552,7 +577,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="fec_fin">Fecha de Fin *</Label>
-              <Popover>
+              <Popover open={openEndDate} onOpenChange={setOpenEndDate}>
                 <PopoverTrigger asChild>
                   <Button type="button" variant="outline" className="w-full justify-start">
                     {form.watch('fec_fin')
@@ -569,7 +594,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                       date.setHours(0, 0, 0, 0)
                       return date < today
                     }}
-                    selected={form.watch('fec_fin') ? new Date(form.watch('fec_fin') + 'T00:00:00') : undefined}
+                    selected={parseDateString(form.watch('fec_fin'))}
                     onSelect={(date) => {
                       if (date) {
                         const year = date.getFullYear()
@@ -577,6 +602,8 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                         const day = String(date.getDate()).padStart(2, '0')
                         const dateString = `${year}-${month}-${day}`
                         form.setValue('fec_fin', dateString)
+                        // Cerrar el Popover después de seleccionar
+                        setOpenEndDate(false)
                       } else {
                         form.setValue('fec_fin', '')
                       }

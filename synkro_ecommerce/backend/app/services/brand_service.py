@@ -97,17 +97,23 @@ def update_brand(db:Session, id_marca:Decimal, brand:BrandUpdate, usr_update: st
         db.rollback()
         raise Exception(f"Error al actualizar marca: {str(e)}")
     
-def deactivate_brand(db:Session, id_marca:Decimal, usr_update: Decimal):
+def deactivate_activate_brand(db:Session, id_marca:Decimal, usr_update: Decimal, activar: bool):
     """
-    Desactiva una marca existente de la base de datos.
+    Activa o desactiva una marca existente de la base de datos.
     
-    Utiliza la función de base de datos `fun_delete_marca` para eliminar
-    una marca existente, identificado por `id_marca`.
+    Args:
+        db: Sesión de base de datos
+        id_marca: ID de la marca
+        usr_update: Usuario que realiza la operación
+        activar: True para activar, False para desactivar
+    
+    Returns:
+        Mensaje de confirmación
     """
     try:
-        params = {'id_marca': id_marca, 'usr_update': usr_update}
+        params = {'id_marca': id_marca, 'usr_update': usr_update, 'activar': activar}
         query = text("""
-        SELECT fun_deactivate_marca(:id_marca, :usr_update)
+        SELECT fun_deactivate_activate_marca(:id_marca, :usr_update, :activar)
         """)
         result = db.execute(query, params)
         fetched_result = result.fetchone()
@@ -115,9 +121,16 @@ def deactivate_brand(db:Session, id_marca:Decimal, usr_update: Decimal):
         if fetched_result and isinstance(fetched_result[0], str):
             return {"message": fetched_result[0]}
         else:
-            return {"message": "Marca desactivada correctamente"}
+            action = "activada" if activar else "desactivada"
+            return {"message": f"Marca {action} correctamente"}
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al desactivar marca: {str(e)}")
+        raise Exception(f"Error al cambiar estado de marca: {str(e)}")
+
+def deactivate_brand(db:Session, id_marca:Decimal, usr_update: Decimal):
+    """
+    Desactiva una marca (wrapper para mantener compatibilidad).
+    """
+    return deactivate_activate_brand(db, id_marca, usr_update, False)
     
     

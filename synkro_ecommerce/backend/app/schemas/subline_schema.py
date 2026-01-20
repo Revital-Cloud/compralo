@@ -75,6 +75,18 @@ class SublineUpdate(BaseModel):
     usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
     
     
+# Esquema para toggle (activar/desactivar)
+class ToggleRequest(BaseModel):
+    """
+    Esquema para solicitudes de activar/desactivar sublíneas.
+    
+    Utilizado en endpoints toggle para activar o desactivar sublíneas.
+    
+    Atributos:
+        activar (bool): True para activar, False para desactivar.
+    """
+    activar: bool = Field(..., description="True para activar, False para desactivar.")
+
 class ResponseMessage(BaseModel):
     """
     Esquema para Mensajes de Respuesta Genéricos.

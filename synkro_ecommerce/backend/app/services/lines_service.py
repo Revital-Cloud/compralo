@@ -83,25 +83,44 @@ def update_line(db: Session, id_categoria: Decimal, id_linea: Decimal, line: Lin
         db.rollback()
         raise Exception(f"Error al actualizar la línea: {str(e)}")
     
-#Eliminar una línea
-def deactivate_line(db: Session, id_categoria: Decimal, id_linea: Decimal, usr_update: Decimal):
+#Activar o desactivar una línea
+def deactivate_activate_line(db: Session, id_categoria: Decimal, id_linea: Decimal, usr_update: Decimal, activar: bool):
     """
-    Elimina una línea existente en la base de datos.
-    Utiliza la función de base de datos fun_deactivate_linea para desactivar
-    una línea existente, identificado por id_linea.
+    Activa o desactiva una línea y todos sus elementos relacionados (cascada).
     
+    Args:
+        db: Sesión de base de datos
+        id_categoria: ID de la categoría
+        id_linea: ID de la línea
+        usr_update: Usuario que realiza la operación
+        activar: True para activar, False para desactivar
+    
+    Returns:
+        Mensaje de confirmación con detalles de elementos afectados
     """
     try:
         query = text("""
-        SELECT fun_deactivate_linea(:id_categoria, :id_linea, :usr_update)
+        SELECT fun_deactivate_activate_linea(:id_categoria, :id_linea, :usr_update, :activar)
         """)
-        result = db.execute(query,{"id_categoria": id_categoria, "id_linea": id_linea, "usr_update": usr_update})
+        result = db.execute(query, {
+            "id_categoria": id_categoria, 
+            "id_linea": id_linea, 
+            "usr_update": usr_update,
+            "activar": activar
+        })
         fetched_result = result.fetchone()
         db.commit()
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al desactivar la línea: {str(e)}")
+        raise Exception(f"Error al cambiar estado de la línea: {str(e)}")
+
+#Desactivar una línea (mantener compatibilidad)
+def deactivate_line(db: Session, id_categoria: Decimal, id_linea: Decimal, usr_update: Decimal):
+    """
+    Desactiva una línea (wrapper para mantener compatibilidad).
+    """
+    return deactivate_activate_line(db, id_categoria, id_linea, usr_update, False)
 
 def get_lines_by_category(db: Session, id_categoria: Decimal):
     """

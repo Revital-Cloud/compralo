@@ -39,7 +39,8 @@ const DiscountsPage = () => {
     },
     onToggleStatus: (id, activate) => {
       toggleStatusMutation.mutate({ id, activate })
-    }
+    },
+    isToggling: toggleStatusMutation.isPending
   })
 
   const handleCreateSubmit = async (values: any) => {

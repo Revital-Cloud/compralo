@@ -119,23 +119,38 @@ def update_provider(db:Session, id_proveedor:Decimal, provider:ProviderUpdate, u
         db.rollback()
         raise Exception(f"Error al actualizar proveedor: {str(e)}")
     
-def deactivate_provider(db:Session, id_proveedor:Decimal, usr_update: Decimal):
+def deactivate_activate_provider(db:Session, id_proveedor:Decimal, usr_update: Decimal, activar: bool):
     """
-    Desactiva un proveedor existente de la base de datos.
-
-    Utiliza la función de base de datos `fun_deactivate_proveedores` para desactivar
-    un proveedor existente, identificado por `id_proveedor`.
+    Activa o desactiva un proveedor existente de la base de datos.
     
+    Args:
+        db: Sesión de base de datos
+        id_proveedor: ID del proveedor
+        usr_update: Usuario que realiza la operación
+        activar: True para activar, False para desactivar
+    
+    Returns:
+        Mensaje de confirmación
     """
     try:
         query = text("""    
-        SELECT fun_deactivate_proveedores(:id_proveedor, :usr_update)
+        SELECT fun_deactivate_activate_proveedores(:id_proveedor, :usr_update, :activar)
         """)
-        result = db.execute(query, {'id_proveedor': id_proveedor, 'usr_update': usr_update})
+        result = db.execute(query, {
+            'id_proveedor': id_proveedor, 
+            'usr_update': usr_update,
+            'activar': activar
+        })
         fetched_result = result.fetchone()
         db.commit()
         
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al desactivar proveedor: {str(e)}")
+        raise Exception(f"Error al cambiar estado de proveedor: {str(e)}")
+
+def deactivate_provider(db:Session, id_proveedor:Decimal, usr_update: Decimal):
+    """
+    Desactiva un proveedor (wrapper para mantener compatibilidad).
+    """
+    return deactivate_activate_provider(db, id_proveedor, usr_update, False)

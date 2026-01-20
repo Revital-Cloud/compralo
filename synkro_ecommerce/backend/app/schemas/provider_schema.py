@@ -72,6 +72,18 @@ class Provider(ProviderBase):
     """
     id_proveedor: Decimal = Field(..., description="Identificador único para el proveedor.")
 
+# Esquema para toggle (activar/desactivar)
+class ToggleRequest(BaseModel):
+    """
+    Esquema para solicitudes de activar/desactivar proveedores.
+    
+    Utilizado en endpoints toggle para activar o desactivar proveedores.
+    
+    Atributos:
+        activar (bool): True para activar, False para desactivar.
+    """
+    activar: bool = Field(..., description="True para activar, False para desactivar.")
+
 class ResponseMessage(BaseModel):
     """
     Esquema para Mensajes de Respuesta Genéricos.

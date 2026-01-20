@@ -10,7 +10,7 @@ from core.dependencies import get_current_user
 from schemas.auth_schema import UserInToken
 
 # Importar los esquemas de categoria
-from schemas.category_schema import CategoryCreate, CategoryUpdate, Category, ResponseMessage
+from schemas.category_schema import CategoryCreate, CategoryUpdate, Category, ResponseMessage, ToggleRequest
 from services import category_service
 
 router = APIRouter(tags=["Categorías"])
@@ -111,7 +111,41 @@ async def update_category(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
-# Ruta para eliminar una categoría existente   
+# Ruta para activar/desactivar una categoría existente   
+@router.put(
+    "/categories/{id_categoria}/toggle",
+    response_model=ResponseMessage, 
+    status_code=status.HTTP_200_OK
+    )
+async def toggle_category(
+    id_categoria: Decimal,
+    toggle_data: ToggleRequest = Body(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+    ):
+    """
+    Activa o desactiva una categoría existente de la base de datos.
+    Aplica cascada a líneas, sublíneas, productos y comentarios relacionados.
+
+    Args:
+        id_categoria (Decimal): ID de la categoría a activar/desactivar.
+        toggle_data (ToggleRequest): Datos con el campo activar (bool).
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+
+    Returns:
+        ResponseMessage: Mensaje de confirmación con detalles de elementos afectados.
+    """
+    try:
+        activar = toggle_data.activar
+        result = category_service.deactivate_activate_category(db, id_categoria, current_user.id_usuario, activar)
+        message = result if result else f"Categoría {'activada' if activar else 'desactivada'} exitosamente"
+        return ResponseMessage(message=message)
+    except Exception as e:
+        import traceback
+        error_detail = f"Error al cambiar estado de categoría: {str(e)}\n{traceback.format_exc()}"
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_detail)
+
+# Ruta para desactivar una categoría existente (mantener compatibilidad)
 @router.put(
     "/categories/{id_categoria}/deactivate",
     response_model=ResponseMessage, 
@@ -124,17 +158,18 @@ async def deactivate_category(
     ):
     """
     Desactiva una categoría existente de la base de datos.
+    Mantiene compatibilidad con endpoints existentes.
 
     Args:
         id_categoria (Decimal): ID de la categoría a desactivar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
 
     Returns:
-        ResponseMessage: Mensaje de confirmación de eliminación exitosa.
+        ResponseMessage: Mensaje de confirmación de desactivación exitosa.
     """
     try:
-        
-        category_service.deactivate_category(db, id_categoria, current_user.id_usuario)
-        return ResponseMessage(message="Categoría desactivada exitosamente")
+        result = category_service.deactivate_category(db, id_categoria, current_user.id_usuario)
+        message = result if result else "Categoría desactivada exitosamente"
+        return ResponseMessage(message=message)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

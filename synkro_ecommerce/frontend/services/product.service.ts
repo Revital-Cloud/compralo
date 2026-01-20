@@ -157,7 +157,20 @@ export async function deleteProduct(id: number): Promise<ApiResponse> {
 }
 
 /**
- * Desactivar producto por IDs compuestos
+ * Activar o desactivar producto por IDs compuestos
+ */
+export async function deactivateActivateProduct(params: {
+  id_categoria: number;
+  id_linea: number;
+  id_sublinea: number;
+  id_producto: number;
+}, activar: boolean): Promise<ApiResponse> {
+  const slug = `${params.id_categoria}-${params.id_linea}-${params.id_sublinea}-${params.id_producto}`;
+  return await put<ApiResponse>(`/products/${slug}/toggle`, { activar });
+}
+
+/**
+ * Desactivar producto por IDs compuestos (mantener compatibilidad)
  */
 export async function deactivateProduct(params: {
   id_categoria: number;
@@ -165,18 +178,19 @@ export async function deactivateProduct(params: {
   id_sublinea: number;
   id_producto: number;
 }): Promise<ApiResponse> {
-  const slug = `${params.id_categoria}-${params.id_linea}-${params.id_sublinea}-${params.id_producto}`;
-  return await put<ApiResponse>(`/products/${slug}/deactivate`);
+  return deactivateActivateProduct(params, false);
 }
 
 /**
- * Activar producto (actualiza ind_activo=true) con endpoint dedicado
+ * Activar producto (mantener compatibilidad)
  */
 export async function activateProduct(product: Product): Promise<ApiResponse> {
-  const slug = `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`;
-  const formData = new FormData();
-  formData.append('active', 'true');
-  return await put<ApiResponse>(`/products/${slug}/active`, formData);
+  return deactivateActivateProduct({
+    id_categoria: Number(product.id_categoria),
+    id_linea: Number(product.id_linea),
+    id_sublinea: Number(product.id_sublinea),
+    id_producto: Number(product.id_producto),
+  }, true);
 }
 
 /**
@@ -514,6 +528,7 @@ const productService = {
   createProduct,
   updateProduct,
   deleteProduct,
+  deactivateActivateProduct,
   deactivateProduct,
   activateProduct,
   searchProducts,

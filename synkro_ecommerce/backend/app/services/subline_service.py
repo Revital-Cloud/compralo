@@ -104,28 +104,50 @@ def update_subline(db:Session,  id_categoria:Decimal, id_linea:Decimal, id_subli
         db.rollback()
         raise Exception(f"Error al actualizar sublinea: {str(e)}")
     
-def deactivate_subline(db: Session, id_categoria: Decimal, id_linea: Decimal, id_sublinea: Decimal, usr_update: Decimal):
+def deactivate_activate_subline(db: Session, id_categoria: Decimal, id_linea: Decimal, id_sublinea: Decimal, usr_update: Decimal, activar: bool):
     """
-    Desactiva una sublinea existente en la base de datos.
-    Utiliza la función de base de datos `fun_delete_sublinea` para desactivar
-    una sublinea existente, identificado por `id_sublinea`.
+    Activa o desactiva una sublínea y todos sus elementos relacionados (cascada).
+    
+    Args:
+        db: Sesión de base de datos
+        id_categoria: ID de la categoría
+        id_linea: ID de la línea
+        id_sublinea: ID de la sublínea
+        usr_update: Usuario que realiza la operación
+        activar: True para activar, False para desactivar
+    
+    Returns:
+        Mensaje de confirmación con detalles de elementos afectados
     """
     try:
         query = text("""
-        SELECT fun_deactivate_sublinea(
+        SELECT fun_deactivate_activate_sublinea(
             :id_categoria,
             :id_linea,
             :id_sublinea,
-            :usr_update
+            :usr_update,
+            :activar
         )
         """)
-        result = db.execute(query, {'id_categoria': id_categoria, 'id_linea': id_linea, 'id_sublinea': id_sublinea, 'usr_update': usr_update})
+        result = db.execute(query, {
+            'id_categoria': id_categoria, 
+            'id_linea': id_linea, 
+            'id_sublinea': id_sublinea, 
+            'usr_update': usr_update,
+            'activar': activar
+        })
         fetched_result = result.fetchone()
         db.commit()
-        return  fetched_result[0] if fetched_result else None
+        return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al desactivar sublinea: {str(e)}")
+        raise Exception(f"Error al cambiar estado de sublínea: {str(e)}")
+
+def deactivate_subline(db: Session, id_categoria: Decimal, id_linea: Decimal, id_sublinea: Decimal, usr_update: Decimal):
+    """
+    Desactiva una sublínea (wrapper para mantener compatibilidad).
+    """
+    return deactivate_activate_subline(db, id_categoria, id_linea, id_sublinea, usr_update, False)
 
 def get_sublines_by_line(db: Session, id_linea: Decimal, id_categoria: Decimal = None):
     """

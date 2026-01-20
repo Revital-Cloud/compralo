@@ -132,8 +132,8 @@ const productSchema = z.object({
   id_linea: z.string().min(1, 'La línea es requerida'),
   id_sublinea: z.string().min(1, 'La sublínea es requerida'),
   id_proveedor: z.string().min(1, 'El proveedor es requerido'),
-  tags: z.array(z.string()).optional().default([]),
-  spcf_producto: z.record(z.any()).optional().default({}),
+  tags: z.array(z.string()).default([]),
+  spcf_producto: z.record(z.string(), z.unknown()).default({}),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -161,6 +161,9 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   // Hook de validación XSS
   const { validateForm } = useFormXSSValidation('product-form');
 
+  // Memoizar el resolver para evitar recrearlo en cada render
+  const resolver = React.useMemo(() => zodResolver(productSchema), []);
+
   const {
     register,
     handleSubmit,
@@ -169,7 +172,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     watch,
     reset
   } = useForm<ProductFormData>({
-    resolver: zodResolver(productSchema) as any,
+    resolver,
     defaultValues: {
       nom_producto: initialData?.nom_producto || '',
       des_producto: initialData?.des_producto || '',
@@ -257,18 +260,20 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     }
   }, [initialData?.spcf_producto]);
 
+  // Evitar fallos si categories aún no está cargado o si no hay categoría seleccionada
+  // Esto previene accesos a propiedades de undefined durante el render inicial
+  const safeCategories = Array.isArray(categories) ? categories.filter(cat => cat?.id_categoria != null) : [];
+  const safeBrands = Array.isArray(brands) ? brands.filter(brand => brand?.id_marca != null) : [];
+  const safeProviders = Array.isArray(providers) ? providers.filter(provider => provider?.id_proveedor != null) : [];
+
   // Obtener el preset actual basado en la categoría seleccionada (defensivo ante datos indefinidos)
-  const selectedCategory = (categories || []).find((cat: any) => {
+  const selectedCategory = safeCategories.find((cat: any) => {
     const catId = cat && cat.id_categoria != null ? String(cat.id_categoria) : '';
     const watched = watchedCategory != null ? String(watchedCategory) : '';
     return catId === watched && watched !== '';
   });
   const currentPreset = selectedCategory ? getPresetByCategory(selectedCategory.nom_categoria) : null;
   const presetFields = currentPreset ? SPEC_PRESETS[currentPreset]?.fields || [] : [];
-
-  // Evitar fallos si categories aún no está cargado o si no hay categoría seleccionada
-  // Esto previene accesos a propiedades de undefined durante el render inicial
-  const safeCategories = Array.isArray(categories) ? categories : [];
   
   // Campos dinámicos del preset
   const [presetSpecs, setPresetSpecs] = React.useState<Record<string, any>>(() => {
@@ -451,11 +456,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 disabled={isEditing} // Deshabilitar al editar
               >
                 <option value="" disabled>Selecciona una categoría</option>
-                {categories.map((category) => (
-                  <option key={`cat-${category.id_categoria}`} value={category.id_categoria.toString()}>
-                    {category.nom_categoria}
+                {safeCategories.map((category) => {
+                  const categoryId = category?.id_categoria;
+                  if (!categoryId) return null;
+                  return (
+                    <option key={`cat-${categoryId}`} value={String(categoryId)}>
+                      {category.nom_categoria || ''}
                   </option>
-                ))}
+                  );
+                })}
               </Select>
               {errors.id_categoria && (
                 <p className="text-sm text-red-600">{errors.id_categoria.message}</p>
@@ -474,11 +483,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 fullWidth
               >
                 <option value="" disabled>Selecciona una marca</option>
-                {brands.map((brand) => (
-                  <option key={brand.id_marca} value={brand.id_marca.toString()}>
-                    {brand.nom_marca}
+                {safeBrands.map((brand) => {
+                  const brandId = brand?.id_marca;
+                  if (!brandId) return null;
+                  return (
+                    <option key={brandId} value={String(brandId)}>
+                      {brand.nom_marca || ''}
                   </option>
-                ))}
+                  );
+                })}
               </Select>
               {errors.id_marca && (
                 <p className="text-sm text-red-600">{errors.id_marca.message}</p>
@@ -505,11 +518,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 fullWidth
               >
                 <option value="" disabled>Selecciona una línea</option>
-                {uniqueLines.map((line) => (
-                  <option key={`line-${line.id_linea}`} value={line.id_linea.toString()}>
-                    {line.nom_linea}
+                {uniqueLines.map((line) => {
+                  const lineId = line?.id_linea;
+                  if (!lineId) return null;
+                  return (
+                    <option key={`line-${lineId}`} value={String(lineId)}>
+                      {line.nom_linea || ''}
                   </option>
-                ))}
+                  );
+                })}
               </Select>
               {errors.id_linea && (
                 <p className="text-sm text-red-600">{errors.id_linea.message}</p>
@@ -529,11 +546,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 fullWidth
               >
                 <option value="" disabled>Selecciona una sublínea</option>
-                {uniqueSublines.map((subline) => (
-                  <option key={`subline-${subline.id_sublinea}`} value={subline.id_sublinea.toString()}>
-                    {subline.nom_sublinea}
+                {uniqueSublines.map((subline) => {
+                  const sublineId = subline?.id_sublinea;
+                  if (!sublineId) return null;
+                  return (
+                    <option key={`subline-${sublineId}`} value={String(sublineId)}>
+                      {subline.nom_sublinea || ''}
                   </option>
-                ))}
+                  );
+                })}
               </Select>
               {errors.id_sublinea && (
                 <p className="text-sm text-red-600">{errors.id_sublinea.message}</p>
@@ -554,11 +575,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               fullWidth
             >
               <option value="" disabled>Selecciona un proveedor</option>
-              {providers.map((provider) => (
-                <option key={provider.id_proveedor} value={provider.id_proveedor.toString()}>
-                  {provider.nom_proveedor}
+                {safeProviders.map((provider) => {
+                  const providerId = provider?.id_proveedor;
+                  if (!providerId) return null;
+                  return (
+                    <option key={providerId} value={String(providerId)}>
+                      {provider.nom_proveedor || ''}
                 </option>
-              ))}
+                  );
+                })}
             </Select>
             {errors.id_proveedor && (
               <p className="text-sm text-red-600">{errors.id_proveedor.message}</p>

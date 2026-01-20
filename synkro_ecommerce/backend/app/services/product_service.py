@@ -566,6 +566,58 @@ async def update_product(
         db.rollback()
         raise Exception(f"Error al actualizar el producto: {str(e)}")
 
+def deactivate_activate_product(
+    db: Session, 
+    category_id: Decimal,
+    line_id: Decimal,
+    subline_id: Decimal,
+    product_id: Decimal,
+    usr_update: Decimal,
+    activar: bool
+    ):
+    """
+    Activa o desactiva un producto y todos sus elementos relacionados (cascada).
+    
+    Args:
+        db: Sesión de base de datos
+        category_id: ID de la categoría
+        line_id: ID de la línea
+        subline_id: ID de la sublínea
+        product_id: ID del producto
+        usr_update: Usuario que realiza la operación
+        activar: True para activar, False para desactivar
+    
+    Returns:
+        Mensaje de confirmación con detalles de elementos afectados
+    """
+    try:
+        params = {
+            'p_id_categoria': category_id,
+            'p_id_linea': line_id,
+            'p_id_sublinea': subline_id,
+            'p_id_producto': product_id,
+            'p_usr_update': usr_update,
+            'p_activar': activar
+        }
+        query = text("""
+        SELECT fun_deactivate_activate_producto(
+            :p_id_categoria, 
+            :p_id_linea, 
+            :p_id_sublinea, 
+            :p_id_producto,
+            :p_usr_update,
+            :p_activar
+            )
+        """)
+        
+        result = db.execute(query, params)
+        fetched_result = result.fetchone()
+        db.commit()
+        return fetched_result[0] if fetched_result else None
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al cambiar estado del producto: {str(e)}")
+
 def deactivate_product(
     db: Session, 
     category_id: Decimal,
@@ -575,7 +627,7 @@ def deactivate_product(
     usr_update: Decimal
     ):
     """
-    Desactiva un producto existente de la base de datos.
+    Desactiva un producto existente de la base de datos (wrapper para mantener compatibilidad).
     
     Utiliza la función de base de datos `fun_deactivate_producto` para eliminar
     un producto existente, identificado por `id_producto`.
@@ -590,31 +642,7 @@ def deactivate_product(
     Returns:
         dict or None: Un diccionario con el mensaje de resultado o None si falla.
     """
-    try:
-        params = {
-            'p_id_categoria': category_id,
-            'p_id_linea': line_id,
-            'p_id_sublinea': subline_id,
-            'p_id_producto': product_id,
-            'p_usr_update': usr_update
-        }
-        query = text("""
-        SELECT fun_deactivate_producto(
-            :p_id_categoria, 
-            :p_id_linea, 
-            :p_id_sublinea, 
-            :p_id_producto,
-            :p_usr_update
-            )
-        """)
-        
-        result = db.execute(query, params)
-        fetched_result = result.fetchone()
-        db.commit()
-        return fetched_result[0] if fetched_result else None
-    except Exception as e:
-        db.rollback()
-        raise Exception(f"Error al desactivar el producto: {str(e)}")
+    return deactivate_activate_product(db, category_id, line_id, subline_id, product_id, usr_update, False)
 
 
 def set_product_active(

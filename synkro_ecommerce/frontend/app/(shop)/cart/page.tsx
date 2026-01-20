@@ -26,6 +26,7 @@ import { discountService } from "@/services/discount.service";
 import { useRouter } from "next/navigation";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { WompiPaymentModal } from "@/components/payment/wompi-payment-modal";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, Alert, AlertDescription, Button, Input, Loading, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, RadioGroup, RadioGroupItem } from "@/components/ui";
 
 const cartTexts = {
   es: {

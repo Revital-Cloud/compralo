@@ -14,6 +14,7 @@ import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui"
 import { Pencil, Power } from 'lucide-react'
 import { BrandsFilters } from '@/components/admin/brands/brands-filters'
+import { toast } from 'sonner'
 
 interface Brand {
   id_marca: number
@@ -60,14 +61,23 @@ const BrandsPage = () => {
     return rows
   }, [data, search, sortBy, sortOrder])
 
-  const deactivateMutation = useMutation({
-    mutationFn: (id_marca: number) => brandService.deactivateBrand(id_marca),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['brands', 'all'] }),
-  })
-
-  const activateMutation = useMutation({
-    mutationFn: (id_marca: number) => brandService.updateBrand(id_marca, { ind_activo: true }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['brands', 'all'] }),
+  const deactivateActivateBrandMutation = useMutation({
+    mutationFn: async ({ id_marca, activar }: { id_marca: number; activar: boolean }) => {
+      const result = await brandService.deactivateActivateBrand(id_marca, activar)
+      if (!result || (result as any).message === undefined) {
+        throw new Error('No se recibió confirmación del servidor')
+      }
+      return result
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['brands', 'all'] })
+      toast.success(variables.activar ? 'Marca activada exitosamente' : 'Marca desactivada exitosamente')
+    },
+    onError: (error: any, variables) => {
+      console.error(`Error al ${variables.activar ? 'activar' : 'desactivar'} marca:`, error)
+      const errorMessage = error?.response?.data?.detail || error?.message || `Error al ${variables.activar ? 'activar' : 'desactivar'} la marca`
+      toast.error(errorMessage)
+    },
   })
 
   const columns: ColumnDef<Brand>[] = [
@@ -117,25 +127,19 @@ const BrandsPage = () => {
           <Button variant="outline" size="icon" aria-label="Editar marca" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
             <Pencil className="w-4 h-4" />
           </Button>
-          {row.original.ind_activo ? (
-            <Button
-              variant="destructive"
-              size="icon"
-              aria-label="Desactivar"
-              onClick={() => deactivateMutation.mutate(row.original.id_marca)}
-            >
-              <Power className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              size="icon"
-              aria-label="Activar"
-              onClick={() => activateMutation.mutate(row.original.id_marca)}
-            >
-              <Power className="w-4 h-4" />
-            </Button>
-          )}
+          <Button
+            variant={row.original.ind_activo ? "default" : "destructive"}
+            size="icon"
+            aria-label={row.original.ind_activo ? "Desactivar" : "Activar"}
+            onClick={() => {
+              const isActive = Boolean(row.original.ind_activo)
+              deactivateActivateBrandMutation.mutate({ id_marca: row.original.id_marca, activar: !isActive })
+            }}
+            disabled={deactivateActivateBrandMutation.isPending}
+            className={row.original.ind_activo ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+          >
+            <Power className="w-4 h-4" />
+          </Button>
         </div>
       ),
     },

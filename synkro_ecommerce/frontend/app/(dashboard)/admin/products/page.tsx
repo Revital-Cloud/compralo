@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from "sonner";
 import { ProductsHeader } from "@/components/admin/products";
 import { ProductsFilters } from "@/components/admin/products/products-filters";
-import { useProductsAdmin, useDeactivateProduct, useActivateProduct } from "@/hooks/use-products";
+import { useProductsAdmin, useDeactivateActivateProduct } from "@/hooks/use-products";
 import type { Product } from '@/types/product';
 import DataTable from '@/components/tables/table';
 import { ColumnDef } from '@tanstack/react-table';
@@ -54,9 +54,8 @@ const ProductsPage = () => {
     offset: (currentPage - 1) * itemsPerPage
   });
 
-  // Mutations activar/desactivar
-  const deactivateProduct = useDeactivateProduct();
-  const activateProduct = useActivateProduct();
+  // Mutation activar/desactivar producto
+  const deactivateActivateProductMutation = useDeactivateActivateProduct();
 
   // Manejar cambio de página
   const handlePageChange = (page: number) => {
@@ -69,18 +68,19 @@ const ProductsPage = () => {
 
   // Manejar activar/desactivar producto
   const handleToggleActive = async (row: Product) => {
-    if (row.ind_activo) {
-      if (confirm('¿Desactivar este producto?')) {
-        await deactivateProduct.mutateAsync({
-          id_categoria: Number(row.id_categoria),
-          id_linea: Number(row.id_linea),
-          id_sublinea: Number(row.id_sublinea),
-          id_producto: Number(row.id_producto),
-        });
-      }
-    } else {
-      await activateProduct.mutateAsync(row);
+    const isActive = Boolean(row.ind_activo);
+    const params = {
+      id_categoria: Number(row.id_categoria),
+      id_linea: Number(row.id_linea),
+      id_sublinea: Number(row.id_sublinea),
+      id_producto: Number(row.id_producto),
+    };
+    
+    if (isActive && !confirm('¿Desactivar este producto?')) {
+      return;
     }
+    
+    deactivateActivateProductMutation.mutate({ params, activar: !isActive });
   };
 
   // Manejar cambios de filtros
@@ -291,16 +291,9 @@ const ProductsPage = () => {
       cell: ({ row }) => {
         const isActive = !!row.original.ind_activo;
         return (
-          <Badge
-            className={
-              isActive
-                ? 'bg-[#fec806] text-black hover:bg-[#fec806]'
-                : 'bg-red-100 text-red-800 hover:bg-red-100'
-            }
-            variant={isActive ? 'secondary' : 'destructive'}
-          >
+          <span className={isActive ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
             {isActive ? 'Activo' : 'Inactivo'}
-          </Badge>
+          </span>
         );
       },
     },
@@ -329,10 +322,12 @@ const ProductsPage = () => {
             <Pencil className="w-4 h-4" />
           </Button>
           <Button
-            variant={row.original.ind_activo ? 'destructive' : 'secondary'}
+            variant={row.original.ind_activo ? "default" : "destructive"}
             size="icon"
-            aria-label={row.original.ind_activo ? 'Desactivar producto' : 'Activar producto'}
+            aria-label={row.original.ind_activo ? "Desactivar producto" : "Activar producto"}
             onClick={() => handleToggleActive(row.original)}
+            disabled={deactivateActivateProductMutation.isPending}
+            className={row.original.ind_activo ? "bg-green-600 hover:bg-green-700 text-white" : ""}
           >
             <Power className="w-4 h-4" />
           </Button>
