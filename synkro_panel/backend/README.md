@@ -156,16 +156,30 @@ Este backend está en **desarrollo activo**. Las funcionalidades principales inc
 - Configuración de base de datos
 - Sistema de autenticación
 
-## 📚 Documentación de la API
+## 📚 API Documentation
 
-### Swagger UI Automático
+### Main resources (v1, English routes)
 
-- **Desarrollo**: http://localhost:8001/docs (puerto diferente al e-commerce)
-- **Producción**: https://api.synkro.com/docs
+- `/api/auth` – Authentication (login, register, refresh, password reset)
+- `/api/clients` – Client accounts and \"my profile\" endpoints
+- `/api/plans` – Subscription plans catalog
+- `/api/subscriptions` – Client subscriptions and plan changes
+- `/api/instances` – E‑commerce instances management
+- `/api/billing` – Invoices and billing data
+- `/api/domains` – Domains attached to instances
+- `/api/resource-usage` – Resource usage metrics and alerts
+- `/api/plan-history` – Plan change history
+- `/api/admin/users` – Synkro admin users
+- `/api/admin/metrics` – Admin dashboard metrics
+
+### Swagger UI
+
+- **Development**: http://localhost:8001/docs (different port than e-commerce)
+- **Production**: https://api.synkro.com/docs
 
 ### ReDoc
 
-- **Desarrollo**: http://localhost:8001/redoc
+- **Development**: http://localhost:8001/redoc
 
 ## 🔧 Comandos Útiles
 

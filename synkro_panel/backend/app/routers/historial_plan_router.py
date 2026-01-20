@@ -14,7 +14,7 @@ from schemas.auth_schema import UserInToken, ResponseMessage
 from schemas.historial_plan_schema import HistorialPlanCreate, HistorialPlanPublic
 from services import historial_plan_service
 
-router = APIRouter(prefix="/api/historial-planes", tags=["Historial de Planes"])
+router = APIRouter(prefix="/api/plan-history", tags=["Plan History"])
 
 
 @router.get("", response_model=List[HistorialPlanPublic])
@@ -50,7 +50,7 @@ def get_historial_plan(
     if not historial:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Registro no encontrado"
+            detail="Record not found"
         )
     
     # Para clientes, verificar que el historial pertenece a sus suscripciones
@@ -60,7 +60,7 @@ def get_historial_plan(
         if not suscripcion or suscripcion.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permisos para ver este registro"
+                detail="You do not have permission to view this record"
             )
     
     return HistorialPlanPublic(**dict(historial))
@@ -82,7 +82,7 @@ def create_historial_plan(
     if not suscripcion:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Suscripcion no encontrada"
+            detail="Subscription not found"
         )
     
     result = historial_plan_service.create_historial_plan(db, historial, current_user.email)
@@ -114,15 +114,15 @@ def delete_historial_plan(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Registro no encontrado"
+            detail="Record not found"
         )
     
     result = historial_plan_service.delete_historial_plan(db, id_historial)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Historial eliminado correctamente", success=True)
+        return ResponseMessage(message="History entry deleted successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al eliminar historial") if result else "Error al eliminar historial"
+            detail=result.get("message", "Error deleting history entry") if result else "Error deleting history entry"
         )

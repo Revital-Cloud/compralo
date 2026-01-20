@@ -24,7 +24,7 @@ from schemas.auth_schema import (
 )
 from services import auth_service
 
-router = APIRouter(prefix="/api/auth", tags=["Autenticación"])
+router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -97,7 +97,7 @@ def refresh_token(
     if is_token_blacklisted(refresh_data.refresh_token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token revocado",
+            detail="Revoked token",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -148,7 +148,7 @@ def change_password(
         password_data.current_password, 
         password_data.new_password
     )
-    return ResponseMessage(message="Contraseña actualizada correctamente", success=True)
+    return ResponseMessage(message="Password updated successfully", success=True)
 
 
 @router.post("/logout", response_model=ResponseMessage)
@@ -166,7 +166,7 @@ def logout(
     """
     # Agregar el refresh token a la blacklist
     add_token_to_blacklist(refresh_data.refresh_token)
-    return ResponseMessage(message="Sesión cerrada correctamente", success=True)
+    return ResponseMessage(message="Session closed successfully", success=True)
 
 
 @router.post("/verify-token", response_model=ResponseMessage)
@@ -180,7 +180,7 @@ def verify_token(
         ResponseMessage: Confirmación de validez del token
     """
     return ResponseMessage(
-        message=f"Token válido para {current_user.user_type}: {current_user.email}", 
+        message=f"Valid token for {current_user.user_type}: {current_user.email}", 
         success=True
     )
 
@@ -205,7 +205,7 @@ def forgot_password(
     # La lógica interna no revela si el email existe o no
     auth_service.request_password_reset(db, reset_data.email)
     return ResponseMessage(
-        message="Si el email existe, recibirás instrucciones para resetear tu contraseña",
+        message="If the email exists, you will receive instructions to reset your password",
         success=True
     )
 
@@ -228,6 +228,6 @@ def reset_password(
     """
     auth_service.reset_password(db, reset_confirm.token, reset_confirm.new_password)
     return ResponseMessage(
-        message="Contraseña actualizada correctamente",
+        message="Password updated successfully",
         success=True,
     )

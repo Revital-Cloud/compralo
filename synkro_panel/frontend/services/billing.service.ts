@@ -13,23 +13,23 @@ import type {
 } from '@/types';
 
 export async function getInvoices(): Promise<InvoicePublic[]> {
-  return await get<InvoicePublic[]>('/facturacion');
+  return await get<InvoicePublic[]>('/billing');
 }
 
 export async function getPendingInvoices(): Promise<InvoicePending[]> {
-  return await get<InvoicePending[]>('/facturacion/pendientes');
+  return await get<InvoicePending[]>('/billing/pendientes');
 }
 
 export async function getInvoice(idInvoice: number | string): Promise<InvoiceWithDetails> {
-  return await get<InvoiceWithDetails>(`/facturacion/${idInvoice}`);
+  return await get<InvoiceWithDetails>(`/billing/${idInvoice}`);
 }
 
 export async function createInvoice(data: InvoiceHeaderCreate): Promise<ResponseMessage> {
-  return await post<ResponseMessage>('/facturacion', data);
+  return await post<ResponseMessage>('/billing', data);
 }
 
 export async function updateInvoice(idInvoice: number | string, data: InvoiceHeaderUpdate): Promise<ResponseMessage> {
-  return await put<ResponseMessage>(`/facturacion/${idInvoice}`, data);
+  return await put<ResponseMessage>(`/billing/${idInvoice}`, data);
 }
 
 const billingService = {

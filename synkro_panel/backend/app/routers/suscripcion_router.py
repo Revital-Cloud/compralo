@@ -14,7 +14,7 @@ from schemas.auth_schema import UserInToken, ResponseMessage
 from schemas.suscripcion_schema import SuscripcionCreate, SuscripcionUpdate, SuscripcionPublic
 from services import suscripcion_service
 
-router = APIRouter(prefix="/api/suscripciones", tags=["Suscripciones"])
+router = APIRouter(prefix="/api/subscriptions", tags=["Subscriptions"])
 
 
 @router.get("", response_model=List[SuscripcionPublic])
@@ -70,14 +70,14 @@ def get_suscripcion(
     if not suscripcion:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Suscripcion no encontrada"
+            detail="Subscription not found"
         )
     
     # Verificar permisos
     if current_user.user_type == "cliente" and suscripcion.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para ver esta suscripcion"
+            detail="You do not have permission to view this subscription"
         )
     
     return SuscripcionPublic(**dict(suscripcion))
@@ -98,13 +98,13 @@ def create_suscripcion(
     
     if result and result.get("success"):
         return ResponseMessage(
-            message=f"Suscripcion creada correctamente con ID: {result.get('id_suscripcion')}",
+            message=f"Subscription created successfully with ID: {result.get('id_suscripcion')}",
             success=True
         )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al crear suscripcion") if result else "Error al crear suscripcion"
+            detail=result.get("message", "Error creating subscription") if result else "Error creating subscription"
         )
 
 
@@ -124,17 +124,17 @@ def update_suscripcion(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Suscripcion no encontrada"
+            detail="Subscription not found"
         )
     
     result = suscripcion_service.update_suscripcion(db, id_suscripcion, suscripcion, current_user.email)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Suscripcion actualizada correctamente", success=True)
+        return ResponseMessage(message="Subscription updated successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al actualizar suscripcion") if result else "Error al actualizar suscripcion"
+            detail=result.get("message", "Error updating subscription") if result else "Error updating subscription"
         )
 
 
@@ -153,17 +153,17 @@ def delete_suscripcion(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Suscripcion no encontrada"
+            detail="Subscription not found"
         )
     
     result = suscripcion_service.delete_suscripcion(db, id_suscripcion)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Suscripcion eliminada correctamente", success=True)
+        return ResponseMessage(message="Subscription deleted successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al eliminar suscripcion") if result else "Error al eliminar suscripcion"
+            detail=result.get("message", "Error deleting subscription") if result else "Error deleting subscription"
         )
 
 
@@ -187,21 +187,21 @@ def cambiar_plan(
     if not suscripcion:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Suscripcion no encontrada",
+            detail="Subscription not found",
         )
 
     # Verificar permisos de acceso
     if current_user.user_type == "cliente" and suscripcion.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para modificar esta suscripcion",
+            detail="You do not have permission to modify this subscription",
         )
 
     # Solo suscripciones activas pueden cambiar de plan
     if suscripcion.get("estado_suscripcion") != "activa":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Solo las suscripciones activas pueden cambiar de plan",
+            detail="Only active subscriptions can change plan",
         )
 
     try:

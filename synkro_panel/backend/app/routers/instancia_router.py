@@ -14,7 +14,7 @@ from schemas.auth_schema import UserInToken, ResponseMessage
 from schemas.instancia_schema import InstanciaCreate, InstanciaUpdate, InstanciaPublic
 from services import instancia_service
 
-router = APIRouter(prefix="/api/instancias", tags=["Instancias"])
+router = APIRouter(prefix="/api/instances", tags=["Instances"])
 
 
 @router.get("", response_model=List[InstanciaPublic])
@@ -51,14 +51,14 @@ def get_instancia(
     if not instancia:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Instancia no encontrada"
+            detail="Instance not found"
         )
     
     # Verificar permisos
     if current_user.user_type == "cliente" and instancia.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para ver esta instancia"
+            detail="You do not have permission to view this instance"
         )
     
     return InstanciaPublic(**dict(instancia))
@@ -79,13 +79,13 @@ def create_instancia(
     
     if result and result.get("success"):
         return ResponseMessage(
-            message=f"Instancia creada correctamente con ID: {result.get('id_instancia')}",
+            message=f"Instance created successfully with ID: {result.get('id_instancia')}",
             success=True
         )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al crear instancia") if result else "Error al crear instancia"
+            detail=result.get("message", "Error creating instance") if result else "Error creating instance"
         )
 
 
@@ -105,17 +105,17 @@ def update_instancia(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Instancia no encontrada"
+            detail="Instance not found"
         )
     
     result = instancia_service.update_instancia(db, id_instancia, instancia, current_user.email)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Instancia actualizada correctamente", success=True)
+        return ResponseMessage(message="Instance updated successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al actualizar instancia") if result else "Error al actualizar instancia"
+            detail=result.get("message", "Error updating instance") if result else "Error updating instance"
         )
 
 
@@ -134,15 +134,15 @@ def delete_instancia(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Instancia no encontrada"
+            detail="Instance not found"
         )
     
     result = instancia_service.delete_instancia(db, id_instancia)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Instancia eliminada correctamente", success=True)
+        return ResponseMessage(message="Instance deleted successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al eliminar instancia") if result else "Error al eliminar instancia"
+            detail=result.get("message", "Error deleting instance") if result else "Error deleting instance"
         )

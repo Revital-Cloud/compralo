@@ -14,7 +14,7 @@ from schemas.auth_schema import UserInToken, ResponseMessage
 from schemas.uso_recurso_schema import UsoRecursoCreate, UsoRecursoPublic
 from services import uso_recurso_service, instancia_service
 
-router = APIRouter(prefix="/api/uso-recursos", tags=["Uso de Recursos"])
+router = APIRouter(prefix="/api/resource-usage", tags=["Resource Usage"])
 
 
 @router.get("", response_model=List[UsoRecursoPublic])
@@ -35,7 +35,7 @@ def get_uso_recursos(
             if not instancia or instancia.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="No tienes permisos para ver estos recursos"
+                    detail="You do not have permission to view these resources"
                 )
         else:
             return []
@@ -72,14 +72,14 @@ def get_ultimo_uso_recurso(
         if not instancia or instancia.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permisos para ver estos recursos"
+                detail="You do not have permission to view these resources"
             )
     
     recurso = uso_recurso_service.get_ultimo_uso_recurso(db, id_instancia)
     if not recurso:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No hay registros de uso de recursos para esta instancia"
+            detail="No resource usage records found for this instance"
         )
     
     return UsoRecursoPublic(**dict(recurso))
@@ -100,7 +100,7 @@ def create_uso_recurso(
     if not instancia:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Instancia no encontrada"
+            detail="Instance not found"
         )
     
     result = uso_recurso_service.create_uso_recurso(db, uso_recurso, current_user.email)
@@ -132,15 +132,15 @@ def delete_uso_recurso(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Registro no encontrado"
+            detail="Record not found"
         )
     
     result = uso_recurso_service.delete_uso_recurso(db, id_uso_recurso)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Registro eliminado correctamente", success=True)
+        return ResponseMessage(message="Record deleted successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al eliminar registro") if result else "Error al eliminar registro"
+            detail=result.get("message", "Error deleting record") if result else "Error deleting record"
         )

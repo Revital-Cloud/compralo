@@ -14,7 +14,7 @@ from schemas.auth_schema import UserInToken, ResponseMessage
 from schemas.plan_schema import PlanCreate, PlanUpdate, PlanPublic
 from services import plan_service
 
-router = APIRouter(prefix="/api/planes", tags=["Planes"])
+router = APIRouter(prefix="/api/plans", tags=["Plans"])
 
 
 @router.get("", response_model=List[PlanPublic])
@@ -49,7 +49,7 @@ def get_plan(
     if not plan:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Plan no encontrado"
+            detail="Plan not found"
         )
     return PlanPublic(**dict(plan))
 
@@ -69,13 +69,13 @@ def create_plan(
     
     if result and result.get("success"):
         return ResponseMessage(
-            message=f"Plan creado correctamente con ID: {result.get('id_plan')}",
+            message=f"Plan created successfully with ID: {result.get('id_plan')}",
             success=True
         )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al crear plan") if result else "Error al crear plan"
+            detail=result.get("message", "Error creating plan") if result else "Error creating plan"
         )
 
 
@@ -95,17 +95,17 @@ def update_plan(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Plan no encontrado"
+            detail="Plan not found"
         )
     
     result = plan_service.update_plan(db, id_plan, plan, current_user.email)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Plan actualizado correctamente", success=True)
+        return ResponseMessage(message="Plan updated successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al actualizar plan") if result else "Error al actualizar plan"
+            detail=result.get("message", "Error updating plan") if result else "Error updating plan"
         )
 
 
@@ -124,15 +124,15 @@ def delete_plan(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Plan no encontrado"
+            detail="Plan not found"
         )
     
     result = plan_service.delete_plan(db, id_plan)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Plan eliminado correctamente", success=True)
+        return ResponseMessage(message="Plan deleted successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al eliminar plan") if result else "Error al eliminar plan"
+            detail=result.get("message", "Error deleting plan") if result else "Error deleting plan"
         )

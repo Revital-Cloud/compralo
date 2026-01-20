@@ -12,23 +12,23 @@ import type {
 } from '@/types';
 
 export async function getSubscriptions(): Promise<SubscriptionPublic[]> {
-  return await get<SubscriptionPublic[]>('/suscripciones');
+  return await get<SubscriptionPublic[]>('/subscriptions');
 }
 
 export async function getActiveSubscriptions(): Promise<ActiveSubscriptionWithPlan[]> {
-  return await get<ActiveSubscriptionWithPlan[]>('/suscripciones/activas');
+  return await get<ActiveSubscriptionWithPlan[]>('/subscriptions/activas');
 }
 
 export async function getSubscription(idSubscription: number | string): Promise<SubscriptionPublic> {
-  return await get<SubscriptionPublic>(`/suscripciones/${idSubscription}`);
+  return await get<SubscriptionPublic>(`/subscriptions/${idSubscription}`);
 }
 
 export async function createSubscription(data: SubscriptionCreate): Promise<ResponseMessage> {
-  return await post<ResponseMessage>('/suscripciones', data);
+  return await post<ResponseMessage>('/subscriptions', data);
 }
 
 export async function updateSubscription(idSubscription: number | string, data: SubscriptionUpdate): Promise<ResponseMessage> {
-  return await put<ResponseMessage>(`/suscripciones/${idSubscription}`, data);
+  return await put<ResponseMessage>(`/subscriptions/${idSubscription}`, data);
 }
 
 export async function cancelSubscription(idSubscription: number | string, motivo?: string): Promise<ResponseMessage> {
@@ -53,7 +53,7 @@ export async function changeSubscriptionPlan(
   }
 
   return await post<ResponseMessage>(
-    `/suscripciones/${idSubscription}/cambiar-plan?${params.toString()}`,
+    `/subscriptions/${idSubscription}/cambiar-plan?${params.toString()}`,
     {},
   );
 }

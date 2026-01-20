@@ -6,20 +6,20 @@ import { get, post } from '@/utils/apiWrapper';
 import type { ResourceUsagePublic, ResourceUsageCreate, ResponseMessage } from '@/types';
 
 export async function getResourceUsage(idInstance?: number | string): Promise<ResourceUsagePublic[]> {
-  const url = idInstance ? `/uso-recursos?id_instancia=${idInstance}` : '/uso-recursos';
+  const url = idInstance ? `/resource-usage?id_instancia=${idInstance}` : '/resource-usage';
   return await get<ResourceUsagePublic[]>(url);
 }
 
 export async function getInstancesWithAlerts(): Promise<any[]> {
-  return await get<any[]>('/uso-recursos/alertas');
+  return await get<any[]>('/resource-usage/alertas');
 }
 
 export async function getLatestResourceUsage(idInstance: number | string): Promise<ResourceUsagePublic> {
-  return await get<ResourceUsagePublic>(`/uso-recursos/ultimo/${idInstance}`);
+  return await get<ResourceUsagePublic>(`/resource-usage/ultimo/${idInstance}`);
 }
 
 export async function createResourceUsage(data: ResourceUsageCreate): Promise<ResponseMessage> {
-  return await post<ResponseMessage>('/uso-recursos', data);
+  return await post<ResponseMessage>('/resource-usage', data);
 }
 
 const resourceUsageService = {

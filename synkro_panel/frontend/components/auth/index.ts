@@ -5,3 +5,4 @@
  */
 
 export { ClientGuard } from './client-guard';
+export { AdminGuard } from './admin-guard';

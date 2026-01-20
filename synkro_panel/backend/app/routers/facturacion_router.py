@@ -20,7 +20,7 @@ from schemas.facturacion_schema import (
 )
 from services import facturacion_service
 
-router = APIRouter(prefix="/api/facturacion", tags=["Facturacion"])
+router = APIRouter(prefix="/api/billing", tags=["Billing"])
 
 
 @router.get("", response_model=List[FacturaPublic])
@@ -76,14 +76,14 @@ def get_factura(
     if not factura:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Factura no encontrada"
+            detail="Invoice not found"
         )
     
     # Verificar permisos
     if current_user.user_type == "cliente" and factura.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para ver esta factura"
+            detail="You do not have permission to view this invoice"
         )
     
     # Obtener detalles
@@ -120,13 +120,13 @@ def create_factura(
                 )
         
         return ResponseMessage(
-            message=f"Factura creada correctamente: {result.get('num_factura')}",
+            message=f"Invoice created successfully: {result.get('num_factura')}",
             success=True
         )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al crear factura") if result else "Error al crear factura"
+            detail=result.get("message", "Error creating invoice") if result else "Error creating invoice"
         )
 
 
@@ -146,17 +146,17 @@ def add_factura_detalle(
     if not factura:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Factura no encontrada"
+            detail="Invoice not found"
         )
     
     result = facturacion_service.create_factura_detalle(db, id_factura, detalle, current_user.email)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Detalle agregado correctamente", success=True)
+        return ResponseMessage(message="Line item added successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al agregar detalle") if result else "Error al agregar detalle"
+            detail=result.get("message", "Error adding line item") if result else "Error adding line item"
         )
 
 
@@ -176,17 +176,17 @@ def update_factura(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Factura no encontrada"
+            detail="Invoice not found"
         )
     
     result = facturacion_service.update_factura(db, id_factura, factura, current_user.email)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Factura actualizada correctamente", success=True)
+        return ResponseMessage(message="Invoice updated successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al actualizar factura") if result else "Error al actualizar factura"
+            detail=result.get("message", "Error updating invoice") if result else "Error updating invoice"
         )
 
 
@@ -205,15 +205,15 @@ def delete_factura(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Factura no encontrada"
+            detail="Invoice not found"
         )
     
     result = facturacion_service.delete_factura(db, id_factura)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Factura eliminada correctamente", success=True)
+        return ResponseMessage(message="Invoice deleted successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al eliminar factura") if result else "Error al eliminar factura"
+            detail=result.get("message", "Error deleting invoice") if result else "Error deleting invoice"
         )

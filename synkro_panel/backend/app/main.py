@@ -27,6 +27,7 @@ from routers.deployment_router import router as deployment_router
 from routers.dominio_router import router as dominio_router
 from routers.uso_recurso_router import router as uso_recurso_router
 from routers.historial_plan_router import router as historial_plan_router
+from routers.admin_metrics_router import router as admin_metrics_router
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -129,6 +130,9 @@ app.include_router(uso_recurso_router)
 
 # Historial de planes
 app.include_router(historial_plan_router)
+
+# Métricas admin (dashboard central de Synkro)
+app.include_router(admin_metrics_router)
 
 
 # ============================================================
