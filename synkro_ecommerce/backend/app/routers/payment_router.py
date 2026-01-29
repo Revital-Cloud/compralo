@@ -11,11 +11,19 @@ from decimal import Decimal
 
 from core.database import get_db
 from core.dependencies import get_current_user
+from core.tenant import get_store_from_request
 from schemas.user_schema import User
 from schemas.payment_schema import CreatePaymentMethodPayload, PaymentMethodResponse
 from services.payment_service import add_payment_method, list_payment_methods, delete_payment_method, set_default_payment_method
+from services.payment_widget_service import (
+    get_payment_by_reference,
+    update_payment_status
+)
 from core.config import settings
 from services import order_service
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/payment",
@@ -75,66 +83,219 @@ def update_default_payment_method(payment_method_id: int, db: Session = Depends(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.get("message"))
     return {"message": result.get("message")}
 
+def _get_nested_value(data: dict, path: str) -> str:
+    """
+    Obtiene un valor anidado de un diccionario usando un path con notación de punto.
+    
+    Ejemplo: _get_nested_value({"data": {"transaction": {"id": "123"}}}, "data.transaction.id")
+    retorna "123"
+    """
+    keys = path.split(".")
+    value = data
+    for key in keys:
+        if isinstance(value, dict):
+            value = value.get(key)
+        else:
+            return ""
+        if value is None:
+            return ""
+    return str(value) if value is not None else ""
+
+
+def _verify_webhook_signature(
+    payload: dict,
+    signature_data: dict,
+    events_secret: str
+) -> bool:
+    """
+    Verifica la firma del webhook usando signature.properties dinámico.
+    
+    Wompi envía:
+    - signature.properties: Array de paths (ej: ["event", "data.transaction.id"])
+    - signature.checksum: SHA256 del hash esperado
+    - signature.timestamp: Timestamp del evento
+    
+    Algoritmo:
+    1. Concatenar valores según signature.properties en orden
+    2. Agregar timestamp
+    3. Agregar events_secret
+    4. SHA256 del string resultante
+    5. Comparar con signature.checksum usando hmac.compare_digest
+    """
+    try:
+        properties = signature_data.get("properties", [])
+        checksum = signature_data.get("checksum", "")
+        timestamp = signature_data.get("timestamp", "")
+        
+        if not properties or not checksum:
+            logger.warning("Webhook signature incompleto: falta properties o checksum")
+            return False
+        
+        # Concatenar valores según properties en orden
+        values_to_hash = []
+        for prop_path in properties:
+            value = _get_nested_value(payload, prop_path)
+            values_to_hash.append(value)
+        
+        # Agregar timestamp y events_secret
+        values_to_hash.append(str(timestamp))
+        values_to_hash.append(events_secret)
+        
+        # Concatenar todo
+        string_to_hash = "".join(values_to_hash)
+        
+        # Calcular SHA256
+        expected_checksum = hashlib.sha256(string_to_hash.encode("utf-8")).hexdigest()
+        
+        # Comparar usando hmac.compare_digest para evitar timing attacks
+        return hmac.compare_digest(expected_checksum, checksum)
+        
+    except Exception as e:
+        logger.error(f"Error al verificar firma de webhook: {str(e)}")
+        return False
+
+
 @router.post("/webhook", include_in_schema=False)
 async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
     """
     Endpoint para recibir y procesar notificaciones (webhooks) de Wompi.
-    Actualiza el estado de la orden según `data.transaction.status`.
+    
+    Usa verificación de firma dinámica basada en signature.properties.
+    Actualiza el estado del payment y marca la orden como pagada si corresponde.
     """
     request_body = await request.body()
-    signature_header = request.headers.get("x-wompi-signature")
-    
-    if not signature_header:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Firma de webhook faltante.")
-        
-    # Verificar la firma del webhook
-    expected_signature = hmac.new(
-        settings.WOMPI_EVENTS_SECRET.encode(),
-        request_body,
-        hashlib.sha256
-    ).hexdigest()
-    
-    if signature_header != expected_signature:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Firma de webhook inválida.")
     
     try:
         payload = json.loads(request_body)
+    except json.JSONDecodeError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Payload JSON inválido"
+        )
+    
+    # Obtener credenciales del tenant
+    wompi_config = get_store_from_request(request, db)
+    
+    # Verificar firma usando signature.properties dinámico
+    signature_data = payload.get("signature", {})
+    
+    if not signature_data:
+        # Fallback: verificación simple por header (compatibilidad)
+        signature_header = request.headers.get("x-wompi-signature")
+        if signature_header:
+            expected_signature = hmac.new(
+                wompi_config.wompi_events_secret.encode(),
+                request_body,
+                hashlib.sha256
+            ).hexdigest()
+            
+            if not hmac.compare_digest(signature_header, expected_signature):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Firma de webhook inválida (método simple)"
+                )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Firma de webhook faltante"
+            )
+    else:
+        # Verificación dinámica con signature.properties
+        if not _verify_webhook_signature(payload, signature_data, wompi_config.wompi_events_secret):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Firma de webhook inválida (método dinámico)"
+            )
+    
+    try:
+        # Extraer datos de la transacción
         data = payload.get("data", {})
         tx = data.get("transaction", {})
         status_tx = tx.get("status")  # APPROVED, DECLINED, VOIDED, ERROR, PENDING
-        reference = tx.get("reference", "")  # Esperado: "order-{order_id}-{uuid}"
-
-        # Extraer order_id de la referencia
-        order_id = None
-        if reference and reference.startswith("order-"):
-            try:
-                # order-<id>-<uuid>
-                order_id = int(reference.split("-")[1])
-            except Exception:
-                order_id = None
+        reference = tx.get("reference", "")
+        transaction_id = tx.get("id", "")
         
-        if order_id is not None:
-            # Mapear estado de wompi a `ind_estado` de nuestra orden (ejemplo simple)
-            # 1: pendiente, 2: procesada/aprobada, 4: cancelada/declinada
-            estado_map = {
-                "APPROVED": 2,
-                "DECLINED": 4,
-                "VOIDED": 4,
-                "ERROR": 4,
-                "PENDING": 1,
-            }
-            ind_estado = estado_map.get(status_tx, None)
-            # Actualizar método de pago si llega el type
-            metodo_pago = None
-            pm = tx.get("payment_method") or {}
-            if isinstance(pm, dict):
-                tipo = pm.get("type")
-                if tipo:
-                    metodo_pago = tipo.lower()
-            
-            order_service.update_order_payment_info(db, Decimal(order_id), metodo_pago=metodo_pago, ind_estado=ind_estado)
+        if not reference and not transaction_id:
+            logger.warning("Webhook sin reference ni transaction_id")
+            return {"status": "ok", "message": "Webhook recibido pero sin datos de transacción"}
         
+        # Buscar payment por reference o transaction_id
+        payment = None
+        if reference:
+            payment = get_payment_by_reference(db, reference)
+        
+        if not payment and transaction_id:
+            # Buscar por transaction_id
+            query = text("""
+                SELECT 
+                    id_pago,
+                    id_orden,
+                    reference,
+                    provider_transaction_id,
+                    status
+                FROM tab_pagos
+                WHERE provider_transaction_id = :transaction_id
+                ORDER BY fec_insert DESC
+                LIMIT 1
+            """)
+            result = db.execute(query, {"transaction_id": transaction_id})
+            row = result.fetchone()
+            if row:
+                payment = dict(row._mapping)
+        
+        if not payment:
+            logger.warning(f"Payment no encontrado: reference={reference}, transaction_id={transaction_id}")
+            # Intentar actualizar orden directamente si tenemos reference con formato antiguo
+            if reference and reference.startswith("order-"):
+                try:
+                    order_id = int(reference.split("-")[1])
+                    estado_map = {
+                        "APPROVED": 2,
+                        "DECLINED": 4,
+                        "VOIDED": 4,
+                        "ERROR": 4,
+                        "PENDING": 1,
+                    }
+                    ind_estado = estado_map.get(status_tx)
+                    if ind_estado:
+                        # Extraer método de pago de la transacción si está disponible
+                        metodo_pago = "Wompi"
+                        if tx and "payment_method" in tx:
+                            pm = tx.get("payment_method", {})
+                            if isinstance(pm, dict) and pm.get("type"):
+                                from services.payment_widget_service import get_payment_method_name
+                                metodo_pago = get_payment_method_name(pm.get("type"))
+                        
+                        order_service.update_order_payment_info(
+                            db,
+                            Decimal(order_id),
+                            metodo_pago=metodo_pago,
+                            ind_estado=ind_estado
+                        )
+                except Exception:
+                    pass
+            return {"status": "ok", "message": "Webhook procesado pero payment no encontrado"}
+        
+        # Verificar si ya está en estado final (idempotencia)
+        current_status = payment.get("status")
+        if current_status in ["APPROVED", "DECLINED", "VOIDED", "ERROR"]:
+            if current_status == status_tx:
+                logger.info(f"Webhook duplicado ignorado: payment ya está en {status_tx}")
+                return {"status": "ok", "message": "Webhook duplicado, payment ya actualizado"}
+        
+        # Actualizar payment con status y raw_last_event
+        update_payment_status(
+            db=db,
+            reference=payment.get("reference") or reference,
+            status=status_tx,
+            transaction_data=tx,
+            mark_order_paid=(status_tx == "APPROVED")
+        )
+        
+        logger.info(f"Webhook procesado: reference={reference}, status={status_tx}")
         return {"status": "ok"}
+        
     except Exception as e:
-        print(f"Error procesando webhook de Wompi: {e}")
-        raise HTTPException(status_code=500, detail="Error al procesar el webhook.") 
+        logger.error(f"Error procesando webhook de Wompi: {str(e)}")
+        # Retornar 200 para evitar reintentos de Wompi si es error nuestro
+        return {"status": "error", "message": f"Error interno: {str(e)}"} 

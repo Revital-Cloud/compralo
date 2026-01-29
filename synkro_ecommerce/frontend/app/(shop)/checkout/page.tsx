@@ -65,12 +65,13 @@ type PaymentFormData = z.infer<typeof paymentSchema>;
 const CheckoutPage = () => {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
-  const { items, totals, total, hasItems, isLoading: cartLoading } = useCart();
+  const { items, totals, total, hasItems, isLoading: cartLoading, id_carrito } = useCart();
   const queryClient = useQueryClient();
   
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState<string>("");
   const [isWompiModalOpen, setIsWompiModalOpen] = useState(false);
+  const [pendingOrderId, setPendingOrderId] = useState<number | null>(null);
   
   // Cargar direcciones del usuario
   const { data: addresses } = useQuery({
@@ -142,19 +143,100 @@ const CheckoutPage = () => {
     setCurrentStep(3);
   };
 
-  const handlePaymentSubmit = (data: PaymentFormData) => {
-    setIsWompiModalOpen(true);
+  const handlePaymentSubmit = async (data: PaymentFormData) => {
+    if (!id_carrito) {
+      toast.error('No se pudo obtener el carrito. Por favor, recarga la página.');
+      return;
+    }
+
+    // Obtener dirección seleccionada
+    const selectedAddress = addresses?.find(
+      (addr) => addr.id_direccion?.toString() === informationForm.getValues().direccion
+    ) || addresses?.[0];
+
+    if (!selectedAddress?.id_direccion) {
+      toast.error('Debes seleccionar una dirección de envío.');
+      return;
+    }
+
+    try {
+      const { post, get } = await import('@/utils/apiWrapper');
+      
+      // 1. Verificar si hay una orden pendiente del usuario
+      let orderId: number | null = null;
+      try {
+        const orders = await get<any[]>('/orders');
+        const pendingOrder = orders?.find((o: any) => o.ind_estado === 1); // 1 = Pendiente
+        if (pendingOrder?.id_orden) {
+          console.log('📦 Orden pendiente encontrada, reutilizando:', pendingOrder.id_orden);
+          orderId = typeof pendingOrder.id_orden === 'string' 
+            ? parseInt(pendingOrder.id_orden, 10) 
+            : Number(pendingOrder.id_orden);
+        }
+      } catch (error) {
+        console.warn('⚠️ No se pudo verificar órdenes pendientes:', error);
+      }
+
+      // 2. Si no hay orden pendiente, crear una nueva
+      if (!orderId) {
+        const orderData = {
+          id_carrito: Number(id_carrito),
+          id_direccion: Number(selectedAddress.id_direccion),
+          codigo_descuento: null,
+          des_observaciones: data.notas || null,
+          id_canje: null
+        };
+
+        console.log('📦 Creando orden desde el carrito...', orderData);
+        const orderResult = await post<{ success: boolean; id_orden?: number | string; message?: string }>('/order', orderData);
+
+        console.log('📦 Resultado de creación de orden:', orderResult);
+
+        if (!orderResult.success || !orderResult.id_orden) {
+          console.error('❌ Error al crear orden:', orderResult);
+          throw new Error(orderResult.message || 'No se pudo crear la orden');
+        }
+
+        // Convertir id_orden a número si viene como string o Decimal
+        orderId = typeof orderResult.id_orden === 'string' 
+          ? parseInt(orderResult.id_orden, 10) 
+          : Number(orderResult.id_orden);
+        
+        if (isNaN(orderId)) {
+          console.error('❌ ID de orden inválido:', orderResult.id_orden);
+          throw new Error('ID de orden inválido');
+        }
+
+        console.log('✅ Orden creada exitosamente, orderId:', orderId);
+        
+        // Invalidar el query del carrito para que se actualice (el carrito se limpia al crear la orden)
+        queryClient.invalidateQueries({ queryKey: ['cart'] });
+      }
+
+      // 3. Abrir el widget con el orderId
+      setPendingOrderId(orderId);
+      setIsWompiModalOpen(true);
+
+    } catch (error: any) {
+      console.error('Error al crear orden:', error);
+      toast.error(error?.response?.data?.detail || error?.message || 'Error al crear la orden. Intenta nuevamente.');
+    }
   };
 
   const handlePaymentResult = (result: any) => {
     console.log("Resultado del pago:", result);
-    
-    if (result.transaction) {
+
+    if (result?.transaction) {
       const transaction = result.transaction;
-      
-      // El widget ya maneja la redirección y los mensajes de toast
-      // Aquí podríamos agregar lógica adicional si es necesaria
       console.log("Transacción completada:", transaction);
+
+      // Pago aprobado: el backend ya limpió el carrito (trigger). Actualizar la UI
+      // para que muestre "carrito vacío" sin necesidad de refrescar.
+      if (transaction?.status === "APPROVED") {
+        setPendingOrderId(null);
+        queryClient.invalidateQueries({ queryKey: ["cart"] });
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+      }
     }
   };
 
@@ -166,7 +248,8 @@ const CheckoutPage = () => {
     );
   }
 
-  if (!hasItems()) {
+  // No mostrar "carrito vacío" si hay una orden pendiente en proceso de pago
+  if (!hasItems() && !pendingOrderId) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -255,15 +338,19 @@ const CheckoutPage = () => {
       {/* Modal de Wompi */}
       <WompiModal
         isOpen={isWompiModalOpen}
-        onClose={() => setIsWompiModalOpen(false)}
+        onClose={() => {
+          setIsWompiModalOpen(false);
+          setPendingOrderId(null);
+        }}
         amount={finalTotal * 100} // Convertir a centavos
+        orderId={pendingOrderId || undefined} // Pasar orderId para usar backend
         customerData={{
           email: user?.email_usuario,
           fullName: `${informationForm.getValues().nombre} ${informationForm.getValues().apellidos}`,
           phoneNumber: informationForm.getValues().celular,
           phoneNumberPrefix: "+57",
-          legalId: paymentForm.getValues().numeroIdentificacion,
-          legalIdType: paymentForm.getValues().tipoIdentificacion
+          legalId: paymentForm.getValues().numeroIdentificacion || undefined,
+          legalIdType: paymentForm.getValues().tipoIdentificacion || undefined
         }}
         shippingAddress={{
           addressLine1: informationForm.getValues().direccion,
@@ -473,19 +560,13 @@ function InformationStep({
                   <Label htmlFor="departamento">
                     Departamento <span className="text-red-500">*</span>
                   </Label>
-                  <Select
+                  <Input
                     id="departamento"
                     {...form.register("departamento")}
                     className="mt-1"
-                    value={form.watch("departamento") || ""}
-                    onChange={(e) => form.setValue("departamento", e.target.value)}
+                    placeholder="Ej: Santander, Cundinamarca, Antioquia..."
                     disabled={!!selectedAddress}
-                  >
-                    <option value="">Elige una opción</option>
-                    <option value="Santander">Santander</option>
-                    <option value="Cundinamarca">Cundinamarca</option>
-                    <option value="Antioquia">Antioquia</option>
-                  </Select>
+                  />
                   {form.formState.errors.departamento && (
                     <p className="text-red-500 text-sm mt-1">
                       {form.formState.errors.departamento.message}
@@ -496,28 +577,13 @@ function InformationStep({
                   <Label htmlFor="ciudad">
                     Localidad / Ciudad <span className="text-red-500">*</span>
                   </Label>
-                  {selectedAddress ? (
-                    <Input
-                      id="ciudad"
-                      {...form.register("ciudad")}
-                      className="mt-1"
-                      value={form.watch("ciudad") || ""}
-                      disabled
-                    />
-                  ) : (
-                    <Select
-                      id="ciudad"
-                      {...form.register("ciudad")}
-                      className="mt-1"
-                      value={form.watch("ciudad") || ""}
-                      onChange={(e) => form.setValue("ciudad", e.target.value)}
-                    >
-                      <option value="">Elige una opción</option>
-                      <option value="BUCARAMANGA (STDER)">BUCARAMANGA (STDER)</option>
-                      <option value="BOGOTÁ">BOGOTÁ</option>
-                      <option value="MEDELLÍN">MEDELLÍN</option>
-                    </Select>
-                  )}
+                  <Input
+                    id="ciudad"
+                    {...form.register("ciudad")}
+                    className="mt-1"
+                    placeholder="Ej: Bogotá, Medellín, Bucaramanga..."
+                    disabled={!!selectedAddress}
+                  />
                   {form.formState.errors.ciudad && (
                     <p className="text-red-500 text-sm mt-1">
                       {form.formState.errors.ciudad.message}
@@ -754,18 +820,12 @@ function CreateAddressForm({
           <Label htmlFor="modal-departamento">
             Departamento <span className="text-red-500">*</span>
           </Label>
-          <Select
+          <Input
             id="modal-departamento"
             {...addressForm.register("departamento")}
             className="mt-1"
-            value={addressForm.watch("departamento")}
-            onChange={(e) => addressForm.setValue("departamento", e.target.value)}
-          >
-            <option value="">Elige una opción</option>
-            <option value="Santander">Santander</option>
-            <option value="Cundinamarca">Cundinamarca</option>
-            <option value="Antioquia">Antioquia</option>
-          </Select>
+            placeholder="Ej: Santander, Cundinamarca, Antioquia..."
+          />
           {addressForm.formState.errors.departamento && (
             <p className="text-red-500 text-sm mt-1">
               {addressForm.formState.errors.departamento.message}
@@ -776,18 +836,12 @@ function CreateAddressForm({
           <Label htmlFor="modal-ciudad">
             Ciudad <span className="text-red-500">*</span>
           </Label>
-          <Select
+          <Input
             id="modal-ciudad"
             {...addressForm.register("ciudad")}
             className="mt-1"
-            value={addressForm.watch("ciudad")}
-            onChange={(e) => addressForm.setValue("ciudad", e.target.value)}
-          >
-            <option value="">Elige una opción</option>
-            <option value="BUCARAMANGA (STDER)">BUCARAMANGA (STDER)</option>
-            <option value="BOGOTÁ">BOGOTÁ</option>
-            <option value="MEDELLÍN">MEDELLÍN</option>
-          </Select>
+            placeholder="Ej: Bogotá, Medellín, Bucaramanga..."
+          />
           {addressForm.formState.errors.ciudad && (
             <p className="text-red-500 text-sm mt-1">
               {addressForm.formState.errors.ciudad.message}

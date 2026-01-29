@@ -225,18 +225,19 @@ const CartPage = () => {
   const [isWompiModalOpen, setIsWompiModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Derivados para saber si falta dirección o método de pago
-  const isMissingAddress = !defaultAddress;
+  // Derivados para saber si falta dirección o método de pago (solo para mostrar mensajes informativos)
+  const isMissingAddress = isAuthenticated && !defaultAddress;
   const paymentMethodsCount = Array.isArray(paymentMethods) ? paymentMethods.length : 0;
-  const isMissingPaymentMethod = paymentMethodsCount === 0;
+  const isMissingPaymentMethod = isAuthenticated && paymentMethodsCount === 0;
   
   // Determinar si el botón de pagar debe estar deshabilitado
-  const isPayButtonDisabled = isMissingAddress || isMissingPaymentMethod || isPaying;
+  // Solo deshabilitar si está procesando el pago
+  const isPayButtonDisabled = isPaying;
   
   // Mensaje de feedback para el botón deshabilitado
   const getPayButtonMessage = () => {
     if (isPaying) return "Procesando…";
-    return texts.checkout; // Siempre retorna "Pagar" a menos que esté procesando
+    return texts.checkout;
   };
 
   const handleOpenPaymentModal = () => {
@@ -246,11 +247,6 @@ const CartPage = () => {
     }
     if (!user?.id_usuario) {
       setIsAuthDialogOpen(true);
-      return;
-    }
-    // Si faltan requisitos, abrir modal informativo y bloquear
-    if (isMissingAddress || isMissingPaymentMethod) {
-      setIsRequirementsDialogOpen(true);
       return;
     }
     // Abrir modal de selección de método de pago Wompi
@@ -283,78 +279,9 @@ const CartPage = () => {
       setIsAuthDialogOpen(true);
       return;
     }
-    // Si faltan requisitos, abrir modal informativo y bloquear
-    if (isMissingAddress || isMissingPaymentMethod) {
-      setIsRequirementsDialogOpen(true);
-      return;
-    }
 
-    const effectivePM =
-      pmIdOverride ??
-      (selectedPaymentMethodId
-        ? Number(selectedPaymentMethodId)
-        : Number((defaultPaymentMethod as any)?.id_metodo_pago));
-
-    const pmObject = Array.isArray(paymentMethods)
-      ? paymentMethods.find(
-          (m: any) => Number(m.id_metodo_pago) === Number(effectivePM)
-        )
-      : undefined;
-
-    if (!pmObject) {
-      setIsRequirementsDialogOpen(true);
-      return;
-    }
-    if (!(pmObject as any).provider_source_id) {
-      toast.error(
-        "Tu método de pago no está listo. Vuelve a agregar la tarjeta para generar el token de Wompi."
-      );
-      return;
-    }
-
-    try {
-      setIsPaying(true);
-      // limpiar cualquier estado previo de pendiente
-      setPendingOrderId(null);
-
-      // 1) Pagar el carrito y crear la orden solo si es aprobado
-      const payResp = await payCartAndCreateOrder(Number(id_carrito), {
-        payment_method_id: Number(effectivePM),
-        id_direccion: Number(defaultAddress.id_direccion),
-        codigo_descuento: appliedDiscount?.codigo || null,
-        des_observaciones: null,
-        id_canje: null,
-      });
-
-      if (payResp.status === "APPROVED" && payResp.order_id) {
-        setPendingOrderId(null);
-        toast.success(`Pago aprobado. Orden #${payResp.order_id}`);
-        // Vaciar carrito inmediatamente y refrescar datos
-        try {
-          clearCart();
-          refetchCart();
-        } catch (_) {}
-      } else if (payResp.status === "PENDING") {
-        setPendingOrderId(null);
-        toast.message(
-          "Pago pendiente de confirmación. No se ha generado la orden aún"
-        );
-      } else if (payResp.status === "DECLINED") {
-        setPendingOrderId(null);
-        setIsRetryDialogOpen(true);
-        toast.error("Pago declinado");
-      } else {
-        setPendingOrderId(null);
-        toast.error("Error en el pago");
-      }
-    } catch (e: any) {
-      toast.error(
-        e?.response?.data?.detail || e?.message || "Error procesando el pago"
-      );
-    } finally {
-      setIsPaying(false);
-      setIsPMDialogOpen(false);
-    }
+    // Redirigir al checkout donde se manejarán dirección y método de pago
+    router.push("/checkout");
   };
 
   // Estado de carga después de declarar todos los hooks
@@ -886,7 +813,7 @@ const CartPage = () => {
               </Button>
               <Button
                 className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                disabled={!hasItems || isPayButtonDisabled || cartExceedsLimit}
+                disabled={!hasItems() || isPayButtonDisabled || cartExceedsLimit}
                 onClick={() => {
                   if (!isAuthenticated) {
                     setIsAuthDialogOpen(true);

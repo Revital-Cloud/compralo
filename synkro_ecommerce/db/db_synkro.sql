@@ -578,19 +578,22 @@ CREATE TABLE IF NOT EXISTS tab_ordenes (
 	PRIMARY KEY (id_orden)
 );
 
--- 3. Tabla para Pagos/Transacciones (Actualizada para Wompi)
+-- 3. Tabla para Pagos/Transacciones (Actualizada para Wompi Checkout Widget)
 CREATE TABLE IF NOT EXISTS tab_pagos (
     id_pago                     SERIAL PRIMARY KEY,
     id_orden                    DECIMAL(10) NOT NULL,
     FOREIGN KEY (id_orden)      REFERENCES tab_ordenes(id_orden),
     
+    -- Referencia única del pago (formato synkro_{order_id}_{random})
+    reference                   VARCHAR(255),                   -- Referencia única del pago
+    
     -- Información del Proveedor (ahora con Wompi)
-    provider_transaction_id     VARCHAR(255) NOT NULL,          -- ID de la transacción en Wompi (reemplaza provider_payment_id)
+    provider_transaction_id     VARCHAR(255),                    -- ID de la transacción en Wompi (nullable inicialmente)
     -- provider_preference_id   VARCHAR(255),                   -- ELIMINADA
     provider_name               VARCHAR(50) NOT NULL DEFAULT 'wompi',
     
     -- Estado del Pago (los estados de Wompi mapean bien aquí)
-    status                      VARCHAR(50) NOT NULL,           -- 'APPROVED', 'DECLINED', 'VOIDED', 'ERROR'
+    status                      VARCHAR(50) NOT NULL,           -- 'CREATED', 'PENDING', 'APPROVED', 'DECLINED', 'VOIDED', 'ERROR'
     status_detail               VARCHAR(100),                   -- status_message de Wompi
     
     -- Detalles de la Transacción
@@ -608,7 +611,12 @@ CREATE TABLE IF NOT EXISTS tab_pagos (
     provider_date_created       TIMESTAMP,
     provider_date_approved      TIMESTAMP,
     
-    raw_response                JSONB,
+    raw_response                JSONB,                           -- Respuesta cruda del proveedor (legacy)
+    raw_last_event              JSONB,                           -- Último webhook/evento recibido
+    
+    -- Control de reintentos
+    parent_payment_id           INTEGER,                         -- ID del pago padre (para tracking de reintentos)
+    FOREIGN KEY (parent_payment_id) REFERENCES tab_pagos(id_pago) ON DELETE SET NULL,
     
     -- Control Interno
     estado_procesamiento        VARCHAR(20) DEFAULT 'pendiente',
@@ -618,7 +626,6 @@ CREATE TABLE IF NOT EXISTS tab_pagos (
     fec_update                  TIMESTAMP WITHOUT TIME ZONE,
 
     -- Constraints
-    UNIQUE (provider_transaction_id, provider_name),
     CONSTRAINT chk_amount_positive CHECK (amount > 0),
     CONSTRAINT chk_estado_procesamiento CHECK (estado_procesamiento IN ('pendiente', 'procesado', 'error', 'cancelado'))
 );
@@ -632,6 +639,16 @@ CREATE INDEX IF NOT EXISTS idx_pagos_status
     ON tab_pagos(status, estado_procesamiento);
 CREATE INDEX IF NOT EXISTS idx_pagos_fecha_creacion 
     ON tab_pagos(provider_date_created DESC);
+
+-- Índice único en reference (para búsquedas rápidas)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pagos_reference 
+    ON tab_pagos(reference) 
+    WHERE reference IS NOT NULL;
+
+-- Índice único parcial para provider_transaction_id (permite múltiples NULLs)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pagos_provider_transaction_unique 
+    ON tab_pagos(provider_transaction_id, provider_name) 
+    WHERE provider_transaction_id IS NOT NULL;
 
 
 -- Tabla de productos de la orden
