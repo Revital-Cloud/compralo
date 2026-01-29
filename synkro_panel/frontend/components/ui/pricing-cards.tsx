@@ -12,76 +12,76 @@ import { isAuthenticated } from "@/utils/apiWrapper";
 const pricingPlans = [
   {
     id: "emprendedor",
-    name: "Starter",
+    name: "Emprendedor",
     description:
-      "Perfect for those starting their e-commerce journey with essential selling features.",
+      "Perfecto para empezar tu viaje e-commerce con funciones esenciales.",
     price: "$29",
     period: "/month",
     annualPrice: "$290",
-    annualSavings: "Save $58",
+    annualSavings: "Ahorra $58",
     icon: ShoppingBag,
     features: [
-      "Up to 100 products",
-      "Basic analytics dashboard",
-      "Wompi integration",
-      "1 admin user",
-      "Email support",
-      "SSL included",
+      "Hasta 100 productos",
+      "Panel de analíticas básico",
+      "Integración con Wompi",
+      "1 usuario administrador",
+      "Soporte por email",
+      "SSL incluido",
     ],
-    limitations: ["No headless CMS", "No webhooks"],
-    cta: "Get Started",
+    limitations: ["Sin CMS headless", "Sin webhooks"],
+    cta: "Comenzar",
     ctaLink: "/register",
     variant: "outline" as const,
     popular: false,
   },
   {
     id: "profesional",
-    name: "Professional",
+    name: "Profesional",
     description:
-      "Ideal for growing businesses that need more tools and customization options.",
+      "Ideal para negocios en crecimiento que necesitan más herramientas y personalización.",
     price: "$79",
     period: "/month",
     annualPrice: "$790",
-    annualSavings: "Save $158",
+    annualSavings: "Ahorra $158",
     icon: Zap,
     features: [
-      "Unlimited products",
-      "Advanced analytics + reports",
-      "Headless CMS included",
-      "All payment gateways + Webhooks",
-      "Up to 5 admin users",
-      "Priority support",
-      "Full API access",
-      "Automatic backups",
+      "Productos ilimitados",
+      "Analíticas avanzadas + reportes",
+      "CMS headless incluido",
+      "Pasarelas de pago + Webhooks",
+      "Hasta 5 admins",
+      "Soporte prioritario",
+      "Acceso completo a la API",
+      "Backups automáticos",
     ],
     limitations: [],
-    cta: "Start Free Trial",
+    cta: "Iniciar prueba",
     ctaLink: "/register",
     variant: "synkro" as const,
     popular: true,
   },
   {
     id: "corporativo",
-    name: "Enterprise",
+    name: "Empresarial",
     description:
-      "Custom solutions for large businesses with high volume and specific requirements.",
+      "Soluciones a medida para empresas con alto volumen y necesidades específicas.",
     price: "Custom",
     period: "",
     annualPrice: "",
     annualSavings: "",
     icon: Building,
     features: [
-      "Everything in Professional",
-      "Unlimited users",
-      "Custom integrations",
-      "Guaranteed SLA",
-      "Dedicated support",
-      "Specialized consulting",
-      "Dedicated infrastructure",
-      "Assisted migration",
+      "Todo lo de Profesional",
+      "Usuarios ilimitados",
+      "Integraciones personalizadas",
+      "SLA garantizado",
+      "Soporte dedicado",
+      "Consultoría especializada",
+      "Infraestructura dedicada",
+      "Migración asistida",
     ],
     limitations: [],
-    cta: "Contact Sales",
+    cta: "Contactar ventas",
     ctaLink: "#contact",
     variant: "outline" as const,
     popular: false,
@@ -120,28 +120,27 @@ export function PricingCards() {
         {/* Header */}
         <div className="text-center mb-16">
           <Badge variant="synkro" className="mb-4">
-            Pricing Plans
+            Planes y precios
           </Badge>
           <h2 className="text-3xl md:text-5xl font-regular tracking-tighter mb-4 text-gray-900 dark:text-white">
-            Flexible Plans for Your Growth
+            Planes flexibles para tu crecimiento
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Choose the Synkro plan that best fits your business size and needs.
-            Start free, upgrade as you grow.
+            Elige el plan Synkro que mejor se adapte a tu negocio. Empieza y escala cuando lo necesites.
           </p>
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch">
           {pricingPlans.map(plan => {
             const Icon = plan.icon;
             return (
               <Card
                 key={plan.id}
                 className={cn(
-                  "relative transition-all duration-300 hover:shadow-xl group",
+                  "relative h-full transition-all duration-300 hover:shadow-xl group",
                   plan.popular
-                    ? "border-2 border-synkro-green shadow-lg shadow-synkro-green/20 lg:scale-105"
+                    ? "border-2 border-synkro-green shadow-lg shadow-synkro-green/20 ring-2 ring-synkro-green/15"
                     : "border border-gray-200 dark:border-synkro-green/20 hover:border-synkro-green/40",
                   "bg-white dark:bg-synkro-black"
                 )}
@@ -151,7 +150,7 @@ export function PricingCards() {
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <Badge className="bg-synkro-green text-synkro-black px-4 py-1 font-medium">
                       <Star className="w-3 h-3 mr-1" />
-                      Most Popular
+                      Más popular
                     </Badge>
                   </div>
                 )}
@@ -165,12 +164,12 @@ export function PricingCards() {
                   <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
                     {plan.name}
                   </CardTitle>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2 min-h-10">
                     {plan.description}
                   </p>
                 </CardHeader>
 
-                <CardContent className="pt-0">
+                <CardContent className="pt-0 flex flex-1 flex-col">
                   {/* Price */}
                   <div className="text-center mb-6">
                     <div className="flex items-baseline justify-center">
@@ -185,13 +184,13 @@ export function PricingCards() {
                     </div>
                     {plan.annualSavings && (
                       <p className="text-sm text-synkro-green mt-1 font-medium">
-                        {plan.annualSavings} with annual billing
+                        {plan.annualSavings} con pago anual
                       </p>
                     )}
                   </div>
 
                   {/* Features */}
-                  <div className="space-y-3 mb-8">
+                  <div className="space-y-3 mb-8 flex-1">
                     {plan.features.map((feature, featureIndex) => (
                       <div
                         key={featureIndex}
@@ -216,20 +215,22 @@ export function PricingCards() {
                   </div>
 
                   {/* CTA Button */}
-                  <Button
-                    onClick={() => handleCTAClick(plan)}
-                    variant={plan.variant}
-                    className={cn(
-                      "w-full group/btn",
-                      plan.variant === "synkro" &&
-                        "bg-synkro-green hover:bg-synkro-green/90 text-synkro-black",
-                      plan.variant === "outline" &&
-                        "border-synkro-green/50 text-synkro-green hover:bg-synkro-green hover:text-synkro-black"
-                    )}
-                  >
-                    <span>{isLoggedIn ? "Manage Plan" : plan.cta}</span>
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
-                  </Button>
+                  <div className="mt-auto">
+                    <Button
+                      onClick={() => handleCTAClick(plan)}
+                      variant={plan.variant}
+                      className={cn(
+                        "w-full group/btn",
+                        plan.variant === "synkro" &&
+                          "bg-synkro-green hover:bg-synkro-green/90 text-synkro-black",
+                        plan.variant === "outline" &&
+                          "border-synkro-green/50 text-synkro-green hover:bg-synkro-green hover:text-synkro-black"
+                      )}
+                    >
+                      <span>{isLoggedIn ? "Gestionar plan" : plan.cta}</span>
+                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );
@@ -239,19 +240,19 @@ export function PricingCards() {
         {/* Additional Info */}
         <div className="text-center mt-12 space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            All plans include a 14-day free trial. No credit card required.
+            Todos los planes incluyen 14 días de prueba. No se requiere tarjeta.
           </p>
           {isLoggedIn ? (
             <Button asChild variant="outline" className="border-synkro-green text-synkro-green hover:bg-synkro-green hover:text-synkro-black">
               <Link href="/subscription">
-                View Full Plan Comparison
+                Ver comparación completa
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           ) : (
             <Button asChild variant="outline" className="border-synkro-green text-synkro-green hover:bg-synkro-green hover:text-synkro-black">
               <Link href="/register">
-                Sign Up Now
+                Crear cuenta ahora
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>

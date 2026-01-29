@@ -36,9 +36,9 @@ export const Contact2 = ({
   const displayDescription = description || t('contact.subtitle');
   return (
     <section id="contact" className="py-32 bg-white dark:bg-synkro-black">
-      <div className="container">
-        <div className="mx-auto flex max-w-(--breakpoint-xl) flex-col justify-between gap-10 lg:flex-row lg:gap-20">
-          <div className="mx-auto flex max-w-sm flex-col justify-between gap-10">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-2 lg:gap-20 items-start">
+          <div className="flex flex-col gap-10">
             <div className="text-center lg:text-left">
               <h1 className="mb-2 text-5xl font-semibold lg:mb-1 lg:text-6xl text-synkro-green">
                 {displayTitle}
@@ -78,7 +78,7 @@ export const Contact2 = ({
               </ul>
             </div>
           </div>
-          <div className="mx-auto flex max-w-(--breakpoint-md) flex-col gap-6 rounded-lg border border-synkro-green/20 p-10 bg-gray-50 dark:bg-synkro-black backdrop-blur-xs">
+          <div className="w-full max-w-xl lg:justify-self-end flex flex-col gap-6 rounded-lg border border-synkro-green/20 p-10 bg-gray-50 dark:bg-synkro-black backdrop-blur-xs">
             <div className="flex gap-4">
               <div className="grid w-full items-center gap-1.5">
                 <Label

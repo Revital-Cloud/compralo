@@ -79,7 +79,7 @@
         "tags": ["CMS", "Blog", "API"]
       },
       "marketing": {
-        "title": "Marketing Tools",
+        "title": "Herramientas de marketing",
         "description": "Descuentos configurables, sistema de puntos y campañas automatizadas"
       },
       "payments": {
@@ -126,9 +126,9 @@
         "status": "Mensual"
       },
       "gdpr": {
-        "title": "GDPR Compliance",
+        "title": "Cumplimiento GDPR",
         "description": "Cumplimiento con regulaciones de protección de datos internacionales.",
-        "status": "Compliant"
+        "status": "Cumple"
       }
     },
     "stats": {

@@ -74,7 +74,7 @@ export function HeroSection() {
                   >
                     <span className="text-foreground text-sm flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-synkro-green" />
-                      Introducing Synkro: Your All-in-One E-commerce Platform
+                      Introduciendo Synkro: tu plataforma e-commerce todo‑en‑uno
                     </span>
                     <span className="dark:border-background block h-4 w-0.5 border-l bg-synkro-green dark:bg-synkro-green"></span>
 
@@ -130,7 +130,7 @@ export function HeroSection() {
                         >
                           <Link href="/dashboard">
                             <LayoutDashboard className="mr-2 h-5 w-5" />
-                            <span>Go to Dashboard</span>
+                            <span>Ir al Dashboard</span>
                           </Link>
                         </Button>
                       </div>
@@ -140,7 +140,7 @@ export function HeroSection() {
                         className="h-10.5 rounded-xl px-5 hover:bg-synkro-green/10 hover:text-synkro-green"
                         onClick={() => scrollToSection("#features")}
                       >
-                        <span>Explore Features</span>
+                        <span>Ver características</span>
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </>
@@ -166,7 +166,7 @@ export function HeroSection() {
                         onClick={() => scrollToSection("#pricing")}
                       >
                         <Play className="mr-2 h-4 w-4" />
-                        <span>View Pricing</span>
+                        <span>Ver precios</span>
                       </Button>
                     </>
                   )}
@@ -189,17 +189,17 @@ export function HeroSection() {
                 >
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-synkro-green animate-pulse" />
-                    <span>No credit card required</span>
+                    <span>No se requiere tarjeta</span>
                   </div>
                   <div className="hidden sm:block h-4 w-px bg-border" />
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-synkro-green animate-pulse" />
-                    <span>Free forever plan</span>
+                    <span>Plan gratis para siempre</span>
                   </div>
                   <div className="hidden sm:block h-4 w-px bg-border" />
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-synkro-green animate-pulse" />
-                    <span>Setup in minutes</span>
+                    <span>Setup en minutos</span>
                   </div>
                 </AnimatedGroup>
               </div>

@@ -19,26 +19,26 @@ import { isAuthenticated } from "@/utils/apiWrapper";
 const benefits = [
   {
     icon: Rocket,
-    title: "Launch in Minutes",
-    description: "Get your store up and running with our guided setup",
+    title: "Lanza en minutos",
+    description: "Pon tu tienda en marcha con nuestro setup guiado",
   },
   {
     icon: Shield,
-    title: "Enterprise Security",
-    description: "PCI DSS compliant with SSL encryption",
+    title: "Seguridad empresarial",
+    description: "Cumplimiento PCI DSS con encriptación SSL",
   },
   {
     icon: Zap,
-    title: "Instant Payments",
-    description: "Native integration with Wompi and more",
+    title: "Pagos instantáneos",
+    description: "Integración nativa con Wompi y más",
   },
 ];
 
 const features = [
-  "Free setup assistance",
-  "No credit card required",
-  "14-day free trial",
-  "Cancel anytime",
+  "Asistencia gratis en la configuración",
+  "No se requiere tarjeta",
+  "Prueba gratis de 14 días",
+  "Cancela cuando quieras",
 ];
 
 export function GetStartedSection() {
@@ -53,27 +53,27 @@ export function GetStartedSection() {
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-synkro-green/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="container">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
           {/* Header */}
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 rounded-full bg-synkro-green/10 px-4 py-1.5 text-sm text-synkro-green mb-4">
               <Sparkles className="h-4 w-4" />
-              <span>Start Your E-commerce Journey</span>
+              <span>Empieza tu viaje e‑commerce</span>
             </div>
             <h2 className="text-4xl font-bold md:text-5xl">
-              Get Started with <span className="text-synkro-green">Synkro</span>
+              Comienza con <span className="text-synkro-green">Synkro</span>
             </h2>
             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Create your free account and start building your online store today.
-              No credit card required.
+              Crea tu cuenta gratis y empieza a construir tu tienda hoy.
+              No se requiere tarjeta.
             </p>
           </div>
 
           <div className="grid gap-12 lg:grid-cols-2 items-center">
             {/* Benefits - Left Side */}
             <div className="space-y-6">
-              <h3 className="text-xl font-semibold">Why Choose Synkro?</h3>
+              <h3 className="text-xl font-semibold">¿Por qué elegir Synkro?</h3>
               
               <div className="space-y-4">
                 {benefits.map((benefit, index) => (
@@ -97,7 +97,7 @@ export function GetStartedSection() {
               {/* Trust indicators */}
               <div className="pt-6 border-t">
                 <p className="text-sm text-muted-foreground mb-4">
-                  Trusted by businesses across Colombia
+                  Con la confianza de negocios en Colombia
                 </p>
                 <div className="flex flex-wrap gap-3">
                   {features.map((feature, index) => (
@@ -124,10 +124,10 @@ export function GetStartedSection() {
                     <Check className="h-8 w-8 text-synkro-green" />
                   </div>
                   <h3 className="text-2xl font-bold mb-2">
-                    Welcome back, {user?.nombre?.split(' ')[0]}!
+                    ¡Bienvenido de nuevo, {user?.nombre?.split(' ')[0]}!
                   </h3>
                   <p className="text-muted-foreground mb-8">
-                    Continue managing your e-commerce from your dashboard.
+                    Sigue gestionando tu e‑commerce desde tu dashboard.
                   </p>
                   <Button
                     asChild
@@ -135,7 +135,7 @@ export function GetStartedSection() {
                     className="w-full bg-synkro-green hover:bg-synkro-green/90 text-synkro-black font-medium h-12"
                   >
                     <Link href="/dashboard">
-                      Go to Dashboard
+                      Ir al Dashboard
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </Link>
                   </Button>
@@ -146,10 +146,10 @@ export function GetStartedSection() {
                     <UserPlus className="h-8 w-8 text-synkro-green" />
                   </div>
                   <h3 className="text-2xl font-bold mb-2">
-                    Create Your Free Account
+                    Crea tu cuenta gratis
                   </h3>
                   <p className="text-muted-foreground mb-8">
-                    Join thousands of businesses using Synkro to power their online stores.
+                    Únete a miles de negocios usando Synkro para impulsar sus tiendas online.
                   </p>
                   
                   <div className="space-y-4">
@@ -160,7 +160,7 @@ export function GetStartedSection() {
                     >
                       <Link href="/register">
                         <UserPlus className="mr-2 h-5 w-5" />
-                        Sign Up Free
+                        Crear cuenta
                       </Link>
                     </Button>
                     
@@ -170,7 +170,7 @@ export function GetStartedSection() {
                       </div>
                       <div className="relative flex justify-center text-xs uppercase">
                         <span className="bg-background px-2 text-muted-foreground">
-                          or
+                          o
                         </span>
                       </div>
                     </div>
@@ -183,19 +183,19 @@ export function GetStartedSection() {
                     >
                       <Link href="/login">
                         <LogIn className="mr-2 h-5 w-5" />
-                        Sign In to Existing Account
+                        Iniciar sesión
                       </Link>
                     </Button>
                   </div>
 
                   <p className="mt-6 text-xs text-muted-foreground">
-                    By signing up, you agree to our{" "}
+                    Al registrarte, aceptas nuestros{" "}
                     <Link href="/terms" className="text-synkro-green hover:underline">
-                      Terms of Service
+                      Términos de Servicio
                     </Link>{" "}
-                    and{" "}
+                    y{" "}
                     <Link href="/privacy" className="text-synkro-green hover:underline">
-                      Privacy Policy
+                      Política de Privacidad
                     </Link>
                   </p>
                 </>
