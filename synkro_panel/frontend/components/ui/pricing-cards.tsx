@@ -16,7 +16,7 @@ const pricingPlans = [
     description:
       "Perfecto para empezar tu viaje e-commerce con funciones esenciales.",
     price: "$29",
-    period: "/month",
+    period: "/mes",
     annualPrice: "$290",
     annualSavings: "Ahorra $58",
     icon: ShoppingBag,
@@ -40,7 +40,7 @@ const pricingPlans = [
     description:
       "Ideal para negocios en crecimiento que necesitan más herramientas y personalización.",
     price: "$79",
-    period: "/month",
+    period: "/mes",
     annualPrice: "$790",
     annualSavings: "Ahorra $158",
     icon: Zap,
@@ -65,7 +65,7 @@ const pricingPlans = [
     name: "Empresarial",
     description:
       "Soluciones a medida para empresas con alto volumen y necesidades específicas.",
-    price: "Custom",
+    price: "Personalizado",
     period: "",
     annualPrice: "",
     annualSavings: "",
