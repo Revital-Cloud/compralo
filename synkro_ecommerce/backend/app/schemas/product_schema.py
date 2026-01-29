@@ -337,6 +337,18 @@ class ProductFilterStats(BaseModel):
     class Config:
         from_attributes = True
 
+# Esquema para toggle (activar/desactivar)
+class ToggleRequest(BaseModel):
+    """
+    Esquema para solicitudes de activar/desactivar productos.
+    
+    Utilizado en endpoints toggle para activar o desactivar productos.
+    
+    Atributos:
+        activar (bool): True para activar, False para desactivar.
+    """
+    activar: bool = Field(..., description="True para activar, False para desactivar.")
+
 # Esquema para mensajes de respuesta genéricos
 class ResponseMessage(BaseModel):
     """

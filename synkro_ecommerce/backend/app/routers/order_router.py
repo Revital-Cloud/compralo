@@ -434,7 +434,7 @@ async def get_order_stats_admin(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-@router.get("/admin/{id_orden}", status_code=status.HTTP_200_OK)
+@router.get("/admin/orders/{id_orden}", status_code=status.HTTP_200_OK)
 async def get_order_detail_admin(
     id_orden: int,
     db: Session = Depends(get_db),
@@ -448,10 +448,12 @@ async def get_order_detail_admin(
         if not order_detail:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
         return order_detail
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-@router.put("/admin/{id_orden}/status", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+@router.put("/admin/orders/{id_orden}/status", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_order_status_admin(
     id_orden: int,
     new_status: int = Body(..., embed=True),

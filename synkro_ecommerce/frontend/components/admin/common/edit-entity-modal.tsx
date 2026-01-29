@@ -17,7 +17,12 @@ type EntityType = 'line' | 'subline' | 'category' | 'brand' | 'provider'
 const schemas: Record<EntityType, z.ZodSchema<any>> = {
   category: z.object({ nom_categoria: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
   brand: z.object({ nom_marca: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
-  provider: z.object({ nom_proveedor: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
+  provider: z.object({ 
+    nom_proveedor: z.string().min(2).optional(), 
+    email: z.string().email('Email inválido').optional().or(z.literal('')),
+    tel_proveedor: z.coerce.number().positive('Teléfono debe ser positivo').optional().or(z.literal('')),
+    ind_activo: z.boolean().optional().default(true) 
+  }),
   line: z.object({ id_categoria: z.coerce.number(), nom_linea: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
   subline: z.object({ id_categoria: z.coerce.number(), id_linea: z.coerce.number(), nom_sublinea: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
 }
@@ -93,6 +98,51 @@ export const EditEntityModal: React.FC<EditEntityModalProps> = ({ open, onOpenCh
               <div className="space-y-2">
                 <Label>Nombre</Label>
                 <Input {...form.register('nom_sublinea')} />
+              </div>
+            </>
+          )}
+
+          {type === 'category' && (
+            <div className="space-y-2">
+              <Label>Nombre</Label>
+              <Input {...form.register('nom_categoria')} />
+            </div>
+          )}
+
+          {type === 'brand' && (
+            <div className="space-y-2">
+              <Label>Nombre</Label>
+              <Input {...form.register('nom_marca')} />
+            </div>
+          )}
+
+          {type === 'provider' && (
+            <>
+              <div className="space-y-2">
+                <Label>Nombre</Label>
+                <Input {...form.register('nom_proveedor')} />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input 
+                  type="email" 
+                  {...form.register('email')} 
+                  placeholder="Ej. contacto@importacionesxyz.com" 
+                />
+                {form.formState.errors.email && (
+                  <p className="text-xs text-red-600">{form.formState.errors.email.message as string}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Teléfono</Label>
+                <Input 
+                  type="tel" 
+                  {...form.register('tel_proveedor')} 
+                  placeholder="Ej. 3001234567" 
+                />
+                {form.formState.errors.tel_proveedor && (
+                  <p className="text-xs text-red-600">{form.formState.errors.tel_proveedor.message as string}</p>
+                )}
               </div>
             </>
           )}

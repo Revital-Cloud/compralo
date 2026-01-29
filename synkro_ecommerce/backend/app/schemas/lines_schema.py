@@ -66,6 +66,18 @@ class LineUpdate(BaseModel):
     nom_linea: Optional[str] = Field(None, description="Nombre de la línea.")
     ind_activo: Optional[bool] = Field(None, description="Indica si la línea está activa.")
     usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
+# Esquema para toggle (activar/desactivar)
+class ToggleRequest(BaseModel):
+    """
+    Esquema para solicitudes de activar/desactivar líneas.
+    
+    Utilizado en endpoints toggle para activar o desactivar líneas.
+    
+    Atributos:
+        activar (bool): True para activar, False para desactivar.
+    """
+    activar: bool = Field(..., description="True para activar, False para desactivar.")
+
 # Mensajitos para las respuesta api en lineas
 class ResponseMessage(BaseModel):
     """

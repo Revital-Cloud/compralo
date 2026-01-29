@@ -83,3 +83,49 @@ class PayOrderPayload(BaseModel):
     """
     payment_method_id: int = Field(..., 
                                    description="ID del método de pago (de la tabla tab_metodos_pago_usuario) que el usuario seleccionó.") 
+
+# ==============================================================================
+# SCHEMAS PARA WIDGET DE WOMPI (CHECKOUT EMBEBIDO)
+# ==============================================================================
+
+class PaymentCreateRequest(BaseModel):
+    """
+    Request para crear un pago con el widget de Wompi.
+    """
+    order_id: int = Field(..., description="ID de la orden a pagar")
+
+
+class PaymentCreateResponse(BaseModel):
+    """
+    Response con la configuración necesaria para abrir el widget de Wompi.
+    """
+    reference: str = Field(..., description="Referencia única del pago")
+    amount_in_cents: int = Field(..., description="Monto en centavos")
+    currency: str = Field(default="COP", description="Moneda del pago")
+    public_key: str = Field(..., description="Llave pública de Wompi")
+    integrity_signature: str = Field(..., description="Firma de integridad SHA256 generada en backend")
+
+
+class AttachTransactionRequest(BaseModel):
+    """
+    Request para asociar un transaction_id de Wompi a un payment.
+    """
+    reference: str = Field(..., description="Referencia única del pago")
+    transaction_id: str = Field(..., description="ID de la transacción en Wompi")
+
+
+class PollPaymentResponse(BaseModel):
+    """
+    Response del polling de estado de pago.
+    """
+    status: str = Field(..., description="Estado del pago: CREATED, PENDING, APPROVED, DECLINED, VOIDED, ERROR")
+    transaction_id: Optional[str] = Field(None, description="ID de la transacción en Wompi")
+    reference: str = Field(..., description="Referencia única del pago")
+    message: Optional[str] = Field(None, description="Mensaje adicional (ej: 'Te avisaremos cuando se confirme')")
+
+
+class ReattemptPaymentRequest(BaseModel):
+    """
+    Request para reintentar un pago fallido.
+    """
+    order_id: int = Field(..., description="ID de la orden a reintentar") 

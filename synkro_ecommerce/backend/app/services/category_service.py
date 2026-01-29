@@ -98,16 +98,39 @@ def update_category(db: Session, id_categoria: Decimal, category: CategoryUpdate
         db.rollback()
         raise Exception(f"Error al actualizar la categoría: {str(e)}")
 
-#Desactivar una categoria
-def deactivate_category(db: Session, id_categoria: Decimal, usr_update: Decimal):
+#Activar o desactivar una categoria
+def deactivate_activate_category(db: Session, id_categoria: Decimal, usr_update: Decimal, activar: bool):
+    """
+    Activa o desactiva una categoría y todos sus elementos relacionados (cascada).
+    
+    Args:
+        db: Sesión de base de datos
+        id_categoria: ID de la categoría
+        usr_update: Usuario que realiza la operación
+        activar: True para activar, False para desactivar
+    
+    Returns:
+        Mensaje de confirmación con detalles de elementos afectados
+    """
     try:
         query = text("""
-        SELECT fun_deactivate_categoria(:id_categoria, :usr_update)
+        SELECT fun_deactivate_activate_categoria(:id_categoria, :usr_update, :activar)
         """)
-        result = db.execute(query, {"id_categoria": id_categoria, "usr_update": usr_update})
+        result = db.execute(query, {
+            "id_categoria": id_categoria, 
+            "usr_update": usr_update,
+            "activar": activar
+        })
         fetched_result = result.fetchone()
         db.commit()
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al desactivar la categoría: {str(e)}")
+        raise Exception(f"Error al cambiar estado de la categoría: {str(e)}")
+
+#Desactivar una categoria (mantener compatibilidad)
+def deactivate_category(db: Session, id_categoria: Decimal, usr_update: Decimal):
+    """
+    Desactiva una categoría (wrapper para mantener compatibilidad).
+    """
+    return deactivate_activate_category(db, id_categoria, usr_update, False)

@@ -6,25 +6,80 @@ import type {
 } from '@/types/discount'
 
 /**
+ * Helper para parsear números de forma segura
+ */
+const safeParseFloat = (value: any, defaultValue: number = 0): number => {
+  if (value === null || value === undefined || value === '') return defaultValue
+  const parsed = parseFloat(value)
+  return isNaN(parsed) ? defaultValue : Math.max(0, parsed) // Asegurar que sea >= 0
+}
+
+const safeParseInt = (value: any, defaultValue?: number): number | undefined => {
+  if (value === null || value === undefined || value === '') return defaultValue
+  const parsed = parseInt(value)
+  return isNaN(parsed) ? defaultValue : Math.max(1, parsed) // Asegurar que sea >= 1 para enteros
+}
+
+/**
  * Transforma los datos del formulario al formato esperado por el backend
  */
 export const transformDiscountPayload = (values: any): any => {
+  const tipoDescuento = values.tipo_descuento === 'porcentaje'
+  const valDescuento = safeParseFloat(values.val_descuento, 0)
+  
+  // Validar que el valor del descuento sea válido
+  if (valDescuento <= 0) {
+    throw new Error('El valor del descuento debe ser mayor a 0')
+  }
+  
+  // Validar rango de porcentaje (0-100)
+  if (tipoDescuento && valDescuento > 100) {
+    throw new Error('El porcentaje de descuento no puede ser mayor a 100%')
+  }
+
+  const indCanjeablePuntos = values.ind_canjeable_puntos || false
+  const costoPuntosCanje = safeParseInt(values.val_puntos_requeridos)
+  
+  // Validar constraint: si es canjeable por puntos, debe tener costo_puntos_canje > 0
+  if (indCanjeablePuntos && (!costoPuntosCanje || costoPuntosCanje <= 0)) {
+    throw new Error('Si el descuento es canjeable por puntos, debe especificar un costo en puntos mayor a 0')
+  }
+
+  const aplicaA = values.aplica_a || 'total_pedido'
+  
+  // Validar que los IDs requeridos estén presentes según el tipo de aplicación
+  if (aplicaA === 'marca_especifica' && (!values.id_marca_aplica || values.id_marca_aplica === '')) {
+    throw new Error('Para descuentos de marca específica se requiere seleccionar una marca')
+  }
+  if (aplicaA === 'categoria_especifica' && (!values.id_categoria_aplica || values.id_categoria_aplica === '')) {
+    throw new Error('Para descuentos de categoría específica se requiere seleccionar una categoría')
+  }
+  if (aplicaA === 'producto_especifico' && (!values.id_producto_aplica || values.id_producto_aplica === '')) {
+    throw new Error('Para descuentos de producto específico se requiere seleccionar un producto')
+  }
+  if (aplicaA === 'linea_especifica' && (!values.id_linea_aplica || values.id_linea_aplica === '')) {
+    throw new Error('Para descuentos de línea específica se requiere seleccionar una línea')
+  }
+  if (aplicaA === 'sublinea_especifica' && (!values.id_sublinea_aplica || values.id_sublinea_aplica === '')) {
+    throw new Error('Para descuentos de sublínea específica se requiere seleccionar una sublínea')
+  }
+
   const payload: any = {
     nom_descuento: values.nom_descuento,
     des_descuento: values.des_descuento,
-    tipo_calculo: values.tipo_descuento === 'porcentaje',
-    val_porce_descuento: values.tipo_descuento === 'porcentaje' ? parseFloat(values.val_descuento) : 0,
-    val_monto_descuento: values.tipo_descuento !== 'porcentaje' ? parseFloat(values.val_descuento) : 0,
-    aplica_a: values.aplica_a || 'total_pedido',
+    tipo_calculo: tipoDescuento,
+    val_porce_descuento: tipoDescuento ? valDescuento : 0,
+    val_monto_descuento: !tipoDescuento ? valDescuento : 0,
+    aplica_a: aplicaA,
     min_valor_pedido: (() => {
       if (values.aplica_a === 'costo_envio' && values.costo_envio) {
-        return parseFloat(values.costo_envio)
+        return safeParseFloat(values.costo_envio, 0)
       }
       if (values.aplica_a === 'compra_minima' && values.compra_minima) {
-        return parseFloat(values.compra_minima)
+        return safeParseFloat(values.compra_minima, 0)
       }
       if (values.monto_min_compra) {
-        return parseFloat(values.monto_min_compra)
+        return safeParseFloat(values.monto_min_compra, 0)
       }
       return 0
     })(),
@@ -32,33 +87,33 @@ export const transformDiscountPayload = (values: any): any => {
     fec_inicio: values.fec_inicio,
     fec_fin: values.fec_fin,
     ind_activo: values.ind_activo !== undefined ? values.ind_activo : true,
-    max_usos_total: values.max_usos ? parseInt(values.max_usos) : undefined,
-    costo_puntos_canje: values.val_puntos_requeridos ? parseInt(values.val_puntos_requeridos) : undefined,
-    ind_canjeable_puntos: values.ind_canjeable_puntos || false,
+    max_usos_total: safeParseInt(values.max_usos),
+    costo_puntos_canje: costoPuntosCanje,
+    ind_canjeable_puntos: indCanjeablePuntos,
     codigo_descuento: values.cod_cupon && values.cod_cupon.trim() !== '' ? values.cod_cupon : undefined,
-    max_usos_por_usuario: values.max_usos_por_usuario ? parseInt(values.max_usos_por_usuario) : undefined,
+    max_usos_por_usuario: safeParseInt(values.max_usos_por_usuario),
     solo_primera_compra: values.solo_primera_compra || false,
-    monto_minimo_producto: values.monto_minimo_producto ? parseFloat(values.monto_minimo_producto) : 0,
-    cantidad_minima_producto: values.cantidad_minima_producto ? parseInt(values.cantidad_minima_producto) : 1,
+    monto_minimo_producto: safeParseFloat(values.monto_minimo_producto, 0),
+    cantidad_minima_producto: safeParseInt(values.cantidad_minima_producto, 1),
     requiere_codigo: values.requiere_codigo || false,
-    // IDs condicionales según "aplica_a"
-    ...(values.aplica_a === 'producto_especifico' && values.id_producto_aplica && {
+    // IDs condicionales según "aplica_a" - ahora siempre se incluyen si aplica_a lo requiere
+    ...(aplicaA === 'producto_especifico' && {
       id_producto_aplica: parseInt(values.id_producto_aplica),
       id_categoria: values.id_categoria_producto ? parseInt(values.id_categoria_producto) : undefined,
       id_linea: values.id_linea_producto ? parseInt(values.id_linea_producto) : undefined,
       id_sublinea: values.id_sublinea_producto ? parseInt(values.id_sublinea_producto) : undefined,
     }),
-    ...(values.aplica_a === 'categoria_especifica' && values.id_categoria_aplica && {
+    ...(aplicaA === 'categoria_especifica' && {
       id_categoria_aplica: parseInt(values.id_categoria_aplica)
     }),
-    ...(values.aplica_a === 'marca_especifica' && values.id_marca_aplica && {
+    ...(aplicaA === 'marca_especifica' && {
       id_marca_aplica: parseInt(values.id_marca_aplica)
     }),
-    ...(values.aplica_a === 'linea_especifica' && values.id_categoria_linea && values.id_linea_aplica && {
+    ...(aplicaA === 'linea_especifica' && {
       id_linea_aplica: parseInt(values.id_linea_aplica),
       id_categoria: parseInt(values.id_categoria_linea)
     }),
-    ...(values.aplica_a === 'sublinea_especifica' && values.id_categoria_sublinea && values.id_linea_sublinea && values.id_sublinea_aplica && {
+    ...(aplicaA === 'sublinea_especifica' && {
       id_sublinea_aplica: parseInt(values.id_sublinea_aplica),
       id_categoria: parseInt(values.id_categoria_sublinea),
       id_linea: parseInt(values.id_linea_sublinea)

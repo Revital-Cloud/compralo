@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -29,6 +30,7 @@ interface PaymentResultData {
 const PaymentResultPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const [paymentData, setPaymentData] = useState<PaymentResultData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -50,13 +52,17 @@ const PaymentResultPage = () => {
 
     setIsLoading(false);
 
-    // Si hay un transaction_id, podrías hacer una consulta al backend
-    // para obtener más detalles de la transacción
-    if (transactionId) {
-      // TODO: Implementar consulta al backend para obtener detalles de la transacción
-      console.log('Transaction ID:', transactionId);
+    // Pago exitoso: invalidar carrito y órdenes para que la UI refleje el estado real
+    // (el backend ya limpió el carrito con el trigger al marcar la orden como pagada)
+    if (status === "success") {
+      queryClient.invalidateQueries({ queryKey: ["cart"] });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
     }
-  }, [searchParams]);
+
+    if (transactionId) {
+      console.log("Transaction ID:", transactionId);
+    }
+  }, [searchParams, queryClient]);
 
   const getStatusConfig = (status: PaymentStatus) => {
     switch (status) {
@@ -118,11 +124,31 @@ const PaymentResultPage = () => {
     }
   };
 
+  const getOrderIdFromReference = (reference?: string): number | null => {
+    if (!reference) return null;
+    
+    // La referencia tiene el formato: synkro_{order_id}_{random}
+    // Ejemplo: synkro_1_46f07a0bd2 -> order_id = 1
+    const match = reference.match(/^synkro_(\d+)_/);
+    if (match && match[1]) {
+      return parseInt(match[1], 10);
+    }
+    
+    return null;
+  };
+
   const handlePrimaryAction = () => {
     switch (paymentData?.status) {
       case 'success':
-        // Redirigir a la página de pedidos o detalles del pedido
+        // Intentar obtener order_id de la referencia
+        const orderId = getOrderIdFromReference(paymentData.reference);
+        if (orderId) {
+          // Redirigir a la página de detalles de la orden específica
+          router.push(`/profile/orders/${orderId}`);
+        } else {
+          // Si no se puede extraer, redirigir a la lista de pedidos
         router.push('/profile/orders');
+        }
         break;
       case 'pending':
         // Redirigir a la tienda

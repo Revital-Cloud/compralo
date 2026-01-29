@@ -100,9 +100,17 @@ async def get_reviewed_products_in_order(
         dict: Lista de claves de productos ya reseñados.
     """
     try:
-        reviewed_products = comentary_service.get_reviewed_products_in_order(db, id_orden, current_user.id_usuario)
-        return {"success": True, "data": reviewed_products}
+        from decimal import Decimal
+        # Convertir id_usuario a int si es Decimal
+        id_usuario = int(current_user.id_usuario) if isinstance(current_user.id_usuario, Decimal) else current_user.id_usuario
+        reviewed_products = comentary_service.get_reviewed_products_in_order(db, id_orden, id_usuario)
+        # Asegurar que los valores son strings
+        reviewed_products_list = [str(product_key) for product_key in reviewed_products] if reviewed_products else []
+        return {"success": True, "data": reviewed_products_list}
     except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error al obtener productos reseñados para orden {id_orden}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.put("/comentaries/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}-{id_comentario}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)

@@ -69,7 +69,6 @@ DECLARE
     v_descuento RECORD;                                       -- Record para iterar descuentos
     v_canje_info RECORD;                                     -- Información del canje
     v_es_primera_compra BOOLEAN := FALSE;                    -- Indicador primera compra
-    v_orden_actualizada BOOLEAN := FALSE;                    -- Indicador si se actualizó orden existente
 
 BEGIN
     -- PASO 1: Validar que el carrito existe y obtener información
@@ -373,39 +372,12 @@ BEGIN
         ) AS combinados
     );
     
-    -- PASO 9: Verificar si existe orden pendiente para actualizar o crear nueva
-    SELECT id_orden INTO v_id_orden
-    FROM tab_ordenes 
-    WHERE id_usuario = v_id_usuario 
-        AND ind_estado = 1  -- Solo órdenes pendientes
-    ORDER BY fec_insert DESC 
-    LIMIT 1;
-    
-    BEGIN
-        IF v_id_orden IS NOT NULL THEN
-            -- CASO A: Actualizar orden pendiente existente
-            v_orden_actualizada := TRUE;
-            
-            -- PASO 10A: Eliminar productos anteriores de la orden
-            DELETE FROM tab_orden_productos WHERE id_orden = v_id_orden;
-            
-            -- PASO 10B: Actualizar la orden principal con nuevos totales
-            UPDATE tab_ordenes SET
-                val_total_productos = v_total_productos,
-                val_total_descuentos = v_total_descuentos,
-                val_total_pedido = v_total_final,
-                des_observaciones = p_observaciones,
-                detalle_descuentos_aplicados = v_descuentos_aplicados,
-                usr_update = p_usr_operacion,
-                fec_update = NOW()
-            WHERE id_orden = v_id_orden;
-            
-        ELSE
-            -- CASO B: Crear nueva orden (no hay órdenes pendientes)
-            -- PASO 10C: Generar nuevo ID de orden
+    -- PASO 9: Siempre crear una nueva orden (no actualizar órdenes existentes)
+    -- Esto evita sobreescribir órdenes anteriores del usuario
+    -- PASO 10: Generar nuevo ID de orden
             SELECT COALESCE(MAX(id_orden), 0) + 1 INTO v_id_orden FROM tab_ordenes;
             
-            -- PASO 10D: Crear la orden principal
+    -- PASO 11: Crear la orden principal
         INSERT INTO tab_ordenes (
             id_orden, id_usuario, val_total_productos, val_total_descuentos, 
             val_total_pedido, metodo_pago, des_observaciones,
@@ -421,9 +393,8 @@ BEGIN
                 v_descuentos_aplicados,
             p_usr_operacion
         );
-        END IF;
         
-        -- PASO 11: Transferir productos del carrito a la orden
+    -- PASO 12: Transferir productos del carrito a la orden
         FOR v_producto_record IN 
             SELECT * FROM tab_carrito_productos WHERE id_carrito = p_id_carrito
         LOOP
@@ -454,7 +425,7 @@ BEGIN
             );
         END LOOP;
         
-        -- PASO 12: Marcar canje como utilizado (si se aplicó)
+    -- PASO 13: Marcar canje como utilizado (si se aplicó)
         IF p_id_canje IS NOT NULL AND v_descuento_canje IS NOT NULL THEN
             UPDATE tab_canjes_puntos_descuentos
             SET ind_utilizado = TRUE,
@@ -464,7 +435,7 @@ BEGIN
             WHERE id_canje = p_id_canje;
         END IF;
         
-        -- PASO 13: Productos transferidos exitosamente a la orden
+    -- PASO 14: Productos transferidos exitosamente a la orden
         -- NOTA: El carrito se mantiene intacto hasta que se PAGUE la orden
         --       El trigger trg_limpiar_carrito_pagado se encarga de limpiarlo automáticamente
         --       Esto permite que el usuario pueda cancelar y seguir comprando si es necesario
@@ -472,14 +443,8 @@ BEGIN
         -- RESPUESTA: Orden procesada exitosamente
         RETURN json_build_object(
             'success', true, 
-            'message', CASE 
-                WHEN v_orden_actualizada THEN 'Orden actualizada exitosamente'
-                ELSE 'Orden creada exitosamente'
-            END,
-            'accion_realizada', CASE 
-                WHEN v_orden_actualizada THEN 'actualizar'
-                ELSE 'crear'
-            END,
+        'message', 'Orden creada exitosamente',
+        'accion_realizada', 'crear',
             'id_orden', v_id_orden,
             'id_carrito', p_id_carrito,
             'total_productos', v_total_productos,
@@ -496,7 +461,7 @@ BEGIN
                 'carrito_limpieza_programada', 'Se limpiará automáticamente al pagar la orden',
                 'stock_reservado', true,
                 'triggers_activados', true,
-                'orden_actualizada', v_orden_actualizada
+            'orden_actualizada', false
             )
         );
         
@@ -507,6 +472,5 @@ BEGIN
             'error_code', SQLSTATE,
             'id_carrito', p_id_carrito
         );
-    END;
 END;
 $$ LANGUAGE plpgsql; 

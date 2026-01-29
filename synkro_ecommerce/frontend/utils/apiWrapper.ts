@@ -143,14 +143,23 @@ function setupInterceptors(instance: AxiosInstance): void {
           // Actualizar el header del request original con el nuevo token
           originalRequest.headers.Authorization = `Bearer ${tokens.access_token}`;
           
+          // Actualizar también el header por defecto de la instancia
+          instance.defaults.headers.common['Authorization'] = `Bearer ${tokens.access_token}`;
+          
           // Procesar la cola de requests fallidos
           failedQueue.forEach(({ resolve }) => {
             resolve();
           });
           failedQueue = [];
           
-          // Reintentar la petición original
-          return instance(originalRequest);
+          // Reintentar la petición original con el nuevo token
+          try {
+            const retryResponse = await instance(originalRequest);
+            return retryResponse;
+          } catch (retryError) {
+            console.error('Retry after token refresh failed:', retryError);
+            throw retryError;
+          }
           
         } catch (refreshError) {
           console.error('Refresh token failed:', refreshError);
@@ -265,8 +274,15 @@ export async function post<T>(endpoint: string, data?: any, config?: AxiosReques
  */
 export async function put<T>(endpoint: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
   const api = getApiInstance();
-  const response = await api.put<T>(endpoint, data, config);
-  return response.data;
+  console.log("🔍 [API] PUT request:", { endpoint, data, config });
+  try {
+    const response = await api.put<T>(endpoint, data, config);
+    console.log("✅ [API] PUT response:", response.status, response.data);
+    return response.data;
+  } catch (error) {
+    console.error("❌ [API] PUT error:", error);
+    throw error;
+  }
 }
 
 /**

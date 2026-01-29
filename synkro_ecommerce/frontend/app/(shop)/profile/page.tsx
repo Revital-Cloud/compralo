@@ -23,6 +23,7 @@ import {
   PaymentTab,
   SettingsTab
 } from "@/components/layout/shop/profile";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui";
 
 export default function ProfilePage() {
   const { user, isAuthenticated, updateProfile, isLoadingUser, isHydrated } = useAuth();

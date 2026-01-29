@@ -31,12 +31,14 @@ interface UseDiscountColumnsProps {
   onViewExchanges: (id: string, name: string) => void
   onEdit: (discount: any) => void
   onToggleStatus: (id: string, activate: boolean) => void
+  isToggling?: boolean
 }
 
 export const useDiscountColumns = ({
   onViewExchanges,
   onEdit,
-  onToggleStatus
+  onToggleStatus,
+  isToggling = false
 }: UseDiscountColumnsProps) => {
   const columns: ColumnDef<Discount>[] = [
     {
@@ -106,17 +108,14 @@ export const useDiscountColumns = ({
     {
       accessorKey: 'ind_activo',
       header: 'Estado',
-      cell: ({ row }) => (
-        <Badge
-          className={
-            row.original.ind_activo
-              ? 'bg-[#fec806] text-black hover:bg-[#fec806]'
-              : 'bg-red-100 text-red-800 hover:bg-red-100'
-          }
-        >
-          {row.original.ind_activo ? 'Activo' : 'Inactivo'}
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const isActive = !!row.original.ind_activo;
+        return (
+          <span className={isActive ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+            {isActive ? 'Activo' : 'Inactivo'}
+          </span>
+        );
+      },
     },
   ]
 
@@ -145,25 +144,16 @@ export const useDiscountColumns = ({
           >
             <Pencil className="w-4 h-4" />
           </Button>
-          {row.original.ind_activo ? (
-            <Button
-              variant="destructive"
-              size="icon"
-              aria-label="Desactivar"
-              onClick={() => onToggleStatus(String(row.original.id_descuento), false)}
-            >
-              <Power className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              size="icon"
-              aria-label="Activar"
-              onClick={() => onToggleStatus(String(row.original.id_descuento), true)}
-            >
-              <Power className="w-4 h-4" />
-            </Button>
-          )}
+          <Button
+            variant={row.original.ind_activo ? "default" : "destructive"}
+            size="icon"
+            aria-label={row.original.ind_activo ? "Desactivar descuento" : "Activar descuento"}
+            onClick={() => onToggleStatus(String(row.original.id_descuento), !row.original.ind_activo)}
+            disabled={isToggling}
+            className={row.original.ind_activo ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+          >
+            <Power className="w-4 h-4" />
+          </Button>
         </div>
       ),
     },
