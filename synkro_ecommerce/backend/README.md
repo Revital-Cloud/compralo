@@ -221,7 +221,8 @@ REDIS_URL=redis://localhost:6379/0
 ```bash
 # Desde apps/ecommerce/backend/
 # Método recomendado (FastAPI CLI)
-fastapi dev app/main.py
+# Nota: usa --host 0.0.0.0 para que sea accesible por IP (LAN) y no solo por localhost
+fastapi dev app/main.py --host 0.0.0.0 --port 8000
 
 # Método alternativo (Uvicorn)
 python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -235,6 +236,9 @@ python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```bash
 # Verificar que el servidor esté funcionando
 curl http://localhost:8000/
+
+# Si quieres probar desde otro dispositivo en la misma red:
+# curl http://TU_IP_LOCAL:8000/
 
 # Verificar documentación de la API
 # Abrir en navegador: http://localhost:8000/docs
@@ -480,7 +484,7 @@ async def health_check(db: Session = Depends(get_db)):
 
 ```bash
 # Ejecutar servidor con hot reload
-fastapi dev app/main.py
+fastapi dev app/main.py --host 0.0.0.0 --port 8000
 
 # Ejecutar tests específicos de la instancia
 pytest tests/ -v
