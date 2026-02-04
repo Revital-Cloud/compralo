@@ -5,7 +5,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import deploymentService from '@/services/deployment.service';
-import type { DeploymentPublic, DeploymentCreate, DeploymentUpdate } from '@/types';
+import { getErrorMessage } from '@/types/errors';
+import type { DeploymentCreate, DeploymentUpdate } from '@/types';
 
 export const DEPLOYMENT_KEYS = {
   all: ['deployments'] as const,
@@ -60,9 +61,8 @@ export function useUpdateDeployment() {
       queryClient.invalidateQueries({ queryKey: DEPLOYMENT_KEYS.detail(variables.idDeployment) });
       queryClient.invalidateQueries({ queryKey: DEPLOYMENT_KEYS.lists() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al actualizar deployment';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al actualizar deployment'));
     },
   });
 }

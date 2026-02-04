@@ -3,15 +3,20 @@
  */
 
 import { get, post } from '@/utils/apiWrapper';
-import type { ResourceUsagePublic, ResourceUsageCreate, ResponseMessage } from '@/types';
+import type {
+  ResourceUsagePublic,
+  ResourceUsageCreate,
+  ResponseMessage,
+  InstanceWithAlert,
+} from '@/types';
 
 export async function getResourceUsage(idInstance?: number | string): Promise<ResourceUsagePublic[]> {
   const url = idInstance ? `/resource-usage?id_instancia=${idInstance}` : '/resource-usage';
   return await get<ResourceUsagePublic[]>(url);
 }
 
-export async function getInstancesWithAlerts(): Promise<any[]> {
-  return await get<any[]>('/resource-usage/alertas');
+export async function getInstancesWithAlerts(): Promise<InstanceWithAlert[]> {
+  return await get<InstanceWithAlert[]>('/resource-usage/alertas');
 }
 
 export async function getLatestResourceUsage(idInstance: number | string): Promise<ResourceUsagePublic> {

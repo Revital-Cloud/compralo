@@ -2,10 +2,11 @@
  * Custom Hook for Plans
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import planService from '@/services/plan.service';
-import type { PlanPublic, PlanCreate, PlanUpdate } from '@/types';
+import { getErrorMessage } from '@/types/errors';
+import type { PlanCreate, PlanUpdate } from '@/types';
 
 export const PLAN_KEYS = {
   all: ['plans'] as const,
@@ -23,11 +24,28 @@ export function usePlans(activeOnly: boolean = true) {
   });
 }
 
+export function usePlansSuspense(activeOnly: boolean = true) {
+  return useSuspenseQuery({
+    queryKey: PLAN_KEYS.list(activeOnly),
+    queryFn: () => planService.getPlanes(activeOnly),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function usePlan(idPlan: number | string) {
   return useQuery({
     queryKey: PLAN_KEYS.detail(idPlan),
     queryFn: () => planService.getPlan(idPlan),
     enabled: !!idPlan,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/** Only use when idPlan is non-empty (e.g. after subscription has loaded). */
+export function usePlanSuspense(idPlan: number | string) {
+  return useSuspenseQuery({
+    queryKey: PLAN_KEYS.detail(idPlan),
+    queryFn: () => planService.getPlan(idPlan),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -41,9 +59,8 @@ export function useCreatePlan() {
       toast.success('Plan creado exitosamente');
       queryClient.invalidateQueries({ queryKey: PLAN_KEYS.lists() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al crear plan';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al crear plan'));
     },
   });
 }
@@ -75,9 +92,8 @@ export function useDeletePlan() {
       toast.success('Plan eliminado exitosamente');
       queryClient.invalidateQueries({ queryKey: PLAN_KEYS.lists() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al eliminar plan';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al eliminar plan'));
     },
   });
 }

@@ -8,9 +8,8 @@ import {
   CreditCard,
   MoreVertical,
 } from 'lucide-react';
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Avatar,
-  AvatarFallback,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -18,18 +17,22 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
+} from "@/components/ui/sidebar";
+import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  Button,
-} from "@/components/ui";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
 import { useAuth, useLogout } from '@/hooks/use-auth';
 import Link from 'next/link';

@@ -2,10 +2,11 @@
  * Custom Hook for Instances
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import instanceService from '@/services/instance.service';
-import type { InstancePublic, InstanceCreate, InstanceUpdate } from '@/types';
+import { getErrorMessage } from '@/types/errors';
+import type { InstanceCreate, InstanceUpdate } from '@/types';
 
 export const INSTANCE_KEYS = {
   all: ['instances'] as const,
@@ -17,6 +18,14 @@ export const INSTANCE_KEYS = {
 
 export function useInstances() {
   return useQuery({
+    queryKey: INSTANCE_KEYS.list(),
+    queryFn: () => instanceService.getInstances(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useInstancesSuspense() {
+  return useSuspenseQuery({
     queryKey: INSTANCE_KEYS.list(),
     queryFn: () => instanceService.getInstances(),
     staleTime: 5 * 60 * 1000,
@@ -59,9 +68,8 @@ export function useUpdateInstance() {
       queryClient.invalidateQueries({ queryKey: INSTANCE_KEYS.detail(variables.idInstance) });
       queryClient.invalidateQueries({ queryKey: INSTANCE_KEYS.lists() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al actualizar instancia';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al actualizar instancia'));
     },
   });
 }
@@ -75,9 +83,8 @@ export function useDeleteInstance() {
       toast.success('Instancia eliminada exitosamente');
       queryClient.invalidateQueries({ queryKey: INSTANCE_KEYS.lists() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al eliminar instancia';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al eliminar instancia'));
     },
   });
 }

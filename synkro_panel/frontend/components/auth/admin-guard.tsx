@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { useAuth } from '@/hooks/use-auth';
-import { Loading } from '@/components/ui';
+import Loading from '@/components/ui/loading';
 
 interface AdminGuardProps {
   children: React.ReactNode;
@@ -18,6 +19,8 @@ interface AdminGuardProps {
  */
 export function AdminGuard({ children }: AdminGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const locale = useLocale();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
 
@@ -29,16 +32,18 @@ export function AdminGuard({ children }: AdminGuardProps) {
     if (isLoading) return;
 
     if (!isAuthenticated) {
-      const currentPath = window.location.pathname;
-      router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
+      const currentPath = pathname || window.location.pathname;
+      const localePrefix = `/${locale}`;
+      router.push(`${localePrefix}/login?redirect=${encodeURIComponent(currentPath)}`);
       return;
     }
 
     if (user && user.user_type !== 'admin_synkro') {
-      router.push('/dashboard');
+      const localePrefix = `/${locale}`;
+      router.push(`${localePrefix}/dashboard`);
       return;
     }
-  }, [isAuthenticated, isLoading, user, router]);
+  }, [isAuthenticated, isLoading, user, router, pathname, locale]);
 
   if (isLoading || !isMounted) {
     return (

@@ -5,7 +5,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import synkroUserService from '@/services/synkro-user.service';
-import type { SynkroUserPublic, SynkroUserCreate, SynkroUserUpdate } from '@/types';
+import { getErrorMessage } from '@/types/errors';
+import type { SynkroUserCreate, SynkroUserUpdate } from '@/types';
 
 export const SYNKRO_USER_KEYS = {
   all: ['synkro-users'] as const,
@@ -41,9 +42,8 @@ export function useCreateSynkroUser() {
       toast.success('Usuario creado exitosamente');
       queryClient.invalidateQueries({ queryKey: SYNKRO_USER_KEYS.lists() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al crear usuario';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al crear usuario'));
     },
   });
 }
@@ -75,9 +75,8 @@ export function useDeleteSynkroUser() {
       toast.success('Usuario eliminado exitosamente');
       queryClient.invalidateQueries({ queryKey: SYNKRO_USER_KEYS.lists() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al eliminar usuario';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al eliminar usuario'));
     },
   });
 }

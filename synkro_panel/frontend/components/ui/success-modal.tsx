@@ -1,8 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui";
-import { Button } from "@/components/ui";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { IconCheck, IconArrowLeft } from "@tabler/icons-react";
 
 interface SuccessModalProps {

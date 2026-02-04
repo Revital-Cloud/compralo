@@ -89,7 +89,23 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+# Middleware para Private Network Access (PNA): permite que paginas cargadas
+# desde IP publica (ej. http://46.224.101.179:3001) llamen a la API en
+# localhost (red privada). Sin esto, Chrome y otros navegadores bloquean
+# la peticion por politica de seguridad.
+PNA_HEADER = "Access-Control-Allow-Private-Network"
+PNA_REQUEST_HEADER = "Access-Control-Request-Private-Network"
+
+
+@app.middleware("http")
+async def add_private_network_access_header(request, call_next):
+    response = await call_next(request)
+    if request.headers.get(PNA_REQUEST_HEADER, "").lower() == "true":
+        response.headers[PNA_HEADER] = "true"
+    return response
 
 # Agregar middleware de seguridad
 app.add_middleware(SecurityMiddleware)

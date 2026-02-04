@@ -1,11 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui"
-import { Switch } from "@/components/ui"
-import { Label } from "@/components/ui"
-import { Separator } from "@/components/ui"
+import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
 import { Settings, Cookie, Shield, BarChart3, Target } from "lucide-react"
 import { useCookies, type CookiePreferences } from "@/components/ui/hooks/use-cookies"
 

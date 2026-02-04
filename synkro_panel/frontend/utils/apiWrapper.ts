@@ -237,7 +237,7 @@ export async function get<T>(endpoint: string, config?: AxiosRequestConfig): Pro
 /**
  * Función genérica para peticiones POST
  */
-export async function post<T>(endpoint: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+export async function post<T>(endpoint: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
   const api = getApiInstance();
   const response = await api.post<T>(endpoint, data, config);
   return response.data;
@@ -246,7 +246,7 @@ export async function post<T>(endpoint: string, data?: any, config?: AxiosReques
 /**
  * Función genérica para peticiones PUT
  */
-export async function put<T>(endpoint: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
+export async function put<T>(endpoint: string, data?: unknown, config?: AxiosRequestConfig): Promise<T> {
   const api = getApiInstance();
   const response = await api.put<T>(endpoint, data, config);
   return response.data;
@@ -289,8 +289,8 @@ export function getApiConfig() {
 /**
  * Validar respuesta de la API
  */
-export function validateApiResponse<T>(response: any): response is T {
-  return response && typeof response === 'object';
+export function validateApiResponse<T>(response: unknown): response is T {
+  return typeof response === 'object' && response !== null;
 }
 
 // =============================================================================

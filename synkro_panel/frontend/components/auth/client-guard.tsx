@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { Loading } from "@/components/ui";
+import Loading from "@/components/ui/loading";
 
 interface ClientGuardProps {
   children: React.ReactNode;
@@ -18,6 +18,7 @@ interface ClientGuardProps {
  */
 export function ClientGuard({ children }: ClientGuardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isAuthenticated, isLoading } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
 
@@ -30,20 +31,28 @@ export function ClientGuard({ children }: ClientGuardProps) {
     // Wait for auth check to complete
     if (isLoading) return;
 
+    // Derive current locale prefix (e.g. /es) from pathname
+    const segments = pathname.split('/');
+    const localeSegment = segments[1] || '';
+    const localePrefix = localeSegment ? `/${localeSegment}` : '';
+
     // Not authenticated - redirect to login
     if (!isAuthenticated) {
-      const currentPath = window.location.pathname;
-      router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
+      const currentPath =
+        typeof window !== 'undefined' ? window.location.pathname : pathname;
+      router.push(
+        `${localePrefix}/login?redirect=${encodeURIComponent(currentPath)}`
+      );
       return;
     }
 
     // Check if user is a client (not an admin)
     if (user && user.user_type !== 'cliente') {
       // Admin users should go to admin panel
-      router.push('/admin');
+      router.push(`${localePrefix}/admin`);
       return;
     }
-  }, [isAuthenticated, isLoading, user, router]);
+  }, [isAuthenticated, isLoading, user, router, pathname]);
 
   // Show loading while checking auth or during initial mount
   if (isLoading || !isMounted) {

@@ -1,7 +1,8 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Separator, SidebarTrigger } from "@/components/ui";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeSwitcherButton } from '@/components/ui/theme-switcher-button';
 import { Bell } from 'lucide-react';
 

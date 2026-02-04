@@ -3,7 +3,14 @@
  */
 
 import { get, post, put, del } from '@/utils/apiWrapper';
-import type { ClientPublic, ClientCreate, ClientUpdate, ResponseMessage } from '@/types';
+import type {
+  ClientPublic,
+  ClientCreate,
+  ClientUpdate,
+  ResponseMessage,
+  SubscriptionPublic,
+  PlanPublic,
+} from '@/types';
 
 export async function getClients(): Promise<ClientPublic[]> {
   return await get<ClientPublic[]>('/clients');
@@ -21,12 +28,12 @@ export async function updateMyProfile(data: ClientUpdate): Promise<ResponseMessa
   return await put<ResponseMessage>('/clients/me', data);
 }
 
-export async function getMySubscription(): Promise<any> {
-  return await get('/clients/me/subscription');
+export async function getMySubscription(): Promise<SubscriptionPublic | null> {
+  return await get<SubscriptionPublic | null>('/clients/me/subscription');
 }
 
-export async function getMyPlan(): Promise<any> {
-  return await get('/clients/me/plan');
+export async function getMyPlan(): Promise<PlanPublic | null> {
+  return await get<PlanPublic | null>('/clients/me/plan');
 }
 
 export async function createClient(data: ClientCreate): Promise<ResponseMessage> {

@@ -1,25 +1,46 @@
-import { Button } from "@/components/ui"
-import { Badge } from "@/components/ui"
-import { X, RotateCcw } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { X, RotateCcw } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface CategoryItem {
+  id?: number | string;
+  name?: string;
+}
+
+interface LineItem {
+  id_linea?: number | string;
+  nom_linea?: string;
+}
+
+interface SublineItem {
+  id_sublinea?: number | string;
+  nom_sublinea?: string;
+}
+
+interface BrandItem {
+  id?: number | string;
+  id_marca?: number | string;
+  nom_marca?: string;
+}
 
 interface FilterSuggestionsProps {
   activeFilters: {
-    priceRange?: [number, number]
-    categories?: string[]
-    lines?: string[]
-    sublines?: string[]
-    brands?: string[]
-    inStockOnly?: boolean
-    onSaleOnly?: boolean
-  }
-  onRemoveFilter: (filterType: string, value?: string) => void
-  onClearAll: () => void
-  categoriesData?: any[]
-  linesData?: any[]
-  sublinesData?: any[]
-  brandsData?: any[]
-  className?: string
+    priceRange?: [number, number];
+    categories?: string[];
+    lines?: string[];
+    sublines?: string[];
+    brands?: string[];
+    inStockOnly?: boolean;
+    onSaleOnly?: boolean;
+  };
+  onRemoveFilter: (filterType: string, value?: string) => void;
+  onClearAll: () => void;
+  categoriesData?: CategoryItem[];
+  linesData?: LineItem[];
+  sublinesData?: SublineItem[];
+  brandsData?: BrandItem[];
+  className?: string;
 }
 
 export const FilterSuggestions = ({

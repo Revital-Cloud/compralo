@@ -2,19 +2,16 @@
 
 import { use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { ArrowLeft, Download, CheckCircle2, Calendar, CreditCard, FileText } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Button,
-  Skeleton,
-  Badge,
-  Separator,
-} from "@/components/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 import { useInvoice } from '@/hooks/use-billing';
+import type { InvoiceDetail } from '@/types';
 
 // Format price
 const formatPrice = (price: number | string, currency: string = 'USD') => {
@@ -36,21 +33,21 @@ const formatDate = (dateString: string | null | undefined) => {
 };
 
 // Get status config
-const getStatusConfig = (status: string) => {
+function getStatusConfig(status: string, t: ReturnType<typeof useTranslations>) {
   switch (status) {
     case 'pagado':
       return {
-        label: 'Paid',
+        label: t('billing.status.paid'),
         color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
       };
     case 'pendiente':
       return {
-        label: 'Pending',
+        label: t('billing.status.pending'),
         color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
       };
     case 'fallido':
       return {
-        label: 'Failed',
+        label: t('billing.status.failed'),
         color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
       };
     default:
@@ -59,7 +56,7 @@ const getStatusConfig = (status: string) => {
         color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400',
       };
   }
-};
+}
 
 export default function InvoiceDetailPage({
   params,
@@ -67,6 +64,9 @@ export default function InvoiceDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations();
+  const localePrefix = `/${locale}`;
   const resolvedParams = use(params);
   const { data: invoice, isLoading } = useInvoice(resolvedParams.id);
 
@@ -86,35 +86,37 @@ export default function InvoiceDetailPage({
     return (
       <div className="flex flex-col items-center justify-center py-12">
         <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-        <h2 className="text-xl font-semibold mb-2">Invoice Not Found</h2>
+        <h2 className="text-xl font-semibold mb-2">{t('billing.invoice.notFound')}</h2>
         <p className="text-muted-foreground mb-4">
-          The invoice you&apos;re looking for doesn&apos;t exist or has been deleted.
+          {t('billing.invoice.notFoundDescription')}
         </p>
-        <Button onClick={() => router.push('/billing')}>Back to Billing</Button>
+        <Button onClick={() => router.push(`${localePrefix}/billing`)}>
+          {t('billing.invoice.backToBilling')}
+        </Button>
       </div>
     );
   }
 
-  const statusConfig = getStatusConfig(invoice.estado_pago);
+  const statusConfig = getStatusConfig(invoice.estado_pago, t);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/billing')}>
+          <Button variant="ghost" size="icon" onClick={() => router.push(`${localePrefix}/billing`)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Invoice {invoice.num_factura}</h1>
-            <p className="text-muted-foreground">Issued on {formatDate(invoice.fecha_emision)}</p>
+            <h1 className="text-2xl font-bold">{t('billing.invoice.title', { number: invoice.num_factura })}</h1>
+            <p className="text-muted-foreground">{t('billing.invoice.issuedOn', { date: formatDate(invoice.fecha_emision) })}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Badge className={statusConfig.color}>{statusConfig.label}</Badge>
           <Button variant="outline">
             <Download className="h-4 w-4 mr-2" />
-            Download PDF
+            {t('billing.invoice.downloadPDF')}
           </Button>
         </div>
       </div>
@@ -124,13 +126,13 @@ export default function InvoiceDetailPage({
         {/* Main Invoice Details */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Invoice Details</CardTitle>
+            <CardTitle>{t('billing.invoice.details')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Billing Period */}
             {invoice.periodo_facturado_desde && invoice.periodo_facturado_hasta && (
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Billing Period</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">{t('billing.invoice.billingPeriod')}</h3>
                 <p className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   {formatDate(invoice.periodo_facturado_desde)} - {formatDate(invoice.periodo_facturado_hasta)}
@@ -143,16 +145,16 @@ export default function InvoiceDetailPage({
             {/* Line Items (if available in details) */}
             {'detalles' in invoice && invoice.detalles && invoice.detalles.length > 0 ? (
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-4">Items</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-4">{t('billing.invoice.items')}</h3>
                 <div className="space-y-3">
-                  {invoice.detalles.map((detail: any, index: number) => (
+                  {invoice.detalles.map((detail: InvoiceDetail, index: number) => (
                     <div
                       key={detail.id_detalle || index}
                       className="flex items-center justify-between py-3 border-b last:border-0"
                     >
                       <div>
                         <p className="font-medium">{detail.concepto}</p>
-                        {detail.cantidad && detail.cantidad > 1 && (
+                        {detail.cantidad != null && Number(detail.cantidad) > 1 && (
                           <p className="text-sm text-muted-foreground">
                             {detail.cantidad} × {formatPrice(detail.precio_unitario, invoice.moneda)}
                           </p>
@@ -167,8 +169,8 @@ export default function InvoiceDetailPage({
               </div>
             ) : (
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-4">Summary</h3>
-                <p className="text-muted-foreground">Subscription payment</p>
+                <h3 className="text-sm font-medium text-muted-foreground mb-4">{t('billing.invoice.summary')}</h3>
+                <p className="text-muted-foreground">{t('billing.invoice.subscriptionPayment')}</p>
               </div>
             )}
 
@@ -177,24 +179,24 @@ export default function InvoiceDetailPage({
             {/* Totals */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
+                <span className="text-muted-foreground">{t('billing.invoice.subtotal')}</span>
                 <span>{formatPrice(invoice.subtotal, invoice.moneda)}</span>
               </div>
               {parseFloat(String(invoice.descuentos)) > 0 && (
                 <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                  <span>Discounts</span>
+                  <span>{t('billing.invoice.discounts')}</span>
                   <span>-{formatPrice(invoice.descuentos, invoice.moneda)}</span>
                 </div>
               )}
               {parseFloat(String(invoice.impuestos)) > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Taxes</span>
+                  <span className="text-muted-foreground">{t('billing.invoice.taxes')}</span>
                   <span>{formatPrice(invoice.impuestos, invoice.moneda)}</span>
                 </div>
               )}
               <Separator />
               <div className="flex justify-between text-lg font-bold">
-                <span>Total</span>
+                <span>{t('billing.invoice.total')}</span>
                 <span>{formatPrice(invoice.total, invoice.moneda)}</span>
               </div>
             </div>
@@ -206,24 +208,24 @@ export default function InvoiceDetailPage({
           {/* Payment Info */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Payment Information</CardTitle>
+              <CardTitle className="text-base">{t('billing.invoice.paymentInfo')}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-sm text-muted-foreground">Status</p>
+                <p className="text-sm text-muted-foreground">{t('billing.invoice.status')}</p>
                 <Badge className={`mt-1 ${statusConfig.color}`}>{statusConfig.label}</Badge>
               </div>
 
               {invoice.fecha_vencimiento && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Due Date</p>
+                  <p className="text-sm text-muted-foreground">{t('billing.invoice.dueDate')}</p>
                   <p className="font-medium">{formatDate(invoice.fecha_vencimiento)}</p>
                 </div>
               )}
 
               {invoice.fecha_pago && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Paid On</p>
+                  <p className="text-sm text-muted-foreground">{t('billing.invoice.paidOn')}</p>
                   <p className="font-medium flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
                     {formatDate(invoice.fecha_pago)}
@@ -233,7 +235,7 @@ export default function InvoiceDetailPage({
 
               {invoice.metodo_pago && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Payment Method</p>
+                  <p className="text-sm text-muted-foreground">{t('billing.invoice.paymentMethod')}</p>
                   <p className="font-medium flex items-center gap-2">
                     <CreditCard className="h-4 w-4 text-muted-foreground" />
                     {invoice.metodo_pago}
@@ -243,7 +245,7 @@ export default function InvoiceDetailPage({
 
               {invoice.referencia_pago && (
                 <div>
-                  <p className="text-sm text-muted-foreground">Reference</p>
+                  <p className="text-sm text-muted-foreground">{t('billing.invoice.reference')}</p>
                   <p className="font-mono text-sm">{invoice.referencia_pago}</p>
                 </div>
               )}
@@ -254,7 +256,7 @@ export default function InvoiceDetailPage({
           {invoice.notas && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Notes</CardTitle>
+                <CardTitle className="text-base">{t('billing.invoice.notes')}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">{invoice.notas}</p>
@@ -267,7 +269,7 @@ export default function InvoiceDetailPage({
             <Card>
               <CardContent className="pt-6">
                 <Button className="w-full bg-synkro-green hover:bg-synkro-green/90 text-synkro-black">
-                  Pay Now
+                  {t('billing.invoice.payNow')}
                 </Button>
               </CardContent>
             </Card>

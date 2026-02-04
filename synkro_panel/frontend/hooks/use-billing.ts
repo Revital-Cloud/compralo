@@ -2,12 +2,11 @@
  * Custom Hook for Billing
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import billingService from '@/services/billing.service';
+import { getErrorMessage } from '@/types/errors';
 import type {
-  InvoicePublic,
-  InvoiceWithDetails,
   InvoiceHeaderCreate,
   InvoiceHeaderUpdate,
   InvoicePending,
@@ -30,8 +29,24 @@ export function useInvoices() {
   });
 }
 
+export function useInvoicesSuspense() {
+  return useSuspenseQuery({
+    queryKey: BILLING_KEYS.list(),
+    queryFn: () => billingService.getInvoices(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function usePendingInvoices() {
   return useQuery({
+    queryKey: BILLING_KEYS.pending(),
+    queryFn: (): Promise<InvoicePending[]> => billingService.getPendingInvoices(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function usePendingInvoicesSuspense() {
+  return useSuspenseQuery({
     queryKey: BILLING_KEYS.pending(),
     queryFn: (): Promise<InvoicePending[]> => billingService.getPendingInvoices(),
     staleTime: 5 * 60 * 1000,
@@ -76,9 +91,8 @@ export function useUpdateInvoice() {
       queryClient.invalidateQueries({ queryKey: BILLING_KEYS.lists() });
       queryClient.invalidateQueries({ queryKey: BILLING_KEYS.pending() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al actualizar factura';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al actualizar factura'));
     },
   });
 }

@@ -52,6 +52,7 @@ export const Header = () => {
   const t = useTranslations();
   const [menuState, setMenuState] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const [isMounted, setIsMounted] = React.useState(false);
   const { user, isLoading } = useAuth();
   const isLoggedIn = isAuthenticated() && !!user;
 
@@ -152,8 +153,8 @@ export const Header = () => {
               <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit lg:items-center">
                 <ThemeSwitcherButton className="hidden lg:flex" />
                 
-                {isLoading ? (
-                  // Loading state
+                {!isMounted || isLoading ? (
+                  // Loading state - only show during SSR or while loading
                   <div className="h-9 w-24 animate-pulse rounded-md bg-muted" />
                 ) : isLoggedIn ? (
                   // Authenticated user

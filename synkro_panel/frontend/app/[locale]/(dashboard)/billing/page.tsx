@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   Receipt,
   Download,
@@ -14,22 +15,14 @@ import {
   Calendar,
   DollarSign,
 } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Button,
-  Skeleton,
-  Badge,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { useInvoices, usePendingInvoices } from '@/hooks/use-billing';
-import { MetricCard } from '@/components/dashboard';
+import { useBillingDataSuspense } from '@/hooks/use-billing-data';
+import { MetricCard } from '@/components/dashboard/metric-card';
 import type { InvoicePublic, InvoicePending } from '@/types';
 
 // Format price
@@ -52,32 +45,32 @@ const formatDate = (dateString: string | null | undefined) => {
 };
 
 // Get status config
-const getStatusConfig = (status: string) => {
+function getStatusConfig(status: string, t: ReturnType<typeof useTranslations>) {
   switch (status) {
     case 'pagado':
       return {
-        label: 'Paid',
+        label: t('billing.status.paid'),
         icon: CheckCircle2,
         color: 'text-green-600 dark:text-green-400',
         bgColor: 'bg-green-100 dark:bg-green-900/30',
       };
     case 'pendiente':
       return {
-        label: 'Pending',
+        label: t('billing.status.pending'),
         icon: Clock,
         color: 'text-amber-600 dark:text-amber-400',
         bgColor: 'bg-amber-100 dark:bg-amber-900/30',
       };
     case 'fallido':
       return {
-        label: 'Failed',
+        label: t('billing.status.failed'),
         icon: XCircle,
         color: 'text-red-600 dark:text-red-400',
         bgColor: 'bg-red-100 dark:bg-red-900/30',
       };
     case 'cancelado':
       return {
-        label: 'Cancelled',
+        label: t('billing.status.cancelled'),
         icon: XCircle,
         color: 'text-gray-600 dark:text-gray-400',
         bgColor: 'bg-gray-100 dark:bg-gray-800',
@@ -90,11 +83,14 @@ const getStatusConfig = (status: string) => {
         bgColor: 'bg-gray-100 dark:bg-gray-800',
       };
   }
-};
+}
 
 // Invoice Row Component
 function InvoiceRow({ invoice }: { invoice: InvoicePublic | InvoicePending }) {
-  const statusConfig = getStatusConfig(invoice.estado_pago);
+  const locale = useLocale();
+  const t = useTranslations();
+  const localePrefix = `/${locale}`;
+  const statusConfig = getStatusConfig(invoice.estado_pago, t);
   const StatusIcon = statusConfig.icon;
 
   const isOverdue =
@@ -116,7 +112,7 @@ function InvoiceRow({ invoice }: { invoice: InvoicePublic | InvoicePending }) {
             <p className="font-medium">{invoice.num_factura}</p>
             {isOverdue && (
               <Badge variant="destructive" className="text-xs">
-                Overdue
+                {t('billing.invoice.overdue')}
               </Badge>
             )}
           </div>
@@ -143,7 +139,7 @@ function InvoiceRow({ invoice }: { invoice: InvoicePublic | InvoicePending }) {
         </div>
         <div className="flex gap-2">
           <Button asChild variant="ghost" size="icon">
-            <Link href={`/billing/${invoice.id_factura}`}>
+            <Link href={`${localePrefix}/billing/${invoice.id_factura}`}>
               <Eye className="h-4 w-4" />
             </Link>
           </Button>
@@ -194,59 +190,67 @@ function InvoicesList({
   );
 }
 
-// Main Billing Page
-export default function BillingPage() {
+// Skeleton shown while billing data loads (Suspense fallback)
+function BillingPageSkeleton() {
+  return (
+    <div className="space-y-8">
+      <Skeleton className="h-10 w-48" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Skeleton className="h-24" />
+        <Skeleton className="h-24" />
+        <Skeleton className="h-24" />
+      </div>
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-32" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Content that suspends until invoices and pending are loaded
+function BillingPageContent() {
+  const t = useTranslations();
   const [activeTab, setActiveTab] = useState('all');
+  const { allInvoices, pendingInvoices } = useBillingDataSuspense();
 
-  const { data: allInvoices, isLoading: loadingAll } = useInvoices();
-  const { data: pendingInvoices, isLoading: loadingPending } = usePendingInvoices();
-
-  // Calculate stats
   const totalPending =
-    pendingInvoices?.reduce((sum, inv) => {
+    pendingInvoices.reduce((sum, inv) => {
       const amount = typeof inv.total === 'string' ? parseFloat(inv.total) : inv.total;
       return sum + amount;
-    }, 0) || 0;
+    }, 0);
 
-  const totalPaid =
-    allInvoices
-      ?.filter((i) => i.estado_pago === 'pagado')
-      .reduce((sum, inv) => {
-        const amount = typeof inv.total === 'string' ? parseFloat(inv.total) : inv.total;
-        return sum + amount;
-      }, 0) || 0;
+  const totalPaid = allInvoices
+    .filter((i) => i.estado_pago === 'pagado')
+    .reduce((sum, inv) => {
+      const amount = typeof inv.total === 'string' ? parseFloat(inv.total) : inv.total;
+      return sum + amount;
+    }, 0);
 
-  // Filter invoices by status
-  const paidInvoices = allInvoices?.filter((i) => i.estado_pago === 'pagado') || [];
-  const overdueInvoices =
-    pendingInvoices?.filter(
-      (inv) => inv.fecha_vencimiento && new Date(inv.fecha_vencimiento) < new Date(),
-    ) || [];
+  const paidInvoices = allInvoices.filter((i) => i.estado_pago === 'pagado');
+  const overdueInvoices = pendingInvoices.filter(
+    (inv) => inv.fecha_vencimiento && new Date(inv.fecha_vencimiento) < new Date(),
+  );
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Facturación</h1>
-        <p className="text-muted-foreground mt-1">
-          Consulta y gestiona tus facturas y el historial de pagos.
-        </p>
-      </div>
-
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <MetricCard title="Total pagado" value={formatPrice(totalPaid)} icon={DollarSign} loading={loadingAll} />
+        <MetricCard title={t('billing.stats.totalPaid')} value={formatPrice(totalPaid)} icon={DollarSign} />
         <MetricCard
-          title="Pendiente"
+          title={t('billing.stats.pending')}
           value={formatPrice(totalPending)}
           icon={Clock}
-          loading={loadingPending}
           valueClassName={totalPending > 0 ? 'text-amber-600 dark:text-amber-400' : undefined}
         />
-        <MetricCard title="Total de facturas" value={allInvoices?.length || 0} icon={Receipt} loading={loadingAll} />
+        <MetricCard title={t('billing.stats.totalInvoices')} value={allInvoices.length} icon={Receipt} />
       </div>
 
-      {/* Overdue Alert */}
       {overdueInvoices.length > 0 && (
         <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/50">
           <CardContent className="py-4">
@@ -254,10 +258,13 @@ export default function BillingPage() {
               <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
               <div>
                 <p className="font-medium text-red-800 dark:text-red-200">
-                  You have {overdueInvoices.length} overdue invoice{overdueInvoices.length > 1 ? 's' : ''}
+                  {t('billing.overdue.title', {
+                    count: overdueInvoices.length,
+                    plural: overdueInvoices.length > 1 ? 's' : '',
+                  })}
                 </p>
                 <p className="text-sm text-red-600 dark:text-red-400">
-                  Please make payment as soon as possible to avoid service interruption.
+                  {t('billing.overdue.description')}
                 </p>
               </div>
             </div>
@@ -265,36 +272,32 @@ export default function BillingPage() {
         </Card>
       )}
 
-      {/* Invoices Tabs */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
-            Facturas
+            {t('billing.title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="mb-4">
-              <TabsTrigger value="all">Todas ({allInvoices?.length || 0})</TabsTrigger>
-              <TabsTrigger value="pending">Pendientes ({pendingInvoices?.length || 0})</TabsTrigger>
-              <TabsTrigger value="paid">Pagadas ({paidInvoices.length})</TabsTrigger>
+              <TabsTrigger value="all">{t('billing.tabs.all')} ({allInvoices.length})</TabsTrigger>
+              <TabsTrigger value="pending">{t('billing.tabs.pending')} ({pendingInvoices.length})</TabsTrigger>
+              <TabsTrigger value="paid">{t('billing.tabs.paid')} ({paidInvoices.length})</TabsTrigger>
             </TabsList>
-
             <TabsContent value="all">
-              <InvoicesList invoices={allInvoices || []} loading={loadingAll} emptyMessage="No se encontraron facturas." />
+              <InvoicesList invoices={allInvoices} loading={false} emptyMessage={t('billing.empty.all')} />
             </TabsContent>
-
             <TabsContent value="pending">
               <InvoicesList
-                invoices={pendingInvoices || []}
-                loading={loadingPending}
-                emptyMessage="No tienes facturas pendientes. ¡Estás al día!"
+                invoices={pendingInvoices}
+                loading={false}
+                emptyMessage={t('billing.empty.pending')}
               />
             </TabsContent>
-
             <TabsContent value="paid">
-              <InvoicesList invoices={paidInvoices} loading={loadingAll} emptyMessage="Aún no tienes facturas pagadas." />
+              <InvoicesList invoices={paidInvoices} loading={false} emptyMessage={t('billing.empty.paid')} />
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -303,3 +306,17 @@ export default function BillingPage() {
   );
 }
 
+export default function BillingPage() {
+  const t = useTranslations();
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold">{t('billing.title')}</h1>
+        <p className="text-muted-foreground mt-1">{t('billing.subtitle')}</p>
+      </div>
+      <Suspense fallback={<BillingPageSkeleton />}>
+        <BillingPageContent />
+      </Suspense>
+    </div>
+  );
+}

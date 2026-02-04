@@ -9,7 +9,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui";
+} from "@/components/ui/sidebar";
 
 interface NavItem {
   title: string;
@@ -61,8 +61,8 @@ export function ClientNavMain({ items }: NavMainProps) {
             <SidebarGroupContent className="flex flex-col gap-1">
               <SidebarMenu>
                 {sectionItems.map((item) => {
-                  const isActive = item.url === '/dashboard' 
-                    ? pathname === '/dashboard'
+                  const isActive = item.url.endsWith('/dashboard')
+                    ? pathname === item.url
                     : pathname === item.url || pathname.startsWith(item.url + '/');
                   
                   return (

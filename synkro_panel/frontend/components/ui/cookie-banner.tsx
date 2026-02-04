@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui"
+import { Button } from "@/components/ui/button"
 import { X, Cookie, Shield, Settings } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useCookies } from "@/components/ui/hooks/use-cookies"

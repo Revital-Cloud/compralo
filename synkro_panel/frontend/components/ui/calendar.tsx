@@ -9,8 +9,8 @@ import {
 import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
-import { Button, buttonVariants } from "@/components/ui"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 function Calendar({
   className,
@@ -30,7 +30,7 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        "bg-background group/calendar p-3 [--cell-size:--spacing(8)] [[data-slot=card-content]_&]:bg-transparent [[data-slot=popover-content]_&]:bg-transparent",
+        "bg-background group/calendar p-3 [--cell-size:--spacing(8)] in-data-[slot=card-content]:bg-transparent in-data-[slot=popover-content]:bg-transparent",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
         String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className
@@ -218,13 +218,13 @@ function CalendarDropdown({
           )}
           disabled={disabled}
         >
-          <span className="truncate max-w-[7rem]">
+          <span className="truncate max-w-28">
             {selected ? selected.label : ""}
           </span>
           <ChevronDownIcon className="size-3.5 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="p-0 w-[10rem]">
+      <PopoverContent align="start" className="p-0 w-10">
         <div ref={listRef} className="max-h-64 overflow-auto py-1">
           {options.map((opt) => (
             <button

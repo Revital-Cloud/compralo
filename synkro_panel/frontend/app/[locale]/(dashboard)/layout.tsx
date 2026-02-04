@@ -1,6 +1,6 @@
 'use client';
 
-import { SidebarProvider, SidebarInset } from "@/components/ui";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { ClientSidebar } from '@/components/layout/client-sidebar';
 import { ClientHeader } from '@/components/layout/client-header';
 import { ClientGuard } from '@/components/auth/client-guard';

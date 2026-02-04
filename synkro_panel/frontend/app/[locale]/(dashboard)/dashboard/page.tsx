@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Server,
@@ -9,19 +10,85 @@ import {
   ArrowRight,
   ExternalLink,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, Button, Skeleton } from "@/components/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 
 import { useAuth } from '@/hooks/use-auth';
-import { useInstances } from '@/hooks/use-instances';
-import { useActiveSubscriptions } from '@/hooks/use-subscriptions';
+import { useDashboardDataSuspense } from '@/hooks/use-dashboard-data';
 import { useLatestResourceUsage } from '@/hooks/use-resource-usage';
-import { usePendingInvoices } from '@/hooks/use-billing';
 import { usePlan } from '@/hooks/use-planes';
 
-import { MetricCard, StatusBadge, ResourceCard, InstanceOverviewCard } from '@/components/dashboard';
-import type { InstancePublic, SubscriptionPublic, PlanPublic } from '@/types';
+import { MetricCard } from '@/components/dashboard/metric-card';
+import { StatusBadge } from '@/components/dashboard/status-badge';
+import { ResourceCard } from '@/components/dashboard/resource-card';
+import { InstanceOverviewCard } from '@/components/dashboard/instance-overview-card';
+import type { InstancePublic, PlanPublic, SubscriptionPublic } from '@/types';
+
+// Skeleton shown while dashboard data is loading (Suspense fallback)
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i}>
+            <CardHeader className="pb-2">
+              <Skeleton className="h-4 w-24" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-20" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-5 w-32" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-9 w-32" />
+            </CardContent>
+          </Card>
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-28" />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-32" />
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-36" />
+            <Skeleton className="h-9 w-32" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-28" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-24 w-full" />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
 
 // Subscription Card Component
 function SubscriptionCard({
@@ -35,6 +102,7 @@ function SubscriptionCard({
 }) {
   const t = useTranslations();
   const locale = useLocale();
+  const localePrefix = `/${locale}`;
 
   if (loading) {
     return (
@@ -66,7 +134,7 @@ function SubscriptionCard({
             {t('subscription.currentPlan.noSubscription.description')}
           </p>
           <Button asChild>
-            <Link href="/subscription">
+            <Link href={`${localePrefix}/subscription`}>
               {t('subscription.availablePlans.title')}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
@@ -129,7 +197,7 @@ function SubscriptionCard({
         </div>
 
         <Button asChild variant="outline" className="w-full">
-          <Link href="/subscription">
+          <Link href={`${localePrefix}/subscription`}>
             {t('dashboard.subscription.manageSubscription')}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
@@ -142,6 +210,8 @@ function SubscriptionCard({
 // Quick Actions Card
 function QuickActionsCard({ instance }: { instance?: InstancePublic | null }) {
   const t = useTranslations();
+  const locale = useLocale();
+  const localePrefix = `/${locale}`;
 
   return (
     <Card className="hover:shadow-lg dark:hover:shadow-[0_8px_16px_-4px_rgb(0,0,0,0.6)] transition-all duration-200">
@@ -158,19 +228,19 @@ function QuickActionsCard({ instance }: { instance?: InstancePublic | null }) {
           </Button>
         )}
         <Button asChild variant="outline" className="w-full justify-start" size="sm">
-          <Link href="/instance">
+          <Link href={`${localePrefix}/instance`}>
             <Server className="mr-2 h-4 w-4" />
             {t('dashboard.quickActions.manageInstance')}
           </Link>
         </Button>
         <Button asChild variant="outline" className="w-full justify-start" size="sm">
-          <Link href="/billing">
+          <Link href={`${localePrefix}/billing`}>
             <Receipt className="mr-2 h-4 w-4" />
             {t('dashboard.quickActions.viewInvoices')}
           </Link>
         </Button>
         <Button asChild variant="outline" className="w-full justify-start" size="sm">
-          <Link href="/resources">
+          <Link href={`${localePrefix}/resources`}>
             <BarChart3 className="mr-2 h-4 w-4" />
             {t('dashboard.quickActions.resourceUsage')}
           </Link>
@@ -180,54 +250,37 @@ function QuickActionsCard({ instance }: { instance?: InstancePublic | null }) {
   );
 }
 
-export default function DashboardPage() {
+// Content that suspends until instances, subscriptions and pending invoices are loaded
+function DashboardContent() {
   const t = useTranslations();
   const router = useRouter();
-  const { user } = useAuth();
+  const { instances, subscriptions, pendingInvoices } = useDashboardDataSuspense();
 
-  // Fetch data
-  const { data: instances, isLoading: loadingInstances } = useInstances();
-  const { data: subscriptions, isLoading: loadingSubscriptions } = useActiveSubscriptions();
-  const { data: pendingInvoices, isLoading: loadingInvoices } = usePendingInvoices();
-
-  // Get the first instance (clients typically have one)
   const instance = instances && instances.length > 0 ? instances[0] : null;
-
-  // Get active subscription
   const activeSubscription = subscriptions && subscriptions.length > 0 ? subscriptions[0] : null;
 
-  // Get plan details for the subscription
   const { data: plan, isLoading: loadingPlan } = usePlan(activeSubscription?.id_plan || '');
-
-  // Get latest resource usage for the instance (optimized endpoint)
   const { data: latestResourceUsage, isLoading: loadingResources } = useLatestResourceUsage(
     instance?.id_instancia ?? ''
   );
 
-  // Calculate metrics
   const pendingInvoicesCount = pendingInvoices?.length || 0;
+  const locale = useLocale();
+  const localePrefix = `/${locale}`;
 
   const handleCreateInstance = () => {
-    router.push('/instance');
+    router.push(`${localePrefix}/instance`);
   };
 
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          {t('dashboard.welcome', { name: user?.nombre || '' })}
-        </h1>
-        <p className="text-muted-foreground mt-1">{t('dashboard.subtitle')}</p>
-      </div>
-
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           title={t('dashboard.metrics.instanceStatus')}
           value={instance ? t('dashboard.values.active') : t('dashboard.values.noInstance')}
           icon={Server}
-          loading={loadingInstances}
+          loading={false}
           valueClassName={
             instance?.estado_instancia === 'activa'
               ? 'text-green-600 dark:text-green-400'
@@ -238,7 +291,7 @@ export default function DashboardPage() {
           title={t('dashboard.metrics.currentPlan')}
           value={plan?.nom_plan || t('dashboard.values.noPlan')}
           icon={CreditCard}
-          loading={loadingSubscriptions || loadingPlan}
+          loading={loadingPlan}
         />
         <MetricCard
           title={t('dashboard.metrics.pendingInvoices')}
@@ -249,7 +302,7 @@ export default function DashboardPage() {
               : t('dashboard.values.allPaid')
           }
           icon={Receipt}
-          loading={loadingInvoices}
+          loading={false}
           valueClassName={
             pendingInvoicesCount > 0 ? 'text-amber-600 dark:text-amber-400' : undefined
           }
@@ -267,16 +320,13 @@ export default function DashboardPage() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Instance Overview - Takes 2 columns on large screens */}
         <div className="lg:col-span-2">
           <InstanceOverviewCard
             instance={instance}
-            loading={loadingInstances}
+            loading={false}
             onCreateClick={handleCreateInstance}
           />
         </div>
-
-        {/* Quick Actions */}
         <div>
           <QuickActionsCard instance={instance} />
         </div>
@@ -284,16 +334,33 @@ export default function DashboardPage() {
 
       {/* Subscription and Resources Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Subscription Card */}
         <SubscriptionCard
           subscription={activeSubscription}
           plan={plan}
-          loading={loadingSubscriptions || loadingPlan}
+          loading={loadingPlan}
         />
-
-        {/* Resource Usage Card */}
         <ResourceCard resourceUsage={latestResourceUsage} loading={loadingResources} />
       </div>
+    </div>
+  );
+}
+
+export default function DashboardPage() {
+  const t = useTranslations();
+  const { user } = useAuth();
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          {t('dashboard.welcome', { name: user?.nombre || '' })}
+        </h1>
+        <p className="text-muted-foreground mt-1">{t('dashboard.subtitle')}</p>
+      </div>
+
+      <Suspense fallback={<DashboardSkeleton />}>
+        <DashboardContent />
+      </Suspense>
     </div>
   );
 }

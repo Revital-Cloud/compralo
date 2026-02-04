@@ -4,7 +4,7 @@ import type React from 'react';
 import { AdminGuard } from '@/components/auth';
 import { ClientSidebar } from '@/components/layout/client-sidebar';
 import { ClientHeader } from '@/components/layout/client-header';
-import { SidebarInset, SidebarProvider } from '@/components/ui';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
 export default function AdminLayout({
   children,

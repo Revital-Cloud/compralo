@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/types/errors';
+import type { ApiError } from '@/types/errors';
 
 /**
  * Provider de React Query con configuración optimizada
@@ -49,11 +51,11 @@ const QueryProvider = ({ children }: { children: React.ReactNode }) => {
             retry: false, // No reintentar mutations por defecto
             
             // Manejo global de errores en mutations
-            onError: (error: any) => {
+            onError: (error: unknown) => {
+              const apiError = error as ApiError & { handled?: boolean };
               // Solo mostrar toast si la mutation no maneja el error específicamente
-              if (!error.handled) {
-                const message = error?.response?.data?.detail || error?.response?.data?.message || 'Ha ocurrido un error inesperado';
-                toast.error(message);
+              if (!apiError?.handled) {
+                toast.error(getErrorMessage(error, 'Ha ocurrido un error inesperado'));
               }
             },
           },

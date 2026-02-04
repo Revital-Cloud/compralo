@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent } from "@/components/ui";
-import { Input } from "@/components/ui";
-import { Button } from "@/components/ui";
-import { Badge } from "@/components/ui";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
   IconSearch,

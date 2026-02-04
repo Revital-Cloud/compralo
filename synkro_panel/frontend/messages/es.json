@@ -23,7 +23,8 @@
     "error": "Error",
     "success": "Éxito",
     "warning": "Advertencia",
-    "info": "Información"
+    "info": "Información",
+    "settings": "Configuración"
   },
   "hero": {
     "title": "La Plataforma E-commerce Todo-en-Uno para Colombia",
@@ -346,7 +347,7 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "welcome": "Bienvenido de nuevo{name, select, other {, {name}}!}",
+    "welcome": "Bienvenido de nuevo, {name}!",
     "subtitle": "Aquí tienes un resumen del estado de tu plataforma e‑commerce.",
     "metrics": {
       "instanceStatus": "Estado de la instancia",
@@ -431,19 +432,245 @@
   },
   "billing": {
     "title": "Facturación",
-    "subtitle": "Gestiona tus facturas y métodos de pago"
+    "subtitle": "Gestiona tus facturas y métodos de pago",
+    "stats": {
+      "totalPaid": "Total pagado",
+      "pending": "Pendiente",
+      "totalInvoices": "Total de facturas"
+    },
+    "overdue": {
+      "title": "Tienes {count} factura{plural} vencida{plural}",
+      "description": "Por favor realiza el pago lo antes posible para evitar interrupciones en el servicio."
+    },
+    "tabs": {
+      "all": "Todas",
+      "pending": "Pendientes",
+      "paid": "Pagadas"
+    },
+    "empty": {
+      "all": "No se encontraron facturas.",
+      "pending": "No tienes facturas pendientes. ¡Estás al día!",
+      "paid": "Aún no tienes facturas pagadas."
+    },
+    "invoice": {
+      "title": "Factura {number}",
+      "issuedOn": "Emitida el {date}",
+      "notFound": "Factura No Encontrada",
+      "notFoundDescription": "La factura que buscas no existe o ha sido eliminada.",
+      "backToBilling": "Volver a Facturación",
+      "details": "Detalles de la Factura",
+      "billingPeriod": "Período de Facturación",
+      "items": "Items",
+      "summary": "Resumen",
+      "subscriptionPayment": "Pago de suscripción",
+      "subtotal": "Subtotal",
+      "discounts": "Descuentos",
+      "taxes": "Impuestos",
+      "total": "Total",
+      "paymentInfo": "Información de Pago",
+      "status": "Estado",
+      "dueDate": "Fecha de Vencimiento",
+      "paidOn": "Pagada el",
+      "paymentMethod": "Método de Pago",
+      "reference": "Referencia",
+      "notes": "Notas",
+      "payNow": "Pagar Ahora",
+      "downloadPDF": "Descargar PDF",
+      "overdue": "Vencida"
+    },
+    "status": {
+      "paid": "Pagado",
+      "pending": "Pendiente",
+      "failed": "Fallido",
+      "cancelled": "Cancelado"
+    }
   },
   "instance": {
     "title": "Instancia",
-    "subtitle": "Gestiona tu instancia de e-commerce"
+    "subtitle": "Gestiona tu instancia de e-commerce",
+    "create": {
+      "title": "Crea tu E-commerce",
+      "description": "Configura tu tienda online en solo unos minutos. Elige un nombre e identificador único para tu tienda.",
+      "storeName": "Nombre de la Tienda",
+      "storeNamePlaceholder": "Mi Tienda Increíble",
+      "storeNameHelp": "Este es el nombre que se mostrará para tu tienda.",
+      "storeSlug": "Slug de URL de la Tienda",
+      "storeSlugHelp": "Solo letras minúsculas, números y guiones. Esta será la URL de tu tienda.",
+      "createButton": "Crear mi e-commerce",
+      "creating": "Creando...",
+      "errors": {
+        "userInfoNotAvailable": "Información de usuario no disponible",
+        "fillAllFields": "Por favor completa todos los campos",
+        "invalidSlug": "El slug solo debe contener letras minúsculas, números y guiones"
+      }
+    },
+    "noInstance": {
+      "title": "Sin Instancia Aún",
+      "description": "Crea tu instancia de e-commerce para comenzar a rastrear el uso de recursos.",
+      "createButton": "Crear Instancia"
+    },
+    "info": {
+      "title": "Información de la Instancia",
+      "storeUrl": "URL de la Tienda",
+      "viewStore": "Ver Tienda",
+      "version": "Versión",
+      "region": "Región",
+      "activated": "Activada",
+      "lastDeploy": "Último Deploy"
+    },
+    "domains": {
+      "title": "Dominios",
+      "addDomain": "Agregar Dominio",
+      "noDomains": "Aún no se han configurado dominios personalizados.",
+      "addTitle": "Agregar Dominio Personalizado",
+      "addDescription": "Agrega un dominio personalizado a tu tienda. Necesitarás configurar los ajustes DNS.",
+      "domainName": "Nombre del Dominio",
+      "domainPlaceholder": "www.mitienda.com",
+      "adding": "Agregando...",
+      "addButton": "Agregar Dominio",
+      "sslEnabled": "SSL habilitado",
+      "sslDisabled": "SSL deshabilitado"
+    },
+    "deployments": {
+      "title": "Deployments Recientes",
+      "noDeployments": "Aún no hay deployments.",
+      "status": {
+        "completado": "Completado",
+        "fallido": "Fallido",
+        "en_proceso": "En Proceso",
+        "iniciado": "Iniciado",
+        "pendiente": "Pendiente"
+      },
+      "type": {
+        "automatico": "Automático",
+        "manual": "Manual"
+      }
+    },
+    "settings": {
+      "title": "Configuración de Instancia",
+      "subtitle": "Configura tu instancia de e-commerce",
+      "general": "Configuración General",
+      "generalDescription": "Actualiza la información básica de tu instancia",
+      "storeName": "Nombre de la Tienda",
+      "subdomain": "Subdominio",
+      "subdomainSuffix": ".synkro.store",
+      "customDomain": "Dominio Personalizado",
+      "customDomainPlaceholder": "www.mitienda.com",
+      "customDomainHelp": "Configura DNS para que apunte a tu tienda",
+      "region": "Región de Deployment",
+      "regionPlaceholder": "Seleccionar región",
+      "saving": "Guardando...",
+      "saveChanges": "Guardar Cambios",
+      "notFound": "No se encontró instancia",
+      "goToInstance": "Ir a Instancia",
+      "regions": {
+        "us-east-1": "US Este (N. Virginia)",
+        "us-west-2": "US Oeste (Oregon)",
+        "sa-east-1": "Sudamérica (São Paulo)",
+        "eu-west-1": "Europa (Irlanda)",
+        "eu-central-1": "Europa (Frankfurt)",
+        "ap-southeast-1": "Asia Pacífico (Singapur)",
+        "ap-northeast-1": "Asia Pacífico (Tokio)"
+      }
+    }
   },
   "resources": {
-    "title": "Recursos",
-    "subtitle": "Monitorea tu uso de recursos"
+    "title": "Uso de Recursos",
+    "subtitle": "Monitorea el consumo de recursos de tu e-commerce.",
+    "noInstance": {
+      "title": "Sin Instancia Aún",
+      "description": "Crea tu instancia de e-commerce para comenzar a rastrear el uso de recursos.",
+      "createButton": "Crear Instancia"
+    },
+    "upgradePlan": "Actualizar Plan",
+    "alert": {
+      "title": "Alerta de Uso de Recursos",
+      "description": "Uno o más recursos se están acercando a sus límites. Considera actualizar tu plan para evitar interrupciones en el servicio."
+    },
+    "products": "Productos",
+    "users": "Usuarios",
+    "storage": "Almacenamiento",
+    "used": "{percentage}% usado",
+    "remaining": "{count} {unit} restantes",
+    "approachingLimit": "Acercándose al límite - considera actualizar",
+    "planLimits": {
+      "title": "Límites del Plan Actual",
+      "description": "Tu plan {planName} incluye los siguientes límites de recursos.",
+      "maxProducts": "Máx. Productos",
+      "maxUsers": "Máx. Usuarios",
+      "gbStorage": "GB Almacenamiento",
+      "needMore": "¿Necesitas más recursos? Actualiza a un plan superior.",
+      "viewPlans": "Ver Planes Disponibles"
+    },
+    "lastUpdated": "Última actualización: {date}"
   },
   "settings": {
     "title": "Configuración",
-    "subtitle": "Gestiona la configuración de tu cuenta"
+    "subtitle": "Gestiona tu cuenta y preferencias.",
+    "sections": {
+      "profile": {
+        "title": "Perfil",
+        "description": "Gestiona la información de tu empresa y contacto"
+      },
+      "security": {
+        "title": "Seguridad",
+        "description": "Cambia tu contraseña y configuración de seguridad"
+      },
+      "notifications": {
+        "title": "Notificaciones",
+        "description": "Configura notificaciones por email y push"
+      }
+    },
+    "comingSoon": "Próximamente",
+    "accountInfo": "Información de la Cuenta",
+    "companyProfile": "Perfil de la Empresa",
+    "password": "Contraseña",
+    "profile": {
+      "title": "Perfil de la Empresa",
+      "subtitle": "Actualiza la información de tu empresa y contacto",
+      "companyInfo": "Información de la Empresa",
+      "companyInfoDescription": "Los detalles de tu negocio e información de registro",
+      "companyName": "Nombre de la Empresa",
+      "companyEmail": "Email de la Empresa",
+      "phoneNumber": "Número de Teléfono",
+      "country": "País",
+      "countryPlaceholder": "Seleccionar país",
+      "city": "Ciudad",
+      "address": "Dirección",
+      "primaryContact": "Contacto Principal",
+      "primaryContactDescription": "La persona principal con la que debemos contactar sobre tu cuenta",
+      "fullName": "Nombre Completo",
+      "email": "Email",
+      "phone": "Teléfono",
+      "saving": "Guardando...",
+      "saveChanges": "Guardar Cambios"
+    },
+    "security": {
+      "title": "Configuración de Seguridad",
+      "subtitle": "Gestiona tu contraseña y preferencias de seguridad",
+      "changePassword": "Cambiar Contraseña",
+      "changePasswordDescription": "Actualiza tu contraseña para mantener tu cuenta segura",
+      "currentPassword": "Contraseña Actual",
+      "newPassword": "Nueva Contraseña",
+      "confirmPassword": "Confirmar Nueva Contraseña",
+      "passwordHelp": "Debe tener al menos 8 caracteres",
+      "updating": "Actualizando...",
+      "updatePassword": "Actualizar Contraseña",
+      "securityTips": "Consejos de Seguridad",
+      "errors": {
+        "fillAllFields": "Por favor completa todos los campos de contraseña",
+        "minLength": "La nueva contraseña debe tener al menos 8 caracteres",
+        "passwordsDontMatch": "Las nuevas contraseñas no coinciden",
+        "samePassword": "La nueva contraseña debe ser diferente de la contraseña actual"
+      },
+      "tips": {
+        "unique": "Usa una contraseña única que no uses para otras cuentas",
+        "mix": "Incluye una mezcla de mayúsculas, minúsculas, números y símbolos",
+        "avoid": "Evita usar información fácil de adivinar como cumpleaños o nombres",
+        "change": "Cambia tu contraseña regularmente para mantener la seguridad",
+        "share": "Nunca compartas tu contraseña con nadie"
+      }
+    }
   },
   "admin": {
     "title": "Panel de administración",

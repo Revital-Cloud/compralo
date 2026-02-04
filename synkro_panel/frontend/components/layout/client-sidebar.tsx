@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useLocale } from 'next-intl';
 import {
   LayoutDashboard,
   Server,
@@ -18,7 +19,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-} from "@/components/ui";
+} from "@/components/ui/sidebar";
 import { ClientNavMain } from './client-nav-main';
 import { ClientNavUser } from './client-nav-user';
 
@@ -72,6 +73,15 @@ interface ClientSidebarProps {
 }
 
 export function ClientSidebar({ variant = 'inset' }: ClientSidebarProps) {
+  const locale = useLocale();
+
+  const dashboardHref = `/${locale}/dashboard`;
+
+  const localizedNavigationItems = navigationItems.map((item) => ({
+    ...item,
+    url: `/${locale}${item.url}`,
+  }));
+
   return (
     <Sidebar 
       variant={variant} 
@@ -79,7 +89,7 @@ export function ClientSidebar({ variant = 'inset' }: ClientSidebarProps) {
     >
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex h-[--header-height] shrink-0 items-center gap-2 px-4 lg:px-6">
-          <Link href="/dashboard" className="flex items-center gap-3 group">
+          <Link href={dashboardHref} className="flex items-center gap-3 group">
             <div className="relative">
               <Image
                 src="/logo.webp"
@@ -103,7 +113,7 @@ export function ClientSidebar({ variant = 'inset' }: ClientSidebarProps) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          <ClientNavMain items={navigationItems} />
+          <ClientNavMain items={localizedNavigationItems} />
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">

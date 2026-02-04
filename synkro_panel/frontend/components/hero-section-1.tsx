@@ -33,8 +33,13 @@ const transitionVariants = {
 
 export function HeroSection() {
   const t = useTranslations();
+  const [isMounted, setIsMounted] = React.useState(false);
   const { user, isLoading } = useAuth();
   const isLoggedIn = isAuthenticated() && !!user;
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const scrollToSection = (id: string) => {
     document.querySelector(id)?.scrollIntoView({ behavior: "smooth" });
@@ -113,8 +118,8 @@ export function HeroSection() {
                   }}
                   className="mt-12 flex flex-col items-center justify-center gap-3 md:flex-row"
                 >
-                  {isLoading ? (
-                    // Loading state
+                  {!isMounted || isLoading ? (
+                    // Loading state - only show during SSR or while loading
                     <div className="flex gap-3">
                       <div className="h-12 w-40 animate-pulse rounded-xl bg-muted" />
                       <div className="h-12 w-32 animate-pulse rounded-xl bg-muted" />

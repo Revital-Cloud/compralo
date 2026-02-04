@@ -1,30 +1,34 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import { DollarSign, Server, Users } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslations, useLocale } from 'next-intl';
-import { MetricCard } from '@/components/dashboard';
+import { MetricCard } from '@/components/dashboard/metric-card';
 import {
   useAdminOverviewMetrics,
   useClientsTimeseries,
   useInstancesByPlan,
   useRevenueTimeseries,
 } from '@/hooks/use-admin-metrics';
-import {
-  RevenueAreaChart,
-  InstancesByPlanBarChart,
-  ClientsFunnelChart,
-} from '@/components/admin';
+
+const RevenueAreaChart = dynamic(
+  () => import('@/components/admin/revenue-area-chart').then((m) => m.RevenueAreaChart),
+  { ssr: false, loading: () => <Skeleton className="h-[300px] w-full rounded-md" /> }
+);
+
+const InstancesByPlanBarChart = dynamic(
+  () => import('@/components/admin/instances-by-plan-bar-chart').then((m) => m.InstancesByPlanBarChart),
+  { ssr: false, loading: () => <Skeleton className="h-[300px] w-full rounded-md" /> }
+);
+
+const ClientsFunnelChart = dynamic(
+  () => import('@/components/admin/clients-funnel-chart').then((m) => m.ClientsFunnelChart),
+  { ssr: false, loading: () => <Skeleton className="h-[300px] w-full rounded-md" /> }
+);
 
 type DateRangeKey = '30d' | '90d' | '180d';
 
