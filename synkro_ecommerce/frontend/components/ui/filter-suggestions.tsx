@@ -38,14 +38,34 @@ export const FilterSuggestions = ({
     return category?.name || `Categoría ${id}`
   }
 
-  const getLineName = (id: string) => {
-    const line = linesData?.find(l => l.id_linea?.toString() === id)
-    return line?.nom_linea || `Línea ${id}`
+  // Líneas usan clave compuesta "id_categoria-id_linea"
+  const getLineName = (compositeKey: string) => {
+    const parts = compositeKey.split('-')
+    if (parts.length >= 2) {
+      const [cat, lineId] = parts
+      const line = linesData?.find(
+        (l: { id_categoria?: number; id_linea?: number; nom_linea?: string }) =>
+          String(l.id_categoria) === cat && String(l.id_linea) === lineId
+      )
+      return line?.nom_linea || `Línea ${compositeKey}`
+    }
+    const line = linesData?.find((l: { id_linea?: number }) => l.id_linea?.toString() === compositeKey)
+    return line?.nom_linea || `Línea ${compositeKey}`
   }
 
-  const getSublineName = (id: string) => {
-    const subline = sublinesData?.find(sl => sl.id_sublinea?.toString() === id)
-    return subline?.nom_sublinea || `Sub-línea ${id}`
+  // Sub-líneas usan clave compuesta "id_categoria-id_linea-id_sublinea"
+  const getSublineName = (compositeKey: string) => {
+    const parts = compositeKey.split('-')
+    if (parts.length >= 3) {
+      const [cat, lineId, sublineId] = parts
+      const subline = sublinesData?.find(
+        (s: { id_categoria?: number; id_linea?: number; id_sublinea?: number; nom_sublinea?: string }) =>
+          String(s.id_categoria) === cat && String(s.id_linea) === lineId && String(s.id_sublinea) === sublineId
+      )
+      return subline?.nom_sublinea || `Sub-línea ${compositeKey}`
+    }
+    const subline = sublinesData?.find((s: { id_sublinea?: number }) => s.id_sublinea?.toString() === compositeKey)
+    return subline?.nom_sublinea || `Sub-línea ${compositeKey}`
   }
 
   const getBrandName = (id: string) => {

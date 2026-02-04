@@ -236,6 +236,32 @@ def update_cart_product_quantity(db: Session, id_carrito_producto: int, nueva_ca
         db.rollback()
         raise Exception(f"Error al actualizar cantidad: {str(e)}")
 
+
+def delete_cart_product_by_id(db: Session, id_carrito_producto: int) -> bool:
+    """
+    Elimina una sola línea del carrito por su id_carrito_producto.
+    Así se quita solo ese ítem (ej. un color/talla) y no todos los del mismo producto.
+
+    Args:
+        db (Session): Sesión de base de datos.
+        id_carrito_producto (int): ID de la fila en tab_carrito_productos.
+
+    Returns:
+        bool: True si se eliminó una fila, False si no existía.
+    """
+    try:
+        query = text("""
+            DELETE FROM tab_carrito_productos
+            WHERE id_carrito_producto = :id_carrito_producto
+        """)
+        result = db.execute(query, {"id_carrito_producto": id_carrito_producto})
+        db.commit()
+        return result.rowcount > 0
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al eliminar ítem del carrito: {str(e)}")
+
+
 def delete_cart_product(db: Session, id_usuario: Optional[Decimal], session_id: Optional[str], id_categoria_producto: Decimal, id_linea_producto: Decimal, id_sublinea_producto: Decimal, id_producto: Decimal, cantidad: Decimal, usr_update: Decimal):
     """
     Elimina un producto en el carrito.

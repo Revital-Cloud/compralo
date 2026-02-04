@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
 import { ProductGallery, ProductInfo, RelatedProducts } from "@/components/product"
 import type { ProductColorOption } from "@/components/product/product-info"
 import { ReviewsSection } from "@/components/ui/reviews-section"
@@ -11,6 +12,8 @@ import { useProduct } from "@/hooks/use-products"
 import { useCart } from "@/hooks/use-cart"
 import { getHexForColorName } from "@/utils/color-map"
 import { toast } from "sonner"
+import * as productService from "@/services/product.service"
+import { getProductImageUrl } from "@/utils/image-helpers"
 
 const ProductPage = () => {
   const params = useParams()
@@ -32,6 +35,39 @@ const ProductPage = () => {
     isLoading, 
     error 
   } = useProduct(slug)
+
+  // Productos de la misma categoría para "También te puede gustar"
+  const idCategoria = product?.id_categoria != null ? Number(product.id_categoria) : undefined
+  const { data: relatedResponse } = useQuery({
+    queryKey: ["relatedProducts", idCategoria, slug],
+    queryFn: () =>
+      productService.filterProducts({
+        id_categoria: idCategoria!,
+        limit: 9,
+        offset: 0,
+        ordenar_por: "nombre",
+        orden: "ASC",
+      }),
+    enabled: idCategoria != null && !!slug,
+    staleTime: 5 * 60 * 1000,
+  })
+  const relatedProducts = useMemo(() => {
+    if (!relatedResponse?.products || !slug) return []
+    const currentSlug = slug
+    return relatedResponse.products
+      .filter(
+        (p) =>
+          `${p.id_categoria}-${p.id_linea}-${p.id_sublinea}-${p.id_producto}` !== currentSlug
+      )
+      .slice(0, 8)
+      .map((p) => ({
+        id: p.id_producto,
+        name: p.nom_producto,
+        price: typeof p.val_precio === "number" ? p.val_precio : parseFloat(String(p.val_precio)),
+        image: getProductImageUrl(p.img_producto),
+        slug: `${p.id_categoria}-${p.id_linea}-${p.id_sublinea}-${p.id_producto}`,
+      }))
+  }, [relatedResponse, slug])
 
   // Hook del carrito para funcionalidad real
   const { 
@@ -242,8 +278,8 @@ const ProductPage = () => {
               name={product.nom_producto}
               price={productPrice}
               originalPrice={productPrice}
-              rating={4.5}
-              reviewCount={12}
+              rating={product.rating != null && product.rating > 0 ? Number(product.rating) : 0}
+              reviewCount={product.review_count != null ? Number(product.review_count) : 0}
               colors={colors}
               sizes={sizes}
               isNew={false}
@@ -352,20 +388,29 @@ const ProductPage = () => {
           />
         </div>
 
-        {/* Related Products Section */}
+        {/* Related Products Section - mismos de la categoría del producto */}
         <div className="border-t border-gray-200 dark:border-gray-700 pt-8 md:pt-16">
           <RelatedProducts
             title="También te puede gustar"
-            products={[]} // Por ahora sin productos relacionados
+            products={relatedProducts}
           />
         </div>
       </div>
 
-      {/* Cart Toast */}
+      {/* Cart Toast: imagen según color seleccionado */}
       <CartToast
         isVisible={showCartToast}
         productName={product.nom_producto}
-        productImage={productImages[0] ?? ''}
+        productImage={(() => {
+          if (cartData.color && colors.length > 0 && productImages.length > 0) {
+            const colorIdx = colors.findIndex((c) => c.value === cartData.color)
+            if (colorIdx >= 0) {
+              const imgIdx = colorIndexToImageIndex(colorIdx)
+              if (productImages[imgIdx]) return productImages[imgIdx]
+            }
+          }
+          return productImages[selectedImageIndex] ?? productImages[0] ?? ''
+        })()}
         price={productPrice as number}
         selectedColor={cartData.color}
         selectedSize={cartData.size}

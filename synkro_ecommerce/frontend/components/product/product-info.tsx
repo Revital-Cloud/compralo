@@ -105,18 +105,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
     onAddToCart?.(selectedColor, selectedSize)
   }
 
-  const handleBuyNow = () => {
-    if (missingColor) {
-      toast.error('Selecciona un color para continuar')
-      return
-    }
-    if (missingSize) {
-      toast.error('Selecciona una talla u opción para continuar')
-      return
-    }
-    onAddToCart?.(selectedColor, selectedSize)
-  }
-
   const handleToggleFavorite = async () => {
     if (!product) return
     
@@ -163,8 +151,8 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         )}
       </div>
 
-      {/* Rating */}
-      {reviewCount > 0 && (
+      {/* Rating: mostrar si hay reseñas o si hay valor promedio */}
+      {(reviewCount > 0 || (rating != null && rating > 0)) && (
         <div className="flex items-center gap-2">
           <div className="flex items-center">
             {[...Array(5)].map((_, i) => (
@@ -180,7 +168,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
             ))}
           </div>
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            ({reviewCount} reviews)
+            ({reviewCount} reseña{reviewCount !== 1 ? 's' : ''})
           </span>
         </div>
       )}
@@ -319,17 +307,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
             />
           </Button>
         </div>
-        
-        <Button
-          onClick={handleBuyNow}
-          disabled={!canAddToCart}
-          className={cn(
-            "w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium h-12",
-            !canAddToCart && "opacity-70 cursor-not-allowed"
-          )}
-        >
-          COMPRAR AHORA
-        </Button>
       </div>
 
       {/* Product Details */}

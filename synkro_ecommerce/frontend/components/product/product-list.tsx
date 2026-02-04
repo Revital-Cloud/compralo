@@ -9,6 +9,7 @@ import type { Product } from "@/types"
 import Image from "next/image"
 import { getProductImageUrl } from "@/utils/image-helpers"
 import { useFavorites } from "@/hooks/use-favorites"
+import { formatPrice } from "@/utils/format-price"
 
 interface ProductListProps {
   products: Product[]
@@ -121,13 +122,15 @@ const ProductList: React.FC<ProductListProps> = ({
           <div className="flex items-center p-4">
             {/* Product Image */}
             <Link
-              href={`/products/${product.id_producto}`}
+              href={`/products/${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
               className="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden group"
             >
               
               <Image
                 src={getProductImageUrl(product.img_producto)}
                 alt={product.nom_producto}
+                width={80}
+                height={80}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
               />
             </Link>
@@ -137,7 +140,7 @@ const ProductList: React.FC<ProductListProps> = ({
               {/* Mobile Layout */}
               <div className="block md:hidden">
                 <Link
-                  href={`/products/${product.id_producto}`}
+                  href={`/products/${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
                   className="block group"
                 >
                   <h3 className="font-medium text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm">
@@ -148,7 +151,7 @@ const ProductList: React.FC<ProductListProps> = ({
                 <div className="flex items-center justify-between mt-2">
                     <div className="flex flex-col">
                      <span className="font-bold text-lg text-gray-900 dark:text-white">
-                       ${typeof product.val_precio === 'string' ? parseFloat(product.val_precio).toFixed(2) : product.val_precio}
+                       {formatPrice(product.val_precio)}
                      </span>
                    </div>
                   
@@ -158,19 +161,29 @@ const ProductList: React.FC<ProductListProps> = ({
                       className={cn(
                         "w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center transition-all",
                         "cursor-pointer hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:scale-110",
-                        isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto) && "border-red-500 bg-red-50 dark:bg-red-900/20"
+                        isProductFavorite(
+                          Number(product.id_categoria),
+                          Number(product.id_linea),
+                          Number(product.id_sublinea),
+                          Number(product.id_producto)
+                        ) && "border-red-500 bg-red-50 dark:bg-red-900/20"
                       )}
                     >
                       <Heart 
                         className={cn(
                           "w-3 h-3 transition-all",
-                          isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto) ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-500"
+                          isProductFavorite(
+                            Number(product.id_categoria),
+                            Number(product.id_linea),
+                            Number(product.id_sublinea),
+                            Number(product.id_producto)
+                          ) ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-500"
                         )}
                       />
                     </button>
                     
                     <Button
-                      onClick={(e) => handleAddToCart(e, product.id_producto.toString())}
+                      onClick={(e) => handleAddToCart(e, `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`)}
                       size="sm"
                       className="bg-black text-white hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-xs"
                     >
@@ -214,8 +227,8 @@ const ProductList: React.FC<ProductListProps> = ({
                     </h3>
                   </Link>
                   
-                  {/* Rating - Comentado hasta que se agregue rating al tipo Product */}
-                  {/* {product.rating && (
+                  {/* Rating */}
+                  {product.rating && product.rating > 0 && (
                     <div className="flex items-center gap-1 mt-1">
                       <div className="flex">
                         {[...Array(5)].map((_, i) => (
@@ -230,22 +243,17 @@ const ProductList: React.FC<ProductListProps> = ({
                           />
                         ))}
                       </div>
-                      <span className="text-xs text-gray-500">({product.rating})</span>
+                      <span className="text-xs text-gray-500">({product.rating.toFixed(1)})</span>
                     </div>
-                  )} */}
+                  )}
                 </div>
 
                 {/* Price */}
                 <div className="col-span-3">
                   <div className="flex flex-col items-start">
                     <span className="font-bold text-lg text-gray-900 dark:text-white">
-                      ${typeof product.val_precio === 'string' ? parseFloat(product.val_precio).toFixed(2) : product.val_precio}
+                      {formatPrice(product.val_precio)}
                     </span>
-                    {product.val_precio && product.val_precio > product.val_precio && (
-                      <span className="text-sm text-gray-500 line-through">
-                        ${product.val_precio.toFixed(2)}
-                      </span>
-                    )}
                   </div>
                 </div>
 
@@ -256,19 +264,29 @@ const ProductList: React.FC<ProductListProps> = ({
                     className={cn(
                       "w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center transition-all",
                       "cursor-pointer hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:scale-110",
-                      isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto) && "border-red-500 bg-red-50 dark:bg-red-900/20"
+                      isProductFavorite(
+                        Number(product.id_categoria),
+                        Number(product.id_linea),
+                        Number(product.id_sublinea),
+                        Number(product.id_producto)
+                      ) && "border-red-500 bg-red-50 dark:bg-red-900/20"
                     )}
                   >
                     <Heart 
                       className={cn(
                         "w-4 h-4 transition-all",
-                        isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto) ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-500"
+                        isProductFavorite(
+                          Number(product.id_categoria),
+                          Number(product.id_linea),
+                          Number(product.id_sublinea),
+                          Number(product.id_producto)
+                        ) ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-500"
                       )}
                     />
                   </button>
                   
                   <Button
-                    onClick={(e) => handleAddToCart(e, product.id_producto.toString())}
+                    onClick={(e) => handleAddToCart(e, `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`)}
                     className="bg-black text-white hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 px-4 py-2 h-10"
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />

@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import CartItem from "@/components/cart/cart-item";
-import { ProductCard } from "@/components/product/product-card";
+import { RelatedProducts } from "@/components/product";
+import * as productService from "@/services/product.service";
+import { getProductImageUrl } from "@/utils/image-helpers";
 import {
   X,
   ShoppingBag,
-  ChevronLeft,
-  ChevronRight,
   AlertCircle,
   Loader2,
   Tag,
@@ -100,6 +100,68 @@ const CartPage = () => {
       if (!Number.isNaN(id)) setSelectedCanjeId(id);
     }
   }, [searchParams, setSelectedCanjeId]);
+
+  // Categorías únicas de los productos en el carrito (para "También te puede gustar")
+  const cartCategoryIds = useMemo(() => {
+    if (!Array.isArray(items) || items.length === 0) return [];
+    const ids = items
+      .map((item) => Number((item as { id_categoria_producto?: number }).id_categoria_producto))
+      .filter((id) => !Number.isNaN(id) && id > 0);
+    return [...new Set(ids)];
+  }, [items]);
+
+  // Productos recomendados: mismos categorías que el carrito, excluyendo los que ya están
+  const { data: relatedResponse } = useQuery({
+    queryKey: ["cartRelatedProducts", cartCategoryIds],
+    queryFn: () =>
+      productService.filterProducts({
+        id_categoria: cartCategoryIds,
+        limit: 20,
+        offset: 0,
+        ordenar_por: "nombre",
+        orden: "ASC",
+      }),
+    enabled: cartCategoryIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const cartProductSlugs = useMemo(() => {
+    if (!Array.isArray(items)) return new Set<string>();
+    return new Set(
+      items
+        .filter((item) =>
+          [item.id_categoria_producto, item.id_linea_producto, item.id_sublinea_producto, item.id_producto].every(
+            (v) => typeof v === "number" && !Number.isNaN(v)
+          )
+        )
+        .map(
+          (item) =>
+            `${item.id_categoria_producto}-${item.id_linea_producto}-${item.id_sublinea_producto}-${item.id_producto}`
+        )
+    );
+  }, [items]);
+
+  const relatedProducts = useMemo(() => {
+    if (!relatedResponse?.products) return [];
+    return relatedResponse.products
+      .filter(
+        (p) =>
+          !cartProductSlugs.has(
+            `${p.id_categoria}-${p.id_linea}-${p.id_sublinea}-${p.id_producto}`
+          )
+      )
+      .slice(0, 8)
+      .map((p) => ({
+        id: p.id_producto,
+        name: p.nom_producto,
+        price:
+          typeof p.val_precio === "number"
+            ? p.val_precio
+            : parseFloat(String(p.val_precio)),
+        image: getProductImageUrl(p.img_producto),
+        slug: `${p.id_categoria}-${p.id_linea}-${p.id_sublinea}-${p.id_producto}`,
+      }));
+  }, [relatedResponse, cartProductSlugs]);
 
   // Canjes disponibles del usuario (para selector)
   const { data: availableCanjes = [] } = useQuery({
@@ -492,45 +554,12 @@ const CartPage = () => {
               </CardContent>
             </Card>
 
-            {/* También te puede gustar */}
+            {/* También te puede gustar: productos de las categorías del carrito */}
             <div className="mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {texts.youMayAlsoLike}
-                </h2>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-10 w-10 rounded-full bg-gray-800 dark:bg-gray-700 border-gray-800 dark:border-gray-600 text-white"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Productos recomendados simulados */}
-                {[1, 2, 3, 4].map((index) => (
-                  <ProductCard
-                    key={index}
-                    id={`recommended-${index}`}
-                    name={`Producto Recomendado ${index}`}
-                    brand="Synkro"
-                    price={29.99 + index * 10}
-                    originalPrice={39.99 + index * 10}
-                    image="/placeholder-product.jpg"
-                    badge="Recomendado"
-                    badgeColor="blue"
-                  />
-                ))}
-              </div>
+              <RelatedProducts
+                title={texts.youMayAlsoLike}
+                products={relatedProducts}
+              />
             </div>
           </div>
 

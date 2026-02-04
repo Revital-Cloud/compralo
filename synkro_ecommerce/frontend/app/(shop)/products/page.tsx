@@ -61,19 +61,46 @@ const ProductsPage = () => {
     }
 
     // Líneas vienen como "id_categoria-id_linea" (valor compuesto)
-    const lineIds = selectedLines.length > 0
-      ? selectedLines.map((s) => (s.includes('-') ? Number(s.split('-')[1]) : Number(s))).filter((n) => !Number.isNaN(n))
+    // Extraer tanto categorías como líneas para filtrar correctamente
+    const lineData = selectedLines.length > 0
+      ? selectedLines.map((s) => {
+          if (s.includes('-')) {
+            const parts = s.split('-')
+            return { categoria: Number(parts[0]), linea: Number(parts[1]) }
+          }
+          return { categoria: null, linea: Number(s) }
+        }).filter((d) => !Number.isNaN(d.linea))
       : []
 
+    const lineIds = lineData.map((d) => d.linea)
+    const lineCategories = lineData.map((d) => d.categoria).filter((c) => c !== null)
+
     // Sublíneas vienen como "id_categoria-id_linea-id_sublinea"
-    const sublineIds = selectedSublines.length > 0
-      ? selectedSublines.map((s) => (s.includes('-') ? Number(s.split('-')[2]) : Number(s))).filter((n) => !Number.isNaN(n))
+    const sublineData = selectedSublines.length > 0
+      ? selectedSublines.map((s) => {
+          if (s.includes('-')) {
+            const parts = s.split('-')
+            return { categoria: Number(parts[0]), linea: Number(parts[1]), sublinea: Number(parts[2]) }
+          }
+          return { categoria: null, linea: null, sublinea: Number(s) }
+        }).filter((d) => !Number.isNaN(d.sublinea))
       : []
+
+    const sublineIds = sublineData.map((d) => d.sublinea)
+    const sublineCategories = sublineData.map((d) => d.categoria).filter((c) => c !== null)
+
+    // Combinar categorías: las seleccionadas explícitamente + las de líneas/sublíneas seleccionadas
+    const allCategoryIds = [
+      ...selectedCategories.map(Number),
+      ...lineCategories,
+      ...sublineCategories
+    ].filter((n) => !Number.isNaN(n) && n > 0)
+    const uniqueCategoryIds = [...new Set(allCategoryIds)]
 
     return {
       ...base,
       ...(inStockOnly && { solo_con_stock: true }),
-      ...(selectedCategories.length > 0 && { id_categoria: selectedCategories.map(Number) }),
+      ...(uniqueCategoryIds.length > 0 && { id_categoria: uniqueCategoryIds.length === 1 ? uniqueCategoryIds[0] : uniqueCategoryIds }),
       ...(lineIds.length > 0 && { id_linea: lineIds.length === 1 ? lineIds[0] : [...new Set(lineIds)] }),
       ...(sublineIds.length > 0 && { id_sublinea: sublineIds.length === 1 ? sublineIds[0] : [...new Set(sublineIds)] }),
       ...(selectedBrands.length > 0 && { id_marca: selectedBrands.map(Number) }),
