@@ -22,10 +22,6 @@ export const defaultMenuItems: NavItem[] = [
     href: "/discounts"
   },
   {
-    text: "Ofertas",
-    href: "/ofertas"
-  },
-  {
     text: "Contacto",
     href: "/contacto"
   }

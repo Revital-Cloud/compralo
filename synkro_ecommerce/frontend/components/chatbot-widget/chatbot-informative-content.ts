@@ -7,6 +7,8 @@ export interface InformativeSection {
   id: string
   title: string
   shortLabel: string
+  /** Resumen corto para el chatbot interactivo (2-4 líneas). */
+  shortContent?: string
   content: string
   legalFramework: string[]
 }
@@ -16,6 +18,8 @@ export const INFORMATIVE_SECTIONS: InformativeSection[] = [
     id: "terminos",
     title: "Términos y condiciones",
     shortLabel: "Términos y condiciones",
+    shortContent:
+      "Al registrarte aceptas usar la plataforma de forma lícita y mantener tu información actualizada. Los precios incluyen IVA cuando aplique; los costos de envío se indican antes de confirmar. Puedes solicitar la cancelación de tu cuenta según los procedimientos de la plataforma.",
     content: `Resumen de los términos de uso de la plataforma, conforme a la legislación colombiana:
 
 • Condiciones de registro y uso del sistema
@@ -42,6 +46,8 @@ El uso continuado de la plataforma constituye aceptación de los términos y con
     id: "datos-personales",
     title: "Protección de datos personales y transacciones",
     shortLabel: "Datos personales y transacciones",
+    shortContent:
+      "Recolectamos solo los datos necesarios para registro, compra y envío. Tienes derecho a conocer, actualizar y suprimir tu información. Los pagos se procesan con pasarelas certificadas; no almacenamos datos sensibles de tarjetas.",
     content: `Información sobre el tratamiento de datos personales y la seguridad de las transacciones:
 
 • Datos personales recolectados y su finalidad
@@ -66,6 +72,8 @@ Los pagos se procesan mediante pasarelas de pago certificadas y autorizadas. La 
     id: "descuentos",
     title: "Descuentos activos",
     shortLabel: "Descuentos y promociones",
+    shortContent:
+      "Hay descuentos por porcentaje, monto fijo, cupones o canje por puntos. Cada promoción indica su vigencia y condiciones. Puedes ver los descuentos activos en la sección de descuentos de la tienda.",
     content: `Información sobre promociones y descuentos vigentes, con transparencia al consumidor:
 
 • Tipos de descuentos disponibles
@@ -87,6 +95,8 @@ A continuación se muestran los descuentos activos en este momento (si los hay).
     id: "puntos",
     title: "Sistema de puntos",
     shortLabel: "Sistema de puntos",
+    shortContent:
+      "Acumulas puntos con tus compras. Tu saldo e historial se consultan en Mi perfil > puntos/canje. Los puntos sirven para canjear descuentos; al canjear obtienes un cupón de uso único para aplicar en el carrito o checkout.",
     content: `Cómo funciona el sistema de puntos de esta tienda:
 
 • Acumulación de puntos
@@ -109,6 +119,8 @@ Los descuentos canjeados suelen tener una vigencia de uso (por ejemplo 30 días)
     id: "garantias",
     title: "Garantías y devoluciones (información de referencia)",
     shortLabel: "Garantías y devoluciones",
+    shortContent:
+      "Los productos pueden tener garantía del fabricante o vendedor; el plazo se indica en la ficha. Para devoluciones o reclamos sigue el procedimiento de la plataforma y conserva comprobantes. Algunos productos pueden tener condiciones especiales.",
     content: `Información general sobre garantías y devoluciones (datos de referencia; la política definitiva puede variar):
 
 • Información general sobre garantías
