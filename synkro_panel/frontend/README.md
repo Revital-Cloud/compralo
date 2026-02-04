@@ -87,6 +87,22 @@ pnpm lint         # Linter ESLint
 pnpm type-check   # Verificación de tipos TypeScript
 ```
 
+### Navegación: dev vs producción
+
+En **desarrollo** (`pnpm dev`), cada vez que cambias de ruta (ej. Dashboard → Instance → Resources) verás en la terminal algo como `compile: 75ms` o `compile: 103ms`. Eso es **normal**: Turbopack compila la ruta bajo demanda. La suma de compile + render es lo que notas como demora.
+
+En **producción** (`pnpm build && pnpm start`) no hay compilación al navegar: las rutas ya están compiladas. El cambio de página es prácticamente instantáneo (solo pinta y datos desde React Query si ya están en caché).
+
+Para comprobarlo en local:
+
+```bash
+pnpm build && pnpm start
+```
+
+Luego navega entre Dashboard, Instance, Resources, etc.: no deberías ver tiempos de compile y la transición será mucho más rápida.
+
+Además, en el panel usamos **prefetch** (hover en el sidebar y prefetch en segundo plano al montar) para que los datos de la siguiente ruta estén en caché antes del clic; eso reduce la espera de datos en dev y en producción.
+
 ## 🎨 Características Implementadas
 
 ### ✅ Completado

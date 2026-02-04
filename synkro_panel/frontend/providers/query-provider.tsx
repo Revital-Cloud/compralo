@@ -42,7 +42,10 @@ const QueryProvider = ({ children }: { children: React.ReactNode }) => {
             
             // No refetch automático al enfocar la ventana
             refetchOnWindowFocus: false,
-            
+
+            // Usar caché al montar; no bloquear navegación con refetch (datos se consideran frescos según staleTime)
+            refetchOnMount: false,
+
             // Refetch al reconectar la red
             refetchOnReconnect: true,
           },

@@ -10,9 +10,11 @@ import { Footer } from "@/components/footer-section";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import { ReadingProgress } from "@/components/ui/reading-progress";
 import { AnimatedSection } from "@/components/ui/animated-section";
+import { LandingGuard } from "@/components/auth/landing-guard";
 
 export default function Home() {
   return (
+    <LandingGuard>
     <>
       <ReadingProgress />
 
@@ -60,6 +62,7 @@ export default function Home() {
       {/* Scroll to Top Button */}
       <ScrollToTop />
     </>
+    </LandingGuard>
   );
 }
 

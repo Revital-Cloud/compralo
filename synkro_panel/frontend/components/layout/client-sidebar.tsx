@@ -1,8 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
-import { useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import {
   LayoutDashboard,
   Server,
@@ -10,8 +9,6 @@ import {
   Receipt,
   BarChart3,
   Settings,
-  HelpCircle,
-  User,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -20,52 +17,17 @@ import {
   SidebarHeader,
   SidebarMenu,
 } from "@/components/ui/sidebar";
+import { Link } from '@/i18n/routing';
 import { ClientNavMain } from './client-nav-main';
 import { ClientNavUser } from './client-nav-user';
 
-const navigationItems = [
-  {
-    title: 'Dashboard',
-    url: '/dashboard',
-    icon: LayoutDashboard,
-    section: 'overview',
-  },
-  {
-    title: 'My Instance',
-    url: '/instance',
-    icon: Server,
-    section: 'store',
-  },
-  {
-    title: 'Resources',
-    url: '/resources',
-    icon: BarChart3,
-    section: 'store',
-  },
-  {
-    title: 'Subscription',
-    url: '/subscription',
-    icon: CreditCard,
-    section: 'subscription',
-  },
-  {
-    title: 'Billing',
-    url: '/billing',
-    icon: Receipt,
-    section: 'subscription',
-  },
-  {
-    title: 'Profile',
-    url: '/settings/profile',
-    icon: User,
-    section: 'settings',
-  },
-  {
-    title: 'Settings',
-    url: '/settings',
-    icon: Settings,
-    section: 'settings',
-  },
+const navigationItemsConfig = [
+  { key: 'dashboard', url: '/dashboard', icon: LayoutDashboard, section: 'overview' as const },
+  { key: 'myInstance', url: '/instance', icon: Server, section: 'store' as const },
+  { key: 'resources', url: '/resources', icon: BarChart3, section: 'store' as const },
+  { key: 'subscription', url: '/subscription', icon: CreditCard, section: 'subscription' as const },
+  { key: 'billing', url: '/billing', icon: Receipt, section: 'subscription' as const },
+  { key: 'settings', url: '/settings', icon: Settings, section: 'settings' as const },
 ];
 
 interface ClientSidebarProps {
@@ -73,13 +35,13 @@ interface ClientSidebarProps {
 }
 
 export function ClientSidebar({ variant = 'inset' }: ClientSidebarProps) {
-  const locale = useLocale();
+  const t = useTranslations('sidebar');
 
-  const dashboardHref = `/${locale}/dashboard`;
-
-  const localizedNavigationItems = navigationItems.map((item) => ({
-    ...item,
-    url: `/${locale}${item.url}`,
+  const navigationItems = navigationItemsConfig.map((item) => ({
+    title: t(item.key),
+    url: item.url,
+    icon: item.icon,
+    section: item.section,
   }));
 
   return (
@@ -89,7 +51,7 @@ export function ClientSidebar({ variant = 'inset' }: ClientSidebarProps) {
     >
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex h-[--header-height] shrink-0 items-center gap-2 px-4 lg:px-6">
-          <Link href={dashboardHref} className="flex items-center gap-3 group">
+          <Link href="/dashboard" className="flex items-center gap-3 group">
             <div className="relative">
               <Image
                 src="/logo.webp"
@@ -105,7 +67,7 @@ export function ClientSidebar({ variant = 'inset' }: ClientSidebarProps) {
                 Synkro
               </span>
               <span className="text-xs text-muted-foreground font-medium tracking-wide hidden sm:block">
-                Client Portal
+                {t('clientPortal')}
               </span>
             </div>
           </Link>
@@ -113,7 +75,7 @@ export function ClientSidebar({ variant = 'inset' }: ClientSidebarProps) {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          <ClientNavMain items={localizedNavigationItems} />
+          <ClientNavMain items={navigationItems} />
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">

@@ -22,7 +22,7 @@ Es un **pipeline** (no solo un webhook puntual): el usuario, **al crear su insta
 | **Vercel** | Frontend/backend serverless (Vercel Functions). BD externa (ej. Neon, Supabase, RDS). |
 | **AWS** | App Runner, ECS/Fargate, Lambda + RDS/Aurora, Amplify, etc. |
 | **Azure** | App Service, Container Apps, Azure Database for PostgreSQL, etc. |
-| **Servidor propio** | VPS, bare metal o VM (Docker, K8s, etc.) que el cliente o Synkro administra. |
+| **Servidor propio** | VPS, bare metal o VM (Python + Node + nginx, systemd/supervisor, etc.; sin Docker) que el cliente o Synkro administra. |
 | **Otros** | GCP (Cloud Run, GKE), Railway, Render, Fly.io, etc. |
 
 El panel debe guardar en la instancia el **destino elegido** (ej. en `config_json.deployment_target`: `"vercel" | "aws" | "azure" | "own_server"`) y pasarlo en el payload del webhook al pipeline para que el orquestador ejecute los pasos correctos (crear BD en el proveedor adecuado, desplegar en ese destino). El hook actual ya envía `config_json` en el POST; si el usuario eligió destino, debe ir ahí.
@@ -42,7 +42,7 @@ En la práctica: el panel envía al pipeline (webhook o cola) el payload de la i
 - **Panel + webhook + callback**: complejidad baja; ya está esbozado en esta guía.  
 - **Pipeline multi-destino (Vercel, AWS, Azure, propio)**: media; cada destino tiene sus APIs/CLIs (Vercel API, AWS SDK, Azure SDK, SSH/Ansible para servidor propio).  
 - **Integrar BeeAI** para orquestar esos pasos como agentes: añade flexibilidad y reutilización, con la complejidad de definir y mantener los agentes/tareas por destino.  
-Conviene empezar con **un solo destino** (ej. Vercel o un servidor propio con Docker), validar el flujo y luego extender a más opciones y, si aplica, a BeeAI.
+Conviene empezar con **un solo destino**. Si lo primero es **otro servidor** (servidor propio/VPS) en vez de Railway u otros PaaS, el flujo es igual de válido: el pipeline recibe el webhook, se conecta por SSH al servidor, crea la BD, migra y despliega **sin Docker** (venv + pip para backend, pnpm para frontend, systemd/supervisor + nginx); luego Railway, Vercel, etc. se añaden después.
 
 ---
 
@@ -52,20 +52,23 @@ Qué tan complicado le toca al pipeline conectar a cada opción (crear BD + desp
 
 | Destino | Complejidad | Qué necesita el pipeline | Notas |
 |--------|-------------|---------------------------|--------|
-| **Railway / Render / Fly.io** | **Baja** | API o CLI del proveedor; crear proyecto + servicio + BD (Postgres gestionado). Deploy vía Git o imagen Docker. | Una API, documentación clara, Postgres incluido. Buen punto de partida. |
-| **Vercel** | **Media** | Vercel API/CLI para proyecto y deploy. **BD por separado**: Neon, Supabase o similar (otra API). Backend FastAPI suele ir en otro host (Vercel es fuerte en frontend Next.js; el backend podría ser Vercel Functions o Railway/Render). | Dos piezas: frontend en Vercel + BD (Neon/Supabase) + opcionalmente backend en otro servicio. |
-| **Servidor propio (VPS)** | **Media** | SSH + clave o usuario; ejecutar scripts (crear BD en Postgres local, migrar, `docker-compose up` o similar). El pipeline no crea el servidor; el usuario (o Synkro) ya tiene el host. | Sin APIs de cloud; hay que gestionar SSH, seguridad y que el servidor tenga Postgres/Docker. |
-| **AWS** | **Alta** | IAM, boto3/SDK: RDS (o Aurora) para BD, App Runner/ECS/Lambda para app, Amplify o S3+CloudFront para frontend. VPC, security groups, roles. | Muchos servicios y permisos; conviene usar Terraform/Pulumi o un template por destino. |
-| **Azure** | **Alta** | Service principal, SDK: Azure Database for PostgreSQL, App Service o Container Apps, etc. Resource groups, redes. | Similar a AWS: varios recursos y permisos; templates o IaC ayudan. |
-| **GCP** | **Alta** | Cloud SQL, Cloud Run o GKE, IAM. Misma idea que AWS/Azure. | También alta; IaC recomendable. |
+| **Servidor propio (otro servidor / VPS)** | **Media** | SSH (host, usuario, clave o clave privada); ejecutar scripts: crear BD en Postgres del servidor, ejecutar migraciones del e-commerce, levantar backend (Python venv + pip + uvicorn/gunicorn) y frontend (pnpm build + servir con nginx o Next.js standalone), y registrar procesos con **systemd** o **supervisor**. **Sin Docker**: el pipeline no usa contenedores. | Sin APIs de cloud; control total. **Puede ser el primer destino**: mismo flujo (crear BD → migrar → desplegar → callback), sin depender de Railway/Vercel ni de Docker. |
+| **Railway / Render / Fly.io** | **Baja** | API o CLI del proveedor; crear proyecto + servicio + BD (Postgres gestionado). Deploy vía Git o imagen Docker. | Una API, Postgres incluido. Añadir después de tener “otro servidor” funcionando, si se quiere ofrecer PaaS. |
+| **Vercel** | **Media** | Vercel API/CLI para proyecto y deploy. BD por separado (Neon, Supabase). Backend FastAPI suele ir en otro host. | Dos piezas: frontend en Vercel + BD + backend en otro servicio. |
+| **AWS** | **Alta** | IAM, boto3/SDK: RDS, App Runner/ECS, Amplify, etc. VPC, security groups, roles. | Muchos servicios; Terraform/Pulumi por destino ayuda. |
+| **Azure** | **Alta** | Service principal, SDK: Azure Database for PostgreSQL, App Service o Container Apps, etc. | Similar a AWS; templates o IaC recomendable. |
+| **GCP** | **Alta** | Cloud SQL, Cloud Run o GKE, IAM. | También alta; IaC recomendable. |
 
 **Resumen**:
 
-- **Más fácil**: Railway, Render, Fly.io — una API/CLI, Postgres gestionado, deploy sencillo. El pipeline puede ser un script o un pequeño servicio que llame a la API y luego haga callback al panel.
-- **Media**: Vercel (combinando con Neon/Supabase y quizá backend en Railway) y servidor propio (SSH + Docker). Requieren orquestar 2–3 pasos bien definidos.
-- **Más difícil**: AWS, Azure, GCP — muchas piezas, IAM/permisos, redes. Aquí un “agente” por destino (o BeeAI orquestando) ayuda a no mezclar toda la lógica; se puede usar Terraform/OpenTofu por destino para mantener el estado.
+- **Primero: otro servidor (servidor propio)** — no depende de PaaS ni de Docker; el pipeline usa SSH + scripts (crear BD en Postgres del servidor, migrar, venv + pip para backend, pnpm para frontend, systemd o supervisor para mantener los procesos). El servidor debe tener Postgres, Python y Node/pnpm; el flujo es claro y reutilizable.
+- **Después**: Railway, Render, Fly.io — una API/CLI, Postgres gestionado; buen siguiente paso si quieres ofrecer opción PaaS.
+- **Luego**: Vercel (frontend + BD externa + backend en otro sitio) y después AWS/Azure/GCP si hace falta.
 
-**Recomendación**: empezar con **un solo destino de complejidad baja** (ej. Railway o Render), implementar el flujo completo (crear BD → migrar → desplegar → callback). Cuando esté estable, añadir Vercel o servidor propio, y después AWS/Azure si hace falta.
+**Recomendación**: empezar con **otro servidor** (servidor propio/VPS) **sin Docker**: implementar el flujo completo (webhook → SSH → crear BD → migrar → levantar backend con venv/uvicorn y frontend con pnpm build + nginx o Next.js standalone, y systemd/supervisor → callback al panel). Cuando esté estable, añadir Railway/Render o Vercel, y después AWS/Azure si aplica.
+
+**Pipeline primero: otro servidor (pasos concretos, sin Docker)**  
+El servidor destino ya existe (Synkro o el cliente lo administra). El pipeline recibe el webhook con `deployment_target: "own_server"` y datos de la instancia (`slug_instancia`, `db_nombre`, etc.). Opcionalmente el payload incluye `server_host`, `server_user`, o el pipeline usa un servidor por defecto de Synkro. Pasos típicos: (1) SSH al servidor; (2) crear base de datos en Postgres (`CREATE DATABASE db_xxx`); (3) clonar o desplegar código de synkro_ecommerce (backend + frontend), configurar `.env` con `DATABASE_URL` de esa BD; (4) ejecutar migraciones del e-commerce; (5) **backend**: crear venv, `pip install -r requirements.txt`, levantar con uvicorn/gunicorn y registrar como servicio **systemd** (o supervisor); (6) **frontend**: `pnpm install`, `pnpm build`, servir con **nginx** (estáticos de `.next/static` + proxy al backend) o con **Next.js standalone**; (7) obtener URLs (o configurar proxy/dominio); (8) llamar al callback del panel con `backend_url`, `frontend_url`, `db_host`, `estado_instancia = 'activa'`. **No se usa Docker**; el servidor debe tener Python, Node/pnpm, Postgres y nginx (o equivalente). Con eso el primer destino queda cerrado; Railway y el resto se añaden como ramas adicionales.
 
 ---
 
@@ -105,7 +108,7 @@ Así el panel nunca ejecuta scripts de BD ni de deploy; solo escribe en su BD y 
   1. Según `deployment_target`, ejecuta la rama correspondiente (Vercel, AWS, Azure, servidor propio).
   2. Crea la BD (Neon/Supabase/RDS/Cloud SQL, etc., según destino).
   3. Ejecuta migraciones del e-commerce sobre esa BD.
-  4. Despliega backend + frontend en ese destino (Vercel, App Runner, Container Apps, Docker en VPS, etc.).
+  4. Despliega backend + frontend en ese destino (Vercel, App Runner, Container Apps, o en VPS con venv + systemd + nginx sin Docker, etc.).
   5. Llama al panel (endpoint de callback) para actualizar la instancia: `backend_url`, `frontend_url`, `db_host`, `estado_instancia = 'activa'`.
 
 Ventajas: simple, el panel no necesita colas ni infra extra; solo una URL y un pipeline externo que puede crecer a varios destinos.

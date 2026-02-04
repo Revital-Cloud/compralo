@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { 
   ArrowRight, 
@@ -41,9 +41,28 @@ const features = [
   "Cancela cuando quieras",
 ];
 
+/** Skeleton for CTA card to avoid hydration mismatch (server has no auth, client may show different state). */
+function CTACardSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="h-16 w-16 mx-auto animate-pulse rounded-full bg-muted" />
+      <div className="h-8 w-48 mx-auto animate-pulse rounded bg-muted" />
+      <div className="h-12 w-full animate-pulse rounded-xl bg-muted" />
+    </div>
+  );
+}
+
 export function GetStartedSection() {
   const { user, isLoading } = useAuth();
   const isLoggedIn = isAuthenticated() && !!user;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Same output on server and first client render to avoid hydration mismatch
+  const showAuthContent = mounted && !isLoading;
 
   return (
     <section id="get-started" className="py-24 bg-muted/30 relative overflow-hidden">
@@ -112,12 +131,8 @@ export function GetStartedSection() {
 
             {/* CTA Card - Right Side */}
             <div className="rounded-2xl border border-border/50 bg-background p-8 md:p-10 shadow-lg text-center">
-              {isLoading ? (
-                <div className="space-y-4">
-                  <div className="h-16 w-16 mx-auto animate-pulse rounded-full bg-muted" />
-                  <div className="h-8 w-48 mx-auto animate-pulse rounded bg-muted" />
-                  <div className="h-12 w-full animate-pulse rounded-xl bg-muted" />
-                </div>
+              {!showAuthContent ? (
+                <CTACardSkeleton />
               ) : isLoggedIn ? (
                 <>
                   <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-synkro-green/10">

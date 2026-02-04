@@ -26,6 +26,20 @@
     "info": "Info",
     "settings": "Settings"
   },
+  "sidebar": {
+    "overview": "Overview",
+    "myStore": "My Store",
+    "subscription": "Subscription",
+    "settings": "Settings",
+    "dashboard": "Dashboard",
+    "myInstance": "My Instance",
+    "resources": "Resources",
+    "billing": "Billing",
+    "clientPortal": "Client Portal",
+    "profile": "Profile",
+    "logOut": "Log out",
+    "loggingOut": "Logging out..."
+  },
   "hero": {
     "title": "The All-in-One E-commerce Platform for Colombia",
     "subtitle": "Create, manage and scale your online store with our comprehensive platform. Real-time statistics dashboard, product manager with automatic SEO, headless CMS and marketing tools.",

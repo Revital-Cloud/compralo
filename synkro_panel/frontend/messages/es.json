@@ -26,6 +26,20 @@
     "info": "Información",
     "settings": "Configuración"
   },
+  "sidebar": {
+    "overview": "Resumen",
+    "myStore": "Mi Tienda",
+    "subscription": "Suscripción",
+    "settings": "Configuración",
+    "dashboard": "Dashboard",
+    "myInstance": "Mi Instancia",
+    "resources": "Recursos",
+    "billing": "Facturación",
+    "clientPortal": "Portal del Cliente",
+    "profile": "Perfil",
+    "logOut": "Cerrar sesión",
+    "loggingOut": "Cerrando sesión..."
+  },
   "hero": {
     "title": "La Plataforma E-commerce Todo-en-Uno para Colombia",
     "subtitle": "Crea, gestiona y escala tu tienda online con nuestra plataforma integral. Panel de estadísticas en tiempo real, gestor de productos con SEO automático, CMS headless y herramientas de marketing.",

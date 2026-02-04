@@ -4,6 +4,7 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { ClientSidebar } from '@/components/layout/client-sidebar';
 import { ClientHeader } from '@/components/layout/client-header';
 import { ClientGuard } from '@/components/auth/client-guard';
+import { PrefetchOnMount } from '@/components/layout/prefetch-on-mount';
 
 export default function DashboardLayout({
   children,
@@ -12,6 +13,7 @@ export default function DashboardLayout({
 }>) {
   return (
     <ClientGuard>
+      <PrefetchOnMount />
       <SidebarProvider
         style={
           {

@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Menu, X, LogIn, LayoutDashboard, ArrowRight, UserPlus } from "lucide-react";
+import { Menu, X, LogIn, LayoutDashboard, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeSwitcherButton } from "@/components/ui/theme-switcher-button";
@@ -64,6 +64,10 @@ export const Header = () => {
   ];
 
   React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  React.useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
@@ -81,7 +85,7 @@ export const Header = () => {
           className={cn(
             "mx-auto mt-2 max-w-6xl px-4 sm:px-6 transition-all duration-300 lg:px-12",
             isScrolled &&
-              "bg-background/80 max-w-4xl rounded-2xl border backdrop-blur-lg lg:px-5"
+              "bg-background/95 rounded-2xl border border-border/80 shadow-sm backdrop-blur-md"
           )}
         >
           <div className="relative flex flex-wrap items-center justify-between gap-6 py-3 lg:gap-0 lg:py-4">
@@ -121,7 +125,7 @@ export const Header = () => {
             </div>
 
             {/* Desktop & Mobile Menu */}
-            <div className="bg-background group-data-[state=active]:block lg:group-data-[state=active]:flex mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border p-6 shadow-2xl shadow-zinc-300/20 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-4 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none dark:shadow-none dark:lg:bg-transparent">
+            <div className="bg-background group-data-[state=active]:block lg:group-data-[state=active]:flex mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border p-6 shadow-2xl shadow-zinc-300/20 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none dark:shadow-none dark:lg:bg-transparent">
               {/* Mobile Menu */}
               <div className="lg:hidden">
                 <ul className="space-y-6 text-base">
@@ -149,9 +153,9 @@ export const Header = () => {
                 </ul>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit lg:items-center">
-                <ThemeSwitcherButton className="hidden lg:flex" />
+              {/* Action Buttons: theme + login/register */}
+              <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit lg:items-center lg:gap-2 lg:border-l lg:border-border/60 lg:pl-6">
+                <ThemeSwitcherButton className="hidden lg:flex lg:shrink-0" />
                 
                 {!isMounted || isLoading ? (
                   // Loading state - only show during SSR or while loading
