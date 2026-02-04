@@ -51,7 +51,12 @@ const SublinesPage = () => {
       rows = rows.filter(r => String((r as any).id_categoria) === String(category))
     }
     if (line) {
-      rows = rows.filter(r => String((r as any).id_linea) === String(line))
+      const [catId, lineId] = line.includes('-') ? line.split('-').map(Number) : [undefined, Number(line)]
+      if (catId != null && !Number.isNaN(catId) && lineId != null && !Number.isNaN(lineId)) {
+        rows = rows.filter(r => r.id_categoria === catId && r.id_linea === lineId)
+      } else if (lineId != null && !Number.isNaN(lineId)) {
+        rows = rows.filter(r => r.id_linea === lineId)
+      }
     }
     rows = [...rows].sort((a, b) => {
       let va: any, vb: any
@@ -258,10 +263,11 @@ const SublinesPage = () => {
       )}
 
       {!isLoading && !isError && Array.isArray(filteredData) && filteredData.length > 0 && (
-        <DataTable 
-          columns={[...columns, ...actions]} 
+        <DataTable
+          columns={[...columns, ...actions]}
           data={filteredData}
           pageSize={10}
+          getRowId={(row: Subline) => `${row.id_categoria}-${row.id_linea}-${row.id_sublinea}`}
         />
       )}
     </div>

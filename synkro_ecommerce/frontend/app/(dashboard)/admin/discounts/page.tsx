@@ -45,8 +45,13 @@ const DiscountsPage = () => {
 
   const handleCreateSubmit = async (values: any) => {
     try {
-      if (!values.fec_inicio || !values.fec_fin) {
-        toast.error('Las fechas de inicio y fin son requeridas')
+      // Fechas obligatorias solo si no es canjeable por puntos (plantillas canjeables pueden no tener fechas)
+      if (!values.ind_canjeable_puntos && (!values.fec_inicio || !values.fec_fin)) {
+        toast.error('Las fechas de inicio y fin son requeridas cuando el descuento no es canjeable por puntos')
+        return
+      }
+      if (values.ind_canjeable_puntos && (!!values.fec_inicio !== !!values.fec_fin)) {
+        toast.error('Debe especificar ambas fechas o ninguna')
         return
       }
 
@@ -75,7 +80,8 @@ const DiscountsPage = () => {
 
   const handleEditSubmit = async (values: any) => {
     try {
-      await updateMutation.mutateAsync({ id: String(editing?.id_descuento) || '', data: values })
+      const payload = transformDiscountPayload(values)
+      await updateMutation.mutateAsync({ id: String(editing?.id_descuento) || '', data: payload })
       toast.success('Descuento actualizado exitosamente')
     } catch (error: any) {
       toast.error(error?.response?.data?.detail || 'Error al actualizar el descuento')

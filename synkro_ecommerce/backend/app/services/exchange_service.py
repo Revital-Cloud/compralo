@@ -31,6 +31,32 @@ def get_exchanges(db:Session):
         raise Exception(f"Error al obtener canjes: {str(e)}")
 
 
+def get_my_available_canjes(db: Session, id_usuario: int):
+    """
+    Lista los canjes disponibles del usuario (canjeados, no utilizados y no vencidos).
+    """
+    try:
+        query = text("""
+        SELECT 
+            c.id_canje,
+            c.id_descuento,
+            d.nom_descuento,
+            c.puntos_utilizados,
+            c.fec_expiracion_canje
+        FROM tab_canjes_puntos_descuentos c
+        JOIN tab_descuentos d ON d.id_descuento = c.id_descuento
+        WHERE c.id_usuario = :id_usuario
+          AND c.ind_utilizado = FALSE
+          AND (c.fec_expiracion_canje IS NULL OR c.fec_expiracion_canje >= CURRENT_TIMESTAMP)
+        ORDER BY c.fec_expiracion_canje ASC NULLS LAST, c.fec_insert DESC
+        """)
+        result = db.execute(query, {"id_usuario": id_usuario})
+        return result.mappings().all()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al listar canjes disponibles: {str(e)}")
+
+
     
 def exchange_points_discount(db:Session, exchange_points_discount:ExchangePointsDiscount, usr_insert:Decimal):
     """

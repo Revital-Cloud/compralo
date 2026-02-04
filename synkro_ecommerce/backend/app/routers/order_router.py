@@ -7,11 +7,14 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List, Dict, Any
+import asyncio
 import json
+import logging
 import httpx
 import uuid
 from decimal import Decimal
-import asyncio
+
+logger = logging.getLogger(__name__)
 
 from core.database import get_db
 from core.dependencies import get_current_user, require_admin
@@ -384,6 +387,12 @@ async def pay_cart_and_create_order(
                         order_service.update_order_payment_info(db, Decimal(order_id), metodo_pago="tarjeta", ind_estado=2)
                     except Exception:
                         pass
+                    # Enviar email de confirmación (gracias por tu compra + resumen)
+                    try:
+                        from services.email_service import send_order_confirmation_for_order_id
+                        asyncio.create_task(send_order_confirmation_for_order_id(order_id))
+                    except Exception as e:
+                        logger.warning("No se pudo programar email de confirmación: %s", e)
                     return {"status": "APPROVED", "order_id": order_id, "transaction_id": transaction_id}
             except Exception as e:
                 # Si fallara la creación de la orden después de aprobado, devolvemos error controlado
@@ -434,6 +443,17 @@ async def get_order_stats_admin(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
+def _get_order_detail_admin_impl(
+    id_orden: int,
+    db: Session,
+):
+    order_detail = order_service.get_order_detail_admin(db, id_orden)
+    if not order_detail:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
+    return order_detail
+
+
+@router.get("/admin/{id_orden}", status_code=status.HTTP_200_OK)
 @router.get("/admin/orders/{id_orden}", status_code=status.HTTP_200_OK)
 async def get_order_detail_admin(
     id_orden: int,
@@ -442,17 +462,17 @@ async def get_order_detail_admin(
 ):
     """
     Obtiene el detalle completo de una orden para el panel de administración (solo admin).
+    Acepta tanto /admin/{id} como /admin/orders/{id} por compatibilidad.
     """
     try:
-        order_detail = order_service.get_order_detail_admin(db, id_orden)
-        if not order_detail:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
-        return order_detail
+        return _get_order_detail_admin_impl(id_orden, db)
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
+
+@router.put("/admin/{id_orden}/status", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 @router.put("/admin/orders/{id_orden}/status", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_order_status_admin(
     id_orden: int,

@@ -44,8 +44,8 @@ const discountSchema = z.object({
   cod_cupon: z.string().optional(),
   costo_envio: z.string().optional(),
   compra_minima: z.string().optional(),
-  fec_inicio: z.string().min(1, 'La fecha de inicio es requerida'),
-  fec_fin: z.string().min(1, 'La fecha de fin es requerida'),
+  fec_inicio: z.string().optional(),
+  fec_fin: z.string().optional(),
   max_usos: z.string().optional(),
   max_usos_por_usuario: z.string().optional(),
   ind_activo: z.boolean(),
@@ -133,6 +133,21 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
       loadData()
     }
   }, [open])
+
+  // Resetear Línea y Sublínea cuando cambia la Categoría (sublinea_especifica)
+  const idCategoriaSublinea = form.watch('id_categoria_sublinea')
+  const idLineaSublinea = form.watch('id_linea_sublinea')
+  useEffect(() => {
+    if (aplicaA === 'sublinea_especifica') {
+      form.setValue('id_linea_sublinea', '')
+      form.setValue('id_sublinea_aplica', '')
+    }
+  }, [aplicaA, idCategoriaSublinea])
+  useEffect(() => {
+    if (aplicaA === 'sublinea_especifica') {
+      form.setValue('id_sublinea_aplica', '')
+    }
+  }, [aplicaA, idLineaSublinea])
 
   const handleSubmit = form.handleSubmit(async (values) => {
     await onSubmit(values)
@@ -351,7 +366,7 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                 >
                   <option value="">Selecciona una línea</option>
                   {lines
-                    .filter(line => line.id_categoria === parseInt(form.watch('id_categoria_linea') || '0'))
+                    .filter(line => Number(line.id_categoria) === Number(form.watch('id_categoria_linea') || 0))
                     .map((line, index) => (
                       <option key={`line-${line.id_categoria}-${line.id_linea}-${index}`} value={line.id_linea}>
                         {line.nom_linea}
@@ -382,15 +397,15 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="id_linea_sublinea">Línea *</Label>
-                  <select
-                    id="id_linea_sublinea"
-                    {...form.register('id_linea_sublinea')}
-                    className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
-                  >
-                    <option value="">Selecciona</option>
-                    {lines
-                      .filter(line => line.id_categoria === parseInt(form.watch('id_categoria_sublinea') || '0'))
-                      .map((line, index) => (
+                <select
+                  id="id_linea_sublinea"
+                  {...form.register('id_linea_sublinea')}
+                  className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
+                >
+                  <option value="">Selecciona</option>
+                  {lines
+                    .filter(line => Number(line.id_categoria) === Number(form.watch('id_categoria_sublinea') || 0))
+                    .map((line, index) => (
                         <option key={`subline-line-${line.id_categoria}-${line.id_linea}-${index}`} value={line.id_linea}>
                           {line.nom_linea}
                         </option>
@@ -406,9 +421,9 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                   >
                     <option value="">Selecciona</option>
                     {sublines
-                      .filter(sub => 
-                        sub.id_categoria === parseInt(form.watch('id_categoria_sublinea') || '0') &&
-                        sub.id_linea === parseInt(form.watch('id_linea_sublinea') || '0')
+                      .filter(sub =>
+                        Number(sub.id_categoria) === Number(form.watch('id_categoria_sublinea') || 0) &&
+                        Number(sub.id_linea) === Number(form.watch('id_linea_sublinea') || 0)
                       )
                       .map((subline, index) => (
                         <option key={`subline-${subline.id_categoria}-${subline.id_linea}-${subline.id_sublinea}-${index}`} value={subline.id_sublinea}>
@@ -540,7 +555,7 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fec_fin">Fecha de Fin *</Label>
+              <Label htmlFor="fec_fin">Fecha de Fin {form.watch('ind_canjeable_puntos') ? '(opcional)' : '*'}</Label>
               <Popover open={openEndDate} onOpenChange={setOpenEndDate}>
                 <PopoverTrigger asChild>
                   <Button type="button" variant="outline" className="w-full justify-start">

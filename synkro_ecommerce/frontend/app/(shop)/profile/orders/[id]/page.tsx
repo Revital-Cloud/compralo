@@ -16,7 +16,11 @@ interface OrderProductItem {
   unit_price: number;
   total_price: number;
   product_image?: string | null;
+  /** URL de imagen según color elegido (backend la envía cuando aplica). */
+  imagen_url?: string | null;
   item_discounts?: any;
+  /** Opciones elegidas por el cliente (ej. { color: "azul", talla: "40" }). */
+  opciones_elegidas?: Record<string, string>;
 }
 
 interface OrderDetail {
@@ -27,6 +31,7 @@ interface OrderDetail {
   val_total_pedido: number;
   ind_estado: number;
   des_observaciones?: string | null;
+  detalle_descuentos_aplicados?: Array<{ nombre?: string; tipo_descuento?: string; descuento_aplicado?: number; monto?: number; valor?: number; codigo?: string }> | null;
   items?: OrderProductItem[];
 }
 
@@ -90,18 +95,29 @@ export default function OrderDetailPage() {
           <div className="pt-2">
             <p className="font-medium mb-3">Productos</p>
             <div className="space-y-3">
-              {order.items.map((it, idx) => (
+              {order.items.map((it, idx) => {
+                const opts = it.opciones_elegidas
+                const optsText = opts && Object.keys(opts).length > 0
+                  ? Object.entries(opts)
+                      .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
+                      .join(', ')
+                  : null
+                return (
                 <div key={idx} className="flex items-center justify-between">
                   <div className="min-w-0">
                     <p className="truncate">{it.product_name}</p>
                     <p className="text-sm text-muted-foreground">Cantidad: {it.quantity}</p>
+                    {optsText && (
+                      <p className="text-sm text-muted-foreground mt-0.5">{optsText}</p>
+                    )}
                   </div>
                   <div className="text-right">
                     <p className="text-sm">${Number(it.unit_price).toLocaleString()} c/u</p>
                     <p className="font-semibold">${Number(it.total_price).toLocaleString()}</p>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           </div>
         )}
@@ -113,6 +129,19 @@ export default function OrderDetailPage() {
           <span className="text-muted-foreground">Descuentos</span>
           <span>-${Number(order.val_total_descuentos || 0).toLocaleString()}</span>
         </div>
+        {order.detalle_descuentos_aplicados && order.detalle_descuentos_aplicados.length > 0 && (
+          <ul className="list-disc pl-5 text-sm text-muted-foreground">
+            {order.detalle_descuentos_aplicados.map((d, idx) => {
+              const label = d.tipo_descuento === "canje_puntos"
+                ? `Descuento por puntos${d.nombre ? `: ${d.nombre}` : ""}`
+                : (d.nombre || d.codigo || "Descuento");
+              const amount = d.descuento_aplicado ?? d.monto ?? d.valor ?? 0;
+              return (
+                <li key={idx}>{label} (-${Number(amount).toLocaleString()})</li>
+              );
+            })}
+          </ul>
+        )}
         <div className="flex justify-between font-semibold">
           <span>Total</span>
           <span>${Number(order.val_total_pedido).toLocaleString()}</span>

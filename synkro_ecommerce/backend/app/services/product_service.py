@@ -560,8 +560,12 @@ async def update_product(
         # y que pueda manejar `None` o la ausencia de algunos de ellos (excepto id_producto).
         result = db.execute(query, params)
         fetched_result = result.fetchone()
+        msg = fetched_result[0] if fetched_result else None
+        if msg and str(msg).strip().lower().startswith("error:"):
+            db.rollback()
+            raise Exception(str(msg).strip())
         db.commit()
-        return fetched_result[0] if fetched_result else None
+        return msg
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al actualizar el producto: {str(e)}")

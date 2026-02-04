@@ -274,7 +274,8 @@ BEGIN
             d.val_porce_descuento, d.val_monto_descuento, d.aplica_a,
             d.min_valor_pedido, d.cantidad_minima_producto, d.monto_minimo_producto,
             d.id_categoria, d.id_linea, d.id_sublinea, d.id_producto_aplica,
-            d.id_categoria_aplica, d.id_marca_aplica
+            d.id_categoria_aplica, d.id_marca_aplica,
+            d.id_linea_aplica, d.id_sublinea_aplica
         INTO v_canje_info
         FROM tab_canjes_puntos_descuentos c
         JOIN tab_descuentos d ON c.id_descuento = d.id_descuento
@@ -294,7 +295,7 @@ BEGIN
             SELECT 
                 CASE 
                     -- TIPO 1: Descuento por total del pedido
-                    WHEN v_canje_info.aplica_a = 'total_pedido' AND v_total_productos >= v_canje_info.min_valor_pedido THEN
+                    WHEN v_canje_info.aplica_a = 'total_pedido' AND v_total_productos >= COALESCE(v_canje_info.min_valor_pedido, 0) THEN
                         CASE WHEN v_canje_info.tipo_calculo THEN 
                             -- Porcentual: sin límite máximo para canjes (ya pagaron puntos)
                            LEAST(v_total_productos * v_canje_info.val_porce_descuento / 100, v_total_productos)
@@ -365,6 +366,37 @@ BEGIN
                             -- Validaciones de cantidad y monto mínimos
                             AND cp.cantidad >= v_canje_info.cantidad_minima_producto
                          AND (cp.cantidad * cp.precio_unitario_carrito) >= v_canje_info.monto_minimo_producto)
+                    -- TIPO 5: Descuento por línea específica
+                    WHEN v_canje_info.aplica_a = 'linea_especifica' THEN
+                        (SELECT COALESCE(SUM(
+                            CASE WHEN v_canje_info.tipo_calculo THEN 
+                               (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
+                            ELSE 
+                               cp.cantidad * v_canje_info.val_monto_descuento
+                            END
+                        ), 0)
+                        FROM tab_carrito_productos cp
+                        WHERE cp.id_carrito = v_id_carrito
+                            AND cp.id_categoria_producto = v_canje_info.id_categoria
+                            AND cp.id_linea_producto = v_canje_info.id_linea_aplica
+                            AND cp.cantidad >= v_canje_info.cantidad_minima_producto
+                            AND (cp.cantidad * cp.precio_unitario_carrito) >= v_canje_info.monto_minimo_producto)
+                    -- TIPO 6: Descuento por sublínea específica
+                    WHEN v_canje_info.aplica_a = 'sublinea_especifica' THEN
+                        (SELECT COALESCE(SUM(
+                            CASE WHEN v_canje_info.tipo_calculo THEN 
+                               (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
+                            ELSE 
+                               cp.cantidad * v_canje_info.val_monto_descuento
+                            END
+                        ), 0)
+                        FROM tab_carrito_productos cp
+                        WHERE cp.id_carrito = v_id_carrito
+                            AND cp.id_categoria_producto = v_canje_info.id_categoria
+                            AND cp.id_linea_producto = v_canje_info.id_linea
+                            AND cp.id_sublinea_producto = v_canje_info.id_sublinea_aplica
+                            AND cp.cantidad >= v_canje_info.cantidad_minima_producto
+                            AND (cp.cantidad * cp.precio_unitario_carrito) >= v_canje_info.monto_minimo_producto)
                     -- Si no aplica ningún tipo, descuento = 0
                     ELSE 0
                 END INTO v_total_desc_canjeado;

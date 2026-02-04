@@ -232,10 +232,11 @@ const LinesPage = () => {
       )}
 
       {!isLoading && !isError && Array.isArray(filteredData) && filteredData.length > 0 && (
-        <DataTable 
-          columns={[...columns, ...actions]} 
-          data={filteredData} 
+        <DataTable
+          columns={[...columns, ...actions]}
+          data={filteredData}
           pageSize={10}
+          getRowId={(row: Line) => `${row.id_categoria}-${row.id_linea}`}
         />
       )}
     </div>

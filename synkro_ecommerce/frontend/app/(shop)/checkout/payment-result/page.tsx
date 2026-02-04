@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { formatPrice } from "@/utils/format-price";
 import Loading from "@/components/ui/loading";
+import { getStoredToken } from "@/utils/apiWrapper";
 
 type PaymentStatus = 'success' | 'pending' | 'declined' | 'error' | 'unknown';
 
@@ -27,12 +28,16 @@ interface PaymentResultData {
   message?: string;
 }
 
+const POLL_INTERVAL_MS = 2000;
+const POLL_TIMEOUT_MS = 60000;
+
 const PaymentResultPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const [paymentData, setPaymentData] = useState<PaymentResultData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pollingOrderId, setPollingOrderId] = useState<number | null | "pending">(null);
 
   useEffect(() => {
     // Obtener parámetros de la URL
@@ -52,8 +57,6 @@ const PaymentResultPage = () => {
 
     setIsLoading(false);
 
-    // Pago exitoso: invalidar carrito y órdenes para que la UI refleje el estado real
-    // (el backend ya limpió el carrito con el trigger al marcar la orden como pagada)
     if (status === "success") {
       queryClient.invalidateQueries({ queryKey: ["cart"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -62,6 +65,80 @@ const PaymentResultPage = () => {
     if (transactionId) {
       console.log("Transaction ID:", transactionId);
     }
+  }, [searchParams, queryClient]);
+
+  // Confirmar checkout y/o hacer polling: si tenemos transaction_id llamamos confirm-checkout (respaldo si el webhook no llegó)
+  useEffect(() => {
+    const reference = searchParams.get('reference');
+    const status = searchParams.get('status');
+    const transactionId = searchParams.get('transaction_id');
+    if (status !== "success" || !reference || !reference.startsWith("synkro_cart_")) {
+      return;
+    }
+
+    setPollingOrderId("pending");
+
+    const token = getStoredToken();
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const fetchOrderByReference = async (): Promise<{ order_id?: number } | null> => {
+      try {
+        const res = await fetch(
+          `/api/payments/order-by-reference?reference=${encodeURIComponent(reference)}`,
+          { method: "GET", headers }
+        );
+        if (!res.ok) return null;
+        return res.json();
+      } catch {
+        return null;
+      }
+    };
+
+    let cancelled = false;
+    const start = Date.now();
+
+    const run = async () => {
+      // Primero: si tenemos transaction_id, llamar confirm-checkout para crear la orden (respaldo si el webhook no llegó)
+      if (transactionId) {
+        try {
+          const confirmRes = await fetch("/api/payments/confirm-checkout", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ reference, transaction_id: transactionId }),
+          });
+          const confirmData = await confirmRes.json().catch(() => ({}));
+          if (cancelled) return;
+          if (confirmData?.order_id != null) {
+            queryClient.invalidateQueries({ queryKey: ["cart"] });
+            queryClient.invalidateQueries({ queryKey: ["orders"] });
+            setPollingOrderId(confirmData.order_id);
+            return;
+          }
+        } catch {
+          // Seguir con polling si confirm-checkout falla
+        }
+      }
+
+      // Si no tenemos order_id aún, hacer polling a order-by-reference (por si el webhook llegó después)
+      while (!cancelled && Date.now() - start < POLL_TIMEOUT_MS) {
+        const data = await fetchOrderByReference();
+        if (cancelled) return;
+        if (data?.order_id != null) {
+          queryClient.invalidateQueries({ queryKey: ["cart"] });
+          queryClient.invalidateQueries({ queryKey: ["orders"] });
+          setPollingOrderId(data.order_id);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      }
+      if (!cancelled) setPollingOrderId(null);
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [searchParams, queryClient]);
 
   const getStatusConfig = (status: PaymentStatus) => {
@@ -126,28 +203,40 @@ const PaymentResultPage = () => {
 
   const getOrderIdFromReference = (reference?: string): number | null => {
     if (!reference) return null;
-    
-    // La referencia tiene el formato: synkro_{order_id}_{random}
-    // Ejemplo: synkro_1_46f07a0bd2 -> order_id = 1
+    // Referencia legacy: synkro_{order_id}_{random}
     const match = reference.match(/^synkro_(\d+)_/);
-    if (match && match[1]) {
-      return parseInt(match[1], 10);
-    }
-    
+    if (match && match[1]) return parseInt(match[1], 10);
     return null;
   };
+
+  // order_id obtenido por polling (checkout session) o por referencia legacy
+  const resolvedOrderId =
+    paymentData?.reference?.startsWith("synkro_cart_")
+      ? typeof pollingOrderId === "number"
+        ? pollingOrderId
+        : null
+      : getOrderIdFromReference(paymentData?.reference);
+
+  // Redirigir automáticamente cuando el polling devuelve order_id (checkout session)
+  useEffect(() => {
+    if (paymentData?.status !== "success" || !resolvedOrderId) return;
+    if (!paymentData.reference?.startsWith("synkro_cart_")) return;
+    // Refrescar carrito y órdenes antes de ir al detalle (el backend ya vació el carrito vía trigger)
+    queryClient.invalidateQueries({ queryKey: ["cart"] });
+    queryClient.invalidateQueries({ queryKey: ["orders"] });
+    router.replace(`/profile/orders/${resolvedOrderId}`);
+  }, [paymentData?.status, paymentData?.reference, resolvedOrderId, router, queryClient]);
 
   const handlePrimaryAction = () => {
     switch (paymentData?.status) {
       case 'success':
-        // Intentar obtener order_id de la referencia
-        const orderId = getOrderIdFromReference(paymentData.reference);
-        if (orderId) {
-          // Redirigir a la página de detalles de la orden específica
-          router.push(`/profile/orders/${orderId}`);
+        if (resolvedOrderId) {
+          router.push(`/profile/orders/${resolvedOrderId}`);
+        } else if (paymentData.reference?.startsWith("synkro_cart_") && pollingOrderId === "pending") {
+          // Sigue esperando el resultado del polling
+          return;
         } else {
-          // Si no se puede extraer, redirigir a la lista de pedidos
-        router.push('/profile/orders');
+          router.push('/profile/orders');
         }
         break;
       case 'pending':
@@ -283,11 +372,25 @@ const PaymentResultPage = () => {
               </div>
             )}
 
+            {/* Mensaje mientras se obtiene order_id (checkout session) */}
+            {paymentData.status === 'success' &&
+              paymentData.reference?.startsWith('synkro_cart_') &&
+              pollingOrderId === 'pending' && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Obteniendo tu pedido...
+                </p>
+            )}
+
             {/* Acciones */}
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button
                 variant={statusConfig.actionVariant}
                 onClick={handlePrimaryAction}
+                disabled={
+                  paymentData.status === 'success' &&
+                  paymentData.reference?.startsWith('synkro_cart_') &&
+                  pollingOrderId === 'pending'
+                }
                 className="flex items-center gap-2"
               >
                 {statusConfig.actionText}

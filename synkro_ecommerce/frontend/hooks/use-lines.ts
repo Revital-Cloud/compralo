@@ -29,10 +29,13 @@ export const useLinesByCategory = (categoryId: number) => {
   });
 };
 
-export const useLine = (lineId: number) => {
+/** id_categoria es obligatorio en rutas categoría/línea para devolver la línea correcta. */
+export const useLine = (lineId: number, categoryId?: number) => {
+  const validLine = typeof lineId === 'number' && Number.isInteger(lineId) && lineId > 0;
+  const validCategory = categoryId == null || (typeof categoryId === 'number' && Number.isInteger(categoryId) && categoryId > 0);
   return useQuery({
-    queryKey: ['line', lineId],
-    queryFn: () => lineService.getLine(lineId),
-    enabled: !!lineId,
+    queryKey: ['line', lineId, categoryId],
+    queryFn: () => lineService.getLine(lineId, categoryId),
+    enabled: !!validLine && validCategory,
   });
 };

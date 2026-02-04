@@ -89,6 +89,7 @@ class DiscountExchangeableResponse(BaseModel):
     Esquema para la Respuesta de Descuentos Canjeables.
     
     Coincide con los campos que retorna la función fun_listar_descuentos_canjeables.
+    fec_inicio y fec_fin son opcionales (NULL para plantillas canjeables sin vigencia).
     """
     id_descuento: Decimal
     nom_descuento: str
@@ -97,8 +98,8 @@ class DiscountExchangeableResponse(BaseModel):
     tipo_calculo_texto: str
     valor_descuento: str
     aplica_a: str
-    fec_inicio: date
-    fec_fin: date
+    fec_inicio: Optional[date] = None
+    fec_fin: Optional[date] = None
     puede_canjear: Optional[bool] = None
     puntos_usuario: Optional[int] = None
     

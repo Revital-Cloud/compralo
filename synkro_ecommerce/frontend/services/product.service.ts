@@ -142,11 +142,8 @@ export async function updateProduct(
   id_producto: number, 
   productData: FormData
 ): Promise<Product> {
-  return await put<Product>(`/products/${id_categoria}-${id_linea}-${id_sublinea}-${id_producto}`, productData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  // No enviar Content-Type: axios lo fija con boundary para FormData
+  return await put<Product>(`/products/${id_categoria}-${id_linea}-${id_sublinea}-${id_producto}`, productData);
 }
 
 /**

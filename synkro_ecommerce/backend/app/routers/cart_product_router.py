@@ -96,7 +96,14 @@ async def create_cart_product(
         cart_product_service.create_cart_product(db, cart_product_data, usr_insert)
         return ResponseMessage(message="Producto agregado al carrito correctamente")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        err_msg = str(e)
+        if "opciones_elegidas" in err_msg or "does not exist" in err_msg or "column" in err_msg.lower():
+            err_msg = (
+                "Error al agregar al carrito. Si acabas de actualizar el código, ejecuta la migración de BD: "
+                "db/migrations/add_cart_order_color_talla.sql y la función fun_agregar_producto_carrito. "
+                f"Detalle: {err_msg}"
+            )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=err_msg)
 
 @router.put("/carrito-productos/{id_carrito_producto}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_cart_product_quantity(

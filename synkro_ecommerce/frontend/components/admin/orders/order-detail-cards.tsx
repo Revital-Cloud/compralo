@@ -92,19 +92,40 @@ export const OrderDetailCards = ({ orderDetail }: OrderDetailCardsProps) => {
           {direccion_envio ? (
             <div className="space-y-2">
               <div>
-                <span className="text-sm font-medium">Nombre:</span>
-                <div className="text-sm">{direccion_envio.nombre_direccion}</div>
-              </div>
-              <div>
                 <span className="text-sm font-medium">Dirección:</span>
                 <div className="text-sm">
-                  {direccion_envio.calle_direccion} {direccion_envio.numero_direccion}
+                  {direccion_envio.calle_direccion}
+                  {direccion_envio.numero_direccion ? ` ${direccion_envio.numero_direccion}` : ''}
                 </div>
               </div>
               <div>
                 <span className="text-sm font-medium">Ciudad:</span>
                 <div className="text-sm">{direccion_envio.ciudad}, {direccion_envio.departamento}</div>
               </div>
+              {(direccion_envio as any).barrio && (
+                <div>
+                  <span className="text-sm font-medium">Barrio:</span>
+                  <div className="text-sm">{(direccion_envio as any).barrio}</div>
+                </div>
+              )}
+              {(direccion_envio as any).codigo_postal && (
+                <div>
+                  <span className="text-sm font-medium">Código postal:</span>
+                  <div className="text-sm">{(direccion_envio as any).codigo_postal}</div>
+                </div>
+              )}
+              {(direccion_envio as any).complemento && (
+                <div>
+                  <span className="text-sm font-medium">Complemento:</span>
+                  <div className="text-sm">{(direccion_envio as any).complemento}</div>
+                </div>
+              )}
+              {(direccion_envio as any).referencias && (
+                <div>
+                  <span className="text-sm font-medium">Referencias:</span>
+                  <div className="text-sm">{(direccion_envio as any).referencias}</div>
+                </div>
+              )}
               {direccion_envio.telefono_contacto && (
                 <div>
                   <span className="text-sm font-medium">Teléfono:</span>

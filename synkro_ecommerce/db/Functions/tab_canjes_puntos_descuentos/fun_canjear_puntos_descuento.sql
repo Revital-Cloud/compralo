@@ -58,7 +58,7 @@ DECLARE
 BEGIN
     -- PASO 1: Verificar que el descuento existe y es canjeable
     SELECT d.*, 
-        CASE WHEN d.ind_activo AND CURRENT_DATE BETWEEN d.fec_inicio AND d.fec_fin THEN TRUE ELSE FALSE END as vigente
+        CASE WHEN (d.fec_inicio IS NULL AND d.fec_fin IS NULL) OR (d.fec_inicio IS NOT NULL AND d.fec_fin IS NOT NULL AND CURRENT_DATE BETWEEN d.fec_inicio AND d.fec_fin) THEN TRUE ELSE FALSE END as vigente
     INTO v_descuento
     FROM tab_descuentos d
     WHERE d.id_descuento = p_id_descuento;
@@ -73,9 +73,9 @@ BEGIN
         RETURN json_build_object('success', false, 'message', 'Este descuento no es canjeable por puntos');
     END IF;
     
-    -- VALIDACIÓN 3: Verificar vigencia (activo y dentro de fechas)
+    -- VALIDACIÓN 3: Verificar vigencia para canje (fechas null = siempre; con fechas = current entre ellas)
     IF NOT v_descuento.vigente THEN
-        RETURN json_build_object('success', false, 'message', 'El descuento no está vigente');
+        RETURN json_build_object('success', false, 'message', 'El descuento no está vigente para canje');
     END IF;
 
     -- PASO 2: Asegurar que el usuario tenga registro de puntos

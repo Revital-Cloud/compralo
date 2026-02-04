@@ -14,7 +14,10 @@ interface CategoryCardProps {
   onClick?: () => void;
   variant?: 'default' | 'highlighted';
   className?: string;
+  /** Si está definido, navega a /categories/{categoryId} al hacer click */
   categoryId?: string;
+  /** Mostrar "Click para explorar" (también se muestra cuando hay categoryId) */
+  showExploreHint?: boolean;
 }
 
 export function CategoryCard({
@@ -26,7 +29,8 @@ export function CategoryCard({
   onClick,
   variant = 'default',
   className = '',
-  categoryId
+  categoryId,
+  showExploreHint = false,
 }: CategoryCardProps) {
   const router = useRouter();
   const baseClasses = "cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl";
@@ -36,12 +40,12 @@ export function CategoryCard({
     router.push(`/categories/${categoryId}`);
   } : undefined);
   const variantClasses = {
-    default: "bg-gray-800 hover:bg-gray-700",
-    highlighted: "bg-orange-500 hover:bg-orange-600"
+    default: "bg-card border border-border hover:bg-muted/50",
+    highlighted: "bg-orange-500 hover:bg-orange-600 border-orange-500"
   };
 
   const iconClasses = {
-    default: "bg-blue-100 text-blue-600",
+    default: "bg-muted text-muted-foreground",
     highlighted: "bg-white text-orange-600"
   };
 
@@ -56,11 +60,11 @@ export function CategoryCard({
             {icon}
           </div>
           <div>
-            <CardTitle className={`text-lg ${variant === 'highlighted' ? 'text-white' : 'text-white'}`}>
+            <CardTitle className={`text-lg font-semibold ${variant === 'highlighted' ? 'text-white' : 'text-card-foreground'}`}>
               {title}
             </CardTitle>
             {description && (
-              <p className={`text-sm ${variant === 'highlighted' ? 'text-white opacity-90' : 'text-gray-300'}`}>
+              <p className={`text-sm ${variant === 'highlighted' ? 'text-white/90' : 'text-muted-foreground'}`}>
                 {description}
               </p>
             )}
@@ -76,8 +80,8 @@ export function CategoryCard({
           >
             {count} {countLabel}
           </Badge>
-          {categoryId && (
-            <div className="text-xs text-gray-400 group-hover:text-blue-500 transition-colors">
+          {(categoryId || showExploreHint) && handleClick && (
+            <div className="text-xs text-muted-foreground group-hover:text-primary transition-colors">
               Click para explorar →
             </div>
           )}

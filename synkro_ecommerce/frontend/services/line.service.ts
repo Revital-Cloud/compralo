@@ -10,8 +10,10 @@ class LineService {
     return apiWrapper.get(`/lines/category/${categoryId}`);
   }
 
-  async getLine(lineId: number): Promise<Line> {
-    return apiWrapper.get(`/lines/${lineId}`);
+  async getLine(lineId: number, categoryId?: number): Promise<Line> {
+    const validCategory = typeof categoryId === 'number' && Number.isInteger(categoryId) && categoryId > 0;
+    const params = validCategory ? `?id_categoria=${categoryId}` : '';
+    return apiWrapper.get(`/lines/${lineId}${params}`);
   }
 
   async updateLine(idCategoria: number, idLinea: number, payload: Partial<Pick<Line, 'nom_linea' | 'desc_linea' | 'ind_activo'>>): Promise<{ message: string }> {

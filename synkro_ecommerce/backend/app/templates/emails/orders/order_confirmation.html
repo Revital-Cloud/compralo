@@ -37,7 +37,7 @@
 <div class="content-block">
     <h3>Productos en tu Orden</h3>
     <div class="product-grid">
-        {% for item in order.items %}
+        {% for item in (order['items'] or []) %}
         <div class="product-card">
             <div style="font-size: 30px; margin-bottom: 10px;">📦</div>
             <strong>{{ item.product_name }}</strong>
@@ -77,10 +77,10 @@
 </div>
 
 <div class="text-center">
-    <a href="{{ frontend_url }}/orders/{{ order.id }}" class="btn">
+    <a href="{{ frontend_url }}/profile/orders/{{ order.id }}" class="btn">
         📋 Ver Detalles de la Orden
     </a>
-    <a href="{{ frontend_url }}/orders" class="btn btn-secondary" style="margin-left: 10px;">
+    <a href="{{ frontend_url }}/profile/orders" class="btn btn-secondary" style="margin-left: 10px;">
         📊 Mis Órdenes
     </a>
 </div>

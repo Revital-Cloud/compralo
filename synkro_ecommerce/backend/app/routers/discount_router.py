@@ -138,8 +138,14 @@ async def get_discount_exchangeable(
     db:Session = Depends(get_db)
 ):
     """
-    Obtiene todos los descuentos canjeables registrados en la base de datos.
+    Obtiene los descuentos canjeables por puntos para el usuario autenticado.
+    Solo se permite consultar los descuentos del propio usuario (id_usuario debe coincidir con el token).
     """
+    if int(id_usuario) != current_user.id_usuario:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo puedes consultar los descuentos canjeables de tu propia cuenta.",
+        )
     try:
         discounts = discount_service.get_discount_exchangeable(db, id_usuario, limit)
         if not discounts:

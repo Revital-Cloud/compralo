@@ -1,7 +1,13 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import { Star, Quote } from "lucide-react"
+import Link from "next/link"
+import { useQuery } from "@tanstack/react-query"
+import { getTestimonials } from "@/services/review.service"
+import { getProductImageUrl } from "@/utils/image-helpers"
+import Image from "next/image"
 
 interface Testimonial {
   id: number
@@ -11,39 +17,85 @@ interface Testimonial {
   rating: number
   avatar: string
   bgColor: string
+  productName?: string | null
+  productImage?: string | null
+  productSlug?: string | null
 }
 
+const BG_GRADIENTS = [
+  "from-[#ec2538] to-[#FF8C00]",
+  "from-[#FF8C00] to-[#fec806]",
+  "from-[#fec806] to-[#ec2538]",
+]
+
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return "?"
+  if (parts.length === 1) return (parts[0][0] ?? "?").toUpperCase()
+  return ((parts[0][0] ?? "") + (parts[parts.length - 1][0] ?? "")).toUpperCase()
+}
+
+const FALLBACK_TESTIMONIALS: Testimonial[] = [
+  {
+    id: 1,
+    name: "María González",
+    role: "Cliente frecuente",
+    content: "Compralo ha transformado mi experiencia de compras online. Los productos llegan rápido y la calidad es excepcional. ¡Totalmente recomendado!",
+    rating: 5,
+    avatar: "MG",
+    bgColor: "from-[#ec2538] to-[#FF8C00]"
+  },
+  {
+    id: 2,
+    name: "Carlos Rodríguez",
+    role: "Empresario",
+    content: "La variedad de productos es increíble y los precios son muy competitivos. El servicio al cliente es de primera clase.",
+    rating: 5,
+    avatar: "CR",
+    bgColor: "from-[#FF8C00] to-[#fec806]"
+  },
+  {
+    id: 3,
+    name: "Ana Martínez",
+    role: "Mamá emprendedora",
+    content: "Me encanta la facilidad para encontrar todo lo que necesito en un solo lugar. Las ofertas son reales y los descuentos increíbles.",
+    rating: 5,
+    avatar: "AM",
+    bgColor: "from-[#fec806] to-[#ec2538]"
+  }
+]
+
 const TestimonialsSection = () => {
-  // Static testimonials data - later can be fetched from API
-  const testimonials: Testimonial[] = [
-    {
-      id: 1,
-      name: "María González",
-      role: "Cliente frecuente",
-      content: "Compralo ha transformado mi experiencia de compras online. Los productos llegan rápido y la calidad es excepcional. ¡Totalmente recomendado!",
-      rating: 5,
-      avatar: "MG",
-      bgColor: "from-[#ec2538] to-[#FF8C00]"
-    },
-    {
-      id: 2,
-      name: "Carlos Rodríguez",
-      role: "Empresario",
-      content: "La variedad de productos es increíble y los precios son muy competitivos. El servicio al cliente es de primera clase.",
-      rating: 5,
-      avatar: "CR",
-      bgColor: "from-[#FF8C00] to-[#fec806]"
-    },
-    {
-      id: 3,
-      name: "Ana Martínez",
-      role: "Mamá emprendedora",
-      content: "Me encanta la facilidad para encontrar todo lo que necesito en un solo lugar. Las ofertas son reales y los descuentos increíbles.",
-      rating: 5,
-      avatar: "AM",
-      bgColor: "from-[#fec806] to-[#ec2538]"
-    }
-  ]
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["testimonials", 3],
+    queryFn: () => getTestimonials(3),
+    staleTime: 1000 * 60 * 5,
+    enabled: mounted,
+    retry: 2,
+  })
+
+  const testimonials: Testimonial[] = (() => {
+    if (!mounted) return FALLBACK_TESTIMONIALS
+    if (isLoading && !data) return FALLBACK_TESTIMONIALS
+    if (isError || !data?.success) return FALLBACK_TESTIMONIALS
+    const list = data.data ?? []
+    if (list.length === 0) return FALLBACK_TESTIMONIALS
+    return list.slice(0, 3).map((t, i) => ({
+      id: t.id_comentario,
+      name: t.nombre_usuario || "Cliente",
+      role: "Cliente",
+      content: t.comentario || "",
+      rating: t.calificacion ?? 5,
+      avatar: initials(t.nombre_usuario || "Cliente"),
+      bgColor: BG_GRADIENTS[i % BG_GRADIENTS.length],
+      productName: t.producto_nombre ?? null,
+      productImage: t.producto_imagen != null ? getProductImageUrl(t.producto_imagen) : null,
+      productSlug: t.producto_slug ?? null,
+    }))
+  })()
 
   // Animation variants
   const containerVariants = {
@@ -264,6 +316,38 @@ const TestimonialsSection = () => {
                 >
                   {renderStars(testimonial.rating)}
                 </motion.div>
+
+                {/* Producto reseñado */}
+                {(testimonial.productName || testimonial.productImage) && (
+                  <div className="mb-4 flex items-center gap-3 rounded-lg bg-gray-100/80 dark:bg-gray-700/50 p-3">
+                    {testimonial.productImage && (
+                      <div className="relative w-14 h-14 shrink-0 rounded-md overflow-hidden bg-white dark:bg-gray-600">
+                        <Image
+                          src={testimonial.productImage}
+                          alt={testimonial.productName || "Producto"}
+                          fill
+                          className="object-cover"
+                          sizes="56px"
+                        />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Producto reseñado</p>
+                      {testimonial.productSlug ? (
+                        <Link
+                          href={`/products/${testimonial.productSlug}`}
+                          className="text-sm font-medium text-[#ec2538] dark:text-red-400 hover:underline truncate block"
+                        >
+                          {testimonial.productName || "Ver producto"}
+                        </Link>
+                      ) : (
+                        <p className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
+                          {testimonial.productName}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
                 
                 {/* User info */}
                 <div className="flex items-center space-x-3">
@@ -311,20 +395,22 @@ const TestimonialsSection = () => {
           >
             ¿Quieres ser parte de nuestros clientes satisfechos?
           </motion.p>
-          <motion.button
-            className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-semibold rounded-full hover:shadow-lg dark:hover:shadow-gray-900/25 transition-all duration-300"
-            whileHover={{ 
-              scale: 1.05,
-              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
-            }}
-            whileTap={{ scale: 0.95 }}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.8 }}
-          >
-            Empezar a comprar
-          </motion.button>
+          <Link href="/products">
+            <motion.span
+              className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-semibold rounded-full hover:shadow-lg dark:hover:shadow-gray-900/25 transition-all duration-300 cursor-pointer"
+              whileHover={{ 
+                scale: 1.05,
+                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+              }}
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.8 }}
+            >
+              Empezar a comprar
+            </motion.span>
+          </Link>
         </motion.div>
       </div>
     </section>

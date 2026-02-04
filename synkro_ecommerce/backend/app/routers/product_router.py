@@ -387,10 +387,17 @@ async def update_product(
             update_data['num_stock'] = num_stock
         if ind_activo is not None:
             update_data['ind_activo'] = ind_activo
-            
+
+        if not update_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se recibieron datos para actualizar. Verifica que el formulario envíe nom_producto, spcf_producto, val_precio, num_stock, etc."
+            )
+
         # Crear el objeto ProductUpdate
         product_data = ProductUpdate(**update_data)
-        
+
+        print(f"🔍 ROUTER UPDATE DEBUG: update_data keys recibidos: {list(update_data.keys())}")
         print(f"🔍 ROUTER UPDATE DEBUG: Llamando a product_service.update_product con image_files: {image_files}")
         response_message = await product_service.update_product(
             id_categoria, 

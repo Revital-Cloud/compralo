@@ -28,11 +28,15 @@ export interface CartState {
   // === INFORMACIÓN DEL USUARIO ===
   cartUser: CartUser;
 
+  // === CANJE DE PUNTOS ===
+  selectedCanjeId: number | null;
+
   // === ACCIONES ===
   // Operaciones básicas
   setCartId: (id_carrito: number | undefined) => void;
   setItems: (items: CartItem[]) => void;
   setTotals: (totals: CartTotalResponse | null) => void;
+  setSelectedCanjeId: (id_canje: number | null) => void;
 
   // Operaciones de productos
   addItem: (item: CartItem) => void;
@@ -96,6 +100,7 @@ export const useCartStore = create<CartState>()(
         id_usuario: undefined,
         session_id: undefined,
       },
+      selectedCanjeId: null,
 
       // === ACCIONES BÁSICAS ===
       setCartId: (id_carrito) => set({ id_carrito }),
@@ -103,6 +108,8 @@ export const useCartStore = create<CartState>()(
       setItems: (items) => set({ items }),
 
       setTotals: (totals) => set({ totals }),
+
+      setSelectedCanjeId: (id_canje) => set({ selectedCanjeId: id_canje }),
 
       // === OPERACIONES DE PRODUCTOS ===
       addItem: (item) =>

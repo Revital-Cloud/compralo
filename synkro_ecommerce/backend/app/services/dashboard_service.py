@@ -1,6 +1,7 @@
 """
 Servicio para obtener datos del dashboard administrativo.
 """
+import json
 from decimal import Decimal
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
@@ -257,6 +258,20 @@ def _get_best_sellers(db: Session, limit: int = 10) -> List[Dict[str, Any]]:
         id_producto = str(row.get('id_producto', ''))
         unique_id = f"{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}"
         
+        # Extraer URL de imagen desde img_producto (JSONB: { "main": "url" } o { "url": "..." })
+        image_url = None
+        img_producto = row.get('img_producto')
+        if img_producto:
+            try:
+                if isinstance(img_producto, str):
+                    img_producto = json.loads(img_producto)
+                if isinstance(img_producto, dict):
+                    image_url = img_producto.get('main') or img_producto.get('url') or None
+                    if image_url and not isinstance(image_url, str):
+                        image_url = None
+            except (json.JSONDecodeError, TypeError):
+                pass
+
         best_sellers.append({
             'id': unique_id,
             'id_categoria': id_categoria,
@@ -264,7 +279,7 @@ def _get_best_sellers(db: Session, limit: int = 10) -> List[Dict[str, Any]]:
             'id_sublinea': id_sublinea,
             'id_producto': id_producto,
             'name': str(row.get('nom_producto', '')),
-            'image': str(row.get('img_producto', '')) if row.get('img_producto') else None,
+            'image': image_url,
             'sales': int(row.get('total_sold', 0) or 0),
             'revenue': revenue
         })

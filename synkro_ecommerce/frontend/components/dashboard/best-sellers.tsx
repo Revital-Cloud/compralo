@@ -1,10 +1,13 @@
 'use client'
 
 import React from 'react'
+import Image from 'next/image'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui"
 import { Badge } from "@/components/ui"
 import { Button } from "@/components/ui"
 import { IconPackage, IconEye, IconDots } from "@tabler/icons-react"
+import { formatPrice } from "@/utils/format-price"
 
 interface BestSeller {
   id: string
@@ -46,29 +49,51 @@ export const BestSellers = ({ bestSellers, loading }: BestSellersProps) => (
         ))
       ) : (
         bestSellers.map((product, index) => (
-          <div key={product.id} className="flex items-center space-x-3 group hover:bg-gray-50 p-2 rounded-lg transition-colors">
-            <div className="relative">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
-                <IconPackage className="h-6 w-6 text-blue-600" />
+          <div
+            key={product.id}
+            className="flex items-center gap-3 p-3 rounded-lg border border-transparent hover:border-border hover:bg-muted/50 transition-colors"
+          >
+            <div className="relative shrink-0">
+              <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                {product.image ? (
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    width={48}
+                    height={48}
+                    className="object-cover w-full h-full"
+                  />
+                ) : (
+                  <IconPackage className="h-6 w-6 text-muted-foreground" />
+                )}
               </div>
-              <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center font-bold">
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center font-bold">
                 {index + 1}
-              </div>
+              </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm truncate">{product.name}</p>
-              <div className="flex items-center space-x-2">
-                <p className="text-xs text-muted-foreground">{product.sales}</p>
-                <Badge variant={product.growth > 0 ? "default" : "secondary"} className="text-xs">
-                  {product.growth > 0 ? '+' : ''}{product.growth.toFixed(1)}%
-                </Badge>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-muted-foreground">{product.sales} vendidos</span>
+                {product.growth !== 0 && (
+                  <Badge variant={product.growth > 0 ? "default" : "secondary"} className="text-xs">
+                    {product.growth > 0 ? '+' : ''}{product.growth.toFixed(1)}%
+                  </Badge>
+                )}
               </div>
             </div>
-            <div className="text-right">
-              <p className="font-bold">${product.price.toFixed(2)}</p>
-              <Button variant="outline" size="sm" className="text-xs h-6 px-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <IconEye className="h-3 w-3 mr-1" />
-                Ver
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              <p className="font-bold text-sm">{formatPrice(product.price)}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-7 px-2"
+                asChild
+              >
+                <Link href="/admin/products">
+                  <IconEye className="h-3 w-3 mr-1" aria-hidden />
+                  Ver
+                </Link>
               </Button>
             </div>
           </div>

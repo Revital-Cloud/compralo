@@ -15,19 +15,21 @@ En este archivo se crean las funciones utilizando "query by example" para intera
 """
 
 
-#Todas las categorías
+#Todas las categorías (con conteo de productos activos)
 def get_categories(db: Session):
     try:
         query = text("""
         SELECT 
-            id_categoria,
-            nom_categoria,
-            ind_activo,
-            usr_insert,
-            fec_insert,
-            usr_update,
-            fec_update
-        FROM tab_categorias
+            c.id_categoria,
+            c.nom_categoria,
+            c.ind_activo,
+            c.usr_insert,
+            c.fec_insert,
+            c.usr_update,
+            c.fec_update,
+            (SELECT COUNT(*) FROM tab_productos p
+             WHERE p.id_categoria = c.id_categoria AND p.ind_activo = true) AS productos_count
+        FROM tab_categorias c
         """)
         result = db.execute(query)
         return result.mappings().all()

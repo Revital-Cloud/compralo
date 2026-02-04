@@ -8,17 +8,36 @@ import { cn } from "@/lib/utils"
 interface ProductGalleryProps {
   images: string[]
   productName: string
+  /** Índice controlado desde fuera (ej. al seleccionar un color). */
+  selectedIndex?: number
+  /** Se llama al cambiar de imagen (flechas o miniatura). */
+  onSelectedIndexChange?: (index: number) => void
 }
 
-const ProductGallery: React.FC<ProductGalleryProps> = ({ images, productName }) => {
-  const [currentImage, setCurrentImage] = useState(0)
+const ProductGallery: React.FC<ProductGalleryProps> = ({
+  images,
+  productName,
+  selectedIndex: controlledIndex,
+  onSelectedIndexChange
+}) => {
+  const [internalIndex, setInternalIndex] = useState(0)
+  const isControlled = controlledIndex !== undefined && controlledIndex !== null
+  const currentImage = isControlled
+    ? Math.min(Math.max(0, controlledIndex), Math.max(0, images.length - 1))
+    : internalIndex
+
+  const setCurrentImage = (next: number) => {
+    const idx = Math.min(Math.max(0, next), Math.max(0, images.length - 1))
+    if (!isControlled) setInternalIndex(idx)
+    onSelectedIndexChange?.(idx)
+  }
 
   const nextImage = () => {
-    setCurrentImage((prev) => (prev + 1) % images.length)
+    setCurrentImage((currentImage + 1) % images.length)
   }
 
   const prevImage = () => {
-    setCurrentImage((prev) => (prev - 1 + images.length) % images.length)
+    setCurrentImage((currentImage - 1 + images.length) % images.length)
   }
 
   return (

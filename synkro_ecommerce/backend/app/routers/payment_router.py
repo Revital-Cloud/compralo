@@ -1,13 +1,16 @@
 """
 Router para la gestión de pagos y métodos de pago con Wompi.
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from sqlalchemy.orm import Session
-from typing import List
+import asyncio
+from decimal import Decimal
 import json
 import hmac
 import hashlib
-from decimal import Decimal
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, status, Request
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from core.database import get_db
 from core.dependencies import get_current_user
@@ -17,7 +20,9 @@ from schemas.payment_schema import CreatePaymentMethodPayload, PaymentMethodResp
 from services.payment_service import add_payment_method, list_payment_methods, delete_payment_method, set_default_payment_method
 from services.payment_widget_service import (
     get_payment_by_reference,
-    update_payment_status
+    update_payment_status,
+    create_order_from_checkout_reference,
+    create_payment,
 )
 from core.config import settings
 from services import order_service
@@ -219,6 +224,24 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
             logger.warning("Webhook sin reference ni transaction_id")
             return {"status": "ok", "message": "Webhook recibido pero sin datos de transacción"}
         
+        # Flujo checkout sin tabla: referencia codificada (synkro_cart_*). La orden se crea solo cuando el pago es APPROVED.
+        if reference and reference.startswith("synkro_cart_"):
+            if status_tx != "APPROVED":
+                return {"status": "ok"}
+            existing = get_payment_by_reference(db, reference)
+            if existing and existing.get("id_orden") is not None:
+                logger.info(f"Pago ya procesado para referencia checkout: {reference}")
+                return {"status": "ok"}
+            order_id = create_order_from_checkout_reference(db, reference, tx, id_usuario=None)
+            if order_id:
+                try:
+                    from services.email_service import send_order_confirmation_for_order_id
+                    asyncio.create_task(send_order_confirmation_for_order_id(order_id))
+                except Exception as e:
+                    logger.warning(f"No se pudo programar email de confirmación: {e}")
+                logger.info(f"Orden {order_id} creada tras webhook (referencia checkout): {reference}")
+            return {"status": "ok"}
+        
         # Buscar payment por reference o transaction_id
         payment = None
         if reference:
@@ -291,6 +314,17 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
             transaction_data=tx,
             mark_order_paid=(status_tx == "APPROVED")
         )
+        
+        # Enviar email de confirmación cuando el pago es APPROVED
+        if status_tx == "APPROVED":
+            order_id = payment.get("id_orden")
+            if order_id is not None:
+                try:
+                    _order_id = int(order_id) if not isinstance(order_id, int) else order_id
+                    from services.email_service import send_order_confirmation_for_order_id
+                    asyncio.create_task(send_order_confirmation_for_order_id(_order_id))
+                except Exception as e:
+                    logger.warning(f"No se pudo programar email de confirmación: {e}")
         
         logger.info(f"Webhook procesado: reference={reference}, status={status_tx}")
         return {"status": "ok"}

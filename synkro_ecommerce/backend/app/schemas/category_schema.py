@@ -57,6 +57,7 @@ class Category(CategoryBase):
     Incluye el ID de la categoría junto con los campos base.
     """
     id_categoria: Decimal = Field(..., description="Identificador único para la categoría.")
+    productos_count: Optional[int] = Field(None, description="Cantidad de productos activos en la categoría.")
         
 # Esquema para toggle (activar/desactivar)
 class ToggleRequest(BaseModel):

@@ -721,13 +721,14 @@ export class WompiWidgetService {
             
             transactionId = transaction.id || null;
             
-            // SIEMPRE llamar a attach-transaction si hay transaction_id válido
-            if (transactionId && config.reference) {
+            // attach-transaction solo cuando ya existe un pago en backend (referencia synkro_* con order_id).
+            // Con synkro_cart_* no hay pago aún: el webhook crea orden y pago al recibir APPROVED; no llamar attach.
+            const isCheckoutFlow = config.reference?.startsWith('synkro_cart_') ?? false;
+            if (transactionId && config.reference && !isCheckoutFlow) {
               try {
                 console.log(`🔍 [WIDGET-SERVICE] ========== LLAMANDO A ATTACH-TRANSACTION ==========`);
                 console.log(`🔍 [WIDGET-SERVICE] reference=${config.reference}, transaction_id=${transactionId}`);
                 
-                // Obtener token usando la misma función que usa el API route
                 let token: string | null = null;
                 try {
                   token = getStoredToken();
@@ -740,7 +741,6 @@ export class WompiWidgetService {
                 const headers: HeadersInit = {
                   'Content-Type': 'application/json',
                 };
-                
                 if (token) {
                   headers['Authorization'] = `Bearer ${token}`;
                   console.log(`✅ [WIDGET-SERVICE] Header Authorization agregado`);
@@ -760,25 +760,21 @@ export class WompiWidgetService {
                 if (!attachResponse.ok) {
                   const errorData = await attachResponse.json().catch(() => ({}));
                   console.error(`❌ [WIDGET-SERVICE] Error al attach transaction: ${attachResponse.status}`, errorData);
-                  // Continuar con el flujo aunque falle el attach (el webhook puede actualizar)
                 } else {
                   const attachData = await attachResponse.json();
                   console.log(`✅ [WIDGET-SERVICE] ========== TRANSACTION ID ATTACHADO EXITOSAMENTE ==========`);
                   console.log(`✅ [WIDGET-SERVICE] Response:`, attachData);
                   
-                  // Si el status es APPROVED (o cualquier estado final), actualizar el payment y marcar la orden como pagada
                   if (transactionStatus && ['APPROVED', 'DECLINED', 'VOIDED', 'ERROR'].includes(transactionStatus)) {
-                    console.log(`🔍 [WIDGET-SERVICE] Status final detectado (${transactionStatus}), llamando a /api/payments/poll para actualizar payment y orden...`);
+                    console.log(`🔍 [WIDGET-SERVICE] Status final detectado (${transactionStatus}), llamando a /api/payments/poll...`);
                     try {
                       const pollResponse = await fetch(`/api/payments/poll?reference=${encodeURIComponent(config.reference)}`, {
                         method: 'GET',
                         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
                       });
-                      
                       if (pollResponse.ok) {
                         const pollData = await pollResponse.json();
                         console.log(`✅ [WIDGET-SERVICE] Poll completado:`, pollData);
-                        console.log(`✅ [WIDGET-SERVICE] Payment actualizado a ${pollData.status}, orden debería estar marcada como pagada si es APPROVED`);
                       } else {
                         const pollError = await pollResponse.json().catch(() => ({}));
                         console.warn(`⚠️ [WIDGET-SERVICE] Error en poll (el webhook puede actualizar después):`, pollError);
@@ -790,48 +786,75 @@ export class WompiWidgetService {
                 }
               } catch (attachError: any) {
                 console.error(`❌ [WIDGET-SERVICE] Error al llamar attach-transaction:`, attachError);
-                // Continuar con el flujo aunque falle el attach (el webhook puede actualizar)
               }
-            } else {
+            } else if (isCheckoutFlow && transactionId && config.reference) {
+              console.log(`🔍 [WIDGET-SERVICE] Flujo checkout (synkro_cart_): no se llama attach; el webhook crea orden y pago. Redirigiendo a resultado...`);
+            } else if (!transactionId || !config.reference) {
               console.warn(`⚠️ [WIDGET-SERVICE] No se puede attach transaction: transactionId=${transactionId}, reference=${config.reference}`);
             }
           }
           
-          // Si hay un callback personalizado, llamarlo DESPUÉS de attachar el transaction_id
+          // Si hay un callback personalizado, llamarlo (p. ej. invalidar queries)
           if (onResult) {
             console.log('🔍 [WIDGET-SERVICE] Llamando callback personalizado onResult...');
             onResult(result);
-            callbackExecuted = true;
-            return;
           }
 
-          // Manejar el resultado automáticamente solo si NO hay callback personalizado
-          if (transactionId && transactionStatus) {
-            console.log(`✅ [WIDGET-SERVICE] Transaction válida - ID: ${transactionId}, Status: ${transactionStatus}`);
-            
+          // Redirigir siempre a payment-result cuando hay estado final y referencia,
+          // para que la página de resultado haga polling (synkro_cart_) o muestre el pedido.
+          // Así el usuario no se queda en checkout sin ver el resultado.
+          if (transactionId && transactionStatus && config.reference) {
+            callbackExecuted = true;
+            console.log(`✅ [WIDGET-SERVICE] Redirigiendo a resultado: status=${transactionStatus}`);
             switch (transactionStatus) {
-            case 'APPROVED':
-              toast.success('¡Pago aprobado exitosamente!');
-                window.location.href = `/checkout/payment-result?status=success&transaction_id=${transactionId}&amount=${config.amountInCents}&reference=${config.reference}`;
-              break;
-            case 'DECLINED':
-              toast.error('El pago fue rechazado. Intenta con otro método de pago.');
-                window.location.href = `/checkout/payment-result?status=declined&transaction_id=${transactionId}&message=Pago rechazado`;
-              break;
-            case 'PENDING':
-              toast.info('El pago está pendiente de confirmación.');
-                window.location.href = `/checkout/payment-result?status=pending&transaction_id=${transactionId}&amount=${config.amountInCents}&reference=${config.reference}`;
-              break;
-            case 'ERROR':
-              toast.error('Ocurrió un error durante el pago. Intenta nuevamente.');
-              window.location.href = `/checkout/payment-result?status=error&message=Error durante el pago`;
-              break;
-            default:
+              case 'APPROVED':
+                toast.success('¡Pago aprobado exitosamente!');
+                window.location.href = `/checkout/payment-result?status=success&transaction_id=${transactionId}&amount=${config.amountInCents}&reference=${encodeURIComponent(config.reference)}`;
+                return;
+              case 'DECLINED':
+                toast.error('El pago fue rechazado. Intenta con otro método de pago.');
+                window.location.href = `/checkout/payment-result?status=declined&transaction_id=${transactionId}&message=Pago rechazado&reference=${encodeURIComponent(config.reference)}`;
+                return;
+              case 'PENDING':
+                toast.info('El pago está pendiente de confirmación.');
+                window.location.href = `/checkout/payment-result?status=pending&transaction_id=${transactionId}&amount=${config.amountInCents}&reference=${encodeURIComponent(config.reference)}`;
+                return;
+              case 'ERROR':
+                toast.error('Ocurrió un error durante el pago. Intenta nuevamente.');
+                window.location.href = `/checkout/payment-result?status=error&message=Error durante el pago&reference=${encodeURIComponent(config.reference)}`;
+                return;
+              default:
                 console.log('❓ Estado de transacción no manejado:', transactionStatus);
                 toast.info(`Estado del pago: ${transactionStatus}`);
+            }
           }
+
+          // Manejar el resultado automáticamente solo si NO se redirigió arriba
+          if (!callbackExecuted && transactionId && transactionStatus) {
+            console.log(`✅ [WIDGET-SERVICE] Transaction válida - ID: ${transactionId}, Status: ${transactionStatus}`);
+            switch (transactionStatus) {
+              case 'APPROVED':
+                toast.success('¡Pago aprobado exitosamente!');
+                window.location.href = `/checkout/payment-result?status=success&transaction_id=${transactionId}&amount=${config.amountInCents}&reference=${config.reference ? encodeURIComponent(config.reference) : ''}`;
+                break;
+              case 'DECLINED':
+                toast.error('El pago fue rechazado. Intenta con otro método de pago.');
+                window.location.href = `/checkout/payment-result?status=declined&transaction_id=${transactionId}&message=Pago rechazado`;
+                break;
+              case 'PENDING':
+                toast.info('El pago está pendiente de confirmación.');
+                window.location.href = `/checkout/payment-result?status=pending&transaction_id=${transactionId}&amount=${config.amountInCents}&reference=${config.reference ? encodeURIComponent(config.reference) : ''}`;
+                break;
+              case 'ERROR':
+                toast.error('Ocurrió un error durante el pago. Intenta nuevamente.');
+                window.location.href = `/checkout/payment-result?status=error&message=Error durante el pago`;
+                break;
+              default:
+                console.log('❓ Estado de transacción no manejado:', transactionStatus);
+                toast.info(`Estado del pago: ${transactionStatus}`);
+            }
             callbackExecuted = true;
-        } else if (result.error) {
+          } else if (result.error) {
           console.error('❌ Error en el resultado del widget:', result.error);
           toast.error('Error en el procesamiento del pago');
             callbackExecuted = true;
@@ -1358,39 +1381,59 @@ if (typeof window !== 'undefined') {
   console.log('   - testDirectUrl() - Probar solo URL directa');
 }
 
+export interface CheckoutData {
+  cart_id: number;
+  id_direccion: number;
+  id_canje?: number | null;
+}
+
 // Función helper para inicializar el pago
 export const initializeWompiPayment = async (
   amountInCents: number,
   customerData?: WompiWidgetConfig['customerData'],
   shippingAddress?: WompiWidgetConfig['shippingAddress'],
   onResult?: (result: any) => void,
-  orderId?: number
+  orderId?: number,
+  checkoutData?: CheckoutData
 ): Promise<void> => {
   try {
     console.log('🚀 Inicializando pago con Wompi...');
     
-    // Intentar obtener la configuración desde el backend primero
     let config: WompiWidgetConfig;
-    
-    if (orderId) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    // Flujo checkout session: no se crea orden hasta que el pago sea aprobado
+    if (checkoutData) {
+      try {
+        console.log('📡 Creando sesión de checkout (sin orden)...');
+        const response = await fetch('/api/payments/create-checkout', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(checkoutData),
+        });
+        if (!response.ok) throw new Error(`Error del servidor: ${response.status}`);
+        const backendResponse = await response.json();
+        if (!backendResponse.reference || !backendResponse.amount_in_cents || !backendResponse.currency || !backendResponse.public_key || !backendResponse.integrity_signature) {
+          throw new Error('La respuesta del backend está incompleta.');
+        }
+        config = wompiWidgetService.createWidgetConfigFromBackend(backendResponse, customerData, shippingAddress);
+        console.log('✅ Configuración checkout obtenida:', { reference: config.reference, amountInCents: config.amountInCents });
+      } catch (e) {
+        console.error('Error al crear checkout session:', e);
+        throw e;
+      }
+    } else if (orderId) {
       try {
         console.log('📡 Obteniendo configuración desde el backend...');
-        
-        // Obtener token de autenticación
-        const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-        
-        const headers: HeadersInit = {
-          'Content-Type': 'application/json',
-        };
-        
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        
         const response = await fetch('/api/payments/create', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ order_id: orderId }),
+          body: JSON.stringify({
+            order_id: orderId,
+            amount_in_cents: amountInCents,
+          }),
         });
 
         if (!response.ok) {

@@ -67,8 +67,12 @@ def create_comentary(db:Session, comentary:ComentaryCreate, id_usuario:Decimal):
         """)
         result = db.execute(query, params)
         fetched_result = result.fetchone()
+        msg = fetched_result[0] if fetched_result else None
+        if msg and str(msg).strip().lower().startswith("error"):
+            db.rollback()
+            raise Exception(str(msg))
         db.commit()
-        return fetched_result[0] if fetched_result else None
+        return msg
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al crear comentario: {str(e)}")
@@ -114,6 +118,46 @@ def get_comentaries_by_product(db:Session, id_categoria:Decimal, id_linea:Decima
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener comentarios del producto: {str(e)}")
+
+def get_testimonials_5_star(db: Session, limit: int = 3):
+    """
+    Obtiene reseñas con calificación 4 o 5 estrellas para la sección de testimonios.
+    Prioriza 5 estrellas y luego las más recientes. Incluye nombre del usuario
+    y datos del producto reseñado (nombre, imagen).
+    """
+    try:
+        query = text("""
+            SELECT
+                c.id_comentario,
+                c.comentario,
+                c.calificacion,
+                c.fec_insert,
+                c.id_categoria,
+                c.id_linea,
+                c.id_sublinea,
+                c.id_producto,
+                u.nom_usuario,
+                u.ape_usuario,
+                p.nom_producto,
+                p.img_producto
+            FROM tab_comentarios c
+            INNER JOIN tab_usuarios u ON c.id_usuario = u.id_usuario
+            LEFT JOIN tab_productos p
+              ON p.id_categoria = c.id_categoria
+             AND p.id_linea = c.id_linea
+             AND p.id_sublinea = c.id_sublinea
+             AND p.id_producto = c.id_producto
+            WHERE c.calificacion >= 4
+              AND c.ind_activo = TRUE
+            ORDER BY c.calificacion DESC, c.fec_insert DESC
+            LIMIT :limit
+        """)
+        result = db.execute(query, {"limit": limit})
+        return result.mappings().all()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener testimonios 5 estrellas: {str(e)}")
+
 
 def get_reviewed_products_in_order(db: Session, id_orden: int, id_usuario: int) -> list:
     """

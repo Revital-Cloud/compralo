@@ -48,6 +48,7 @@ class Subline(SublineBase):
     Incluye el `id_sublinea` y los campos de auditoría.
     """
     id_sublinea: Decimal
+    productos_count: Optional[int] = Field(None, description="Cantidad de productos en la sublínea.")
     # Campos enriquecidos para mostrar en el frontend
     nom_categoria: Optional[str] = None
     nom_linea: Optional[str] = None

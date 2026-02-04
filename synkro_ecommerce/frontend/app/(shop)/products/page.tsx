@@ -60,12 +60,22 @@ const ProductsPage = () => {
       offset: (currentPage - 1) * itemsPerPage,
     }
 
+    // Líneas vienen como "id_categoria-id_linea" (valor compuesto)
+    const lineIds = selectedLines.length > 0
+      ? selectedLines.map((s) => (s.includes('-') ? Number(s.split('-')[1]) : Number(s))).filter((n) => !Number.isNaN(n))
+      : []
+
+    // Sublíneas vienen como "id_categoria-id_linea-id_sublinea"
+    const sublineIds = selectedSublines.length > 0
+      ? selectedSublines.map((s) => (s.includes('-') ? Number(s.split('-')[2]) : Number(s))).filter((n) => !Number.isNaN(n))
+      : []
+
     return {
       ...base,
       ...(inStockOnly && { solo_con_stock: true }),
       ...(selectedCategories.length > 0 && { id_categoria: selectedCategories.map(Number) }),
-      ...(selectedLines.length > 0 && { id_linea: selectedLines.map(Number) }),
-      ...(selectedSublines.length > 0 && { id_sublinea: selectedSublines.map(Number) }),
+      ...(lineIds.length > 0 && { id_linea: lineIds.length === 1 ? lineIds[0] : [...new Set(lineIds)] }),
+      ...(sublineIds.length > 0 && { id_sublinea: sublineIds.length === 1 ? sublineIds[0] : [...new Set(sublineIds)] }),
       ...(selectedBrands.length > 0 && { id_marca: selectedBrands.map(Number) }),
       ...(selectedProviders.length > 0 && { id_proveedor: selectedProviders.map(Number) }),
       ...(searchQuery.trim() && { nombre_producto: searchQuery.trim() }),

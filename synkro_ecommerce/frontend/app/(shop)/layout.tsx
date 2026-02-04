@@ -3,6 +3,7 @@
 import EcommerceHeader from "@/components/layout/shop/header/header";
 import { defaultMenuItems } from "@/lib/menu-config";
 import EcommerceFooter from "@/components/layout/shop/footer/footer";
+import { InformativeChatbotWidget } from "@/components/chatbot-widget/informative-chatbot-widget";
 import { RouteGuard } from "@/components/auth/route-guard";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
@@ -47,6 +48,7 @@ export default function ShopLayout({
       />
       {children}
       <EcommerceFooter />
+      <InformativeChatbotWidget />
     </>
   );
 }
