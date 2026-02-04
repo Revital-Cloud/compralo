@@ -64,6 +64,8 @@ function setupInterceptors(instance: AxiosInstance): void {
         '/carrito-productos',
         '/carrito-productos-detalle', 
         '/calcular-total',
+        '/comentaries/testimonials',
+        '/discounts/active',
       ];
       const isPublicEndpoint = publicEndpoints.some(endpoint => 
         config.url?.includes(endpoint)
@@ -113,8 +115,10 @@ function setupInterceptors(instance: AxiosInstance): void {
         '/carrito-productos',
         '/carrito-productos-detalle', 
         '/calcular-total',
+        '/comentaries/testimonials',
+        '/discounts/active',
       ];
-      const isPublicEndpoint = publicEndpoints.some(endpoint => 
+      const isPublicEndpoint = publicEndpoints.some(endpoint =>
         originalRequest.url?.includes(endpoint)
       );
 
@@ -263,8 +267,11 @@ export async function post<T>(endpoint: string, data?: any, config?: AxiosReques
     const response = await api.post<T>(endpoint, data, config);
     console.log("✅ [API] POST response:", response.status, response.data);
     return response.data;
-  } catch (error) {
-    console.error("❌ [API] POST error:", error);
+  } catch (error: any) {
+    const data = error?.response?.data;
+    const detail = data?.detail;
+    const msg = typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map((e: any) => e?.msg ?? e).join(", ") : detail ?? error?.message ?? "Error en la petición";
+    console.error("❌ [API] POST error:", msg, data ?? error);
     throw error;
   }
 }

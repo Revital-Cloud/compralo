@@ -84,8 +84,8 @@ export const transformDiscountPayload = (values: any): any => {
       return 0
     })(),
     ind_es_para_cumpleanos: values.ind_es_para_cumpleanos || false,
-    fec_inicio: values.fec_inicio,
-    fec_fin: values.fec_fin,
+    fec_inicio: values.fec_inicio?.trim() ? values.fec_inicio.trim() : null,
+    fec_fin: values.fec_fin?.trim() ? values.fec_fin.trim() : null,
     ind_activo: values.ind_activo !== undefined ? values.ind_activo : true,
     max_usos_total: safeParseInt(values.max_usos),
     costo_puntos_canje: costoPuntosCanje,
@@ -120,11 +120,10 @@ export const transformDiscountPayload = (values: any): any => {
     }),
   }
 
-  // Eliminar campos undefined/null
+  // Eliminar campos undefined/null (mantener fec_inicio/fec_fin aunque sean null para plantillas canjeables)
   Object.keys(payload).forEach(key => {
-    if (payload[key] === undefined || payload[key] === null) {
-      delete payload[key]
-    }
+    if (payload[key] === undefined) delete payload[key]
+    if (payload[key] === null && key !== 'fec_inicio' && key !== 'fec_fin') delete payload[key]
   })
 
   return payload

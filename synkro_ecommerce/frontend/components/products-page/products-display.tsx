@@ -50,8 +50,35 @@ export const ProductsDisplay = ({
   // Función real para agregar al carrito
   const handleAddToCart = async (productId: string) => {
     try {
-      // Buscar el producto en la lista
-      const product = productsData?.data?.find((p: any) => p.id_producto.toString() === productId)
+      // Obtener productos de la estructura correcta
+      const getProductsToDisplay = () => {
+        if (productsData?.products && Array.isArray(productsData.products)) {
+          return productsData.products
+        }
+        if (productsData?.data && Array.isArray(productsData.data)) {
+          return productsData.data
+        }
+        return Array.isArray(productsData) ? productsData : []
+      }
+      
+      const allProducts = getProductsToDisplay()
+      
+      // Buscar el producto en la lista usando el ID completo (categoria-linea-sublinea-producto)
+      let product: any = null
+      
+      if (productId.includes('-')) {
+        // Si viene como slug completo
+        const [cat, line, subline, prod] = productId.split('-')
+        product = allProducts.find((p: any) => 
+          p.id_categoria?.toString() === cat &&
+          p.id_linea?.toString() === line &&
+          p.id_sublinea?.toString() === subline &&
+          p.id_producto?.toString() === prod
+        )
+      } else {
+        // Si viene solo como id_producto
+        product = allProducts.find((p: any) => p.id_producto?.toString() === productId)
+      }
       
       if (!product) {
         toast.error('Producto no encontrado')
@@ -59,23 +86,23 @@ export const ProductsDisplay = ({
       }
 
       // Verificar stock
-      if (product.num_stock <= 0) {
+      if ((product.num_stock || 0) <= 0) {
         toast.error('Producto agotado')
         return
       }
 
       // Preparar datos del producto para el carrito
       const cartProductData = {
-        id_categoria_producto: product.id_categoria_producto || 1,
-        id_linea_producto: product.id_linea_producto || 1, 
-        id_sublinea_producto: product.id_sublinea_producto || 1,
-        id_producto: product.id_producto,
+        id_categoria_producto: Number(product.id_categoria) || Number(product.id_categoria_producto) || 1,
+        id_linea_producto: Number(product.id_linea) || Number(product.id_linea_producto) || 1, 
+        id_sublinea_producto: Number(product.id_sublinea) || Number(product.id_sublinea_producto) || 1,
+        id_producto: Number(product.id_producto),
         cantidad: 1,
-        precio_unitario_carrito: parseFloat(product.val_precio.toString()),
-        stock_disponible: product.num_stock // Pasar stock para validación
+        precio_unitario_carrito: parseFloat(product.val_precio?.toString() || '0'),
+        stock_disponible: product.num_stock || 0 // Pasar stock para validación
       }
 
-      console.log('🛒 Agregando producto al carrito desde grid:', cartProductData)
+      console.log('🛒 Agregando producto al carrito desde lista:', cartProductData)
 
       // Llamar al hook del carrito
       addToCart(cartProductData)

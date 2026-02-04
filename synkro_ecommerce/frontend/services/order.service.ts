@@ -37,11 +37,11 @@ export const orderService = {
   },
 
   async getOrderDetail(orderId: string): Promise<OrderDetail> {
-    return get<OrderDetail>(`/admin/orders/${orderId}`)
+    return get<OrderDetail>(`/admin/${orderId}`)
   },
 
   async updateOrderStatus(orderId: string, status: number): Promise<{ message: string }> {
-    return put<{ message: string }>(`/admin/orders/${orderId}/status`, { new_status: status })
+    return put<{ message: string }>(`/admin/${orderId}/status`, { new_status: status })
   },
 
   // Cliente endpoints (mantener compatibilidad)

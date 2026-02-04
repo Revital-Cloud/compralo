@@ -71,6 +71,18 @@ const OrderDetailPage = () => {
 
   const { orden, productos, direccion_envio, puntos_ganados, descuentos_aplicados } = orderDetail
 
+  // img_producto en la BD es JSONB: puede ser string (URL) u objeto { main, gallery?, thumbnails? }
+  const getProductImageUrl = (img: unknown): string => {
+    if (!img) return ''
+    if (typeof img === 'string') return img
+    if (typeof img === 'object' && img !== null && 'main' in img && typeof (img as { main?: string }).main === 'string') {
+      return (img as { main: string }).main
+    }
+    const obj = img as { gallery?: string[] }
+    if (Array.isArray(obj?.gallery) && obj.gallery.length > 0) return obj.gallery[0]
+    return ''
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -178,52 +190,71 @@ const OrderDetailPage = () => {
             {/* Desktop Table View */}
             <div className="hidden lg:block">
               <div className="space-y-2">
-                {/* Header */}
-                <div className="grid grid-cols-6 gap-4 pb-2 border-b font-medium text-sm text-muted-foreground">
+                {/* Header: alineación por columna (7 columnas) */}
+                <div className="grid grid-cols-7 gap-4 pb-2 border-b font-medium text-sm text-muted-foreground items-center">
                   <div>Producto</div>
-                  <div>Cantidad</div>
-                  <div>Precio Unit.</div>
-                  <div>Subtotal</div>
-                  <div>Imagen</div>
-                  <div>ID</div>
+                  <div className="text-left">Cantidad</div>
+                  <div className="text-left">Precio Unit.</div>
+                  <div className="text-left">Subtotal</div>
+                  <div className="text-left">Opciones elegidas</div>
+                  <div className="text-left">Imagen</div>
+                  <div className="text-left font-mono">ID</div>
                 </div>
 
                 {/* Rows */}
-                {productos.map((producto) => (
-                  <div key={producto.id_producto} className="grid grid-cols-6 gap-4 py-2 border-b items-center">
-                    <div className="font-medium">{producto.nom_producto}</div>
-                    <div className="text-center">
-                      <Badge variant="outline">{producto.cantidad}</Badge>
+                {productos.map((producto) => {
+                  const imgUrl = (producto as { imagen_url?: string }).imagen_url || getProductImageUrl(producto.img_producto)
+                  const opts = (producto as { opciones_elegidas?: Record<string, string> }).opciones_elegidas
+                  const optsText = opts && Object.keys(opts).length > 0
+                    ? Object.entries(opts)
+                        .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
+                        .join(', ')
+                    : '—'
+                  return (
+                    <div key={producto.id_producto} className="grid grid-cols-7 gap-4 py-2 border-b items-center">
+                      <div className="font-medium">{producto.nom_producto}</div>
+                      <div className="text-left">
+                        <Badge variant="outline">{producto.cantidad}</Badge>
+                      </div>
+                      <div className="text-sm text-left">${producto.val_precio_unitario.toLocaleString('es-CO')}</div>
+                      <div className="font-semibold text-left">${producto.val_subtotal.toLocaleString('es-CO')}</div>
+                      <div className="text-sm text-muted-foreground text-left">{optsText}</div>
+                      <div>
+                        {imgUrl ? (
+                          <img 
+                            src={imgUrl} 
+                            alt={producto.nom_producto}
+                            className="w-12 h-12 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                            <IconPackage className="h-6 w-6 text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground font-mono">{producto.id_producto}</div>
                     </div>
-                    <div className="text-sm">${producto.val_precio_unitario.toLocaleString('es-CO')}</div>
-                    <div className="font-semibold">${producto.val_subtotal.toLocaleString('es-CO')}</div>
-                    <div>
-                      {producto.img_producto ? (
-                        <img 
-                          src={producto.img_producto} 
-                          alt={producto.nom_producto}
-                          className="w-12 h-12 object-cover rounded"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
-                          <IconPackage className="h-6 w-6 text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-sm text-muted-foreground font-mono">{producto.id_producto}</div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
 
             {/* Mobile Card View */}
             <div className="lg:hidden space-y-3">
-              {productos.map((producto) => (
+              {productos.map((producto) => {
+                const imgUrl = (producto as { imagen_url?: string }).imagen_url || getProductImageUrl(producto.img_producto)
+                const opts = (producto as { opciones_elegidas?: Record<string, string> }).opciones_elegidas
+                const optsText = opts && Object.keys(opts).length > 0
+                  ? Object.entries(opts)
+                      .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
+                      .join(', ')
+                  : null
+                return (
                 <div key={producto.id_producto} className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-start gap-3">
-                    {producto.img_producto ? (
+                    {imgUrl ? (
                       <img 
-                        src={producto.img_producto} 
+                        src={imgUrl} 
                         alt={producto.nom_producto}
                         className="w-16 h-16 object-cover rounded"
                       />
@@ -254,8 +285,15 @@ const OrderDetailPage = () => {
                       <div className="font-semibold">${producto.val_subtotal.toLocaleString('es-CO')}</div>
                     </div>
                   </div>
+                  {optsText && (
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Opciones elegidas: </span>
+                      <span>{optsText}</span>
+                    </div>
+                  )}
                 </div>
-              ))}
+              )
+            })}
             </div>
           </div>
         </CardContent>

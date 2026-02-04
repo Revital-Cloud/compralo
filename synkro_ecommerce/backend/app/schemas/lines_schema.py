@@ -45,6 +45,8 @@ class Line(LineBase):
     id_linea: Decimal
     # Campos enriquecidos para mostrar en el frontend
     nom_categoria: Optional[str] = None
+    sublineas_count: Optional[int] = Field(None, description="Cantidad de sublíneas en la línea.")
+    productos_count: Optional[int] = Field(None, description="Cantidad de productos en la línea.")
         
 # Esquema para la Creación de Líneas
 class LineCreate(LineBase):

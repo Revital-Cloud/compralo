@@ -1,5 +1,6 @@
 from decimal import Decimal
-from fastapi import APIRouter, Body, Depends, Form, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user
@@ -47,20 +48,18 @@ async def get_lines_by_category(id_categoria: Decimal, db: Session = Depends(get
         return []  # Retornar lista vacía en lugar de error
     return lines
 
-# Ruta para obtener una línea específica
+# Ruta para obtener una línea específica (opcionalmente por categoría para desambiguar)
 @router.get("/lines/{id_linea}", response_model=Line)
-async def get_line(id_linea: Decimal, db: Session = Depends(get_db)):
+async def get_line(
+    id_linea: Decimal,
+    id_categoria: Optional[Decimal] = Query(None, description="ID de categoría para desambiguar cuando id_linea se repite"),
+    db: Session = Depends(get_db),
+):
     """
     Obtiene una línea específica por su ID.
-
-    Args:
-        id_linea (Decimal): ID de la línea a obtener.
-        db (Session): Sesión de la base de datos inyectada por FastAPI.
-
-    Returns:
-        Line: Detalles de la línea solicitada.
+    Si id_categoria se envía, devuelve la línea de esa categoría (evita confusión cuando hay misma id_linea en varias categorías).
     """
-    line = lines_service.get_line(db, id_linea)
+    line = lines_service.get_line(db, id_linea, id_categoria)
     if not line:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Línea no encontrada")
     return line

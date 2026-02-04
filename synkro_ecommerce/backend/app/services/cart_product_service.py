@@ -1,9 +1,83 @@
+import json
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import Optional
+from typing import Optional, Any, Dict
+from psycopg2.extras import Json
 
 from schemas.cart_product_schemas import CalculateTotalCart, CartProductCreate, CartProductDelete, GetCartDetail, MigrateCartAnonymous, GetCartUser, CartItemWithBasicInfo, ProductBasicInfo
+
+
+def _imagen_url_por_color(
+    img_producto: Any,
+    spcf_producto: Any,
+    opciones_elegidas: Dict[str, Any],
+) -> Optional[str]:
+    """
+    Devuelve la URL de la imagen que corresponde al color elegido (opciones_elegidas.color).
+    Si no hay color o no hay galería, devuelve la imagen principal (main).
+    Misma lógica que en la página de producto: colores e imágenes pueden estar en orden inverso.
+    """
+    if not img_producto:
+        return None
+    if isinstance(img_producto, str):
+        try:
+            img_producto = json.loads(img_producto)
+        except (TypeError, ValueError):
+            return None
+    if not isinstance(img_producto, dict):
+        return None
+    main_url = img_producto.get("main") or img_producto.get("url")
+    gallery = img_producto.get("gallery") or []
+    if not isinstance(gallery, list):
+        gallery = []
+    images = ([main_url] if main_url else []) + [u for u in gallery if u]
+    if not images:
+        return None
+    selected_color = (opciones_elegidas or {}).get("color")
+    if not selected_color or not spcf_producto:
+        return main_url or images[0]
+    # Parsear colores del producto
+    colors = []
+    if isinstance(spcf_producto, str):
+        try:
+            spcf_producto = json.loads(spcf_producto)
+        except (TypeError, ValueError):
+            return main_url or images[0]
+    if isinstance(spcf_producto, dict):
+        if "colors" in spcf_producto and isinstance(spcf_producto["colors"], list):
+            for c in spcf_producto["colors"]:
+                name = (c.get("name") or c.get("value") or "") if isinstance(c, dict) else str(c)
+                if name:
+                    colors.append(name.strip())
+        elif "color" in spcf_producto and isinstance(spcf_producto["color"], str):
+            colors = [s.strip() for s in spcf_producto["color"].split(",") if s.strip()]
+    if not colors or len(images) == 0:
+        return main_url or images[0]
+    selected_clean = str(selected_color).strip().lower()
+    color_index = next((i for i, c in enumerate(colors) if c.lower() == selected_clean), None)
+    if color_index is None:
+        return main_url or images[0]
+    # Mismo producto: si misma cantidad de colores e imágenes, índice invertido
+    if len(colors) == len(images):
+        image_index = len(colors) - 1 - color_index
+    else:
+        image_index = min(color_index, len(images) - 1)
+    return images[image_index] if 0 <= image_index < len(images) else (main_url or images[0])
+
+
+def _opciones_elegidas_to_dict(value: Any) -> Dict[str, Any]:
+    """Convierte opciones_elegidas (JSONB) a dict para la API."""
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            return json.loads(value) or {}
+        except (TypeError, ValueError):
+            return {}
+    return {}
 
 def get_cart(db:Session):
     """
@@ -70,22 +144,26 @@ def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert
     Raises:
         Exception: Si no se proporciona ni id_usuario ni session_id en cart_product.
     """
-    try:      
+    try:
         params = cart_product.model_dump()
         params["usr_insert"] = usr_insert
-        
+        opts = params.get("opciones_elegidas") or {}
+        params["opciones_elegidas"] = Json(opts) if isinstance(opts, dict) else Json({})
+
         print(f"🛒 [BACKEND] Agregando producto al carrito con parámetros: {params}")
-        
+
+        # Casts para que coincidan con la firma en BD (cantidad es INTEGER por %TYPE en tab_carrito_productos).
         query = text("""
         SELECT fun_agregar_producto_carrito(
-            :id_usuario,
-            :session_id,
-            :id_categoria_producto,
-            :id_linea_producto,
-            :id_sublinea_producto,
-            :id_producto,
-            :cantidad,
-            :usr_insert
+            CAST(:id_usuario AS NUMERIC),
+            CAST(:session_id AS VARCHAR),
+            CAST(:id_categoria_producto AS NUMERIC),
+            CAST(:id_linea_producto AS NUMERIC),
+            CAST(:id_sublinea_producto AS NUMERIC),
+            CAST(:id_producto AS NUMERIC),
+            CAST(:cantidad AS INTEGER),
+            CAST(:usr_insert AS NUMERIC),
+            CAST(:opciones_elegidas AS JSONB)
         )
         """)
         result = db.execute(query, params)
@@ -97,8 +175,9 @@ def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
-        print(f"❌ [BACKEND] Error al crear producto en el carrito: {str(e)}")
-        raise Exception(f"Error al crear producto en el carrito: {str(e)}")
+        err_str = str(e)
+        print(f"❌ [BACKEND] Error al crear producto en el carrito: {err_str}")
+        raise Exception(f"Error al crear producto en el carrito: {err_str}")
 
 def update_cart_product_quantity(db: Session, id_carrito_producto: int, nueva_cantidad: int, usr_update: Optional[int]):
     """
@@ -156,6 +235,32 @@ def update_cart_product_quantity(db: Session, id_carrito_producto: int, nueva_ca
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al actualizar cantidad: {str(e)}")
+
+
+def delete_cart_product_by_id(db: Session, id_carrito_producto: int) -> bool:
+    """
+    Elimina una sola línea del carrito por su id_carrito_producto.
+    Así se quita solo ese ítem (ej. un color/talla) y no todos los del mismo producto.
+
+    Args:
+        db (Session): Sesión de base de datos.
+        id_carrito_producto (int): ID de la fila en tab_carrito_productos.
+
+    Returns:
+        bool: True si se eliminó una fila, False si no existía.
+    """
+    try:
+        query = text("""
+            DELETE FROM tab_carrito_productos
+            WHERE id_carrito_producto = :id_carrito_producto
+        """)
+        result = db.execute(query, {"id_carrito_producto": id_carrito_producto})
+        db.commit()
+        return result.rowcount > 0
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al eliminar ítem del carrito: {str(e)}")
+
 
 def delete_cart_product(db: Session, id_usuario: Optional[Decimal], session_id: Optional[str], id_categoria_producto: Decimal, id_linea_producto: Decimal, id_sublinea_producto: Decimal, id_producto: Decimal, cantidad: Decimal, usr_update: Decimal):
     """
@@ -313,7 +418,9 @@ def get_cart_detail(db:Session, get_cart_detail:GetCartDetail):
             p.img_producto,
             m.nom_marca,
             sl.nom_sublinea,
-            cat.nom_categoria
+            cat.nom_categoria,
+            COALESCE(cp.opciones_elegidas, '{}'::JSONB) as opciones_elegidas,
+            p.spcf_producto
         FROM tab_carrito_productos cp
         JOIN tab_carritos c ON cp.id_carrito = c.id_carrito
         JOIN tab_productos p ON (
@@ -347,20 +454,13 @@ def get_cart_detail(db:Session, get_cart_detail:GetCartDetail):
         # Convertir productos a la estructura esperada por el frontend
         products_list = []
         for item in cart_items:
-            # Procesar imagen_producto
-            imagen_url = None
-            if item[10]:  # img_producto
-                try:
-                    import json
-                    img_data = item[10]
-                    if isinstance(img_data, str):
-                        img_data = json.loads(img_data)
-                    if isinstance(img_data, dict) and 'main' in img_data:
-                        imagen_url = img_data['main']
-                    elif isinstance(img_data, dict) and 'url' in img_data:
-                        imagen_url = img_data['url']
-                except:
-                    pass
+            opciones = _opciones_elegidas_to_dict(item[14]) if len(item) > 14 else {}
+            # Imagen según color elegido (opciones_elegidas.color) o main por defecto
+            imagen_url = _imagen_url_por_color(
+                item[10],  # img_producto
+                item[15] if len(item) > 15 else None,  # spcf_producto
+                opciones,
+            )
             
             product_dict = {
                 'id_carrito_producto': item[0],
@@ -374,9 +474,10 @@ def get_cart_detail(db:Session, get_cart_detail:GetCartDetail):
                 'subtotal': float(item[8]),
                 'stock_disponible': int(item[9]),
                 'imagen_url': imagen_url,
-                'marca': item[11],  # nom_marca
-                'sublinea': item[12],  # nom_sublinea
-                'categoria': item[13]  # nom_categoria
+                'marca': item[11],
+                'sublinea': item[12],
+                'categoria': item[13],
+                'opciones_elegidas': opciones,
             }
             
             products_list.append(product_dict)

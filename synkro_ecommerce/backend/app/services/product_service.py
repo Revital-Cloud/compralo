@@ -119,34 +119,64 @@ def get_products(db: Session):
               en una lista de objetos `Product`.
     """
     try:
-        # Seleccionamos todas las columnas de la tabla tab_productos.
-        # Los nombres de las columnas deben coincidir con los campos del esquema Pydantic Product
-        # o deben usarse alias si los nombres son diferentes en Pydantic.
-        # En este caso, el esquema Product usa los nombres de columna directamente.
-        query = text("""
+        # Primero obtener todos los productos
+        products_query = text("""
         SELECT 
-            id_categoria,
-            id_linea,
-            id_sublinea,
-            id_producto,
-            nom_producto,
-            spcf_producto,
-            img_producto,
-            val_precio,
-            id_proveedor,
-            id_marca,
-            num_stock,
-            ind_activo,
-            usr_insert,
-            fec_insert,
-            usr_update,
-            fec_update
-        FROM tab_productos
+            p.id_categoria,
+            p.id_linea,
+            p.id_sublinea,
+            p.id_producto,
+            p.nom_producto,
+            p.spcf_producto,
+            p.img_producto,
+            p.val_precio,
+            p.id_proveedor,
+            p.id_marca,
+            p.num_stock,
+            p.ind_activo,
+            p.usr_insert,
+            p.fec_insert,
+            p.usr_update,
+            p.fec_update
+        FROM tab_productos p
         """)
-        result = db.execute(query)
-        # .mappings() convierte cada fila en un objeto tipo dict (RowMapping)
-        # FastAPI puede usar esto para poblar el modelo Pydantic Product definido en el router.
-        return result.mappings().all()
+        products_result = db.execute(products_query)
+        products_data = products_result.mappings().all()
+        
+        # Obtener ratings promedio para todos los productos
+        if products_data:
+            # Obtener todos los ratings en una sola consulta
+            ratings_query = text("""
+                SELECT 
+                    id_categoria,
+                    id_linea,
+                    id_sublinea,
+                    id_producto,
+                    ROUND(AVG(calificacion)::numeric, 1)::float as rating
+                FROM tab_comentarios
+                WHERE ind_activo = TRUE
+                    AND calificacion IS NOT NULL
+                GROUP BY id_categoria, id_linea, id_sublinea, id_producto
+            """)
+            ratings_result = db.execute(ratings_query)
+            ratings_dict = {
+                (r['id_categoria'], r['id_linea'], r['id_sublinea'], r['id_producto']): r['rating']
+                for r in ratings_result.mappings().all()
+            }
+        else:
+            ratings_dict = {}
+        
+        # Combinar productos con sus ratings
+        products_with_ratings = []
+        for product in products_data:
+            product_key = (product['id_categoria'], product['id_linea'], product['id_sublinea'], product['id_producto'])
+            rating = ratings_dict.get(product_key)
+            # Crear un nuevo dict con el rating incluido
+            product_dict = dict(product)
+            product_dict['rating'] = rating
+            products_with_ratings.append(product_dict)
+        
+        return products_with_ratings
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener productos: {str(e)}")
@@ -210,7 +240,39 @@ def get_product(
                 "id_producto":id_producto
             }
             )
-        return result.mappings().first()
+        row = result.mappings().first()
+        if row is None:
+            return None
+        # Incluir rating y cantidad de reseñas desde tab_comentarios
+        product_dict = dict(row)
+        rating_row = db.execute(
+            text("""
+                SELECT 
+                    ROUND(AVG(calificacion)::numeric, 1)::float AS rating,
+                    COUNT(*)::int AS review_count
+                FROM tab_comentarios
+                WHERE id_categoria = :id_categoria
+                  AND id_linea = :id_linea
+                  AND id_sublinea = :id_sublinea
+                  AND id_producto = :id_producto
+                  AND ind_activo = TRUE
+                  AND calificacion IS NOT NULL
+            """),
+            {
+                "id_categoria": id_categoria,
+                "id_linea": id_linea,
+                "id_sublinea": id_sublinea,
+                "id_producto": id_producto,
+            },
+        ).mappings().first()
+        if rating_row and rating_row.get("review_count", 0) and rating_row["review_count"] > 0:
+            # Asegurar tipos nativos para JSON (por si vienen Decimal desde la DB)
+            product_dict["rating"] = float(rating_row["rating"]) if rating_row["rating"] is not None else None
+            product_dict["review_count"] = int(rating_row["review_count"])
+        else:
+            product_dict["rating"] = None
+            product_dict["review_count"] = 0
+        return product_dict
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener el producto: {str(e)}")
@@ -560,8 +622,12 @@ async def update_product(
         # y que pueda manejar `None` o la ausencia de algunos de ellos (excepto id_producto).
         result = db.execute(query, params)
         fetched_result = result.fetchone()
+        msg = fetched_result[0] if fetched_result else None
+        if msg and str(msg).strip().lower().startswith("error:"):
+            db.rollback()
+            raise Exception(str(msg).strip())
         db.commit()
-        return fetched_result[0] if fetched_result else None
+        return msg
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al actualizar el producto: {str(e)}")
@@ -726,12 +792,14 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
             else:
                 return value
         
-        # Preparar parámetros para la función de DB
+        # Preparar parámetros para la función de DB (enteros para línea/sublínea)
+        _single_line = get_single_value(filters.id_linea)
+        _single_subline = get_single_value(filters.id_sublinea)
         params = {
             # Parámetros únicos
             "p_id_categoria": get_single_value(filters.id_categoria),
-            "p_id_linea": get_single_value(filters.id_linea),
-            "p_id_sublinea": get_single_value(filters.id_sublinea),
+            "p_id_linea": int(_single_line) if _single_line is not None else None,
+            "p_id_sublinea": int(_single_subline) if _single_subline is not None else None,
             "p_id_marca": get_single_value(filters.id_marca),
             "p_id_proveedor": get_single_value(filters.id_proveedor),
             "p_nombre_producto": filters.nombre_producto,
@@ -750,6 +818,31 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
             "p_id_marcas": get_array_value(filters.id_marca),
             "p_id_proveedores": get_array_value(filters.id_proveedor)
         }
+        
+        # Debug: Log de parámetros enviados a la función SQL
+        print(f"🔍 Debug filter_products - Parámetros enviados a fun_filter_products:")
+        print(f"  - p_id_linea: {params['p_id_linea']}")
+        print(f"  - p_id_sublinea: {params['p_id_sublinea']}")
+        print(f"  - p_id_lineas (array): {params['p_id_lineas']}")
+        print(f"  - p_id_sublineas (array): {params['p_id_sublineas']}")
+        print(f"  - filters.id_linea (raw): {filters.id_linea}")
+        print(f"  - filters.id_sublinea (raw): {filters.id_sublinea}")
+        
+        # Validar que si se pasa id_sublinea, también debe validarse que pertenezca a id_linea si está presente
+        if params['p_id_sublinea'] is not None and params['p_id_linea'] is not None:
+            # Verificar que la sublínea pertenece a la línea
+            validation_query = text("""
+                SELECT COUNT(*) as count
+                FROM tab_sublineas
+                WHERE id_sublinea = :subline_id AND id_linea = :line_id
+            """)
+            validation_result = db.execute(validation_query, {
+                'subline_id': params['p_id_sublinea'],
+                'line_id': params['p_id_linea']
+            })
+            validation_count = validation_result.scalar()
+            if validation_count == 0:
+                print(f"⚠️  WARNING: La sublínea {params['p_id_sublinea']} no pertenece a la línea {params['p_id_linea']}")
         
         # Usar función de base de datos
         query = text("""
@@ -786,6 +879,88 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
             print(f"  - Primer registro total_registros: {products_data[0].get('total_registros', 'N/A')}")
             print(f"  - IDs únicos en la respuesta: {set(row['id_producto'] for row in products_data)}")
         
+        # Validación adicional: Asegurar que los productos devueltos cumplan los criterios de filtrado
+        # (esto corrige posibles problemas en la función SQL que use OR en lugar de AND)
+        original_count = len(products_data)
+        
+        if params['p_id_linea'] is not None and params['p_id_sublinea'] is not None:
+            # Si se pasaron ambos, filtrar por ambos
+            products_data = [
+                row for row in products_data
+                if row['id_linea'] == params['p_id_linea'] and row['id_sublinea'] == params['p_id_sublinea']
+            ]
+        elif params['p_id_linea'] is not None:
+            # Si solo se pasó id_linea, filtrar por línea
+            products_data = [
+                row for row in products_data
+                if row['id_linea'] == params['p_id_linea']
+            ]
+        elif params['p_id_sublinea'] is not None:
+            # Si solo se pasó id_sublinea, filtrar por sublínea
+            products_data = [
+                row for row in products_data
+                if row['id_sublinea'] == params['p_id_sublinea']
+            ]
+        
+        filtered_count = len(products_data)
+        if original_count != filtered_count:
+            print(f"⚠️  WARNING: La función SQL devolvió {original_count} productos, pero solo {filtered_count} cumplen los filtros aplicados")
+            if params['p_id_linea'] is not None and params['p_id_sublinea'] is not None:
+                print(f"  - Filtros: línea={params['p_id_linea']}, sublínea={params['p_id_sublinea']}")
+            elif params['p_id_linea'] is not None:
+                print(f"  - Filtro: línea={params['p_id_linea']}")
+            elif params['p_id_sublinea'] is not None:
+                print(f"  - Filtro: sublínea={params['p_id_sublinea']}")
+            print(f"  - Esto indica que la función SQL podría estar usando OR en lugar de AND para estos filtros")
+        
+        # Obtener ratings promedio para los productos filtrados
+        product_ids = set()
+        for row in products_data:
+            product_key = (row['id_categoria'], row['id_linea'], row['id_sublinea'], row['id_producto'])
+            product_ids.add(product_key)
+        
+        ratings_dict = {}
+        if product_ids:
+            # Construir la consulta con valores explícitos para evitar problemas con IN y tuplas
+            # Usar VALUES para crear una tabla temporal con los IDs de productos
+            values_list = []
+            params_dict = {}
+            for idx, (cat, line, subline, prod) in enumerate(product_ids):
+                values_list.append(f"(:cat_{idx}, :line_{idx}, :subline_{idx}, :prod_{idx})")
+                params_dict[f'cat_{idx}'] = cat
+                params_dict[f'line_{idx}'] = line
+                params_dict[f'subline_{idx}'] = subline
+                params_dict[f'prod_{idx}'] = prod
+            
+            values_clause = ', '.join(values_list)
+            ratings_query = text(f"""
+                SELECT 
+                    c.id_categoria,
+                    c.id_linea,
+                    c.id_sublinea,
+                    c.id_producto,
+                    CASE 
+                        WHEN COUNT(c.calificacion) > 0 
+                        THEN ROUND(AVG(c.calificacion)::numeric, 1)::float 
+                        ELSE NULL 
+                    END as rating
+                FROM tab_comentarios c
+                INNER JOIN (VALUES {values_clause}) AS p(id_categoria, id_linea, id_sublinea, id_producto)
+                    ON c.id_categoria = p.id_categoria
+                    AND c.id_linea = p.id_linea
+                    AND c.id_sublinea = p.id_sublinea
+                    AND c.id_producto = p.id_producto
+                WHERE c.ind_activo = TRUE
+                    AND c.calificacion IS NOT NULL
+                GROUP BY c.id_categoria, c.id_linea, c.id_sublinea, c.id_producto
+            """)
+            
+            ratings_result = db.execute(ratings_query, params_dict)
+            ratings_dict = {
+                (r['id_categoria'], r['id_linea'], r['id_sublinea'], r['id_producto']): r['rating']
+                for r in ratings_result.mappings().all()
+            }
+        
         # Convertir a objetos ProductFiltered
         products = []
         total = 0
@@ -817,6 +992,10 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
                 except json.JSONDecodeError:
                     img_producto = None
             
+            # Obtener rating para este producto
+            product_key_tuple = (row['id_categoria'], row['id_linea'], row['id_sublinea'], row['id_producto'])
+            product_rating = ratings_dict.get(product_key_tuple)
+            
             product = ProductFiltered(
                 id_categoria=row['id_categoria'],
                 id_linea=row['id_linea'],
@@ -833,7 +1012,8 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
                 nom_proveedor=row['nom_proveedor'],
                 nom_marca=row['nom_marca'],
                 fec_insert=row['fec_insert'],
-                total_registros=row['total_registros']
+                total_registros=row['total_registros'],
+                rating=product_rating
             )
             products.append(product)
             

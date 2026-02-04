@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger, DrawerClose } from "@/components/ui";
@@ -30,7 +30,11 @@ interface OrderProductItem {
   unit_price: number;
   total_price: number;
   product_image?: string | null;
+  /** URL de imagen según color elegido (viene del backend cuando aplica). */
+  imagen_url?: string | null;
   item_discounts?: any;
+  /** Opciones elegidas (ej. color, talla). */
+  opciones_elegidas?: Record<string, string>;
 }
 
 interface OrderDetail {
@@ -116,12 +120,12 @@ export default function OrdersTab() {
       const { createComment } = await import('@/services/review.service');
       
       await createComment({
-        id_categoria: product.id_categoria!,
-        id_linea: product.id_linea!,
-        id_sublinea: product.id_sublinea!,
-        id_producto: product.id_producto!,
-        id_orden: orderDetail.id_orden,
-        comentario: comment,
+        id_categoria: Number(product.id_categoria),
+        id_linea: Number(product.id_linea),
+        id_sublinea: Number(product.id_sublinea),
+        id_producto: Number(product.id_producto),
+        id_orden: Number(orderDetail.id_orden),
+        comentario: comment.trim(),
         calificacion: rating
       });
       
@@ -142,16 +146,21 @@ export default function OrdersTab() {
       
       toast.success('¡Reseña enviada exitosamente!');
     } catch (error: any) {
-      console.error('Error al enviar comentario:', error);
+      const resData = error?.response?.data;
+      console.error('Error al enviar comentario:', { status: error?.response?.status, data: resData, error });
       
-      // Extraer el mensaje de error del backend
+      // Extraer el mensaje de error del backend (puede ser string o array de validación)
       let errorMessage = 'Error al enviar el comentario. Inténtalo de nuevo.';
-      
-      if (error?.response?.data?.detail) {
-        errorMessage = error.response.data.detail;
+      const detail = resData?.detail;
+      if (detail != null) {
+        errorMessage = typeof detail === 'string'
+          ? detail
+          : Array.isArray(detail)
+            ? detail.map((e: { msg?: string }) => e?.msg ?? '').filter(Boolean).join('. ') || errorMessage
+            : errorMessage;
         
         // Si el error indica que ya existe una reseña, actualizar el estado
-        if (errorMessage.includes('Ya has reseñado')) {
+        if (typeof errorMessage === 'string' && errorMessage.includes('Ya has reseñado')) {
           const product = orderDetail?.items?.find(item => item.id_item === reviewingProduct);
           if (product && orderDetail?.id_orden) {
             const productKey = `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`;
@@ -327,9 +336,15 @@ export default function OrdersTab() {
                     <span className="text-muted-foreground">Descuentos aplicados:</span>
                     {(orderDetail.detalle_descuentos_aplicados && (orderDetail.detalle_descuentos_aplicados as any[])?.length > 0) ? (
                       <ul className="list-disc pl-5 text-sm">
-                        {(orderDetail.detalle_descuentos_aplicados as any[]).map((d, idx) => (
-                          <li key={idx}>{d.nombre || d.codigo || "Descuento"} (-${Number(d.monto || d.valor || 0).toLocaleString()})</li>
-                        ))}
+                        {(orderDetail.detalle_descuentos_aplicados as any[]).map((d, idx) => {
+                          const label = d.tipo_descuento === "canje_puntos"
+                            ? `Descuento por puntos${d.nombre ? `: ${d.nombre}` : ""}`
+                            : (d.nombre || d.codigo || "Descuento");
+                          const amount = d.descuento_aplicado ?? d.monto ?? d.valor ?? 0;
+                          return (
+                            <li key={idx}>{label} (-${Number(amount).toLocaleString()})</li>
+                          );
+                        })}
                       </ul>
                     ) : (
                       <p className="text-sm text-muted-foreground">Sin descuentos aplicados</p>
@@ -342,7 +357,7 @@ export default function OrdersTab() {
                     <p className="font-medium mb-3">Productos</p>
                     <div className="space-y-4">
                       {orderDetail.items.map((it, idx) => {
-                        const productImage = getProductImage(it.product_image);
+                        const productImage = it.imagen_url || getProductImage(it.product_image);
                         const isReviewing = reviewingProduct === it.id_item;
                         const productKey = `${it.id_categoria}-${it.id_linea}-${it.id_sublinea}-${it.id_producto}`;
                         const orderReviews = reviewsSentByOrder.get(orderDetail.id_orden) || new Set();
@@ -374,6 +389,13 @@ export default function OrdersTab() {
                                   <div className="min-w-0 flex-1">
                                     <p className="font-medium truncate">{it.product_name}</p>
                                     <p className="text-sm text-muted-foreground">Cantidad: {it.quantity}</p>
+                                    {it.opciones_elegidas && Object.keys(it.opciones_elegidas).length > 0 && (
+                                      <p className="text-sm text-muted-foreground">
+                                        {Object.entries(it.opciones_elegidas)
+                                          .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
+                                          .join(', ')}
+                                      </p>
+                                    )}
                                     {it.item_discounts && (
                                       <p className="text-xs text-muted-foreground">
                                         Descuentos: {Array.isArray(it.item_discounts) ? it.item_discounts.map((d:any)=>d.nombre||d.codigo).join(', ') : '-'}

@@ -17,15 +17,18 @@ import { formatPrice } from "@/utils/format-price";
 import { 
   wompiWidgetService,
   WompiWidgetConfig,
-  initializeWompiPayment
+  initializeWompiPayment,
+  type CheckoutData
 } from "@/services/wompi-widget.service";
 import { toast } from "sonner";
 
 interface WompiModalProps {
   isOpen: boolean;
   onClose: () => void;
-  amount: number; // Monto en centavos
-  orderId?: number; // ID de la orden para obtener configuración del backend
+  amount: number; // Monto en centavos (usado para mostrar en loading; con checkoutData el monto real viene del backend)
+  orderId?: number; // ID de la orden (solo si no se usa checkoutData)
+  /** Sesión de checkout: no se crea orden hasta que el pago sea aprobado. Prioridad sobre orderId. */
+  checkoutData?: CheckoutData | null;
   customerData?: {
     email?: string;
     fullName?: string;
@@ -51,6 +54,7 @@ export function WompiModal({
   onClose,
   amount,
   orderId,
+  checkoutData,
   customerData,
   shippingAddress,
   onPaymentResult
@@ -115,8 +119,8 @@ export function WompiModal({
       
       console.log('✅ Script de Wompi verificado');
 
-      // Usar la función mejorada que incluye respaldo automático
-      // Pasar orderId para usar la configuración del backend (recomendado)
+      // Flujo checkout session: no se crea orden hasta que Wompi confirme el pago (checkoutData).
+      // Flujo legacy: orden ya creada, solo abrir widget con orderId.
       await initializeWompiPayment(
         amount,
         wompiCustomerData,
@@ -138,7 +142,8 @@ export function WompiModal({
             }
           }
         },
-        orderId // Pasar orderId para usar backend
+        checkoutData ? undefined : orderId,
+        checkoutData ?? undefined
       );
 
       // El widget se abrió exitosamente, cerrar el modal después de un breve delay

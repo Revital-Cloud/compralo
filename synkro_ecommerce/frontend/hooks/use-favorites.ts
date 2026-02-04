@@ -136,14 +136,27 @@ export const useFavorites = (): UseFavoritesReturn => {
     id_sublinea_producto: number,
     id_producto: number
   ): boolean => {
-    return favorites.some(
+    // Si no hay usuario o no hay favoritos cargados, retornar false
+    if (!user?.id_usuario || !favorites || favorites.length === 0) {
+      return false
+    }
+    
+    // Convertir todos los valores a números para asegurar comparación correcta
+    const catId = Number(id_categoria_producto)
+    const lineId = Number(id_linea_producto)
+    const sublineId = Number(id_sublinea_producto)
+    const prodId = Number(id_producto)
+    
+    const isFavorite = favorites.some(
       (favorite) =>
-        favorite.id_categoria_producto === id_categoria_producto &&
-        favorite.id_linea_producto === id_linea_producto &&
-        favorite.id_sublinea_producto === id_sublinea_producto &&
-        favorite.id_producto === id_producto
+        Number(favorite.id_categoria_producto) === catId &&
+        Number(favorite.id_linea_producto) === lineId &&
+        Number(favorite.id_sublinea_producto) === sublineId &&
+        Number(favorite.id_producto) === prodId
     )
-  }, [favorites])
+    
+    return isFavorite
+  }, [favorites, user?.id_usuario])
 
   // Función para alternar favorito
   const toggleFavorite = useCallback(async (

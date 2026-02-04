@@ -201,96 +201,80 @@ export const ProductsFilters = ({
           </div>
         </div>
 
-        {/* Lines Filter */}
+        {/* Lines Filter - clave compuesta (id_categoria-id_linea) porque id_linea se repite por categoría */}
         <div className="mb-6">
           <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Líneas</h4>
           <div className="space-y-2 max-h-40 overflow-y-auto">
             {linesLoading ? (
               <div className="text-sm text-gray-500">Cargando líneas...</div>
             ) : linesData && linesData.length > 0 ? (
-              // Filtrar duplicados por ID antes de renderizar
               linesData
-                .filter((line: any, index: number, self: any[]) => 
-                  line && line.id_linea && 
-                  index === self.findIndex((l: any) => l.id_linea === line.id_linea)
-                )
+                .filter((line: any) => line && line.id_linea != null)
                 .map((line: any) => {
-                  if (!line || !line.id_linea) {
-                    return null;
-                  }
-                  
-                  const lineId = line.id_linea.toString();
-                  
+                  const lineKey = `${line.id_categoria ?? ''}-${line.id_linea}`;
+                  const lineValue = lineKey; // valor compuesto para distinguir líneas con mismo id_linea
                   return (
-                    <div key={`line-${lineId}`} className="flex items-center space-x-2">
+                    <div key={`line-${lineKey}`} className="flex items-center space-x-2">
                       <Checkbox
-                        id={`line-${lineId}`}
-                        checked={selectedLines.includes(lineId)}
+                        id={`line-${lineKey}`}
+                        checked={selectedLines.includes(lineValue)}
                         onCheckedChange={(checked) => {
                           if (checked) {
-                            setSelectedLines([...selectedLines, lineId])
+                            setSelectedLines([...selectedLines, lineValue])
                           } else {
-                            setSelectedLines(selectedLines.filter(id => id !== lineId))
+                            setSelectedLines(selectedLines.filter(id => id !== lineValue))
                           }
                         }}
                       />
                       <label
-                        htmlFor={`line-${lineId}`}
+                        htmlFor={`line-${lineKey}`}
                         className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
                       >
                         {line.nom_linea || 'Sin nombre'}
                       </label>
                     </div>
                   );
-                }).filter(Boolean)
+                })
             ) : (
               <div className="text-sm text-gray-500">No hay líneas disponibles</div>
             )}
           </div>
         </div>
 
-        {/* Sublines Filter */}
+        {/* Sub-líneas - clave compuesta (id_categoria-id_linea-id_sublinea) porque id_sublinea se repite por línea */}
         <div className="mb-6">
           <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Sub-líneas</h4>
           <div className="space-y-2 max-h-40 overflow-y-auto">
             {sublinesLoading ? (
               <div className="text-sm text-gray-500">Cargando sub-líneas...</div>
             ) : sublinesData && sublinesData.length > 0 ? (
-              // Filtrar duplicados por ID antes de renderizar
               sublinesData
-                .filter((subline: any, index: number, self: any[]) => 
-                  subline && subline.id_sublinea && 
-                  index === self.findIndex((s: any) => s.id_sublinea === subline.id_sublinea)
-                )
+                .filter((subline: any) => subline && subline.id_sublinea != null)
                 .map((subline: any) => {
-                  if (!subline || !subline.id_sublinea) {
-                    return null;
-                  }
-                  
-                  const sublineId = subline.id_sublinea.toString();
-                  
+                  const sublineKey = `${subline.id_categoria ?? ''}-${subline.id_linea ?? ''}-${subline.id_sublinea}`;
+                  const sublineValue = sublineKey; // valor compuesto para distinguir sublíneas con mismo id_sublinea
                   return (
-                    <div key={`subline-${sublineId}`} className="flex items-center space-x-2">
+                    <div key={`subline-${sublineKey}`} className="flex items-center space-x-2">
                       <Checkbox
-                        id={`subline-${sublineId}`}
-                        checked={selectedSublines.includes(sublineId)}
+                        id={`subline-${sublineKey}`}
+                        checked={selectedSublines.includes(sublineValue)}
                         onCheckedChange={(checked) => {
                           if (checked) {
-                            setSelectedSublines([...selectedSublines, sublineId])
+                            setSelectedSublines([...selectedSublines, sublineValue])
                           } else {
-                            setSelectedSublines(selectedSublines.filter(id => id !== sublineId))
+                            setSelectedSublines(selectedSublines.filter(id => id !== sublineValue))
                           }
                         }}
                       />
                       <label
-                        htmlFor={`subline-${sublineId}`}
+                        htmlFor={`subline-${sublineKey}`}
                         className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
                       >
                         {subline.nom_sublinea || 'Sin nombre'}
                       </label>
                     </div>
                   );
-                }).filter(Boolean)
+                })
             ) : (
               <div className="text-sm text-gray-500">No hay sub-líneas disponibles</div>
             )}

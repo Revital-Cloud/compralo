@@ -168,7 +168,9 @@ def get_sublines_by_line(db: Session, id_linea: Decimal, id_categoria: Decimal =
                 s.usr_insert,
                 s.fec_insert,
                 s.usr_update,
-                s.fec_update
+                s.fec_update,
+                (SELECT COUNT(*) FROM tab_productos p
+                 WHERE p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea AND p.id_categoria = s.id_categoria AND p.ind_activo = true) AS productos_count
             FROM tab_sublineas s
             LEFT JOIN tab_lineas l ON l.id_linea = s.id_linea AND l.id_categoria = s.id_categoria
             LEFT JOIN tab_categorias c ON c.id_categoria = s.id_categoria
@@ -188,7 +190,9 @@ def get_sublines_by_line(db: Session, id_linea: Decimal, id_categoria: Decimal =
                 s.usr_insert,
                 s.fec_insert,
                 s.usr_update,
-                s.fec_update
+                s.fec_update,
+                (SELECT COUNT(*) FROM tab_productos p
+                 WHERE p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea AND p.id_categoria = s.id_categoria AND p.ind_activo = true) AS productos_count
             FROM tab_sublineas s
             LEFT JOIN tab_lineas l ON l.id_linea = s.id_linea AND l.id_categoria = s.id_categoria
             LEFT JOIN tab_categorias c ON c.id_categoria = s.id_categoria

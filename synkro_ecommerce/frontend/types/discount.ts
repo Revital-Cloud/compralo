@@ -51,3 +51,39 @@ export interface DiscountExchange {
   fec_canje: string
   id_orden_aplicado?: string
 }
+
+/** Descuento listado como canjeable por puntos (GET /discounts/exchangeable/{id_usuario}) */
+export interface DiscountExchangeable {
+  id_descuento: number
+  nom_descuento: string
+  des_descuento: string
+  costo_puntos_canje: number | null
+  tipo_calculo_texto: string
+  valor_descuento: string
+  aplica_a: string
+  fec_inicio: string | null
+  fec_fin: string | null
+  puede_canjear: boolean | null
+  puntos_usuario: number | null
+}
+
+/** Respuesta del canje de puntos por descuento (POST /canjes-puntos-descuento) */
+export interface ExchangePointsDiscountResponse {
+  success: boolean
+  message: string
+  id_canje?: number
+  descuento?: string
+  puntos_utilizados?: number
+  puntos_restantes?: number
+  puntos_necesarios?: number
+  puntos_disponibles?: number
+}
+
+/** Canje disponible del usuario (GET /canjes/mis-canjes) */
+export interface CanjeDisponible {
+  id_canje: number
+  id_descuento: number
+  nom_descuento: string
+  puntos_utilizados: number | null
+  fec_expiracion_canje: string | null
+}

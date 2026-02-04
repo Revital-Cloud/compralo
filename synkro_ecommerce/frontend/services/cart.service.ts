@@ -34,6 +34,8 @@ export interface CartProductCreate {
   id_producto: number;
   cantidad: number;
   precio_unitario_carrito: number;
+  /** Opciones que el cliente eligió (ej. { color: "rojo", talla: "39" }). Genérico para cualquier producto. */
+  opciones_elegidas?: Record<string, string>;
   id_usuario?: number;
   session_id?: string;
 }
@@ -85,7 +87,9 @@ export interface CartProductDetail {
   marca?: string;
   linea?: string;
   sublinea?: string;
-  stock_disponible?: number; // Stock disponible del producto
+  stock_disponible?: number;
+  /** Opciones elegidas por el cliente (ej. { color: "rojo", talla: "39" }). */
+  opciones_elegidas?: Record<string, string>;
 }
 
 
@@ -102,10 +106,26 @@ export interface ResponseMessage {
 // =============================================================================
 
 /**
- * Genera un ID de sesión único para usuarios anónimos usando UUID v4
+  * Genera un ID de sesión único para usuarios anónimos (UUID v4 compatible).
+ * Usa crypto.randomUUID si está disponible; si no, genera un UUID con getRandomValues o fallback.
  */
 export function generateSessionId(): string {
-  return crypto.randomUUID();
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+    bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+    const hex = [...bytes].map((b) => b!.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 /**
@@ -172,14 +192,15 @@ export async function getCartProductsDetail(
 }
 
 /**
- * Calcula el total del carrito
+ * Calcula el total del carrito (opcionalmente con un canje de puntos aplicado).
  */
 export async function calculateCartTotal(
-  cartUser: CartUser
+  cartUser: CartUser,
+  id_canje_aplicar?: number | null
 ): Promise<CartTotalResponse> {
   return await post<CartTotalResponse>("/calcular-total", {
     ...cartUser,
-    id_canje_aplicar: null,
+    id_canje_aplicar: id_canje_aplicar ?? null,
   });
 }
 

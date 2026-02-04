@@ -88,13 +88,13 @@ BEGIN
         RETURN json_build_object('success', false, 'message', 'El nombre del descuento debe tener al menos 3 caracteres');
     END IF;
 
-    -- VALIDACIÓN 3: Fechas de vigencia
-    IF p_fec_inicio IS NULL OR p_fec_fin IS NULL THEN
-        RETURN json_build_object('success', false, 'message', 'Las fechas de inicio y fin son obligatorias');
+    -- VALIDACIÓN 3: Fechas de vigencia (ambas NULL o ambas con valor)
+    IF (p_fec_inicio IS NULL AND p_fec_fin IS NOT NULL) OR (p_fec_inicio IS NOT NULL AND p_fec_fin IS NULL) THEN
+        RETURN json_build_object('success', false, 'message', 'Debe especificar ambas fechas o ninguna');
     END IF;
 
-    -- VALIDACIÓN 4: Coherencia de fechas
-    IF p_fec_fin < p_fec_inicio THEN
+    -- VALIDACIÓN 4: Coherencia de fechas (si ambas tienen valor)
+    IF p_fec_inicio IS NOT NULL AND p_fec_fin IS NOT NULL AND p_fec_fin < p_fec_inicio THEN
         RETURN json_build_object('success', false, 'message', 'La fecha de fin debe ser mayor o igual a la fecha de inicio');
     END IF;
 

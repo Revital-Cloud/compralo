@@ -20,21 +20,28 @@ from schemas.auth_schema import UserInToken
 from schemas.payment_schema import (
     PaymentCreateRequest,
     PaymentCreateResponse,
+    CheckoutCreateRequest,
+    ConfirmCheckoutRequest,
     AttachTransactionRequest,
     PollPaymentResponse,
     ReattemptPaymentRequest
 )
+from schemas.cart_product_schemas import CalculateTotalCart
 from services.payment_widget_service import (
     generate_payment_reference,
     generate_integrity_signature,
     create_payment,
+    generate_checkout_reference_from_cart,
     get_payment_by_reference,
     attach_transaction_id,
     poll_transaction_status,
     update_payment_status,
-    get_last_payment_for_order
+    get_last_payment_for_order,
+    fetch_transaction_by_id,
+    create_order_from_checkout_reference,
 )
 from services import order_service
+from services import cart_product_service
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +105,151 @@ async def test_signature(
 
 
 @router.post(
+    "/create-checkout",
+    response_model=PaymentCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Crear sesión de checkout (sin orden)",
+    description="Crea una sesión de checkout y retorna la config de Wompi. La orden se crea solo cuando el pago es APPROVED."
+)
+async def create_checkout_session_endpoint(
+    payload: CheckoutCreateRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """Crea sesión de checkout: no se crea orden hasta que el pago sea aprobado."""
+    try:
+        cart_id = payload.cart_id
+        id_direccion = payload.id_direccion
+        id_canje = payload.id_canje
+        cart_row = db.execute(
+            text("SELECT id_carrito, id_usuario, session_id FROM tab_carritos WHERE id_carrito = :cart_id"),
+            {"cart_id": cart_id}
+        ).fetchone()
+        if not cart_row:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Carrito no encontrado")
+        cart_user_id = cart_row.id_usuario
+        if cart_user_id is None or int(cart_user_id) != int(current_user.id_usuario):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="El carrito no pertenece al usuario")
+        calc = CalculateTotalCart(
+            id_usuario=Decimal(int(cart_user_id)),
+            session_id=cart_row.session_id,
+            id_canje_aplicar=Decimal(id_canje) if id_canje is not None else None
+        )
+        totals = cart_product_service.calculate_total_cart(db, calc)
+        if not totals or not totals.get("success"):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No se pudo calcular el total del carrito")
+        total_final = float(totals.get("total_final", 0))
+        if total_final <= 0:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El carrito está vacío o el total es inválido")
+        amount_in_cents = int(total_final * 100)
+        currency = "COP"
+        # Referencia codificada: id_canje en la referencia para que la orden se cree con descuento por puntos
+        reference = generate_checkout_reference_from_cart(cart_id, id_direccion, id_canje)
+        logger.info(f"create-checkout: cart_id={cart_id}, id_direccion={id_direccion}, id_canje={id_canje} -> reference={reference}, amount={amount_in_cents}")
+        wompi_config = get_store_from_request(request, db)
+        if not wompi_config.wompi_public_key or not wompi_config.wompi_integrity_secret:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error de configuración: credenciales Wompi no configuradas"
+            )
+        integrity_signature = generate_integrity_signature(
+            reference=reference,
+            amount_in_cents=amount_in_cents,
+            currency=currency,
+            integrity_secret=wompi_config.wompi_integrity_secret
+        )
+        logger.info(f"✅ Checkout (sin orden): reference={reference}, amount={amount_in_cents}")
+        return PaymentCreateResponse(
+            reference=reference,
+            amount_in_cents=amount_in_cents,
+            currency=currency,
+            public_key=wompi_config.wompi_public_key,
+            integrity_signature=integrity_signature
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error al crear checkout session: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get(
+    "/order-by-reference",
+    status_code=status.HTTP_200_OK,
+    summary="Obtener order_id por reference (para polling tras pago)",
+)
+async def get_order_by_reference(
+    reference: str = Query(..., description="Reference del pago/checkout"),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """Tras el pago, el frontend hace polling hasta que el webhook o confirm-checkout cree la orden e inserte en tab_pagos."""
+    row = db.execute(
+        text("SELECT id_orden FROM tab_pagos WHERE reference = :ref AND usr_insert = :uid"),
+        {"ref": reference, "uid": current_user.id_usuario}
+    ).fetchone()
+    if row and row.id_orden is not None:
+        return {"order_id": int(row.id_orden)}
+    return {"order_id": None}
+
+
+@router.post(
+    "/confirm-checkout",
+    status_code=status.HTTP_200_OK,
+    summary="Confirmar checkout tras pago (respaldo si el webhook no llegó)",
+    description="Verifica la transacción en Wompi y crea la orden si está APPROVED. Así el carrito se vacía aunque el webhook no se ejecute.",
+)
+async def confirm_checkout(
+    payload: ConfirmCheckoutRequest,
+    request: FastAPIRequest,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user),
+):
+    """
+    Respaldo cuando el webhook no llega: el frontend llama con reference + transaction_id.
+    El backend consulta Wompi, si la transacción está APPROVED crea la orden y el pago.
+    """
+    reference = payload.reference.strip()
+    transaction_id = payload.transaction_id.strip()
+    if not reference.startswith("synkro_cart_"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Referencia no es de checkout")
+    # Si ya existe pago con esta referencia, devolver order_id
+    existing = get_payment_by_reference(db, reference)
+    if existing and existing.get("id_orden") is not None:
+        return {"order_id": int(existing["id_orden"])}
+    wompi_config = get_store_from_request(request, db)
+    tx = await fetch_transaction_by_id(transaction_id, wompi_config)
+    if not tx:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No se pudo obtener la transacción de Wompi",
+        )
+    tx_reference = (tx.get("reference") or "").strip()
+    if tx_reference != reference:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La referencia de la transacción no coincide",
+        )
+    if tx.get("status") != "APPROVED":
+        return {"order_id": None, "message": "La transacción no está aprobada"}
+    id_usuario = int(current_user.id_usuario)
+    order_id = create_order_from_checkout_reference(db, reference, tx, id_usuario)
+    if order_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No se pudo crear la orden (carrito no encontrado o no pertenece al usuario)",
+        )
+    try:
+        from services.email_service import send_order_confirmation_for_order_id
+        import asyncio
+        asyncio.create_task(send_order_confirmation_for_order_id(order_id))
+    except Exception as e:
+        logger.warning(f"No se pudo programar email de confirmación: {e}")
+    return {"order_id": order_id}
+
+
+@router.post(
     "/create",
     response_model=PaymentCreateResponse,
     status_code=status.HTTP_201_CREATED,
@@ -122,10 +274,12 @@ async def create_payment_widget(
     try:
         order_id = payload.order_id
         
-        # Validar orden existe y está pagable
+        # Validar orden existe y está pagable (incluir totales para fallback de descuento)
         query = text("""
             SELECT 
                 id_orden,
+                val_total_productos,
+                val_total_descuentos,
                 val_total_pedido,
                 ind_estado
             FROM tab_ordenes
@@ -175,8 +329,22 @@ async def create_payment_widget(
         
         logger.info(f"🔍 Credenciales Wompi obtenidas: public_key={wompi_config.wompi_public_key[:20]}..., environment={wompi_config.wompi_environment}")
         
-        # Calcular amount_in_cents
-        amount_in_cents = int(float(order.val_total_pedido) * 100)
+        # Calcular amount_in_cents: usar el de la orden; si la orden no tiene descuento guardado
+        # pero el frontend envía un monto menor (con descuento), usarlo para que Wompi muestre el total correcto
+        order_total_cents = int(float(order.val_total_pedido) * 100)
+        order_subtotal_cents = int(float(order.val_total_productos or 0) * 100)
+        order_discount = float(order.val_total_descuentos or 0)
+        
+        amount_in_cents = order_total_cents
+        if (
+            payload.amount_in_cents is not None
+            and order_discount == 0
+            and payload.amount_in_cents < order_total_cents
+            and payload.amount_in_cents >= 1000
+            and payload.amount_in_cents <= order_subtotal_cents
+        ):
+            amount_in_cents = payload.amount_in_cents
+            logger.info(f"🔧 Usando monto del frontend (descuento no guardado en orden): {amount_in_cents} centavos")
         currency = "COP"
         
         # Generar reference única

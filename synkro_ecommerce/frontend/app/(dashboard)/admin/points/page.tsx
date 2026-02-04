@@ -11,16 +11,14 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Button } from "@/components/ui"
 import { CreatePointsConfigModal } from '@/components/admin/points/create-points-config-modal'
 import { PointsStatsCards } from '@/components/admin/points/points-stats-cards'
-import { UserPointsHistoryModal } from '@/components/admin/points/user-points-history-modal'
 import { Input } from "@/components/ui"
 import type { UserWithPoints } from '@/types/points'
+import Link from 'next/link'
 
 const PointsPage = () => {
   const { data: activeRates } = useActivePointsRate()
   const { data: users = [], isLoading, isError } = useAllUsersWithPoints()
   const [openConfig, setOpenConfig] = useState(false)
-  const [openHistory, setOpenHistory] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<{ id: string; name: string } | null>(null)
   const [search, setSearch] = useState('')
 
   const filteredUsers = useMemo(() => {
@@ -112,19 +110,18 @@ const PointsPage = () => {
       id: 'actions',
       header: 'Acciones',
       cell: ({ row }) => (
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => {
-            setSelectedUser({
-              id: row.original.id_usuario,
-              name: `${row.original.nom_usuario} ${row.original.ape_usuario}`
-            })
-            setOpenHistory(true)
-          }}
+        <Link
+          href={`/admin/points/${row.original.id_usuario}?name=${encodeURIComponent(
+            `${row.original.nom_usuario} ${row.original.ape_usuario}`
+          )}`}
         >
-          Ver Historial
-        </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+          >
+            Ver Historial
+          </Button>
+        </Link>
       ),
     },
   ]
@@ -215,16 +212,6 @@ const PointsPage = () => {
           columns={[...columns, ...actions]} 
           data={filteredUsers} 
           pageSize={10} 
-        />
-      )}
-
-      {/* Modal de historial */}
-      {selectedUser && (
-        <UserPointsHistoryModal
-          open={openHistory}
-          onOpenChange={setOpenHistory}
-          userId={selectedUser.id}
-          userName={selectedUser.name}
         />
       )}
     </div>

@@ -137,7 +137,11 @@ def get_lines_by_category(db: Session, id_categoria: Decimal):
             l.usr_insert,
             l.fec_insert,
             l.usr_update,
-            l.fec_update
+            l.fec_update,
+            (SELECT COUNT(*) FROM tab_sublineas s
+             WHERE s.id_linea = l.id_linea AND s.id_categoria = l.id_categoria AND s.ind_activo = true) AS sublineas_count,
+            (SELECT COUNT(*) FROM tab_productos p
+             WHERE p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria AND p.ind_activo = true) AS productos_count
         FROM tab_lineas l
         LEFT JOIN tab_categorias c ON c.id_categoria = l.id_categoria
         WHERE l.id_categoria = :id_categoria AND l.ind_activo = true
@@ -148,27 +152,47 @@ def get_lines_by_category(db: Session, id_categoria: Decimal):
         db.rollback()
         raise Exception(f"Error al obtener líneas por categoría: {str(e)}")
 
-def get_line(db: Session, id_linea: Decimal):
+def get_line(db: Session, id_linea: Decimal, id_categoria: Decimal = None):
     """
     Obtiene una línea específica por su ID.
+    Si se proporciona id_categoria, filtra por (id_categoria, id_linea) para
+    devolver la línea correcta cuando id_linea se repite por categoría.
     """
     try:
-        query = text("""
-        SELECT 
-            l.id_categoria,
-            l.id_linea,
-            l.nom_linea,
-            c.nom_categoria,
-            l.ind_activo,
-            l.usr_insert,
-            l.fec_insert,
-            l.usr_update,
-            l.fec_update
-        FROM tab_lineas l
-        LEFT JOIN tab_categorias c ON c.id_categoria = l.id_categoria
-        WHERE l.id_linea = :id_linea AND l.ind_activo = true
-        """)
-        result = db.execute(query, {"id_linea": id_linea})
+        if id_categoria is not None:
+            query = text("""
+            SELECT 
+                l.id_categoria,
+                l.id_linea,
+                l.nom_linea,
+                c.nom_categoria,
+                l.ind_activo,
+                l.usr_insert,
+                l.fec_insert,
+                l.usr_update,
+                l.fec_update
+            FROM tab_lineas l
+            LEFT JOIN tab_categorias c ON c.id_categoria = l.id_categoria
+            WHERE l.id_linea = :id_linea AND l.id_categoria = :id_categoria AND l.ind_activo = true
+            """)
+            result = db.execute(query, {"id_linea": id_linea, "id_categoria": id_categoria})
+        else:
+            query = text("""
+            SELECT 
+                l.id_categoria,
+                l.id_linea,
+                l.nom_linea,
+                c.nom_categoria,
+                l.ind_activo,
+                l.usr_insert,
+                l.fec_insert,
+                l.usr_update,
+                l.fec_update
+            FROM tab_lineas l
+            LEFT JOIN tab_categorias c ON c.id_categoria = l.id_categoria
+            WHERE l.id_linea = :id_linea AND l.ind_activo = true
+            """)
+            result = db.execute(query, {"id_linea": id_linea})
         line = result.mappings().first()
         return line
     except Exception as e:

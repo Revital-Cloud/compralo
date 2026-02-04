@@ -1,21 +1,18 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { ShoppingCart, Star, Heart, Eye } from "lucide-react"
+import { ShoppingCart, Star, Eye } from "lucide-react"
 import { useProductsHomePage } from "@/hooks/use-products"
-import { useCart } from "@/hooks/use-cart"
 import { formatPrice } from "@/utils/format-price"
 import { getProductImageUrl } from "@/utils/image-helpers"
 import { getProductDescription } from "@/utils/product-helpers"
 import Image from "next/image"
 import { Product } from "@/types/product"
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { toast } from "sonner"
 
 const FeaturedProducts = () => {
   const router = useRouter()
-  const [addingToCart, setAddingToCart] = useState<number | null>(null)
   
   const { 
     data: products, 
@@ -24,45 +21,6 @@ const FeaturedProducts = () => {
     refetch,
     isError 
   } = useProductsHomePage()
-
-  // Hook del carrito
-  const { 
-    addToCart, 
-    isAddingToCart,
-    error: cartError 
-  } = useCart()
-
-  // Función para manejar agregar al carrito
-  const handleAddToCart = async (product: Product) => {
-    try {
-      setAddingToCart(product.id_producto)
-      
-      // Crear el item del carrito con la estructura esperada
-      const cartItem = {
-        id_carrito: 0, // Se asignará automáticamente
-        id_categoria_producto: product.id_categoria,
-        id_linea_producto: product.id_linea,
-        id_sublinea_producto: product.id_sublinea,
-        id_producto: product.id_producto,
-        cantidad: 1,
-        precio_unitario_carrito: product.val_precio,
-        precio_unitario: product.val_precio,
-        subtotal: product.val_precio,
-        // Campos adicionales para el carrito
-        nom_producto: product.nom_producto,
-        img_producto: product.img_producto,
-        spcf_producto: product.spcf_producto
-      }
-
-      await addToCart(cartItem)
-      toast.success(`${product.nom_producto} agregado al carrito`)
-    } catch (error) {
-      console.error('Error al agregar al carrito:', error)
-      toast.error('Error al agregar el producto al carrito')
-    } finally {
-      setAddingToCart(null)
-    }
-  }
 
   // Función para navegar a detalles del producto usando ID compuesto
   const handleViewDetails = (product: Product) => {
@@ -296,10 +254,11 @@ const FeaturedProducts = () => {
                 {/* Product Image */}
                 <div className="relative overflow-hidden">
                   <motion.div 
-                    className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center"
+                    className="h-48 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 flex items-center justify-center cursor-pointer"
                     variants={imageVariants}
                     initial="rest"
                     whileHover="hover"
+                    onClick={() => handleViewDetails(product)}
                   >
                     <Image 
                       src={getProductImageUrl(product.img_producto)}
@@ -309,17 +268,6 @@ const FeaturedProducts = () => {
                       height={300}
                     />
                   </motion.div>
-                  
-                  {/* Quick Actions Overlay */}
-                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <motion.button
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      className="w-8 h-8 bg-white/90 dark:bg-gray-700/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg dark:shadow-gray-900/25 hover:bg-white dark:hover:bg-gray-600 transition-colors duration-300"
-                    >
-                      <Heart className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                    </motion.button>
-                  </div>
                   
                   {/* Discount Badge - Temporarily disabled until Product type is defined */}
                   {/* {product.descuento && product.descuento > 0 && (
@@ -352,29 +300,14 @@ const FeaturedProducts = () => {
                     
                     <div className="flex items-center space-x-1">
                       <Star className="w-4 h-4 fill-[#fec806] text-[#fec806]" />
-                      <span className="text-sm text-gray-600 dark:text-gray-300 transition-colors duration-300">4.8</span>
+                      <span className="text-sm text-gray-600 dark:text-gray-300 transition-colors duration-300">
+                        {product.rating && product.rating > 0 ? product.rating.toFixed(1) : '0.0'}
+                      </span>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
                   <div className="space-y-3">
-                    <motion.button
-                      variants={buttonVariants}
-                      initial="rest"
-                      whileHover="hover"
-                      onClick={() => handleAddToCart(product)}
-                      disabled={addingToCart === product.id_producto || isAddingToCart}
-                      className="w-full bg-gradient-to-r from-[#FF8C00] to-[#fec806] hover:from-[#E67E00] hover:to-[#E6B800] disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all duration-300 flex items-center justify-center space-x-2 cursor-pointer"
-                    >
-                      <ShoppingCart className="w-4 h-4" />
-                      <span>
-                        {addingToCart === product.id_producto || isAddingToCart 
-                          ? 'Agregando...' 
-                          : 'Agregar al Carrito'
-                        }
-                      </span>
-                    </motion.button>
-                    
                     <motion.button
                       variants={buttonVariants}
                       initial="rest"

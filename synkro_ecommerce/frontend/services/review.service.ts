@@ -53,6 +53,29 @@ export async function createComment(commentData: CreateCommentRequest): Promise<
 }
 
 
+export interface TestimonialFromApi {
+  id_comentario: number;
+  comentario: string;
+  calificacion: number;
+  nombre_usuario: string;
+  nom_usuario?: string;
+  ape_usuario?: string;
+  producto_nombre?: string | null;
+  producto_imagen?: unknown;
+  producto_slug?: string | null;
+}
+
+/**
+ * Obtener reseñas de 5 estrellas para la sección de testimonios del landing.
+ */
+export async function getTestimonials(
+  limit: number = 3
+): Promise<{ success: boolean; data: TestimonialFromApi[] }> {
+  return await get<{ success: boolean; data: TestimonialFromApi[] }>(
+    `/comentaries/testimonials?limit=${limit}`
+  );
+}
+
 /**
  * Obtener productos ya reseñados en una orden específica
  */

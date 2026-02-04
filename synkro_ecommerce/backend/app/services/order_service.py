@@ -1,8 +1,12 @@
+import logging
 from decimal import Decimal
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import text, bindparam, Integer
 
 from schemas.order_schema import OrderCreate
+from services.cart_product_service import _imagen_url_por_color
+
+logger = logging.getLogger(__name__)
 
 
 def get_orders(db:Session):
@@ -190,23 +194,30 @@ def get_order_detail_admin(db: Session, id_orden: int):
                 return float(val)
             if hasattr(val, "isoformat") and callable(getattr(val, "isoformat")):
                 return val.isoformat()
-            return val
+            if isinstance(val, (dict, list, str, int, float, bool)):
+                return val
+            return str(val)
 
         def _row_to_dict(row):
             d = dict(row)
             return {k: _to_jsonable(v) for k, v in d.items()}
             
-        # Productos de la orden
+        # Productos de la orden (tab_orden_productos usa FK compuesta a tab_productos)
         products_query = text("""
         SELECT 
             op.id_producto,
             p.nom_producto,
             p.img_producto,
-            op.cantidad,
-            op.val_precio_unitario,
-            op.val_subtotal
+            p.spcf_producto,
+            op.cant_producto AS cantidad,
+            op.precio_unitario_orden AS val_precio_unitario,
+            op.subtotal AS val_subtotal,
+            COALESCE(op.opciones_elegidas, '{}'::JSONB) AS opciones_elegidas
         FROM tab_orden_productos op
-        JOIN tab_productos p ON op.id_producto = p.id_producto
+        JOIN tab_productos p ON op.id_categoria_producto = p.id_categoria
+            AND op.id_linea_producto = p.id_linea
+            AND op.id_sublinea_producto = p.id_sublinea
+            AND op.id_producto = p.id_producto
         WHERE op.id_orden = :id_orden
         """)
         products_result = db.execute(products_query, {"id_orden": id_orden})
@@ -222,13 +233,54 @@ def get_order_detail_admin(db: Session, id_orden: int):
         points_data = points_result.scalar()
         points_value = float(points_data) if points_data is not None else 0
         
+        # Dirección de envío: dirección principal del cliente (tab_ordenes no guarda id_direccion)
+        id_usuario = order_data.get("id_usuario") if hasattr(order_data, "get") else None
+        direccion_envio = None
+        if id_usuario is not None:
+            addr_query = text("""
+            SELECT id_direccion, nombre_direccion, calle_direccion, ciudad, departamento,
+                   codigo_postal, barrio, referencias, complemento, ind_principal, ind_activa
+            FROM tab_direcciones_usuario
+            WHERE id_usuario = :id_usuario AND ind_activa = TRUE
+            ORDER BY ind_principal DESC NULLS LAST
+            LIMIT 1
+            """)
+            addr_result = db.execute(addr_query, {"id_usuario": id_usuario})
+            addr_row = addr_result.mappings().first()
+            if addr_row:
+                direccion_envio = _row_to_dict(addr_row)
+                # El frontend espera campos opcionales; complemento puede servir como detalle
+                if direccion_envio.get("complemento"):
+                    direccion_envio["numero_direccion"] = direccion_envio.get("complemento")
+                # Teléfono de contacto: usar celular del usuario si está en la orden
+                if order_data.get("cel_usuario"):
+                    direccion_envio["telefono_contacto"] = str(order_data.get("cel_usuario"))
+        
         orden_dict = _row_to_dict(order_data)
         descuentos = order_data.get("detalle_descuentos_aplicados") if hasattr(order_data, "get") else orden_dict.get("detalle_descuentos_aplicados")
+
+        # Productos con imagen según color elegido (opciones_elegidas)
+        productos_list = []
+        for p in products_data:
+            d = _row_to_dict(p)
+            opts = d.get("opciones_elegidas") or {}
+            if isinstance(opts, str):
+                try:
+                    import json
+                    opts = json.loads(opts) if opts else {}
+                except Exception:
+                    opts = {}
+            img_url = _imagen_url_por_color(d.get("img_producto"), d.get("spcf_producto"), opts)
+            if img_url:
+                d["imagen_url"] = img_url
+            # No exponer spcf_producto al frontend
+            d.pop("spcf_producto", None)
+            productos_list.append(d)
         
         return {
             "orden": orden_dict,
-            "productos": [_row_to_dict(p) for p in products_data],
-            "direccion_envio": None,
+            "productos": productos_list,
+            "direccion_envio": direccion_envio,
             "puntos_ganados": points_value,
             "descuentos_aplicados": descuentos
         }
@@ -361,8 +413,22 @@ def create_order(db:Session, order:OrderCreate, usr_insert: Decimal):
         dict: El diccionario completo con toda la información de la orden creada.
     """
     try:
-        params = order.model_dump()
-        params["usr_insert"] = usr_insert
+        # Construir params explícitamente para que id_canje llegue siempre a la BD (descuento por puntos)
+        id_canje_val = None
+        if getattr(order, "id_canje", None) is not None:
+            try:
+                id_canje_val = int(order.id_canje)
+            except (TypeError, ValueError):
+                pass
+        params = {
+            "id_carrito": int(order.id_carrito),
+            "id_direccion": int(order.id_direccion),
+            "codigo_descuento": order.codigo_descuento,
+            "des_observaciones": order.des_observaciones,
+            "usr_insert": usr_insert,
+            "id_canje": id_canje_val,
+        }
+        logger.info("create_order: id_carrito=%s, id_canje=%s (descuento por puntos)", params["id_carrito"], params["id_canje"])
         query = text("""
         SELECT fun_crear_orden_desde_carrito(
             :id_carrito,
@@ -372,16 +438,29 @@ def create_order(db:Session, order:OrderCreate, usr_insert: Decimal):
             :usr_insert,
             :id_canje
         )
-        """)
+        """).bindparams(bindparam("id_canje", type_=Integer))
         result = db.execute(query, params)
         fetched_result = result.fetchone()
         db.commit()
-                # La función devuelve un diccionario completo con toda la información
         if fetched_result and fetched_result[0]:
             response_data = fetched_result[0]
-            # Devolver todo el diccionario con la información completa
             if isinstance(response_data, dict):
+                logger.info(
+                    "create_order resultado: total_descuentos=%s, total_final=%s (id_canje enviado=%s)",
+                    response_data.get("total_descuentos"),
+                    response_data.get("total_final"),
+                    params.get("id_canje"),
+                )
                 return response_data
+            # Algunos drivers devuelven JSON como string
+            if isinstance(response_data, str):
+                import json
+                try:
+                    data = json.loads(response_data)
+                    logger.info("create_order resultado (parseado): total_descuentos=%s, total_final=%s", data.get("total_descuentos"), data.get("total_final"))
+                    return data
+                except Exception:
+                    pass
 
         return None
     except Exception as e:
@@ -436,7 +515,9 @@ def get_order_with_items(db: Session, id_orden: Decimal):
                 op.cant_producto AS quantity,
                 op.precio_unitario_orden AS unit_price,
                 op.subtotal AS total_price,
-                p.img_producto AS product_image
+                p.img_producto AS product_image,
+                p.spcf_producto,
+                COALESCE(op.opciones_elegidas, '{}'::JSONB) AS opciones_elegidas
             FROM tab_orden_productos op
             LEFT JOIN tab_productos p 
               ON p.id_categoria = op.id_categoria_producto
@@ -449,6 +530,19 @@ def get_order_with_items(db: Session, id_orden: Decimal):
         )
         result_items = db.execute(query_items, {"id_orden": id_orden})
         items = [dict(row) for row in result_items.mappings().all()]
+        # Imagen según color elegido para cada ítem
+        for it in items:
+            opts = it.get("opciones_elegidas") or {}
+            if isinstance(opts, str):
+                try:
+                    import json
+                    opts = json.loads(opts) if opts else {}
+                except Exception:
+                    opts = {}
+            img_url = _imagen_url_por_color(it.get("product_image"), it.get("spcf_producto"), opts)
+            if img_url:
+                it["imagen_url"] = img_url
+            it.pop("spcf_producto", None)
     except Exception as e:
         # 3) Fallback: intentar una función si existe
         try:

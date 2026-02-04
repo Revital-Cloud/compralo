@@ -44,8 +44,8 @@ const discountSchema = z.object({
   cod_cupon: z.string().optional(),
   costo_envio: z.string().optional(),
   compra_minima: z.string().optional(),
-  fec_inicio: z.string().min(1, 'La fecha de inicio es requerida'),
-  fec_fin: z.string().min(1, 'La fecha de fin es requerida'),
+  fec_inicio: z.string().optional(),
+  fec_fin: z.string().optional(),
   max_usos: z.string().optional(),
   max_usos_por_usuario: z.string().optional(),
   ind_activo: z.boolean().optional().default(true),
@@ -535,7 +535,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
           {/* Vigencia */}
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="fec_inicio">Fecha de Inicio *</Label>
+              <Label htmlFor="fec_inicio">Fecha de Inicio {form.watch('ind_canjeable_puntos') ? '(opcional)' : '*'}</Label>
               <Popover open={openStartDate} onOpenChange={setOpenStartDate}>
                 <PopoverTrigger asChild>
                   <Button type="button" variant="outline" className="w-full justify-start">
@@ -576,7 +576,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fec_fin">Fecha de Fin *</Label>
+              <Label htmlFor="fec_fin">Fecha de Fin {form.watch('ind_canjeable_puntos') ? '(opcional)' : '*'}</Label>
               <Popover open={openEndDate} onOpenChange={setOpenEndDate}>
                 <PopoverTrigger asChild>
                   <Button type="button" variant="outline" className="w-full justify-start">

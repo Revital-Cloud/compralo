@@ -104,10 +104,13 @@ export function useUpdateProduct() {
       data: FormData 
     }) => 
       productService.updateProduct(id_categoria, id_linea, id_sublinea, id_producto, data),
-    onSuccess: (_, { id_producto }) => {
+    onSuccess: (_, { id_categoria, id_linea, id_sublinea, id_producto }) => {
       toast.success('Producto actualizado exitosamente');
+      const slug = `${id_categoria}-${id_linea}-${id_sublinea}-${id_producto}`;
+      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.detail(slug) });
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.detail(id_producto) });
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.admin() });
     },
     onError: (error: any) => {
       const message = error?.response?.data?.detail || 'Error al actualizar el producto';

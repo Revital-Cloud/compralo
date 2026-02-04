@@ -75,8 +75,22 @@ class ApplyExchangeOrder(BaseModel):
     id_canje: Decimal = Field(..., description="Identificador del canje.")
     id_orden: Decimal = Field(..., description="Identificador de la orden.")
     id_usuario: Decimal = Field(..., description="Identificador del usuario.")
-    
-    
+
+
+class CanjeDisponible(BaseModel):
+    """
+    Esquema para un canje disponible (canjeado pero no utilizado ni vencido).
+    """
+    id_canje: int = Field(..., description="Identificador del canje.")
+    id_descuento: int = Field(..., description="Identificador del descuento.")
+    nom_descuento: str = Field(..., description="Nombre del descuento.")
+    puntos_utilizados: Optional[Decimal] = Field(None, description="Puntos utilizados en el canje.")
+    fec_expiracion_canje: Optional[datetime] = Field(None, description="Fecha límite para usar el canje.")
+
+    class Config:
+        from_attributes = True
+
+
 class ResponseMessage(BaseModel):
     """
     Esquema para la Respuesta de Mensajes.

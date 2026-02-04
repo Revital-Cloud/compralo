@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Button } from "@/components/ui"
+import { Button, Badge } from "@/components/ui"
 import { Trash2, Minus, Plus } from 'lucide-react'
 import { Input } from "@/components/ui"
 import { formatPrice } from '@/utils/format-price'
@@ -15,10 +15,16 @@ interface CartItemProps {
   productSlug?: string
   name: string
   brand: string
-  color: string
-  size: string
+  /** Opciones elegidas por el cliente (ej. { color: "rojo", talla: "39" }). Se muestran de forma genérica. */
+  opciones_elegidas?: Record<string, string>
+  /** @deprecated Usar opciones_elegidas. Se mantiene por compatibilidad. */
+  color?: string
+  /** @deprecated Usar opciones_elegidas. Se mantiene por compatibilidad. */
+  size?: string
   price: number
   originalPrice?: number
+  /** Porcentaje de descuento aplicado (ej. 25 para "25% OFF") */
+  discountPercentage?: number
   quantity: number
   image: string
   stock_disponible?: number
@@ -33,10 +39,12 @@ const CartItem: React.FC<CartItemProps> = ({
   productSlug,
   name,
   brand,
-  color,
-  size,
+  opciones_elegidas = {},
+  color: colorLegacy,
+  size: sizeLegacy,
   price,
   originalPrice,
+  discountPercentage,
   quantity,
   image,
   stock_disponible,
@@ -73,10 +81,10 @@ const CartItem: React.FC<CartItemProps> = ({
     return null
   })()
   
-  const texts = {
-    size: 'Talla:',
-    quantity: 'Cantidad:'
-  }
+  const texts = { quantity: 'Cantidad:' }
+  const opts = Object.keys(opciones_elegidas).length > 0
+    ? opciones_elegidas
+    : { ...(sizeLegacy && { talla: sizeLegacy }), ...(colorLegacy && { color: colorLegacy }) }
 
   const handleQuantityChange = async (newQuantity: number) => {
     if (newQuantity >= 1 && newQuantity !== quantity) {
@@ -172,15 +180,20 @@ const CartItem: React.FC<CartItemProps> = ({
           </div>
         </div>
 
-        {/* Información de tamaño y stock */}
+        {/* Opciones elegidas (color, talla, etc.) y stock */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600 dark:text-gray-400">{texts.size}</span>
-            <span className="text-sm text-gray-900 dark:text-white font-medium">
-              {size}
-            </span>
-          </div>
-          
+          {Object.entries(opts).length > 0 && (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              {Object.entries(opts).map(([key, value]) =>
+                value ? (
+                  <span key={key} className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="capitalize">{key.replace(/_/g, ' ')}:</span>{' '}
+                    <span className="font-medium text-gray-900 dark:text-white capitalize">{value}</span>
+                  </span>
+                ) : null
+              )}
+            </div>
+          )}
           {stock_disponible !== undefined && (
             <span className="text-xs text-gray-500 dark:text-gray-400">
               (Stock: {stock_disponible})
@@ -238,15 +251,22 @@ const CartItem: React.FC<CartItemProps> = ({
         </div>
 
 
-        {/* Precio */}
-        <div className="flex items-center gap-3">
-          <span className="font-bold text-lg sm:text-xl text-blue-600 dark:text-blue-400">
+        {/* Precio: mismo patrón que product-info / product-card (precio final, original tachado, % OFF) */}
+        <div className="flex items-baseline gap-2 flex-wrap">
+          <span className="font-bold text-lg sm:text-xl text-gray-900 dark:text-white">
             {formatPrice(price)}
           </span>
-          {originalPrice && originalPrice > price && (
-            <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
-              {formatPrice(originalPrice)}
-            </span>
+          {originalPrice != null && originalPrice > price && (
+            <>
+              <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                {formatPrice(originalPrice)}
+              </span>
+              {(discountPercentage != null && discountPercentage > 0) && (
+                <Badge variant="destructive" className="text-xs shrink-0">
+                  -{discountPercentage}% OFF
+                </Badge>
+              )}
+            </>
           )}
         </div>
       </div>

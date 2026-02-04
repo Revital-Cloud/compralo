@@ -4,6 +4,8 @@
 
 El frontend de Synkro está construido con Next.js 15+ y diseñado para ofrecer una experiencia completamente personalizada para cada cliente SaaS. Cada instancia puede tener su propio branding, dominio y configuración específica.
 
+**Requisitos y trazabilidad:** La especificación de requisitos de software (SRS) de synkro_ecommerce, según IEEE 830-1998, está en [synkro_ecommerce/docs/SRS_SYNKRO_ECOMMERCE_IEEE830.md](../docs/SRS_SYNKRO_ECOMMERCE_IEEE830.md). Los requisitos funcionales (RF-xx) y no funcionales (RNF-xx) definidos allí son la referencia para diseño, implementación y pruebas.
+
 ## 🎯 Características SaaS del Frontend
 
 ### ✅ Funcionalidades Implementadas

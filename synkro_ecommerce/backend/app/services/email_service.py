@@ -9,10 +9,14 @@ Enfoque funcional: funciones puras, sin estado compartido, fácil testing.
 """
 import resend
 import logging
+from decimal import Decimal
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
+from sqlalchemy import text
+
 from core.config import settings
+from core.database import SessionLocal
 from schemas.email_schema import EmailSend, EmailResponse
 from services.email_templates import email_templates
 
@@ -236,6 +240,86 @@ async def send_order_confirmation_email(order_data: Dict[str, Any]) -> bool:
     except Exception as e:
         logger.error(f"Error al enviar confirmación de pedido: {str(e)}")
         return False
+
+
+async def send_order_confirmation_for_order_id(order_id: int) -> None:
+    """
+    Obtiene los datos de la orden, construye el payload para el template
+    y envía el email de confirmación al usuario. Se usa cuando el pago es APPROVED
+    (webhook o pay_cart_and_create_order). Crea su propia sesión de BD para
+    poder ejecutarse en background sin depender de la sesión del request.
+    """
+    from services import order_service
+
+    db = SessionLocal()
+    try:
+        order_raw = order_service.get_order_with_items(db, Decimal(order_id))
+        if not order_raw:
+            logger.warning(f"Orden {order_id} no encontrada para email de confirmación")
+            return
+        id_usuario = order_raw.get("id_usuario")
+        if id_usuario is None:
+            logger.warning(f"Orden {order_id} sin id_usuario para email")
+            return
+        user_row = db.execute(
+            text("SELECT email_usuario FROM tab_usuarios WHERE id_usuario = :id_usuario"),
+            {"id_usuario": id_usuario},
+        ).fetchone()
+        if not user_row:
+            logger.warning(f"Usuario {id_usuario} no encontrado para email de orden {order_id}")
+            return
+        user_email = getattr(user_row, "email_usuario", None) or (user_row[0] if user_row else None)
+        if not user_email:
+            logger.warning(f"Usuario {id_usuario} sin email para orden {order_id}")
+            return
+
+        fec = order_raw.get("fec_pedido")
+        created_at = fec.strftime("%d/%m/%Y %H:%M") if fec and hasattr(fec, "strftime") else str(fec or "")
+
+        val_total = order_raw.get("val_total_pedido")
+        if val_total is not None:
+            try:
+                total_fmt = f"{int(float(val_total)):,}".replace(",", ".")
+            except (TypeError, ValueError):
+                total_fmt = str(val_total)
+        else:
+            total_fmt = "0"
+
+        items = []
+        for it in order_raw.get("items") or []:
+            name = it.get("product_name") or it.get("nom_producto") or "Producto"
+            qty = it.get("quantity") or it.get("cant_producto") or 0
+            price_val = it.get("total_price") or it.get("subtotal") or it.get("unit_price") or 0
+            try:
+                price_val = float(price_val) if price_val is not None else 0
+            except (TypeError, ValueError):
+                price_val = 0
+            price_fmt = f"{int(price_val):,}".replace(",", ".")
+            items.append({"product_name": name, "quantity": qty, "price": price_fmt})
+
+        order_dict = {
+            "id": order_id,
+            "created_at": created_at,
+            "total": total_fmt,
+            "items": items,
+            "shipping_address": "A confirmar",
+            "shipping_method": "A confirmar",
+            "estimated_delivery": "3-7 días hábiles",
+        }
+        order_data = {
+            "user_email": user_email,
+            "order_id": order_id,
+            "order": order_dict,
+            "frontend_url": settings.FRONTEND_URL,
+            "support_email": getattr(settings, "SUPPORT_EMAIL", settings.RESEND_FROM_EMAIL),
+        }
+        await send_order_confirmation_email(order_data)
+        logger.info(f"Email de confirmación de orden #{order_id} enviado a {user_email}")
+    except Exception as e:
+        logger.error(f"Error enviando email de confirmación de orden {order_id}: {e}", exc_info=True)
+    finally:
+        db.close()
+
 
 async def send_order_status_email(status_data: Dict[str, Any]) -> bool:
     """

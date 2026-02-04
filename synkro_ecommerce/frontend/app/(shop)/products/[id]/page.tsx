@@ -1,14 +1,19 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
 import { ProductGallery, ProductInfo, RelatedProducts } from "@/components/product"
+import type { ProductColorOption } from "@/components/product/product-info"
 import { ReviewsSection } from "@/components/ui/reviews-section"
 import Loading from "@/components/ui/loading"
 import { CartToast } from "@/components/ui"
 import { useProduct } from "@/hooks/use-products"
 import { useCart } from "@/hooks/use-cart"
+import { getHexForColorName } from "@/utils/color-map"
 import { toast } from "sonner"
+import * as productService from "@/services/product.service"
+import { getProductImageUrl } from "@/utils/image-helpers"
 
 const ProductPage = () => {
   const params = useParams()
@@ -21,6 +26,8 @@ const ProductPage = () => {
     size?: string
   }>({})
   const [isAttemptingAdd, setIsAttemptingAdd] = useState(false)
+  const [selectedColor, setSelectedColor] = useState<string>("")
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
 
   // Obtener datos del producto usando el hook
   const { 
@@ -28,6 +35,39 @@ const ProductPage = () => {
     isLoading, 
     error 
   } = useProduct(slug)
+
+  // Productos de la misma categoría para "También te puede gustar"
+  const idCategoria = product?.id_categoria != null ? Number(product.id_categoria) : undefined
+  const { data: relatedResponse } = useQuery({
+    queryKey: ["relatedProducts", idCategoria, slug],
+    queryFn: () =>
+      productService.filterProducts({
+        id_categoria: idCategoria!,
+        limit: 9,
+        offset: 0,
+        ordenar_por: "nombre",
+        orden: "ASC",
+      }),
+    enabled: idCategoria != null && !!slug,
+    staleTime: 5 * 60 * 1000,
+  })
+  const relatedProducts = useMemo(() => {
+    if (!relatedResponse?.products || !slug) return []
+    const currentSlug = slug
+    return relatedResponse.products
+      .filter(
+        (p) =>
+          `${p.id_categoria}-${p.id_linea}-${p.id_sublinea}-${p.id_producto}` !== currentSlug
+      )
+      .slice(0, 8)
+      .map((p) => ({
+        id: p.id_producto,
+        name: p.nom_producto,
+        price: typeof p.val_precio === "number" ? p.val_precio : parseFloat(String(p.val_precio)),
+        image: getProductImageUrl(p.img_producto),
+        slug: `${p.id_categoria}-${p.id_linea}-${p.id_sublinea}-${p.id_producto}`,
+      }))
+  }, [relatedResponse, slug])
 
   // Hook del carrito para funcionalidad real
   const { 
@@ -48,6 +88,38 @@ const ProductPage = () => {
     }
   }, [cartError, isAddingToCart, isAttemptingAdd])
 
+  // Extraer colores (hook siempre llamado para respetar orden de Hooks)
+  const colors: ProductColorOption[] = useMemo(() => {
+    const raw = product?.spcf_producto
+    if (!raw) return []
+    if (Array.isArray(raw.colors) && raw.colors.length > 0) {
+      return raw.colors.map((c: { name?: string; value?: string; available?: boolean }) => ({
+        name: c.name ?? c.value ?? '',
+        value: c.value ?? c.name ?? '',
+        available: c.available !== false,
+        displayHex: getHexForColorName((c.value ?? c.name ?? '').trim())
+      }))
+    }
+    const colorStr = raw.color
+    if (!colorStr || typeof colorStr !== 'string') return []
+    return colorStr
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((name) => ({
+        name,
+        value: name,
+        available: true,
+        displayHex: getHexForColorName(name)
+      }))
+  }, [product?.spcf_producto])
+
+  // Al cambiar de producto, resetear índice de imagen (hook siempre llamado)
+  useEffect(() => {
+    setSelectedImageIndex(0)
+    setSelectedColor("")
+  }, [slug])
+
   const handleAddToCart = async (selectedColor?: string, selectedSize?: string) => {
     if (!product) {
       toast.error('No hay producto para agregar al carrito')
@@ -60,15 +132,19 @@ const ProductPage = () => {
       return
     }
     
-    // Preparar datos del producto para el carrito
-    const cartProductData = {
+    // Opciones elegidas (genérico: color, talla, etc.). Solo se envían al API si hay al menos una.
+    const opciones: Record<string, string> = {}
+    if (selectedColor?.trim()) opciones.color = selectedColor.trim()
+    if (selectedSize?.trim()) opciones.talla = selectedSize.trim()
+
+    const cartProductData: Parameters<typeof addToCart>[0] = {
       id_categoria_producto: Number(product.id_categoria) || 1,
-      id_linea_producto: Number(product.id_linea) || 1, 
+      id_linea_producto: Number(product.id_linea) || 1,
       id_sublinea_producto: Number(product.id_sublinea) || 1,
       id_producto: Number(product.id_producto),
-      cantidad: 1, // Por defecto agregamos 1 unidad
+      cantidad: 1,
       precio_unitario_carrito: parseFloat(product.val_precio.toString()),
-      stock_disponible: product.num_stock // Pasar stock para validación
+      ...(Object.keys(opciones).length > 0 && { opciones_elegidas: opciones }),
     }
 
     // Guardar datos para el toast (en caso de éxito)
@@ -145,38 +221,73 @@ const ProductPage = () => {
   const productThumbnails = hasValidImages ? ((product.img_producto as any).thumbnails || []) : []
   
   const productPrice = parseFloat(product.val_precio.toString()) || 0
-  
-  // Extraer colores y tallas de las especificaciones si existen
-  const colors = product.spcf_producto?.colors || 
-                (product.spcf_producto?.color ? [{ name: 'Color', value: product.spcf_producto.color, available: true }] : [])
-  const sizes = product.spcf_producto?.sizes || 
-                (product.spcf_producto?.talla ? [{ name: product.spcf_producto.talla, available: true }] : [])
+
+  // Mapeo color <-> imagen: si hay misma cantidad, el backend suele enviar imágenes en orden
+  // inverso al texto "rojo, azul" (ej. main=azul, gallery[0]=rojo), así que invertimos el índice.
+  const colorIndexToImageIndex = (colorIndex: number) => {
+    if (colors.length === productImages.length && colors.length > 0) {
+      return colors.length - 1 - colorIndex
+    }
+    return colorIndex
+  }
+  const imageIndexToColorIndex = (imageIndex: number) => {
+    if (colors.length === productImages.length && colors.length > 0) {
+      return productImages.length - 1 - imageIndex
+    }
+    return imageIndex
+  }
+
+  // Soporta sizes como array, o talla/talla_calzado como string (ej. "M, L, XL") parseado a opciones
+  const tallaRaw =
+    product.spcf_producto?.talla ?? product.spcf_producto?.talla_calzado
+  const sizes: { name: string; available: boolean }[] =
+    product.spcf_producto?.sizes && Array.isArray(product.spcf_producto.sizes)
+      ? product.spcf_producto.sizes
+      : tallaRaw
+        ? typeof tallaRaw === 'string'
+          ? tallaRaw
+              .split(',')
+              .map((s) => ({ name: s.trim(), available: true }))
+              .filter((o) => o.name.length > 0)
+          : [{ name: String(tallaRaw), available: true }]
+        : []
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="container mx-auto px-4 py-4 md:py-8">
         {/* Product Details Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 lg:gap-12 mb-8 md:mb-16">
-          {/* Product Gallery */}
+          {/* Product Gallery: índice sincronizado con el color seleccionado */}
           <div className="w-full">
             <ProductGallery
               images={productImages}
               productName={product.nom_producto}
+              selectedIndex={productImages.length > 0 ? selectedImageIndex : undefined}
+              onSelectedIndexChange={(idx) => {
+                setSelectedImageIndex(idx)
+                const cIdx = imageIndexToColorIndex(idx)
+                if (colors[cIdx]) setSelectedColor(colors[cIdx].value)
+              }}
             />
           </div>
 
-          {/* Product Information */}
+          {/* Product Information: al elegir color se actualiza la imagen de la galería */}
           <div className="w-full mt-4 lg:mt-0">
             <ProductInfo
               product={product as any}
               name={product.nom_producto}
               price={productPrice}
-              originalPrice={productPrice} // No hay precio original en el backend
-              rating={4.5} // Rating hardcodeado por ahora
-              reviewCount={12} // Review count hardcodeado por ahora
+              originalPrice={productPrice}
+              rating={product.rating != null && product.rating > 0 ? Number(product.rating) : 0}
+              reviewCount={product.review_count != null ? Number(product.review_count) : 0}
               colors={colors}
               sizes={sizes}
-              isNew={false} // Por defecto no es nuevo
+              isNew={false}
+              selectedColor={selectedColor}
+              onColorChange={(value, index) => {
+                setSelectedColor(value)
+                setSelectedImageIndex(colorIndexToImageIndex(index))
+              }}
               onAddToCart={handleAddToCart}
             />
           </div>
@@ -277,20 +388,29 @@ const ProductPage = () => {
           />
         </div>
 
-        {/* Related Products Section */}
+        {/* Related Products Section - mismos de la categoría del producto */}
         <div className="border-t border-gray-200 dark:border-gray-700 pt-8 md:pt-16">
           <RelatedProducts
             title="También te puede gustar"
-            products={[]} // Por ahora sin productos relacionados
+            products={relatedProducts}
           />
         </div>
       </div>
 
-      {/* Cart Toast */}
+      {/* Cart Toast: imagen según color seleccionado */}
       <CartToast
         isVisible={showCartToast}
         productName={product.nom_producto}
-        productImage={productImages[0] ?? ''}
+        productImage={(() => {
+          if (cartData.color && colors.length > 0 && productImages.length > 0) {
+            const colorIdx = colors.findIndex((c) => c.value === cartData.color)
+            if (colorIdx >= 0) {
+              const imgIdx = colorIndexToImageIndex(colorIdx)
+              if (productImages[imgIdx]) return productImages[imgIdx]
+            }
+          }
+          return productImages[selectedImageIndex] ?? productImages[0] ?? ''
+        })()}
         price={productPrice as number}
         selectedColor={cartData.color}
         selectedSize={cartData.size}

@@ -11,6 +11,7 @@ interface ProductCardProps {
     nom_producto: string;
     val_precio?: number;
     stock_cantidad?: number;
+    num_stock?: number;
     img_producto?: {
       main: string;
       gallery: string[];
@@ -22,11 +23,12 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, onClick, className = '' }: ProductCardProps) {
-  const isAvailable = product.stock_cantidad && product.stock_cantidad > 0;
+  const stock = product.num_stock ?? product.stock_cantidad ?? 0;
+  const isAvailable = stock > 0;
 
   return (
     <div
-      className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${className}`}
+      className={`bg-card text-card-foreground rounded-lg border border-border shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${className}`}
       onClick={onClick}
     >
       {product.img_producto ? (
@@ -35,28 +37,28 @@ export function ProductCard({ product, onClick, className = '' }: ProductCardPro
           productName={product.nom_producto}
         />
       ) : (
-        <div className="aspect-square bg-gray-200 flex items-center justify-center">
-          <Package className="w-12 h-12 text-gray-400" />
+        <div className="aspect-square bg-muted flex items-center justify-center">
+          <Package className="w-12 h-12 text-muted-foreground" />
         </div>
       )}
-      
+
       <div className="p-4">
-        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+        <h3 className="font-semibold text-card-foreground mb-2 line-clamp-2">
           {product.nom_producto}
         </h3>
-        <p className="text-lg font-bold text-blue-600 mb-2">
-          {formatPrice(product.val_precio, 'COP')}
+        <p className="text-lg font-bold text-primary mb-2">
+          {formatPrice(product.val_precio ?? 0, 'COP')}
         </p>
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-600">
-            Stock: {product.stock_cantidad || 0}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm text-muted-foreground font-medium">
+            Stock: {stock}
           </span>
           {isAvailable ? (
-            <Badge variant="default" className="text-xs">
+            <Badge variant="default" className="text-xs shrink-0">
               Disponible
             </Badge>
           ) : (
-            <Badge variant="destructive" className="text-xs">
+            <Badge variant="destructive" className="text-xs shrink-0">
               Sin stock
             </Badge>
           )}

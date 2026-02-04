@@ -93,6 +93,17 @@ class PaymentCreateRequest(BaseModel):
     Request para crear un pago con el widget de Wompi.
     """
     order_id: int = Field(..., description="ID de la orden a pagar")
+    amount_in_cents: Optional[int] = Field(None, description="Monto en centavos (opcional). Si la orden no tiene descuento guardado pero el frontend envía este monto, se usa para Wompi.")
+
+
+class CheckoutCreateRequest(BaseModel):
+    """
+    Request para crear una sesión de checkout (sin orden).
+    La orden se crea solo cuando el pago Wompi es APPROVED.
+    """
+    cart_id: int = Field(..., description="ID del carrito")
+    id_direccion: int = Field(..., description="ID de la dirección de envío")
+    id_canje: Optional[int] = Field(None, description="ID del canje de puntos a aplicar (opcional)")
 
 
 class PaymentCreateResponse(BaseModel):
@@ -104,6 +115,15 @@ class PaymentCreateResponse(BaseModel):
     currency: str = Field(default="COP", description="Moneda del pago")
     public_key: str = Field(..., description="Llave pública de Wompi")
     integrity_signature: str = Field(..., description="Firma de integridad SHA256 generada en backend")
+
+
+class ConfirmCheckoutRequest(BaseModel):
+    """
+    Request para confirmar checkout tras pago (respaldo si el webhook no llegó).
+    El backend verifica la transacción en Wompi y crea la orden si está APPROVED.
+    """
+    reference: str = Field(..., description="Referencia synkro_cart_* del pago")
+    transaction_id: str = Field(..., description="ID de la transacción en Wompi")
 
 
 class AttachTransactionRequest(BaseModel):

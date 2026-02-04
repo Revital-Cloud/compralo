@@ -15,8 +15,8 @@ const CART_KEYS = {
   cart: (cartUser: cartService.CartUser) => ["cart", "info", cartUser] as const,
   products: (cartUser: cartService.CartUser) =>
     ["cart", "products", cartUser] as const,
-  totals: (cartUser: cartService.CartUser) =>
-    ["cart", "totals", cartUser] as const,
+  totals: (cartUser: cartService.CartUser, id_canje?: number | null) =>
+    ["cart", "totals", cartUser, id_canje ?? null] as const,
 };
 
 // =============================================================================
@@ -98,11 +98,13 @@ export function useCart() {
     error: storeError,
     cartUser,
     id_carrito,
+    selectedCanjeId,
 
     // Acciones del store
     setCartId,
     setItems,
     setTotals,
+    setSelectedCanjeId,
     addItem,
     removeItem,
     updateItemQuantity,
@@ -519,11 +521,11 @@ export function useCart() {
     error: totalsError,
     refetch: refetchTotals,
   } = useQuery({
-    queryKey: CART_KEYS.totals(currentCartUser),
+    queryKey: CART_KEYS.totals(currentCartUser, selectedCanjeId),
     queryFn: async () => {
-      console.log("🧮 Calculando totales del carrito para:", currentCartUser);
+      console.log("🧮 Calculando totales del carrito para:", currentCartUser, "canje:", selectedCanjeId);
       try {
-        const result = await cartService.calculateCartTotal(currentCartUser);
+        const result = await cartService.calculateCartTotal(currentCartUser, selectedCanjeId ?? undefined);
         console.log("🧮 Totales calculados:", result);
         return result;
       } catch (error: any) {
@@ -636,16 +638,12 @@ export function useCart() {
       setError(null);
     },
     onError: (error: any) => {
-      console.error("❌ Error al agregar producto:", error);
-      // Mostrar errores relevantes al usuario (stock y límite)
-      if (
-        error.message?.includes("Stock insuficiente") ||
-        error.message?.includes("Límite de carrito alcanzado")
-      ) {
-        setError(error.message);
-      } else {
-        setError(null); // No mostrar otros errores técnicos
-      }
+      const data = error?.response?.data;
+      const detail = data?.detail;
+      const message = typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map((e: any) => e?.msg ?? e).join(", ") : detail ?? error?.message ?? "Error al agregar al carrito";
+      console.error("❌ Error al agregar producto:", message, data ?? error);
+      // Mostrar al usuario el mensaje del backend (stock, límite, migración, etc.)
+      setError(message);
       // Invalidar queries y refrescar para revertir optimistic update
       queryClient.invalidateQueries({ queryKey: CART_KEYS.all });
       refetchProducts();
@@ -816,6 +814,8 @@ export function useCart() {
     cartUser: currentCartUser,
     id_carrito,
     cartExceedsLimit,
+    selectedCanjeId,
+    setSelectedCanjeId,
     
     // === DATOS CON INFORMACIÓN BÁSICA ===
     itemsWithBasic: cartProductsWithBasic || [],

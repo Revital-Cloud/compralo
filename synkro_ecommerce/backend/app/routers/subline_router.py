@@ -5,7 +5,8 @@ Define las rutas y endpoints relacionados con la gestión de sublineas,
 incluyendo la creación, actualización y visualización de sublineas.
 """
 from decimal import Decimal
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user
@@ -33,7 +34,11 @@ async def get_sublines(db:Session = Depends(get_db)):
 
 # Ruta para obtener sublíneas por línea
 @router.get("/sublines/line/{id_linea}", response_model=list[Subline])
-async def get_sublines_by_line(id_linea: Decimal, id_categoria: Decimal = None, db: Session = Depends(get_db)):
+async def get_sublines_by_line(
+    id_linea: Decimal,
+    id_categoria: Optional[Decimal] = Query(None, description="ID de categoría para filtrar sublíneas de la línea en esa categoría"),
+    db: Session = Depends(get_db),
+):
     """
     Obtiene todas las sublíneas de una línea específica.
 

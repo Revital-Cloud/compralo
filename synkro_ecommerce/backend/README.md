@@ -4,6 +4,8 @@
 
 El backend de Synkro está diseñado para funcionar como una API independiente por cada cliente SaaS. Cada instancia tiene su propia base de datos PostgreSQL y configuración específica, eliminando la complejidad multi-tenant tradicional.
 
+**Requisitos y trazabilidad:** La especificación de requisitos de software (SRS) de synkro_ecommerce, según IEEE 830-1998, está en [synkro_ecommerce/docs/SRS_SYNKRO_ECOMMERCE_IEEE830.md](../docs/SRS_SYNKRO_ECOMMERCE_IEEE830.md). Los requisitos funcionales (RF-xx) y no funcionales (RNF-xx) definidos allí son la referencia para diseño, implementación y pruebas.
+
 ## 🏗️ Arquitectura SaaS Simplificada
 
 ### Deployment Aislado por Cliente

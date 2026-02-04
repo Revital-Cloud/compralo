@@ -152,6 +152,144 @@ def generate_payment_reference(order_id: int) -> str:
     return f"synkro_{order_id}_{random_part}"
 
 
+# Referencia de checkout sin tabla: se codifica cart_id, id_direccion, id_canje en la referencia.
+# Formato: synkro_cart_{cart_id}_{id_direccion}_{id_canje}_{nonce} (id_canje=0 si no hay canje).
+# La orden se crea solo cuando el webhook recibe APPROVED; el frontend obtiene order_id vía tab_pagos.
+
+
+def generate_checkout_reference_from_cart(
+    cart_id: int,
+    id_direccion: int,
+    id_canje: Optional[int] = None,
+) -> str:
+    """Genera referencia única para Wompi codificando carrito/dirección/canje. No persiste nada en BD."""
+    canje_val = id_canje if id_canje is not None else 0
+    nonce = uuid.uuid4().hex[:8]
+    return f"synkro_cart_{cart_id}_{id_direccion}_{canje_val}_{nonce}"
+
+
+def parse_checkout_reference(reference: str) -> Optional[tuple[int, int, Optional[int]]]:
+    """
+    Parsea referencia synkro_cart_* y devuelve (cart_id, id_direccion, id_canje).
+    id_canje es None si en la referencia es 0. Devuelve None si el formato no es válido.
+    """
+    if not reference or not reference.startswith("synkro_cart_"):
+        return None
+    parts = reference.split("_")
+    # synkro_cart_5_2_0_a1b2c3d4 -> 5 partes: synkro, cart, cart_id, id_direccion, id_canje, nonce
+    if len(parts) != 6:
+        return None
+    try:
+        cart_id = int(parts[2])
+        id_direccion = int(parts[3])
+        canje_val = int(parts[4])
+        id_canje = None if canje_val == 0 else canje_val
+        return (cart_id, id_direccion, id_canje)
+    except (ValueError, IndexError):
+        return None
+
+
+async def fetch_transaction_by_id(
+    transaction_id: str,
+    wompi_config: StoreWompiConfig,
+) -> Optional[Dict[str, Any]]:
+    """
+    Obtiene una transacción de Wompi por ID (una sola petición GET).
+    Útil para confirmar checkout cuando el webhook no llegó.
+    """
+    base_url = get_wompi_base_url(wompi_config.wompi_environment)
+    url = f"{base_url}/transactions/{transaction_id}"
+    headers = {"Content-Type": "application/json"}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("data") or data
+    except Exception as e:
+        logger.warning(f"No se pudo obtener transacción de Wompi: {transaction_id} - {e}")
+        return None
+
+
+def create_order_from_checkout_reference(
+    db: Session,
+    reference: str,
+    tx: Dict[str, Any],
+    id_usuario: Optional[int] = None,
+) -> Optional[int]:
+    """
+    Crea la orden desde una referencia synkro_cart_* y datos de transacción (webhook o confirm).
+    Crea orden, pago, marca orden como Procesada; el trigger vacía el carrito.
+    - Si id_usuario es None (webhook): se obtiene del carrito.
+    - Si id_usuario se pasa (confirm-checkout): se valida que el carrito pertenezca a ese usuario.
+    Retorna order_id o None si falla.
+    """
+    parsed = parse_checkout_reference(reference)
+    if not parsed:
+        logger.warning(f"create_order_from_checkout_reference: referencia no parseada: {reference}")
+        return None
+    cart_id, id_direccion, id_canje = parsed
+    logger.info(f"create_order_from_checkout_reference: reference={reference} -> cart_id={cart_id}, id_direccion={id_direccion}, id_canje={id_canje}")
+    status_tx = tx.get("status")
+    if status_tx != "APPROVED":
+        return None
+    cart_row = db.execute(
+        text("SELECT id_usuario FROM tab_carritos WHERE id_carrito = :cid"),
+        {"cid": cart_id}
+    ).fetchone()
+    if not cart_row or cart_row.id_usuario is None:
+        logger.warning(f"Carrito no encontrado o sin usuario: cart_id={cart_id}")
+        return None
+    cart_user_id = int(cart_row.id_usuario)
+    if id_usuario is not None and cart_user_id != id_usuario:
+        logger.warning(f"Carrito no pertenece al usuario: cart_id={cart_id}, id_usuario={id_usuario}")
+        return None
+    id_usuario = cart_user_id
+    try:
+        from schemas.order_schema import OrderCreate
+        # id_canje como entero para que la BD aplique el descuento por puntos (total 75k en vez de 100k)
+        order_data = OrderCreate(
+            id_carrito=cart_id,
+            id_direccion=id_direccion,
+            codigo_descuento=None,
+            des_observaciones=None,
+            id_canje=Decimal(int(id_canje)) if id_canje is not None else None,
+        )
+        result = order_service.create_order(db, order_data, Decimal(id_usuario))
+        if not result or not result.get("success") or not result.get("id_orden"):
+            logger.error(f"No se pudo crear la orden desde referencia checkout: {result}")
+            return None
+        order_id = int(result["id_orden"])
+        amount_in_cents = int(tx.get("amount_in_cents", 0)) or 0
+        if amount_in_cents <= 0:
+            order_row = db.execute(
+                text("SELECT val_total_pedido FROM tab_ordenes WHERE id_orden = :oid"),
+                {"oid": order_id}
+            ).fetchone()
+            if order_row and order_row.val_total_pedido is not None:
+                amount_in_cents = int(float(order_row.val_total_pedido) * 100)
+        create_payment(
+            db=db,
+            order_id=order_id,
+            reference=reference,
+            amount_in_cents=amount_in_cents,
+            currency="COP",
+            status="APPROVED",
+            usr_insert=Decimal(id_usuario),
+        )
+        pm = tx.get("payment_method", {}) if isinstance(tx.get("payment_method"), dict) else {}
+        pm_type = pm.get("type") if pm else None
+        metodo_pago = get_payment_method_for_db(pm_type) if pm_type else "transferencia"
+        order_service.update_order_payment_info(
+            db, Decimal(order_id), metodo_pago=metodo_pago, ind_estado=2
+        )
+        logger.info(f"Orden {order_id} creada desde referencia checkout: {reference}")
+        return order_id
+    except Exception as e:
+        logger.error(f"Error creando orden desde referencia checkout: {e}", exc_info=True)
+        return None
+
+
 def generate_integrity_signature(
     reference: str,
     amount_in_cents: int,

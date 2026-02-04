@@ -3,7 +3,8 @@
 import { motion, AnimatePresence } from "framer-motion"
 import { Check, ShoppingCart, X } from "lucide-react"
 import { Button } from "@/components/ui"
-import { useState, useEffect } from "react"
+import { useEffect } from "react"
+import { formatPrice } from "@/utils/format-price"
 
 interface CartToastProps {
   isVisible: boolean
@@ -77,7 +78,7 @@ const CartToast: React.FC<CartToastProps> = ({
                     {productName}
                   </h4>
                   <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    ${price.toFixed(2)}
+                    {formatPrice(price)}
                   </p>
                                      {(selectedColor || selectedSize) && (
                      <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">

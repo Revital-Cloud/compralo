@@ -421,8 +421,8 @@ CREATE TABLE IF NOT EXISTS tab_descuentos (
     id_sublinea_aplica          DECIMAL(10)     NULL,
     min_valor_pedido            DECIMAL(10,2)   DEFAULT 0, --Monto mínimo de pedido para aplicar el descuento
     ind_es_para_cumpleanos      BOOLEAN         DEFAULT FALSE, --TRUE = el descuento es para cumpleaños, FALSE = el descuento no es para cumpleaños
-    fec_inicio                  DATE            NOT NULL, --Fecha de inicio de validez del descuento
-    fec_fin                     DATE            NOT NULL, --Fecha de fin de validez del descuento
+    fec_inicio                  DATE            NULL,    --Fecha de inicio (NULL = plantilla canjeable sin límite)
+    fec_fin                     DATE            NULL,    --Fecha de fin (NULL = plantilla canjeable sin límite)
     ind_activo                  BOOLEAN         DEFAULT TRUE, --TRUE = el descuento está activo, FALSE = el descuento está inactivo
     max_usos_total              INT             NULL, --Límite total de usos del descuento (NULL = ilimitado)
     usos_actuales_total         INT             DEFAULT 0, --Número de veces que el descuento ha sido usado
@@ -444,8 +444,11 @@ CREATE TABLE IF NOT EXISTS tab_descuentos (
     usr_update                  DECIMAL(10),
     fec_update                  TIMESTAMP WITHOUT TIME ZONE,
     
-    -- Constraints originales
-    CONSTRAINT chk_fechas_validez_descuento     CHECK (fec_fin >= fec_inicio),
+    -- Constraints originales (fechas: ambas NULL o ambas con valor y fec_fin >= fec_inicio)
+    CONSTRAINT chk_fechas_validez_descuento     CHECK (
+        (fec_inicio IS NULL AND fec_fin IS NULL) OR
+        (fec_inicio IS NOT NULL AND fec_fin IS NOT NULL AND fec_fin >= fec_inicio)
+    ),
     CONSTRAINT chk_valor_descuento_coherente    CHECK (
         (tipo_calculo = TRUE AND val_porce_descuento >= 0 AND val_porce_descuento <= 100) OR 
         (tipo_calculo = FALSE AND val_monto_descuento >= 0)

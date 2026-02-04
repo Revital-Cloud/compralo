@@ -45,6 +45,10 @@ class CartProductBase(BaseModel):
     id_producto: Decimal = Field(..., description="Identificador del producto.")
     cantidad: Decimal = Field(..., description="Cantidad del producto en el carrito.")
     precio_unitario_carrito: Optional[Decimal] = Field(None, description="Precio unitario del producto en el carrito.")
+    opciones_elegidas: Optional[Dict[str, Any]] = Field(
+        None,
+        description="Opciones que el cliente eligió (ej. {'color': 'rojo', 'talla': '39'}). Genérico para cualquier producto."
+    )
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
     fec_insert: Optional[datetime] = Field(None, description="Fecha de inserción del registro.")
     usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")

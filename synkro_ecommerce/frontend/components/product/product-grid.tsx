@@ -1,6 +1,6 @@
 "use client"
 
-import { Heart } from "lucide-react"
+import { Heart, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import Image from "next/image"
@@ -156,7 +156,12 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                 <Heart 
                   className={cn(
                     "w-4 h-4 transition-all",
-                    isProductFavorite(product.id_categoria, product.id_linea, product.id_sublinea, product.id_producto)
+                    isProductFavorite(
+                      Number(product.id_categoria),
+                      Number(product.id_linea),
+                      Number(product.id_sublinea),
+                      Number(product.id_producto)
+                    )
                       ? "fill-red-500 text-red-500"
                       : "text-gray-600 dark:text-gray-400 hover:text-red-500"
                   )}
@@ -190,10 +195,15 @@ const ProductGrid: React.FC<ProductGridProps> = ({
                 {product.nom_producto}
               </h3>
 
-              {/* Categoría o marca */}
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                Producto
-              </p>
+              {/* Rating */}
+              {product.rating && product.rating > 0 && (
+                <div className="flex items-center gap-1">
+                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                    {product.rating.toFixed(1)}
+                  </span>
+                </div>
+              )}
             </div>
           </Link>
         )

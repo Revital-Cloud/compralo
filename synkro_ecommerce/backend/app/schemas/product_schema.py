@@ -127,6 +127,10 @@ class Product(ProductBase): # Este será el modelo de respuesta principal
     Hereda de `ProductBase` y se utiliza como el modelo de respuesta
     principal para los endpoints que devuelven información de productos.
     Incluye el `id_producto` y los campos de auditoría.
+    
+    Atributos adicionales:
+        rating (Optional[float]): Promedio de calificaciones del producto (1-5 estrellas).
+                                 Calculado desde tab_comentarios. None si no hay calificaciones.
 
     Atributos:
         id_producto (Decimal): Identificador único del producto.
@@ -154,6 +158,8 @@ class Product(ProductBase): # Este será el modelo de respuesta principal
     nom_sublinea: Optional[str] = None
     nom_marca: Optional[str] = None
     nom_proveedor: Optional[str] = None
+    rating: Optional[float] = Field(None, ge=0, le=5, description="Promedio de calificaciones del producto (1-5 estrellas). Calculado desde tab_comentarios.")
+    review_count: Optional[int] = Field(0, ge=0, description="Cantidad de reseñas con calificación del producto.")
 
 # Esquemas para filtros de productos
 class ProductAdminResponse(BaseModel):
@@ -262,6 +268,7 @@ class ProductFiltered(BaseModel):
         val_precio (Decimal): Precio del producto.
         num_stock (int): Stock disponible.
         nom_proveedor (str): Nombre del proveedor.
+        rating (Optional[float]): Promedio de calificaciones del producto (1-5 estrellas).
         nom_marca (str): Nombre de la marca.
         fec_insert (datetime): Fecha de inserción.
         total_registros (int): Total de registros encontrados.
@@ -282,6 +289,7 @@ class ProductFiltered(BaseModel):
     nom_marca: str
     fec_insert: datetime
     total_registros: int
+    rating: Optional[float] = Field(None, ge=0, le=5, description="Promedio de calificaciones del producto (1-5 estrellas). Calculado desde tab_comentarios.")
     
     class Config:
         from_attributes = True

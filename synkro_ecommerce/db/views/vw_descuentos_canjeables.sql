@@ -36,8 +36,9 @@ SELECT
     d.fec_fin,                                                         -- Fecha fin vigencia
     d.ind_activo,                                                      -- Indicador activo
     CASE                                                               -- Estado calculado de vigencia
+        WHEN d.fec_inicio IS NULL AND d.fec_fin IS NULL THEN 'Vigente'  -- Sin fechas = siempre vigente para canje
         WHEN CURRENT_DATE BETWEEN d.fec_inicio AND d.fec_fin THEN 'Vigente'    -- En período válido
-        WHEN CURRENT_DATE < d.fec_inicio THEN 'Programado'                     -- Aún no inicia
+        WHEN d.fec_inicio IS NOT NULL AND CURRENT_DATE < d.fec_inicio THEN 'Programado'  -- Aún no inicia
         ELSE 'Vencido'                                                          -- Ya venció
     END AS estado_vigencia
 FROM tab_descuentos d
