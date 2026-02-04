@@ -57,7 +57,20 @@ class Category(CategoryBase):
     Incluye el ID de la categoría junto con los campos base.
     """
     id_categoria: Decimal = Field(..., description="Identificador único para la categoría.")
+    productos_count: Optional[int] = Field(None, description="Cantidad de productos activos en la categoría.")
         
+# Esquema para toggle (activar/desactivar)
+class ToggleRequest(BaseModel):
+    """
+    Esquema para solicitudes de activar/desactivar.
+    
+    Utilizado en endpoints toggle para activar o desactivar entidades.
+    
+    Atributos:
+        activar (bool): True para activar, False para desactivar.
+    """
+    activar: bool = Field(..., description="True para activar, False para desactivar.")
+
 # Mensajitos para las respuesta api en categorias
 class ResponseMessage(BaseModel):
     """

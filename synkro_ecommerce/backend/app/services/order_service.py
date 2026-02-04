@@ -1,8 +1,12 @@
+import logging
 from decimal import Decimal
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import text, bindparam, Integer
 
 from schemas.order_schema import OrderCreate
+from services.cart_product_service import _imagen_url_por_color
+
+logger = logging.getLogger(__name__)
 
 
 def get_orders(db:Session):
@@ -156,7 +160,7 @@ def get_order_detail_admin(db: Session, id_orden: int):
         dict: Detalle completo de la orden
     """
     try:
-        # Información básica de la orden con usuario
+        # Información básica de la orden con usuario (LEFT JOIN por si falta usuario)
         order_query = text("""
         SELECT 
             o.id_orden, 
@@ -174,7 +178,7 @@ def get_order_detail_admin(db: Session, id_orden: int):
             o.detalle_descuentos_aplicados,
             o.des_observaciones
         FROM tab_ordenes o
-        JOIN tab_usuarios u ON o.id_usuario = u.id_usuario
+        LEFT JOIN tab_usuarios u ON o.id_usuario = u.id_usuario
         WHERE o.id_orden = :id_orden
         """)
         order_result = db.execute(order_query, {"id_orden": id_orden})
@@ -182,25 +186,42 @@ def get_order_detail_admin(db: Session, id_orden: int):
         
         if not order_data:
             return None
+
+        def _to_jsonable(val):
+            if val is None:
+                return None
+            if isinstance(val, Decimal):
+                return float(val)
+            if hasattr(val, "isoformat") and callable(getattr(val, "isoformat")):
+                return val.isoformat()
+            if isinstance(val, (dict, list, str, int, float, bool)):
+                return val
+            return str(val)
+
+        def _row_to_dict(row):
+            d = dict(row)
+            return {k: _to_jsonable(v) for k, v in d.items()}
             
-        # Productos de la orden
+        # Productos de la orden (tab_orden_productos usa FK compuesta a tab_productos)
         products_query = text("""
         SELECT 
             op.id_producto,
             p.nom_producto,
             p.img_producto,
-            op.cantidad,
-            op.val_precio_unitario,
-            op.val_subtotal
+            p.spcf_producto,
+            op.cant_producto AS cantidad,
+            op.precio_unitario_orden AS val_precio_unitario,
+            op.subtotal AS val_subtotal,
+            COALESCE(op.opciones_elegidas, '{}'::JSONB) AS opciones_elegidas
         FROM tab_orden_productos op
-        JOIN tab_productos p ON op.id_producto = p.id_producto
+        JOIN tab_productos p ON op.id_categoria_producto = p.id_categoria
+            AND op.id_linea_producto = p.id_linea
+            AND op.id_sublinea_producto = p.id_sublinea
+            AND op.id_producto = p.id_producto
         WHERE op.id_orden = :id_orden
         """)
         products_result = db.execute(products_query, {"id_orden": id_orden})
         products_data = products_result.mappings().all()
-        
-        # Dirección de envío (asumiendo que se guarda en la orden o se puede obtener del usuario)
-        # Por ahora retornamos null, se puede implementar después
         
         # Puntos ganados por esta orden
         points_query = text("""
@@ -209,14 +230,59 @@ def get_order_detail_admin(db: Session, id_orden: int):
         WHERE id_orden_origen = :id_orden AND tipo_movimiento = 1
         """)
         points_result = db.execute(points_query, {"id_orden": id_orden})
-        points_data = points_result.scalar() or 0
+        points_data = points_result.scalar()
+        points_value = float(points_data) if points_data is not None else 0
+        
+        # Dirección de envío: dirección principal del cliente (tab_ordenes no guarda id_direccion)
+        id_usuario = order_data.get("id_usuario") if hasattr(order_data, "get") else None
+        direccion_envio = None
+        if id_usuario is not None:
+            addr_query = text("""
+            SELECT id_direccion, nombre_direccion, calle_direccion, ciudad, departamento,
+                   codigo_postal, barrio, referencias, complemento, ind_principal, ind_activa
+            FROM tab_direcciones_usuario
+            WHERE id_usuario = :id_usuario AND ind_activa = TRUE
+            ORDER BY ind_principal DESC NULLS LAST
+            LIMIT 1
+            """)
+            addr_result = db.execute(addr_query, {"id_usuario": id_usuario})
+            addr_row = addr_result.mappings().first()
+            if addr_row:
+                direccion_envio = _row_to_dict(addr_row)
+                # El frontend espera campos opcionales; complemento puede servir como detalle
+                if direccion_envio.get("complemento"):
+                    direccion_envio["numero_direccion"] = direccion_envio.get("complemento")
+                # Teléfono de contacto: usar celular del usuario si está en la orden
+                if order_data.get("cel_usuario"):
+                    direccion_envio["telefono_contacto"] = str(order_data.get("cel_usuario"))
+        
+        orden_dict = _row_to_dict(order_data)
+        descuentos = order_data.get("detalle_descuentos_aplicados") if hasattr(order_data, "get") else orden_dict.get("detalle_descuentos_aplicados")
+
+        # Productos con imagen según color elegido (opciones_elegidas)
+        productos_list = []
+        for p in products_data:
+            d = _row_to_dict(p)
+            opts = d.get("opciones_elegidas") or {}
+            if isinstance(opts, str):
+                try:
+                    import json
+                    opts = json.loads(opts) if opts else {}
+                except Exception:
+                    opts = {}
+            img_url = _imagen_url_por_color(d.get("img_producto"), d.get("spcf_producto"), opts)
+            if img_url:
+                d["imagen_url"] = img_url
+            # No exponer spcf_producto al frontend
+            d.pop("spcf_producto", None)
+            productos_list.append(d)
         
         return {
-            "orden": dict(order_data),
-            "productos": [dict(p) for p in products_data],
-            "direccion_envio": None,  # Se puede implementar después
-            "puntos_ganados": points_data,
-            "descuentos_aplicados": order_data.get("detalle_descuentos_aplicados")
+            "orden": orden_dict,
+            "productos": productos_list,
+            "direccion_envio": direccion_envio,
+            "puntos_ganados": points_value,
+            "descuentos_aplicados": descuentos
         }
     except Exception as e:
         db.rollback()
@@ -347,8 +413,22 @@ def create_order(db:Session, order:OrderCreate, usr_insert: Decimal):
         dict: El diccionario completo con toda la información de la orden creada.
     """
     try:
-        params = order.model_dump()
-        params["usr_insert"] = usr_insert
+        # Construir params explícitamente para que id_canje llegue siempre a la BD (descuento por puntos)
+        id_canje_val = None
+        if getattr(order, "id_canje", None) is not None:
+            try:
+                id_canje_val = int(order.id_canje)
+            except (TypeError, ValueError):
+                pass
+        params = {
+            "id_carrito": int(order.id_carrito),
+            "id_direccion": int(order.id_direccion),
+            "codigo_descuento": order.codigo_descuento,
+            "des_observaciones": order.des_observaciones,
+            "usr_insert": usr_insert,
+            "id_canje": id_canje_val,
+        }
+        logger.info("create_order: id_carrito=%s, id_canje=%s (descuento por puntos)", params["id_carrito"], params["id_canje"])
         query = text("""
         SELECT fun_crear_orden_desde_carrito(
             :id_carrito,
@@ -358,16 +438,29 @@ def create_order(db:Session, order:OrderCreate, usr_insert: Decimal):
             :usr_insert,
             :id_canje
         )
-        """)
+        """).bindparams(bindparam("id_canje", type_=Integer))
         result = db.execute(query, params)
         fetched_result = result.fetchone()
         db.commit()
-                # La función devuelve un diccionario completo con toda la información
         if fetched_result and fetched_result[0]:
             response_data = fetched_result[0]
-            # Devolver todo el diccionario con la información completa
             if isinstance(response_data, dict):
+                logger.info(
+                    "create_order resultado: total_descuentos=%s, total_final=%s (id_canje enviado=%s)",
+                    response_data.get("total_descuentos"),
+                    response_data.get("total_final"),
+                    params.get("id_canje"),
+                )
                 return response_data
+            # Algunos drivers devuelven JSON como string
+            if isinstance(response_data, str):
+                import json
+                try:
+                    data = json.loads(response_data)
+                    logger.info("create_order resultado (parseado): total_descuentos=%s, total_final=%s", data.get("total_descuentos"), data.get("total_final"))
+                    return data
+                except Exception:
+                    pass
 
         return None
     except Exception as e:
@@ -422,7 +515,9 @@ def get_order_with_items(db: Session, id_orden: Decimal):
                 op.cant_producto AS quantity,
                 op.precio_unitario_orden AS unit_price,
                 op.subtotal AS total_price,
-                p.img_producto AS product_image
+                p.img_producto AS product_image,
+                p.spcf_producto,
+                COALESCE(op.opciones_elegidas, '{}'::JSONB) AS opciones_elegidas
             FROM tab_orden_productos op
             LEFT JOIN tab_productos p 
               ON p.id_categoria = op.id_categoria_producto
@@ -435,6 +530,19 @@ def get_order_with_items(db: Session, id_orden: Decimal):
         )
         result_items = db.execute(query_items, {"id_orden": id_orden})
         items = [dict(row) for row in result_items.mappings().all()]
+        # Imagen según color elegido para cada ítem
+        for it in items:
+            opts = it.get("opciones_elegidas") or {}
+            if isinstance(opts, str):
+                try:
+                    import json
+                    opts = json.loads(opts) if opts else {}
+                except Exception:
+                    opts = {}
+            img_url = _imagen_url_por_color(it.get("product_image"), it.get("spcf_producto"), opts)
+            if img_url:
+                it["imagen_url"] = img_url
+            it.pop("spcf_producto", None)
     except Exception as e:
         # 3) Fallback: intentar una función si existe
         try:
@@ -455,9 +563,41 @@ def get_order_with_items(db: Session, id_orden: Decimal):
     return enriched
 
 
-def update_order_payment_info(db: Session, id_orden: Decimal, metodo_pago: str | None = None, ind_estado: int | None = None):
-    """Actualiza `metodo_pago` y/o `ind_estado` de una orden."""
+def update_order_payment_info(db: Session, id_orden: Decimal, metodo_pago: str | None = None, ind_estado: int | None = None, commit: bool = True):
+    """
+    Actualiza `metodo_pago` y/o `ind_estado` de una orden.
+    
+    Args:
+        db: Sesión de base de datos
+        id_orden: ID de la orden
+        metodo_pago: Método de pago (opcional)
+        ind_estado: Estado de la orden (opcional)
+        commit: Si True, hace commit. Si False, deja que el llamador maneje el commit.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
+        logger.info(f"🔍 update_order_payment_info: id_orden={id_orden}, metodo_pago={metodo_pago}, ind_estado={ind_estado}, commit={commit}")
+        
+        # Verificar estado anterior ANTES del UPDATE para que los triggers se ejecuten correctamente
+        if ind_estado is not None:
+            check_old_state_query = text("SELECT ind_estado FROM tab_ordenes WHERE id_orden = :id_orden")
+            old_state_result = db.execute(check_old_state_query, {"id_orden": id_orden})
+            old_state_row = old_state_result.fetchone()
+            if old_state_row:
+                old_state = old_state_row.ind_estado
+                logger.info(f"🔍 Estado ANTERIOR de la orden {id_orden}: {old_state} (tipo: {type(old_state)})")
+                logger.info(f"🔍 Estado NUEVO a establecer: {ind_estado} (tipo: {type(ind_estado)})")
+                if old_state == ind_estado:
+                    logger.warning(f"⚠️ ADVERTENCIA: La orden {id_orden} ya está en estado {ind_estado}. Los triggers NO se ejecutarán.")
+                elif old_state == 2 and ind_estado == 2:
+                    logger.warning(f"⚠️ ADVERTENCIA: La orden {id_orden} ya está pagada (estado 2). Los triggers NO se ejecutarán.")
+                else:
+                    logger.info(f"✅ Cambio de estado detectado: {old_state} → {ind_estado}. Los triggers DEBERÍAN ejecutarse.")
+            else:
+                logger.error(f"❌ No se encontró la orden {id_orden} para verificar estado anterior")
+        
         sets = []
         params = {"id_orden": id_orden}
         if metodo_pago is not None:
@@ -467,13 +607,56 @@ def update_order_payment_info(db: Session, id_orden: Decimal, metodo_pago: str |
             sets.append("ind_estado = :ind_estado")
             params["ind_estado"] = ind_estado
         if not sets:
+            logger.warning(f"⚠️ No hay campos para actualizar en orden {id_orden}")
             return
         sets.append("fec_update = NOW()")
-        query = text(f"UPDATE tab_ordenes SET {' , '.join(sets)} WHERE id_orden = :id_orden")
-        db.execute(query, params)
-        db.commit()
+        query = text(f"UPDATE tab_ordenes SET {', '.join(sets)} WHERE id_orden = :id_orden")
+        logger.info(f"🔍 Ejecutando query: UPDATE tab_ordenes SET {', '.join(sets)} WHERE id_orden = :id_orden")
+        logger.info(f"🔍 Parámetros: {params}")
+        
+        # IMPORTANTE: Los triggers se ejecutan automáticamente después del UPDATE
+        # Si ind_estado cambia de != 2 a 2, se ejecutarán:
+        # - trg_limpiar_carrito_pagado
+        # - trg_actualizar_stock_orden_pagada
+        # - trg_orden_acumular_puntos
+        if ind_estado == 2:
+            logger.info(f"🔔 IMPORTANTE: Actualizando orden {id_orden} a estado 2 (Pagada). Los triggers DEBERÍAN ejecutarse automáticamente:")
+            logger.info(f"   - trg_limpiar_carrito_pagado (limpia el carrito del usuario)")
+            logger.info(f"   - trg_actualizar_stock_orden_pagada (reduce el stock)")
+            logger.info(f"   - trg_orden_acumular_puntos (acumula puntos al usuario)")
+        
+        result = db.execute(query, params)
+        rows_affected = result.rowcount
+        logger.info(f"✅ UPDATE ejecutado: {rows_affected} fila(s) afectada(s) para orden {id_orden}")
+        
+        # Verificar estado después del UPDATE (antes del commit) para confirmar el cambio
+        if ind_estado is not None:
+            verify_after_query = text("SELECT ind_estado FROM tab_ordenes WHERE id_orden = :id_orden")
+            verify_after_result = db.execute(verify_after_query, {"id_orden": id_orden})
+            verify_after_row = verify_after_result.fetchone()
+            if verify_after_row:
+                logger.info(f"🔍 Estado DESPUÉS del UPDATE (antes del commit): {verify_after_row.ind_estado}")
+                if verify_after_row.ind_estado == 2:
+                    logger.info(f"✅ Orden {id_orden} actualizada a estado 2. Los triggers se ejecutarán al hacer commit.")
+        if rows_affected == 0:
+            logger.error(f"❌ ERROR CRÍTICO: No se actualizó ninguna fila para orden {id_orden}. ¿Existe la orden?")
+            # Verificar si la orden existe
+            check_query = text("SELECT id_orden, ind_estado, metodo_pago FROM tab_ordenes WHERE id_orden = :id_orden")
+            check_result = db.execute(check_query, {"id_orden": id_orden})
+            check_row = check_result.fetchone()
+            if check_row:
+                logger.error(f"❌ La orden existe pero no se actualizó. Estado actual: {check_row.ind_estado}, Método pago: {check_row.metodo_pago}")
+            else:
+                logger.error(f"❌ La orden {id_orden} NO EXISTE en la base de datos")
+            raise Exception(f"No se pudo actualizar la orden {id_orden}. Verifique que la orden existe.")
+        if commit:
+            db.commit()
+            logger.info(f"✅ Commit realizado para orden {id_orden}")
     except Exception as e:
-        db.rollback()
+        logger.error(f"❌ Error en update_order_payment_info: {str(e)}")
+        if commit:
+            db.rollback()
+            logger.error(f"❌ Rollback realizado debido al error")
         raise Exception(f"Error al actualizar la orden: {str(e)}")
     
 

@@ -4,6 +4,8 @@
 
 El backend de Synkro está diseñado para funcionar como una API independiente por cada cliente SaaS. Cada instancia tiene su propia base de datos PostgreSQL y configuración específica, eliminando la complejidad multi-tenant tradicional.
 
+**Requisitos y trazabilidad:** La especificación de requisitos de software (SRS) de synkro_ecommerce, según IEEE 830-1998, está en [synkro_ecommerce/docs/SRS_SYNKRO_ECOMMERCE_IEEE830.md](../docs/SRS_SYNKRO_ECOMMERCE_IEEE830.md). Los requisitos funcionales (RF-xx) y no funcionales (RNF-xx) definidos allí son la referencia para diseño, implementación y pruebas.
+
 ## 🏗️ Arquitectura SaaS Simplificada
 
 ### Deployment Aislado por Cliente
@@ -221,7 +223,8 @@ REDIS_URL=redis://localhost:6379/0
 ```bash
 # Desde apps/ecommerce/backend/
 # Método recomendado (FastAPI CLI)
-fastapi dev app/main.py
+# Nota: usa --host 0.0.0.0 para que sea accesible por IP (LAN) y no solo por localhost
+fastapi dev app/main.py --host 0.0.0.0 --port 8000
 
 # Método alternativo (Uvicorn)
 python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -235,6 +238,9 @@ python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```bash
 # Verificar que el servidor esté funcionando
 curl http://localhost:8000/
+
+# Si quieres probar desde otro dispositivo en la misma red:
+# curl http://TU_IP_LOCAL:8000/
 
 # Verificar documentación de la API
 # Abrir en navegador: http://localhost:8000/docs
@@ -480,7 +486,7 @@ async def health_check(db: Session = Depends(get_db)):
 
 ```bash
 # Ejecutar servidor con hot reload
-fastapi dev app/main.py
+fastapi dev app/main.py --host 0.0.0.0 --port 8000
 
 # Ejecutar tests específicos de la instancia
 pytest tests/ -v

@@ -57,23 +57,23 @@ BEGIN
         INSERT INTO tab_carrito_productos (
             id_carrito, id_categoria_producto, id_linea_producto,
             id_sublinea_producto, id_producto, cantidad,
-            precio_unitario_carrito, usr_insert
+            precio_unitario_carrito, usr_insert, opciones_elegidas
         ) VALUES (
-            v_id_carrito_usuario,                             -- Carrito del usuario registrado
-            v_producto_record.id_categoria_producto,          -- Categoría del producto
-            v_producto_record.id_linea_producto,              -- Línea del producto
-            v_producto_record.id_sublinea_producto,           -- Sublínea del producto
-            v_producto_record.id_producto,                    -- ID del producto
-            v_producto_record.cantidad,                       -- Cantidad del carrito anónimo
-            v_precio_actual,                                  -- Precio actualizado
-            p_usr_operacion                                   -- Usuario que realiza la migración
+            v_id_carrito_usuario,
+            v_producto_record.id_categoria_producto,
+            v_producto_record.id_linea_producto,
+            v_producto_record.id_sublinea_producto,
+            v_producto_record.id_producto,
+            v_producto_record.cantidad,
+            v_precio_actual,
+            p_usr_operacion,
+            COALESCE(v_producto_record.opciones_elegidas, '{}'::JSONB)
         )
-        -- Si el producto ya existe en el carrito del usuario, sumar cantidades
-        ON CONFLICT (id_carrito, id_categoria_producto, id_linea_producto, id_sublinea_producto, id_producto)
+        ON CONFLICT (id_carrito, id_categoria_producto, id_linea_producto, id_sublinea_producto, id_producto, opciones_elegidas)
         DO UPDATE SET 
-            cantidad = tab_carrito_productos.cantidad + v_producto_record.cantidad,  -- Sumar cantidades
-            precio_unitario_carrito = v_precio_actual,                               -- Actualizar precio
-            usr_update = p_usr_operacion;                                            -- Usuario de actualización
+            cantidad = tab_carrito_productos.cantidad + v_producto_record.cantidad,
+            precio_unitario_carrito = v_precio_actual,
+            usr_update = p_usr_operacion;
     END LOOP;
     
     -- PASO 3: Limpiar carrito anónimo después de migración exitosa

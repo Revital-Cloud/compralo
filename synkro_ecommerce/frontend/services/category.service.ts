@@ -65,14 +65,37 @@ export async function updateCategory(
     ind_activo?: boolean;
   }
 ): Promise<ApiResponse> {
-  return await put<ApiResponse>(`/categories/${id}`, categoryData);
+  console.log('Updating category with ID:', id, 'Data:', categoryData);
+  try {
+    const result = await put<ApiResponse>(`/categories/${id}`, categoryData);
+    console.log('Category updated successfully:', result);
+    return result;
+  } catch (error) {
+    console.error('Error updating category:', error);
+    throw error;
+  }
 }
 
 /**
- * Desactivar categoría
+ * Activar o desactivar categoría
+ */
+export async function deactivateActivateCategory(id: string | number, activar: boolean): Promise<ApiResponse> {
+  console.log(`${activar ? 'Activating' : 'Deactivating'} category with ID:`, id, 'Type:', typeof id);
+  try {
+    const result = await put<ApiResponse>(`/categories/${id}/toggle`, { activar });
+    console.log(`Category ${activar ? 'activated' : 'deactivated'} successfully:`, result);
+    return result;
+  } catch (error) {
+    console.error(`Error ${activar ? 'activating' : 'deactivating'} category:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Desactivar categoría (mantener compatibilidad)
  */
 export async function deactivateCategory(id: string | number): Promise<ApiResponse> {
-  return await put<ApiResponse>(`/categories/${id}/deactivate`);
+  return deactivateActivateCategory(id, false);
 }
 
 /**
@@ -92,6 +115,7 @@ const categoryService = {
   getCategoryById,
   createCategory,
   updateCategory,
+  deactivateActivateCategory,
   deactivateCategory,
   getActiveCategories,
 };

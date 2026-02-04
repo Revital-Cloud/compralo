@@ -24,7 +24,17 @@ const nextConfig: NextConfig = {
   async headers() {
     const isDevelopment = process.env.NODE_ENV === 'development';
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-    
+    // CSP connect-src requiere el ORIGEN (sin path): así se permiten todas las rutas /api/*.
+    // Si se usa solo "http://host:8000/api", algunos navegadores bloquean /api/carrito-usuario, etc.
+    const apiOrigin = (() => {
+      try {
+        const u = new URL(apiUrl);
+        return `${u.protocol}//${u.host}`;
+      } catch {
+        return 'http://localhost:8000';
+      }
+    })();
+
     return [
       {
         // Aplicar a todas las rutas
@@ -50,15 +60,15 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://checkout.wompi.co",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
-              `connect-src 'self' ${apiUrl} http://localhost:8000 https://api.synkro.com https://*.cloudinary.com https://sandbox.wompi.co https://production.wompi.co${isDevelopment ? ' ws://localhost:*' : ''}`,
-              "frame-src 'none'",
+              `connect-src 'self' ${apiOrigin} http://localhost:8000 https://api.synkro.com https://*.cloudinary.com https://sandbox.wompi.co https://production.wompi.co https://checkout.wompi.co${isDevelopment ? ' ws://localhost:*' : ''}`,
+              "frame-src 'self' https://checkout.wompi.co",
               "object-src 'none'",
               "base-uri 'self'",
-              "form-action 'self'",
+              "form-action 'self' https://checkout.wompi.co",
               "frame-ancestors 'none'"
             ].join('; ')
           }

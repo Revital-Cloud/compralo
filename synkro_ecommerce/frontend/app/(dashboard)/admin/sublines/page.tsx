@@ -15,6 +15,7 @@ import { CreateEntityModal } from '@/components/admin/common/create-entity-modal
 import { EditEntityModal } from '@/components/admin/common/edit-entity-modal'
 import { lineService } from '@/services/line.service'
 import { SublinesFilters } from '@/components/admin/sublines/sublines-filters'
+import { toast } from 'sonner'
 
 const SublinesPage = () => {
   const queryClient = useQueryClient()
@@ -50,7 +51,12 @@ const SublinesPage = () => {
       rows = rows.filter(r => String((r as any).id_categoria) === String(category))
     }
     if (line) {
-      rows = rows.filter(r => String((r as any).id_linea) === String(line))
+      const [catId, lineId] = line.includes('-') ? line.split('-').map(Number) : [undefined, Number(line)]
+      if (catId != null && !Number.isNaN(catId) && lineId != null && !Number.isNaN(lineId)) {
+        rows = rows.filter(r => r.id_categoria === catId && r.id_linea === lineId)
+      } else if (lineId != null && !Number.isNaN(lineId)) {
+        rows = rows.filter(r => r.id_linea === lineId)
+      }
     }
     rows = [...rows].sort((a, b) => {
       let va: any, vb: any
@@ -78,19 +84,22 @@ const SublinesPage = () => {
   const [openEdit, setOpenEdit] = useState(false)
   const [editing, setEditing] = useState<any | null>(null)
 
-  const deactivateMutation = useMutation({
-    mutationFn: (ids: { id_categoria: number; id_linea: number; id_sublinea: number }) =>
-      sublineService.deactivateSubline(ids),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['sublines', 'all'] })
+  const deactivateActivateSublineMutation = useMutation({
+    mutationFn: async ({ ids, activar }: { ids: { id_categoria: number; id_linea: number; id_sublinea: number }; activar: boolean }) => {
+      const result = await sublineService.deactivateActivateSubline(ids, activar)
+      if (!result || (result as any).message === undefined) {
+        throw new Error('No se recibió confirmación del servidor')
+      }
+      return result
     },
-  })
-
-  const activateMutation = useMutation({
-    mutationFn: (params: { ids: { id_categoria: number; id_linea: number; id_sublinea: number }; nom_sublinea: string }) =>
-      sublineService.updateSubline(params.ids, { ind_activo: true, nom_sublinea: params.nom_sublinea }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['sublines', 'all'] })
+      toast.success(variables.activar ? 'Sublínea activada exitosamente' : 'Sublínea desactivada exitosamente')
+    },
+    onError: (error: any, variables) => {
+      console.error(`Error al ${variables.activar ? 'activar' : 'desactivar'} sublínea:`, error)
+      const errorMessage = error?.response?.data?.detail || error?.message || `Error al ${variables.activar ? 'activar' : 'desactivar'} la sublínea`
+      toast.error(errorMessage)
     },
   })
 
@@ -156,40 +165,26 @@ const SublinesPage = () => {
           >
             <Pencil className="w-4 h-4" />
           </Button>
-          {row.original.ind_activo ? (
-            <Button
-              variant="destructive"
-              size="icon"
-              aria-label="Desactivar"
-              onClick={() =>
-                deactivateMutation.mutate({
+          <Button
+            variant={row.original.ind_activo ? "default" : "destructive"}
+            size="icon"
+            aria-label={row.original.ind_activo ? "Desactivar" : "Activar"}
+            onClick={() => {
+              const isActive = Boolean(row.original.ind_activo)
+              deactivateActivateSublineMutation.mutate({
+                ids: {
                   id_categoria: (row.original as any).id_categoria,
                   id_linea: (row.original as any).id_linea,
                   id_sublinea: row.original.id_sublinea,
-                })
-              }
-            >
-              <Power className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              size="icon"
-              aria-label="Activar"
-              onClick={() =>
-                activateMutation.mutate({
-                  ids: {
-                    id_categoria: (row.original as any).id_categoria,
-                    id_linea: (row.original as any).id_linea,
-                    id_sublinea: row.original.id_sublinea,
-                  },
-                  nom_sublinea: row.original.nom_sublinea,
-                })
-              }
-            >
-              <Power className="w-4 h-4" />
-            </Button>
-          )}
+                },
+                activar: !isActive
+              })
+            }}
+            disabled={deactivateActivateSublineMutation.isPending}
+            className={row.original.ind_activo ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+          >
+            <Power className="w-4 h-4" />
+          </Button>
         </div>
       ),
     },
@@ -268,10 +263,11 @@ const SublinesPage = () => {
       )}
 
       {!isLoading && !isError && Array.isArray(filteredData) && filteredData.length > 0 && (
-        <DataTable 
-          columns={[...columns, ...actions]} 
+        <DataTable
+          columns={[...columns, ...actions]}
           data={filteredData}
           pageSize={10}
+          getRowId={(row: Subline) => `${row.id_categoria}-${row.id_linea}-${row.id_sublinea}`}
         />
       )}
     </div>

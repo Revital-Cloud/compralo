@@ -1,10 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui"
 import { cn } from "@/lib/utils"
+import { formatPrice } from "@/utils/format-price"
 
 interface RelatedProduct {
   id: number
@@ -14,6 +16,8 @@ interface RelatedProduct {
   image: string
   badge?: string
   badgeColor?: string
+  /** Slug para enlazar al detalle: id_categoria-id_linea-id_sublinea-id_producto */
+  slug?: string
 }
 
 interface RelatedProductsProps {
@@ -37,6 +41,12 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
   
   const [itemsPerView, setItemsPerView] = useState(getItemsPerView())
   const maxIndex = Math.max(0, products.length - itemsPerView)
+
+  useEffect(() => {
+    const onResize = () => setItemsPerView(getItemsPerView())
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   const nextSlide = () => {
     setCurrentIndex((prev) => Math.min(prev + 1, maxIndex))
@@ -89,20 +99,18 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
 
       {/* Products Grid */}
       <div className="relative overflow-hidden">
-        <div 
-          className="flex transition-transform duration-300 ease-in-out"
+        <div
+          className="flex flex-shrink-0 transition-transform duration-300 ease-in-out"
           style={{
-            transform: `translateX(-${currentIndex * (100 / itemsPerView)}%)`
+            width: `${(100 / itemsPerView) * products.length}%`,
+            transform: `translateX(-${currentIndex * (100 / itemsPerView)}%)`,
           }}
         >
-          {products.map((product) => (
-            <div
-              key={product.id}
-              className="w-1/2 md:w-1/3 lg:w-1/4 flex-shrink-0 px-2"
-            >
-              <div className="group cursor-pointer">
-                {/* Product Image */}
-                <div className="relative aspect-square bg-gray-50 rounded-lg overflow-hidden mb-3">
+          {products.map((product) => {
+            const href = product.slug ? `/products/${product.slug}` : "#"
+            const content = (
+              <>
+                <div className="relative aspect-square bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden mb-3">
                   {product.badge && (
                     <Badge 
                       variant={getBadgeVariant(product.badgeColor)}
@@ -117,54 +125,67 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
-
-                {/* Product Info */}
                 <div className="space-y-2">
                   <h3 className="font-semibold text-sm text-gray-900 dark:text-white line-clamp-2">
                     {product.name}
                   </h3>
-                  
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-gray-900 dark:text-white">
-                      ${product.price.toFixed(2)}
+                      {formatPrice(product.price)}
                     </span>
-                    {product.originalPrice && product.originalPrice > product.price && (
+                    {product.originalPrice != null && product.originalPrice > product.price && (
                       <span className="text-sm text-gray-500 line-through">
-                        ${product.originalPrice.toFixed(2)}
+                        {formatPrice(product.originalPrice)}
                       </span>
                     )}
                   </div>
-
-                  {/* View Product Button */}
                   <Button
                     variant="outline"
                     size="sm"
                     className="w-full text-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                   >
-                    VER PRODUCTO • ${product.price.toFixed(2)}
+                    Ver producto
                   </Button>
                 </div>
+              </>
+            )
+            return (
+              <div
+                key={product.slug ?? product.id}
+                className="w-1/2 md:w-1/3 lg:w-1/4 flex-shrink-0 px-2"
+              >
+                <div className="group cursor-pointer">
+                  {product.slug ? (
+                    <Link href={href} className="block">
+                      {content}
+                    </Link>
+                  ) : (
+                    <div>{content}</div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
-      {/* Dots Indicator */}
-      <div className="flex justify-center gap-2">
-        {Array.from({ length: maxIndex + 1 }).map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrentIndex(index)}
-            className={cn(
-              "w-2 h-2 rounded-full transition-colors",
-              currentIndex === index
-                ? "bg-gray-900 dark:bg-white"
-                : "bg-gray-300 dark:bg-gray-600"
-            )}
-          />
-        ))}
-      </div>
+      {/* Dots Indicator - solo si hay más de una página */}
+      {products.length > 0 && maxIndex > 0 && (
+        <div className="flex justify-center gap-2">
+          {Array.from({ length: maxIndex + 1 }).map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentIndex(index)}
+              className={cn(
+                "w-2 h-2 rounded-full transition-colors",
+                currentIndex === index
+                  ? "bg-gray-900 dark:bg-white"
+                  : "bg-gray-300 dark:bg-gray-600"
+              )}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -7,7 +7,8 @@ class SublineService {
   }
 
   async getSublinesByLine(lineId: number, categoryId?: number): Promise<Subline[]> {
-    const params = categoryId ? `?id_categoria=${categoryId}` : '';
+    const validCategory = typeof categoryId === 'number' && Number.isInteger(categoryId) && categoryId > 0;
+    const params = validCategory ? `?id_categoria=${categoryId}` : '';
     return apiWrapper.get(`/sublines/line/${lineId}${params}`);
   }
 
@@ -20,9 +21,13 @@ class SublineService {
     return apiWrapper.put(`/sublines/${slug}`, payload);
   }
 
-  async deactivateSubline(ids: { id_categoria: number; id_linea: number; id_sublinea: number }): Promise<{ message: string }> {
+  async deactivateActivateSubline(ids: { id_categoria: number; id_linea: number; id_sublinea: number }, activar: boolean): Promise<{ message: string }> {
     const slug = `${ids.id_categoria}-${ids.id_linea}-${ids.id_sublinea}`;
-    return apiWrapper.put(`/sublines/${slug}/deactivate`, {});
+    return apiWrapper.put(`/sublines/${slug}/toggle`, { activar });
+  }
+
+  async deactivateSubline(ids: { id_categoria: number; id_linea: number; id_sublinea: number }): Promise<{ message: string }> {
+    return this.deactivateActivateSubline(ids, false);
   }
 }
 

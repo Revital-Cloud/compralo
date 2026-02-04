@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user
 from schemas.auth_schema import UserInToken
-from schemas.provider_schema import ProviderCreate, ProviderUpdate, Provider,ResponseMessage
+from schemas.provider_schema import ProviderCreate, ProviderUpdate, Provider, ResponseMessage, ToggleRequest
 from services import provider_service
 
 router = APIRouter(tags=["Proveedores"])
@@ -102,6 +102,35 @@ async def update_provider(
     response_model=ResponseMessage, 
     status_code=status.HTTP_200_OK
     )
+# Ruta para activar/desactivar un proveedor existente
+@router.put("/providers/{id_proveedor}/toggle", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def toggle_provider(
+    id_proveedor:Decimal,
+    toggle_data: ToggleRequest = Body(...),
+    db:Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+    ):
+    activar = toggle_data.activar
+    """
+    Activa o desactiva un proveedor existente de la base de datos.
+
+    Args:
+        id_proveedor (Decimal): ID del proveedor a activar/desactivar.
+        activar (bool): True para activar, False para desactivar.
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+
+    Returns:
+        ResponseMessage: Mensaje de confirmación.
+    """
+    try:
+        result = provider_service.deactivate_activate_provider(db, id_proveedor, current_user.id_usuario, activar)
+        message = result if result else f"Proveedor {'activado' if activar else 'desactivado'} exitosamente"
+        return ResponseMessage(message=message)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+# Ruta para desactivar un proveedor existente (mantener compatibilidad)
+@router.put("/providers/{id_proveedor}/deactivate", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def deactivate_provider(
     id_proveedor:Decimal, 
     db:Session = Depends(get_db),
@@ -109,13 +138,15 @@ async def deactivate_provider(
     ):
     """
     Desactiva un proveedor existente de la base de datos.
+    Mantiene compatibilidad con endpoints existentes.
 
     Args:
         id_proveedor (Decimal): ID del proveedor a desactivar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
     """
     try:
-        provider_service.deactivate_provider(db, id_proveedor, current_user.id_usuario)
-        return ResponseMessage(message="Proveedor desactivado exitosamente")
+        result = provider_service.deactivate_provider(db, id_proveedor, current_user.id_usuario)
+        message = result if result else "Proveedor desactivado exitosamente"
+        return ResponseMessage(message=message)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

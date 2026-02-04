@@ -5,12 +5,13 @@ Define las rutas y endpoints relacionados con la gestión de sublineas,
 incluyendo la creación, actualización y visualización de sublineas.
 """
 from decimal import Decimal
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from typing import Optional
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user
 from schemas.auth_schema import UserInToken
-from schemas.subline_schema import SublineCreate, SublineUpdate, Subline, ResponseMessage
+from schemas.subline_schema import SublineCreate, SublineUpdate, Subline, ResponseMessage, ToggleRequest
 from services import subline_service
 
 router = APIRouter(tags=["Sublineas"])
@@ -33,7 +34,11 @@ async def get_sublines(db:Session = Depends(get_db)):
 
 # Ruta para obtener sublíneas por línea
 @router.get("/sublines/line/{id_linea}", response_model=list[Subline])
-async def get_sublines_by_line(id_linea: Decimal, id_categoria: Decimal = None, db: Session = Depends(get_db)):
+async def get_sublines_by_line(
+    id_linea: Decimal,
+    id_categoria: Optional[Decimal] = Query(None, description="ID de categoría para filtrar sublíneas de la línea en esa categoría"),
+    db: Session = Depends(get_db),
+):
     """
     Obtiene todas las sublíneas de una línea específica.
 
@@ -118,6 +123,38 @@ async def update_subline(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
+# Ruta para activar/desactivar una sublínea existente
+@router.put("/sublines/{id_categoria}-{id_linea}-{id_sublinea}/toggle", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def toggle_subline(
+    id_categoria:Decimal, 
+    id_linea:Decimal, 
+    id_sublinea:Decimal,
+    toggle_data: ToggleRequest = Body(...),
+    db:Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)):
+    activar = toggle_data.activar
+    """
+    Activa o desactiva una sublínea existente en la base de datos.
+    Aplica cascada a productos y comentarios relacionados.
+
+    Args:
+        id_categoria (Decimal): El ID de la categoría asociada.
+        id_linea (Decimal): El ID de la línea asociada.
+        id_sublinea (Decimal): El ID de la sublínea a activar/desactivar.
+        activar (bool): True para activar, False para desactivar.
+        db (Session): La sesión de base de datos SQLAlchemy. 
+
+    Returns:
+        ResponseMessage: Mensaje de confirmación con detalles de elementos afectados.
+    """
+    try:
+        result = subline_service.deactivate_activate_subline(db, id_categoria, id_linea, id_sublinea, current_user.id_usuario, activar)
+        message = result if result else f"Sublínea {'activada' if activar else 'desactivada'} exitosamente"
+        return ResponseMessage(message=message)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+# Ruta para desactivar una sublínea existente (mantener compatibilidad)
 @router.put("/sublines/{id_categoria}-{id_linea}-{id_sublinea}/deactivate", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def deactivate_subline(
     id_categoria:Decimal, 
@@ -126,19 +163,21 @@ async def deactivate_subline(
     db:Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user)):
     """
-    Desactiva una sublinea existente en la base de datos.
+    Desactiva una sublínea existente en la base de datos.
+    Mantiene compatibilidad con endpoints existentes.
 
     Args:
         id_categoria (Decimal): El ID de la categoría asociada.
-        id_linea (Decimal): El ID de la linea asociada.
-        id_sublinea (Decimal): El ID de la sublinea a eliminar.
+        id_linea (Decimal): El ID de la línea asociada.
+        id_sublinea (Decimal): El ID de la sublínea a desactivar.
         db (Session): La sesión de base de datos SQLAlchemy. 
 
     Returns:
         ResponseMessage: Mensaje de confirmación.
     """
     try:
-        subline_service.deactivate_subline(db, id_categoria, id_linea, id_sublinea, current_user.id_usuario)
-        return ResponseMessage(message="Sublinea desactivada exitosamente")
+        result = subline_service.deactivate_subline(db, id_categoria, id_linea, id_sublinea, current_user.id_usuario)
+        message = result if result else "Sublínea desactivada exitosamente"
+        return ResponseMessage(message=message)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

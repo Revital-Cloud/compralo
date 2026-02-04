@@ -421,8 +421,8 @@ CREATE TABLE IF NOT EXISTS tab_descuentos (
     id_sublinea_aplica          DECIMAL(10)     NULL,
     min_valor_pedido            DECIMAL(10,2)   DEFAULT 0, --Monto mínimo de pedido para aplicar el descuento
     ind_es_para_cumpleanos      BOOLEAN         DEFAULT FALSE, --TRUE = el descuento es para cumpleaños, FALSE = el descuento no es para cumpleaños
-    fec_inicio                  DATE            NOT NULL, --Fecha de inicio de validez del descuento
-    fec_fin                     DATE            NOT NULL, --Fecha de fin de validez del descuento
+    fec_inicio                  DATE            NULL,    --Fecha de inicio (NULL = plantilla canjeable sin límite)
+    fec_fin                     DATE            NULL,    --Fecha de fin (NULL = plantilla canjeable sin límite)
     ind_activo                  BOOLEAN         DEFAULT TRUE, --TRUE = el descuento está activo, FALSE = el descuento está inactivo
     max_usos_total              INT             NULL, --Límite total de usos del descuento (NULL = ilimitado)
     usos_actuales_total         INT             DEFAULT 0, --Número de veces que el descuento ha sido usado
@@ -444,8 +444,11 @@ CREATE TABLE IF NOT EXISTS tab_descuentos (
     usr_update                  DECIMAL(10),
     fec_update                  TIMESTAMP WITHOUT TIME ZONE,
     
-    -- Constraints originales
-    CONSTRAINT chk_fechas_validez_descuento     CHECK (fec_fin >= fec_inicio),
+    -- Constraints originales (fechas: ambas NULL o ambas con valor y fec_fin >= fec_inicio)
+    CONSTRAINT chk_fechas_validez_descuento     CHECK (
+        (fec_inicio IS NULL AND fec_fin IS NULL) OR
+        (fec_inicio IS NOT NULL AND fec_fin IS NOT NULL AND fec_fin >= fec_inicio)
+    ),
     CONSTRAINT chk_valor_descuento_coherente    CHECK (
         (tipo_calculo = TRUE AND val_porce_descuento >= 0 AND val_porce_descuento <= 100) OR 
         (tipo_calculo = FALSE AND val_monto_descuento >= 0)
@@ -578,19 +581,22 @@ CREATE TABLE IF NOT EXISTS tab_ordenes (
 	PRIMARY KEY (id_orden)
 );
 
--- 3. Tabla para Pagos/Transacciones (Actualizada para Wompi)
+-- 3. Tabla para Pagos/Transacciones (Actualizada para Wompi Checkout Widget)
 CREATE TABLE IF NOT EXISTS tab_pagos (
     id_pago                     SERIAL PRIMARY KEY,
     id_orden                    DECIMAL(10) NOT NULL,
     FOREIGN KEY (id_orden)      REFERENCES tab_ordenes(id_orden),
     
+    -- Referencia única del pago (formato synkro_{order_id}_{random})
+    reference                   VARCHAR(255),                   -- Referencia única del pago
+    
     -- Información del Proveedor (ahora con Wompi)
-    provider_transaction_id     VARCHAR(255) NOT NULL,          -- ID de la transacción en Wompi (reemplaza provider_payment_id)
+    provider_transaction_id     VARCHAR(255),                    -- ID de la transacción en Wompi (nullable inicialmente)
     -- provider_preference_id   VARCHAR(255),                   -- ELIMINADA
     provider_name               VARCHAR(50) NOT NULL DEFAULT 'wompi',
     
     -- Estado del Pago (los estados de Wompi mapean bien aquí)
-    status                      VARCHAR(50) NOT NULL,           -- 'APPROVED', 'DECLINED', 'VOIDED', 'ERROR'
+    status                      VARCHAR(50) NOT NULL,           -- 'CREATED', 'PENDING', 'APPROVED', 'DECLINED', 'VOIDED', 'ERROR'
     status_detail               VARCHAR(100),                   -- status_message de Wompi
     
     -- Detalles de la Transacción
@@ -608,7 +614,12 @@ CREATE TABLE IF NOT EXISTS tab_pagos (
     provider_date_created       TIMESTAMP,
     provider_date_approved      TIMESTAMP,
     
-    raw_response                JSONB,
+    raw_response                JSONB,                           -- Respuesta cruda del proveedor (legacy)
+    raw_last_event              JSONB,                           -- Último webhook/evento recibido
+    
+    -- Control de reintentos
+    parent_payment_id           INTEGER,                         -- ID del pago padre (para tracking de reintentos)
+    FOREIGN KEY (parent_payment_id) REFERENCES tab_pagos(id_pago) ON DELETE SET NULL,
     
     -- Control Interno
     estado_procesamiento        VARCHAR(20) DEFAULT 'pendiente',
@@ -618,7 +629,6 @@ CREATE TABLE IF NOT EXISTS tab_pagos (
     fec_update                  TIMESTAMP WITHOUT TIME ZONE,
 
     -- Constraints
-    UNIQUE (provider_transaction_id, provider_name),
     CONSTRAINT chk_amount_positive CHECK (amount > 0),
     CONSTRAINT chk_estado_procesamiento CHECK (estado_procesamiento IN ('pendiente', 'procesado', 'error', 'cancelado'))
 );
@@ -632,6 +642,16 @@ CREATE INDEX IF NOT EXISTS idx_pagos_status
     ON tab_pagos(status, estado_procesamiento);
 CREATE INDEX IF NOT EXISTS idx_pagos_fecha_creacion 
     ON tab_pagos(provider_date_created DESC);
+
+-- Índice único en reference (para búsquedas rápidas)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pagos_reference 
+    ON tab_pagos(reference) 
+    WHERE reference IS NOT NULL;
+
+-- Índice único parcial para provider_transaction_id (permite múltiples NULLs)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pagos_provider_transaction_unique 
+    ON tab_pagos(provider_transaction_id, provider_name) 
+    WHERE provider_transaction_id IS NOT NULL;
 
 
 -- Tabla de productos de la orden

@@ -69,7 +69,7 @@ DECLARE
     v_descuento RECORD;                                       -- Record para iterar descuentos
     v_canje_info RECORD;                                     -- Información del canje
     v_es_primera_compra BOOLEAN := FALSE;                    -- Indicador primera compra
-    v_orden_actualizada BOOLEAN := FALSE;                    -- Indicador si se actualizó orden existente
+    v_descuento_canje_valor DECIMAL(10,2) := 0;               -- Descuento calculado por canje (PASO 7.5)
 
 BEGIN
     -- PASO 1: Validar que el carrito existe y obtener información
@@ -290,14 +290,18 @@ BEGIN
     END IF;
     
     -- PASO 7.5: Aplicar descuento canjeado por puntos (si se especifica)
+    -- Misma lógica que fun_calcular_total_carrito para todos los aplica_a (total_pedido, categoria_especifica, etc.)
     IF p_id_canje IS NOT NULL AND v_id_usuario IS NOT NULL THEN
-        -- Obtener información del canje y verificar que sea válido
+        -- Obtener información del canje y del descuento (mismas columnas que fun_calcular_total_carrito)
         SELECT 
             c.id_canje, c.id_usuario, c.id_descuento, c.puntos_utilizados,
             c.ind_utilizado, c.fec_expiracion_canje,
             d.nom_descuento, d.des_descuento, d.tipo_calculo,
             d.val_porce_descuento, d.val_monto_descuento, d.aplica_a,
-            d.min_valor_pedido
+            d.min_valor_pedido, d.cantidad_minima_producto, d.monto_minimo_producto,
+            d.id_categoria, d.id_linea, d.id_sublinea, d.id_producto_aplica,
+            d.id_categoria_aplica, d.id_marca_aplica,
+            d.id_linea_aplica, d.id_sublinea_aplica
         INTO v_canje_info
         FROM tab_canjes_puntos_descuentos c
         JOIN tab_descuentos d ON c.id_descuento = d.id_descuento
@@ -306,43 +310,110 @@ BEGIN
             AND c.ind_utilizado = FALSE
             AND (c.fec_expiracion_canje IS NULL OR c.fec_expiracion_canje >= CURRENT_DATE);
 
-        -- Si el canje es válido, calcular y aplicar el descuento
+        -- Si el canje es válido, calcular descuento con la misma regla que el carrito
         IF FOUND THEN
-            DECLARE
-                v_descuento_canje_valor DECIMAL(10,2) := 0;
-            BEGIN
-                -- Calcular valor del descuento canjeado
-                IF v_canje_info.aplica_a = 'total_pedido' AND v_total_productos >= v_canje_info.min_valor_pedido THEN
-                    IF v_canje_info.tipo_calculo THEN 
-                        -- Porcentual sobre el total de productos
-                        v_descuento_canje_valor := v_total_productos * v_canje_info.val_porce_descuento / 100;
-                    ELSE 
-                        -- Monto fijo, no puede exceder el total
-                        v_descuento_canje_valor := LEAST(v_canje_info.val_monto_descuento, v_total_productos);
-                    END IF;
-                END IF;
-                
-                -- Aplicar el descuento si es mayor a 0
-                IF v_descuento_canje_valor > 0 THEN
-                    v_total_descuentos := v_total_descuentos + v_descuento_canje_valor;
-                    
-                    -- Crear objeto JSON del descuento canjeado
-                    v_descuento_canje := json_build_object(
-                        'id_descuento', v_canje_info.id_descuento,
-                        'id_canje', v_canje_info.id_canje,
-                        'nombre', v_canje_info.nom_descuento,
-                        'tipo', CASE WHEN v_canje_info.tipo_calculo THEN 'porcentaje' ELSE 'monto_fijo' END,
-                        'valor', CASE WHEN v_canje_info.tipo_calculo THEN v_canje_info.val_porce_descuento ELSE v_canje_info.val_monto_descuento END,
-                        'descuento_aplicado', v_descuento_canje_valor,
-                        'puntos_utilizados', v_canje_info.puntos_utilizados,
-                        'tipo_descuento', 'canje_puntos'
-                    );
-                    
-                    -- NOTA: El canje se marcará como utilizado después de crear la orden
-                END IF;
-            END;
+            v_descuento_canje_valor := 0;
+            -- Calcular valor del descuento canjeado (todos los aplica_a como en fun_calcular_total_carrito)
+            SELECT
+                    CASE
+                        WHEN v_canje_info.aplica_a = 'total_pedido' AND v_total_productos >= COALESCE(v_canje_info.min_valor_pedido, 0) THEN
+                            CASE WHEN v_canje_info.tipo_calculo THEN
+                                LEAST(v_total_productos * v_canje_info.val_porce_descuento / 100, v_total_productos)
+                            ELSE
+                                LEAST(v_canje_info.val_monto_descuento, v_total_productos)
+                            END
+                        WHEN v_canje_info.aplica_a = 'producto_especifico' THEN
+                            (SELECT COALESCE(SUM(
+                                CASE WHEN v_canje_info.tipo_calculo THEN
+                                    (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
+                                ELSE
+                                    LEAST(cp.cantidad, 1) * v_canje_info.val_monto_descuento
+                                END
+                            ), 0)
+                            FROM tab_carrito_productos cp
+                            WHERE cp.id_carrito = p_id_carrito
+                                AND cp.id_categoria_producto = v_canje_info.id_categoria
+                                AND cp.id_linea_producto = v_canje_info.id_linea
+                                AND cp.id_sublinea_producto = v_canje_info.id_sublinea
+                                AND cp.id_producto = v_canje_info.id_producto_aplica
+                                AND cp.cantidad >= COALESCE(v_canje_info.cantidad_minima_producto, 0)
+                                AND (cp.cantidad * cp.precio_unitario_carrito) >= COALESCE(v_canje_info.monto_minimo_producto, 0))
+                        WHEN v_canje_info.aplica_a = 'categoria_especifica' THEN
+                            (SELECT COALESCE(SUM(
+                                CASE WHEN v_canje_info.tipo_calculo THEN
+                                    (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
+                                ELSE
+                                    cp.cantidad * v_canje_info.val_monto_descuento
+                                END
+                            ), 0)
+                            FROM tab_carrito_productos cp
+                            WHERE cp.id_carrito = p_id_carrito
+                                AND cp.id_categoria_producto = v_canje_info.id_categoria_aplica
+                                AND cp.cantidad >= COALESCE(v_canje_info.cantidad_minima_producto, 0)
+                                AND (cp.cantidad * cp.precio_unitario_carrito) >= COALESCE(v_canje_info.monto_minimo_producto, 0))
+                        WHEN v_canje_info.aplica_a = 'marca_especifica' THEN
+                            (SELECT COALESCE(SUM(
+                                CASE WHEN v_canje_info.tipo_calculo THEN
+                                    (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
+                                ELSE
+                                    cp.cantidad * v_canje_info.val_monto_descuento
+                                END
+                            ), 0)
+                            FROM tab_carrito_productos cp
+                            JOIN tab_productos p ON (cp.id_categoria_producto = p.id_categoria AND cp.id_linea_producto = p.id_linea AND cp.id_sublinea_producto = p.id_sublinea AND cp.id_producto = p.id_producto AND p.ind_activo = TRUE)
+                            WHERE cp.id_carrito = p_id_carrito
+                                AND p.id_marca = v_canje_info.id_marca_aplica
+                                AND cp.cantidad >= COALESCE(v_canje_info.cantidad_minima_producto, 0)
+                                AND (cp.cantidad * cp.precio_unitario_carrito) >= COALESCE(v_canje_info.monto_minimo_producto, 0))
+                        WHEN v_canje_info.aplica_a = 'linea_especifica' THEN
+                            (SELECT COALESCE(SUM(
+                                CASE WHEN v_canje_info.tipo_calculo THEN
+                                    (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
+                                ELSE
+                                    cp.cantidad * v_canje_info.val_monto_descuento
+                                END
+                            ), 0)
+                            FROM tab_carrito_productos cp
+                            WHERE cp.id_carrito = p_id_carrito
+                                AND cp.id_categoria_producto = v_canje_info.id_categoria
+                                AND cp.id_linea_producto = v_canje_info.id_linea_aplica
+                                AND cp.cantidad >= COALESCE(v_canje_info.cantidad_minima_producto, 0)
+                                AND (cp.cantidad * cp.precio_unitario_carrito) >= COALESCE(v_canje_info.monto_minimo_producto, 0))
+                        WHEN v_canje_info.aplica_a = 'sublinea_especifica' THEN
+                            (SELECT COALESCE(SUM(
+                                CASE WHEN v_canje_info.tipo_calculo THEN
+                                    (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
+                                ELSE
+                                    cp.cantidad * v_canje_info.val_monto_descuento
+                                END
+                            ), 0)
+                            FROM tab_carrito_productos cp
+                            WHERE cp.id_carrito = p_id_carrito
+                                AND cp.id_categoria_producto = v_canje_info.id_categoria
+                                AND cp.id_linea_producto = v_canje_info.id_linea
+                                AND cp.id_sublinea_producto = v_canje_info.id_sublinea_aplica
+                                AND cp.cantidad >= COALESCE(v_canje_info.cantidad_minima_producto, 0)
+                                AND (cp.cantidad * cp.precio_unitario_carrito) >= COALESCE(v_canje_info.monto_minimo_producto, 0))
+                        ELSE 0
+                    END
+            INTO v_descuento_canje_valor;
+
+            -- Aplicar el descuento si es mayor a 0
+            IF v_descuento_canje_valor > 0 THEN
+                v_total_descuentos := v_total_descuentos + v_descuento_canje_valor;
+
+                v_descuento_canje := json_build_object(
+                    'id_descuento', v_canje_info.id_descuento,
+                    'id_canje', v_canje_info.id_canje,
+                    'nombre', v_canje_info.nom_descuento,
+                    'tipo', CASE WHEN v_canje_info.tipo_calculo THEN 'porcentaje' ELSE 'monto_fijo' END,
+                    'valor', CASE WHEN v_canje_info.tipo_calculo THEN v_canje_info.val_porce_descuento ELSE v_canje_info.val_monto_descuento END,
+                    'descuento_aplicado', v_descuento_canje_valor,
+                    'puntos_utilizados', v_canje_info.puntos_utilizados,
+                    'tipo_descuento', 'canje_puntos'
+                );
+            END IF;
         ELSE
-            -- Canje no válido o no disponible
             RETURN json_build_object(
                 'success', false,
                 'message', 'El canje especificado no es válido o ya fue utilizado',
@@ -373,39 +444,12 @@ BEGIN
         ) AS combinados
     );
     
-    -- PASO 9: Verificar si existe orden pendiente para actualizar o crear nueva
-    SELECT id_orden INTO v_id_orden
-    FROM tab_ordenes 
-    WHERE id_usuario = v_id_usuario 
-        AND ind_estado = 1  -- Solo órdenes pendientes
-    ORDER BY fec_insert DESC 
-    LIMIT 1;
-    
-    BEGIN
-        IF v_id_orden IS NOT NULL THEN
-            -- CASO A: Actualizar orden pendiente existente
-            v_orden_actualizada := TRUE;
-            
-            -- PASO 10A: Eliminar productos anteriores de la orden
-            DELETE FROM tab_orden_productos WHERE id_orden = v_id_orden;
-            
-            -- PASO 10B: Actualizar la orden principal con nuevos totales
-            UPDATE tab_ordenes SET
-                val_total_productos = v_total_productos,
-                val_total_descuentos = v_total_descuentos,
-                val_total_pedido = v_total_final,
-                des_observaciones = p_observaciones,
-                detalle_descuentos_aplicados = v_descuentos_aplicados,
-                usr_update = p_usr_operacion,
-                fec_update = NOW()
-            WHERE id_orden = v_id_orden;
-            
-        ELSE
-            -- CASO B: Crear nueva orden (no hay órdenes pendientes)
-            -- PASO 10C: Generar nuevo ID de orden
+    -- PASO 9: Siempre crear una nueva orden (no actualizar órdenes existentes)
+    -- Esto evita sobreescribir órdenes anteriores del usuario
+    -- PASO 10: Generar nuevo ID de orden
             SELECT COALESCE(MAX(id_orden), 0) + 1 INTO v_id_orden FROM tab_ordenes;
             
-            -- PASO 10D: Crear la orden principal
+    -- PASO 11: Crear la orden principal
         INSERT INTO tab_ordenes (
             id_orden, id_usuario, val_total_productos, val_total_descuentos, 
             val_total_pedido, metodo_pago, des_observaciones,
@@ -421,9 +465,8 @@ BEGIN
                 v_descuentos_aplicados,
             p_usr_operacion
         );
-        END IF;
         
-        -- PASO 11: Transferir productos del carrito a la orden
+    -- PASO 12: Transferir productos del carrito a la orden
         FOR v_producto_record IN 
             SELECT * FROM tab_carrito_productos WHERE id_carrito = p_id_carrito
         LOOP
@@ -438,7 +481,8 @@ BEGIN
                 precio_unitario_orden,
                 subtotal,
                 usr_insert,
-                fec_insert
+                fec_insert,
+                opciones_elegidas
             ) VALUES (
                 (SELECT COALESCE(MAX(id_orden_producto), 0) + 1 FROM tab_orden_productos),
                 v_producto_record.id_categoria_producto,
@@ -450,11 +494,12 @@ BEGIN
                 v_producto_record.precio_unitario_carrito,
                 (v_producto_record.cantidad * v_producto_record.precio_unitario_carrito),
                 p_usr_operacion,
-                NOW()
+                NOW(),
+                COALESCE(v_producto_record.opciones_elegidas, '{}'::JSONB)
             );
         END LOOP;
         
-        -- PASO 12: Marcar canje como utilizado (si se aplicó)
+    -- PASO 13: Marcar canje como utilizado (si se aplicó)
         IF p_id_canje IS NOT NULL AND v_descuento_canje IS NOT NULL THEN
             UPDATE tab_canjes_puntos_descuentos
             SET ind_utilizado = TRUE,
@@ -464,7 +509,7 @@ BEGIN
             WHERE id_canje = p_id_canje;
         END IF;
         
-        -- PASO 13: Productos transferidos exitosamente a la orden
+    -- PASO 14: Productos transferidos exitosamente a la orden
         -- NOTA: El carrito se mantiene intacto hasta que se PAGUE la orden
         --       El trigger trg_limpiar_carrito_pagado se encarga de limpiarlo automáticamente
         --       Esto permite que el usuario pueda cancelar y seguir comprando si es necesario
@@ -472,14 +517,8 @@ BEGIN
         -- RESPUESTA: Orden procesada exitosamente
         RETURN json_build_object(
             'success', true, 
-            'message', CASE 
-                WHEN v_orden_actualizada THEN 'Orden actualizada exitosamente'
-                ELSE 'Orden creada exitosamente'
-            END,
-            'accion_realizada', CASE 
-                WHEN v_orden_actualizada THEN 'actualizar'
-                ELSE 'crear'
-            END,
+        'message', 'Orden creada exitosamente',
+        'accion_realizada', 'crear',
             'id_orden', v_id_orden,
             'id_carrito', p_id_carrito,
             'total_productos', v_total_productos,
@@ -496,7 +535,7 @@ BEGIN
                 'carrito_limpieza_programada', 'Se limpiará automáticamente al pagar la orden',
                 'stock_reservado', true,
                 'triggers_activados', true,
-                'orden_actualizada', v_orden_actualizada
+            'orden_actualizada', false
             )
         );
         
@@ -507,6 +546,5 @@ BEGIN
             'error_code', SQLSTATE,
             'id_carrito', p_id_carrito
         );
-    END;
 END;
 $$ LANGUAGE plpgsql; 

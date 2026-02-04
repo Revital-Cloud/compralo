@@ -22,10 +22,10 @@ const discountSchema = z.object({
   nom_descuento: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   des_descuento: z.string().min(3, 'La descripción debe tener al menos 3 caracteres'),
   tipo_descuento: z.enum(['porcentaje', 'monto_fijo'], {
-    required_error: 'Seleccione un tipo de descuento'
+    message: 'Seleccione un tipo de descuento'
   }),
   val_descuento: z.string().min(1, 'El valor es requerido'),
-  aplica_a: z.string().default('total_pedido'),
+  aplica_a: z.string().min(1, 'Seleccione a qué aplica el descuento'),
   // IDs condicionales
   id_producto_aplica: z.string().optional(),
   id_categoria_producto: z.string().optional(), // Para producto específico
@@ -44,17 +44,17 @@ const discountSchema = z.object({
   cod_cupon: z.string().optional(),
   costo_envio: z.string().optional(),
   compra_minima: z.string().optional(),
-  fec_inicio: z.string().min(1, 'La fecha de inicio es requerida'),
-  fec_fin: z.string().min(1, 'La fecha de fin es requerida'),
+  fec_inicio: z.string().optional(),
+  fec_fin: z.string().optional(),
   max_usos: z.string().optional(),
   max_usos_por_usuario: z.string().optional(),
-  ind_activo: z.boolean().optional().default(true),
-  ind_canjeable_puntos: z.boolean().optional().default(false),
-  ind_es_para_cumpleanos: z.boolean().optional().default(false),
-  solo_primera_compra: z.boolean().optional().default(false),
+  ind_activo: z.boolean(),
+  ind_canjeable_puntos: z.boolean(),
+  ind_es_para_cumpleanos: z.boolean(),
+  solo_primera_compra: z.boolean(),
   monto_minimo_producto: z.string().optional(),
   cantidad_minima_producto: z.string().optional(),
-  requiere_codigo: z.boolean().optional().default(false),
+  requiere_codigo: z.boolean(),
 })
 
 type DiscountFormData = z.infer<typeof discountSchema>
@@ -76,6 +76,10 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
   const [brands, setBrands] = useState<any[]>([])
   const [lines, setLines] = useState<any[]>([])
   const [sublines, setSublines] = useState<any[]>([])
+  
+  // Estados para controlar los Popovers de fechas
+  const [openStartDate, setOpenStartDate] = useState(false)
+  const [openEndDate, setOpenEndDate] = useState(false)
 
   const form = useForm<DiscountFormData>({ 
     resolver: zodResolver(discountSchema),
@@ -90,6 +94,15 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
       cantidad_minima_producto: '1',
     }
   })
+  
+  // Función para convertir string de fecha a Date sin problemas de timezone
+  const parseDateString = (dateString: string | undefined): Date | undefined => {
+    if (!dateString) return undefined
+    // Parsear YYYY-MM-DD directamente sin timezone
+    const [year, month, day] = dateString.split('-').map(Number)
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return undefined
+    return new Date(year, month - 1, day)
+  }
 
   const tipoDescuento = form.watch('tipo_descuento')
   const aplicaA = form.watch('aplica_a')
@@ -121,9 +134,26 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
     }
   }, [open])
 
+  // Resetear Línea y Sublínea cuando cambia la Categoría (sublinea_especifica)
+  const idCategoriaSublinea = form.watch('id_categoria_sublinea')
+  const idLineaSublinea = form.watch('id_linea_sublinea')
+  useEffect(() => {
+    if (aplicaA === 'sublinea_especifica') {
+      form.setValue('id_linea_sublinea', '')
+      form.setValue('id_sublinea_aplica', '')
+    }
+  }, [aplicaA, idCategoriaSublinea])
+  useEffect(() => {
+    if (aplicaA === 'sublinea_especifica') {
+      form.setValue('id_sublinea_aplica', '')
+    }
+  }, [aplicaA, idLineaSublinea])
+
   const handleSubmit = form.handleSubmit(async (values) => {
     await onSubmit(values)
     onOpenChange(false)
+    setOpenStartDate(false)
+    setOpenEndDate(false)
     form.reset({
       tipo_descuento: 'porcentaje',
       aplica_a: 'total_pedido',
@@ -143,6 +173,14 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
       id_sublinea_aplica: '',
     })
   })
+  
+  // Resetear estados de Popovers cuando se cierra el modal
+  useEffect(() => {
+    if (!open) {
+      setOpenStartDate(false)
+      setOpenEndDate(false)
+    }
+  }, [open])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -328,7 +366,7 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                 >
                   <option value="">Selecciona una línea</option>
                   {lines
-                    .filter(line => line.id_categoria === parseInt(form.watch('id_categoria_linea') || '0'))
+                    .filter(line => Number(line.id_categoria) === Number(form.watch('id_categoria_linea') || 0))
                     .map((line, index) => (
                       <option key={`line-${line.id_categoria}-${line.id_linea}-${index}`} value={line.id_linea}>
                         {line.nom_linea}
@@ -359,15 +397,15 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="id_linea_sublinea">Línea *</Label>
-                  <select
-                    id="id_linea_sublinea"
-                    {...form.register('id_linea_sublinea')}
-                    className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
-                  >
-                    <option value="">Selecciona</option>
-                    {lines
-                      .filter(line => line.id_categoria === parseInt(form.watch('id_categoria_sublinea') || '0'))
-                      .map((line, index) => (
+                <select
+                  id="id_linea_sublinea"
+                  {...form.register('id_linea_sublinea')}
+                  className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
+                >
+                  <option value="">Selecciona</option>
+                  {lines
+                    .filter(line => Number(line.id_categoria) === Number(form.watch('id_categoria_sublinea') || 0))
+                    .map((line, index) => (
                         <option key={`subline-line-${line.id_categoria}-${line.id_linea}-${index}`} value={line.id_linea}>
                           {line.nom_linea}
                         </option>
@@ -383,9 +421,9 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                   >
                     <option value="">Selecciona</option>
                     {sublines
-                      .filter(sub => 
-                        sub.id_categoria === parseInt(form.watch('id_categoria_sublinea') || '0') &&
-                        sub.id_linea === parseInt(form.watch('id_linea_sublinea') || '0')
+                      .filter(sub =>
+                        Number(sub.id_categoria) === Number(form.watch('id_categoria_sublinea') || 0) &&
+                        Number(sub.id_linea) === Number(form.watch('id_linea_sublinea') || 0)
                       )
                       .map((subline, index) => (
                         <option key={`subline-${subline.id_categoria}-${subline.id_linea}-${subline.id_sublinea}-${index}`} value={subline.id_sublinea}>
@@ -475,7 +513,7 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="fec_inicio">Fecha de Inicio *</Label>
-              <Popover>
+              <Popover open={openStartDate} onOpenChange={setOpenStartDate}>
                 <PopoverTrigger asChild>
                   <Button type="button" variant="outline" className="w-full justify-start">
                     {form.watch('fec_inicio')
@@ -493,7 +531,7 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                       date.setHours(0, 0, 0, 0)
                       return date < today
                     }}
-                    selected={form.watch('fec_inicio') ? new Date(form.watch('fec_inicio') + 'T00:00:00') : undefined}
+                    selected={parseDateString(form.watch('fec_inicio'))}
                     onSelect={(date) => {
                       if (date) {
                         // Convertir a YYYY-MM-DD sin problemas de timezone
@@ -502,6 +540,8 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                         const day = String(date.getDate()).padStart(2, '0')
                         const dateString = `${year}-${month}-${day}`
                         form.setValue('fec_inicio', dateString)
+                        // Cerrar el Popover después de seleccionar
+                        setOpenStartDate(false)
                       } else {
                         form.setValue('fec_inicio', '')
                       }
@@ -515,8 +555,8 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="fec_fin">Fecha de Fin *</Label>
-              <Popover>
+              <Label htmlFor="fec_fin">Fecha de Fin {form.watch('ind_canjeable_puntos') ? '(opcional)' : '*'}</Label>
+              <Popover open={openEndDate} onOpenChange={setOpenEndDate}>
                 <PopoverTrigger asChild>
                   <Button type="button" variant="outline" className="w-full justify-start">
                     {form.watch('fec_fin')
@@ -534,7 +574,7 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                       date.setHours(0, 0, 0, 0)
                       return date < today
                     }}
-                    selected={form.watch('fec_fin') ? new Date(form.watch('fec_fin') + 'T00:00:00') : undefined}
+                    selected={parseDateString(form.watch('fec_fin'))}
                     onSelect={(date) => {
                       if (date) {
                         // Convertir a YYYY-MM-DD sin problemas de timezone
@@ -543,6 +583,8 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                         const day = String(date.getDate()).padStart(2, '0')
                         const dateString = `${year}-${month}-${day}`
                         form.setValue('fec_fin', dateString)
+                        // Cerrar el Popover después de seleccionar
+                        setOpenEndDate(false)
                       } else {
                         form.setValue('fec_fin', '')
                       }

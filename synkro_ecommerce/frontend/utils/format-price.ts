@@ -15,15 +15,13 @@ export function formatPrice(price: number | string | null | undefined, currency:
     return 'Precio inválido'
   }
 
-  // Formatear con separadores de miles y decimales
-  const formattedPrice = new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: currency,
+  // Formato como en UI: "$ 100.000" (espacio después de $ y punto como separador de miles)
+  const withThousands = new Intl.NumberFormat('es-CO', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(numericPrice)
 
-  return formattedPrice
+  return `$ ${withThousands}`
 }
 
 /**

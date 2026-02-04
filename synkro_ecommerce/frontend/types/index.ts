@@ -2,7 +2,7 @@
 // AUTO-IMPORTS DE TODOS LOS TIPOS
 // =============================================================================
 
-// Re-export de tipos comunes
+// Re-export de tipos comunes (incl. ResponseMessage, ApiResponse, PaginationParams, PaginatedResponse, FilterOptions)
 export * from './common';
 
 // Re-export de tipos de autenticación
@@ -11,8 +11,32 @@ export * from './auth';
 // Re-export de tipos de usuario
 export * from './user';
 
-// Re-export de tipos de producto
-export * from './product';
+// Re-export de tipos de producto (FilterOptions con alias para no chocar con common)
+export type {
+  ProductBase as ProductBaseFromProduct,
+  ProductImages as ProductImagesFromProduct,
+  Product as ProductFromProduct,
+  ProductCreate as ProductCreateFromProduct,
+  ProductUpdate as ProductUpdateFromProduct,
+  ProductAdmin,
+  ProductAdminParams,
+  ProductFilters,
+  ProductFilterParams,
+  ProductFiltered,
+  ProductFilterResponse,
+  ProductFilterStats,
+  FilterOptions as ProductFilterOptions,
+  Category as CategoryFromProduct,
+  Brand,
+  Provider,
+  ProductLine,
+  ProductSubline,
+  StockUpdate,
+  StockMovement,
+  CartItem,
+  Cart,
+  FavoriteItem,
+} from './product';
 
 // Re-export de tipos de datos (Excel/CSV)
 export * from './data';
@@ -68,20 +92,6 @@ export enum ThemeMode {
   LIGHT = 'light',
   DARK = 'dark',
   SYSTEM = 'system',
-}
-
-// =============================================================================
-// TIPOS BÁSICOS
-// =============================================================================
-
-export interface ResponseMessage {
-  message: string;
-}
-
-export interface ApiResponse<T = any> {
-  data?: T;
-  message?: string;
-  error?: string;
 }
 
 // =============================================================================
@@ -213,22 +223,6 @@ export interface Product extends ProductBase {
   fec_insert: string; // Fecha como string, ya que viene del JSON
   usr_update?: string;
   fec_update?: string;
+  rating?: number; // Promedio de calificaciones del producto (1-5 estrellas)
+  review_count?: number; // Cantidad de reseñas con calificación
 }
-
-// =============================================================================
-// TIPOS DE PAGINACIÓN Y FILTROS
-// =============================================================================
-
-export interface PaginationParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-}
-
-export interface PaginatedResponse<T> {
-  items: T[];
-  total: number;
-  page: number;
-  limit: number;
-  pages: number;
-} 

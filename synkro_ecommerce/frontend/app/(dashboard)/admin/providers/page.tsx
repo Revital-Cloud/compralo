@@ -13,6 +13,7 @@ import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Button } from "@/components/ui"
 import { Pencil, Power } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface Provider {
   id_proveedor: number
@@ -27,17 +28,22 @@ const ProvidersPage = () => {
   const queryClient = useQueryClient()
   const { data, isLoading, isError } = useAllProviders()
 
-  const deactivateMutation = useMutation({
-    mutationFn: (id_proveedor: number) => providerService.deactivateProvider(id_proveedor),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['providers', 'all'] })
+  const deactivateActivateProviderMutation = useMutation({
+    mutationFn: async ({ id_proveedor, activar }: { id_proveedor: number; activar: boolean }) => {
+      const result = await providerService.deactivateActivateProvider(id_proveedor, activar)
+      if (!result || (result as any).message === undefined) {
+        throw new Error('No se recibió confirmación del servidor')
+      }
+      return result
     },
-  })
-
-  const activateMutation = useMutation({
-    mutationFn: ({ id_proveedor }: { id_proveedor: number }) => providerService.updateProvider(id_proveedor, { ind_activo: true }),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['providers', 'all'] })
+      toast.success(variables.activar ? 'Proveedor activado exitosamente' : 'Proveedor desactivado exitosamente')
+    },
+    onError: (error: any, variables) => {
+      console.error(`Error al ${variables.activar ? 'activar' : 'desactivar'} proveedor:`, error)
+      const errorMessage = error?.response?.data?.detail || error?.message || `Error al ${variables.activar ? 'activar' : 'desactivar'} el proveedor`
+      toast.error(errorMessage)
     },
   })
 
@@ -88,25 +94,19 @@ const ProvidersPage = () => {
           <Button variant="outline" size="icon" aria-label="Editar proveedor" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
             <Pencil className="w-4 h-4" />
           </Button>
-          {row.original.ind_activo ? (
-            <Button
-              variant="destructive"
-              size="icon"
-              aria-label="Desactivar"
-              onClick={() => deactivateMutation.mutate(row.original.id_proveedor)}
-            >
-              <Power className="w-4 h-4" />
-            </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              size="icon"
-              aria-label="Activar"
-              onClick={() => activateMutation.mutate({ id_proveedor: row.original.id_proveedor })}
-            >
-              <Power className="w-4 h-4" />
-            </Button>
-          )}
+          <Button
+            variant={row.original.ind_activo ? "default" : "destructive"}
+            size="icon"
+            aria-label={row.original.ind_activo ? "Desactivar" : "Activar"}
+            onClick={() => {
+              const isActive = Boolean(row.original.ind_activo)
+              deactivateActivateProviderMutation.mutate({ id_proveedor: row.original.id_proveedor, activar: !isActive })
+            }}
+            disabled={deactivateActivateProviderMutation.isPending}
+            className={row.original.ind_activo ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+          >
+            <Power className="w-4 h-4" />
+          </Button>
         </div>
       ),
     },
@@ -164,7 +164,12 @@ const ProvidersPage = () => {
         type="provider"
         title="Nuevo Proveedor"
         onSubmit={async (values) => {
-          await providerService.createProvider({ nom_proveedor: values.nom_proveedor, ind_activo: values.ind_activo })
+          await providerService.createProvider({ 
+            nom_proveedor: values.nom_proveedor, 
+            email: values.email,
+            tel_proveedor: values.tel_proveedor,
+            ind_activo: values.ind_activo 
+          })
           queryClient.invalidateQueries({ queryKey: ['providers', 'all'] })
         }}
       />
@@ -174,9 +179,19 @@ const ProvidersPage = () => {
         onOpenChange={setOpenEdit}
         type="provider"
         title="Editar Proveedor"
-        initialValues={{ nom_proveedor: (editing as any)?.nom_proveedor, ind_activo: (editing as any)?.ind_activo ?? true }}
+        initialValues={{ 
+          nom_proveedor: (editing as any)?.nom_proveedor, 
+          email: (editing as any)?.email || '',
+          tel_proveedor: (editing as any)?.tel_proveedor || '',
+          ind_activo: (editing as any)?.ind_activo ?? true 
+        }}
         onSubmit={async (values) => {
-          await providerService.updateProvider((editing as any)?.id_proveedor, { nom_proveedor: values.nom_proveedor, ind_activo: values.ind_activo })
+          await providerService.updateProvider((editing as any)?.id_proveedor, { 
+            nom_proveedor: values.nom_proveedor,
+            email: values.email || undefined,
+            tel_proveedor: values.tel_proveedor || undefined,
+            ind_activo: values.ind_activo 
+          })
           queryClient.invalidateQueries({ queryKey: ['providers', 'all'] })
         }}
       />

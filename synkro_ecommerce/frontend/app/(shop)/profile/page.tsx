@@ -7,7 +7,7 @@ import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { profileSchema } from "@/schemas/user.schema";
 import { 
-  CreditCard, 
+  Gift, 
   MapPin, 
   Package, 
   Settings, 
@@ -20,9 +20,10 @@ import {
   ProfileTab,
   OrdersTab,
   AddressesTab,
-  PaymentTab,
+  ExchangeTab,
   SettingsTab
 } from "@/components/layout/shop/profile";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui";
 
 export default function ProfilePage() {
   const { user, isAuthenticated, updateProfile, isLoadingUser, isHydrated } = useAuth();
@@ -30,8 +31,9 @@ export default function ProfilePage() {
   const searchParams = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
 
-  // Obtener la pestaña activa de la URL o usar 'profile' por defecto
-  const activeTab = searchParams.get('tab') || 'profile';
+  // Obtener la pestaña activa de la URL o usar 'profile' por defecto (payment redirige a canje)
+  const tabParam = searchParams.get('tab') || 'profile';
+  const activeTab = tabParam === 'payment' ? 'canje' : tabParam;
 
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
@@ -52,6 +54,15 @@ export default function ProfilePage() {
     params.set('tab', value);
     router.push(`/profile?${params.toString()}`);
   };
+
+  // Redirigir URL antigua ?tab=payment a ?tab=canje
+  useEffect(() => {
+    if (searchParams.get('tab') === 'payment') {
+      const params = new URLSearchParams(searchParams);
+      params.set('tab', 'canje');
+      router.replace(`/profile?${params.toString()}`);
+    }
+  }, [searchParams, router]);
 
   useEffect(() => {
     // Esperar a que se complete la hidratación
@@ -184,9 +195,9 @@ export default function ProfilePage() {
                 <MapPin className="w-4 h-4" />
                 <span className="hidden sm:inline">Direcciones</span>
               </TabsTrigger>
-              <TabsTrigger value="payment" className="flex items-center space-x-2">
-                <CreditCard className="w-4 h-4" />
-                <span className="hidden sm:inline">Pagos</span>
+              <TabsTrigger value="canje" className="flex items-center space-x-2">
+                <Gift className="w-4 h-4" />
+                <span className="hidden sm:inline">Canje</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center space-x-2">
                 <Settings className="w-4 h-4" />
@@ -215,11 +226,10 @@ export default function ProfilePage() {
             <AddressesTab />
           </TabsContent>
 
-          {/* Payment Tab */}
-          <TabsContent value="payment">
-            <PaymentTab />
+          {/* Canje Tab */}
+          <TabsContent value="canje">
+            <ExchangeTab />
           </TabsContent>
-
 
           {/* Settings Tab */}
           <TabsContent value="settings">

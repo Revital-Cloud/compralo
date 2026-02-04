@@ -69,13 +69,27 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         
         # Content Security Policy - Configuración flexible para desarrollo y producción
         import os
-        is_development = os.getenv('ENVIRONMENT', 'development') == 'development'
+        environment = os.getenv("ENVIRONMENT", "development").lower().strip()
+        is_development = environment in {"development", "dev", "local"}
+        is_docs_path = request.url.path in {"/docs", "/redoc", "/openapi.json"} or request.url.path.startswith("/docs/")
         
+        # Para documentación (/docs, /redoc, /openapi.json) evitamos CSP:
+        # Swagger UI carga assets externos (CDN) y un CSP restrictivo rompe el render.
+        # Esto NO afecta la API; solo mejora DX en desarrollo/diagnóstico.
+        if is_docs_path:
+            # Starlette's MutableHeaders no implementa .pop()
+            if "Content-Security-Policy" in response.headers:
+                del response.headers["Content-Security-Policy"]
+            return response
+
         if is_development:
             csp = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                # Swagger UI (FastAPI /docs) suele cargar assets desde CDN (jsdelivr/unpkg)
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; "
+                "script-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com; "
+                "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com; "
                 "font-src 'self' https://fonts.gstatic.com; "
                 "img-src 'self' data: https: blob:; "
                 "connect-src 'self' http://localhost:3000 http://localhost:3001 http://localhost:8000 https://api.synkro.com; "

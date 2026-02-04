@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "sonner";
+import { getStoredToken } from "@/utils/apiWrapper";
 
 // Configuración del widget de Wompi
 export interface WompiWidgetConfig {
@@ -334,18 +335,21 @@ export class WompiWidgetService {
     return `SYNKRO-${timestamp}-${random}`;
   }
 
-  // Generar firma de integridad
+  // DEPRECATED: Generar firma de integridad (ahora se hace en backend)
+  // Mantenido para compatibilidad, pero se recomienda usar createWidgetConfigFromBackend
   async generateIntegritySignature(
     reference: string,
     amountInCents: number,
     currency: string = 'COP',
     expirationTime?: string
   ): Promise<string> {
+    console.warn('generateIntegritySignature está deprecado. La firma debe generarse en el backend.');
+    
     // Obtener el secreto de integridad desde las variables de entorno
     const integritySecret = process.env.NEXT_PUBLIC_WOMPI_INTEGRITY_SECRET;
     
     if (!integritySecret) {
-      throw new Error('NEXT_PUBLIC_WOMPI_INTEGRITY_SECRET no está configurado');
+      throw new Error('NEXT_PUBLIC_WOMPI_INTEGRITY_SECRET no está configurado. Use createWidgetConfigFromBackend en su lugar.');
     }
 
     // Concatenar valores según documentación de Wompi
@@ -366,12 +370,59 @@ export class WompiWidgetService {
     return hashHex;
   }
 
-  // Crear configuración del widget
+  // Crear configuración del widget desde respuesta del backend
+  // Este es el método recomendado: la firma se genera en el backend
+  createWidgetConfigFromBackend(
+    backendResponse: {
+      reference: string;
+      amount_in_cents: number;
+      currency: string;
+      public_key: string;
+      integrity_signature: string;
+    },
+    customerData?: WompiWidgetConfig['customerData'],
+    shippingAddress?: WompiWidgetConfig['shippingAddress']
+  ): WompiWidgetConfig {
+    // Filtrar customerData para eliminar campos vacíos o inválidos
+    const filteredCustomerData = customerData ? {
+      ...(customerData.email ? { email: customerData.email } : {}),
+      ...(customerData.fullName ? { fullName: customerData.fullName } : {}),
+      ...(customerData.phoneNumber ? { phoneNumber: customerData.phoneNumber } : {}),
+      ...(customerData.phoneNumberPrefix ? { phoneNumberPrefix: customerData.phoneNumberPrefix } : {}),
+      // Solo incluir legalId y legalIdType si ambos están presentes y no están vacíos
+      ...(customerData.legalId && customerData.legalId.trim() && customerData.legalIdType && customerData.legalIdType.trim()
+        ? {
+            legalId: customerData.legalId,
+            legalIdType: customerData.legalIdType
+          }
+        : {})
+    } : undefined;
+
+    const config: WompiWidgetConfig = {
+      currency: backendResponse.currency,
+      amountInCents: backendResponse.amount_in_cents,
+      reference: backendResponse.reference,
+      publicKey: backendResponse.public_key,
+      signature: {
+        integrity: backendResponse.integrity_signature
+      },
+      // NO incluir redirectUrl - el widget embebido no lo necesita
+      customerData: filteredCustomerData,
+      shippingAddress
+    };
+
+    return config;
+  }
+
+  // Crear configuración del widget (DEPRECATED: usar createWidgetConfigFromBackend)
+  // Mantenido para compatibilidad con código existente
   async createWidgetConfig(
     amountInCents: number,
     customerData?: WompiWidgetConfig['customerData'],
     shippingAddress?: WompiWidgetConfig['shippingAddress']
   ): Promise<WompiWidgetConfig> {
+    console.warn('createWidgetConfig está deprecado. Use createWidgetConfigFromBackend con respuesta del endpoint /api/payments/create');
+    
     const publicKey = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY;
     
     if (!publicKey) {
@@ -384,13 +435,28 @@ export class WompiWidgetService {
     // Generar tiempo de expiración (30 minutos desde ahora)
     const expirationTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
     
-    // Generar firma de integridad
+    // Generar firma de integridad (DEPRECATED: debe hacerse en backend)
     const signature = await this.generateIntegritySignature(
       reference,
       amountInCents,
       currency,
       expirationTime
     );
+
+    // Filtrar customerData para eliminar campos vacíos o inválidos
+    const filteredCustomerData = customerData ? {
+      ...(customerData.email ? { email: customerData.email } : {}),
+      ...(customerData.fullName ? { fullName: customerData.fullName } : {}),
+      ...(customerData.phoneNumber ? { phoneNumber: customerData.phoneNumber } : {}),
+      ...(customerData.phoneNumberPrefix ? { phoneNumberPrefix: customerData.phoneNumberPrefix } : {}),
+      // Solo incluir legalId y legalIdType si ambos están presentes y no están vacíos
+      ...(customerData.legalId && customerData.legalId.trim() && customerData.legalIdType && customerData.legalIdType.trim()
+        ? {
+            legalId: customerData.legalId,
+            legalIdType: customerData.legalIdType
+          }
+        : {})
+    } : undefined;
 
     const config: WompiWidgetConfig = {
       currency,
@@ -400,9 +466,9 @@ export class WompiWidgetService {
       signature: {
         integrity: signature
       },
-      redirectUrl: `${window.location.origin}/checkout/payment-result`,
+      // NO incluir redirectUrl - el widget embebido no lo necesita
       expirationTime,
-      customerData,
+      customerData: filteredCustomerData,
       shippingAddress
     };
 
@@ -414,6 +480,9 @@ export class WompiWidgetService {
     config: WompiWidgetConfig,
     onResult?: (result: any) => void
   ): Promise<void> {
+    // Definir cleanupErrorHandler fuera del try para que esté disponible en el catch
+    let cleanupErrorHandler: (() => void) | null = null;
+    
     try {
       console.log('🚀 Iniciando apertura del widget de Wompi...');
       console.log('⚙️ Configuración:', { ...config, signature: '[HIDDEN]' });
@@ -439,63 +508,384 @@ export class WompiWidgetService {
       }
 
       console.log('✅ WidgetCheckout disponible, creando instancia...');
+      console.log('📋 Configuración completa (sin signature):', {
+        currency: config.currency,
+        amountInCents: config.amountInCents,
+        reference: config.reference,
+        publicKey: config.publicKey?.substring(0, 20) + '...',
+        redirectUrl: config.redirectUrl,
+        expirationTime: config.expirationTime,
+        hasCustomerData: !!config.customerData,
+        hasShippingAddress: !!config.shippingAddress
+      });
+
+      // Validar que la firma de integridad esté presente
+      if (!config.signature?.integrity) {
+        throw new Error('Firma de integridad faltante. La configuración del widget es inválida.');
+      }
+
+      // Validar formato de la referencia
+      if (!config.reference || config.reference.trim() === '') {
+        throw new Error('Referencia de pago faltante. La configuración del widget es inválida.');
+      }
+
+      // Validar que el monto sea válido
+      if (!config.amountInCents || config.amountInCents <= 0) {
+        throw new Error('Monto inválido. El monto debe ser mayor a 0.');
+      }
 
       // Crear instancia del checkout
       let checkout;
       try {
-        checkout = new (window as any).WidgetCheckout(config);
+        // Preparar configuración limpia para el widget
+        // IMPORTANTE: Wompi WidgetCheckout acepta tanto camelCase como snake_case
+        // pero algunos parámetros deben estar en el formato correcto
+        const widgetConfig: any = {
+          currency: config.currency,
+          amountInCents: config.amountInCents,
+          reference: config.reference,
+          publicKey: config.publicKey,
+          signature: {
+            integrity: config.signature.integrity
+          }
+        };
+
+        // NO incluir redirectUrl para widget embebido
+        // El widget embebido de Wompi NO debe tener redirectUrl
+        // Solo se usa redirectUrl para Web Checkout (redirección completa)
+        // if (config.redirectUrl) {
+        //   widgetConfig.redirectUrl = config.redirectUrl;
+        // }
+
+        // Solo incluir expirationTime si está definido
+        if (config.expirationTime) {
+          widgetConfig.expirationTime = config.expirationTime;
+        }
+
+        // Solo incluir customerData si tiene al menos un campo válido
+        if (config.customerData && Object.keys(config.customerData).length > 0) {
+          widgetConfig.customerData = config.customerData;
+        }
+
+        // Solo incluir shippingAddress si tiene al menos un campo válido
+        if (config.shippingAddress && Object.keys(config.shippingAddress).length > 0) {
+          widgetConfig.shippingAddress = config.shippingAddress;
+        }
+
+        // Validar que todos los campos requeridos estén presentes
+        if (!widgetConfig.currency || !widgetConfig.amountInCents || !widgetConfig.reference || !widgetConfig.publicKey || !widgetConfig.signature?.integrity) {
+          console.error('❌ Configuración incompleta:', {
+            hasCurrency: !!widgetConfig.currency,
+            hasAmountInCents: !!widgetConfig.amountInCents,
+            hasReference: !!widgetConfig.reference,
+            hasPublicKey: !!widgetConfig.publicKey,
+            hasSignature: !!widgetConfig.signature?.integrity,
+            config: widgetConfig
+          });
+          throw new Error('La configuración del widget está incompleta. Faltan campos requeridos.');
+        }
+
+        console.log('📋 Configuración final del widget (sin signature):', {
+          currency: widgetConfig.currency,
+          amountInCents: widgetConfig.amountInCents,
+          reference: widgetConfig.reference,
+          publicKey: widgetConfig.publicKey?.substring(0, 20) + '...',
+          hasSignature: !!widgetConfig.signature?.integrity,
+          signatureLength: widgetConfig.signature?.integrity?.length || 0,
+          hasRedirectUrl: !!widgetConfig.redirectUrl,
+          hasCustomerData: !!widgetConfig.customerData,
+          hasShippingAddress: !!widgetConfig.shippingAddress
+        });
+
+        checkout = new (window as any).WidgetCheckout(widgetConfig);
         console.log('✅ Instancia de WidgetCheckout creada exitosamente');
-      } catch (error) {
+      } catch (error: any) {
         console.error('❌ Error al crear instancia de WidgetCheckout:', error);
-        throw new Error('Error al inicializar el widget de Wompi. Verifica la configuración.');
+        console.error('📋 Configuración que causó el error:', {
+          currency: config.currency,
+          amountInCents: config.amountInCents,
+          reference: config.reference,
+          publicKey: config.publicKey?.substring(0, 20) + '...',
+          hasSignature: !!config.signature?.integrity,
+          signatureLength: config.signature?.integrity?.length || 0
+        });
+        throw new Error(`Error al inicializar el widget de Wompi: ${error?.message || 'Verifica la configuración.'}`);
       }
 
       // Abrir el widget
       console.log('🎯 Abriendo widget...');
-      checkout.open((result: any) => {
+      
+      // Notificar que el widget se está abriendo (para cerrar el modal de loading)
+      // El widget mostrará su propio modal/iframe
+      if (onResult) {
+        // Llamar al callback inmediatamente para indicar que el widget se está abriendo
+        // Esto permite cerrar el modal de loading antes de que el widget muestre su contenido
+        setTimeout(() => {
+          onResult({ widgetOpening: true });
+        }, 100);
+      }
+      
+      // Agregar listener para errores del widget (solo una vez)
+      const errorHandler = (event: ErrorEvent) => {
+        const target = event.target as HTMLElement;
+        const isWompiResource = 
+          (event.message && event.message.includes('wompi')) ||
+          (target && 'src' in target && (target as any).src && (target as any).src.includes('wompi')) ||
+          (event.filename && event.filename.includes('wompi'));
+        
+        if (isWompiResource) {
+          console.error('❌ Error detectado al cargar recurso de Wompi:', {
+            message: event.message,
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+            error: event.error,
+            target: target ? {
+              tagName: target.tagName,
+              src: (target as any).src,
+              href: (target as any).href
+            } : null
+          });
+          
+          // Si es un 403, puede ser problema de firma o configuración
+          if (event.message && event.message.includes('403')) {
+            toast.error('Error de autenticación con Wompi. Verifica la configuración del pago.');
+          }
+        }
+      };
+      
+      window.addEventListener('error', errorHandler, true);
+      
+      // Remover el listener después de que el widget se abra o cierre
+      cleanupErrorHandler = () => {
+        window.removeEventListener('error', errorHandler, true);
+      };
+      
+      // Flag para evitar múltiples ejecuciones del callback
+      let callbackExecuted = false;
+      
+      checkout.open(async (result: any) => {
+        // Prevenir múltiples ejecuciones
+        if (callbackExecuted) {
+          console.warn('⚠️ Callback ya ejecutado, ignorando ejecución duplicada');
+          return;
+        }
+
+        try {
+          if (cleanupErrorHandler) {
+            cleanupErrorHandler();
+            cleanupErrorHandler = null;
+          }
         console.log('📊 Resultado del widget de Wompi:', result);
         
+          // Guard clause 1: result existe
+          if (result === null || result === undefined) {
+            console.warn('⚠️ El callback se ejecutó pero result es null/undefined');
+            console.log('ℹ️ Esto puede ocurrir si el usuario cerró el widget sin completar el pago');
         if (onResult) {
           onResult(result);
         }
-
-        // Manejar el resultado
-        if (result.transaction) {
-          const transaction = result.transaction;
-          
-          switch (transaction.status) {
-            case 'APPROVED':
-              toast.success('¡Pago aprobado exitosamente!');
-              // Redirigir a página de éxito
-              window.location.href = `/checkout/payment-result?status=success&transaction_id=${transaction.id}&amount=${config.amountInCents}&reference=${config.reference}`;
-              break;
-            case 'DECLINED':
-              toast.error('El pago fue rechazado. Intenta con otro método de pago.');
-              window.location.href = `/checkout/payment-result?status=declined&transaction_id=${transaction.id}&message=Pago rechazado`;
-              break;
-            case 'PENDING':
-              toast.info('El pago está pendiente de confirmación.');
-              // Redirigir a página de pendiente
-              window.location.href = `/checkout/payment-result?status=pending&transaction_id=${transaction.id}&amount=${config.amountInCents}&reference=${config.reference}`;
-              break;
-            case 'ERROR':
-              toast.error('Ocurrió un error durante el pago. Intenta nuevamente.');
-              window.location.href = `/checkout/payment-result?status=error&message=Error durante el pago`;
-              break;
-            default:
-              console.log('❓ Estado de transacción no manejado:', transaction.status);
-              toast.info(`Estado del pago: ${transaction.status}`);
+            callbackExecuted = true;
+            return;
           }
-        } else if (result.error) {
+          
+          // IMPORTANTE: Siempre procesar transaction_id y llamar a attach-transaction
+          // ANTES de llamar al callback personalizado, para asegurar que el backend
+          // tenga el transaction_id guardado
+          console.log('🔍 [WIDGET-SERVICE] Verificando result.transaction...');
+          console.log('🔍 [WIDGET-SERVICE] result.transaction existe?', !!result.transaction);
+          console.log('🔍 [WIDGET-SERVICE] result.transaction:', result.transaction);
+          console.log('🔍 [WIDGET-SERVICE] Tipo de result.transaction:', typeof result.transaction);
+          
+          let transactionId: string | null = null;
+          let transactionStatus: string | null = null;
+          
+          if (
+            result.transaction && 
+            result.transaction !== null && 
+            typeof result.transaction === 'object'
+          ) {
+          const transaction = result.transaction;
+            console.log('🔍 [WIDGET-SERVICE] transaction.id:', transaction.id);
+            console.log('🔍 [WIDGET-SERVICE] transaction.status:', transaction.status);
+            console.log('🔍 [WIDGET-SERVICE] Tipo de transaction.status:', typeof transaction.status);
+            
+            // Validar que transaction.status existe y es string ANTES de usarlo
+            if (!transaction.status || typeof transaction.status !== 'string') {
+              console.error('❌ [WIDGET-SERVICE] transaction.status inválido:', transaction.status);
+              console.error('❌ [WIDGET-SERVICE] Transaction completa:', JSON.stringify(transaction, null, 2));
+              // Continuar aunque el status sea inválido, al menos intentar attachar el transaction_id
+            } else {
+              transactionStatus = transaction.status;
+            }
+            
+            transactionId = transaction.id || null;
+            
+            // attach-transaction solo cuando ya existe un pago en backend (referencia synkro_* con order_id).
+            // Con synkro_cart_* no hay pago aún: el webhook crea orden y pago al recibir APPROVED; no llamar attach.
+            const isCheckoutFlow = config.reference?.startsWith('synkro_cart_') ?? false;
+            if (transactionId && config.reference && !isCheckoutFlow) {
+              try {
+                console.log(`🔍 [WIDGET-SERVICE] ========== LLAMANDO A ATTACH-TRANSACTION ==========`);
+                console.log(`🔍 [WIDGET-SERVICE] reference=${config.reference}, transaction_id=${transactionId}`);
+                
+                let token: string | null = null;
+                try {
+                  token = getStoredToken();
+                  console.log(`🔍 [WIDGET-SERVICE] Token obtenido: ${token ? 'Sí (primeros 20 chars: ' + token.substring(0, 20) + '...)' : 'No'}`);
+                } catch (tokenError) {
+                  console.warn('⚠️ [WIDGET-SERVICE] Error al obtener token:', tokenError);
+                  token = null;
+                }
+                
+                const headers: HeadersInit = {
+                  'Content-Type': 'application/json',
+                };
+                if (token) {
+                  headers['Authorization'] = `Bearer ${token}`;
+                  console.log(`✅ [WIDGET-SERVICE] Header Authorization agregado`);
+                } else {
+                  console.warn(`⚠️ [WIDGET-SERVICE] No se encontró token de autenticación. El endpoint puede requerir autenticación.`);
+                }
+                
+                const attachResponse = await fetch('/api/payments/attach-transaction', {
+                  method: 'POST',
+                  headers,
+                  body: JSON.stringify({
+                    reference: config.reference,
+                    transaction_id: transactionId
+                  }),
+                });
+                
+                if (!attachResponse.ok) {
+                  const errorData = await attachResponse.json().catch(() => ({}));
+                  console.error(`❌ [WIDGET-SERVICE] Error al attach transaction: ${attachResponse.status}`, errorData);
+                } else {
+                  const attachData = await attachResponse.json();
+                  console.log(`✅ [WIDGET-SERVICE] ========== TRANSACTION ID ATTACHADO EXITOSAMENTE ==========`);
+                  console.log(`✅ [WIDGET-SERVICE] Response:`, attachData);
+                  
+                  if (transactionStatus && ['APPROVED', 'DECLINED', 'VOIDED', 'ERROR'].includes(transactionStatus)) {
+                    console.log(`🔍 [WIDGET-SERVICE] Status final detectado (${transactionStatus}), llamando a /api/payments/poll...`);
+                    try {
+                      const pollResponse = await fetch(`/api/payments/poll?reference=${encodeURIComponent(config.reference)}`, {
+                        method: 'GET',
+                        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                      });
+                      if (pollResponse.ok) {
+                        const pollData = await pollResponse.json();
+                        console.log(`✅ [WIDGET-SERVICE] Poll completado:`, pollData);
+                      } else {
+                        const pollError = await pollResponse.json().catch(() => ({}));
+                        console.warn(`⚠️ [WIDGET-SERVICE] Error en poll (el webhook puede actualizar después):`, pollError);
+                      }
+                    } catch (pollError: any) {
+                      console.warn(`⚠️ [WIDGET-SERVICE] Error al llamar poll (el webhook puede actualizar después):`, pollError);
+                    }
+                  }
+                }
+              } catch (attachError: any) {
+                console.error(`❌ [WIDGET-SERVICE] Error al llamar attach-transaction:`, attachError);
+              }
+            } else if (isCheckoutFlow && transactionId && config.reference) {
+              console.log(`🔍 [WIDGET-SERVICE] Flujo checkout (synkro_cart_): no se llama attach; el webhook crea orden y pago. Redirigiendo a resultado...`);
+            } else if (!transactionId || !config.reference) {
+              console.warn(`⚠️ [WIDGET-SERVICE] No se puede attach transaction: transactionId=${transactionId}, reference=${config.reference}`);
+            }
+          }
+          
+          // Si hay un callback personalizado, llamarlo (p. ej. invalidar queries)
+          if (onResult) {
+            console.log('🔍 [WIDGET-SERVICE] Llamando callback personalizado onResult...');
+            onResult(result);
+          }
+
+          // Redirigir siempre a payment-result cuando hay estado final y referencia,
+          // para que la página de resultado haga polling (synkro_cart_) o muestre el pedido.
+          // Así el usuario no se queda en checkout sin ver el resultado.
+          if (transactionId && transactionStatus && config.reference) {
+            callbackExecuted = true;
+            console.log(`✅ [WIDGET-SERVICE] Redirigiendo a resultado: status=${transactionStatus}`);
+            switch (transactionStatus) {
+              case 'APPROVED':
+                toast.success('¡Pago aprobado exitosamente!');
+                window.location.href = `/checkout/payment-result?status=success&transaction_id=${transactionId}&amount=${config.amountInCents}&reference=${encodeURIComponent(config.reference)}`;
+                return;
+              case 'DECLINED':
+                toast.error('El pago fue rechazado. Intenta con otro método de pago.');
+                window.location.href = `/checkout/payment-result?status=declined&transaction_id=${transactionId}&message=Pago rechazado&reference=${encodeURIComponent(config.reference)}`;
+                return;
+              case 'PENDING':
+                toast.info('El pago está pendiente de confirmación.');
+                window.location.href = `/checkout/payment-result?status=pending&transaction_id=${transactionId}&amount=${config.amountInCents}&reference=${encodeURIComponent(config.reference)}`;
+                return;
+              case 'ERROR':
+                toast.error('Ocurrió un error durante el pago. Intenta nuevamente.');
+                window.location.href = `/checkout/payment-result?status=error&message=Error durante el pago&reference=${encodeURIComponent(config.reference)}`;
+                return;
+              default:
+                console.log('❓ Estado de transacción no manejado:', transactionStatus);
+                toast.info(`Estado del pago: ${transactionStatus}`);
+            }
+          }
+
+          // Manejar el resultado automáticamente solo si NO se redirigió arriba
+          if (!callbackExecuted && transactionId && transactionStatus) {
+            console.log(`✅ [WIDGET-SERVICE] Transaction válida - ID: ${transactionId}, Status: ${transactionStatus}`);
+            switch (transactionStatus) {
+              case 'APPROVED':
+                toast.success('¡Pago aprobado exitosamente!');
+                window.location.href = `/checkout/payment-result?status=success&transaction_id=${transactionId}&amount=${config.amountInCents}&reference=${config.reference ? encodeURIComponent(config.reference) : ''}`;
+                break;
+              case 'DECLINED':
+                toast.error('El pago fue rechazado. Intenta con otro método de pago.');
+                window.location.href = `/checkout/payment-result?status=declined&transaction_id=${transactionId}&message=Pago rechazado`;
+                break;
+              case 'PENDING':
+                toast.info('El pago está pendiente de confirmación.');
+                window.location.href = `/checkout/payment-result?status=pending&transaction_id=${transactionId}&amount=${config.amountInCents}&reference=${config.reference ? encodeURIComponent(config.reference) : ''}`;
+                break;
+              case 'ERROR':
+                toast.error('Ocurrió un error durante el pago. Intenta nuevamente.');
+                window.location.href = `/checkout/payment-result?status=error&message=Error durante el pago`;
+                break;
+              default:
+                console.log('❓ Estado de transacción no manejado:', transactionStatus);
+                toast.info(`Estado del pago: ${transactionStatus}`);
+            }
+            callbackExecuted = true;
+          } else if (result.error) {
           console.error('❌ Error en el resultado del widget:', result.error);
           toast.error('Error en el procesamiento del pago');
+            callbackExecuted = true;
+          } else {
+            console.log('ℹ️ Widget cerrado sin completar el pago (usuario canceló o cerró el widget)');
+            callbackExecuted = true;
+          }
+        } catch (error: any) {
+          console.error('❌ Error en callback del widget:', error);
+          callbackExecuted = true;
         }
       });
 
       console.log('✅ Widget abierto exitosamente');
 
-    } catch (error) {
+      // Limpiar el error handler después de 5 segundos si el widget se abrió correctamente
+      setTimeout(() => {
+        if (cleanupErrorHandler) {
+          cleanupErrorHandler();
+          cleanupErrorHandler = null;
+        }
+      }, 5000);
+
+    } catch (error: any) {
       console.error('❌ Error al abrir el widget de Wompi:', error);
+      
+      // Limpiar el error handler en caso de error
+      if (cleanupErrorHandler) {
+        cleanupErrorHandler();
+        cleanupErrorHandler = null;
+      }
       
       // Análisis del error para determinar si usar respaldo
       let useWebCheckoutFallback = false;
@@ -643,21 +1033,41 @@ export class WompiWidgetService {
     console.log('🔒 CSP detectado (script bloqueado), usando redirección directa...');
     
     try {
-      // Crear URL directa y redirigir
+      // Crear URL directa
       const paymentUrl = this.createDirectPaymentUrl(config);
-      console.log('🔗 URL de pago directo creada');
+      console.log('🔗 URL de pago directo creada:', paymentUrl);
       
-      // Mostrar mensaje al usuario
+      // Verificar que la URL sea válida antes de redirigir
+      if (!paymentUrl || !paymentUrl.startsWith('https://checkout.wompi.co')) {
+        throw new Error('URL de pago inválida generada');
+      }
+      
+      // Mostrar mensaje al usuario con opción de cancelar
+      const userConfirmed = window.confirm(
+        'Se detectó una política de seguridad que bloquea el widget embebido.\n\n' +
+        '¿Deseas continuar y ser redirigido al sistema de pagos de Wompi?\n\n' +
+        'Si ves un error 403, puede ser un problema de configuración o bloqueo de red.\n\n' +
+        'URL: ' + paymentUrl.substring(0, 80) + '...'
+      );
+      
+      if (!userConfirmed) {
+        console.log('❌ Usuario canceló la redirección');
+        throw new Error('Redirección cancelada por el usuario');
+      }
+      
+      // Mostrar mensaje de redirección
       toast.info('Redirigiendo al sistema de pagos de Wompi...', { 
-        duration: 3000,
+        duration: 2000,
         description: 'Se detectó una política de seguridad. Usando método directo.'
       });
       
-      // Redirigir después de un momento para que el usuario vea el mensaje
-      setTimeout(() => {
-        console.log('🚀 Redirigiendo a Wompi...');
+      // Pequeño delay para que el usuario vea el mensaje
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('🚀 Redirigiendo a:', paymentUrl);
+      
+      // Redirigir
         window.location.href = paymentUrl;
-      }, 2000);
       
     } catch (error) {
       console.error('❌ Error al crear redirección directa:', error);
@@ -971,32 +1381,172 @@ if (typeof window !== 'undefined') {
   console.log('   - testDirectUrl() - Probar solo URL directa');
 }
 
+export interface CheckoutData {
+  cart_id: number;
+  id_direccion: number;
+  id_canje?: number | null;
+}
+
 // Función helper para inicializar el pago
 export const initializeWompiPayment = async (
   amountInCents: number,
   customerData?: WompiWidgetConfig['customerData'],
   shippingAddress?: WompiWidgetConfig['shippingAddress'],
-  onResult?: (result: any) => void
+  onResult?: (result: any) => void,
+  orderId?: number,
+  checkoutData?: CheckoutData
 ): Promise<void> => {
   try {
     console.log('🚀 Inicializando pago con Wompi...');
     
-    // Verificar variables de entorno críticas
+    let config: WompiWidgetConfig;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const headers: HeadersInit = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    // Flujo checkout session: no se crea orden hasta que el pago sea aprobado
+    if (checkoutData) {
+      try {
+        console.log('📡 Creando sesión de checkout (sin orden)...');
+        const response = await fetch('/api/payments/create-checkout', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(checkoutData),
+        });
+        if (!response.ok) throw new Error(`Error del servidor: ${response.status}`);
+        const backendResponse = await response.json();
+        if (!backendResponse.reference || !backendResponse.amount_in_cents || !backendResponse.currency || !backendResponse.public_key || !backendResponse.integrity_signature) {
+          throw new Error('La respuesta del backend está incompleta.');
+        }
+        config = wompiWidgetService.createWidgetConfigFromBackend(backendResponse, customerData, shippingAddress);
+        console.log('✅ Configuración checkout obtenida:', { reference: config.reference, amountInCents: config.amountInCents });
+      } catch (e) {
+        console.error('Error al crear checkout session:', e);
+        throw e;
+      }
+    } else if (orderId) {
+      try {
+        console.log('📡 Obteniendo configuración desde el backend...');
+        const response = await fetch('/api/payments/create', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            order_id: orderId,
+            amount_in_cents: amountInCents,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Error del servidor: ${response.status}`);
+        }
+
+        const backendResponse = await response.json();
+        
+        console.log('📡 Respuesta del backend:', {
+          hasReference: !!backendResponse.reference,
+          hasAmountInCents: !!backendResponse.amount_in_cents,
+          hasCurrency: !!backendResponse.currency,
+          hasPublicKey: !!backendResponse.public_key,
+          hasIntegritySignature: !!backendResponse.integrity_signature,
+          reference: backendResponse.reference,
+          amountInCents: backendResponse.amount_in_cents,
+          currency: backendResponse.currency
+        });
+        
+        // Validar que la respuesta del backend tenga todos los campos requeridos
+        if (!backendResponse.reference || !backendResponse.amount_in_cents || !backendResponse.currency || !backendResponse.public_key || !backendResponse.integrity_signature) {
+          throw new Error('La respuesta del backend está incompleta. Faltan campos requeridos.');
+        }
+        
+        // Usar el método recomendado que obtiene la configuración del backend
+        config = wompiWidgetService.createWidgetConfigFromBackend(
+          backendResponse,
+          customerData,
+          shippingAddress
+        );
+        
+        console.log('✅ Configuración obtenida desde el backend:', {
+          reference: config.reference,
+          amountInCents: config.amountInCents,
+          currency: config.currency,
+          hasPublicKey: !!config.publicKey,
+          hasSignature: !!config.signature?.integrity
+        });
+      } catch (backendError) {
+        console.warn('⚠️ No se pudo obtener configuración del backend, usando método alternativo:', backendError);
+        // Fallback: usar método deprecado si el backend falla
+        // En Next.js, solo las variables con prefijo NEXT_PUBLIC_ están disponibles en el cliente
     if (!process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY) {
-      throw new Error('NEXT_PUBLIC_WOMPI_PUBLIC_KEY no está configurado');
+          throw new Error(
+            'NEXT_PUBLIC_WOMPI_PUBLIC_KEY no está configurado y el backend no está disponible. ' +
+            'Agrega esta variable en el archivo .env del frontend con el valor de WOMPI_PUBLIC_KEY.'
+          );
     }
     
     if (!process.env.NEXT_PUBLIC_WOMPI_INTEGRITY_SECRET) {
-      throw new Error('NEXT_PUBLIC_WOMPI_INTEGRITY_SECRET no está configurado');
+          throw new Error(
+            'NEXT_PUBLIC_WOMPI_INTEGRITY_SECRET no está configurado y el backend no está disponible. ' +
+            'Agrega esta variable en el archivo .env del frontend con el valor de WOMPI_INTEGRITY_SECRET.'
+          );
     }
     
-    const config = await wompiWidgetService.createWidgetConfig(
+        config = await wompiWidgetService.createWidgetConfig(
       amountInCents,
       customerData,
       shippingAddress
     );
+      }
+    } else {
+      // Si no hay orderId, usar método deprecado (requiere variables de entorno)
+      // En Next.js, solo las variables con prefijo NEXT_PUBLIC_ están disponibles en el cliente
+      if (!process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY) {
+        throw new Error(
+          'NEXT_PUBLIC_WOMPI_PUBLIC_KEY no está configurado. ' +
+          'Agrega esta variable en el archivo .env del frontend con el valor de WOMPI_PUBLIC_KEY. ' +
+          'Ejemplo: NEXT_PUBLIC_WOMPI_PUBLIC_KEY=pub_test_...'
+        );
+      }
+      
+      if (!process.env.NEXT_PUBLIC_WOMPI_INTEGRITY_SECRET) {
+        throw new Error(
+          'NEXT_PUBLIC_WOMPI_INTEGRITY_SECRET no está configurado. ' +
+          'Agrega esta variable en el archivo .env del frontend con el valor de WOMPI_INTEGRITY_SECRET. ' +
+          'Ejemplo: NEXT_PUBLIC_WOMPI_INTEGRITY_SECRET=test_integrity_...'
+        );
+      }
+      
+      config = await wompiWidgetService.createWidgetConfig(
+        amountInCents,
+        customerData,
+        shippingAddress
+      );
+    }
 
     console.log('⚙️ Configuración creada, intentando abrir widget...');
+    console.log('📋 Validación de configuración:', {
+      hasCurrency: !!config.currency,
+      hasAmountInCents: !!config.amountInCents,
+      hasReference: !!config.reference,
+      hasPublicKey: !!config.publicKey,
+      hasSignature: !!config.signature?.integrity,
+      currency: config.currency,
+      amountInCents: config.amountInCents,
+      reference: config.reference,
+      publicKey: config.publicKey?.substring(0, 20) + '...',
+      signatureLength: config.signature?.integrity?.length || 0
+    });
+    
+    // Validar configuración antes de intentar abrir el widget
+    if (!config.currency || !config.amountInCents || !config.reference || !config.publicKey || !config.signature?.integrity) {
+      const missingFields = [];
+      if (!config.currency) missingFields.push('currency');
+      if (!config.amountInCents) missingFields.push('amountInCents');
+      if (!config.reference) missingFields.push('reference');
+      if (!config.publicKey) missingFields.push('publicKey');
+      if (!config.signature?.integrity) missingFields.push('signature.integrity');
+      
+      throw new Error(`La configuración del widget está incompleta. Faltan: ${missingFields.join(', ')}`);
+    }
     
     try {
       // Intentar abrir el widget primero
@@ -1021,18 +1571,47 @@ export const initializeWompiPayment = async (
         }
       }
       
-      // Si el widget falla, usar Web Checkout como respaldo
-      console.log('🔄 Activando respaldo automático...');
-      toast.dismiss(); // Limpiar toasts anteriores
-      toast.info(fallbackMessage, { duration: 4000 });
+      // Si el widget falla, NO usar respaldo automático para evitar redirecciones no deseadas
+      // En su lugar, mostrar el error y permitir al usuario decidir
+      console.error('❌ Widget de Wompi no pudo abrirse:', widgetError);
       
+      // Analizar el error específico
+      let errorMessage = 'No se pudo abrir el widget de pago.';
+      let canUseFallback = false;
+      
+      if (widgetError instanceof Error) {
+        if (widgetError.message.includes('Content Security Policy') || 
+            widgetError.message.includes('CSP') ||
+            widgetError.message.includes('script-src')) {
+          errorMessage = 'El widget está bloqueado por políticas de seguridad del navegador.';
+          canUseFallback = true;
+        } else if (widgetError.message.includes('WidgetCheckout') || 
+                   widgetError.message.includes('no está disponible')) {
+          errorMessage = 'El script de Wompi no se cargó correctamente. Verifica tu conexión o desactiva bloqueadores de contenido.';
+          canUseFallback = true;
+        } else {
+          errorMessage = widgetError.message || 'Error desconocido al abrir el widget.';
+        }
+      }
+      
+      // Mostrar error y opción de usar método alternativo
+      toast.error(errorMessage, { 
+        duration: 8000,
+        action: canUseFallback ? {
+          label: 'Usar método alternativo',
+          onClick: async () => {
       try {
         await wompiWidgetService.openFallbackCheckout(config);
-        console.log('✅ Respaldo ejecutado exitosamente');
       } catch (fallbackError) {
         console.error('❌ Error también en el respaldo:', fallbackError);
-        throw fallbackError;
-      }
+              toast.error('El método alternativo también falló. Contacta al soporte técnico.', { duration: 8000 });
+            }
+          }
+        } : undefined
+      });
+      
+      // No lanzar error aquí, solo informar al usuario
+      // throw widgetError;
     }
     
   } catch (error) {

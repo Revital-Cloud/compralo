@@ -17,10 +17,10 @@
  * 
  * LÓGICA:
  *   1. Obtener puntos disponibles del usuario (si se especifica)
- *   2. Filtrar descuentos canjeables, activos y vigentes
- *   3. Calcular si usuario puede canjear cada descuento
- *   4. Ordenar por costo de puntos ascendente
- *   5. Aplicar paginación
+ *   2. Filtrar descuentos canjeables (ind_canjeable_puntos), sin exigir ind_activo
+ *   3. Vigencia: fechas NULL = siempre vigente para canje; con fechas = CURRENT_DATE entre ellas
+ *   4. Calcular si usuario puede canjear cada descuento
+ *   5. Ordenar por costo de puntos ascendente
  * 
  * AUTOR: Sistema DB_Synkro
  * FECHA: 2025
@@ -83,8 +83,7 @@ BEGIN
         END AS puntos_usuario                                   -- Puntos disponibles del usuario
     FROM tab_descuentos d
     WHERE d.ind_canjeable_puntos = TRUE                         -- Solo descuentos canjeables por puntos
-      AND d.ind_activo = TRUE                                   -- Solo descuentos activos
-      AND CURRENT_DATE BETWEEN d.fec_inicio AND d.fec_fin      -- Solo descuentos vigentes
+      AND ( (d.fec_inicio IS NULL AND d.fec_fin IS NULL) OR (d.fec_inicio IS NOT NULL AND d.fec_fin IS NOT NULL AND CURRENT_DATE BETWEEN d.fec_inicio AND d.fec_fin) )
     ORDER BY d.costo_puntos_canje ASC, d.fec_insert DESC;       -- Más baratos primero, más recientes después                 -- Paginación
 END;
 $$ LANGUAGE plpgsql; 

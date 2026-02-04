@@ -62,6 +62,18 @@ class BrandUpdate(BaseModel):
     ind_activo: Optional[bool] = Field(None, description="Indica si la marca está activa.")
     usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
 
+# Esquema para toggle (activar/desactivar)
+class ToggleRequest(BaseModel):
+    """
+    Esquema para solicitudes de activar/desactivar marcas.
+    
+    Utilizado en endpoints toggle para activar o desactivar marcas.
+    
+    Atributos:
+        activar (bool): True para activar, False para desactivar.
+    """
+    activar: bool = Field(..., description="True para activar, False para desactivar.")
+
 class ResponseMessage(BaseModel):
     """
     Esquema para Mensajes de Respuesta Genéricos.

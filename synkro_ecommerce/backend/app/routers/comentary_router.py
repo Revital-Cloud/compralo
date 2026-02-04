@@ -5,7 +5,7 @@ Define las rutas y endpoints relacionados con la gestión de comentarios,
 incluyendo la creación, actualización y visualización de comentarios.
 """
 from decimal import Decimal
-from fastapi import APIRouter, Body, Depends, Form, HTTPException, status
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user
@@ -55,6 +55,43 @@ async def create_comentary(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
+@router.get("/comentaries/testimonials")
+async def get_testimonials(
+    limit: int = Query(3, ge=1, le=12),
+    db: Session = Depends(get_db),
+):
+    """
+    Obtiene reseñas de 5 estrellas para la sección de testimonios del landing.
+    Público, sin autenticación.
+    """
+    try:
+        rows = comentary_service.get_testimonials_5_star(db, limit=limit)
+        data = []
+        for row in rows:
+            r = dict(row)
+            nom = str(r.get("nom_usuario") or "").strip()
+            ape = str(r.get("ape_usuario") or "").strip()
+            id_c = r.get("id_comentario")
+            img = r.get("img_producto")
+            product_slug = None
+            if all(r.get(k) is not None for k in ("id_categoria", "id_linea", "id_sublinea", "id_producto")):
+                product_slug = f"{r['id_categoria']}-{r['id_linea']}-{r['id_sublinea']}-{r['id_producto']}"
+            data.append({
+                "id_comentario": int(id_c) if id_c is not None else 0,
+                "comentario": str(r.get("comentario") or "").strip(),
+                "calificacion": int(r.get("calificacion") or 5),
+                "nombre_usuario": f"{nom} {ape}".strip() or "Cliente",
+                "nom_usuario": nom,
+                "ape_usuario": ape,
+                "producto_nombre": str(r.get("nom_producto") or "").strip() or None,
+                "producto_imagen": img,
+                "producto_slug": product_slug,
+            })
+        return {"success": True, "data": data}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 @router.get("/comentaries/product/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}")
 async def get_comentaries_by_product(
     id_categoria:Decimal,
@@ -100,9 +137,17 @@ async def get_reviewed_products_in_order(
         dict: Lista de claves de productos ya reseñados.
     """
     try:
-        reviewed_products = comentary_service.get_reviewed_products_in_order(db, id_orden, current_user.id_usuario)
-        return {"success": True, "data": reviewed_products}
+        from decimal import Decimal
+        # Convertir id_usuario a int si es Decimal
+        id_usuario = int(current_user.id_usuario) if isinstance(current_user.id_usuario, Decimal) else current_user.id_usuario
+        reviewed_products = comentary_service.get_reviewed_products_in_order(db, id_orden, id_usuario)
+        # Asegurar que los valores son strings
+        reviewed_products_list = [str(product_key) for product_key in reviewed_products] if reviewed_products else []
+        return {"success": True, "data": reviewed_products_list}
     except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error al obtener productos reseñados para orden {id_orden}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.put("/comentaries/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}-{id_comentario}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)

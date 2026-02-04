@@ -9,7 +9,7 @@ from fastapi import APIRouter, Body, Depends, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user
-from schemas.brand_schema import BrandCreate, BrandUpdate, Brand, ResponseMessage
+from schemas.brand_schema import BrandCreate, BrandUpdate, Brand, ResponseMessage, ToggleRequest
 from schemas.auth_schema import UserInToken
 from services import brand_service
 
@@ -89,6 +89,35 @@ async def update_brand(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
 @router.put("/brands/{id_marca}/deactivate", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+# Ruta para activar/desactivar una marca existente
+@router.put("/brands/{id_marca}/toggle", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def toggle_brand(
+    id_marca:Decimal,
+    toggle_data: ToggleRequest = Body(...),
+    db:Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    activar = toggle_data.activar
+    """
+    Activa o desactiva una marca existente de la base de datos.
+
+    Args:
+        id_marca (Decimal): ID de la marca a activar/desactivar.
+        activar (bool): True para activar, False para desactivar.
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+
+    Returns:
+        ResponseMessage: Mensaje de confirmación.
+    """
+    try:
+        result = brand_service.deactivate_activate_brand(db, id_marca, current_user.id_usuario, activar)
+        message = result.get("message") if isinstance(result, dict) else (result if result else f"Marca {'activada' if activar else 'desactivada'} exitosamente")
+        return ResponseMessage(message=message)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+# Ruta para desactivar una marca existente (mantener compatibilidad)
+@router.put("/brands/{id_marca}/deactivate", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def deactivate_brand(
     id_marca:Decimal, 
     db:Session = Depends(get_db),
@@ -96,13 +125,15 @@ async def deactivate_brand(
 ):
     """
     Desactiva una marca existente de la base de datos.
+    Mantiene compatibilidad con endpoints existentes.
 
     Args:
         id_marca (Decimal): ID de la marca a desactivar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
     """
     try:
-        brand_service.deactivate_brand(db, id_marca, current_user.id_usuario)
-        return ResponseMessage(message="Marca desactivada exitosamente")
+        result = brand_service.deactivate_brand(db, id_marca, current_user.id_usuario)
+        message = result.get("message") if isinstance(result, dict) else (result if result else "Marca desactivada exitosamente")
+        return ResponseMessage(message=message)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

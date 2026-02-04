@@ -1,0 +1,956 @@
+"""
+Servicio para la gestión de pagos con Wompi Checkout Widget.
+
+Este módulo maneja la creación de pagos con el widget embebido de Wompi,
+incluyendo generación de referencias únicas, firmas de integridad, y polling
+de estados de transacciones.
+"""
+import hashlib
+import uuid
+import asyncio
+import httpx
+import logging
+import json
+from typing import Dict, Any, Optional
+from decimal import Decimal
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+from fastapi import HTTPException, status
+from core.tenant import StoreWompiConfig, get_wompi_base_url
+from services import order_service
+
+logger = logging.getLogger(__name__)
+
+# Mapeo de métodos de pago de Wompi a nombres legibles en español
+WOMPI_PAYMENT_METHOD_MAP = {
+    "CARD": "Tarjeta de crédito/débito",
+    "PSE": "PSE",
+    "NEQUI": "Nequi",
+    "BANCOLOMBIA_TRANSFER": "Corresponsal Bancario",
+    "DAVIPLATA": "Daviplata",
+    "BANCOLOMBIA_COLLECT": "Recaudo Bancolombia",
+    "EFECTY": "Efecty",
+    "CASH": "Efectivo",
+    "BANCOLOMBIA_QR": "QR Bancolombia",
+    "SURAPAY": "Sura Pay",
+    "BANCO_DE_BOGOTA": "Banco de Bogotá",
+    "BANCO_DE_OCCIDENTE": "Banco de Occidente",
+    "BANCO_POPULAR": "Banco Popular",
+    "BANCO_AV_VILLAS": "Banco AV Villas",
+    "BANCO_AGRARIO": "Banco Agrario",
+    "BANCO_CAJA_SOCIAL": "Banco Caja Social",
+    "BANCO_COLPATRIA": "Banco Colpatria",
+    "BANCO_COOPERATIVO_COOPCENTRAL": "Banco Cooperativo Coopcentral",
+    "BANCO_FALABELLA": "Banco Falabella",
+    "BANCO_GNB_SUDAMERIS": "Banco GNB Sudameris",
+    "BANCO_PICHINCHA": "Banco Pichincha",
+    "BANCO_SANTANDER": "Banco Santander",
+    "BANCO_SERFINANZA": "Banco Serfinanza",
+    "BANCO_TEQUENDAMA": "Banco Tequendama",
+    "BANCO_UNION": "Banco Unión",
+    "BANCO_W": "Banco W",
+    "BANCOOMEVA": "Bancoomeva",
+    "BANCOOMEVA_S.A.": "Bancoomeva S.A.",
+    "BANCO_SANTANDER_DE_NEGOCIOS": "Banco Santander de Negocios",
+    "BANCO_SANTANDER_DE_NEGOCIOS_COLOMBIA": "Banco Santander de Negocios Colombia",
+    "BANCO_SANTANDER_DE_NEGOCIOS_COLOMBIA_S.A.": "Banco Santander de Negocios Colombia S.A.",
+    "BANCO_SANTANDER_DE_NEGOCIOS_COLOMBIA_S.A._ESP": "Banco Santander de Negocios Colombia S.A. ESP",
+    "BANCO_SANTANDER_DE_NEGOCIOS_COLOMBIA_S.A._ESP_": "Banco Santander de Negocios Colombia S.A. ESP",
+}
+
+def get_payment_method_name(wompi_type: str) -> str:
+    """
+    Convierte el tipo de método de pago de Wompi a un nombre legible.
+    
+    Args:
+        wompi_type: Tipo de método de pago de Wompi (ej: "NEQUI", "CARD", "PSE")
+        
+    Returns:
+        str: Nombre legible del método de pago en español
+    """
+    if not wompi_type:
+        return "Wompi"
+    
+    # Convertir a mayúsculas para el mapeo
+    wompi_type_upper = wompi_type.upper()
+    
+    # Retornar el nombre mapeado o el tipo original si no está en el mapa
+    return WOMPI_PAYMENT_METHOD_MAP.get(wompi_type_upper, f"Wompi - {wompi_type}")
+
+
+# Mapeo de métodos de pago de Wompi a valores permitidos en tab_ordenes.metodo_pago
+# El CHECK constraint solo permite: 'tarjeta', 'efectivo_red_pagos', 'transferencia'
+WOMPI_TO_DB_METHOD_MAP = {
+    "CARD": "tarjeta",
+    "PSE": "transferencia",
+    "NEQUI": "transferencia",
+    "DAVIPLATA": "transferencia",
+    "BANCOLOMBIA_TRANSFER": "transferencia",
+    "BANCOLOMBIA_COLLECT": "efectivo_red_pagos",
+    "EFECTY": "efectivo_red_pagos",
+    "CASH": "efectivo_red_pagos",
+    "BANCOLOMBIA_QR": "transferencia",
+    "SURAPAY": "transferencia",
+    # Todos los bancos se mapean a transferencia
+    "BANCO_DE_BOGOTA": "transferencia",
+    "BANCO_DE_OCCIDENTE": "transferencia",
+    "BANCO_POPULAR": "transferencia",
+    "BANCO_AV_VILLAS": "transferencia",
+    "BANCO_AGRARIO": "transferencia",
+    "BANCO_CAJA_SOCIAL": "transferencia",
+    "BANCO_COLPATRIA": "transferencia",
+    "BANCO_COOPERATIVO_COOPCENTRAL": "transferencia",
+    "BANCO_FALABELLA": "transferencia",
+    "BANCO_GNB_SUDAMERIS": "transferencia",
+    "BANCO_PICHINCHA": "transferencia",
+    "BANCO_SANTANDER": "transferencia",
+    "BANCO_SERFINANZA": "transferencia",
+    "BANCO_TEQUENDAMA": "transferencia",
+    "BANCO_UNION": "transferencia",
+    "BANCO_W": "transferencia",
+    "BANCOOMEVA": "transferencia",
+    "BANCOOMEVA_S.A.": "transferencia",
+    "BANCO_SANTANDER_DE_NEGOCIOS": "transferencia",
+    "BANCO_SANTANDER_DE_NEGOCIOS_COLOMBIA": "transferencia",
+    "BANCO_SANTANDER_DE_NEGOCIOS_COLOMBIA_S.A.": "transferencia",
+    "BANCO_SANTANDER_DE_NEGOCIOS_COLOMBIA_S.A._ESP": "transferencia",
+    "BANCO_SANTANDER_DE_NEGOCIOS_COLOMBIA_S.A._ESP_": "transferencia",
+}
+
+def get_payment_method_for_db(wompi_type: str) -> str:
+    """
+    Convierte el tipo de método de pago de Wompi a un valor permitido en tab_ordenes.metodo_pago.
+    
+    El CHECK constraint solo permite: 'tarjeta', 'efectivo_red_pagos', 'transferencia'
+    
+    Args:
+        wompi_type: Tipo de método de pago de Wompi (ej: "NEQUI", "CARD", "PSE")
+        
+    Returns:
+        str: Valor permitido en la base de datos ('tarjeta', 'efectivo_red_pagos', o 'transferencia')
+    """
+    if not wompi_type:
+        return "transferencia"  # Valor por defecto
+    
+    return WOMPI_TO_DB_METHOD_MAP.get(wompi_type.upper(), "transferencia")
+
+
+def generate_payment_reference(order_id: int) -> str:
+    """
+    Genera una referencia única para el pago.
+    
+    Formato: synkro_{order_id}_{random10}
+    donde random10 son los primeros 10 caracteres de un UUID hex.
+    
+    Args:
+        order_id: ID de la orden
+        
+    Returns:
+        str: Referencia única del pago
+    """
+    random_part = uuid.uuid4().hex[:10]
+    return f"synkro_{order_id}_{random_part}"
+
+
+# Referencia de checkout sin tabla: se codifica cart_id, id_direccion, id_canje en la referencia.
+# Formato: synkro_cart_{cart_id}_{id_direccion}_{id_canje}_{nonce} (id_canje=0 si no hay canje).
+# La orden se crea solo cuando el webhook recibe APPROVED; el frontend obtiene order_id vía tab_pagos.
+
+
+def generate_checkout_reference_from_cart(
+    cart_id: int,
+    id_direccion: int,
+    id_canje: Optional[int] = None,
+) -> str:
+    """Genera referencia única para Wompi codificando carrito/dirección/canje. No persiste nada en BD."""
+    canje_val = id_canje if id_canje is not None else 0
+    nonce = uuid.uuid4().hex[:8]
+    return f"synkro_cart_{cart_id}_{id_direccion}_{canje_val}_{nonce}"
+
+
+def parse_checkout_reference(reference: str) -> Optional[tuple[int, int, Optional[int]]]:
+    """
+    Parsea referencia synkro_cart_* y devuelve (cart_id, id_direccion, id_canje).
+    id_canje es None si en la referencia es 0. Devuelve None si el formato no es válido.
+    """
+    if not reference or not reference.startswith("synkro_cart_"):
+        return None
+    parts = reference.split("_")
+    # synkro_cart_5_2_0_a1b2c3d4 -> 5 partes: synkro, cart, cart_id, id_direccion, id_canje, nonce
+    if len(parts) != 6:
+        return None
+    try:
+        cart_id = int(parts[2])
+        id_direccion = int(parts[3])
+        canje_val = int(parts[4])
+        id_canje = None if canje_val == 0 else canje_val
+        return (cart_id, id_direccion, id_canje)
+    except (ValueError, IndexError):
+        return None
+
+
+async def fetch_transaction_by_id(
+    transaction_id: str,
+    wompi_config: StoreWompiConfig,
+) -> Optional[Dict[str, Any]]:
+    """
+    Obtiene una transacción de Wompi por ID (una sola petición GET).
+    Útil para confirmar checkout cuando el webhook no llegó.
+    """
+    base_url = get_wompi_base_url(wompi_config.wompi_environment)
+    url = f"{base_url}/transactions/{transaction_id}"
+    headers = {"Content-Type": "application/json"}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("data") or data
+    except Exception as e:
+        logger.warning(f"No se pudo obtener transacción de Wompi: {transaction_id} - {e}")
+        return None
+
+
+def create_order_from_checkout_reference(
+    db: Session,
+    reference: str,
+    tx: Dict[str, Any],
+    id_usuario: Optional[int] = None,
+) -> Optional[int]:
+    """
+    Crea la orden desde una referencia synkro_cart_* y datos de transacción (webhook o confirm).
+    Crea orden, pago, marca orden como Procesada; el trigger vacía el carrito.
+    - Si id_usuario es None (webhook): se obtiene del carrito.
+    - Si id_usuario se pasa (confirm-checkout): se valida que el carrito pertenezca a ese usuario.
+    Retorna order_id o None si falla.
+    """
+    parsed = parse_checkout_reference(reference)
+    if not parsed:
+        logger.warning(f"create_order_from_checkout_reference: referencia no parseada: {reference}")
+        return None
+    cart_id, id_direccion, id_canje = parsed
+    logger.info(f"create_order_from_checkout_reference: reference={reference} -> cart_id={cart_id}, id_direccion={id_direccion}, id_canje={id_canje}")
+    status_tx = tx.get("status")
+    if status_tx != "APPROVED":
+        return None
+    cart_row = db.execute(
+        text("SELECT id_usuario FROM tab_carritos WHERE id_carrito = :cid"),
+        {"cid": cart_id}
+    ).fetchone()
+    if not cart_row or cart_row.id_usuario is None:
+        logger.warning(f"Carrito no encontrado o sin usuario: cart_id={cart_id}")
+        return None
+    cart_user_id = int(cart_row.id_usuario)
+    if id_usuario is not None and cart_user_id != id_usuario:
+        logger.warning(f"Carrito no pertenece al usuario: cart_id={cart_id}, id_usuario={id_usuario}")
+        return None
+    id_usuario = cart_user_id
+    try:
+        from schemas.order_schema import OrderCreate
+        # id_canje como entero para que la BD aplique el descuento por puntos (total 75k en vez de 100k)
+        order_data = OrderCreate(
+            id_carrito=cart_id,
+            id_direccion=id_direccion,
+            codigo_descuento=None,
+            des_observaciones=None,
+            id_canje=Decimal(int(id_canje)) if id_canje is not None else None,
+        )
+        result = order_service.create_order(db, order_data, Decimal(id_usuario))
+        if not result or not result.get("success") or not result.get("id_orden"):
+            logger.error(f"No se pudo crear la orden desde referencia checkout: {result}")
+            return None
+        order_id = int(result["id_orden"])
+        amount_in_cents = int(tx.get("amount_in_cents", 0)) or 0
+        if amount_in_cents <= 0:
+            order_row = db.execute(
+                text("SELECT val_total_pedido FROM tab_ordenes WHERE id_orden = :oid"),
+                {"oid": order_id}
+            ).fetchone()
+            if order_row and order_row.val_total_pedido is not None:
+                amount_in_cents = int(float(order_row.val_total_pedido) * 100)
+        create_payment(
+            db=db,
+            order_id=order_id,
+            reference=reference,
+            amount_in_cents=amount_in_cents,
+            currency="COP",
+            status="APPROVED",
+            usr_insert=Decimal(id_usuario),
+        )
+        pm = tx.get("payment_method", {}) if isinstance(tx.get("payment_method"), dict) else {}
+        pm_type = pm.get("type") if pm else None
+        metodo_pago = get_payment_method_for_db(pm_type) if pm_type else "transferencia"
+        order_service.update_order_payment_info(
+            db, Decimal(order_id), metodo_pago=metodo_pago, ind_estado=2
+        )
+        logger.info(f"Orden {order_id} creada desde referencia checkout: {reference}")
+        return order_id
+    except Exception as e:
+        logger.error(f"Error creando orden desde referencia checkout: {e}", exc_info=True)
+        return None
+
+
+def generate_integrity_signature(
+    reference: str,
+    amount_in_cents: int,
+    currency: str,
+    integrity_secret: str
+) -> str:
+    """
+    Genera la firma de integridad SHA256 requerida por Wompi.
+    
+    Formato: sha256(reference + amount_in_cents + currency + integrity_secret)
+    
+    Args:
+        reference: Referencia única del pago
+        amount_in_cents: Monto en centavos
+        currency: Moneda (ej: "COP")
+        integrity_secret: Secreto de integridad de Wompi
+        
+    Returns:
+        str: Firma SHA256 en hexadecimal
+    """
+    payload = f"{reference}{amount_in_cents}{currency}{integrity_secret}"
+    signature = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    
+    # Log para debugging
+    logger.info(f"Firma de integridad generada:")
+    logger.info(f"  reference: {reference}")
+    logger.info(f"  amount_in_cents: {amount_in_cents}")
+    logger.info(f"  currency: {currency}")
+    logger.info(f"  integrity_secret (primeros 20 chars): {integrity_secret[:20]}...")
+    logger.info(f"  payload (sin secret): {reference}{amount_in_cents}{currency}[SECRET]")
+    logger.info(f"  signature: {signature}")
+    
+    return signature
+
+
+def create_payment(
+    db: Session,
+    order_id: int,
+    reference: str,
+    amount_in_cents: int,
+    currency: str,
+    status: str,
+    usr_insert: Decimal,
+    parent_payment_id: Optional[int] = None
+) -> int:
+    """
+    Crea un registro de pago en la base de datos.
+    
+    Args:
+        db: Sesión de base de datos
+        order_id: ID de la orden
+        reference: Referencia única del pago
+        amount_in_cents: Monto en centavos
+        currency: Moneda
+        status: Estado inicial (CREATED)
+        usr_insert: Usuario que crea el pago
+        parent_payment_id: ID del pago padre (para reintentos)
+        
+    Returns:
+        int: ID del pago creado
+        
+    Raises:
+        HTTPException: Si hay error al crear el pago
+    """
+    try:
+        amount = Decimal(amount_in_cents) / 100
+        
+        query = text("""
+            INSERT INTO tab_pagos (
+                id_orden,
+                reference,
+                provider_name,
+                provider_transaction_id,
+                amount,
+                currency_id,
+                status,
+                status_detail,
+                estado_procesamiento,
+                parent_payment_id,
+                usr_insert,
+                fec_insert
+            ) VALUES (
+                :id_orden,
+                :reference,
+                'wompi',
+                NULL,
+                :amount,
+                :currency,
+                :status,
+                'payment_created',
+                'pendiente',
+                :parent_payment_id,
+                :usr_insert,
+                NOW()
+            ) RETURNING id_pago
+        """)
+        
+        result = db.execute(query, {
+            "id_orden": order_id,
+            "reference": reference,
+            "amount": amount,
+            "currency": currency,
+            "status": status,
+            "parent_payment_id": parent_payment_id,
+            "usr_insert": usr_insert
+        })
+        
+        payment_id = result.scalar()
+        db.commit()
+        
+        logger.info(f"Payment creado: id_pago={payment_id}, reference={reference}, order_id={order_id}")
+        return payment_id
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error al crear payment: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al crear el registro de pago: {str(e)}"
+        )
+
+
+def get_payment_by_reference(db: Session, reference: str) -> Optional[Dict[str, Any]]:
+    """
+    Obtiene un payment por su reference.
+    
+    Args:
+        db: Sesión de base de datos
+        reference: Referencia única del pago
+        
+    Returns:
+        Dict con los datos del payment o None si no existe
+    """
+    logger.info(f"🔍 [BUSCAR] Buscando payment por reference: {reference}")
+    try:
+        query = text("""
+            SELECT 
+                id_pago,
+                id_orden,
+                reference,
+                provider_transaction_id,
+                status,
+                amount,
+                currency_id,
+                payment_method_type,
+                raw_last_event,
+                parent_payment_id
+            FROM tab_pagos
+            WHERE reference = :reference
+        """)
+        
+        logger.info(f"🔍 [BUSCAR] Ejecutando query para reference: {reference}")
+        result = db.execute(query, {"reference": reference})
+        row = result.fetchone()
+        
+        if not row:
+            logger.warn(f"⚠️ [BUSCAR] Payment NO encontrado para reference: {reference}")
+            return None
+        
+        payment_dict = dict(row._mapping)
+        logger.info(f"✅ [BUSCAR] Payment encontrado: id_pago={payment_dict.get('id_pago')}, id_orden={payment_dict.get('id_orden')}, status={payment_dict.get('status')}, provider_transaction_id={payment_dict.get('provider_transaction_id')}")
+        return payment_dict
+        
+    except Exception as e:
+        logger.error(f"❌ [BUSCAR] Error al obtener payment por reference {reference}: {str(e)}")
+        import traceback
+        logger.error(f"❌ [BUSCAR] Traceback: {traceback.format_exc()}")
+        return None
+
+
+def attach_transaction_id(
+    db: Session,
+    reference: str,
+    transaction_id: str
+) -> bool:
+    """
+    Asocia un transaction_id de Wompi a un payment.
+    
+    Args:
+        db: Sesión de base de datos
+        reference: Referencia única del pago
+        transaction_id: ID de la transacción en Wompi
+        
+    Returns:
+        bool: True si se actualizó correctamente
+        
+    Raises:
+        HTTPException: Si hay error
+    """
+    logger.info(f"🔍 attach_transaction_id: reference={reference}, transaction_id={transaction_id}")
+    
+    try:
+        # Validación adicional
+        if not transaction_id or not isinstance(transaction_id, str) or len(transaction_id.strip()) == 0:
+            logger.error(f"❌ transaction_id inválido en attach_transaction_id: {transaction_id}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="transaction_id debe ser un string no vacío"
+            )
+        
+        transaction_id = transaction_id.strip()
+        
+        if not reference or not isinstance(reference, str) or len(reference.strip()) == 0:
+            logger.error(f"❌ reference inválido en attach_transaction_id: {reference}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="reference debe ser un string no vacío"
+            )
+        
+        reference = reference.strip()
+        
+        logger.info(f"🔍 Ejecutando UPDATE para attach transaction_id: reference={reference}, transaction_id={transaction_id}")
+        
+        query = text("""
+            UPDATE tab_pagos
+            SET 
+                provider_transaction_id = :transaction_id,
+                status = CASE 
+                    WHEN status = 'CREATED' THEN 'PENDING'
+                    ELSE status
+                END,
+                fec_update = NOW()
+            WHERE reference = :reference
+            RETURNING id_pago
+        """)
+        
+        result = db.execute(query, {
+            "reference": reference,
+            "transaction_id": transaction_id
+        })
+        
+        payment_id = result.scalar()
+        rows_affected = result.rowcount
+        
+        logger.info(f"🔍 UPDATE ejecutado: payment_id={payment_id}, rows_affected={rows_affected}")
+        
+        if not payment_id:
+            logger.error(f"❌ Payment no encontrado para reference: {reference}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Payment con reference {reference} no encontrado"
+            )
+        
+        if rows_affected == 0:
+            logger.error(f"❌ ERROR CRÍTICO: UPDATE no afectó ninguna fila para reference: {reference}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error: No se pudo actualizar el payment con reference {reference}"
+            )
+        
+        logger.info(f"✅ UPDATE exitoso: payment_id={payment_id}, rows_affected={rows_affected}")
+        
+        db.commit()
+        logger.info(f"✅ COMMIT realizado para payment_id={payment_id}")
+        
+        # Verificar que se guardó correctamente
+        verify_query = text("""
+            SELECT provider_transaction_id, status 
+            FROM tab_pagos 
+            WHERE reference = :reference
+        """)
+        verify_result = db.execute(verify_query, {"reference": reference})
+        verify_row = verify_result.fetchone()
+        
+        if verify_row:
+            saved_transaction_id = verify_row.provider_transaction_id
+            saved_status = verify_row.status
+            logger.info(f"✅ Transaction ID attachado y verificado: reference={reference}, transaction_id={transaction_id}, status={saved_status}")
+            
+            if saved_transaction_id != transaction_id:
+                logger.error(f"❌ ERROR CRÍTICO: Transaction ID no coincide. Esperado: {transaction_id}, Guardado: {saved_transaction_id}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Error al guardar transaction_id: no coincide con el valor esperado"
+                )
+        else:
+            logger.error(f"❌ ERROR CRÍTICO: No se pudo verificar el payment después del attach")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al verificar transaction_id después del attach"
+            )
+        
+        return True
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error al attachar transaction_id: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al asociar transaction_id: {str(e)}"
+        )
+
+
+async def poll_transaction_status(
+    transaction_id: str,
+    wompi_config: StoreWompiConfig,
+    max_duration: int = 30,
+    interval: int = 2
+) -> Dict[str, Any]:
+    """
+    Hace long-polling del estado de una transacción en Wompi.
+    
+    Args:
+        transaction_id: ID de la transacción en Wompi
+        wompi_config: Configuración de Wompi del tenant
+        max_duration: Duración máxima del polling en segundos (default: 30)
+        interval: Intervalo entre consultas en segundos (default: 2)
+        
+    Returns:
+        Dict con el estado de la transacción
+        
+    Raises:
+        HTTPException: Si hay error al consultar Wompi
+    """
+    base_url = get_wompi_base_url(wompi_config.wompi_environment)
+    url = f"{base_url}/transactions/{transaction_id}"
+    
+    # No requiere autenticación para consulta pública
+    headers = {
+        "Content-Type": "application/json"
+    }
+    
+    max_attempts = max_duration // interval
+    
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        for attempt in range(max_attempts):
+            try:
+                response = await client.get(url, headers=headers)
+                response.raise_for_status()
+                data = response.json()
+                
+                transaction_data = data.get("data", {})
+                status = transaction_data.get("status")
+                
+                # Log para debugging del método de pago
+                if transaction_data:
+                    logger.debug(f"Transaction data recibida de Wompi: {json.dumps(transaction_data, indent=2, default=str)}")
+                    if "payment_method" in transaction_data:
+                        logger.info(f"Método de pago en respuesta: {transaction_data['payment_method']}")
+                
+                # Si es estado final, retornar inmediatamente
+                if status in ["APPROVED", "DECLINED", "VOIDED", "ERROR"]:
+                    logger.info(f"Estado final obtenido: transaction_id={transaction_id}, status={status}")
+                    return {
+                        "status": status,
+                        "transaction_id": transaction_id,
+                        "data": transaction_data
+                    }
+                
+                # Si sigue PENDING, esperar antes del siguiente intento
+                if attempt < max_attempts - 1:
+                    await asyncio.sleep(interval)
+                    
+            except httpx.HTTPStatusError as e:
+                logger.error(f"Error HTTP al consultar transacción: {e.response.status_code} - {e.response.text}")
+                if e.response.status_code == 404:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail=f"Transacción {transaction_id} no encontrada en Wompi"
+                    )
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Error al consultar transacción en Wompi: {e.response.text}"
+                )
+            except Exception as e:
+                logger.error(f"Error inesperado al consultar transacción: {str(e)}")
+                if attempt == max_attempts - 1:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail=f"Error al consultar transacción: {str(e)}"
+                    )
+                await asyncio.sleep(interval)
+    
+    # Si llegamos aquí, el polling terminó sin estado final
+    logger.info(f"Polling terminado sin estado final: transaction_id={transaction_id}")
+    return {
+        "status": "PENDING",
+        "transaction_id": transaction_id,
+        "data": {}
+    }
+
+
+def update_payment_status(
+    db: Session,
+    reference: str,
+    status: str,
+    transaction_data: Optional[Dict[str, Any]] = None,
+    mark_order_paid: bool = False
+) -> bool:
+    """
+    Actualiza el estado de un payment y opcionalmente marca la orden como pagada.
+    
+    Args:
+        db: Sesión de base de datos
+        reference: Referencia única del pago
+        status: Nuevo estado
+        transaction_data: Datos completos de la transacción (para raw_last_event)
+        mark_order_paid: Si True, marca la orden como pagada cuando status es APPROVED
+        
+    Returns:
+        bool: True si se actualizó correctamente
+        
+    Raises:
+        HTTPException: Si hay error
+    """
+    try:
+        import json
+        
+        # Obtener payment para obtener order_id
+        payment = get_payment_by_reference(db, reference)
+        if not payment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Payment con reference {reference} no encontrado"
+            )
+        
+        order_id = payment.get("id_orden")
+        if order_id is None:
+            logger.error(f"❌ Payment con reference {reference} no tiene id_orden")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Payment con reference {reference} no tiene id_orden asociado"
+            )
+        
+        # Asegurar que order_id sea un número
+        if isinstance(order_id, Decimal):
+            order_id = int(order_id)
+        elif not isinstance(order_id, int):
+            try:
+                order_id = int(order_id)
+            except (ValueError, TypeError):
+                logger.error(f"❌ order_id inválido: {order_id} (tipo: {type(order_id)})")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"order_id inválido en payment: {order_id}"
+                )
+        
+        logger.info(f"🔍 update_payment_status: reference={reference}, status={status}, order_id={order_id} (tipo: {type(order_id)}), mark_order_paid={mark_order_paid}")
+        
+        # Verificar que la orden existe antes de intentar actualizarla
+        if mark_order_paid and status == "APPROVED":
+            check_order_query = text("SELECT id_orden, ind_estado FROM tab_ordenes WHERE id_orden = :order_id")
+            check_order_result = db.execute(check_order_query, {"order_id": order_id})
+            check_order_row = check_order_result.fetchone()
+            if not check_order_row:
+                logger.error(f"❌ ERROR CRÍTICO: La orden {order_id} NO EXISTE en la base de datos")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"La orden {order_id} asociada al payment no existe"
+                )
+            logger.info(f"✅ Orden {order_id} existe, estado actual: {check_order_row.ind_estado}")
+        
+        # Preparar datos para actualización
+        update_fields = {
+            "reference": reference,
+            "status": status,
+            "fec_update": "NOW()"
+        }
+        
+        # Extraer método de pago de transaction_data
+        payment_method_type = None
+        payment_method_name = None
+        
+        if transaction_data:
+            # Log completo para debugging
+            logger.info(f"Transaction data completo: {json.dumps(transaction_data, indent=2, default=str)}")
+            
+            # Intentar extraer payment_method de diferentes ubicaciones posibles
+            pm = None
+            if "payment_method" in transaction_data:
+                pm = transaction_data["payment_method"]
+            elif "payment_method_type" in transaction_data:
+                # Algunas respuestas de Wompi pueden tener el tipo directamente
+                payment_method_type = transaction_data["payment_method_type"]
+                if payment_method_type:
+                    payment_method_name = get_payment_method_name(payment_method_type)
+                    logger.info(f"Método de pago extraído de payment_method_type: type={payment_method_type}, name={payment_method_name}")
+            
+            # Si encontramos payment_method como objeto
+            if pm:
+                if isinstance(pm, dict):
+                    payment_method_type = pm.get("type") or pm.get("payment_method_type")
+                    if payment_method_type:
+                        payment_method_name = get_payment_method_name(payment_method_type)
+                        logger.info(f"Método de pago extraído: type={payment_method_type}, name={payment_method_name}")
+                elif isinstance(pm, str):
+                    # Si payment_method es directamente un string
+                    payment_method_type = pm
+                    payment_method_name = get_payment_method_name(payment_method_type)
+                    logger.info(f"Método de pago extraído (string): type={payment_method_type}, name={payment_method_name}")
+            
+            # Si aún no tenemos el método de pago, intentar inferirlo del tipo de transacción
+            if not payment_method_type:
+                # Verificar si hay información sobre el tipo de pago en otros campos
+                if "payment_source" in transaction_data:
+                    payment_method_type = "CARD"  # Si hay payment_source, es una tarjeta
+                    payment_method_name = get_payment_method_name("CARD")
+                    logger.info(f"Método de pago inferido de payment_source: CARD")
+            
+            update_fields["payment_method_type"] = payment_method_type
+            update_fields["raw_last_event"] = json.dumps(transaction_data)
+            
+            # Log final
+            if payment_method_type:
+                logger.info(f"✅ Método de pago final: type={payment_method_type}, name={payment_method_name}")
+            else:
+                logger.warning(f"⚠️ No se pudo extraer el método de pago de la transacción")
+        
+        # Actualizar payment
+        set_clauses = []
+        params = {"reference": reference, "status": status}
+        
+        if transaction_data:
+            # Solo agregar payment_method_type si existe
+            if update_fields.get("payment_method_type") is not None:
+                params["payment_method_type"] = update_fields.get("payment_method_type")
+                set_clauses.append("payment_method_type = :payment_method_type")
+                logger.info(f"🔍 Agregando payment_method_type al UPDATE: {update_fields.get('payment_method_type')}")
+            # Siempre guardar raw_last_event si hay transaction_data
+            if update_fields.get("raw_last_event"):
+                params["raw_last_event"] = update_fields.get("raw_last_event")
+                set_clauses.append("raw_last_event = CAST(:raw_last_event AS jsonb)")
+        
+        set_clauses.append("status = :status")
+        set_clauses.append("fec_update = NOW()")
+        
+        if status == "APPROVED":
+            set_clauses.append("estado_procesamiento = 'procesado'")
+            set_clauses.append("provider_date_approved = NOW()")
+        elif status in ["DECLINED", "VOIDED", "ERROR"]:
+            set_clauses.append("estado_procesamiento = 'error'")
+        
+        query = text(f"""
+            UPDATE tab_pagos
+            SET {', '.join(set_clauses)}
+            WHERE reference = :reference
+        """)
+        
+        db.execute(query, params)
+        
+        # Marcar orden como pagada si corresponde (idempotente)
+        logger.info(f"🔍 Verificando si marcar orden como pagada: mark_order_paid={mark_order_paid}, status={status}")
+        if mark_order_paid and status == "APPROVED":
+            logger.info(f"✅ Condición cumplida: marcando orden {order_id} como pagada")
+            try:
+                # Obtener el valor permitido en la BD (el CHECK constraint solo permite: 'tarjeta', 'efectivo_red_pagos', 'transferencia')
+                # payment_method_type contiene el tipo de Wompi (ej: "NEQUI", "CARD", "PSE")
+                metodo_pago_orden = get_payment_method_for_db(payment_method_type) if payment_method_type else "transferencia"
+                logger.info(f"🔍 Método de pago a guardar en BD: {metodo_pago_orden} (wompi_type={payment_method_type}, display_name={payment_method_name})")
+                
+                # No hacer commit aquí, lo haremos después junto con el update del payment
+                logger.info(f"🔍 Llamando a update_order_payment_info para orden {order_id} (tipo: {type(order_id)})")
+                logger.info(f"🔍 Parámetros: metodo_pago={metodo_pago_orden}, ind_estado=2, commit=False")
+                
+                # Convertir order_id a Decimal para la función
+                order_id_decimal = Decimal(str(order_id))
+                logger.info(f"🔍 order_id convertido a Decimal: {order_id_decimal} (tipo: {type(order_id_decimal)})")
+                
+                order_service.update_order_payment_info(
+                    db,
+                    order_id_decimal,
+                    metodo_pago=metodo_pago_orden,
+                    ind_estado=2,  # 2 = procesada/aprobada
+                    commit=False  # No hacer commit, lo haremos después
+                )
+                logger.info(f"✅ update_order_payment_info completado para orden {order_id}")
+            except Exception as e:
+                logger.error(f"❌ Error al marcar orden como pagada: {str(e)}")
+                # Log el error pero continuar - el payment se actualizará de todas formas
+                # Esto evita que un error en la actualización de la orden impida actualizar el payment
+                # La orden se puede actualizar manualmente después si es necesario
+                import traceback
+                logger.error(f"Traceback completo: {traceback.format_exc()}")
+                # Re-lanzar el error para que se vea en los logs del servidor
+                raise
+        
+        # Hacer commit de todos los cambios juntos (payment + orden si se actualizó correctamente)
+        try:
+            db.commit()
+            logger.info(f"✅ COMMIT exitoso: reference={reference}, status={status}, order_id={order_id}")
+            
+            # Verificar que la orden se actualizó correctamente
+            if mark_order_paid and status == "APPROVED":
+                verify_query = text("""
+                    SELECT ind_estado, metodo_pago 
+                    FROM tab_ordenes 
+                    WHERE id_orden = :order_id
+                """)
+                verify_result = db.execute(verify_query, {"order_id": order_id})
+                verify_row = verify_result.fetchone()
+                if verify_row:
+                    logger.info(f"✅ Verificación post-commit: orden {order_id} - estado={verify_row.ind_estado}, metodo_pago={verify_row.metodo_pago}")
+                    if verify_row.ind_estado != 2:
+                        logger.error(f"❌ ERROR CRÍTICO: La orden {order_id} NO se actualizó a estado 2. Estado actual: {verify_row.ind_estado}")
+                    if not verify_row.metodo_pago:
+                        logger.warning(f"⚠️ ADVERTENCIA: La orden {order_id} no tiene método de pago guardado")
+                else:
+                    logger.error(f"❌ ERROR CRÍTICO: No se encontró la orden {order_id} después del commit")
+            
+        except Exception as commit_error:
+            logger.error(f"❌ Error en COMMIT: {str(commit_error)}")
+            db.rollback()
+            raise
+        
+        return True
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error al actualizar payment status: {str(e)}")
+        from fastapi import status as http_status
+        raise HTTPException(
+            status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al actualizar estado del pago: {str(e)}"
+        )
+
+
+def get_last_payment_for_order(
+    db: Session,
+    order_id: int
+) -> Optional[Dict[str, Any]]:
+    """
+    Obtiene el último payment de una orden.
+    
+    Args:
+        db: Sesión de base de datos
+        order_id: ID de la orden
+        
+    Returns:
+        Dict con los datos del payment o None si no existe
+    """
+    try:
+        query = text("""
+            SELECT 
+                id_pago,
+                id_orden,
+                reference,
+                provider_transaction_id,
+                status,
+                amount,
+                currency_id,
+                payment_method_type,
+                parent_payment_id
+            FROM tab_pagos
+            WHERE id_orden = :order_id
+            ORDER BY fec_insert DESC
+            LIMIT 1
+        """)
+        
+        result = db.execute(query, {"order_id": order_id})
+        row = result.fetchone()
+        
+        if not row:
+            return None
+        
+        return dict(row._mapping)
+        
+    except Exception as e:
+        logger.error(f"Error al obtener último payment: {str(e)}")
+        return None
+

@@ -48,6 +48,7 @@ class Subline(SublineBase):
     Incluye el `id_sublinea` y los campos de auditoría.
     """
     id_sublinea: Decimal
+    productos_count: Optional[int] = Field(None, description="Cantidad de productos en la sublínea.")
     # Campos enriquecidos para mostrar en el frontend
     nom_categoria: Optional[str] = None
     nom_linea: Optional[str] = None
@@ -75,6 +76,18 @@ class SublineUpdate(BaseModel):
     usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
     
     
+# Esquema para toggle (activar/desactivar)
+class ToggleRequest(BaseModel):
+    """
+    Esquema para solicitudes de activar/desactivar sublíneas.
+    
+    Utilizado en endpoints toggle para activar o desactivar sublíneas.
+    
+    Atributos:
+        activar (bool): True para activar, False para desactivar.
+    """
+    activar: bool = Field(..., description="True para activar, False para desactivar.")
+
 class ResponseMessage(BaseModel):
     """
     Esquema para Mensajes de Respuesta Genéricos.

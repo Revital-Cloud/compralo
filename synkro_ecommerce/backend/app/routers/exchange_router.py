@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user
 from schemas.auth_schema import UserInToken
-from schemas.exchange_schema import ApplyExchangeOrder, ExchangePointsDiscount, Exchange, ResponseMessage, ExchangePointsDiscountResponse
+from schemas.exchange_schema import ApplyExchangeOrder, ExchangePointsDiscount, Exchange, ResponseMessage, ExchangePointsDiscountResponse, CanjeDisponible
 from services import exchange_service
 
 router = APIRouter(tags=["Canjes"])
@@ -27,6 +27,21 @@ async def get_exchanges(db:Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
     
+@router.get("/canjes/mis-canjes", response_model=list[CanjeDisponible], status_code=status.HTTP_200_OK)
+async def get_my_available_canjes(
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Lista los canjes disponibles del usuario autenticado (canjeados, no utilizados y no vencidos).
+    """
+    try:
+        canjes = exchange_service.get_my_available_canjes(db, int(current_user.id_usuario))
+        return canjes
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
 @router.post("/canjes-puntos-descuento", response_model=ExchangePointsDiscountResponse, status_code=status.HTTP_200_OK)
 async def exchange_points_discount(
     exchange_points_discount_data: ExchangePointsDiscount = Body(...),

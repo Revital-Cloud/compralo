@@ -130,14 +130,14 @@ BEGIN
         RETURN 'Error: Ya has reseñado este producto en esta orden';
     END IF;
     
-    -- INSERCIÓN: Crear nuevo comentario
+    -- INSERCIÓN: Crear nuevo comentario (fec_insert lo asigna el trigger tri_audit_comentarios)
     INSERT INTO tab_comentarios (
-        id_categoria, id_linea, id_sublinea, id_producto, 
+        id_categoria, id_linea, id_sublinea, id_producto,
         id_usuario, id_orden, id_comentario, comentario, calificacion, usr_insert
     ) VALUES (
-        wid_categoria, 
-        wid_linea, 
-        wid_sublinea, 
+        wid_categoria,
+        wid_linea,
+        wid_sublinea,
         wid_producto,
         wid_usuario,
         wid_orden,

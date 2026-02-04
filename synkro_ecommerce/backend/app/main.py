@@ -32,6 +32,7 @@ from routers.cart_product_router import router as cart_product_router
 from routers.address_router import router as address_router
 from routers.points_per_user_router import router as points_per_user_router
 from routers.payment_router import router as payment_router
+from routers.payment_widget_router import router as payment_widget_router
 from routers.exchange_router import router as exchange_router
 from routers.order_router import router as order_router
 from routers.order_buy_provider_router import router as order_buy_provider_router
@@ -180,3 +181,6 @@ app.include_router(movements_inventory_router, prefix=settings.API_STR)
 
 # Incluye el router de pagos con un prefijo de API.
 app.include_router(payment_router, prefix=settings.API_STR, tags=["Payments"])
+
+# Incluye el router de pagos con widget de Wompi.
+app.include_router(payment_widget_router, prefix=settings.API_STR)

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
@@ -132,11 +132,14 @@ const productSchema = z.object({
   id_linea: z.string().min(1, 'La línea es requerida'),
   id_sublinea: z.string().min(1, 'La sublínea es requerida'),
   id_proveedor: z.string().min(1, 'El proveedor es requerido'),
-  tags: z.array(z.string()).optional().default([]),
-  spcf_producto: z.record(z.any()).optional().default({}),
+  tags: z.array(z.string()).default([]),
+  spcf_producto: z.record(z.string(), z.unknown()).default({}),
 });
 
-type ProductFormData = z.infer<typeof productSchema>;
+type ProductFormData = z.input<typeof productSchema> & {
+  tags: string[];
+  spcf_producto: Record<string, unknown>;
+};
 
 interface ProductFormProps {
   onSubmit: (data: ProductFormData) => void;
@@ -161,6 +164,25 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   // Hook de validación XSS
   const { validateForm } = useFormXSSValidation('product-form');
 
+  const resolver = React.useMemo(
+    () => zodResolver(productSchema) as Resolver<ProductFormData>,
+    []
+  );
+
+  const defaultValues: ProductFormData = {
+    nom_producto: initialData?.nom_producto ?? '',
+    des_producto: initialData?.des_producto ?? '',
+    val_precio: initialData?.val_precio ?? '',
+    num_stock: initialData?.num_stock ?? '',
+    id_categoria: initialData?.id_categoria ?? '',
+    id_marca: initialData?.id_marca ?? '',
+    id_linea: initialData?.id_linea ?? '',
+    id_sublinea: initialData?.id_sublinea ?? '',
+    id_proveedor: initialData?.id_proveedor ?? '',
+    tags: initialData?.tags ?? [],
+    spcf_producto: (initialData?.spcf_producto ?? {}) as Record<string, unknown>,
+  };
+
   const {
     register,
     handleSubmit,
@@ -169,37 +191,26 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     watch,
     reset
   } = useForm<ProductFormData>({
-    resolver: zodResolver(productSchema) as any,
-    defaultValues: {
-      nom_producto: initialData?.nom_producto || '',
-      des_producto: initialData?.des_producto || '',
-      val_precio: initialData?.val_precio || '',
-      num_stock: initialData?.num_stock || '',
-      id_categoria: initialData?.id_categoria || '',
-      id_marca: initialData?.id_marca || '',
-      id_linea: initialData?.id_linea || '',
-      id_sublinea: initialData?.id_sublinea || '',
-      id_proveedor: initialData?.id_proveedor || '',
-      tags: initialData?.tags || [],
-      spcf_producto: initialData?.spcf_producto || {},
-    },
+    resolver,
+    defaultValues,
   });
 
   React.useEffect(() => {
     if (initialData) {
-      const descripcionCorta = initialData.spcf_producto?.descripcion_corta || initialData.des_producto || '';
+      const descripcionCorta =
+        String(initialData.spcf_producto?.descripcion_corta ?? initialData.des_producto ?? '').trim() || '';
       reset({
-        nom_producto: initialData.nom_producto || '',
+        nom_producto: initialData.nom_producto ?? '',
         des_producto: descripcionCorta,
-        val_precio: initialData.val_precio || '',
-        num_stock: initialData.num_stock || '',
-        id_categoria: initialData.id_categoria || '',
-        id_marca: initialData.id_marca || '',
-        id_linea: initialData.id_linea || '',
-        id_sublinea: initialData.id_sublinea || '',
-        id_proveedor: initialData.id_proveedor || '',
-        tags: initialData.tags || [],
-        spcf_producto: initialData.spcf_producto || {},
+        val_precio: initialData.val_precio ?? '',
+        num_stock: initialData.num_stock ?? '',
+        id_categoria: initialData.id_categoria ?? '',
+        id_marca: initialData.id_marca ?? '',
+        id_linea: initialData.id_linea ?? '',
+        id_sublinea: initialData.id_sublinea ?? '',
+        id_proveedor: initialData.id_proveedor ?? '',
+        tags: initialData.tags ?? [],
+        spcf_producto: (initialData.spcf_producto ?? {}) as Record<string, unknown>,
       });
       // Formatear precio inicial con separadores de miles
       if (initialData.val_precio) {
@@ -227,6 +238,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     dimensiones: initialData?.spcf_producto?.dimensiones || '',
     peso: initialData?.spcf_producto?.peso || '',
   });
+  const baseSpecsRef = React.useRef(baseSpecs);
+  baseSpecsRef.current = baseSpecs;
 
   // Formatear precio con separadores de miles mientras se escribe
   const formatCurrency = (value: string) => {
@@ -245,30 +258,34 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   React.useEffect(() => {
     if (initialData?.spcf_producto) {
       const s = initialData.spcf_producto as Record<string, any>;
-      setBaseSpecs((prev) => ({
-        ...prev,
-        descripcion_corta: s.descripcion_corta ?? prev.descripcion_corta ?? '',
-        color: s.color ?? prev.color ?? '',
-        material: s.material ?? prev.material ?? '',
-        garantia: s.garantia ?? prev.garantia ?? '',
-        dimensiones: s.dimensiones ?? prev.dimensiones ?? '',
-        peso: s.peso ?? prev.peso ?? '',
-      }));
+      const next = {
+        ...baseSpecsRef.current,
+        descripcion_corta: s.descripcion_corta ?? baseSpecsRef.current.descripcion_corta ?? '',
+        color: s.color ?? baseSpecsRef.current.color ?? '',
+        material: s.material ?? baseSpecsRef.current.material ?? '',
+        garantia: s.garantia ?? baseSpecsRef.current.garantia ?? '',
+        dimensiones: s.dimensiones ?? baseSpecsRef.current.dimensiones ?? '',
+        peso: s.peso ?? baseSpecsRef.current.peso ?? '',
+      };
+      baseSpecsRef.current = next;
+      setBaseSpecs(next);
     }
   }, [initialData?.spcf_producto]);
 
+  // Evitar fallos si categories aún no está cargado o si no hay categoría seleccionada
+  // Esto previene accesos a propiedades de undefined durante el render inicial
+  const safeCategories = Array.isArray(categories) ? categories.filter(cat => cat?.id_categoria != null) : [];
+  const safeBrands = Array.isArray(brands) ? brands.filter(brand => brand?.id_marca != null) : [];
+  const safeProviders = Array.isArray(providers) ? providers.filter(provider => provider?.id_proveedor != null) : [];
+
   // Obtener el preset actual basado en la categoría seleccionada (defensivo ante datos indefinidos)
-  const selectedCategory = (categories || []).find((cat: any) => {
+  const selectedCategory = safeCategories.find((cat: any) => {
     const catId = cat && cat.id_categoria != null ? String(cat.id_categoria) : '';
     const watched = watchedCategory != null ? String(watchedCategory) : '';
     return catId === watched && watched !== '';
   });
   const currentPreset = selectedCategory ? getPresetByCategory(selectedCategory.nom_categoria) : null;
   const presetFields = currentPreset ? SPEC_PRESETS[currentPreset]?.fields || [] : [];
-
-  // Evitar fallos si categories aún no está cargado o si no hay categoría seleccionada
-  // Esto previene accesos a propiedades de undefined durante el render inicial
-  const safeCategories = Array.isArray(categories) ? categories : [];
   
   // Campos dinámicos del preset
   const [presetSpecs, setPresetSpecs] = React.useState<Record<string, any>>(() => {
@@ -278,6 +295,8 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     });
     return initial;
   });
+  const presetSpecsRef = React.useRef(presetSpecs);
+  presetSpecsRef.current = presetSpecs;
 
   // Actualizar presetSpecs cuando cambie el preset
   React.useEffect(() => {
@@ -285,6 +304,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     presetFields.forEach(field => {
       newPresetSpecs[field.key] = initialData?.spcf_producto?.[field.key] || '';
     });
+    presetSpecsRef.current = newPresetSpecs;
     setPresetSpecs(newPresetSpecs);
   }, [currentPreset, initialData?.spcf_producto, presetFields.length]);
 
@@ -358,9 +378,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       }
     }
 
-    // Validar campos requeridos del preset
+    // Validar campos requeridos del preset (usar ref para valor actual)
+    const currentPresetSpecs = presetSpecsRef.current;
     const requiredFields = presetFields.filter(field => field.required);
-    const missingRequiredFields = requiredFields.filter(field => !presetSpecs[field.key]?.trim());
+    const missingRequiredFields = requiredFields.filter(field => !currentPresetSpecs[field.key]?.trim());
     
     if (missingRequiredFields.length > 0) {
       toast.error(`Los siguientes campos son requeridos: ${missingRequiredFields.map(f => f.label).join(', ')}`);
@@ -379,24 +400,30 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       .toString()
       .replace(/\./g, '');
 
-    // Sanitizar datos del formulario contra XSS
+    // Usar refs para leer el estado más reciente (evita closure con datos viejos al enviar)
+    const latestBaseSpecs = baseSpecsRef.current;
+    const latestPresetSpecs = presetSpecsRef.current;
+
+    // Sanitizar datos del formulario contra XSS (refs al final para que talla/color actuales no se sobrescriban)
     const sanitizedData = validateForm({
       ...data,
       nom_producto: data.nom_producto,
       des_producto: data.des_producto,
-      spcf_producto: { ...baseSpecs, ...presetSpecs, ...customSpecsObj }
+      spcf_producto: { ...data.spcf_producto, ...latestBaseSpecs, ...latestPresetSpecs, ...customSpecsObj }
     });
 
     const formattedData = {
       ...sanitizedData,
       // sincronizar descripción corta al campo des_producto para compatibilidad
-      des_producto: baseSpecs.descripcion_corta || data.des_producto,
-      // construir spcf unificado con todos los campos
+      des_producto: latestBaseSpecs.descripcion_corta || data.des_producto,
+      // Construir spcf: datos iniciales primero, luego refs (base/preset/custom) al final para que
+      // los valores actuales del usuario (talla, color, etc.) no sean sobrescritos por data.spcf_producto
+      // que react-hook-form no actualiza cuando se editan los campos preset.
       spcf_producto: {
-        ...baseSpecs,
-        ...presetSpecs,
-        ...customSpecsObj,
         ...data.spcf_producto,
+        ...latestBaseSpecs,
+        ...latestPresetSpecs,
+        ...customSpecsObj,
         tags: data.tags || [],
       },
       val_precio: parseFloat(normalizedPrice),
@@ -451,11 +478,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 disabled={isEditing} // Deshabilitar al editar
               >
                 <option value="" disabled>Selecciona una categoría</option>
-                {categories.map((category) => (
-                  <option key={`cat-${category.id_categoria}`} value={category.id_categoria.toString()}>
-                    {category.nom_categoria}
+                {safeCategories.map((category) => {
+                  const categoryId = category?.id_categoria;
+                  if (!categoryId) return null;
+                  return (
+                    <option key={`cat-${categoryId}`} value={String(categoryId)}>
+                      {category.nom_categoria || ''}
                   </option>
-                ))}
+                  );
+                })}
               </Select>
               {errors.id_categoria && (
                 <p className="text-sm text-red-600">{errors.id_categoria.message}</p>
@@ -474,11 +505,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 fullWidth
               >
                 <option value="" disabled>Selecciona una marca</option>
-                {brands.map((brand) => (
-                  <option key={brand.id_marca} value={brand.id_marca.toString()}>
-                    {brand.nom_marca}
+                {safeBrands.map((brand) => {
+                  const brandId = brand?.id_marca;
+                  if (!brandId) return null;
+                  return (
+                    <option key={brandId} value={String(brandId)}>
+                      {brand.nom_marca || ''}
                   </option>
-                ))}
+                  );
+                })}
               </Select>
               {errors.id_marca && (
                 <p className="text-sm text-red-600">{errors.id_marca.message}</p>
@@ -505,11 +540,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 fullWidth
               >
                 <option value="" disabled>Selecciona una línea</option>
-                {uniqueLines.map((line) => (
-                  <option key={`line-${line.id_linea}`} value={line.id_linea.toString()}>
-                    {line.nom_linea}
+                {uniqueLines.map((line) => {
+                  const lineId = line?.id_linea;
+                  if (!lineId) return null;
+                  return (
+                    <option key={`line-${lineId}`} value={String(lineId)}>
+                      {line.nom_linea || ''}
                   </option>
-                ))}
+                  );
+                })}
               </Select>
               {errors.id_linea && (
                 <p className="text-sm text-red-600">{errors.id_linea.message}</p>
@@ -529,11 +568,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 fullWidth
               >
                 <option value="" disabled>Selecciona una sublínea</option>
-                {uniqueSublines.map((subline) => (
-                  <option key={`subline-${subline.id_sublinea}`} value={subline.id_sublinea.toString()}>
-                    {subline.nom_sublinea}
+                {uniqueSublines.map((subline) => {
+                  const sublineId = subline?.id_sublinea;
+                  if (!sublineId) return null;
+                  return (
+                    <option key={`subline-${sublineId}`} value={String(sublineId)}>
+                      {subline.nom_sublinea || ''}
                   </option>
-                ))}
+                  );
+                })}
               </Select>
               {errors.id_sublinea && (
                 <p className="text-sm text-red-600">{errors.id_sublinea.message}</p>
@@ -554,11 +597,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               fullWidth
             >
               <option value="" disabled>Selecciona un proveedor</option>
-              {providers.map((provider) => (
-                <option key={provider.id_proveedor} value={provider.id_proveedor.toString()}>
-                  {provider.nom_proveedor}
+                {safeProviders.map((provider) => {
+                  const providerId = provider?.id_proveedor;
+                  if (!providerId) return null;
+                  return (
+                    <option key={providerId} value={String(providerId)}>
+                      {provider.nom_proveedor || ''}
                 </option>
-              ))}
+                  );
+                })}
             </Select>
             {errors.id_proveedor && (
               <p className="text-sm text-red-600">{errors.id_proveedor.message}</p>
@@ -632,7 +679,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 <Label>Color</Label>
                 <Input
                   value={baseSpecs.color}
-                  onChange={(e) => setBaseSpecs((prev) => ({ ...prev, color: e.target.value }))}
+                  onChange={(e) => {
+                  const next = { ...baseSpecsRef.current, color: e.target.value };
+                  baseSpecsRef.current = next;
+                  setBaseSpecs(next);
+                }}
                   placeholder="Ej. Negro, Blanco, Rojo"
                 />
               </div>
@@ -640,7 +691,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 <Label>Material</Label>
                 <Input
                   value={baseSpecs.material}
-                  onChange={(e) => setBaseSpecs((prev) => ({ ...prev, material: e.target.value }))}
+                  onChange={(e) => {
+                  const next = { ...baseSpecsRef.current, material: e.target.value };
+                  baseSpecsRef.current = next;
+                  setBaseSpecs(next);
+                }}
                   placeholder="Ej. Algodón, Aluminio, Plástico"
                 />
               </div>
@@ -659,7 +714,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 <Label>Dimensiones</Label>
                 <Input
                   value={baseSpecs.dimensiones}
-                  onChange={(e) => setBaseSpecs((prev) => ({ ...prev, dimensiones: e.target.value }))}
+                  onChange={(e) => {
+                  const next = { ...baseSpecsRef.current, dimensiones: e.target.value };
+                  baseSpecsRef.current = next;
+                  setBaseSpecs(next);
+                }}
                   placeholder="Ej. 146.7 x 71.5 x 7.8 mm"
                 />
               </div>
@@ -689,7 +748,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                         </Label>
                         <Input
                           value={presetSpecs[field.key] || ''}
-                          onChange={(e) => setPresetSpecs((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                          onChange={(e) => {
+                          const next = { ...presetSpecsRef.current, [field.key]: e.target.value };
+                          presetSpecsRef.current = next;
+                          setPresetSpecs(next);
+                        }}
                           placeholder={field.placeholder}
                         />
                       </div>

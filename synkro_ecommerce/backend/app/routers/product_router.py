@@ -15,7 +15,7 @@ import json
 
 from core.database import get_db
 from core.dependencies import require_admin, get_current_user, get_current_user_optional
-from schemas.product_schema import Product, ProductCreate, ProductUpdate, ResponseMessage, ProductFilterParams, ProductFilterResponse, ProductFilterStats, ProductAdminResponse, ProductAdminParams
+from schemas.product_schema import Product, ProductCreate, ProductUpdate, ResponseMessage, ProductFilterParams, ProductFilterResponse, ProductFilterStats, ProductAdminResponse, ProductAdminParams, ToggleRequest
 from schemas.auth_schema import UserInToken
 from services import product_service
 
@@ -387,10 +387,17 @@ async def update_product(
             update_data['num_stock'] = num_stock
         if ind_activo is not None:
             update_data['ind_activo'] = ind_activo
-            
+
+        if not update_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No se recibieron datos para actualizar. Verifica que el formulario envíe nom_producto, spcf_producto, val_precio, num_stock, etc."
+            )
+
         # Crear el objeto ProductUpdate
         product_data = ProductUpdate(**update_data)
-        
+
+        print(f"🔍 ROUTER UPDATE DEBUG: update_data keys recibidos: {list(update_data.keys())}")
         print(f"🔍 ROUTER UPDATE DEBUG: Llamando a product_service.update_product con image_files: {image_files}")
         response_message = await product_service.update_product(
             id_categoria, 
@@ -410,7 +417,56 @@ async def update_product(
 
 
 
-# desactiva una sublinea
+# Ruta para activar/desactivar un producto existente
+@router.put(
+    "/products/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}/toggle", 
+    response_model=ResponseMessage, 
+    status_code=status.HTTP_200_OK
+    )
+async def toggle_product(
+    id_categoria: Decimal,
+    id_linea: Decimal,  
+    id_sublinea: Decimal,
+    id_producto: Decimal,
+    toggle_data: ToggleRequest = Body(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Activa o desactiva un producto existente de la base de datos.
+    Aplica cascada a comentarios relacionados.
+
+    Args:
+        id_categoria (Decimal): ID de la categoría del producto.
+        id_linea (Decimal): ID de la línea del producto.
+        id_sublinea (Decimal): ID de la sublínea del producto.
+        id_producto (Decimal): ID del producto a activar/desactivar.
+        toggle_data (ToggleRequest): Datos con el campo activar (bool).
+        db (Session): Sesión de la base de datos inyectada por FastAPI.
+        current_user (UserInToken): Usuario autenticado.
+
+    Returns:
+        ResponseMessage: Mensaje de confirmación con detalles de elementos afectados.
+    """
+    try:
+        activar = toggle_data.activar
+        result = product_service.deactivate_activate_product(
+            db, 
+            id_categoria, 
+            id_linea, 
+            id_sublinea, 
+            id_producto,
+            current_user.id_usuario,
+            activar
+        )
+        message = result if result else f"Producto {'activado' if activar else 'desactivado'} exitosamente"
+        return ResponseMessage(message=message)
+    except Exception as e:
+        import traceback
+        error_detail = f"Error al cambiar estado del producto: {str(e)}\n{traceback.format_exc()}"
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=error_detail)
+
+# Ruta para desactivar un producto existente (mantener compatibilidad)
 @router.put(
     "/products/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}/deactivate", 
     response_model=ResponseMessage, 
@@ -425,47 +481,33 @@ async def deactivate_product(
     current_user: UserInToken = Depends(get_current_user)
 ):
     """
-    Eliminar un producto (Solo Administradores).
-
-    Este endpoint permite eliminar un producto específico de la base de datos,
-    identificado por su ID.
-    
-    **Requiere autenticación de administrador.**
+    Desactiva un producto existente de la base de datos.
+    Mantiene compatibilidad con endpoints existentes.
 
     Args:
-        id_producto (Decimal): ID del producto a eliminar.
-        current_user (UserInToken): Usuario administrador autenticado.
+        id_categoria (Decimal): ID de la categoría del producto.
+        id_linea (Decimal): ID de la línea del producto.
+        id_sublinea (Decimal): ID de la sublínea del producto.
+        id_producto (Decimal): ID del producto a desactivar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
+        current_user (UserInToken): Usuario autenticado.
 
     Returns:
-        ResponseMessage: Un mensaje indicando el resultado de la operación.
-        
-    Raises:
-        HTTPException: Si el usuario no es administrador (403).
+        ResponseMessage: Mensaje de confirmación.
     """
     try:
-        response_message = product_service.deactivate_product(
+        result = product_service.deactivate_product(
             db, 
             id_categoria, 
             id_linea, 
             id_sublinea, 
             id_producto,
             current_user.id_usuario
-            )
-        
-        if response_message and "Error" in str(response_message):
-             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(response_message))
-
-        return ResponseMessage(message="Producto desactivado exitosamente")
-
+        )
+        message = result if result else "Producto desactivado exitosamente"
+        return ResponseMessage(message=message)
     except Exception as e:
-        if response_message is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No se pudo desactivar el producto porque no se encontró."
-            )
-        else:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.put(

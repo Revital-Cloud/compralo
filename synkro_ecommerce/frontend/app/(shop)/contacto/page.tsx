@@ -1,5 +1,6 @@
 "use client"
 
+import { UnderConstruction } from "@/components/ui"
 
 export default function ContactPage() {
   return (

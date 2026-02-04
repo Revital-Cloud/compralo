@@ -51,6 +51,8 @@ export interface Product extends ProductBase {
   nom_sublinea?: string;
   nom_proveedor?: string;
   nom_marca?: string;
+  rating?: number; // Promedio de calificaciones del producto (1-5 estrellas)
+  review_count?: number; // Cantidad de reseñas con calificación
 }
 
 // =============================================================================
@@ -147,6 +149,7 @@ export interface ProductFiltered {
   nom_marca: string;
   fec_insert: string;
   total_registros: number;
+  rating?: number; // Promedio de calificaciones del producto (1-5 estrellas)
 }
 
 export interface ProductFilterResponse {

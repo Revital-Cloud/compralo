@@ -52,14 +52,24 @@ const ProductEditPage = () => {
       const currentIdLinea = Number(formData.id_linea);
       const currentIdSublinea = Number(formData.id_sublinea);
 
-      // Preparar FormData para el backend
+      // Valores numéricos: evitar NaN; si el form devuelve inválido, usar datos actuales del producto
+      const valPrecio = Number(formData.val_precio);
+      const numStock = Number(formData.num_stock);
+      const idProveedor = Number(formData.id_proveedor);
+      const idMarca = Number(formData.id_marca);
+      const safeValPrecio = Number.isFinite(valPrecio) && valPrecio > 0 ? valPrecio : Number(product?.val_precio) || 0;
+      const safeNumStock = Number.isFinite(numStock) && numStock >= 0 ? numStock : Number(product?.num_stock) ?? 0;
+      const safeIdProveedor = Number.isFinite(idProveedor) && idProveedor > 0 ? idProveedor : Number(product?.id_proveedor) || 1;
+      const safeIdMarca = Number.isFinite(idMarca) && idMarca > 0 ? idMarca : Number(product?.id_marca) || 1;
+
+      // Preparar FormData para el backend (siempre strings para Form)
       const formDataToSend = new FormData();
-      formDataToSend.append('nom_producto', formData.nom_producto);
-      formDataToSend.append('spcf_producto', JSON.stringify(formData.spcf_producto));
-      formDataToSend.append('val_precio', formData.val_precio);
-      formDataToSend.append('id_proveedor', formData.id_proveedor);
-      formDataToSend.append('id_marca', formData.id_marca);
-      formDataToSend.append('num_stock', formData.num_stock);
+      formDataToSend.append('nom_producto', String(formData.nom_producto ?? product?.nom_producto ?? ''));
+      formDataToSend.append('spcf_producto', JSON.stringify(formData.spcf_producto ?? {}));
+      formDataToSend.append('val_precio', String(safeValPrecio));
+      formDataToSend.append('id_proveedor', String(safeIdProveedor));
+      formDataToSend.append('id_marca', String(safeIdMarca));
+      formDataToSend.append('num_stock', String(safeNumStock));
       formDataToSend.append('ind_activo', 'true');
 
       // Manejar imágenes: enviar existentes si no hay nuevas, o nuevas si las hay

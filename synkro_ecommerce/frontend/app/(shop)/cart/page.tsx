@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import CartItem from "@/components/cart/cart-item";
-import { ProductCard } from "@/components/product/product-card";
+import { RelatedProducts } from "@/components/product";
+import * as productService from "@/services/product.service";
+import { getProductImageUrl } from "@/utils/image-helpers";
 import {
   X,
   ShoppingBag,
-  ChevronLeft,
-  ChevronRight,
   AlertCircle,
   Loader2,
+  Tag,
 } from "lucide-react";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
@@ -23,9 +24,11 @@ import addressService from "@/services/address.service";
 import { listPaymentMethods, addPaymentMethod } from "@/services/payment.service";
 import { payCartAndCreateOrder } from "@/services/order.service";
 import { discountService } from "@/services/discount.service";
-import { useRouter } from "next/navigation";
+import { exchangeService } from "@/services/exchange.service";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { WompiPaymentModal } from "@/components/payment/wompi-payment-modal";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, Alert, AlertDescription, Button, Input, Loading, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, RadioGroup, RadioGroupItem, Select, Badge } from "@/components/ui";
 
 const cartTexts = {
   es: {
@@ -55,8 +58,14 @@ const cartTexts = {
 
 const CartPage = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [promoCode, setPromoCode] = useState("");
-  const [appliedDiscount, setAppliedDiscount] = useState<{ codigo: string; descuento: any } | null>(null);
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    codigo: string;
+    descuento: any;
+    descuento_calculado?: number;
+    total_con_descuento?: number;
+  } | null>(null);
   const [isApplyingCode, setIsApplyingCode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -79,7 +88,88 @@ const CartPage = () => {
     refetchCart,
     id_carrito,
     cartExceedsLimit,
+    selectedCanjeId,
+    setSelectedCanjeId,
   } = useCart();
+
+  // Sincronizar ?canje= de la URL con el store
+  useEffect(() => {
+    const canje = searchParams.get("canje");
+    if (canje) {
+      const id = parseInt(canje, 10);
+      if (!Number.isNaN(id)) setSelectedCanjeId(id);
+    }
+  }, [searchParams, setSelectedCanjeId]);
+
+  // Categorías únicas de los productos en el carrito (para "También te puede gustar")
+  const cartCategoryIds = useMemo(() => {
+    if (!Array.isArray(items) || items.length === 0) return [];
+    const ids = items
+      .map((item) => Number((item as { id_categoria_producto?: number }).id_categoria_producto))
+      .filter((id) => !Number.isNaN(id) && id > 0);
+    return [...new Set(ids)];
+  }, [items]);
+
+  // Productos recomendados: mismos categorías que el carrito, excluyendo los que ya están
+  const { data: relatedResponse } = useQuery({
+    queryKey: ["cartRelatedProducts", cartCategoryIds],
+    queryFn: () =>
+      productService.filterProducts({
+        id_categoria: cartCategoryIds,
+        limit: 20,
+        offset: 0,
+        ordenar_por: "nombre",
+        orden: "ASC",
+      }),
+    enabled: cartCategoryIds.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const cartProductSlugs = useMemo(() => {
+    if (!Array.isArray(items)) return new Set<string>();
+    return new Set(
+      items
+        .filter((item) =>
+          [item.id_categoria_producto, item.id_linea_producto, item.id_sublinea_producto, item.id_producto].every(
+            (v) => typeof v === "number" && !Number.isNaN(v)
+          )
+        )
+        .map(
+          (item) =>
+            `${item.id_categoria_producto}-${item.id_linea_producto}-${item.id_sublinea_producto}-${item.id_producto}`
+        )
+    );
+  }, [items]);
+
+  const relatedProducts = useMemo(() => {
+    if (!relatedResponse?.products) return [];
+    return relatedResponse.products
+      .filter(
+        (p) =>
+          !cartProductSlugs.has(
+            `${p.id_categoria}-${p.id_linea}-${p.id_sublinea}-${p.id_producto}`
+          )
+      )
+      .slice(0, 8)
+      .map((p) => ({
+        id: p.id_producto,
+        name: p.nom_producto,
+        price:
+          typeof p.val_precio === "number"
+            ? p.val_precio
+            : parseFloat(String(p.val_precio)),
+        image: getProductImageUrl(p.img_producto),
+        slug: `${p.id_categoria}-${p.id_linea}-${p.id_sublinea}-${p.id_producto}`,
+      }));
+  }, [relatedResponse, cartProductSlugs]);
+
+  // Canjes disponibles del usuario (para selector)
+  const { data: availableCanjes = [] } = useQuery({
+    queryKey: ["myAvailableCanjes", user?.id_usuario],
+    queryFn: () => exchangeService.getMyAvailableCanjes(),
+    enabled: !!user?.id_usuario,
+    staleTime: 1000 * 60 * 2,
+  });
 
   // Textos de la interfaz
   const texts = cartTexts.es;
@@ -173,7 +263,34 @@ const CartPage = () => {
     (subtotal > 50 || subtotal === 0 ? 0 : 10);
   const salesTax = Number(totals?.resumen?.impuestos) || 0;
   const finalTotal =
-    Number(totals?.total_final) || (hasItems() ? Number(total) : 0) || 0;
+    Number(totals?.total_final) ?? (hasItems() ? Number(total) : 0) ?? 0;
+  const totalDescCanjeado = Number(totals?.total_desc_canjeado ?? 0);
+  const selectedCanjeNombre = selectedCanjeId != null
+    ? availableCanjes.find((c) => c.id_canje === selectedCanjeId)?.nom_descuento
+    : null;
+  const descuentoCanjeado = totals?.descuento_canjeado as { tipo?: string; valor?: number } | undefined;
+
+  /** Para cada ítem del carrito, calcula precio unitario con descuento por puntos (si aplica) y % para mostrar */
+  function getItemPriceWithCanjeDiscount(item: { precio_unitario: number; cantidad: number; subtotal: number }) {
+    if (totalDescCanjeado <= 0 || !descuentoCanjeado || subtotal <= 0) {
+      return { unitPrice: item.precio_unitario, originalUnitPrice: undefined, discountPercentage: undefined };
+    }
+    const tipo = descuentoCanjeado.tipo;
+    const valor = Number(descuentoCanjeado.valor ?? 0);
+    if (tipo === "porcentaje" && valor > 0) {
+      const originalUnitPrice = item.precio_unitario;
+      const unitPrice = originalUnitPrice * (1 - valor / 100);
+      return { unitPrice, originalUnitPrice, discountPercentage: valor };
+    }
+    if (tipo === "monto_fijo" && totalDescCanjeado > 0) {
+      const discountShare = totalDescCanjeado * (item.subtotal / subtotal);
+      const discountedSubtotal = item.subtotal - discountShare;
+      const unitPrice = item.cantidad > 0 ? discountedSubtotal / item.cantidad : item.precio_unitario;
+      const discountPercentage = item.subtotal > 0 ? Math.round((discountShare / item.subtotal) * 100) : 0;
+      return { unitPrice, originalUnitPrice: item.precio_unitario, discountPercentage };
+    }
+    return { unitPrice: item.precio_unitario, originalUnitPrice: undefined, discountPercentage: undefined };
+  }
 
   // Cargar dirección principal del usuario (si existe)
   const { data: addresses } = useQuery({
@@ -224,18 +341,19 @@ const CartPage = () => {
   const [isWompiModalOpen, setIsWompiModalOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Derivados para saber si falta dirección o método de pago
-  const isMissingAddress = !defaultAddress;
+  // Derivados para saber si falta dirección o método de pago (solo para mostrar mensajes informativos)
+  const isMissingAddress = isAuthenticated && !defaultAddress;
   const paymentMethodsCount = Array.isArray(paymentMethods) ? paymentMethods.length : 0;
-  const isMissingPaymentMethod = paymentMethodsCount === 0;
+  const isMissingPaymentMethod = isAuthenticated && paymentMethodsCount === 0;
   
   // Determinar si el botón de pagar debe estar deshabilitado
-  const isPayButtonDisabled = isMissingAddress || isMissingPaymentMethod || isPaying;
+  // Solo deshabilitar si está procesando el pago
+  const isPayButtonDisabled = isPaying;
   
   // Mensaje de feedback para el botón deshabilitado
   const getPayButtonMessage = () => {
     if (isPaying) return "Procesando…";
-    return texts.checkout; // Siempre retorna "Pagar" a menos que esté procesando
+    return texts.checkout;
   };
 
   const handleOpenPaymentModal = () => {
@@ -245,11 +363,6 @@ const CartPage = () => {
     }
     if (!user?.id_usuario) {
       setIsAuthDialogOpen(true);
-      return;
-    }
-    // Si faltan requisitos, abrir modal informativo y bloquear
-    if (isMissingAddress || isMissingPaymentMethod) {
-      setIsRequirementsDialogOpen(true);
       return;
     }
     // Abrir modal de selección de método de pago Wompi
@@ -282,78 +395,9 @@ const CartPage = () => {
       setIsAuthDialogOpen(true);
       return;
     }
-    // Si faltan requisitos, abrir modal informativo y bloquear
-    if (isMissingAddress || isMissingPaymentMethod) {
-      setIsRequirementsDialogOpen(true);
-      return;
-    }
 
-    const effectivePM =
-      pmIdOverride ??
-      (selectedPaymentMethodId
-        ? Number(selectedPaymentMethodId)
-        : Number((defaultPaymentMethod as any)?.id_metodo_pago));
-
-    const pmObject = Array.isArray(paymentMethods)
-      ? paymentMethods.find(
-          (m: any) => Number(m.id_metodo_pago) === Number(effectivePM)
-        )
-      : undefined;
-
-    if (!pmObject) {
-      setIsRequirementsDialogOpen(true);
-      return;
-    }
-    if (!(pmObject as any).provider_source_id) {
-      toast.error(
-        "Tu método de pago no está listo. Vuelve a agregar la tarjeta para generar el token de Wompi."
-      );
-      return;
-    }
-
-    try {
-      setIsPaying(true);
-      // limpiar cualquier estado previo de pendiente
-      setPendingOrderId(null);
-
-      // 1) Pagar el carrito y crear la orden solo si es aprobado
-      const payResp = await payCartAndCreateOrder(Number(id_carrito), {
-        payment_method_id: Number(effectivePM),
-        id_direccion: Number(defaultAddress.id_direccion),
-        codigo_descuento: appliedDiscount?.codigo || null,
-        des_observaciones: null,
-        id_canje: null,
-      });
-
-      if (payResp.status === "APPROVED" && payResp.order_id) {
-        setPendingOrderId(null);
-        toast.success(`Pago aprobado. Orden #${payResp.order_id}`);
-        // Vaciar carrito inmediatamente y refrescar datos
-        try {
-          clearCart();
-          refetchCart();
-        } catch (_) {}
-      } else if (payResp.status === "PENDING") {
-        setPendingOrderId(null);
-        toast.message(
-          "Pago pendiente de confirmación. No se ha generado la orden aún"
-        );
-      } else if (payResp.status === "DECLINED") {
-        setPendingOrderId(null);
-        setIsRetryDialogOpen(true);
-        toast.error("Pago declinado");
-      } else {
-        setPendingOrderId(null);
-        toast.error("Error en el pago");
-      }
-    } catch (e: any) {
-      toast.error(
-        e?.response?.data?.detail || e?.message || "Error procesando el pago"
-      );
-    } finally {
-      setIsPaying(false);
-      setIsPMDialogOpen(false);
-    }
+    // Redirigir al checkout donde se manejarán dirección y método de pago
+    router.push("/checkout");
   };
 
   // Estado de carga después de declarar todos los hooks
@@ -468,9 +512,12 @@ const CartPage = () => {
                         item.id_producto,
                       ].every((v) => typeof v === 'number' && !Number.isNaN(v as number))
                         ? `${item.id_categoria_producto}-${item.id_linea_producto}-${item.id_sublinea_producto}-${item.id_producto}`
-                        : undefined
-                      console.log('Cart page - full item data:', item)
-                      console.log('Cart page - item:', item.nombre_producto, 'productSlug:', slug)
+                        : undefined;
+                      const { unitPrice, originalUnitPrice, discountPercentage } = getItemPriceWithCanjeDiscount({
+                        precio_unitario: item.precio_unitario,
+                        cantidad: item.cantidad,
+                        subtotal: item.subtotal,
+                      });
                       return (
                         <CartItem
                           key={item.id_carrito_producto}
@@ -479,9 +526,10 @@ const CartPage = () => {
                           productSlug={slug}
                           name={item.nombre_producto}
                           brand={item.marca || ""}
-                          color={item.categoria || ""}
-                          size={item.sublinea || "Único"}
-                          price={item.precio_unitario}
+                          opciones_elegidas={(item as { opciones_elegidas?: Record<string, string> }).opciones_elegidas}
+                          price={unitPrice}
+                          originalPrice={originalUnitPrice}
+                          discountPercentage={discountPercentage}
                           quantity={item.cantidad}
                           image={item.imagen_url || "/placeholder-product.jpg"}
                           stock_disponible={item.stock_disponible}
@@ -506,45 +554,12 @@ const CartPage = () => {
               </CardContent>
             </Card>
 
-            {/* También te puede gustar */}
+            {/* También te puede gustar: productos de las categorías del carrito */}
             <div className="mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {texts.youMayAlsoLike}
-                </h2>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-10 w-10 rounded-full bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-10 w-10 rounded-full bg-gray-800 dark:bg-gray-700 border-gray-800 dark:border-gray-600 text-white"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </Button>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Productos recomendados simulados */}
-                {[1, 2, 3, 4].map((index) => (
-                  <ProductCard
-                    key={index}
-                    id={`recommended-${index}`}
-                    name={`Producto Recomendado ${index}`}
-                    brand="Synkro"
-                    price={29.99 + index * 10}
-                    originalPrice={39.99 + index * 10}
-                    image="/placeholder-product.jpg"
-                    badge="Recomendado"
-                    badgeColor="blue"
-                  />
-                ))}
-              </div>
+              <RelatedProducts
+                title={texts.youMayAlsoLike}
+                products={relatedProducts}
+              />
             </div>
           </div>
 
@@ -612,13 +627,21 @@ const CartPage = () => {
                         </span>
                       </div>
                     )}
-                    {totals?.total_descuentos &&
-                      totals.total_descuentos > 0 && (
-                        <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                          <span>Descuentos aplicados</span>
-                          <span>-{formatPrice(totals.total_descuentos)}</span>
-                        </div>
-                      )}
+                    {Number(totals?.total_desc_automaticos ?? 0) > 0 && (
+                      <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                        <span>Descuentos aplicados</span>
+                        <span>-{formatPrice(Number(totals?.total_desc_automaticos ?? 0))}</span>
+                      </div>
+                    )}
+                    {selectedCanjeId != null && (
+                      <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
+                        <span>
+                          Descuento por puntos
+                          {selectedCanjeNombre ? ` (${selectedCanjeNombre})` : ""}
+                        </span>
+                        <span>-{formatPrice(totalDescCanjeado)}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
@@ -663,6 +686,41 @@ const CartPage = () => {
                       getPayButtonMessage()
                     )}
                   </Button>
+
+                  {/* Descuento por puntos (canjes disponibles) */}
+                  {isAuthenticated && availableCanjes.length > 0 && (
+                    <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 flex items-center gap-2">
+                        <Tag className="h-4 w-4" />
+                        Descuento por puntos
+                      </p>
+                      <Select
+                        fullWidth
+                        value={selectedCanjeId != null ? String(selectedCanjeId) : "none"}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === "none") {
+                            setSelectedCanjeId(null);
+                            router.replace("/cart");
+                          } else {
+                            const id = parseInt(v, 10);
+                            if (!Number.isNaN(id)) {
+                              setSelectedCanjeId(id);
+                              router.replace(`/cart?canje=${id}`);
+                            }
+                          }
+                        }}
+                      >
+                        <option value="none">Ninguno</option>
+                        {availableCanjes.map((c) => (
+                          <option key={c.id_canje} value={String(c.id_canje)}>
+                            {c.nom_descuento}
+                            {c.puntos_utilizados != null ? ` (${c.puntos_utilizados} pts)` : ""}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                  )}
 
                   {/* Código promocional */}
                   <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
@@ -763,9 +821,15 @@ const CartPage = () => {
                             {item.nombre_producto}
                           </p>
                           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                            {item.marca && `${item.marca} • `}{texts.size}{" "}
-                            {item.sublinea || "Único"} • {texts.quantity}{" "}
-                            {item.cantidad}
+                            {[
+                              item.marca,
+                              (item as { opciones_elegidas?: Record<string, string> }).opciones_elegidas &&
+                                Object.entries((item as { opciones_elegidas?: Record<string, string> }).opciones_elegidas || {})
+                                  .filter(([, v]) => v)
+                                  .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`)
+                                  .join(' • '),
+                              `${texts.quantity} ${item.cantidad}`,
+                            ].filter(Boolean).join(' • ')}
                           </p>
                         </div>
                         <div className="shrink-0">
@@ -804,10 +868,19 @@ const CartPage = () => {
                       </span>
                     </div>
                   )}
-                  {totals?.total_descuentos && totals.total_descuentos > 0 && (
-                    <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                      <span>Descuentos aplicados</span>
-                      <span>-{formatPrice(totals.total_descuentos)}</span>
+                    {Number(totals?.total_desc_automaticos ?? 0) > 0 && (
+                      <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                        <span>Descuentos aplicados</span>
+                        <span>-{formatPrice(Number(totals?.total_desc_automaticos ?? 0))}</span>
+                      </div>
+                    )}
+                  {selectedCanjeId != null && (
+                    <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
+                      <span>
+                        Descuento por puntos
+                        {selectedCanjeNombre ? ` (${selectedCanjeNombre})` : ""}
+                      </span>
+                      <span>-{formatPrice(totalDescCanjeado)}</span>
                     </div>
                   )}
                 </div>
@@ -885,7 +958,7 @@ const CartPage = () => {
               </Button>
               <Button
                 className="bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                disabled={!hasItems || isPayButtonDisabled || cartExceedsLimit}
+                disabled={!hasItems() || isPayButtonDisabled || cartExceedsLimit}
                 onClick={() => {
                   if (!isAuthenticated) {
                     setIsAuthDialogOpen(true);

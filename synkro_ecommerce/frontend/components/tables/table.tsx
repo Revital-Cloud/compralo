@@ -29,6 +29,8 @@ export type GenericTableProps<TData, TValue> = {
   emptyMessage?: string
   actions?: (row: Row<TData>) => React.ReactNode
   actionsHeader?: React.ReactNode
+  /** Clave única por fila (evita duplicados cuando id_linea/id_sublinea se repiten por categoría) */
+  getRowId?: (row: TData) => string
 }
 
 function DataTable<TData, TValue>({
@@ -39,12 +41,14 @@ function DataTable<TData, TValue>({
   emptyMessage = 'No hay datos disponibles',
   actions,
   actionsHeader = 'Acciones',
+  getRowId,
 }: GenericTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
 
   const table = useReactTable({
     data,
     columns,
+    getRowId: getRowId as (row: TData, index: number) => string,
     state: { sorting },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),

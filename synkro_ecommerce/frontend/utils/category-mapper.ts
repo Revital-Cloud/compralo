@@ -15,49 +15,137 @@ import {
   Utensils,
   Dumbbell,
   Music,
-  Camera
+  Camera,
+  Monitor,
+  Keyboard,
+  Mouse,
+  Printer,
+  Headphones,
+  Watch,
+  Tablet,
+  Wallet,
+  Footprints,
+  Glasses,
+  Wine,
+  Scissors,
 } from 'lucide-react';
 
-// Mapeo de iconos disponibles
+// Mapeo de iconos disponibles (categorías, líneas y sublíneas)
 const iconMapping: Record<string, any> = {
+  // Tecnología / electrónica
   'electronica': Smartphone,
   'electrónicos': Smartphone,
   'tecnologia': Laptop,
+  'tecnología': Laptop,
   'computadores': Laptop,
   'computadoras': Laptop,
+  'portatiles': Laptop,
+  'portátiles': Laptop,
+  'laptops': Laptop,
+  'notebooks': Laptop,
+  'monitores': Monitor,
+  'pantallas': Monitor,
+  'teclados': Keyboard,
+  'keyboard': Keyboard,
+  'mouse': Mouse,
+  'ratones': Mouse,
+  'impresoras': Printer,
+  'celulares': Smartphone,
+  'smartphones': Smartphone,
+  'tablets': Tablet,
+  'auriculares': Headphones,
+  'audífonos': Headphones,
+  'headphones': Headphones,
+  'relojes': Watch,
+  'wearables': Watch,
+  // Hogar y oficina
   'hogar': Home,
   'casa': Home,
+  'oficina': Home,
+  // Belleza y cuidado
   'belleza': Sparkles,
   'cosmeticos': Sparkles,
   'cosméticos': Sparkles,
+  'maquillaje': Sparkles,
+  'skincare': Sparkles,
+  'perfumes': Wine,
+  'fragancias': Wine,
+  'cabello': Scissors,
+  'peluqueria': Scissors,
+  'peluquería': Scissors,
+  // Moda y ropa
   'moda': ShoppingBag,
   'ropa': Shirt,
+  'ropa y accesorios': Shirt,
   'vestimenta': Shirt,
+  'accesorios': Shirt,
+  'camisetas': Shirt,
+  'camisas': Shirt,
+  'pantalones': Shirt,
+  'jeans': Shirt,
+  'vestidos': Shirt,
+  'zapatos': Footprints,
+  'calzado': Footprints,
+  'bolsos': Wallet,
+  'carteras': Wallet,
+  'billeteras': Wallet,
+  'gafas': Glasses,
+  'lentes': Glasses,
+  'mujer': Shirt,
+  'hombre': Shirt,
+  'niño': Baby,
+  'niña': Baby,
+  'joyeria': Sparkles,
+  'joyería': Sparkles,
+  'componentes': Laptop,
+  'software': Laptop,
+  'almacenamiento': Laptop,
+  'escáner': Printer,
+  'escaner': Printer,
+  'proyectores': Monitor,
+  'decoración': Home,
+  'decoracion': Home,
+  'textiles': Shirt,
+  'chaquetas': Shirt,
+  'sudaderas': Shirt,
   'gaming': Gamepad2,
   'videojuegos': Gamepad2,
   'juegos': Gamepad2,
+  // Salud y deportes
   'salud': Heart,
   'bienestar': Heart,
   'deportes': Dumbbell,
   'fitness': Dumbbell,
   'ejercicio': Dumbbell,
+  'gimnasio': Dumbbell,
+  'running': Footprints,
   'automoviles': Car,
   'autos': Car,
   'carros': Car,
+  'vehículos': Car,
+  'vehiculos': Car,
+  // Cultura y educación
   'libros': Book,
   'literatura': Book,
+  'educación': Book,
+  'educacion': Book,
   'bebes': Baby,
   'bebés': Baby,
   'infantil': Baby,
+  'niños': Baby,
+  'niñas': Baby,
   'mascotas': PawPrint,
   'animales': PawPrint,
   'pets': PawPrint,
+  // Alimentos y cocina
   'comida': Utensils,
   'alimentos': Utensils,
   'cocina': Utensils,
+  'bebidas': Wine,
   'musica': Music,
   'música': Music,
   'audio': Music,
+  'instrumentos': Music,
   'fotografia': Camera,
   'fotografía': Camera,
   'camaras': Camera,
@@ -141,11 +229,31 @@ const generateDescription = (categoryName: string): string => {
   return descriptions[normalizedName] || `Productos de ${categoryName}`;
 };
 
-// Función para obtener el icono basado en el nombre
-const getIconForCategory = (categoryName: string) => {
-  const normalizedName = categoryName.toLowerCase().trim();
-  return iconMapping[normalizedName] || ShoppingBag; // Icono por defecto
+// Normaliza texto para búsqueda (quita tildes para coincidencias)
+const normalizeForMatch = (s: string) =>
+  s.toLowerCase().trim().normalize('NFD').replace(/\u0300-\u036f/g, '');
+
+// Intenta coincidir por nombre completo o por cada palabra (para líneas/sublíneas)
+const getIconByName = (name: string) => {
+  const n = normalizeForMatch(name);
+  const withAccent = name.toLowerCase().trim();
+  if (iconMapping[withAccent]) return iconMapping[withAccent];
+  if (iconMapping[n]) return iconMapping[n];
+  const words = n.split(/\s+/).filter((w) => w.length > 1);
+  for (const w of words) {
+    if (iconMapping[w]) return iconMapping[w];
+  }
+  return ShoppingBag;
 };
+
+/** Icono para categoría por nombre (exportado para uso en páginas). */
+export const getIconForCategory = (categoryName: string) => getIconByName(categoryName);
+
+/** Icono para línea por nombre (exportado para uso en páginas). */
+export const getIconForLine = (nomLinea: string) => getIconByName(nomLinea);
+
+/** Icono para sublínea por nombre (exportado para uso en páginas). */
+export const getIconForSubline = (nomSublinea: string) => getIconByName(nomSublinea);
 
 // Función para obtener colores basados en el nombre
 const getColorsForCategory = (categoryName: string) => {
@@ -159,36 +267,25 @@ const getColorsForCategory = (categoryName: string) => {
 
 // Función principal para mapear categorías de API a categorías de display
 export const mapCategoriesToDisplay = (categories: Category[]): CategoryDisplay[] => {
-  console.log('Raw categories from API:', categories);
-  
-  if (!categories || !Array.isArray(categories)) {
-    console.error('Invalid categories data:', categories);
-    return [];
-  }
-  
-  return categories
-    .filter(category => {
-      console.log('Processing category:', category);
-      return category && category.ind_activo; // Solo categorías activas
-    })
-    .map(category => {
-      const colors = getColorsForCategory(category.nom_categoria);
-      const icon = getIconForCategory(category.nom_categoria);
-      const description = generateDescription(category.nom_categoria);
+  if (!categories || !Array.isArray(categories)) return [];
 
-      const mappedCategory = {
-        id: category.id_categoria,
+  return categories
+    .filter((category) => category && category.ind_activo)
+    .map((category) => {
+      const colors = getColorsForCategory(category.nom_categoria);
+      const icon = getIconByName(category.nom_categoria);
+      const description = generateDescription(category.nom_categoria);
+      return {
+        id: String(category.id_categoria),
         name: category.nom_categoria,
         description,
-        icon: icon.name || 'ShoppingBag',
+        icon: (icon as { name?: string }).name || 'ShoppingBag',
         color: colors.color,
         bgGradient: colors.bgGradient,
         iconBg: colors.iconBg,
         isActive: category.ind_activo,
+        productCount: category.productos_count ?? 0,
       };
-      
-      console.log('Mapped category:', mappedCategory);
-      return mappedCategory;
     });
 };
 

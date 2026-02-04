@@ -17,8 +17,10 @@ import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/hooks/use-auth";
 import { formatPrice } from "@/utils/format-price";
-import { ChevronLeft, Truck, Package, CreditCard, Lock, Plus, X } from "lucide-react";
+import { ChevronLeft, Truck, Package, CreditCard, ShieldCheck, Plus, X } from "lucide-react";
 import WompiModal from "@/components/payment/wompi-modal";
+import type { CheckoutData } from "@/services/wompi-widget.service";
+import { PaymentMethodsRow } from "@/components/payment/payment-card-brands";
 import { toast } from "sonner";
 import addressService from "@/services/address.service";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -65,12 +67,14 @@ type PaymentFormData = z.infer<typeof paymentSchema>;
 const CheckoutPage = () => {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
-  const { items, totals, total, hasItems, isLoading: cartLoading } = useCart();
+  const { items, totals, total, hasItems, isLoading: cartLoading, id_carrito, selectedCanjeId } = useCart();
   const queryClient = useQueryClient();
   
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState<string>("");
   const [isWompiModalOpen, setIsWompiModalOpen] = useState(false);
+  /** Datos para crear sesión de checkout (no se crea orden hasta que el pago sea aprobado). */
+  const [checkoutDataForModal, setCheckoutDataForModal] = useState<CheckoutData | null>(null);
   
   // Cargar direcciones del usuario
   const { data: addresses } = useQuery({
@@ -129,7 +133,9 @@ const CheckoutPage = () => {
   const shipping = selectedShippingMethod
     ? shippingMethods.find((m) => m.id === selectedShippingMethod)?.price || 0
     : 0;
-  const finalTotal = subtotal + shipping;
+  const totalConDescuentos = Number(totals?.total_final) ?? subtotal;
+  const finalTotal = totalConDescuentos + shipping;
+  const totalDescCanjeado = Number(totals?.total_desc_canjeado ?? 0);
 
   // Handlers
   const handleInformationSubmit = (data: InformationFormData) => {
@@ -142,19 +148,52 @@ const CheckoutPage = () => {
     setCurrentStep(3);
   };
 
-  const handlePaymentSubmit = (data: PaymentFormData) => {
+  const handlePaymentSubmit = async (data: PaymentFormData) => {
+    if (!id_carrito) {
+      toast.error('No se pudo obtener el carrito. Por favor, recarga la página.');
+      return;
+    }
+
+    // Obtener dirección seleccionada
+    const selectedAddress = addresses?.find(
+      (addr) => addr.id_direccion?.toString() === informationForm.getValues().direccion
+    ) || addresses?.[0];
+
+    if (!selectedAddress?.id_direccion) {
+      toast.error('Debes seleccionar una dirección de envío.');
+      return;
+    }
+
+    // Incluir id_canje cuando haya descuento por puntos para que la referencia y la orden lo apliquen
+    const idCanje =
+      totals?.id_canje_aplicado != null
+        ? Number(totals.id_canje_aplicado)
+        : selectedCanjeId != null
+          ? Number(selectedCanjeId)
+          : undefined;
+    const checkoutData: CheckoutData = {
+      cart_id: Number(id_carrito),
+      id_direccion: Number(selectedAddress.id_direccion),
+      id_canje: idCanje,
+    };
+    setCheckoutDataForModal(checkoutData);
     setIsWompiModalOpen(true);
   };
 
   const handlePaymentResult = (result: any) => {
     console.log("Resultado del pago:", result);
-    
-    if (result.transaction) {
+
+    if (result?.transaction) {
       const transaction = result.transaction;
-      
-      // El widget ya maneja la redirección y los mensajes de toast
-      // Aquí podríamos agregar lógica adicional si es necesaria
       console.log("Transacción completada:", transaction);
+
+      // Pago aprobado: el backend ya limpió el carrito (trigger). Actualizar la UI
+      // para que muestre "carrito vacío" sin necesidad de refrescar.
+      if (transaction?.status === "APPROVED") {
+        setCheckoutDataForModal(null);
+        queryClient.invalidateQueries({ queryKey: ["cart"] });
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+      }
     }
   };
 
@@ -166,7 +205,8 @@ const CheckoutPage = () => {
     );
   }
 
-  if (!hasItems()) {
+  // No mostrar "carrito vacío" si el modal de pago está abierto (checkout en curso)
+  if (!hasItems() && !isWompiModalOpen) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -247,33 +287,45 @@ const CheckoutPage = () => {
               subtotal={subtotal}
               shipping={shipping}
               total={finalTotal}
+              discountCanjeAmount={totalDescCanjeado}
             />
           </div>
         </div>
       </div>
 
-      {/* Modal de Wompi */}
+      {/* Modal de Wompi: usa checkoutData para no crear orden hasta que el pago sea aprobado */}
       <WompiModal
         isOpen={isWompiModalOpen}
-        onClose={() => setIsWompiModalOpen(false)}
-        amount={finalTotal * 100} // Convertir a centavos
+        onClose={() => {
+          setIsWompiModalOpen(false);
+          setCheckoutDataForModal(null);
+        }}
+        amount={finalTotal * 100}
+        checkoutData={checkoutDataForModal}
         customerData={{
           email: user?.email_usuario,
           fullName: `${informationForm.getValues().nombre} ${informationForm.getValues().apellidos}`,
           phoneNumber: informationForm.getValues().celular,
           phoneNumberPrefix: "+57",
-          legalId: paymentForm.getValues().numeroIdentificacion,
-          legalIdType: paymentForm.getValues().tipoIdentificacion
+          legalId: paymentForm.getValues().numeroIdentificacion || undefined,
+          legalIdType: paymentForm.getValues().tipoIdentificacion || undefined
         }}
-        shippingAddress={{
-          addressLine1: informationForm.getValues().direccion,
-          addressLine2: informationForm.getValues().complemento,
-          city: informationForm.getValues().ciudad,
-          region: informationForm.getValues().departamento,
-          country: "CO",
-          name: `${informationForm.getValues().nombre} ${informationForm.getValues().apellidos}`,
-          phoneNumber: informationForm.getValues().celular
-        }}
+        shippingAddress={(() => {
+          // Wompi exige que TODOS los campos de envío existan y tengan longitud mínima (ej. 4 caracteres).
+          // "Apartamento/Interior/Oficina" (addressLine2) no puede ir vacío ni con < 4 caracteres.
+          const complemento = (informationForm.getValues().complemento ?? "").trim();
+          const addressLine2 = complemento.length >= 4 ? complemento : "N/A ";
+          const v = (x: string | undefined) => (x ?? "").trim() || "N/A ";
+          return {
+            addressLine1: v(informationForm.getValues().direccion),
+            addressLine2,
+            city: v(informationForm.getValues().ciudad),
+            region: v(informationForm.getValues().departamento),
+            country: "CO",
+            name: `${v(informationForm.getValues().nombre)} ${v(informationForm.getValues().apellidos)}`.trim() || "N/A ",
+            phoneNumber: v(informationForm.getValues().celular) || "3000000000"
+          };
+        })()}
         onPaymentResult={handlePaymentResult}
       />
     </div>
@@ -473,19 +525,13 @@ function InformationStep({
                   <Label htmlFor="departamento">
                     Departamento <span className="text-red-500">*</span>
                   </Label>
-                  <Select
+                  <Input
                     id="departamento"
                     {...form.register("departamento")}
                     className="mt-1"
-                    value={form.watch("departamento") || ""}
-                    onChange={(e) => form.setValue("departamento", e.target.value)}
+                    placeholder="Ej: Santander, Cundinamarca, Antioquia..."
                     disabled={!!selectedAddress}
-                  >
-                    <option value="">Elige una opción</option>
-                    <option value="Santander">Santander</option>
-                    <option value="Cundinamarca">Cundinamarca</option>
-                    <option value="Antioquia">Antioquia</option>
-                  </Select>
+                  />
                   {form.formState.errors.departamento && (
                     <p className="text-red-500 text-sm mt-1">
                       {form.formState.errors.departamento.message}
@@ -496,28 +542,13 @@ function InformationStep({
                   <Label htmlFor="ciudad">
                     Localidad / Ciudad <span className="text-red-500">*</span>
                   </Label>
-                  {selectedAddress ? (
-                    <Input
-                      id="ciudad"
-                      {...form.register("ciudad")}
-                      className="mt-1"
-                      value={form.watch("ciudad") || ""}
-                      disabled
-                    />
-                  ) : (
-                    <Select
-                      id="ciudad"
-                      {...form.register("ciudad")}
-                      className="mt-1"
-                      value={form.watch("ciudad") || ""}
-                      onChange={(e) => form.setValue("ciudad", e.target.value)}
-                    >
-                      <option value="">Elige una opción</option>
-                      <option value="BUCARAMANGA (STDER)">BUCARAMANGA (STDER)</option>
-                      <option value="BOGOTÁ">BOGOTÁ</option>
-                      <option value="MEDELLÍN">MEDELLÍN</option>
-                    </Select>
-                  )}
+                  <Input
+                    id="ciudad"
+                    {...form.register("ciudad")}
+                    className="mt-1"
+                    placeholder="Ej: Bogotá, Medellín, Bucaramanga..."
+                    disabled={!!selectedAddress}
+                  />
                   {form.formState.errors.ciudad && (
                     <p className="text-red-500 text-sm mt-1">
                       {form.formState.errors.ciudad.message}
@@ -630,10 +661,12 @@ function InformationStep({
               onSuccess={(newAddress) => {
                 setIsAddressModalOpen(false);
                 queryClient.invalidateQueries({ queryKey: ["addresses"] });
-                // Seleccionar la nueva dirección automáticamente
-                setTimeout(() => {
-                  setSelectedAddressId(newAddress.id_direccion.toString());
-                }, 500);
+                const id = newAddress?.id_direccion ?? newAddress?.id;
+                if (id != null) {
+                  setTimeout(() => {
+                    setSelectedAddressId(String(id));
+                  }, 500);
+                }
                 toast.success("Dirección creada exitosamente");
               }}
               user={user}
@@ -754,18 +787,12 @@ function CreateAddressForm({
           <Label htmlFor="modal-departamento">
             Departamento <span className="text-red-500">*</span>
           </Label>
-          <Select
+          <Input
             id="modal-departamento"
             {...addressForm.register("departamento")}
             className="mt-1"
-            value={addressForm.watch("departamento")}
-            onChange={(e) => addressForm.setValue("departamento", e.target.value)}
-          >
-            <option value="">Elige una opción</option>
-            <option value="Santander">Santander</option>
-            <option value="Cundinamarca">Cundinamarca</option>
-            <option value="Antioquia">Antioquia</option>
-          </Select>
+            placeholder="Ej: Santander, Cundinamarca, Antioquia..."
+          />
           {addressForm.formState.errors.departamento && (
             <p className="text-red-500 text-sm mt-1">
               {addressForm.formState.errors.departamento.message}
@@ -776,18 +803,12 @@ function CreateAddressForm({
           <Label htmlFor="modal-ciudad">
             Ciudad <span className="text-red-500">*</span>
           </Label>
-          <Select
+          <Input
             id="modal-ciudad"
             {...addressForm.register("ciudad")}
             className="mt-1"
-            value={addressForm.watch("ciudad")}
-            onChange={(e) => addressForm.setValue("ciudad", e.target.value)}
-          >
-            <option value="">Elige una opción</option>
-            <option value="BUCARAMANGA (STDER)">BUCARAMANGA (STDER)</option>
-            <option value="BOGOTÁ">BOGOTÁ</option>
-            <option value="MEDELLÍN">MEDELLÍN</option>
-          </Select>
+            placeholder="Ej: Bogotá, Medellín, Bucaramanga..."
+          />
           {addressForm.formState.errors.ciudad && (
             <p className="text-red-500 text-sm mt-1">
               {addressForm.formState.errors.ciudad.message}
@@ -967,39 +988,50 @@ function PaymentStep({
 
           {/* Métodos de pago */}
           <div>
-            <Label className="mb-3 block">Método de pago</Label>
+            <Label className="mb-3 block text-base font-medium">Método de pago</Label>
             <RadioGroup
               value={form.watch("paymentMethod")}
               onValueChange={(value) => form.setValue("paymentMethod", value)}
             >
               <div className="space-y-3">
-                <div className="p-4 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <RadioGroupItem value="wompi" id="wompi" />
-                    <Label htmlFor="wompi" className="cursor-pointer flex-1">
-                      <div className="font-medium">Pago en línea</div>
-                      <div className="text-sm text-gray-500">
-                        Paga en línea a través de Wompi, una pasarela de pagos que te permite
-                        pagar con: Débito PSE, Tarjeta de crédito, Nequi o corresponsal bancario
-                        Bancolombia.
+                <label
+                  htmlFor="wompi"
+                  className={[
+                    "flex cursor-pointer rounded-xl border-2 transition-colors",
+                    form.watch("paymentMethod") === "wompi"
+                      ? "border-gray-400 dark:border-gray-500 bg-gray-100 dark:bg-gray-800/60"
+                      : "border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30 hover:border-gray-300 dark:hover:border-gray-600",
+                  ].join(" ")}
+                >
+                  <div className="flex items-start gap-4 p-5 w-full">
+                    <RadioGroupItem value="wompi" id="wompi" className="mt-1 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-600/50">
+                            <CreditCard className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                          </div>
+                          <span className="font-semibold text-gray-900 dark:text-white">
+                            Pago en línea
+                          </span>
+                        </div>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          Pago seguro
+                        </span>
                       </div>
-                      <div className="flex gap-2 mt-2">
-                        <div className="w-10 h-6 bg-white border rounded flex items-center justify-center text-xs font-bold">
-                          PSE
-                        </div>
-                        <div className="w-10 h-6 bg-blue-600 rounded flex items-center justify-center text-xs font-bold text-white">
-                          VISA
-                        </div>
-                        <div className="w-10 h-6 bg-red-600 rounded flex items-center justify-center text-xs font-bold text-white">
-                          MC
-                        </div>
-                        <div className="w-10 h-6 bg-blue-500 rounded flex items-center justify-center text-xs font-bold text-white">
-                          AE
-                        </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
+                        Paga con Wompi: PSE, tarjeta de crédito/débito, Nequi o corresponsal Bancolombia.
+                      </p>
+                      <div className="rounded-lg bg-white dark:bg-gray-800/50 px-4 py-3 border border-gray-100 dark:border-gray-700">
+                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                          Métodos aceptados
+                        </p>
+                        <PaymentMethodsRow />
                       </div>
-                    </Label>
+                    </div>
                   </div>
-                </div>
+                </label>
               </div>
             </RadioGroup>
           </div>
@@ -1093,11 +1125,13 @@ function OrderSummary({
   subtotal,
   shipping,
   total,
+  discountCanjeAmount = 0,
 }: {
   items: any[];
   subtotal: number;
   shipping: number;
   total: number;
+  discountCanjeAmount?: number;
 }) {
   return (
     <Card className="sticky top-8">
@@ -1139,6 +1173,12 @@ function OrderSummary({
             <span>Subtotal</span>
             <span>{formatPrice(subtotal)}</span>
           </div>
+          {discountCanjeAmount > 0 && (
+            <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
+              <span>Descuento por puntos</span>
+              <span>-{formatPrice(discountCanjeAmount)}</span>
+            </div>
+          )}
           <div className="flex justify-between text-sm">
             <span>Envío</span>
             <span>{shipping > 0 ? formatPrice(shipping) : "Gratis"}</span>
