@@ -60,7 +60,7 @@ BEGIN
     -- OBTENER: Total de ventas del sistema para calcular participación
     SELECT SUM(o.val_total_pedido) INTO v_total_ventas_sistema
     FROM tab_ordenes o 
-    WHERE o.ind_estado = 3; -- Solo órdenes completadas
+    WHERE o.ind_estado IN (2, 3); -- Órdenes pagadas o completadas
     
     v_total_ventas_sistema := COALESCE(v_total_ventas_sistema, 1); -- Evitar división por 0
     
@@ -73,7 +73,7 @@ BEGIN
             op.id_producto
         FROM tab_orden_productos op
         JOIN tab_ordenes o ON op.id_orden = o.id_orden
-        WHERE o.ind_estado = 3  -- Solo órdenes completadas
+        WHERE o.ind_estado IN (2, 3)  -- Órdenes pagadas o completadas
           AND (p_recalcular_todo = TRUE OR (
               p_id_categoria IS NULL OR op.id_categoria_producto = p_id_categoria) AND
               (p_id_linea IS NULL OR op.id_linea_producto = p_id_linea) AND
@@ -135,7 +135,7 @@ BEGIN
             p.id_sublinea = op.id_sublinea_producto AND
             p.id_producto = op.id_producto
         )
-        LEFT JOIN tab_ordenes o ON op.id_orden = o.id_orden AND o.ind_estado = 3
+        LEFT JOIN tab_ordenes o ON op.id_orden = o.id_orden AND o.ind_estado IN (2, 3)
         WHERE p.id_categoria = v_producto_record.id_categoria
           AND p.id_linea = v_producto_record.id_linea
           AND p.id_sublinea = v_producto_record.id_sublinea
@@ -181,7 +181,7 @@ BEGIN
             INTO v_mejor_mes, v_mejor_venta_unidades
             FROM tab_orden_productos op
             JOIN tab_ordenes o ON op.id_orden = o.id_orden
-            WHERE o.ind_estado = 3
+            WHERE o.ind_estado IN (2, 3)
               AND op.id_categoria_producto = v_producto_record.id_categoria
               AND op.id_linea_producto = v_producto_record.id_linea
               AND op.id_sublinea_producto = v_producto_record.id_sublinea

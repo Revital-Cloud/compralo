@@ -12,7 +12,6 @@ import {
   IconShoppingCart, 
   IconUsers, 
   IconCash,
-  IconEye,
   IconPackage,
   IconTruck,
   IconDeviceAnalytics,
@@ -20,14 +19,12 @@ import {
   IconHeart,
   IconRefresh,
   IconMapPin,
-  IconClock,
   IconDownload
 } from "@tabler/icons-react"
 import { toast } from "sonner"
 import { analyticsService } from '@/services/analytics.service'
 import type {
   ConversionMetric,
-  TrafficSource,
   CustomerDemographic,
   ProductPerformanceData,
   GeoData,
@@ -103,57 +100,6 @@ const ConversionMetrics = ({ metrics }: { metrics: ConversionMetric[] }) => {
         )
       })}
     </div>
-  )
-}
-
-// Componente para fuentes de tráfico
-const TrafficSources = ({ sources }: { sources: TrafficSource[] }) => {
-  if (sources.length === 0) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Fuentes de Tráfico</CardTitle>
-          <CardDescription>Análisis de canales de adquisición</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <p className="text-sm">No hay datos de fuentes de tráfico disponibles</p>
-            <p className="text-xs mt-2">Se requiere implementar tracking de visitantes</p>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Fuentes de Tráfico</CardTitle>
-        <CardDescription>Análisis de canales de adquisición</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {sources.map((source, index) => (
-          <div key={index} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <IconEye className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">{source.source}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-muted-foreground">{source.visitors.toLocaleString()}</span>
-                <Badge variant={source.change > 0 ? "default" : "destructive"} className="text-xs">
-                  {source.change > 0 ? '+' : ''}{source.change}%
-                </Badge>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Progress value={source.percentage} className="flex-1" />
-              <span className="text-sm font-medium">{source.percentage}%</span>
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
   )
 }
 
@@ -297,7 +243,7 @@ const HourlyTrafficChart = ({ hourlyTraffic }: { hourlyTraffic: { hour: string; 
   const avgVisitors = totalVisitors / 24
   const peakHour = hourlyTraffic.reduce((max, d) => d.visitors > max.visitors ? d : max, hourlyTraffic[0])
   const lowHour = hourlyTraffic.reduce((min, d) => d.visitors < min.visitors ? d : min, hourlyTraffic[0])
-  
+
   return (
     <Card className="col-span-1 lg:col-span-2">
       <CardHeader>
@@ -308,9 +254,9 @@ const HourlyTrafficChart = ({ hourlyTraffic }: { hourlyTraffic: { hour: string; 
         <div className="h-64 flex items-end justify-between space-x-1">
           {hourlyTraffic.map((data, index) => (
             <div key={data.hour} className="flex flex-col items-center space-y-1 flex-1">
-              <div 
+              <div
                 className="w-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-t-sm transition-all hover:from-blue-600 hover:to-blue-400 cursor-pointer"
-                style={{ 
+                style={{
                   height: `${(data.visitors / maxVisitors) * 200}px`,
                   minHeight: '4px'
                 }}
@@ -431,18 +377,12 @@ const AnalyticsPage = () => {
 
         <TabsContent value="conversion" className="space-y-6">
           <ConversionMetrics metrics={data.conversionMetrics} />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TrafficSources sources={data.trafficSources} />
-            <ProductPerformance performance={data.productPerformance} />
-          </div>
+          <ProductPerformance performance={data.productPerformance} />
         </TabsContent>
 
         <TabsContent value="traffic" className="space-y-6">
           <HourlyTrafficChart hourlyTraffic={data.hourlyTraffic} />
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <GeographicData geoData={data.geoData} />
-            <TrafficSources sources={data.trafficSources} />
-          </div>
+          <GeographicData geoData={data.geoData} />
         </TabsContent>
 
         <TabsContent value="customers" className="space-y-6">

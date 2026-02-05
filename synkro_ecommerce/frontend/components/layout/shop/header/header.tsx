@@ -3,33 +3,12 @@
 import * as React from "react"
 import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
-import { 
-  Menu, 
-  X, 
-  Heart,
-  Bell,
-  Moon,
-  Sun,
-  ShoppingCart,
-  Search
-} from "lucide-react"
+import { Menu, X, Heart, Moon, Sun, ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui"
 import MiniCartHover from "@/components/cart/minicart-hover"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui"
 import { type NavItem } from "@/lib/menu-config"
-import {
-  Navigation,
-  MobileMenu,
-  SearchBar,
-  ProductSearchBar,
-  CartButton,
-  UserMenu
-} from "./components"
+import { MobileMenu, SearchBar, ProductSearchBar, UserMenu } from "./components"
 import Link from "next/link"
 import { defaultMenuItems } from "@/lib/menu-config"
 import { useCartInfo } from "@/hooks/use-cart"
@@ -55,49 +34,38 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
   const { itemCount, isLoading } = useCartInfo()
   const { favorites } = useFavorites()
   const { user } = useAuth()
-  
-  // Estado para evitar problemas de hidratación
+  const { theme, setTheme } = useTheme()
+
   const [mounted, setMounted] = useState(false)
   const [displayCartCount, setDisplayCartCount] = useState(0)
   const [favoritesCount, setFavoritesCount] = useState(0)
-  
-  // Actualizar después de la hidratación
+
   useEffect(() => {
     setMounted(true)
     setDisplayCartCount(cartCount ?? itemCount)
     setFavoritesCount(favorites.length)
   }, [cartCount, itemCount, favorites.length])
-  
-  // Actualizar cuando cambien los valores
+
   useEffect(() => {
     if (mounted) {
       setDisplayCartCount(cartCount ?? itemCount)
     }
   }, [cartCount, itemCount, mounted])
-  
+
   useEffect(() => {
     if (mounted) {
       setFavoritesCount(favorites.length)
     }
   }, [favorites.length, mounted])
-  
-  const handleCartClick = () => {
-    router.push('/cart')
-  }
 
-  const handleFavoritesClick = () => {
-    router.push('/favorites')
-  }
+  const handleCartClick = () => router.push('/cart')
+  const handleFavoritesClick = () => router.push('/favorites')
+  const toggleTheme = () => setTheme(theme === "light" ? "dark" : "light")
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const { theme, setTheme } = useTheme()
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen)
-  }
-
-  const toggleTheme = () => {
-    setTheme(theme === "light" ? "dark" : "light")
   }
 
   const navigationItems = menuItems.length > 0 ? menuItems : defaultMenuItems
@@ -144,121 +112,93 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
               </nav>
             </div>
             
-            {/* Right Side */}
+            {/* Right Side: en responsive solo carrito + menú; en desktop todo */}
             <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-6">
-              {/* Search Bar - Oculto en móvil, visible en tablet y desktop */}
-              <div className="hidden sm:block w-40 sm:w-48 lg:w-64">
+              {/* Desktop: búsqueda */}
+              <div className="hidden lg:block w-40 sm:w-48 lg:w-64">
                 <ProductSearchBar />
               </div>
-              
-              {/* Actions - Responsive con diferentes breakpoints */}
+
               <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4">
-                {/* Wishlist - Solo visible si el usuario está autenticado */}
+                {/* Solo en desktop: wishlist, notificaciones, tema, user menu */}
                 {user && (
-                  <div className="hidden sm:block">
+                  <div className="hidden lg:block">
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="relative p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
                             onClick={handleFavoritesClick}
                           >
                             <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
                             {mounted && favoritesCount > 0 && (
                               <span className="absolute -top-1 -right-1 bg-[#ec2538] dark:bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                {favoritesCount > 99 ? '99+' : favoritesCount}
+                                {favoritesCount > 99 ? "99+" : favoritesCount}
                               </span>
                             )}
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Lista de deseos</p>
-                        </TooltipContent>
+                        <TooltipContent><p>Lista de deseos</p></TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   </div>
                 )}
-
-                {/* Notifications - Oculto en móvil muy pequeño */}
-                <div className="hidden sm:block">
+                <div className="hidden lg:block">
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300 relative"
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
+                          onClick={toggleTheme}
                         >
-                          <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-                          <div className="absolute top-1 right-1 w-2 h-2 bg-[#ec2538] dark:bg-red-500 rounded-full"></div>
+                          <Sun className="w-4 h-4 sm:w-5 sm:h-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                          <Moon className="absolute w-4 h-4 sm:w-5 sm:h-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Notificaciones</p>
-                      </TooltipContent>
+                      <TooltipContent><p>Cambiar tema</p></TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 </div>
 
-                {/* Theme Toggle - Siempre visible */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300" 
-                        onClick={toggleTheme}
-                      >
-                        <Sun className="w-4 h-4 sm:w-5 sm:h-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                        <Moon className="absolute w-4 h-4 sm:w-5 sm:h-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Cambiar tema</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-
-                {/* Cart con MiniCart en hover */}
+                {/* Carrito: siempre visible */}
                 <MiniCartHover
                   trigger={
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="relative p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300 cursor-pointer" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="relative p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300 cursor-pointer"
                       onClick={handleCartClick}
                       disabled={isLoading}
-                      aria-label={mounted && displayCartCount > 0 ? `Carrito de compras (${displayCartCount} ${displayCartCount === 1 ? 'producto' : 'productos'})` : 'Carrito de compras'}
+                      aria-label={mounted && displayCartCount > 0 ? `Carrito (${displayCartCount} ${displayCartCount === 1 ? "producto" : "productos"})` : "Carrito"}
                     >
                       <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                       {mounted && displayCartCount > 0 && (
                         <span className="absolute -top-1 -right-1 bg-[#ec2538] dark:bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                          {displayCartCount > 99 ? '99+' : displayCartCount}
+                          {displayCartCount > 99 ? "99+" : displayCartCount}
                         </span>
                       )}
                     </Button>
                   }
                 />
 
-                {/* User Menu - Siempre visible */}
-                <UserMenu />
+                {/* Solo en desktop: menú de usuario */}
+                <div className="hidden lg:block">
+                  <UserMenu />
+                </div>
               </div>
 
-              {/* Mobile Menu Button - Solo visible en móvil */}
+              {/* Solo en responsive: botón menú hamburguesa */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={toggleMobileMenu}
                 className="lg:hidden p-1.5 sm:p-2 ml-1 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
               >
-                {isMobileMenuOpen ? (
-                  <X className="h-5 w-5" />
-                ) : (
-                  <Menu className="h-5 w-5" />
-                )}
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
             </div>
           </div>

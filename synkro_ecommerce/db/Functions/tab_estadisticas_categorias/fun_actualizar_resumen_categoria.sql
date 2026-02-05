@@ -60,7 +60,7 @@ BEGIN
     -- OBTENER: Total de ventas del sistema para calcular participación
     SELECT SUM(o.val_total_pedido) INTO v_total_ventas_sistema
     FROM tab_ordenes o 
-    WHERE o.ind_estado = 3; -- Solo órdenes completadas
+    WHERE o.ind_estado IN (2, 3); -- Órdenes pagadas o completadas
     
     v_total_ventas_sistema := COALESCE(v_total_ventas_sistema, 1); -- Evitar división por 0
     
@@ -166,7 +166,7 @@ BEGIN
             INTO v_mejor_mes_ventas
             FROM tab_orden_productos op
             JOIN tab_ordenes o ON op.id_orden = o.id_orden
-            WHERE o.ind_estado = 3
+            WHERE o.ind_estado IN (2, 3)
               AND op.id_categoria_producto = v_categoria_record.id_categoria
             GROUP BY TO_CHAR(o.fec_pedido, 'YYYY-MM')
             ORDER BY SUM(op.cant_producto * op.precio_unitario_orden) DESC
