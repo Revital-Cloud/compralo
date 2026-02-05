@@ -8,12 +8,10 @@ import instanceService from '@/services/instance.service';
 import subscriptionService from '@/services/subscription.service';
 import billingService from '@/services/billing.service';
 import planService from '@/services/plan.service';
-import resourceUsageService from '@/services/resource-usage.service';
 import { INSTANCE_KEYS } from '@/hooks/use-instances';
 import { SUBSCRIPTION_KEYS } from '@/hooks/use-subscriptions';
 import { BILLING_KEYS } from '@/hooks/use-billing';
 import { PLAN_KEYS } from '@/hooks/use-planes';
-import { RESOURCE_USAGE_KEYS } from '@/hooks/use-resource-usage';
 
 const STALE = 5 * 60 * 1000;
 
@@ -65,11 +63,8 @@ export function prefetchForPath(queryClient: QueryClient, path: string): void {
         queryFn: () => instanceService.getInstances(),
         staleTime: STALE,
       });
-      void queryClient.prefetchQuery({
-        queryKey: RESOURCE_USAGE_KEYS.alerts(),
-        queryFn: () => resourceUsageService.getInstancesWithAlerts(),
-        staleTime: STALE,
-      });
+      // Note: /resource-usage/alerts is admin-only, so we don't prefetch it here
+      // It should only be prefetched in admin routes
       return;
     }
 

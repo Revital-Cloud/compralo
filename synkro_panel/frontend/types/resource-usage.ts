@@ -34,7 +34,7 @@ export interface ResourceUsagePublic {
   ind_alerta_almacenamiento: boolean;
 }
 
-/** Instance with alert info returned by /resource-usage/alertas */
+/** Instance with alert info returned by /resource-usage/alerts */
 export interface InstanceWithAlert {
   id_instancia: number | string;
   nom_instancia?: string;

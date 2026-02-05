@@ -16,11 +16,11 @@ export async function getResourceUsage(idInstance?: number | string): Promise<Re
 }
 
 export async function getInstancesWithAlerts(): Promise<InstanceWithAlert[]> {
-  return await get<InstanceWithAlert[]>('/resource-usage/alertas');
+  return await get<InstanceWithAlert[]>('/resource-usage/alerts');
 }
 
 export async function getLatestResourceUsage(idInstance: number | string): Promise<ResourceUsagePublic> {
-  return await get<ResourceUsagePublic>(`/resource-usage/ultimo/${idInstance}`);
+  return await get<ResourceUsagePublic>(`/resource-usage/latest/${idInstance}`);
 }
 
 export async function createResourceUsage(data: ResourceUsageCreate): Promise<ResponseMessage> {

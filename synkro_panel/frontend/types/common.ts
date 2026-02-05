@@ -26,6 +26,11 @@ export interface ResponseMessage {
   success: boolean;
 }
 
+/** Response when creating first subscription; may include Stripe checkout URL */
+export interface CrearPrimeraSuscripcionResponse extends ResponseMessage {
+  checkout_url?: string | null;
+}
+
 export interface PaginationParams {
   page?: number;
   limit?: number;

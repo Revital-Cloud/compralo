@@ -44,7 +44,7 @@ def get_uso_recursos(
     return [UsoRecursoPublic(**dict(r)) for r in recursos]
 
 
-@router.get("/alertas", response_model=List[dict])
+@router.get("/alerts", response_model=List[dict])
 def get_instancias_con_alertas(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(require_admin_synkro)
@@ -58,7 +58,7 @@ def get_instancias_con_alertas(
     return [dict(a) for a in alertas]
 
 
-@router.get("/ultimo/{id_instancia}", response_model=UsoRecursoPublic)
+@router.get("/latest/{id_instancia}", response_model=UsoRecursoPublic)
 def get_ultimo_uso_recurso(
     id_instancia: Decimal,
     db: Session = Depends(get_db),

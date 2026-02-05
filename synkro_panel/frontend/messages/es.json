@@ -375,7 +375,8 @@
       "noPlan": "Sin plan",
       "allPaid": "Todo pagado",
       "pendingPayment": "Pendiente de pago",
-      "productsUsed": "Productos usados"
+      "productsUsed": "Productos usados",
+      "selectPlanToStart": "Selecciona un plan para comenzar"
     },
     "quickActions": {
       "title": "Acciones Rápidas",
@@ -442,6 +443,18 @@
       "cancel": "Cancelar",
       "confirm": "Confirmar Cambio",
       "applying": "Aplicando..."
+    },
+    "selectPlan": {
+      "title": "Seleccionar Plan",
+      "description": "¿Estás seguro de que quieres seleccionar el plan {planName}?",
+      "price": "El precio será {price}/mes.",
+      "confirm": "Confirmar Selección",
+      "creating": "Creando suscripción..."
+    },
+    "create": {
+      "errors": {
+        "userInfoNotAvailable": "No se pudo obtener la información del usuario. Por favor, recarga la página."
+      }
     }
   },
   "billing": {
@@ -489,6 +502,8 @@
       "reference": "Referencia",
       "notes": "Notas",
       "payNow": "Pagar Ahora",
+      "processing": "Procesando...",
+      "paymentError": "Error al procesar el pago. Por favor intenta nuevamente.",
       "downloadPDF": "Descargar PDF",
       "overdue": "Vencida"
     },
@@ -497,6 +512,15 @@
       "pending": "Pendiente",
       "failed": "Fallido",
       "cancelled": "Cancelado"
+    },
+    "success": {
+      "pageTitle": "Pago Exitoso",
+      "pageSubtitle": "Tu pago ha sido procesado correctamente",
+      "title": "¡Pago Exitoso!",
+      "description": "Tu factura ha sido pagada correctamente. Recibirás una confirmación por email.",
+      "sessionId": "ID de Sesión",
+      "backToBilling": "Volver a Facturación",
+      "backToDashboard": "Ir al Dashboard"
     }
   },
   "instance": {
@@ -512,10 +536,16 @@
       "storeSlugHelp": "Solo letras minúsculas, números y guiones. Esta será la URL de tu tienda.",
       "createButton": "Crear mi e-commerce",
       "creating": "Creando...",
+      "noSubscriptionWarning": {
+        "title": "Plan Requerido",
+        "description": "Debes tener un plan activo para crear una instancia. Selecciona un plan primero.",
+        "selectPlan": "Seleccionar Plan"
+      },
       "errors": {
         "userInfoNotAvailable": "Información de usuario no disponible",
         "fillAllFields": "Por favor completa todos los campos",
-        "invalidSlug": "El slug solo debe contener letras minúsculas, números y guiones"
+        "invalidSlug": "El slug solo debe contener letras minúsculas, números y guiones",
+        "noActiveSubscription": "Debes tener un plan activo para crear una instancia. Por favor selecciona un plan primero."
       }
     },
     "noInstance": {

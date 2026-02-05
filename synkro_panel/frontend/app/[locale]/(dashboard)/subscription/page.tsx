@@ -26,10 +26,12 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useTranslations, useLocale } from 'next-intl';
+import { toast } from 'sonner';
 
-import { useActiveSubscriptionsSuspense, useChangeSubscriptionPlan } from '@/hooks/use-subscriptions';
+import { useActiveSubscriptionsSuspense, useChangeSubscriptionPlan, useCreateSubscription } from '@/hooks/use-subscriptions';
 import { usePlansSuspense, usePlan } from '@/hooks/use-planes';
 import { usePlanHistory } from '@/hooks/use-plan-history';
+import { useAuth } from '@/hooks/use-auth';
 import { StatusBadge } from '@/components/dashboard/status-badge';
 import type { SubscriptionPublic, PlanPublic, PlanHistoryPublic } from '@/types';
 
@@ -374,6 +376,7 @@ function SubscriptionPageSkeleton() {
 function SubscriptionPageContent() {
   const t = useTranslations();
   const locale = useLocale();
+  const { user } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<PlanPublic | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [changeReason, setChangeReason] = useState('');
@@ -392,6 +395,7 @@ function SubscriptionPageContent() {
   );
 
   const changePlanMutation = useChangeSubscriptionPlan();
+  const createSubscriptionMutation = useCreateSubscription();
 
   const currentPlanPrice = currentPlan 
     ? (typeof currentPlan.precio_mensual === 'string' 
@@ -406,10 +410,50 @@ function SubscriptionPageContent() {
   };
 
   const handleConfirmChange = () => {
-    if (!selectedPlan || !activeSubscription) {
+    if (!selectedPlan) {
       return;
     }
 
+    // Si no hay suscripción activa, crear una nueva
+    if (!activeSubscription) {
+      if (!user?.identificacion_fiscal) {
+        toast.error(t('subscription.create.errors.userInfoNotAvailable'));
+        return;
+      }
+
+      const selectedPrice =
+        typeof selectedPlan.precio_mensual === 'string'
+          ? parseFloat(selectedPlan.precio_mensual)
+          : selectedPlan.precio_mensual;
+
+      // Calcular fechas: inicio ahora, próximo pago en 1 mes
+      const startDate = new Date();
+      const nextPaymentDate = new Date();
+      nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+
+      createSubscriptionMutation.mutate(
+        {
+          identificacion_fiscal_cliente: user.identificacion_fiscal,
+          id_plan: selectedPlan.id_plan,
+          tipo_facturacion: 'mensual',
+          precio_actual: selectedPrice,
+          estado_suscripcion: 'activa',
+          fecha_inicio: startDate.toISOString(),
+          fecha_proximo_pago: nextPaymentDate.toISOString(),
+        },
+        {
+          onSuccess: (data) => {
+            if (data?.checkout_url) return;
+            setShowConfirmDialog(false);
+            setSelectedPlan(null);
+            setChangeReason('');
+          },
+        },
+      );
+      return;
+    }
+
+    // Si hay suscripción activa, cambiar de plan
     const selectedPrice =
       typeof selectedPlan.precio_mensual === 'string'
         ? parseFloat(selectedPlan.precio_mensual)
@@ -491,40 +535,61 @@ function SubscriptionPageContent() {
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('subscription.changePlan.title')}</DialogTitle>
+            <DialogTitle>
+              {activeSubscription 
+                ? t('subscription.changePlan.title')
+                : t('subscription.selectPlan.title')}
+            </DialogTitle>
             <DialogDescription>
-              {t('subscription.changePlan.description', { planName: selectedPlan?.nom_plan || '' })}
-              {selectedPlan && currentPlanPrice && (
+              {activeSubscription 
+                ? t('subscription.changePlan.description', { planName: selectedPlan?.nom_plan || '' })
+                : t('subscription.selectPlan.description', { planName: selectedPlan?.nom_plan || '' })}
+              {selectedPlan && (
                 <span className="block mt-2">
-                  {t('subscription.changePlan.newPrice', { price: formatPrice(selectedPlan.precio_mensual, 'USD', locale) })}
+                  {activeSubscription && currentPlanPrice
+                    ? t('subscription.changePlan.newPrice', { price: formatPrice(selectedPlan.precio_mensual, 'USD', locale) })
+                    : t('subscription.selectPlan.price', { price: formatPrice(selectedPlan.precio_mensual, 'USD', locale) })}
                 </span>
               )}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2 py-2">
-            <Label htmlFor="reason" className="text-sm">
-              {t('subscription.changePlan.reasonLabel')} <span className="text-xs text-muted-foreground">({t('common.optional')})</span>
-            </Label>
-            <Input
-              id="reason"
-              placeholder={t('subscription.changePlan.reasonPlaceholder')}
-              value={changeReason}
-              onChange={(e) => setChangeReason(e.target.value)}
-              disabled={changePlanMutation.isPending}
-            />
-          </div>
+          {activeSubscription && (
+            <div className="space-y-2 py-2">
+              <Label htmlFor="reason" className="text-sm">
+                {t('subscription.changePlan.reasonLabel')} <span className="text-xs text-muted-foreground">({t('common.optional')})</span>
+              </Label>
+              <Input
+                id="reason"
+                placeholder={t('subscription.changePlan.reasonPlaceholder')}
+                value={changeReason}
+                onChange={(e) => setChangeReason(e.target.value)}
+                disabled={changePlanMutation.isPending || createSubscriptionMutation.isPending}
+              />
+            </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
               {t('common.cancel')}
             </Button>
-            <Button onClick={handleConfirmChange} disabled={changePlanMutation.isPending || !selectedPlan}>
-              {changePlanMutation.isPending ? (
+            <Button 
+              onClick={handleConfirmChange} 
+              disabled={
+                (changePlanMutation.isPending || createSubscriptionMutation.isPending) || 
+                !selectedPlan ||
+                (!activeSubscription && !user?.identificacion_fiscal)
+              }
+            >
+              {(changePlanMutation.isPending || createSubscriptionMutation.isPending) ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  {t('subscription.changePlan.applying')}
+                  {activeSubscription 
+                    ? t('subscription.changePlan.applying')
+                    : t('subscription.selectPlan.creating')}
                 </>
               ) : (
-                t('subscription.changePlan.confirm')
+                activeSubscription 
+                  ? t('subscription.changePlan.confirm')
+                  : t('subscription.selectPlan.confirm')
               )}
             </Button>
           </DialogFooter>

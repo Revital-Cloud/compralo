@@ -375,7 +375,8 @@
       "noPlan": "No plan",
       "allPaid": "All paid",
       "pendingPayment": "Pending payment",
-      "productsUsed": "Products used"
+      "productsUsed": "Products used",
+      "selectPlanToStart": "Select a plan to get started"
     },
     "quickActions": {
       "title": "Quick Actions",
@@ -442,6 +443,18 @@
       "cancel": "Cancel",
       "confirm": "Confirm Change",
       "applying": "Applying..."
+    },
+    "selectPlan": {
+      "title": "Select Plan",
+      "description": "Are you sure you want to select the {planName} plan?",
+      "price": "The price will be {price}/month.",
+      "confirm": "Confirm Selection",
+      "creating": "Creating subscription..."
+    },
+    "create": {
+      "errors": {
+        "userInfoNotAvailable": "Could not get user information. Please reload the page."
+      }
     }
   },
   "billing": {
@@ -489,6 +502,8 @@
       "reference": "Reference",
       "notes": "Notes",
       "payNow": "Pay Now",
+      "processing": "Processing...",
+      "paymentError": "Error processing payment. Please try again.",
       "downloadPDF": "Download PDF",
       "overdue": "Overdue"
     },
@@ -497,6 +512,15 @@
       "pending": "Pending",
       "failed": "Failed",
       "cancelled": "Cancelled"
+    },
+    "success": {
+      "pageTitle": "Payment Successful",
+      "pageSubtitle": "Your payment has been processed successfully",
+      "title": "Payment Successful!",
+      "description": "Your invoice has been paid successfully. You will receive a confirmation email.",
+      "sessionId": "Session ID",
+      "backToBilling": "Back to Billing",
+      "backToDashboard": "Go to Dashboard"
     }
   },
   "instance": {
@@ -511,7 +535,18 @@
       "storeSlug": "Store URL Slug",
       "storeSlugHelp": "Only lowercase letters, numbers, and hyphens. This will be your store's URL.",
       "createButton": "Create my e-commerce",
-      "creating": "Creating..."
+      "creating": "Creating...",
+      "noSubscriptionWarning": {
+        "title": "Plan Required",
+        "description": "You must have an active plan to create an instance. Select a plan first.",
+        "selectPlan": "Select Plan"
+      },
+      "errors": {
+        "userInfoNotAvailable": "User information not available",
+        "fillAllFields": "Please fill all fields",
+        "invalidSlug": "Slug should only contain lowercase letters, numbers and hyphens",
+        "noActiveSubscription": "You must have an active plan to create an instance. Please select a plan first."
+      }
     },
     "noInstance": {
       "title": "No Instance Yet",

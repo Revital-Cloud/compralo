@@ -1,0 +1,26 @@
+{
+  "name": "Synkro - Plataforma E-commerce",
+  "short_name": "Synkro",
+  "description": "La plataforma e-commerce todo-en-uno diseñada para el mercado colombiano",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#10b981",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["business", "shopping", "ecommerce"],
+  "lang": "es-CO",
+  "dir": "ltr"
+}

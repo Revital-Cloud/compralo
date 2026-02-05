@@ -59,7 +59,13 @@ export function useCreateSubscription() {
 
   return useMutation({
     mutationFn: (data: SubscriptionCreate) => subscriptionService.createSubscription(data),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data?.checkout_url) {
+        queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.lists() });
+        queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.active() });
+        window.location.href = data.checkout_url;
+        return;
+      }
       toast.success('Suscripción creada exitosamente');
       queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.lists() });
       queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.active() });

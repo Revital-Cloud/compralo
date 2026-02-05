@@ -46,8 +46,8 @@ BEGIN
         RETURN json_build_object('success', false, 'message', 'El cliente no existe');
     END IF;
 
-    -- Validar que el plan existe y obtener precio
-    SELECT COUNT(*), precio_mensual INTO v_plan_existe, v_precio_plan FROM tab_planes WHERE id_plan = p_id_plan;
+    -- Validar que el plan existe y obtener precio (MAX para compatibilidad con reglas de agregación)
+    SELECT COUNT(*), MAX(precio_mensual) INTO v_plan_existe, v_precio_plan FROM tab_planes WHERE id_plan = p_id_plan;
     IF v_plan_existe = 0 THEN
         RETURN json_build_object('success', false, 'message', 'El plan no existe');
     END IF;

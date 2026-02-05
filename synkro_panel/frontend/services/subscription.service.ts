@@ -9,6 +9,7 @@ import type {
   SubscriptionUpdate,
   ActiveSubscriptionWithPlan,
   ResponseMessage,
+  CrearPrimeraSuscripcionResponse,
 } from '@/types';
 
 export async function getSubscriptions(): Promise<SubscriptionPublic[]> {
@@ -16,15 +17,15 @@ export async function getSubscriptions(): Promise<SubscriptionPublic[]> {
 }
 
 export async function getActiveSubscriptions(): Promise<ActiveSubscriptionWithPlan[]> {
-  return await get<ActiveSubscriptionWithPlan[]>('/subscriptions/activas');
+  return await get<ActiveSubscriptionWithPlan[]>('/subscriptions/active');
 }
 
 export async function getSubscription(idSubscription: number | string): Promise<SubscriptionPublic> {
   return await get<SubscriptionPublic>(`/subscriptions/${idSubscription}`);
 }
 
-export async function createSubscription(data: SubscriptionCreate): Promise<ResponseMessage> {
-  return await post<ResponseMessage>('/subscriptions', data);
+export async function createSubscription(data: SubscriptionCreate): Promise<CrearPrimeraSuscripcionResponse> {
+  return await post<CrearPrimeraSuscripcionResponse>('/subscriptions/create-first', data);
 }
 
 export async function updateSubscription(idSubscription: number | string, data: SubscriptionUpdate): Promise<ResponseMessage> {
@@ -32,7 +33,7 @@ export async function updateSubscription(idSubscription: number | string, data: 
 }
 
 export async function cancelSubscription(idSubscription: number | string, motivo?: string): Promise<ResponseMessage> {
-  return await put<ResponseMessage>(`/suscripciones/${idSubscription}`, {
+  return await put<ResponseMessage>(`/subscriptions/${idSubscription}`, {
     estado_suscripcion: 'cancelada',
     motivo_cancelacion: motivo,
   } as SubscriptionUpdate);
@@ -53,7 +54,7 @@ export async function changeSubscriptionPlan(
   }
 
   return await post<ResponseMessage>(
-    `/subscriptions/${idSubscription}/cambiar-plan?${params.toString()}`,
+    `/subscriptions/${idSubscription}/change-plan?${params.toString()}`,
     {},
   );
 }

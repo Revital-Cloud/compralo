@@ -17,7 +17,7 @@ export async function getInvoices(): Promise<InvoicePublic[]> {
 }
 
 export async function getPendingInvoices(): Promise<InvoicePending[]> {
-  return await get<InvoicePending[]>('/billing/pendientes');
+  return await get<InvoicePending[]>('/billing/pending');
 }
 
 export async function getInvoice(idInvoice: number | string): Promise<InvoiceWithDetails> {
@@ -32,12 +32,21 @@ export async function updateInvoice(idInvoice: number | string, data: InvoiceHea
   return await put<ResponseMessage>(`/billing/${idInvoice}`, data);
 }
 
+export async function createStripeCheckoutSession(
+  idInvoice: number | string
+): Promise<{ checkout_url: string; session_id?: string }> {
+  return await post<{ checkout_url: string; session_id?: string }>(
+    `/billing/${idInvoice}/create-checkout-session`
+  );
+}
+
 const billingService = {
   getInvoices,
   getPendingInvoices,
   getInvoice,
   createInvoice,
   updateInvoice,
+  createStripeCheckoutSession,
 };
 
 export default billingService;

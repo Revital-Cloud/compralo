@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useInstances, useInstancesSuspense, useCreateInstance } from '@/hooks/use-instances';
+import { useActiveSubscriptions } from '@/hooks/use-subscriptions';
 import { useDomains, useCreateDomain } from '@/hooks/use-domains';
 import { useDeployments } from '@/hooks/use-deployments';
 import { StatusBadge } from '@/components/dashboard/status-badge';
@@ -46,17 +47,26 @@ function CreateInstanceForm({ onSuccess }: { onSuccess: () => void }) {
   const t = useTranslations();
   const localePrefix = `/${locale}`;
   const { user } = useAuth();
+  const { data: subscriptions } = useActiveSubscriptions();
   const createInstance = useCreateInstance();
   const [formData, setFormData] = useState({
     nom_instancia: '',
     slug_instancia: '',
   });
 
+  const hasActiveSubscription = subscriptions && subscriptions.length > 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user?.identificacion_fiscal) {
       toast.error(t('instance.create.errors.userInfoNotAvailable'));
+      return;
+    }
+
+    // Validar que tenga un plan activo
+    if (!hasActiveSubscription) {
+      toast.error(t('instance.create.errors.noActiveSubscription'));
       return;
     }
 
@@ -104,57 +114,83 @@ function CreateInstanceForm({ onSuccess }: { onSuccess: () => void }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="nom_instancia">{t('instance.create.storeName')}</Label>
-            <Input
-              id="nom_instancia"
-              placeholder={t('instance.create.storeNamePlaceholder')}
-              value={formData.nom_instancia}
-              onChange={(e) => setFormData(prev => ({ ...prev, nom_instancia: e.target.value }))}
-              disabled={createInstance.isPending}
-            />
-            <p className="text-xs text-muted-foreground">
-              {t('instance.create.storeNameHelp')}
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="slug_instancia">{t('instance.create.storeSlug')}</Label>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">synkro.store/</span>
-              <Input
-                id="slug_instancia"
-                placeholder="my-store"
-                value={formData.slug_instancia}
-                onChange={(e) => handleSlugChange(e.target.value)}
-                disabled={createInstance.isPending}
-                className="flex-1"
-              />
+        {!hasActiveSubscription ? (
+          <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <div className="flex items-start gap-3">
+              <Shield className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-amber-900 dark:text-amber-100 mb-1">
+                  {t('instance.create.noSubscriptionWarning.title')}
+                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mb-3">
+                  {t('instance.create.noSubscriptionWarning.description')}
+                </p>
+                <Button 
+                  asChild 
+                  variant="outline" 
+                  size="sm"
+                  className="border-amber-300 dark:border-amber-700 text-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+                >
+                  <Link href={`${localePrefix}/subscription`}>
+                    {t('instance.create.noSubscriptionWarning.selectPlan')}
+                  </Link>
+                </Button>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {t('instance.create.storeSlugHelp')}
-            </p>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="nom_instancia">{t('instance.create.storeName')}</Label>
+              <Input
+                id="nom_instancia"
+                placeholder={t('instance.create.storeNamePlaceholder')}
+                value={formData.nom_instancia}
+                onChange={(e) => setFormData(prev => ({ ...prev, nom_instancia: e.target.value }))}
+                disabled={createInstance.isPending}
+              />
+              <p className="text-xs text-muted-foreground">
+                {t('instance.create.storeNameHelp')}
+              </p>
+            </div>
 
-          <Button 
-            type="submit" 
-            className="w-full bg-synkro-green hover:bg-synkro-green/90 text-synkro-black"
-            disabled={createInstance.isPending}
-          >
-            {createInstance.isPending ? (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                {t('instance.create.creating')}
-              </>
-            ) : (
-              <>
-                <Plus className="mr-2 h-4 w-4" />
-                {t('instance.create.createButton')}
-              </>
-            )}
-          </Button>
-        </form>
+            <div className="space-y-2">
+              <Label htmlFor="slug_instancia">{t('instance.create.storeSlug')}</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">synkro.store/</span>
+                <Input
+                  id="slug_instancia"
+                  placeholder="my-store"
+                  value={formData.slug_instancia}
+                  onChange={(e) => handleSlugChange(e.target.value)}
+                  disabled={createInstance.isPending}
+                  className="flex-1"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t('instance.create.storeSlugHelp')}
+              </p>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full bg-synkro-green hover:bg-synkro-green/90 text-synkro-black"
+              disabled={createInstance.isPending}
+            >
+              {createInstance.isPending ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  {t('instance.create.creating')}
+                </>
+              ) : (
+                <>
+                  <Plus className="mr-2 h-4 w-4" />
+                  {t('instance.create.createButton')}
+                </>
+              )}
+            </Button>
+          </form>
+        )}
       </CardContent>
     </Card>
   );

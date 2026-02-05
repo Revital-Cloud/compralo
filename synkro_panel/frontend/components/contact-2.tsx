@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useTranslations } from 'next-intl';
 
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,11 @@ export const Contact2 = ({
   web = { label: "synkro.com", url: "https://synkro.com" },
 }: Contact2Props) => {
   const t = useTranslations();
+  const [isMounted, setIsMounted] = useState(false);
+  
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
   
   const displayTitle = title || t('contact.title');
   const displayDescription = description || t('contact.subtitle');
@@ -144,25 +149,31 @@ export const Contact2 = ({
               >
                 {t('contact.form.interest')}
               </Label>
-              <Select>
-                <SelectTrigger className="border-synkro-green/20 focus:border-synkro-green focus:ring-synkro-green/20 bg-white dark:bg-synkro-black">
-                  <SelectValue placeholder={t('contact.form.selectOption')} />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-synkro-black border-synkro-green/20">
-                  <SelectItem value="tienda">
-                    {t('contact.form.options.store')}
-                  </SelectItem>
-                  <SelectItem value="migrar">
-                    {t('contact.form.options.migrate')}
-                  </SelectItem>
-                  <SelectItem value="integracion">
-                    {t('contact.form.options.integration')}
-                  </SelectItem>
-                  <SelectItem value="demo">{t('contact.form.options.demo')}</SelectItem>
-                  <SelectItem value="soporte">{t('contact.form.options.support')}</SelectItem>
-                  <SelectItem value="otro">{t('contact.form.options.other')}</SelectItem>
-                </SelectContent>
-              </Select>
+              {isMounted ? (
+                <Select>
+                  <SelectTrigger className="border-synkro-green/20 focus:border-synkro-green focus:ring-synkro-green/20 bg-white dark:bg-synkro-black">
+                    <SelectValue placeholder={t('contact.form.selectOption')} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-synkro-black border-synkro-green/20">
+                    <SelectItem value="tienda">
+                      {t('contact.form.options.store')}
+                    </SelectItem>
+                    <SelectItem value="migrar">
+                      {t('contact.form.options.migrate')}
+                    </SelectItem>
+                    <SelectItem value="integracion">
+                      {t('contact.form.options.integration')}
+                    </SelectItem>
+                    <SelectItem value="demo">{t('contact.form.options.demo')}</SelectItem>
+                    <SelectItem value="soporte">{t('contact.form.options.support')}</SelectItem>
+                    <SelectItem value="otro">{t('contact.form.options.other')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex h-10 w-full items-center justify-between rounded-md border border-synkro-green/20 bg-white dark:bg-synkro-black px-3 py-2 text-sm text-muted-foreground">
+                  {t('contact.form.selectOption')}
+                </div>
+              )}
             </div>
             <div className="grid w-full gap-1.5">
               <Label

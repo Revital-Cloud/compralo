@@ -4,12 +4,27 @@ Modulo de Servicios de Suscripciones.
 Este modulo contiene la logica de negocio para gestionar las suscripciones
 de clientes a planes.
 """
+import json
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Any
 
 from schemas.suscripcion_schema import SuscripcionCreate, SuscripcionUpdate
+
+
+def _parse_json_result(raw: Any) -> Optional[dict]:
+    """Normaliza el retorno de funciones SQL que devuelven JSON (dict o string)."""
+    if raw is None:
+        return None
+    if isinstance(raw, dict):
+        return raw
+    if isinstance(raw, str):
+        try:
+            return json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return None
+    return None
 
 
 def get_suscripciones(db: Session, identificacion_fiscal_cliente: str = None) -> List[dict]:
@@ -86,17 +101,17 @@ def create_suscripcion(db: Session, suscripcion: SuscripcionCreate, usr_insert: 
     try:
         query = text("""
             SELECT fun_insert_suscripcion(
-                :identificacion_fiscal_cliente,
-                :id_plan,
-                :id_instancia,
-                :tipo_facturacion::enum_tipo_facturacion,
+                CAST(:identificacion_fiscal_cliente AS VARCHAR),
+                CAST(:id_plan AS DECIMAL(10,0)),
                 :precio_actual,
-                :fecha_inicio,
-                :fecha_fin,
-                :fecha_proximo_pago,
-                :estado_suscripcion::enum_estado_suscripcion,
-                :metodo_pago::enum_metodo_pago,
-                :usr_insert
+                CAST(:usr_insert AS VARCHAR),
+                CAST(:id_instancia AS DECIMAL(10,0)),
+                CAST(:tipo_facturacion AS enum_tipo_facturacion),
+                CAST(:fecha_inicio AS TIMESTAMP),
+                CAST(:fecha_fin AS TIMESTAMP),
+                CAST(:fecha_proximo_pago AS TIMESTAMP),
+                CAST(:estado_suscripcion AS enum_estado_suscripcion),
+                CAST(:metodo_pago AS enum_metodo_pago)
             )
         """)
         
@@ -118,7 +133,8 @@ def create_suscripcion(db: Session, suscripcion: SuscripcionCreate, usr_insert: 
         fetched_result = result.fetchone()
         db.commit()
         
-        return fetched_result[0] if fetched_result else None
+        raw = fetched_result[0] if fetched_result else None
+        return _parse_json_result(raw)
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al crear suscripcion: {str(e)}")
@@ -132,12 +148,12 @@ def update_suscripcion(db: Session, id_suscripcion: Decimal, suscripcion: Suscri
                 :id_suscripcion,
                 :id_plan,
                 :id_instancia,
-                :tipo_facturacion::enum_tipo_facturacion,
+                CAST(:tipo_facturacion AS enum_tipo_facturacion),
                 :precio_actual,
                 :fecha_fin,
                 :fecha_proximo_pago,
-                :estado_suscripcion::enum_estado_suscripcion,
-                :metodo_pago::enum_metodo_pago,
+                CAST(:estado_suscripcion AS enum_estado_suscripcion),
+                CAST(:metodo_pago AS enum_metodo_pago),
                 :fecha_cancelacion,
                 :motivo_cancelacion,
                 :usr_update
@@ -163,7 +179,8 @@ def update_suscripcion(db: Session, id_suscripcion: Decimal, suscripcion: Suscri
         fetched_result = result.fetchone()
         db.commit()
         
-        return fetched_result[0] if fetched_result else None
+        raw = fetched_result[0] if fetched_result else None
+        return _parse_json_result(raw)
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al actualizar suscripcion: {str(e)}")
@@ -177,7 +194,9 @@ def delete_suscripcion(db: Session, id_suscripcion: Decimal) -> dict:
         fetched_result = result.fetchone()
         db.commit()
         
-        return fetched_result[0] if fetched_result else {"message": "Suscripcion eliminada correctamente"}
+        raw = fetched_result[0] if fetched_result else None
+        parsed = _parse_json_result(raw)
+        return parsed if parsed is not None else {"success": True, "message": "Suscripcion eliminada correctamente"}
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al eliminar suscripcion: {str(e)}")
@@ -243,7 +262,7 @@ def cambiar_plan_suscripcion(
                 :id_plan_nuevo,
                 :usuario_email,
                 :motivo_cambio,
-                :tipo_cambio::enum_tipo_cambio
+                CAST(:tipo_cambio AS enum_tipo_cambio)
             )
         """)
 
@@ -259,7 +278,8 @@ def cambiar_plan_suscripcion(
         fetched_result = result.fetchone()
         db.commit()
 
-        return fetched_result[0] if fetched_result else None
+        raw = fetched_result[0] if fetched_result else None
+        return _parse_json_result(raw)
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al cambiar plan de suscripción: {str(e)}")

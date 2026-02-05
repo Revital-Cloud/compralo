@@ -292,6 +292,16 @@ function DashboardContent() {
           value={plan?.nom_plan || t('dashboard.values.noPlan')}
           icon={CreditCard}
           loading={loadingPlan}
+          valueClassName={
+            !activeSubscription 
+              ? 'text-amber-600 dark:text-amber-400' 
+              : undefined
+          }
+          description={
+            !activeSubscription 
+              ? t('dashboard.values.selectPlanToStart')
+              : undefined
+          }
         />
         <MetricCard
           title={t('dashboard.metrics.pendingInvoices')}

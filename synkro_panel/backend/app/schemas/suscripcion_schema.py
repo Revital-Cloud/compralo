@@ -76,6 +76,13 @@ class Suscripcion(SuscripcionBase):
     fec_update: Optional[datetime] = Field(None, description="Fecha de actualizacion")
 
 
+class CrearPrimeraSuscripcionResponse(BaseModel):
+    """Respuesta al crear la primera suscripción; puede incluir URL de Stripe Checkout."""
+    message: str = Field(..., description="Mensaje de resultado")
+    success: bool = Field(..., description="Indica si la operación fue exitosa")
+    checkout_url: Optional[str] = Field(None, description="URL de Stripe Checkout para pagar (si aplica)")
+
+
 class SuscripcionPublic(BaseModel):
     """Esquema publico para informacion de la suscripcion."""
     id_suscripcion: Decimal = Field(..., description="ID unico de la suscripcion")

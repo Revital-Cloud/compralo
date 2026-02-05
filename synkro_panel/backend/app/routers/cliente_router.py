@@ -87,7 +87,7 @@ def update_my_profile(
         )
 
 
-@router.get("/me/suscripcion")
+@router.get("/me/subscription")
 def get_my_subscription(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(require_cliente)

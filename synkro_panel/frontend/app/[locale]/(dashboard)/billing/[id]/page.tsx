@@ -1,16 +1,18 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { ArrowLeft, Download, CheckCircle2, Calendar, CreditCard, FileText } from 'lucide-react';
+import { ArrowLeft, Download, CheckCircle2, Calendar, CreditCard, FileText, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { toast } from 'sonner';
 
 import { useInvoice } from '@/hooks/use-billing';
+import billingService from '@/services/billing.service';
 import type { InvoiceDetail } from '@/types';
 
 // Format price
@@ -69,6 +71,30 @@ export default function InvoiceDetailPage({
   const localePrefix = `/${locale}`;
   const resolvedParams = use(params);
   const { data: invoice, isLoading } = useInvoice(resolvedParams.id);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  const handlePayNow = async () => {
+    if (!invoice || invoice.estado_pago !== 'pendiente') {
+      return;
+    }
+
+    setIsProcessingPayment(true);
+    try {
+      const result = await billingService.createStripeCheckoutSession(invoice.id_factura);
+      
+      if (result.checkout_url) {
+        // Redirigir a Stripe Checkout
+        window.location.href = result.checkout_url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (error: any) {
+      console.error('Error creating checkout session:', error);
+      const errorMessage = error?.response?.data?.detail || error?.message || t('billing.invoice.paymentError');
+      toast.error(errorMessage);
+      setIsProcessingPayment(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -268,8 +294,19 @@ export default function InvoiceDetailPage({
           {invoice.estado_pago === 'pendiente' && (
             <Card>
               <CardContent className="pt-6">
-                <Button className="w-full bg-synkro-green hover:bg-synkro-green/90 text-synkro-black">
-                  {t('billing.invoice.payNow')}
+                <Button 
+                  className="w-full bg-synkro-green hover:bg-synkro-green/90 text-synkro-black"
+                  onClick={handlePayNow}
+                  disabled={isProcessingPayment}
+                >
+                  {isProcessingPayment ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {t('billing.invoice.processing')}
+                    </>
+                  ) : (
+                    t('billing.invoice.payNow')
+                  )}
                 </Button>
               </CardContent>
             </Card>
