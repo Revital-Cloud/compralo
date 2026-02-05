@@ -252,19 +252,27 @@ const CartPage = () => {
     toast.success("Código de descuento removido");
   };
 
-  // Cálculos del carrito - usar datos del backend o fallback local
-  const subtotal =
-    Number(totals?.total_productos) ||
-    (Array.isArray(items) && items.length > 0
-      ? items.reduce((acc, item) => acc + (Number(item.subtotal) || 0), 0)
-      : 0);
+  // Cálculos del carrito - calcular desde items (fuente de verdad)
+  // El subtotal debe calcularse desde los items del carrito, no desde totals del backend
+  // para evitar discrepancias
+  const subtotal = Array.isArray(items) && items.length > 0
+    ? items.reduce((acc, item) => {
+        const itemSubtotal = Number(item.subtotal) || 0;
+        return acc + itemSubtotal;
+      }, 0)
+    : 0;
   const shipping =
     Number(totals?.resumen?.costo_envio) ||
     (subtotal > 50 || subtotal === 0 ? 0 : 10);
   const salesTax = Number(totals?.resumen?.impuestos) || 0;
-  const finalTotal =
-    Number(totals?.total_final) ?? (hasItems() ? Number(total) : 0) ?? 0;
+  
+  // Calcular total final desde el subtotal local, aplicando descuentos del backend
+  const totalDescAutomaticos = Number(totals?.total_desc_automaticos ?? 0);
   const totalDescCanjeado = Number(totals?.total_desc_canjeado ?? 0);
+  const totalDescuentos = totalDescAutomaticos + totalDescCanjeado;
+  
+  // Total final = subtotal + shipping + salesTax - descuentos
+  const finalTotal = Math.max(0, subtotal + shipping + salesTax - totalDescuentos);
   const selectedCanjeNombre = selectedCanjeId != null
     ? availableCanjes.find((c) => c.id_canje === selectedCanjeId)?.nom_descuento
     : null;

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useFavorites } from '@/hooks/use-favorites'
 import { useAuth } from '@/hooks/use-auth'
 import { useCart } from '@/hooks/use-cart'
@@ -27,9 +27,15 @@ const FavoritesPage: React.FC = () => {
   // Estado local para controlar el loading de cada botón individualmente
   const [loadingProducts, setLoadingProducts] = useState<Set<string>>(new Set())
 
-  // Si no hay usuario autenticado, redirigir al login
+  // Si no hay usuario autenticado, redirigir al login (usando useEffect para evitar error de React)
+  useEffect(() => {
+    if (!user) {
+      router.push('/login')
+    }
+  }, [user, router])
+
+  // Si no hay usuario, no renderizar nada mientras se redirige
   if (!user) {
-    router.push('/login')
     return null
   }
 

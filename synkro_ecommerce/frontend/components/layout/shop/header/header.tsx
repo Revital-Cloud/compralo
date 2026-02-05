@@ -26,6 +26,7 @@ import {
   Navigation,
   MobileMenu,
   SearchBar,
+  ProductSearchBar,
   CartButton,
   UserMenu
 } from "./components"
@@ -33,6 +34,7 @@ import Link from "next/link"
 import { defaultMenuItems } from "@/lib/menu-config"
 import { useCartInfo } from "@/hooks/use-cart"
 import { useFavorites } from "@/hooks/use-favorites"
+import { useAuth } from "@/hooks/use-auth"
 import { useRouter, usePathname } from "next/navigation"
 
 interface EcommerceHeaderProps {
@@ -52,6 +54,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
   const pathname = usePathname()
   const { itemCount, isLoading } = useCartInfo()
   const { favorites } = useFavorites()
+  const { user } = useAuth()
   
   // Estado para evitar problemas de hidratación
   const [mounted, setMounted] = useState(false)
@@ -144,42 +147,39 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
             {/* Right Side */}
             <div className="flex items-center space-x-2 sm:space-x-4 lg:space-x-6">
               {/* Search Bar - Oculto en móvil, visible en tablet y desktop */}
-              <div className="relative hidden sm:block">
-                <input
-                  type="text"
-                  placeholder="Buscar productos..."
-                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#ec2538] dark:focus:ring-red-500 w-40 sm:w-48 lg:w-64 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-colors duration-300"
-                />
-                <Search className="absolute right-3 top-2.5 w-4 h-4 text-gray-400 dark:text-gray-500" />
+              <div className="hidden sm:block w-40 sm:w-48 lg:w-64">
+                <ProductSearchBar />
               </div>
               
               {/* Actions - Responsive con diferentes breakpoints */}
               <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-4">
-                {/* Wishlist - Oculto en móvil muy pequeño */}
-                <div className="hidden sm:block">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="relative p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
-                          onClick={handleFavoritesClick}
-                        >
-                          <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
-                          {mounted && favoritesCount > 0 && (
-                            <span className="absolute -top-1 -right-1 bg-[#ec2538] dark:bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                              {favoritesCount > 99 ? '99+' : favoritesCount}
-                            </span>
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Lista de deseos</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
+                {/* Wishlist - Solo visible si el usuario está autenticado */}
+                {user && (
+                  <div className="hidden sm:block">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="relative p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
+                            onClick={handleFavoritesClick}
+                          >
+                            <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
+                            {mounted && favoritesCount > 0 && (
+                              <span className="absolute -top-1 -right-1 bg-[#ec2538] dark:bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                {favoritesCount > 99 ? '99+' : favoritesCount}
+                              </span>
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Lista de deseos</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                )}
 
                 {/* Notifications - Oculto en móvil muy pequeño */}
                 <div className="hidden sm:block">
