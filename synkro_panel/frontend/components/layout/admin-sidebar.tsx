@@ -6,6 +6,9 @@ import {
   LayoutDashboard,
   Users,
   Receipt,
+  Server,
+  CreditCard,
+  Package,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -21,6 +24,9 @@ import { ClientNavUser } from './client-nav-user';
 const navigationItemsConfig = [
   { key: 'dashboard', url: '/admin', icon: LayoutDashboard, section: 'overview' as const },
   { key: 'clients', url: '/admin/clients', icon: Users, section: 'management' as const },
+  { key: 'instances', url: '/admin/instances', icon: Server, section: 'management' as const },
+  { key: 'subscriptions', url: '/admin/subscriptions', icon: CreditCard, section: 'management' as const },
+  { key: 'plans', url: '/admin/plans', icon: Package, section: 'management' as const },
   { key: 'billing', url: '/admin/billing', icon: Receipt, section: 'management' as const },
 ];
 

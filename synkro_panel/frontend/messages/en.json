@@ -38,6 +38,9 @@
     "clientPortal": "Client Portal",
     "adminPortal": "Admin Panel",
     "clients": "Clients",
+    "instances": "Instances",
+    "subscriptions": "Subscriptions",
+    "plans": "Plans",
     "management": "Management",
     "profile": "Profile",
     "logOut": "Log out",
@@ -435,7 +438,10 @@
       "title": "Plan History",
       "noHistory": "No plan changes recorded yet.",
       "priceChanged": "Price changed: {oldPrice} → {newPrice}",
-      "reason": "Reason: {reason}"
+      "reason": "Reason: {reason}",
+      "paginationShowing": "Showing {from}-{to} of {total}",
+      "previous": "Previous",
+      "next": "Next"
     },
     "changePlan": {
       "title": "Change Plan",
@@ -755,7 +761,11 @@
     "charts": {
       "revenue": "Revenue",
       "clientsFunnel": "Clients Funnel (6 months)",
-      "instancesByPlan": "Instances by Plan"
+      "instancesByPlan": "Instances by Plan",
+      "clientsGrowth": "Clients growth trend",
+      "instancesByStatus": "Instances by status",
+      "instancesByRegion": "Instances by region",
+      "mrrByPlan": "MRR by plan"
     }
   }
 }

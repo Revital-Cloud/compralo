@@ -20,12 +20,19 @@ export function AdminHeader() {
   const pageTitleByPath: Record<string, string> = {
     '/admin': t('dashboard'),
     '/admin/clients': t('clients'),
+    '/admin/instances': t('instances'),
+    '/admin/subscriptions': t('subscriptions'),
+    '/admin/plans': t('plans'),
+    '/admin/plans/new': t('plans'), // "Plans" or we could add admin.editPlan - keep simple
     '/admin/billing': t('billing'),
   };
 
   const pageTitle =
     pageTitleByPath[currentPath] ??
-    Object.entries(pageTitleByPath).find(([path]) => currentPath.startsWith(path + '/'))?.[1] ??
+    Object.entries(pageTitleByPath)
+      .filter(([path]) => path !== '/admin' && currentPath.startsWith(path + '/'))
+      .sort(([a], [b]) => b.length - a.length)[0]?.[1] ??
+    pageTitleByPath[currentPath.split('/').slice(0, -1).join('/') || '/admin'] ??
     tAdmin('title');
 
   return (

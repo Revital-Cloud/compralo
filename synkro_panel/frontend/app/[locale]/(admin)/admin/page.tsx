@@ -30,6 +30,26 @@ const ClientsFunnelChart = dynamic(
   { ssr: false, loading: () => <Skeleton className="h-[300px] w-full rounded-md" /> }
 );
 
+const ClientsGrowthChart = dynamic(
+  () => import('@/components/admin/clients-growth-chart').then((m) => m.ClientsGrowthChart),
+  { ssr: false, loading: () => <Skeleton className="h-[300px] w-full rounded-md" /> }
+);
+
+const InstancesByStatusChart = dynamic(
+  () => import('@/components/admin/instances-by-status-chart').then((m) => m.InstancesByStatusChart),
+  { ssr: false, loading: () => <Skeleton className="h-[300px] w-full rounded-md" /> }
+);
+
+const InstancesByRegionChart = dynamic(
+  () => import('@/components/admin/instances-by-region-chart').then((m) => m.InstancesByRegionChart),
+  { ssr: false, loading: () => <Skeleton className="h-[300px] w-full rounded-md" /> }
+);
+
+const MRRByPlanChart = dynamic(
+  () => import('@/components/admin/mrr-by-plan-chart').then((m) => m.MRRByPlanChart),
+  { ssr: false, loading: () => <Skeleton className="h-[300px] w-full rounded-md" /> }
+);
+
 type DateRangeKey = '30d' | '90d' | '180d';
 
 export default function AdminDashboardPage() {
@@ -155,6 +175,58 @@ export default function AdminDashboardPage() {
           />
         </CardContent>
       </Card>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('admin.charts.clientsGrowth')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ClientsGrowthChart
+              data={clientsSeries?.puntos ?? []}
+              loading={loadingClients}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('admin.charts.instancesByStatus')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InstancesByStatusChart
+              data={overview?.instancias_por_estado ?? {}}
+              loading={loadingOverview}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('admin.charts.instancesByRegion')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InstancesByRegionChart
+              data={overview?.instancias_por_region ?? {}}
+              loading={loadingOverview}
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('admin.charts.mrrByPlan')}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MRRByPlanChart
+              data={overview?.ingresos_por_plan ?? {}}
+              loading={loadingOverview}
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

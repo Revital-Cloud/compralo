@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import {
   CreditCard,
   Check,
@@ -10,6 +10,8 @@ import {
   Calendar,
   Sparkles,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -309,16 +311,32 @@ function PlanCard({
   );
 }
 
+const PLAN_HISTORY_PAGE_SIZE = 5;
+
 // Plan History Timeline
-function PlanHistoryTimeline({ 
-  history, 
-  loading 
-}: { 
+function PlanHistoryTimeline({
+  history,
+  loading,
+}: {
   history: PlanHistoryPublic[];
   loading: boolean;
 }) {
   const t = useTranslations();
   const locale = useLocale();
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalItems = history.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / PLAN_HISTORY_PAGE_SIZE));
+  const from = totalItems === 0 ? 0 : (currentPage - 1) * PLAN_HISTORY_PAGE_SIZE + 1;
+  const to = Math.min(currentPage * PLAN_HISTORY_PAGE_SIZE, totalItems);
+  const paginatedHistory = history.slice(
+    (currentPage - 1) * PLAN_HISTORY_PAGE_SIZE,
+    currentPage * PLAN_HISTORY_PAGE_SIZE
+  );
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) setCurrentPage(1);
+  }, [totalPages, currentPage]);
 
   const getChangeIcon = (tipo: string) => {
     switch (tipo) {
@@ -351,33 +369,67 @@ function PlanHistoryTimeline({
 
   return (
     <div className="space-y-4">
-      {history.map((record) => (
-        <div 
-          key={record.id_historial} 
-          className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 p-4 rounded-lg bg-muted/50"
-        >
-          <div className="mt-1 shrink-0">{getChangeIcon(record.tipo_cambio)}</div>
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <p className="font-medium capitalize">{record.tipo_cambio}</p>
-              <p className="text-sm text-muted-foreground">
-                {formatDate(record.fecha_cambio, locale)}
+      <div className="space-y-4">
+        {paginatedHistory.map((record) => (
+          <div
+            key={record.id_historial}
+            className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4 p-4 rounded-lg bg-muted/50"
+          >
+            <div className="mt-1 shrink-0">{getChangeIcon(record.tipo_cambio)}</div>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <p className="font-medium capitalize">{record.tipo_cambio}</p>
+                <p className="text-sm text-muted-foreground">
+                  {formatDate(record.fecha_cambio, locale)}
+                </p>
+              </div>
+              <p className="text-sm text-muted-foreground wrap-break-word">
+                {t('subscription.planHistory.priceChanged', {
+                  oldPrice: formatPrice(record.precio_anterior || 0, 'USD', locale),
+                  newPrice: formatPrice(record.precio_nuevo, 'USD', locale)
+                })}
               </p>
+              {record.motivo_cambio && (
+                <p className="text-sm text-muted-foreground mt-1 wrap-break-word">
+                  {t('subscription.planHistory.reason', { reason: record.motivo_cambio })}
+                </p>
+              )}
             </div>
-            <p className="text-sm text-muted-foreground wrap-break-word">
-              {t('subscription.planHistory.priceChanged', {
-                oldPrice: formatPrice(record.precio_anterior || 0, 'USD', locale),
-                newPrice: formatPrice(record.precio_nuevo, 'USD', locale)
-              })}
-            </p>
-            {record.motivo_cambio && (
-              <p className="text-sm text-muted-foreground mt-1 wrap-break-word">
-                {t('subscription.planHistory.reason', { reason: record.motivo_cambio })}
-              </p>
-            )}
+          </div>
+        ))}
+      </div>
+
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t">
+          <p className="text-sm text-muted-foreground">
+            {t('subscription.planHistory.paginationShowing', {
+              from: String(from),
+              to: String(to),
+              total: String(totalItems),
+            })}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage <= 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              {t('subscription.planHistory.previous')}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages}
+            >
+              {t('subscription.planHistory.next')}
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
           </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }
