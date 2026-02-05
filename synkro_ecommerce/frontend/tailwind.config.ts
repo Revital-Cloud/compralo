@@ -86,15 +86,6 @@ const config: Config = {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
-      keyframes: {
-        float: {
-          "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-6px)" },
-        },
-      },
-      animation: {
-        float: "float 2.5s ease-in-out infinite",
-      },
     },
   },
   darkMode: "class",

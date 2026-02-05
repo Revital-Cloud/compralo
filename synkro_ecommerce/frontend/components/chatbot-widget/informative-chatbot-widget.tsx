@@ -1,300 +1,255 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import Link from "next/link"
-import { useQuery } from "@tanstack/react-query"
 import { Button } from "@/components/ui"
 import { Card } from "@/components/ui"
 import { Input } from "@/components/ui"
-import { X, Send } from "lucide-react"
-import { INFORMATIVE_SECTIONS } from "./chatbot-informative-content"
-import discountService from "@/services/discount.service"
+import { ScrollArea } from "@/components/ui"
+import { Avatar, AvatarFallback } from "@/components/ui"
+import { Send, X } from "lucide-react"
+import Image from "next/image"
+import { useActiveDiscounts } from "@/hooks/use-discounts"
+import { useActivePointsRate } from "@/hooks/use-points"
+import { formatPrice } from "@/utils/format-price"
 import type { Discount } from "@/types/discount"
+import {
+  WELCOME_MESSAGE,
+  INVALID_OPTION_MESSAGE,
+  GOODBYE_MESSAGE,
+  getMainMenuText,
+  getSubmenuText,
+  getSectionById,
+} from "./chatbot-menu-content"
 
-// --- Tipos y constantes ---
+type MenuState =
+  | "main"
+  | "terminos"
+  | "datos"
+  | "descuentos"
+  | "puntos"
+  | "garantias"
+  | "submenu"
+
+type SubmenuFrom = "terminos" | "datos" | "descuentos" | "puntos" | "garantias"
 
 type Message = {
   id: string
   role: "user" | "assistant"
   content: string
-  sectionId?: string
 }
 
-type MenuState = "main" | { kind: "after_section"; sectionId: string }
+const SECTION_IDS: SubmenuFrom[] = ["terminos", "datos", "descuentos", "puntos", "garantias"]
 
-const MAIN_MENU_OPTIONS = [
-  { value: "1", label: "Términos y condiciones", sectionId: "terminos" },
-  { value: "2", label: "Datos personales y transacciones", sectionId: "datos-personales" },
-  { value: "3", label: "Sistema de puntos", sectionId: "puntos" },
-  { value: "4", label: "Descuentos y promociones", sectionId: "descuentos" },
-  { value: "5", label: "Garantías y devoluciones", sectionId: "garantias" },
-  { value: "6", label: "Salir", sectionId: undefined },
-] as const
-
-const SUBMENU_OPTIONS = [
-  { value: "1", label: "Ir al menú principal" },
-  { value: "2", label: "Salir" },
-] as const
-
-const WELCOME_TEXT = `Hola. Soy tu asistente de información legal y comercial. Elige una opción del menú:
-
-1. Términos y condiciones
-2. Datos personales y transacciones
-3. Sistema de puntos
-4. Descuentos y promociones
-5. Garantías y devoluciones
-6. Salir`
-
-const SUBMENU_TEXT = `¿Qué deseas hacer?
-
-1. Ir al menú principal
-2. Salir`
-
-const INVALID_OPTION_TEXT =
-  "Esa opción no es válida. Por favor elige un número del menú."
-
-const GOODBYE_TEXT = "Gracias por usar el asistente. ¡Hasta pronto!"
-
-function getSectionSummary(sectionId: string): string {
-  const section = INFORMATIVE_SECTIONS.find((s) => s.id === sectionId)
-  if (!section) return ""
-  return section.shortContent ?? section.content.split("\n")[0] ?? section.title
+function parseOption(input: string): number | null {
+  const n = parseInt(input.trim(), 10)
+  if (Number.isNaN(n)) return null
+  return n
 }
 
-function createWelcomeMessage(): Message {
-  return {
-    id: "welcome",
-    role: "assistant",
-    content: WELCOME_TEXT,
-  }
+function formatDiscountValue(d: Discount): string {
+  return d.tipo_calculo ? `${d.val_porce_descuento ?? 0}%` : formatPrice(d.val_monto_descuento ?? 0)
 }
 
 export function InformativeChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState<Message[]>(() => [createWelcomeMessage()])
   const [menuState, setMenuState] = useState<MenuState>("main")
+  const [submenuFrom, setSubmenuFrom] = useState<SubmenuFrom | null>(null)
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const panelRef = useRef<HTMLDivElement>(null)
   const nextIdRef = useRef(0)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const { data: activeDiscounts } = useActiveDiscounts(20)
+  const { data: activePointsRate } = useActivePointsRate()
 
-  useEffect(() => {
-    if (!isOpen) return
-    const firstFocusable = panelRef.current?.querySelector<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    )
-    firstFocusable?.focus()
-  }, [isOpen])
+  const nextId = () => `msg-${++nextIdRef.current}`
 
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
-  }, [messages])
+  const addUserMessage = (content: string) => {
+    setMessages((prev) => [...prev, { id: nextId(), role: "user", content }])
+  }
 
-  const addMessage = (role: Message["role"], content: string, sectionId?: string) => {
-    const id = `msg-${++nextIdRef.current}`
-    setMessages((prev) => [...prev, { id, role, content, sectionId }])
+  const addBotMessage = (content: string) => {
+    setMessages((prev) => [...prev, { id: nextId(), role: "assistant", content }])
+  }
+
+  const showSubmenu = (from: SubmenuFrom) => {
+    addBotMessage("Elige una opción:\n\n" + getSubmenuText())
+    setMenuState("submenu")
+    setSubmenuFrom(from)
   }
 
   const handleClose = () => {
     setIsOpen(false)
-    setMessages([createWelcomeMessage()])
+    setMessages([])
     setMenuState("main")
+    setSubmenuFrom(null)
     setInput("")
   }
 
-  const sendChoice = (value: string) => {
-    const trimmed = value.trim()
-    if (!trimmed) return
+  const handleOpen = () => {
+    setIsOpen(true)
+    if (messages.length === 0) {
+      addBotMessage(WELCOME_MESSAGE)
+    }
+  }
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages])
+
+  const handleSend = (text?: string) => {
+    const raw = (text ?? input).trim()
+    if (!raw) return
+
+    const toSend = text ?? input
+    setInput("")
+    addUserMessage(toSend)
+    const option = parseOption(toSend)
 
     if (menuState === "main") {
-      const num = trimmed === "6" ? "6" : trimmed
-      if (num === "6") {
-        addMessage("user", "6")
-        addMessage("assistant", GOODBYE_TEXT)
+      if (option !== null && option === 6) {
+        addBotMessage(GOODBYE_MESSAGE)
         setTimeout(handleClose, 800)
         return
       }
-      const opt = MAIN_MENU_OPTIONS.find((o) => o.value === num && o.sectionId)
-      if (!opt) {
-        addMessage("user", trimmed)
-        addMessage("assistant", INVALID_OPTION_TEXT + "\n\n" + WELCOME_TEXT)
+      if (option !== null && option >= 1 && option <= 5) {
+        const sectionId = SECTION_IDS[option - 1]
+        const section = getSectionById(sectionId)
+        if (section) {
+          let content = `${section.title}\n\n${section.content}`
+          if (sectionId === "descuentos") {
+            if (activeDiscounts?.length) {
+              content += `\n\nDescuentos activos en este momento (${activeDiscounts.length}):\n${activeDiscounts.map((d, i) => `${i + 1}. ${d.nom_descuento}: ${formatDiscountValue(d)}`).join("\n")}`
+            } else {
+              content += "\n\nNo hay descuentos activos en este momento."
+            }
+          }
+          if (sectionId === "puntos") {
+            const config = activePointsRate?.[0]
+            if (config?.pesos_por_punto) {
+              const pesos = Number(config.pesos_por_punto)
+              content += `\n\nConfiguración actual de la tienda:\n• Por cada ${formatPrice(pesos)} gastados en tu compra obtienes 1 punto.\n• Ejemplo: en una compra de ${formatPrice(pesos * 5)} ganas 5 puntos.`
+            } else {
+              content += "\n\nNo hay configuración de puntos activa en este momento."
+            }
+          }
+          addBotMessage(content)
+          showSubmenu(sectionId)
+        } else {
+          addBotMessage(INVALID_OPTION_MESSAGE + "\n\n" + getMainMenuText())
+        }
         return
       }
-      addMessage("user", trimmed)
-      const summary = getSectionSummary(opt.sectionId!)
-      addMessage("assistant", summary, opt.sectionId)
-      addMessage("assistant", SUBMENU_TEXT)
-      setMenuState({ kind: "after_section", sectionId: opt.sectionId! })
+      addBotMessage(INVALID_OPTION_MESSAGE + "\n\n" + getMainMenuText())
       return
     }
 
-    if (menuState.kind === "after_section") {
-      if (trimmed === "1") {
-        addMessage("user", trimmed)
-        addMessage("assistant", WELCOME_TEXT)
+    if (menuState === "submenu") {
+      if (option !== null && option === 1) {
+        addBotMessage(WELCOME_MESSAGE)
         setMenuState("main")
+        setSubmenuFrom(null)
         return
       }
-      if (trimmed === "2") {
-        addMessage("user", trimmed)
-        addMessage("assistant", GOODBYE_TEXT)
+      if (option !== null && option === 2) {
+        addBotMessage(GOODBYE_MESSAGE)
         setTimeout(handleClose, 800)
         return
       }
-      addMessage("user", trimmed)
-      addMessage("assistant", INVALID_OPTION_TEXT + "\n\n" + SUBMENU_TEXT)
-    }
-  }
-
-  const handleSend = () => {
-    const text = input.trim()
-    setInput("")
-    if (!text) return
-    sendChoice(text)
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
+      addBotMessage(INVALID_OPTION_MESSAGE + "\n\n" + getSubmenuText())
     }
   }
 
   if (!isOpen) {
     return (
       <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 w-16 h-16 bg-[#1E222D] text-primary-foreground rounded-full shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 flex items-center justify-center z-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 group overflow-hidden animate-chat-float"
-        aria-label="Abrir información legal y comercial"
+        onClick={handleOpen}
+        className="fixed bottom-6 right-6 w-16 h-16 bg-gray-900 dark:bg-gray-950 text-white rounded-full shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 flex items-center justify-center z-50 border border-gray-700 dark:border-gray-800"
+        aria-label="Abrir asistente"
       >
-        <img
-          src="/carrito.svg"
-          alt="Carrito"
-          className="w-10 h-10 object-contain transition-transform group-hover:scale-110"
-        />
+        <Image src="/carrito.svg" alt="Asistente" width={32} height={32} />
       </button>
     )
   }
 
   return (
-    <div
-      ref={panelRef}
-      className="fixed bottom-6 right-6 z-50 w-[min(400px,calc(100vw-2rem))] max-h-[min(600px,80vh)] flex flex-col"
-      role="dialog"
-      aria-label="Información legal y comercial"
-    >
-      <Card className="flex flex-col max-h-[min(600px,80vh)] shadow-2xl border bg-card/95 backdrop-blur-sm overflow-hidden">
-        <div className="flex-shrink-0 px-4 py-3 border-b bg-gradient-to-r from-muted to-muted/80 rounded-t-xl flex items-center justify-between gap-3">
-          <div className="relative flex-shrink-0 w-12 h-12 rounded-xl bg-[#1E222D] border-2 border-primary/40 flex items-center justify-center overflow-hidden">
-            <img src="/carrito.svg" alt="Carrito" className="w-8 h-8 object-contain" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="font-semibold text-sm">Información legal y comercial</h2>
-            <p className="text-xs text-muted-foreground truncate">
-              Asistente por menús. Elige una opción en cada paso.
-            </p>
+    <div className="fixed bottom-6 right-6 z-50">
+      <Card className="w-[400px] h-[600px] shadow-2xl bg-card flex flex-col overflow-hidden rounded-2xl">
+        <div className="bg-gray-900 dark:bg-gray-950 text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-gray-800 dark:bg-gray-800 rounded-full flex items-center justify-center ring-2 ring-gray-600 dark:ring-gray-700 overflow-hidden">
+              <Image src="/carrito.svg" alt="" width={24} height={24} />
+            </div>
+            <div>
+              <h3 className="font-semibold text-base">Información legal y comercial</h3>
+              <p className="text-xs text-gray-300 dark:text-gray-400">Asistente</p>
+            </div>
           </div>
           <Button
-            type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0"
+            className="h-9 w-9 text-white hover:bg-gray-700 dark:hover:bg-gray-800 rounded-full transition-colors"
             onClick={handleClose}
-            aria-label="Cerrar"
+            title="Cerrar"
           >
-            <X className="h-4 w-4" />
+            <X className="w-4 h-4" />
           </Button>
         </div>
 
-        <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-          <div
-            ref={scrollRef}
-            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-4 py-3"
-          >
-            <div className="space-y-4 pb-4 pr-2">
-              {messages.map((msg) => (
+        <div className="flex-1 overflow-hidden bg-background min-h-0 bg-card">
+          <ScrollArea className="h-full bg-card">
+            <div ref={scrollRef} className="p-5 space-y-4 max-h-[calc(600px-180px)] overflow-y-auto">
+              {messages.map((message) => (
                 <div
-                  key={msg.id}
-                  className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}
+                  key={message.id}
+                  className={`flex gap-3 ${message.role === "user" ? "flex-row-reverse" : "flex-row"}`}
                 >
-                  <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
-                      msg.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground"
-                    }`}
-                  >
-                    <div className="whitespace-pre-line leading-relaxed">{msg.content}</div>
-                    {msg.sectionId === "descuentos" && (
-                      <div className="mt-3 pt-3 border-t border-border/50">
-                        <DescuentosActivosInline />
-                      </div>
-                    )}
+                  {message.role === "user" ? (
+                    <Avatar className="w-9 h-9 flex-shrink-0 bg-gradient-to-br from-primary to-primary/80 ring-2 ring-background">
+                      <AvatarFallback className="text-xs font-semibold text-primary-foreground">TÚ</AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <div className="w-9 h-9 flex-shrink-0 rounded-full bg-gray-800 dark:bg-gray-800 flex items-center justify-center ring-2 ring-border overflow-hidden">
+                      <Image src="/carrito.svg" alt="" width={20} height={20} />
+                    </div>
+                  )}
+                  <div className={`flex-1 min-w-0 ${message.role === "user" ? "text-right" : "text-left"}`}>
+                    <div
+                      className={`inline-block rounded-2xl px-4 py-2.5 max-w-[85%] shadow-sm ${
+                        message.role === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-card text-card-foreground border border-border"
+                      }`}
+                    >
+                      <p className="text-sm leading-relaxed whitespace-pre-line">{message.content}</p>
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </ScrollArea>
+        </div>
 
-          <div className="flex-shrink-0 px-4 pb-4 flex gap-2">
+        <div className="p-4 bg-card flex-shrink-0">
+          <div className="flex gap-2">
             <Input
-              type="text"
-              placeholder="Escribe el número de opción o tu mensaje..."
+              placeholder="Escribe el número de la opción..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1"
-              aria-label="Mensaje"
+              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              className="flex-1 h-10 text-sm bg-background border-border focus-visible:ring-primary/20 rounded-xl"
             />
-            <Button type="button" size="icon" onClick={handleSend} aria-label="Enviar">
-              <Send className="h-4 w-4" />
+            <Button
+              onClick={() => handleSend()}
+              size="icon"
+              className="h-10 w-10 bg-gradient-to-br from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 rounded-xl shadow-sm transition-all"
+            >
+              <Send className="w-4 h-4" />
             </Button>
           </div>
         </div>
       </Card>
-    </div>
-  )
-}
-
-function DescuentosActivosInline() {
-  const { data: discounts, isLoading, isError } = useQuery<Discount[]>({
-    queryKey: ["discounts", "active"],
-    queryFn: () => discountService.getActiveDiscounts(50),
-    staleTime: 60 * 1000,
-  })
-
-  if (isLoading) {
-    return <p className="text-xs text-muted-foreground">Cargando descuentos activos...</p>
-  }
-  if (isError || !discounts?.length) {
-    return (
-      <p className="text-xs text-muted-foreground">
-        No hay descuentos activos ahora.{" "}
-        <Link href="/discounts" className="text-primary underline underline-offset-2">
-          Ver descuentos
-        </Link>
-      </p>
-    )
-  }
-  return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium text-muted-foreground">Descuentos vigentes:</p>
-      <ul className="text-xs text-muted-foreground space-y-0.5 list-none">
-        {discounts.slice(0, 5).map((d) => (
-          <li key={d.id_descuento}>
-            {d.nom_descuento}
-            {d.tipo_calculo ? ` — ${d.val_porce_descuento}%` : ` — $${Number(d.val_monto_descuento).toLocaleString("es-CO")}`}
-          </li>
-        ))}
-      </ul>
-      {discounts.length > 5 && (
-        <p className="text-xs pt-0.5">
-          <Link href="/discounts" className="text-primary underline underline-offset-2">
-            Ver todos los descuentos
-          </Link>
-        </p>
-      )}
     </div>
   )
 }

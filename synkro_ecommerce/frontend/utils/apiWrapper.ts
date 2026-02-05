@@ -66,6 +66,7 @@ function setupInterceptors(instance: AxiosInstance): void {
         '/calcular-total',
         '/comentaries/testimonials',
         '/discounts/active',
+        '/tasa-activa',
       ];
       const isPublicEndpoint = publicEndpoints.some(endpoint => 
         config.url?.includes(endpoint)
@@ -117,6 +118,7 @@ function setupInterceptors(instance: AxiosInstance): void {
         '/calcular-total',
         '/comentaries/testimonials',
         '/discounts/active',
+        '/tasa-activa',
       ];
       const isPublicEndpoint = publicEndpoints.some(endpoint =>
         originalRequest.url?.includes(endpoint)
