@@ -6,6 +6,7 @@ Define los endpoints CRUD para la gestion de facturas.
 from decimal import Decimal
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 import logging
 
@@ -14,8 +15,8 @@ from core.dependencies import get_current_user, require_admin_synkro
 from core.config import settings
 from schemas.auth_schema import UserInToken, ResponseMessage
 from schemas.facturacion_schema import (
-    FacturaCabeceraCreate, 
-    FacturaCabeceraUpdate, 
+    FacturaCabeceraCreate,
+    FacturaCabeceraUpdate,
     FacturaPublic,
     FacturaConDetalle,
     FacturaDetalleCreate,
@@ -23,6 +24,7 @@ from schemas.facturacion_schema import (
 )
 from services import facturacion_service
 from services import stripe_service
+from services.pdf_service import generate_invoice_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -97,8 +99,57 @@ def get_factura(
     
     factura_dict = dict(factura)
     factura_dict["detalles"] = [dict(d) for d in detalles]
-    
+
     return FacturaConDetalle(**factura_dict)
+
+
+@router.get("/{id_factura}/pdf")
+def get_factura_pdf(
+    id_factura: Decimal,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Genera y devuelve el PDF de una factura.
+
+    Clientes solo pueden descargar sus propias facturas.
+    """
+    factura = facturacion_service.get_factura(db, id_factura)
+    if not factura:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invoice not found"
+        )
+
+    if current_user.user_type == "cliente" and factura.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to download this invoice"
+        )
+
+    detalles = facturacion_service.get_factura_detalles(db, id_factura)
+    factura_dict = dict(factura)
+    detalles_list = [dict(d) for d in detalles]
+
+    try:
+        pdf_bytes = generate_invoice_pdf(factura_dict, detalles_list)
+    except Exception as e:
+        logger.exception("Error generating invoice PDF: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error generating PDF"
+        ) from e
+
+    num_factura = factura.get("num_factura") or id_factura
+    filename = f"invoice-{num_factura}.pdf".replace(" ", "-")
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )
 
 
 @router.post("", response_model=ResponseMessage)

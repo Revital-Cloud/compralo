@@ -256,23 +256,41 @@ def cambiar_plan_suscripcion(
     - Registrar el historial de cambio de plan.
     """
     try:
-        query = text("""
-            SELECT fun_cambiar_plan_suscripcion(
-                :id_suscripcion,
-                :id_plan_nuevo,
-                :usuario_email,
-                :motivo_cambio,
-                CAST(:tipo_cambio AS enum_tipo_cambio)
-            )
-        """)
+        # Si tipo_cambio es 'lateral', pasar NULL para que la función SQL lo determine automáticamente
+        tipo_cambio_sql = None if tipo_cambio == "lateral" else tipo_cambio
+        
+        # Construir query con manejo condicional de NULL
+        if tipo_cambio_sql is None:
+            query = text("""
+                SELECT fun_cambiar_plan_suscripcion(
+                    :id_suscripcion,
+                    :id_plan_nuevo,
+                    :usuario_email,
+                    :motivo_cambio,
+                    NULL::enum_tipo_cambio
+                )
+            """)
+        else:
+            query = text("""
+                SELECT fun_cambiar_plan_suscripcion(
+                    :id_suscripcion,
+                    :id_plan_nuevo,
+                    :usuario_email,
+                    :motivo_cambio,
+                    CAST(:tipo_cambio AS enum_tipo_cambio)
+                )
+            """)
 
         params = {
             "id_suscripcion": id_suscripcion,
             "id_plan_nuevo": id_plan_nuevo,
             "usuario_email": usuario_email,
             "motivo_cambio": motivo_cambio,
-            "tipo_cambio": tipo_cambio,
         }
+        
+        # Solo agregar tipo_cambio si no es None
+        if tipo_cambio_sql is not None:
+            params["tipo_cambio"] = tipo_cambio_sql
 
         result = db.execute(query, params)
         fetched_result = result.fetchone()

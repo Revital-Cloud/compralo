@@ -21,7 +21,7 @@ function SuccessContent() {
 
   useEffect(() => {
     // Invalidar queries de facturas para refrescar datos después del pago
-    queryClient.invalidateQueries({ queryKey: BILLING_KEYS.all() });
+    queryClient.invalidateQueries({ queryKey: BILLING_KEYS.all });
   }, [queryClient]);
 
   return (

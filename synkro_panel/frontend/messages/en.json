@@ -438,10 +438,12 @@
       "title": "Change Plan",
       "description": "Are you sure you want to change to the {planName} plan?",
       "newPrice": "Your new price will be {price}/month.",
+      "payWithStripe": "You will be redirected to Stripe to complete payment for the new plan.",
       "reasonLabel": "Reason for change",
       "reasonPlaceholder": "e.g. Need more products or users",
       "cancel": "Cancel",
       "confirm": "Confirm Change",
+      "confirmAndPay": "Confirm and pay with Stripe",
       "applying": "Applying..."
     },
     "selectPlan": {
@@ -505,6 +507,8 @@
       "processing": "Processing...",
       "paymentError": "Error processing payment. Please try again.",
       "downloadPDF": "Download PDF",
+      "downloadStarted": "Download started",
+      "downloadError": "Error downloading PDF. Please try again.",
       "overdue": "Overdue"
     },
     "status": {

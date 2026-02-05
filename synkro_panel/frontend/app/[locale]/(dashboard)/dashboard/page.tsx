@@ -163,18 +163,18 @@ function SubscriptionCard({
 
   return (
     <Card className="hover:shadow-lg dark:hover:shadow-[0_8px_16px_-4px_rgb(0,0,0,0.6)] transition-all duration-200">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-lg">{t('dashboard.subscription.title')}</CardTitle>
+      <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 space-y-0">
+        <CardTitle className="text-base sm:text-lg">{t('dashboard.subscription.title')}</CardTitle>
         <StatusBadge status={subscription.estado_suscripcion} />
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <h3 className="text-2xl font-bold text-synkro-green">
+          <h3 className="text-xl sm:text-2xl font-bold text-synkro-green">
             {plan?.nom_plan || t('common.loading')}
           </h3>
-          <p className="text-2xl font-bold mt-1">
+          <p className="text-xl sm:text-2xl font-bold mt-1">
             {formatPrice(subscription.precio_actual)}
-            <span className="text-sm font-normal text-muted-foreground">
+            <span className="text-xs sm:text-sm font-normal text-muted-foreground">
               /
               {subscription.tipo_facturacion === 'anual'
                 ? t('subscription.availablePlans.perYear').replace('/', '')
@@ -273,9 +273,9 @@ function DashboardContent() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Metrics Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <MetricCard
           title={t('dashboard.metrics.instanceStatus')}
           value={instance ? t('dashboard.values.active') : t('dashboard.values.noInstance')}
@@ -329,7 +329,7 @@ function DashboardContent() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         <div className="lg:col-span-2">
           <InstanceOverviewCard
             instance={instance}
@@ -343,7 +343,7 @@ function DashboardContent() {
       </div>
 
       {/* Subscription and Resources Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <SubscriptionCard
           subscription={activeSubscription}
           plan={plan}
@@ -360,12 +360,12 @@ export default function DashboardPage() {
   const { user } = useAuth();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">
           {t('dashboard.welcome', { name: user?.nombre || '' })}
         </h1>
-        <p className="text-muted-foreground mt-1">{t('dashboard.subtitle')}</p>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">{t('dashboard.subtitle')}</p>
       </div>
 
       <Suspense fallback={<DashboardSkeleton />}>

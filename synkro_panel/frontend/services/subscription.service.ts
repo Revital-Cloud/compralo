@@ -44,7 +44,7 @@ export async function changeSubscriptionPlan(
   idPlanNuevo: number | string,
   tipoCambio: 'upgrade' | 'downgrade' | 'lateral',
   motivo?: string,
-): Promise<ResponseMessage> {
+): Promise<CrearPrimeraSuscripcionResponse> {
   const params = new URLSearchParams({
     id_plan_nuevo: String(idPlanNuevo),
     tipo_cambio: tipoCambio,
@@ -53,7 +53,7 @@ export async function changeSubscriptionPlan(
     params.append('motivo_cambio', motivo);
   }
 
-  return await post<ResponseMessage>(
+  return await post<CrearPrimeraSuscripcionResponse>(
     `/subscriptions/${idSubscription}/change-plan?${params.toString()}`,
     {},
   );

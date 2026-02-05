@@ -7,7 +7,7 @@ import logging
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import List, Optional, Literal
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from core.database import get_db
@@ -174,12 +174,12 @@ def delete_suscripcion(
         )
 
 
-@router.post("/{id_suscripcion}/change-plan", response_model=ResponseMessage)
+@router.post("/{id_suscripcion}/change-plan", response_model=CrearPrimeraSuscripcionResponse)
 def cambiar_plan(
     id_suscripcion: Decimal,
     id_plan_nuevo: Decimal,
-    motivo_cambio: Optional[str] = None,
-    tipo_cambio: Literal["upgrade", "downgrade", "lateral"] = "lateral",
+    motivo_cambio: Optional[str] = Query(None),
+    tipo_cambio: Literal["upgrade", "downgrade", "lateral"] = Query("lateral"),
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user),
 ):
@@ -188,7 +188,7 @@ def cambiar_plan(
 
     - Los clientes solo pueden cambiar sus propias suscripciones activas.
     - Los admins de Synkro pueden cambiar cualquier suscripción.
-    - La lógica de validación de límites y prorrateos vive en la base de datos.
+    - Si es upgrade, se crea una factura y se devuelve checkout_url para pagar con Stripe.
     """
     suscripcion = suscripcion_service.get_suscripcion(db, id_suscripcion)
     if not suscripcion:
@@ -221,21 +221,103 @@ def cambiar_plan(
             tipo_cambio=tipo_cambio,
         )
     except Exception as exc:
-        # Normalizar errores de dominio a HTTP 400
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),
         ) from exc
 
-    if result and result.get("success"):
-        return ResponseMessage(
-            message=result.get("message", "Plan de suscripcion actualizado correctamente"),
-            success=True,
+    if not result or not result.get("success"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result.get("message", "Error al cambiar plan de suscripcion") if result else "Error al cambiar plan de suscripcion",
         )
 
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail=result.get("message", "Error al cambiar plan de suscripcion") if result else "Error al cambiar plan de suscripcion",
+    message = result.get("message", "Plan de suscripcion actualizado correctamente")
+    checkout_url = None
+
+    # Decidir si es upgrade: por param o por resultado de la BD (precio_nuevo > precio_anterior)
+    precio_anterior = result.get("precio_anterior")
+    precio_nuevo = result.get("precio_nuevo")
+    tipo_cambio_db = result.get("tipo_cambio")
+    try:
+        p_ant = float(precio_anterior) if precio_anterior is not None else 0.0
+        p_nuevo = float(precio_nuevo) if precio_nuevo is not None else 0.0
+    except (TypeError, ValueError):
+        p_ant, p_nuevo = 0.0, 0.0
+    is_upgrade = (tipo_cambio == "upgrade" or tipo_cambio_db == "upgrade" or p_nuevo > p_ant)
+
+    if is_upgrade:
+        try:
+            from services import plan_service
+            suscripcion_actualizada = suscripcion_service.get_suscripcion(db, id_suscripcion)
+            plan = plan_service.get_plan(db, id_plan_nuevo)
+            if suscripcion_actualizada and plan:
+                plan_name = plan.get("nom_plan") or "Plan"
+                precio = suscripcion_actualizada.get("precio_actual")
+                fecha_inicio = suscripcion_actualizada.get("fecha_inicio")
+                fecha_proximo = suscripcion_actualizada.get("fecha_proximo_pago")
+                if isinstance(fecha_inicio, datetime):
+                    periodo_desde = fecha_inicio
+                else:
+                    periodo_desde = datetime.utcnow()
+                if isinstance(fecha_proximo, datetime):
+                    periodo_hasta = fecha_proximo
+                else:
+                    periodo_hasta = datetime.utcnow() + timedelta(days=30)
+                fecha_vencimiento = periodo_hasta + timedelta(days=30) if isinstance(periodo_hasta, datetime) else datetime.utcnow() + timedelta(days=30)
+
+                try:
+                    precio_val = float(precio) if precio is not None else 0.0
+                except (TypeError, ValueError):
+                    precio_val = 0.0
+                precio_decimal = Decimal(str(precio_val)) if precio_val else Decimal("0")
+
+                factura_data = FacturaCabeceraCreate(
+                    id_suscripcion=id_suscripcion,
+                    identificacion_fiscal_cliente=str(suscripcion_actualizada.get("identificacion_fiscal_cliente", "")),
+                    moneda="USD",
+                    metodo_pago="stripe",
+                    fecha_vencimiento=fecha_vencimiento,
+                    periodo_facturado_desde=periodo_desde,
+                    periodo_facturado_hasta=periodo_hasta,
+                    detalles=[
+                        FacturaDetalleCreate(
+                            num_linea=1,
+                            concepto=f"{plan_name} - cambio de plan (upgrade)",
+                            cantidad=Decimal("1"),
+                            precio_unitario=precio_decimal,
+                            id_plan=id_plan_nuevo,
+                        )
+                    ],
+                )
+                invoice_result = facturacion_service.create_factura(db, factura_data, current_user.email)
+                if invoice_result and invoice_result.get("success"):
+                    id_factura = invoice_result.get("id_factura")
+                    if id_factura is not None and factura_data.detalles:
+                        for detalle in factura_data.detalles:
+                            facturacion_service.create_factura_detalle(db, id_factura, detalle, current_user.email)
+                    db.commit()
+                    db.expire_all()
+                    success_url = f"{settings.FRONTEND_URL}/billing/success?session_id={{CHECKOUT_SESSION_ID}}"
+                    cancel_url = f"{settings.FRONTEND_URL}/subscription"
+                    stripe_result = stripe_service.create_checkout_session(
+                        db, Decimal(str(id_factura)), success_url, cancel_url
+                    )
+                    if stripe_result and "checkout_url" in stripe_result and "error" not in stripe_result:
+                        checkout_url = stripe_result["checkout_url"]
+                    elif stripe_result and "error" in stripe_result:
+                        logger.warning("Stripe checkout error en change-plan: %s", stripe_result.get("error"))
+                else:
+                    logger.warning("create_factura no success en change-plan: %s", invoice_result)
+            else:
+                logger.warning("suscripcion_actualizada o plan no encontrado en change-plan")
+        except Exception as e:
+            logger.exception("Stripe/factura en change-plan: %s", e)
+
+    return CrearPrimeraSuscripcionResponse(
+        message=message,
+        success=True,
+        checkout_url=checkout_url,
     )
 
 

@@ -72,6 +72,21 @@ export default function InvoiceDetailPage({
   const resolvedParams = use(params);
   const { data: invoice, isLoading } = useInvoice(resolvedParams.id);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    if (!invoice) return;
+    setIsDownloadingPdf(true);
+    try {
+      const filename = `invoice-${(invoice.num_factura || invoice.id_factura).toString().replace(/\s+/g, '-')}.pdf`;
+      await billingService.downloadInvoicePdf(invoice.id_factura, filename);
+      toast.success(t('billing.invoice.downloadStarted'));
+    } catch {
+      toast.error(t('billing.invoice.downloadError'));
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
 
   const handlePayNow = async () => {
     if (!invoice || invoice.estado_pago !== 'pendiente') {
@@ -140,8 +155,16 @@ export default function InvoiceDetailPage({
         </div>
         <div className="flex items-center gap-2">
           <Badge className={statusConfig.color}>{statusConfig.label}</Badge>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
+          <Button
+            variant="outline"
+            onClick={handleDownloadPdf}
+            disabled={isDownloadingPdf}
+          >
+            {isDownloadingPdf ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-2" />
+            )}
             {t('billing.invoice.downloadPDF')}
           </Button>
         </div>

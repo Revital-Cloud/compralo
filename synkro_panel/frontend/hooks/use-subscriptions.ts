@@ -6,6 +6,7 @@ import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from '@tansta
 import { toast } from 'sonner';
 import subscriptionService from '@/services/subscription.service';
 import { getErrorMessage } from '@/types/errors';
+import { PLAN_HISTORY_KEYS } from '@/hooks/use-plan-history';
 import type {
   SubscriptionCreate,
   SubscriptionUpdate,
@@ -134,10 +135,12 @@ export function useChangeSubscriptionPlan() {
         tipoCambio,
         motivo,
       ),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       toast.success('Subscription plan updated successfully');
       queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.lists() });
       queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.active() });
+      queryClient.invalidateQueries({ queryKey: PLAN_HISTORY_KEYS.list(variables.idSubscription) });
+      queryClient.invalidateQueries({ queryKey: PLAN_HISTORY_KEYS.lists() });
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, 'Error updating subscription plan'));

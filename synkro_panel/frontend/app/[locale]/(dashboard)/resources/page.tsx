@@ -63,13 +63,13 @@ function ResourceDetailCard({
   return (
     <Card className={hasAlert ? 'border-amber-200 dark:border-amber-800' : ''}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-base font-medium">{title}</CardTitle>
-        <div className={`p-2 rounded-lg ${
+        <CardTitle className="text-sm sm:text-base font-medium">{title}</CardTitle>
+        <div className={`p-2 rounded-lg shrink-0 ${
           hasAlert 
             ? 'bg-amber-100 dark:bg-amber-900/30' 
             : 'bg-muted'
         }`}>
-          <Icon className={`h-5 w-5 ${
+          <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${
             hasAlert 
               ? 'text-amber-600 dark:text-amber-400' 
               : 'text-muted-foreground'
@@ -78,9 +78,9 @@ function ResourceDetailCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold">{current.toLocaleString()}</span>
-            <span className="text-muted-foreground">
+          <div className="flex flex-wrap items-baseline gap-2">
+            <span className="text-2xl sm:text-3xl font-bold">{current.toLocaleString()}</span>
+            <span className="text-sm sm:text-base text-muted-foreground">
               / {max !== null ? max.toLocaleString() : '∞'} {unit}
             </span>
           </div>
@@ -221,8 +221,8 @@ function ResourcesPageContent() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">{t('resources.title')}</h1>
-          <p className="text-muted-foreground mt-1">{t('resources.subtitle')}</p>
+          <h1 className="text-xl sm:text-2xl font-bold">{t('resources.title')}</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">{t('resources.subtitle')}</p>
         </div>
         {hasAnyAlert && (
           <Button asChild>
@@ -290,24 +290,24 @@ function ResourcesPageContent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-            <div className="p-4 rounded-lg bg-muted/50">
-              <p className="text-3xl font-bold text-synkro-green">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
+            <div className="p-3 sm:p-4 rounded-lg bg-muted/50">
+              <p className="text-2xl sm:text-3xl font-bold text-synkro-green">
                 {currentPlan?.max_productos || '∞'}
               </p>
-              <p className="text-sm text-muted-foreground">{t('resources.planLimits.maxProducts')}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">{t('resources.planLimits.maxProducts')}</p>
             </div>
-            <div className="p-4 rounded-lg bg-muted/50">
-              <p className="text-3xl font-bold text-synkro-green">
+            <div className="p-3 sm:p-4 rounded-lg bg-muted/50">
+              <p className="text-2xl sm:text-3xl font-bold text-synkro-green">
                 {currentPlan?.max_usuarios || '∞'}
               </p>
-              <p className="text-sm text-muted-foreground">{t('resources.planLimits.maxUsers')}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">{t('resources.planLimits.maxUsers')}</p>
             </div>
-            <div className="p-4 rounded-lg bg-muted/50">
-              <p className="text-3xl font-bold text-synkro-green">
+            <div className="p-3 sm:p-4 rounded-lg bg-muted/50">
+              <p className="text-2xl sm:text-3xl font-bold text-synkro-green">
                 {currentPlan?.max_almacenamiento_gb || '∞'}
               </p>
-              <p className="text-sm text-muted-foreground">{t('resources.planLimits.gbStorage')}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">{t('resources.planLimits.gbStorage')}</p>
             </div>
           </div>
 

@@ -124,19 +124,19 @@ def create_factura(db: Session, factura: FacturaCabeceraCreate, usr_insert: str)
     try:
         query = text("""
             SELECT fun_insert_factura_cabecera(
-                :id_suscripcion,
-                :identificacion_fiscal_cliente,
-                :usr_insert,
-                NULL,
+                CAST(:id_suscripcion AS DECIMAL),
+                CAST(:identificacion_fiscal_cliente AS VARCHAR),
+                CAST(:usr_insert AS VARCHAR),
+                NULL::VARCHAR,
                 CAST(:moneda AS enum_moneda),
-                'pendiente',
+                CAST('pendiente' AS enum_estado_pago),
                 CAST(:metodo_pago AS enum_metodo_pago),
-                CURRENT_TIMESTAMP,
-                :fecha_vencimiento,
-                :periodo_facturado_desde,
-                :periodo_facturado_hasta,
-                NULL,
-                :notas
+                LOCALTIMESTAMP,
+                CAST(:fecha_vencimiento AS TIMESTAMP WITHOUT TIME ZONE),
+                CAST(:periodo_facturado_desde AS TIMESTAMP WITHOUT TIME ZONE),
+                CAST(:periodo_facturado_hasta AS TIMESTAMP WITHOUT TIME ZONE),
+                NULL::VARCHAR,
+                CAST(:notas AS TEXT)
             )
         """)
         

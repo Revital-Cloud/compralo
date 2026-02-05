@@ -40,6 +40,30 @@ export async function createStripeCheckoutSession(
   );
 }
 
+/**
+ * Obtiene el PDF de una factura como Blob (generado por el backend).
+ */
+export async function getInvoicePdf(idInvoice: number | string): Promise<Blob> {
+  return await get<Blob>(`/billing/${idInvoice}/pdf`, { responseType: 'blob' });
+}
+
+/**
+ * Descarga el PDF de una factura. Genera el PDF en el backend y dispara la descarga en el cliente.
+ */
+export async function downloadInvoicePdf(
+  idInvoice: number | string,
+  filename: string = `invoice-${idInvoice}.pdf`
+): Promise<void> {
+  const blob = await getInvoicePdf(idInvoice);
+  if (typeof window === 'undefined') return;
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename.replace(/\s+/g, '-');
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 const billingService = {
   getInvoices,
   getPendingInvoices,
@@ -47,6 +71,8 @@ const billingService = {
   createInvoice,
   updateInvoice,
   createStripeCheckoutSession,
+  getInvoicePdf,
+  downloadInvoicePdf,
 };
 
 export default billingService;

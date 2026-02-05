@@ -23,6 +23,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { useBillingDataSuspense } from '@/hooks/use-billing-data';
 import { MetricCard } from '@/components/dashboard/metric-card';
+import billingService from '@/services/billing.service';
+import { toast } from 'sonner';
 import type { InvoicePublic, InvoicePending } from '@/types';
 
 // Format price
@@ -92,6 +94,20 @@ function InvoiceRow({ invoice }: { invoice: InvoicePublic | InvoicePending }) {
   const localePrefix = `/${locale}`;
   const statusConfig = getStatusConfig(invoice.estado_pago, t);
   const StatusIcon = statusConfig.icon;
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownloadPdf = async () => {
+    setDownloading(true);
+    try {
+      const filename = `invoice-${(invoice.num_factura || invoice.id_factura).toString().replace(/\s+/g, '-')}.pdf`;
+      await billingService.downloadInvoicePdf(invoice.id_factura, filename);
+      toast.success(t('billing.invoice.downloadStarted'));
+    } catch {
+      toast.error(t('billing.invoice.downloadError'));
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const isOverdue =
     invoice.estado_pago === 'pendiente' &&
@@ -102,26 +118,26 @@ function InvoiceRow({ invoice }: { invoice: InvoicePublic | InvoicePending }) {
   const hasPeriodo = 'periodo_facturado_desde' in invoice && 'periodo_facturado_hasta' in invoice;
 
   return (
-    <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-      <div className="flex items-center gap-4">
-        <div className={`p-2 rounded-lg ${statusConfig.bgColor}`}>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+      <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0 flex-1">
+        <div className={`p-2 rounded-lg shrink-0 ${statusConfig.bgColor}`}>
           <StatusIcon className={`h-5 w-5 ${statusConfig.color}`} />
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <p className="font-medium">{invoice.num_factura}</p>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <p className="font-medium wrap-break-word">{invoice.num_factura}</p>
             {isOverdue && (
-              <Badge variant="destructive" className="text-xs">
+              <Badge variant="destructive" className="text-xs w-fit">
                 {t('billing.invoice.overdue')}
               </Badge>
             )}
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground wrap-break-word">
             {formatDate(invoice.fecha_emision)}
             {hasPeriodo &&
               invoice.periodo_facturado_desde &&
               invoice.periodo_facturado_hasta && (
-                <span className="ml-2">
+                <span className="block sm:inline sm:ml-2 mt-1 sm:mt-0">
                   ({formatDate(invoice.periodo_facturado_desde)} -{' '}
                   {formatDate(invoice.periodo_facturado_hasta)})
                 </span>
@@ -130,8 +146,8 @@ function InvoiceRow({ invoice }: { invoice: InvoicePublic | InvoicePending }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="text-right">
+      <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0">
+        <div className="text-left sm:text-right">
           <p className="font-semibold">{formatPrice(invoice.total, invoice.moneda)}</p>
           <Badge variant="outline" className="text-xs">
             {statusConfig.label}
@@ -143,7 +159,13 @@ function InvoiceRow({ invoice }: { invoice: InvoicePublic | InvoicePending }) {
               <Eye className="h-4 w-4" />
             </Link>
           </Button>
-          <Button variant="ghost" size="icon">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDownloadPdf}
+            disabled={downloading}
+            title={t('billing.invoice.downloadPDF')}
+          >
             <Download className="h-4 w-4" />
           </Button>
         </div>
@@ -239,8 +261,8 @@ function BillingPageContent() {
   );
 
   return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <MetricCard title={t('billing.stats.totalPaid')} value={formatPrice(totalPaid)} icon={DollarSign} />
         <MetricCard
           title={t('billing.stats.pending')}
@@ -281,10 +303,10 @@ function BillingPageContent() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="all">{t('billing.tabs.all')} ({allInvoices.length})</TabsTrigger>
-              <TabsTrigger value="pending">{t('billing.tabs.pending')} ({pendingInvoices.length})</TabsTrigger>
-              <TabsTrigger value="paid">{t('billing.tabs.paid')} ({paidInvoices.length})</TabsTrigger>
+            <TabsList className="mb-4 w-full sm:w-auto overflow-x-auto">
+              <TabsTrigger value="all" className="text-xs sm:text-sm">{t('billing.tabs.all')} ({allInvoices.length})</TabsTrigger>
+              <TabsTrigger value="pending" className="text-xs sm:text-sm">{t('billing.tabs.pending')} ({pendingInvoices.length})</TabsTrigger>
+              <TabsTrigger value="paid" className="text-xs sm:text-sm">{t('billing.tabs.paid')} ({paidInvoices.length})</TabsTrigger>
             </TabsList>
             <TabsContent value="all">
               <InvoicesList invoices={allInvoices} loading={false} emptyMessage={t('billing.empty.all')} />
@@ -309,10 +331,10 @@ function BillingPageContent() {
 export default function BillingPage() {
   const t = useTranslations();
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">{t('billing.title')}</h1>
-        <p className="text-muted-foreground mt-1">{t('billing.subtitle')}</p>
+        <h1 className="text-xl sm:text-2xl font-bold">{t('billing.title')}</h1>
+        <p className="text-sm sm:text-base text-muted-foreground mt-1">{t('billing.subtitle')}</p>
       </div>
       <Suspense fallback={<BillingPageSkeleton />}>
         <BillingPageContent />
