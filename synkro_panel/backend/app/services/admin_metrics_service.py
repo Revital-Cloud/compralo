@@ -1,31 +1,5 @@
 """
 Servicio de métricas para el dashboard admin de Synkro.
-"""
-from typing import Any, Dict
-
-from sqlalchemy.orm import Session
-
-
-def get_overview_metrics(db: Session) -> Dict[str, Any]:
-    """
-    Devuelve un diccionario con métricas agregadas básicas para el dashboard admin.
-
-    Implementación completa pendiente; por ahora retorna valores por defecto
-    para permitir integrar el endpoint y el frontend sin romper.
-    """
-    return {
-        "total_clientes": 0,
-        "total_instancias": 0,
-        "instancias_por_estado": {},
-        "instancias_por_region": {},
-        "mrr_actual": 0.0,
-        "ingresos_ultimos_30_dias": 0.0,
-        "ingresos_por_plan": {},
-        "funnel_ultimos_6_meses": [],
-    }
-
-"""
-Servicio de métricas para el dashboard admin de Synkro.
 
 Todas las consultas son agregadas sobre la base de datos central del panel SaaS
 (`tab_clientes`, `tab_instancias`, `tab_suscripciones`, `tab_facturacion_*`, `tab_planes`).

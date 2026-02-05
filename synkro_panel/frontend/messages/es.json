@@ -36,6 +36,9 @@
     "resources": "Recursos",
     "billing": "Facturación",
     "clientPortal": "Portal del Cliente",
+    "adminPortal": "Panel Admin",
+    "clients": "Clientes",
+    "management": "Gestión",
     "profile": "Perfil",
     "logOut": "Cerrar sesión",
     "loggingOut": "Cerrando sesión..."

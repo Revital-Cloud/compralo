@@ -36,6 +36,9 @@
     "resources": "Resources",
     "billing": "Billing",
     "clientPortal": "Client Portal",
+    "adminPortal": "Admin Panel",
+    "clients": "Clients",
+    "management": "Management",
     "profile": "Profile",
     "logOut": "Log out",
     "loggingOut": "Logging out..."
