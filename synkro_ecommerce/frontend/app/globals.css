@@ -193,3 +193,8 @@ input::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* Scroll suave para anclas (#productos, #categorias, etc.) */
+html {
+  scroll-behavior: smooth;
+}

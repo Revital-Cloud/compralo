@@ -143,7 +143,7 @@ const FeaturedProducts = () => {
   }
 
   return (
-    <section className="relative py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 overflow-hidden transition-colors duration-300">
+    <section id="productos" className="relative py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 overflow-hidden transition-colors duration-300">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div 

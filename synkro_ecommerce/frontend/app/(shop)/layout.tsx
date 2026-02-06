@@ -4,6 +4,7 @@ import EcommerceHeader from "@/components/layout/shop/header/header";
 import { defaultMenuItems } from "@/lib/menu-config";
 import EcommerceFooter from "@/components/layout/shop/footer/footer";
 import { InformativeChatbotWidget } from "@/components/chatbot-widget/informative-chatbot-widget";
+import { TopInfoBar } from "@/components/layout/shop/top-info-bar";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -41,6 +42,7 @@ export default function ShopLayout({
   // Renderizar el layout normal
   return (
     <>
+      <TopInfoBar />
       <EcommerceHeader 
         menuItems={defaultMenuItems}
         // cartCount se obtiene automáticamente del hook useCartInfo

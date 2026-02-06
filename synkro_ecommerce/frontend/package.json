@@ -58,6 +58,7 @@
     "papaparse": "^5.5.3",
     "radix-ui": "^1.4.2",
     "react": "^19.2.4",
+    "react-aria-components": "^1.15.1",
     "react-csv": "^2.2.2",
     "react-day-picker": "^9.7.0",
     "react-dom": "^19.2.4",
