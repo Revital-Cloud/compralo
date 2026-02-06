@@ -5,6 +5,7 @@ import { Button } from "@/components/ui"
 import { Star, TrendingUp, Shield, Zap } from "lucide-react"
 import { motion } from "framer-motion"
 import { RotatingText } from "@/components/ui"
+import Link from "next/link"
 import BgDecorativeElements from "./components/bg-decorative-elements"
 
 const EcommerceHeroCarousel: React.FC = () => {
@@ -209,15 +210,17 @@ const EcommerceHeroCarousel: React.FC = () => {
               <Button 
                 size="lg" 
                 className="w-full sm:w-auto px-6 md:px-8 bg-gradient-to-r from-[#FF8C00] to-[#fec806] hover:from-[#E67E00] hover:to-[#E6B800] text-white font-bold py-3 md:py-5 text-base md:text-lg lg:text-xl rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+                asChild
               >
-                Comprar ahora
+                <Link href="/products">Ver productos</Link>
               </Button>
               <Button 
                 variant="outline"
                 size="lg" 
-                className="w-full sm:w-auto px-6 md:px-8 border-2 border-[#ec2538] dark:border-red-500 text-[#ec2538] dark:text-red-500 hover:bg-[#ec2538] dark:hover:bg-red-500 hover:text-white font-semibold py-3 md:py-5 text-base md:text-lg lg:text-xl rounded-xl transition-all duration-300 flex items-center justify-center"
+                className="w-full sm:w-auto px-6 md:px-8 border-2 border-[#ec2538] dark:border-red-500 bg-transparent text-[#ec2538] dark:text-red-500 hover:bg-[#ec2538] hover:text-white dark:hover:bg-red-500 dark:hover:text-white font-semibold py-3 md:py-5 text-base md:text-lg lg:text-xl rounded-xl transition-all duration-300 flex items-center justify-center"
+                asChild
               >
-                Ver Categorías
+                <Link href="/categories">Ver Categorías</Link>
               </Button>
             </motion.div>
             

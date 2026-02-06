@@ -1,0 +1,110 @@
+/* Estilos para react-aria-components ColorPicker */
+
+/* ColorSlider - Gradiente de matiz completo */
+.react-aria-ColorSlider {
+  position: relative;
+  height: 32px;
+  width: 100%;
+  border-radius: 4px;
+  border: 1px solid hsl(var(--border));
+  display: flex;
+  align-items: center;
+}
+
+/* Gradiente de matiz para el slider de hue */
+.react-aria-ColorSlider[data-channel="hue"] .react-aria-ColorSlider-track {
+  background: linear-gradient(
+    to right,
+    hsl(0, 100%, 50%),
+    hsl(60, 100%, 50%),
+    hsl(120, 100%, 50%),
+    hsl(180, 100%, 50%),
+    hsl(240, 100%, 50%),
+    hsl(300, 100%, 50%),
+    hsl(360, 100%, 50%)
+  ) !important;
+}
+
+.react-aria-ColorThumb {
+  width: 20px;
+  height: 20px;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  background: transparent;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+/* ColorArea - Área de saturación y brillo */
+.react-aria-ColorArea {
+  position: relative;
+  width: 100%;
+  height: 192px;
+  border-radius: 4px;
+  border: 1px solid hsl(var(--border));
+  cursor: crosshair;
+}
+
+.react-aria-ColorArea-track {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+.react-aria-ColorArea .react-aria-ColorThumb {
+  width: 20px;
+  height: 20px;
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  background: transparent;
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+}
+
+.react-aria-ColorArea-track {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  width: 100%;
+  height: 100%;
+}
+
+/* ColorField */
+.react-aria-ColorField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.react-aria-Label {
+  font-size: 12px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+
+.react-aria-Input {
+  height: 36px;
+  width: 100%;
+  border-radius: 6px;
+  border: 1px solid hsl(var(--input));
+  background-color: hsl(var(--background));
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.react-aria-Input:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Focus states */
+.react-aria-ColorSlider[data-focused],
+.react-aria-ColorArea[data-focused] {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}

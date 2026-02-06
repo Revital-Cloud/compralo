@@ -1,3 +1,5 @@
+// Componente deshabilitado: Banner Club VIP comentado
+/*
 "use client"
 
 import * as React from "react"
@@ -47,6 +49,14 @@ const NewsletterSection: React.FC<NewsletterSectionProps> = ({ onSubscribe }) =>
       </div>
     </div>
   )
+}
+
+export default NewsletterSection
+*/
+
+// Componente temporalmente deshabilitado - retorna null
+const NewsletterSection: React.FC<{ onSubscribe?: (email: string) => void }> = () => {
+  return null
 }
 
 export default NewsletterSection 

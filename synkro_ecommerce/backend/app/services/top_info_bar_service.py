@@ -39,7 +39,7 @@ def _parse_payload_from_json(des_cms_content: Any) -> dict:
     }
 
 
-def _is_vigent(payload: dict) -> bool:
+def _is_vigente(payload: dict) -> bool:
     """Comprueba ind_visible y fechas de vigencia."""
     if payload.get("ind_visible") is False:
         return False
@@ -58,6 +58,8 @@ def get_active_bar(db: Session) -> Optional[dict]:
     Obtiene la barra activa y vigente para el endpoint público.
     Retorna un dict con des_mensaje, color_fondo, color_texto o None.
     """
+    import logging
+    logger = logging.getLogger(__name__)
     try:
         query = text("""
             SELECT id_cms_content, des_cms_content
@@ -67,19 +69,29 @@ def get_active_bar(db: Session) -> Optional[dict]:
         """)
         result = db.execute(query, {"nom": TOP_INFO_BAR_NAME})
         row = result.mappings().first()
+        logger.info(f"[TopInfoBar Service] Query result: {row is not None}")
         if not row:
+            logger.info("[TopInfoBar Service] No row found or ind_publicado=false")
             return None
         payload = _parse_payload_from_json(row["des_cms_content"])
+        logger.info(f"[TopInfoBar Service] Parsed payload: {payload}")
         if not payload.get("des_mensaje"):
+            logger.info("[TopInfoBar Service] No des_mensaje in payload")
             return None
-        if not _is_vigente(payload):
+        is_vigente = _is_vigente(payload)
+        logger.info(f"[TopInfoBar Service] Is vigente: {is_vigente}")
+        if not is_vigente:
+            logger.info("[TopInfoBar Service] Bar not vigente (ind_visible=false or dates)")
             return None
-        return {
+        result_dict = {
             "des_mensaje": payload["des_mensaje"],
             "color_fondo": payload.get("color_fondo"),
             "color_texto": payload.get("color_texto"),
         }
-    except Exception:
+        logger.info(f"[TopInfoBar Service] Returning: {result_dict}")
+        return result_dict
+    except Exception as e:
+        logger.error(f"[TopInfoBar Service] Error: {str(e)}")
         db.rollback()
         raise
 

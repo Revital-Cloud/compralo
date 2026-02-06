@@ -26,8 +26,14 @@ async def get_active_top_info_bar(db: Session = Depends(get_db)):
     """
     try:
         bar = top_info_bar_service.get_active_bar(db)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"[TopInfoBar] GET /active - Returning: {bar}")
         return bar
     except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"[TopInfoBar] GET /active - Error: {str(e)}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 

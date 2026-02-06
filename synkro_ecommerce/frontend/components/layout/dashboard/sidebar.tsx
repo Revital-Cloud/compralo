@@ -106,6 +106,12 @@ const data = {
       section: "gestion"
     },
     {
+      title: "Barra Informativa",
+      url: "/admin/info-bar",
+      icon: IconInnerShadowTop,
+      section: "gestion"
+    },
+    {
       title: "Analíticas",
       url: "/admin/analytics",
       icon: IconChartBar,

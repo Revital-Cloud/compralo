@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Separator } from "@/components/ui"
 import {
-  NewsletterSection,
+  // NewsletterSection, // Comentado: Banner Club VIP deshabilitado
   AboutSection,
   CategoriesSection,
   SocialSection,
@@ -25,8 +25,8 @@ const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }
 
   return (
     <footer className={`bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300 transition-colors duration-300 ${className}`}>
-      {/* Newsletter Section */}
-      <NewsletterSection onSubscribe={onNewsletterSubscribe} />
+      {/* Newsletter Section - Comentado: Banner Club VIP deshabilitado */}
+      {/* <NewsletterSection onSubscribe={onNewsletterSubscribe} /> */}
 
       {/* Main Footer Content */}
       <div className="container mx-auto px-4 py-8 sm:py-12">

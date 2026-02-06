@@ -78,6 +78,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 needs_auth = True
                 needs_admin = True
         
+        # Caso especial: GET /api/top-info-bar/active es público
+        if path == "/api/top-info-bar/active" and method == "GET":
+            return await call_next(request)
+        
         # Verificar si la ruta necesita protección (si no se estableció en el caso especial de /api/users)
         if not needs_auth:
             needs_auth = any(path.startswith(protected_path) for protected_path in self.protected_paths)
