@@ -131,6 +131,7 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
           size="sm"
           className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors duration-300"
           disabled={isLoading}
+          aria-label="Buscar productos"
         >
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -142,7 +143,7 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
 
       {/* Dropdown de sugerencias */}
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute z-[9999] w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-96 overflow-y-auto">
+        <div className="absolute z-9999 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-96 overflow-y-auto">
           <div className="py-1">
             {suggestions.map((product, index) => {
               const imageUrl = getProductImageUrl(product.img_producto)
@@ -156,7 +157,7 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
                     selectedIndex === index ? "bg-gray-100 dark:bg-gray-700" : ""
                   }`}
                 >
-                  <div className="relative w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-gray-100 dark:bg-gray-700">
+                  <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden bg-gray-100 dark:bg-gray-700">
                     <Image
                       src={imageUrl}
                       alt={product.nom_producto}

@@ -1,12 +1,22 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui"
+import dynamic from "next/dynamic"
+import { Button } from "@/components/ui/button"
 import { Star, TrendingUp, Shield, Zap } from "lucide-react"
 import { motion } from "framer-motion"
 import { RotatingText } from "@/components/ui"
 import Link from "next/link"
 import BgDecorativeElements from "./components/bg-decorative-elements"
+
+const RotatingText = dynamic(() => import("@/components/ui/rotating-text"), {
+  ssr: false,
+  loading: () => (
+    <span className="bg-linear-to-r from-[#FF8C00] to-[#fec806] bg-clip-text text-secondary inline-block">
+      mejores ofertas
+    </span>
+  ),
+})
 
 const EcommerceHeroCarousel: React.FC = () => {
   // Animation variants for text
@@ -16,15 +26,6 @@ const EcommerceHeroCarousel: React.FC = () => {
       opacity: 1, 
       y: 0,
       transition: { duration: 0.6, ease: "easeOut" as const }
-    }
-  }
-
-  const titleVariants = {
-    hidden: { opacity: 0, x: -50 },
-    visible: { 
-      opacity: 1, 
-      x: 0,
-      transition: { duration: 0.8, ease: "easeOut" as const }
     }
   }
 
@@ -75,6 +76,16 @@ const EcommerceHeroCarousel: React.FC = () => {
     })
   }
 
+  const [showParticles, setShowParticles] = useState(false)
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setShowParticles(true)
+    }, 1200)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [])
+
   // Floating particles component
   const FloatingParticles = () => {
     const [particles, setParticles] = useState<Array<{
@@ -89,7 +100,7 @@ const EcommerceHeroCarousel: React.FC = () => {
     useEffect(() => {
       // Generate particles only on client side to avoid hydration mismatch
       const generateParticles = () => {
-        const newParticles = Array.from({ length: 15 }, (_, i) => ({
+        const newParticles = Array.from({ length: 8 }, (_, i) => ({
           id: i,
           left: Math.random() * 100,
           top: Math.random() * 100,
@@ -108,7 +119,7 @@ const EcommerceHeroCarousel: React.FC = () => {
         {particles.map((particle) => (
           <motion.div
             key={particle.id}
-            className="absolute w-2 h-2 bg-gradient-to-r from-orange-200 to-pink-200 dark:from-orange-300 dark:to-pink-300 rounded-full opacity-60"
+            className="absolute w-2 h-2 bg-linear-to-r from-orange-200 to-pink-200 dark:from-orange-300 dark:to-pink-300 rounded-full opacity-60"
             style={{
               left: `${particle.left}%`,
               top: `${particle.top}%`,
@@ -131,12 +142,12 @@ const EcommerceHeroCarousel: React.FC = () => {
   };
 
   return (
-    <section className="relative min-h-[calc(100vh-80px)] lg:min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-gray-50 via-white to-orange-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 transition-colors duration-300 py-12 md:py-16 lg:py-0">
+    <section className="relative min-h-[calc(100vh-80px)] lg:min-h-screen flex items-center justify-center overflow-hidden bg-linear-to-r from-gray-50 via-white to-orange-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 transition-colors duration-300 py-12 md:py-16 lg:py-0">
       {/* Background decorative elements */}
       <BgDecorativeElements />
       
       {/* Floating particles */}
-      <FloatingParticles />
+      {showParticles ? <FloatingParticles /> : null}
       
       {/* Main content container */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -145,7 +156,7 @@ const EcommerceHeroCarousel: React.FC = () => {
           <div className="text-center lg:text-left space-y-6 md:space-y-8">
             {/* Trending Badge */}
             <motion.div 
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-[#FF8C00] to-[#fec806] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm lg:text-base font-semibold shadow-lg"
+              className="inline-flex items-center gap-2 bg-linear-to-r from-[#FF8C00] to-[#fec806] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm lg:text-base font-semibold shadow-lg"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
@@ -155,11 +166,8 @@ const EcommerceHeroCarousel: React.FC = () => {
             </motion.div>
             
             {/* Main Title */}
-            <motion.h1 
+            <h1 
               className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-gray-900 dark:text-white leading-tight"
-              variants={titleVariants}
-              initial="hidden"
-              animate="visible"
             >
               <span className="block">Descubre las</span>
               <RotatingText
@@ -170,7 +178,7 @@ const EcommerceHeroCarousel: React.FC = () => {
                    "ofertas especiales",
                    "ofertas premium"
                  ]}
-                 className="bg-gradient-to-r from-[#FF8C00] to-[#fec806] bg-clip-text text-secondary inline-block"
+                 className="bg-linear-to-r from-[#FF8C00] to-[#fec806] bg-clip-text text-secondary inline-block"
                  mainClassName="inline-flex justify-center lg:justify-start w-full"
                  rotationInterval={3000}
                  staggerDuration={0.05}
@@ -186,7 +194,7 @@ const EcommerceHeroCarousel: React.FC = () => {
                  auto={true}
                  loop={true}
                />
-            </motion.h1>
+            </h1>
             
             {/* Subtitle */}
             <motion.p 
@@ -209,8 +217,7 @@ const EcommerceHeroCarousel: React.FC = () => {
             >
               <Button 
                 size="lg" 
-                className="w-full sm:w-auto px-6 md:px-8 bg-gradient-to-r from-[#FF8C00] to-[#fec806] hover:from-[#E67E00] hover:to-[#E6B800] text-white font-bold py-3 md:py-5 text-base md:text-lg lg:text-xl rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
-                asChild
+                className="w-full sm:w-auto px-6 md:px-8 bg-linear-to-r from-[#FF8C00] to-[#fec806] hover:from-[#E67E00] hover:to-[#E6B800] text-white font-bold py-3 md:py-5 text-base md:text-lg lg:text-xl rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
               >
                 <Link href="/products">Ver productos</Link>
               </Button>

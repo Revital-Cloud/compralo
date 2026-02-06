@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
 import { Toaster } from "@/components/ui"
 import { ThemeProvider } from "@/providers/theme-provider"
@@ -30,6 +29,16 @@ export const metadata: Metadata = {
   description: "Compralo",
 };
 
+const apiOrigin = (() => {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  try {
+    const url = new URL(apiUrl);
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return "http://localhost:8000";
+  }
+})();
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -37,6 +46,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href={apiOrigin} crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
+      </head>
       <body
         className={cn(
           "min-h-screen bg-background text-foreground font-sans antialiased transition-colors duration-300",
@@ -60,10 +73,6 @@ export default function RootLayout({
             </ThemeProvider>
           </AuthProvider>
         </QueryProvider>
-        <Script
-          src="https://checkout.wompi.co/widget.js"
-          strategy="afterInteractive"
-        />
       </body>
     </html>
   );

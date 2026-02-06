@@ -7,6 +7,7 @@ También puede incluir configuraciones globales de la aplicación y middlewares.
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 import logging
 
 from middlewares.auth_middleware import AuthMiddleware
@@ -50,6 +51,9 @@ app = FastAPI(
     description="API para la plataforma SaaS de e-commerce con deployment aislado",
     version="1.0.0"
 )
+
+# Compresión de respuestas (mejora Lighthouse uses-text-compression)
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # Configurar CORS
 app.add_middleware(

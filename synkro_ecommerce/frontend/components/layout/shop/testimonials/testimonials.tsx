@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
+import { motion, type Easing } from "framer-motion"
 import { Star, Quote } from "lucide-react"
 import Link from "next/link"
 import { useQuery } from "@tanstack/react-query"
@@ -27,6 +27,8 @@ const BG_GRADIENTS = [
   "from-[#FF8C00] to-[#fec806]",
   "from-[#fec806] to-[#ec2538]",
 ]
+
+const EASE_OUT: Easing = [0.16, 1, 0.3, 1]
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -121,7 +123,7 @@ const TestimonialsSection = () => {
       scale: 1,
       transition: {
         duration: 0.6,
-        ease: "easeOut"
+        ease: EASE_OUT
       }
     }
   }
@@ -138,7 +140,7 @@ const TestimonialsSection = () => {
       rotate: 0,
       transition: {
         duration: 0.5,
-        ease: "easeOut",
+        ease: EASE_OUT,
         delay: 0.3
       }
     }
@@ -155,7 +157,7 @@ const TestimonialsSection = () => {
       transition: {
         duration: 0.3,
         delay: 0.5 + i * 0.1,
-        ease: "easeOut"
+        ease: EASE_OUT
       }
     })
   }
@@ -178,11 +180,11 @@ const TestimonialsSection = () => {
   }
 
   return (
-    <section className="relative py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 overflow-hidden transition-colors duration-300">
+    <section className="relative py-20 bg-linear-to-r from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 overflow-hidden transition-colors duration-300">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div 
-          className="absolute -top-20 -left-20 w-60 h-60 bg-gradient-to-br from-[#ec2538]/10 to-[#FF8C00]/10 dark:from-[#ec2538]/20 dark:to-[#FF8C00]/20 rounded-full blur-3xl"
+          className="absolute -top-20 -left-20 w-60 h-60 bg-linear-to-r from-[#ec2538]/10 to-[#FF8C00]/10 dark:from-[#ec2538]/20 dark:to-[#FF8C00]/20 rounded-full blur-3xl"
           animate={{ 
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.6, 0.3]
@@ -194,7 +196,7 @@ const TestimonialsSection = () => {
           }}
         />
         <motion.div 
-          className="absolute -bottom-20 -right-20 w-80 h-80 bg-gradient-to-br from-[#fec806]/10 to-[#ec2538]/10 dark:from-[#fec806]/20 dark:to-[#ec2538]/20 rounded-full blur-3xl"
+          className="absolute -bottom-20 -right-20 w-80 h-80 bg-linear-to-r from-[#fec806]/10 to-[#ec2538]/10 dark:from-[#fec806]/20 dark:to-[#ec2538]/20 rounded-full blur-3xl"
           animate={{ 
             scale: [1.2, 1, 1.2],
             opacity: [0.4, 0.7, 0.4]
@@ -257,7 +259,7 @@ const TestimonialsSection = () => {
           >
             <span className="text-[#ec2538] dark:text-red-400">Testimonios</span>
             <br />
-            <span className="bg-gradient-to-r from-[#FF8C00] to-[#fec806] bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-[#FF8C00] to-[#fec806] bg-clip-text text-transparent">
               de nuestros clientes
             </span>
           </motion.h2>
@@ -295,7 +297,7 @@ const TestimonialsSection = () => {
                 {/* Quote icon */}
                 <motion.div
                   variants={quoteVariants}
-                  className="absolute -top-4 -left-4 w-8 h-8 bg-gradient-to-br from-[#ec2538] to-[#FF8C00] rounded-full flex items-center justify-center shadow-lg dark:shadow-gray-900/25"
+                  className="absolute -top-4 -left-4 w-8 h-8 bg-linear-to-r from-[#ec2538] to-[#FF8C00] rounded-full flex items-center justify-center shadow-lg dark:shadow-gray-900/25"
                 >
                   <Quote className="w-4 h-4 text-white" />
                 </motion.div>
@@ -352,7 +354,7 @@ const TestimonialsSection = () => {
                 {/* User info */}
                 <div className="flex items-center space-x-3">
                   <motion.div 
-                    className={`w-12 h-12 bg-gradient-to-br ${testimonial.bgColor} rounded-full flex items-center justify-center text-white font-bold shadow-lg dark:shadow-gray-900/25`}
+                    className={`w-12 h-12 bg-linear-to-r ${testimonial.bgColor} rounded-full flex items-center justify-center text-white font-bold shadow-lg dark:shadow-gray-900/25`}
                     whileHover={{ 
                       scale: 1.1,
                       rotate: 5,
@@ -362,9 +364,9 @@ const TestimonialsSection = () => {
                     {testimonial.avatar}
                   </motion.div>
                   <div>
-                    <h4 className="font-semibold text-gray-900 dark:text-white text-sm lg:text-base transition-colors duration-300">
+                    <p className="font-semibold text-gray-900 dark:text-white text-sm lg:text-base transition-colors duration-300">
                       {testimonial.name}
-                    </h4>
+                    </p>
                     <p className="text-gray-500 dark:text-gray-400 text-xs lg:text-sm transition-colors duration-300">
                       {testimonial.role}
                     </p>
@@ -372,7 +374,7 @@ const TestimonialsSection = () => {
                 </div>
 
                 {/* Hover effect overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#ec2538]/5 to-[#fec806]/5 dark:from-[#ec2538]/10 dark:to-[#fec806]/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                <div className="absolute inset-0 bg-linear-to-r from-[#ec2538]/5 to-[#fec806]/5 dark:from-[#ec2538]/10 dark:to-[#fec806]/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
               </div>
             </motion.div>
           ))}
@@ -397,7 +399,7 @@ const TestimonialsSection = () => {
           </motion.p>
           <Link href="/products">
             <motion.span
-              className="inline-flex items-center px-8 py-3 bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-semibold rounded-full hover:shadow-lg dark:hover:shadow-gray-900/25 transition-all duration-300 cursor-pointer"
+              className="inline-flex items-center px-8 py-3 bg-linear-to-r from-[#ec2538] to-[#FF8C00] text-white font-semibold rounded-full hover:shadow-lg dark:hover:shadow-gray-900/25 transition-all duration-300 cursor-pointer"
               whileHover={{ 
                 scale: 1.05,
                 boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
