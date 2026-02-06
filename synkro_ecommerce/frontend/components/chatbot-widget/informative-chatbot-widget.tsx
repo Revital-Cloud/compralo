@@ -165,7 +165,7 @@ export function InformativeChatbotWidget() {
     return (
       <button
         onClick={handleOpen}
-        className="fixed bottom-6 right-6 w-16 h-16 bg-gray-900 dark:bg-gray-950 text-white rounded-full shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 flex items-center justify-center z-50 border border-gray-700 dark:border-gray-800"
+        className="fixed bottom-6 right-6 w-16 h-16 bg-background text-foreground rounded-full shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 flex items-center justify-center z-50 border-2 border-border hover:border-primary/50"
         aria-label="Abrir asistente"
       >
         <Image src="/carrito.svg" alt="Asistente" width={32} height={32} />
@@ -176,20 +176,20 @@ export function InformativeChatbotWidget() {
   return (
     <div className="fixed bottom-6 right-6 z-50">
       <Card className="w-[400px] h-[600px] shadow-2xl bg-card flex flex-col overflow-hidden rounded-2xl">
-        <div className="bg-gray-900 dark:bg-gray-950 text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
+        <div className="bg-primary text-primary-foreground px-5 py-4 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-gray-800 dark:bg-gray-800 rounded-full flex items-center justify-center ring-2 ring-gray-600 dark:ring-gray-700 overflow-hidden">
+            <div className="w-11 h-11 bg-primary-foreground/20 rounded-full flex items-center justify-center ring-2 ring-primary-foreground/30 overflow-hidden">
               <Image src="/carrito.svg" alt="" width={24} height={24} />
             </div>
             <div>
               <h3 className="font-semibold text-base">Información legal y comercial</h3>
-              <p className="text-xs text-gray-300 dark:text-gray-400">Asistente</p>
+              <p className="text-xs text-primary-foreground/80">Asistente</p>
             </div>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 text-white hover:bg-gray-700 dark:hover:bg-gray-800 rounded-full transition-colors"
+            className="h-9 w-9 text-primary-foreground hover:bg-primary-foreground/20 rounded-full transition-colors"
             onClick={handleClose}
             title="Cerrar"
           >
@@ -210,7 +210,7 @@ export function InformativeChatbotWidget() {
                       <AvatarFallback className="text-xs font-semibold text-primary-foreground">TÚ</AvatarFallback>
                     </Avatar>
                   ) : (
-                    <div className="w-9 h-9 flex-shrink-0 rounded-full bg-gray-800 dark:bg-gray-800 flex items-center justify-center ring-2 ring-border overflow-hidden">
+                    <div className="w-9 h-9 flex-shrink-0 rounded-full bg-muted flex items-center justify-center ring-2 ring-border overflow-hidden">
                       <Image src="/carrito.svg" alt="" width={20} height={20} />
                     </div>
                   )}

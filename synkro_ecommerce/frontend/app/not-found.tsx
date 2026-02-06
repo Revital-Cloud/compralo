@@ -77,7 +77,7 @@ export default function NotFound() {
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white px-8 py-4 text-lg rounded-xl">
-                <Link href="/productos">
+                <Link href="/products">
                   <Search className="mr-2 h-5 w-5" />
                   Explorar Productos
                 </Link>

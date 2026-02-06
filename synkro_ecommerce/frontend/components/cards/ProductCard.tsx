@@ -28,16 +28,21 @@ export function ProductCard({ product, onClick, className = '' }: ProductCardPro
 
   return (
     <div
-      className={`bg-card text-card-foreground rounded-lg border border-border shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer ${className}`}
-      onClick={onClick}
+      className={`bg-card text-card-foreground rounded-lg border border-border shadow-md overflow-hidden hover:shadow-lg transition-shadow ${className}`}
     >
       {product.img_producto ? (
         <ProductGallery
           images={[product.img_producto.main, ...(product.img_producto.gallery || [])]}
           productName={product.nom_producto}
+          onMainImageClick={onClick}
         />
       ) : (
-        <div className="aspect-square bg-muted flex items-center justify-center">
+        <div
+          className="aspect-square bg-muted flex items-center justify-center cursor-pointer"
+          onClick={onClick}
+          role="button"
+          aria-label="Ver detalle del producto"
+        >
           <Package className="w-12 h-12 text-muted-foreground" />
         </div>
       )}

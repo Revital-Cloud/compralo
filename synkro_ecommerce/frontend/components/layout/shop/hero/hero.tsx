@@ -5,7 +5,6 @@ import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { Star, TrendingUp, Shield, Zap } from "lucide-react"
 import { motion } from "framer-motion"
-import { RotatingText } from "@/components/ui"
 import Link from "next/link"
 import BgDecorativeElements from "./components/bg-decorative-elements"
 
