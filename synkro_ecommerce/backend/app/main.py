@@ -39,6 +39,7 @@ from routers.order_buy_provider_router import router as order_buy_provider_route
 from routers.movements_inventory_router import router as movements_inventory_router
 from routers.dashboard_router import router as dashboard_router
 from routers.analytics_router import router as analytics_router
+from routers.top_info_bar_router import router as top_info_bar_router
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -89,7 +90,8 @@ app.add_middleware(
         "/api/admin",        # Todo requiere admin
         "/api/email",        # Todo requiere admin
         "/api/points",       # Todo requiere admin
-        "/api/discounts"     # Todo requiere admin
+        "/api/discounts",     # Todo requiere admin
+        "/api/top-info-bar"   # GET/PUT requieren admin; GET /top-info-bar/active es público (protegido en router)
     ]
 )
 
@@ -184,3 +186,6 @@ app.include_router(payment_router, prefix=settings.API_STR, tags=["Payments"])
 
 # Incluye el router de pagos con widget de Wompi.
 app.include_router(payment_widget_router, prefix=settings.API_STR)
+
+# Barra informativa superior (top info bar) - GET /top-info-bar/active público
+app.include_router(top_info_bar_router, prefix=settings.API_STR)
