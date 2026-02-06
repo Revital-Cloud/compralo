@@ -1,7 +1,6 @@
 import EcommerceHeroCarousel from "@/components/layout/shop/hero/hero";
-import FeaturedCategories from "@/components/layout/shop/featured-categories/featured-categories";
 import FeaturedProducts from "@/components/layout/shop/featured-products/featured-products";
-import TestimonialsSection from "@/components/layout/shop/testimonials/testimonials";
+import { FeaturedCategoriesClient, TestimonialsSectionClient } from "./home-sections.client";
 import { NoSSR, CookieBanner } from "@/components/ui";
 
 export default function Home() {
@@ -11,13 +10,13 @@ export default function Home() {
       <EcommerceHeroCarousel />
       
       {/* Featured Categories Section */}
-      <FeaturedCategories />
+      <FeaturedCategoriesClient />
       
       {/* Featured Products Section */}
       <FeaturedProducts />
       
       {/* Testimonials Section */}
-      <TestimonialsSection />
+      <TestimonialsSectionClient />
       
       <NoSSR>
         <CookieBanner />

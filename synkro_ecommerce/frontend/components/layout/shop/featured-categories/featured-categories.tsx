@@ -8,6 +8,8 @@ import Link from "next/link"
 import FeaturedCategoriesSkeleton from "./featured-categories-skeleton"
 import FeaturedCategoriesError from "./featured-categories-error"
 
+const MotionLink = motion(Link)
+
 const FeaturedCategories = () => {
   const router = useRouter()
   const { 
@@ -91,11 +93,11 @@ const FeaturedCategories = () => {
   }
 
   return (
-    <section className="relative py-20 bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 overflow-hidden transition-colors duration-300">
+    <section className="relative py-20 bg-linear-to-br from-gray-50 via-white to-gray-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-800 overflow-hidden transition-colors duration-300">
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div 
-          className="absolute -top-20 -right-20 w-60 h-60 bg-gradient-to-br from-[#FF8C00]/10 to-[#fec806]/10 dark:from-[#FF8C00]/20 dark:to-[#fec806]/20 rounded-full blur-3xl"
+          className="absolute -top-20 -right-20 w-60 h-60 bg-linear-to-br from-[#FF8C00]/10 to-[#fec806]/10 dark:from-[#FF8C00]/20 dark:to-[#fec806]/20 rounded-full blur-3xl"
           animate={{ 
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.6, 0.3]
@@ -107,7 +109,7 @@ const FeaturedCategories = () => {
           }}
         />
         <motion.div 
-          className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-br from-[#ec2538]/10 to-[#FF8C00]/10 dark:from-[#ec2538]/20 dark:to-[#FF8C00]/20 rounded-full blur-3xl"
+          className="absolute -bottom-20 -left-20 w-60 h-60 bg-linear-to-br from-[#ec2538]/10 to-[#FF8C00]/10 dark:from-[#ec2538]/20 dark:to-[#FF8C00]/20 rounded-full blur-3xl"
           animate={{ 
             scale: [1.2, 1, 1.2],
             opacity: [0.6, 0.3, 0.6]
@@ -155,7 +157,7 @@ const FeaturedCategories = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
           >
             Explora Nuestras{" "}
-            <span className="bg-gradient-to-r from-[#FF8C00] to-[#fec806] bg-clip-text text-transparent">
+            <span className="bg-linear-to-br from-[#FF8C00] to-[#fec806] bg-clip-text text-transparent">
               Categorías
             </span>
           </motion.h2>
@@ -209,7 +211,7 @@ const FeaturedCategories = () => {
                   className="group relative"
                 >
                   <motion.div 
-                    className={`relative bg-gradient-to-br ${category.bgGradient} rounded-2xl p-8 text-center cursor-pointer overflow-hidden shadow-lg dark:shadow-gray-900/25`}
+                    className={`relative bg-linear-to-br ${category.bgGradient} rounded-2xl p-8 text-center cursor-pointer overflow-hidden shadow-lg dark:shadow-gray-900/25`}
                     whileHover={{ 
                       scale: 1.05,
                       boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
@@ -300,19 +302,17 @@ const FeaturedCategories = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 1 }}
         >
-          <motion.button 
-            className="bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-bold py-4 px-8 rounded-xl shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300 text-lg cursor-pointer"
+          <MotionLink
+            href="/categories"
+            className="inline-flex items-center justify-center min-h-12 min-w-12 bg-linear-to-br from-[#ec2538] to-[#FF8C00] text-white font-bold py-4 px-8 rounded-xl shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300 text-lg cursor-pointer"
             whileHover={{ 
               scale: 1.05,
               boxShadow: "0 25px 50px -12px rgba(236, 37, 56, 0.4)"
             }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => router.push('/categories')}
           >
-            <Link href="/categories">
-              Ver Todas las Categorías
-            </Link>
-          </motion.button>
+            Ver Todas las Categorías
+          </MotionLink>
         </motion.div>
       </div>
     </section>

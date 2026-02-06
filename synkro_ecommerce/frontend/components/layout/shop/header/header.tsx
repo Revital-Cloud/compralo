@@ -131,6 +131,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                             size="sm"
                             className="relative p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
                             onClick={handleFavoritesClick}
+                            aria-label="Lista de deseos"
                           >
                             <Heart className="w-4 h-4 sm:w-5 sm:h-5" />
                             {mounted && favoritesCount > 0 && (
@@ -154,6 +155,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                           size="sm"
                           className="p-1.5 sm:p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
                           onClick={toggleTheme}
+                          aria-label="Cambiar tema"
                         >
                           <Sun className="w-4 h-4 sm:w-5 sm:h-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                           <Moon className="absolute w-4 h-4 sm:w-5 sm:h-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -197,6 +199,8 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                 size="sm"
                 onClick={toggleMobileMenu}
                 className="lg:hidden p-1.5 sm:p-2 ml-1 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
+                aria-label={isMobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+                aria-expanded={isMobileMenuOpen}
               >
                 {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>

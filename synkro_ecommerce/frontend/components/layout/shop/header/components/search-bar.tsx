@@ -33,6 +33,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ onSearch, placeholder = "Buscar p
         variant="ghost"
         size="sm"
         className="absolute right-1 top-1/2 -translate-y-1/2 p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors duration-300"
+        aria-label="Buscar"
       >
         <Search className="h-4 w-4" />
       </Button>

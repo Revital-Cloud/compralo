@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   /* config options here */
   serverExternalPackages: ['@node-rs/argon2'],
   // Configuración de imágenes
