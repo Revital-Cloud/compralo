@@ -5,10 +5,20 @@ Este módulo define y carga las configuraciones necesarias para la aplicación,
 utilizando Pydantic para la validación y gestión de variables de entorno.
 Incluye configuraciones para la base de datos, la aplicación en general,
 seguridad, la API y el servicio de emails con Resend.
+
+Entornos: se cargan variables desde .env y luego desde .env.development o
+.env.production según la variable ENVIRONMENT (por defecto: development).
 """
-# Carga de variables de entorno y configuraciones
+import os
 from pydantic_settings import BaseSettings
 from typing import Optional
+
+# Resolver qué archivo de entorno usar (development | production)
+_ENV = os.getenv("ENVIRONMENT", "development").strip().lower()
+if _ENV not in ("development", "production"):
+    _ENV = "development"
+_ENV_FILES: tuple[str, ...] = (".env", f".env.{_ENV}")
+
 
 class Settings(BaseSettings):
     """
@@ -74,9 +84,14 @@ class Settings(BaseSettings):
 
 
     class Config:
-        env_file = ".env"
+        env_file = _ENV_FILES
         case_sensitive = True
 
-# Instancia global de configuración
+# Instancia global de configuración (carga .env y .env.development | .env.production)
 settings = Settings()
+
+
+def is_production() -> bool:
+    """Entorno actual para uso en la app (middlewares, logging)."""
+    return _ENV == "production"
 

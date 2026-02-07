@@ -169,10 +169,17 @@ GRANT ALL PRIVILEGES ON DATABASE cliente_empresa_db TO cliente_user;
 
 ### 3. Variables de Entorno
 
+El backend carga primero `.env` y luego el archivo del entorno actual (`.env.development` o `.env.production`) según la variable **ENVIRONMENT** (por defecto: `development`).
+
 ```bash
-# Copiar plantilla de configuración
+# Copiar plantillas
 cp .env.example .env
+cp .env.development.example .env.development   # para desarrollo
+cp .env.production.example .env.production    # para producción
 ```
+
+- **Desarrollo:** no hace falta exportar nada; se usa `.env.development` por defecto.
+- **Producción:** en el servidor, exporta `ENVIRONMENT=production` para que se cargue `.env.production`.
 
 ```env
 # .env - Configuración específica de esta instancia de cliente

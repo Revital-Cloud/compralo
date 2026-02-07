@@ -15,7 +15,7 @@ from middlewares.security_middleware import SecurityMiddleware
 # from middlewares.role_middleware import SmartAuthMiddleware
 from routers.cms_router import router as cms_router
 from routers.provider_router import router as provider_router
-from core.config import settings
+from core.config import settings, is_production
 from routers.product_router import router as product_router
 from routers.user_router import router as user_router
 from routers.subline_router import router as subline_router
@@ -42,13 +42,13 @@ from routers.dashboard_router import router as dashboard_router
 from routers.analytics_router import router as analytics_router
 from routers.top_info_bar_router import router as top_info_bar_router
 
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
+# Configurar logging: en producción solo WARNING y superior (no se muestran INFO/DEBUG)
+logging.basicConfig(level=logging.WARNING if is_production() else logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Revital SaaS E-commerce API",
-    description="API para la plataforma SaaS de e-commerce con deployment aislado",
+    title="Compralo API",
+    description="API para la plataforma Compralo",
     version="1.0.0"
 )
 
@@ -58,7 +58,7 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, especificar dominios específicos
+    allow_origins=["https://compralo.revital.cloud"],  # En producción, especificar dominios específicos
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -119,7 +119,7 @@ def read_root():
     Returns:
         dict: Un mensaje de bienvenida.
     """
-    return {"message": "Bienvenido a la API de Revital Ecommerce Platform"}
+    return {"message": "Bienvenido a la API de Compralo"}
 
 # Incluye el router de autenticación con un prefijo de API.
 app.include_router(auth_router, prefix=settings.API_STR)

@@ -90,29 +90,17 @@ pip install -r requirements.txt
 
 ### 2. Variables de Entorno
 
-Crear un archivo `.env` en la raíz del backend con las siguientes variables:
+El backend carga primero `.env` y luego el archivo del entorno (`.env.development` o `.env.production`) según la variable **ENVIRONMENT** (por defecto: `development`).
 
-```env
-# Base de datos de gestión SaaS
-DATABASE_URL=postgresql://user:password@localhost:5432/revital_saas
-
-# JWT para autenticación del panel SaaS
-JWT_SECRET_KEY=your_super_secret_jwt_key_here
-JWT_ALGORITHM=HS256
-JWT_ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-# Configuración de la plataforma
-PLATFORM_NAME=Revital
-PLATFORM_DOMAIN=revital.com
-
-# Integraciones
-STRIPE_SECRET_KEY=sk_test_...  # Para billing
-RESEND_API_KEY=re_...          # Para emails transaccionales
-
-# Docker/Deployment
-DOCKER_REGISTRY=registry.revital.com
-DEPLOYMENT_NAMESPACE=revital-instances
+```bash
+# Copiar plantillas
+cp .env.example .env
+cp .env.development.example .env.development   # desarrollo
+cp .env.production.example .env.production     # producción
 ```
+
+- **Desarrollo:** se usa `.env.development` por defecto (no hace falta exportar nada).
+- **Producción:** en el servidor, exportar `ENVIRONMENT=production` para cargar `.env.production`.
 
 ### 3. Iniciar Servidor de Desarrollo
 

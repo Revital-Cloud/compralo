@@ -1,5 +1,16 @@
 # Variables de Entorno del Frontend
 
+## Entornos: desarrollo vs producción
+
+Next.js carga automáticamente las variables según el modo de ejecución:
+
+| Modo | Archivo cargado | Cuándo |
+|------|-----------------|--------|
+| Desarrollo | `.env.development` | `pnpm dev` (NODE_ENV=development) |
+| Producción | `.env.production` | `pnpm build` / `pnpm start` |
+
+**Pasos:** Copia `.env.development.example` → `.env.development` y `.env.production.example` → `.env.production`, y ajusta los valores. No es necesario cambiar código; Next.js ya usa el archivo correcto.
+
 ## Configuración de la API
 
 ### Variables Requeridas

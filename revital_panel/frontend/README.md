@@ -66,8 +66,9 @@ cd revital_panel/frontend
 # Instalar dependencias con pnpm
 pnpm install
 
-# Configurar variables de entorno (si existe el archivo de ejemplo)
-cp .env.local.example .env.local 2>/dev/null || echo "No .env.local.example found"
+# Variables de entorno: Next.js usa .env.development con `pnpm dev` y .env.production con `pnpm build`/`pnpm start`
+cp .env.development.example .env.development 2>/dev/null || true
+cp .env.production.example .env.production 2>/dev/null || true
 
 # Ejecutar en desarrollo
 pnpm dev

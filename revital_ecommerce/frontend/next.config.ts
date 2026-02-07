@@ -6,6 +6,13 @@ const nextConfig: NextConfig = {
   },
   /* config options here */
   serverExternalPackages: ['@node-rs/argon2'],
+  // En producción no se muestran console.log/info/debug/warn; solo console.error
+  compiler: {
+    removeConsole:
+      process.env.NODE_ENV === 'production'
+        ? { exclude: ['error'] }
+        : false,
+  },
   // Configuración de imágenes
   images: {
     remotePatterns: [

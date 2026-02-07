@@ -12,7 +12,7 @@ import logging
 from slowapi.errors import RateLimitExceeded
 
 from middlewares.security_middleware import SecurityMiddleware
-from core.config import settings
+from core.config import settings, is_production
 from core.rate_limiter import limiter
 
 # Importar routers
@@ -28,8 +28,8 @@ from routers.dominio_router import router as dominio_router
 from routers.uso_recurso_router import router as uso_recurso_router
 from routers.historial_plan_router import router as historial_plan_router
 
-# Configurar logging
-logging.basicConfig(level=logging.INFO)
+# Configurar logging: en producción solo WARNING y superior (no se muestran INFO/DEBUG)
+logging.basicConfig(level=logging.WARNING if is_production() else logging.INFO)
 logger = logging.getLogger(__name__)
 
 
