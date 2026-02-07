@@ -61,17 +61,18 @@ El sistema usa JWT con dos tipos de usuarios:
 
 ## Endpoints principales
 
-- `/api/auth`: Autenticacion unificada
-- `/api/admin/usuarios`: Gestion de admins de Revital
-- `/api/clientes`: Gestion de clientes
-- `/api/planes`: Planes de suscripcion
-- `/api/instancias`: Instancias de e-commerce
-- `/api/suscripciones`: Suscripciones de clientes
-- `/api/facturacion`: Facturas
-- `/api/deployments`: Deployments de instancias
-- `/api/dominios`: Dominios asociados
-- `/api/uso-recursos`: Tracking de recursos
-- `/api/historial-planes`: Historial de cambios de plan
+- `/api/auth`: Authentication
+- `/api/admin/users`: Revital admin users management
+- `/api/clients`: Clients management
+- `/api/plans`: Subscription plans
+- `/api/instances`: E-commerce instances
+- `/api/subscriptions`: Client subscriptions
+- `/api/billing`: Invoices and payments
+- `/api/deployments`: Instance deployments
+- `/api/domains`: Associated domains
+- `/api/resource-usage`: Resource usage tracking
+- `/api/plan-history`: Plan change history
+- `/api/admin/metrics`: Admin dashboard metrics
     """,
     version="1.0.0",
     docs_url="/docs",

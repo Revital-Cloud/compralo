@@ -50,7 +50,7 @@ def get_facturas(
     return [FacturaPublic(**dict(f)) for f in facturas]
 
 
-@router.get("/pendientes", response_model=List[dict])
+@router.get("/pending", response_model=List[dict])
 def get_facturas_pendientes(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user)
@@ -187,7 +187,7 @@ def create_factura(
         )
 
 
-@router.post("/{id_factura}/detalles", response_model=ResponseMessage)
+@router.post("/{id_factura}/details", response_model=ResponseMessage)
 def add_factura_detalle(
     id_factura: Decimal,
     detalle: FacturaDetalleCreate,

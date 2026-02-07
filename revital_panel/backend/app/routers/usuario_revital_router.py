@@ -21,7 +21,7 @@ from schemas.usuario_revital_schema import (
 )
 from services import usuario_revital_service
 
-router = APIRouter(prefix="/api/admin/usuarios", tags=["Usuarios Revital (Admin)"])
+router = APIRouter(prefix="/api/admin/users", tags=["Revital Users (Admin)"])
 
 
 @router.get("", response_model=List[UsuarioRevitalPublic])

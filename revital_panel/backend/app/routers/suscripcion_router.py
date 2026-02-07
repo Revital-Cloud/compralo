@@ -43,7 +43,7 @@ def get_suscripciones(
     return [SuscripcionPublic(**dict(s)) for s in suscripciones]
 
 
-@router.get("/activas", response_model=List[dict])
+@router.get("/active", response_model=List[dict])
 def get_suscripciones_activas(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user)
