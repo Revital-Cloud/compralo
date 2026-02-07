@@ -5,7 +5,7 @@ description: >
   Trigger: When creating/modifying React components, hooks, or using React features.
 license: MIT
 metadata:
-  author: synkro
+  author: revital
   version: "1.0"
   scope: [root]
   auto_invoke: "Writing React components"

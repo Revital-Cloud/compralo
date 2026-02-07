@@ -19,7 +19,7 @@
 
 ### Opción A: Eliminar y regenerar (RECOMENDADO)
 ```bash
-cd /srv/synkro/code
+cd /srv/revital/code
 rm pnpm-lock.yaml
 
 # Si hay package.json root, regenerar desde ahí
@@ -39,7 +39,7 @@ rm pnpm-lock.yaml
 ### Pasos para limpiar `pnpm-lock.yaml`:
 
 ```bash
-cd /srv/synkro/code
+cd /srv/revital/code
 
 # Opción 1: Eliminar completamente (si no hay package.json root)
 rm pnpm-lock.yaml
@@ -48,4 +48,4 @@ rm pnpm-lock.yaml
 # (pero parece que lo eliminaste, así que mejor opción 1)
 ```
 
-Cada app (`apps/ecommerce/frontend`, `apps/synkro/frontend`) generará su propio `pnpm-lock.yaml` cuando ejecutes `pnpm install` en cada una.
+Cada app (`apps/ecommerce/frontend`, `apps/revital/frontend`) generará su propio `pnpm-lock.yaml` cuando ejecutes `pnpm install` en cada una.

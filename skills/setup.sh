@@ -1,5 +1,5 @@
 #!/bin/bash
-# Setup AI Skills for Synkro development
+# Setup AI Skills for Revital development
 # Configures AI coding assistants that follow agentskills.io standard:
 #   - Claude Code: .claude/skills/ symlink + CLAUDE.md copies
 #   - Gemini CLI: .gemini/skills/ symlink + GEMINI.md copies
@@ -78,7 +78,7 @@ detect_agents() {
 show_help() {
     echo "Usage: $0 [OPTIONS]"
     echo ""
-    echo "Configure AI coding assistants for Synkro development."
+    echo "Configure AI coding assistants for Revital development."
     echo ""
     echo "Options:"
     echo "  --all       Configure all AI assistants"
@@ -298,7 +298,7 @@ done
 # MAIN
 # =============================================================================
 
-echo "🤖 Synkro AI Skills Setup"
+echo "🤖 Revital AI Skills Setup"
 echo "=========================="
 echo ""
 

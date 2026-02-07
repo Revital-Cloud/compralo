@@ -9,7 +9,7 @@
 
 ### 1. Copiado de `packages/ui` a cada app
 - ✅ Copiado `packages/ui/src` → `apps/ecommerce/frontend/components/ui-package`
-- ✅ Copiado `packages/ui/src` → `apps/synkro/frontend/components/ui-package`
+- ✅ Copiado `packages/ui/src` → `apps/revital/frontend/components/ui-package`
 
 ### 2. Actualización de Imports
 - ✅ Reemplazado todos los imports de `@repo/ui` por `@/components/ui-package`
@@ -18,7 +18,7 @@
 
 ### 3. Actualización de `package.json`
 - ✅ Eliminado `@repo/ui: "workspace:*"` de `apps/ecommerce/frontend/package.json`
-- ✅ Eliminado `@repo/ui: "workspace:*"` de `apps/synkro/frontend/package.json`
+- ✅ Eliminado `@repo/ui: "workspace:*"` de `apps/revital/frontend/package.json`
 - ✅ Las dependencias directas (radix-ui, etc.) ya estaban presentes
 
 ### 4. Actualización de `next.config.ts`
@@ -51,7 +51,7 @@ code/
 │   │       │   └── ui-package/    # ← Copia local de packages/ui
 │   │       ├── package.json        # ← Sin @repo/ui
 │   │       └── next.config.ts      # ← Sin transpilePackages
-│   └── synkro/
+│   └── revital/
 │       └── frontend/
 │           ├── components/
 │           │   └── ui-package/    # ← Copia local de packages/ui
@@ -103,8 +103,8 @@ cd apps/ecommerce/frontend
 pnpm install
 pnpm dev
 
-# Synkro
-cd apps/synkro/frontend
+# Revital
+cd apps/revital/frontend
 pnpm install
 pnpm dev
 ```

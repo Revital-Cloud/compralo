@@ -1,11 +1,11 @@
 ---
 name: react-performance
 description: >
-  React and Next.js performance optimization guidelines adapted for Synkro.
+  React and Next.js performance optimization guidelines adapted for Revital.
   Based on Vercel's React Best Practices (40+ rules). Trigger: When writing, reviewing, or refactoring React/Next.js code for performance.
 license: MIT
 metadata:
-  author: synkro
+  author: revital
   version: "1.0"
   scope: [root]
   auto_invoke:
@@ -19,9 +19,9 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, Task
 
 ## Overview
 
-Performance optimization guide for React 19 and Next.js 15, adapted for Synkro's architecture. Based on Vercel's React Best Practices with 40+ rules prioritized by impact.
+Performance optimization guide for React 19 and Next.js 15, adapted for Revital's architecture. Based on Vercel's React Best Practices with 40+ rules prioritized by impact.
 
-**Note**: If you have `vercel-react-best-practices` installed globally (via `npx add-skill`), both skills will be available. This skill is project-specific and adapted for Synkro, while `vercel-react-best-practices` provides the complete 45-rule reference.
+**Note**: If you have `vercel-react-best-practices` installed globally (via `npx add-skill`), both skills will be available. This skill is project-specific and adapted for Revital, while `vercel-react-best-practices` provides the complete 45-rule reference.
 
 **Reference**: [Vercel React Best Practices](https://github.com/vercel-labs/agent-skills/tree/main/skills/react-best-practices)
 
@@ -354,7 +354,7 @@ function ProductCard({ product }: { product: Product }) {
 
 ---
 
-## Synkro-Specific Patterns
+## Revital-Specific Patterns
 
 ### E-commerce Frontend
 

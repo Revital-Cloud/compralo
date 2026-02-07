@@ -5,7 +5,7 @@ description: >
   Trigger: When creating/modifying Next.js pages, routes, or using App Router features.
 license: MIT
 metadata:
-  author: synkro
+  author: revital
   version: "1.0"
   scope: [root]
   auto_invoke: "Creating/modifying Next.js pages/routes"

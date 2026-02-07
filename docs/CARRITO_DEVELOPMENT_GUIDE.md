@@ -1,8 +1,8 @@
-# 🛒 Guía de Desarrollo del Sistema de Carrito - Synkro
+# 🛒 Guía de Desarrollo del Sistema de Carrito - Revital
 
 ## 📋 Resumen Ejecutivo
 
-Esta guía detalla cómo desarrollar y ejecutar el sistema completo de carrito de compras en Synkro. El backend ya está **100% implementado** con todas las funcionalidades necesarias. Tu tarea es crear la integración del frontend.
+Esta guía detalla cómo desarrollar y ejecutar el sistema completo de carrito de compras en Revital. El backend ya está **100% implementado** con todas las funcionalidades necesarias. Tu tarea es crear la integración del frontend.
 
 ## 🎯 Estado Actual
 
@@ -265,7 +265,7 @@ npm run dev
 ### **Testing endpoints:**
 ```bash
 # Usar el archivo Postman incluido
-# Synkro - Complete API Collection.postman_collection.json
+# Revital - Complete API Collection.postman_collection.json
 
 # O usar curl:
 curl -X POST http://localhost:8000/api/carrito-usuario \
@@ -290,7 +290,7 @@ curl -X POST http://localhost:8000/api/carrito-usuario \
 ### **Documentación de Referencia:**
 - `backend/app/Docs/DOCUMENTATION.md` - Documentación completa del backend
 - `FRONTEND_IMPLEMENTATION_PLAN.md` - Plan de integración frontend
-- `PLAN_V1_SYNKRO.md` - Plan general del proyecto
+- `PLAN_V1_REVITAL.md` - Plan general del proyecto
 
 ---
 

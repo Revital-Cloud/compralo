@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Backup de bases de datos PostgreSQL: synkro_ecommerce y synkro_panel.
+# Backup de bases de datos PostgreSQL: revital_ecommerce y revital_panel.
 # Usa DATABASE_URL del .env de cada backend, o variables de entorno opcionales.
 # Requiere pg_dump instalado.
 #
@@ -51,7 +51,7 @@ backup_one() {
 }
 
 echo "Backups en: $BACKUP_DIR"
-backup_one "synkro_ecommerce" "synkro_ecommerce/backend/.env" "DATABASE_URL_ECOM"
-backup_one "synkro_panel"     "synkro_panel/backend/.env"    "DATABASE_URL_PANEL"
+backup_one "revital_ecommerce" "revital_ecommerce/backend/.env" "DATABASE_URL_ECOM"
+backup_one "revital_panel"     "revital_panel/backend/.env"    "DATABASE_URL_PANEL"
 echo "Listo. Archivos:"
 ls -la "$BACKUP_DIR"
