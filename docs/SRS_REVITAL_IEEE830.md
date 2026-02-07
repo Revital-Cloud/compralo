@@ -38,7 +38,7 @@ Este documento es la Especificación de Requisitos de Software (SRS) del product
 
 **Fuera del alcance de este SRS:**
 
-- Detalle de la infraestructura de despliegue (VPS, servidor propio, PaaS como Railway/Vercel, etc.) y procedimientos de operación. *Nota: el proyecto no utiliza Docker ni Traefik en el stack actual.*
+- Detalle de la infraestructura de despliegue (Docker, Traefik, VPS) y procedimientos de operación.
 - Requisitos de negocio de comercialización o marketing no implementados en el software.
 - Herramientas de desarrollo, CI/CD y configuración de entornos de desarrollo.
 
@@ -103,7 +103,7 @@ Cada cliente SaaS recibe un despliegue completo e independiente de revital_ecomm
 
 - **Base de datos PostgreSQL dedicada**: Esquema completo con 30+ tablas, funciones almacenadas, triggers y vistas materializadas.
 - **Backend FastAPI independiente**: API REST con 24+ routers, configuración propia mediante variables de entorno.
-- **Frontend Next.js 16 independiente**: Interfaz de tienda y dashboard administrativo con configuración específica del cliente.
+- **Frontend Next.js 15 independiente**: Interfaz de tienda y dashboard administrativo con configuración específica del cliente.
 - **Dominio personalizado**: Cada instancia puede operar bajo su propio dominio (ej: tienda-cliente.com).
 - **Credenciales únicas**: JWT secrets, tokens de servicios externos (Wompi, Resend) y configuraciones específicas por cliente.
 
@@ -325,11 +325,7 @@ El sistema está diseñado para los siguientes tipos de usuarios:
 - Los clientes SaaS tienen capacidad técnica básica para gestionar su suscripción, facturación y configuración de dominio mediante el panel web.
 
 #### Supuestos sobre la infraestructura
-<<<<<<< HEAD:docs/SRS_SYNKRO_IEEE830.md
-- Existe infraestructura de deployment disponible (servidores VPS, servidor propio, o PaaS como Railway, Vercel, etc.) para desplegar instancias de synkro_ecommerce. El despliegue puede realizarse sin contenedores (venv + pip para backend, pnpm para frontend, systemd/supervisor + nginx) o mediante PaaS.
-=======
 - Existe infraestructura de deployment disponible (Docker, servidores VPS o cloud) para desplegar instancias de revital_ecommerce.
->>>>>>> main:docs/SRS_REVITAL_IEEE830.md
 - Cada instancia tendrá acceso a recursos computacionales suficientes (CPU, memoria, almacenamiento) según su plan de suscripción.
 - Existe conectividad de red estable entre las instancias y los servicios externos (Wompi, Resend).
 
@@ -385,8 +381,7 @@ El sistema está diseñado para los siguientes tipos de usuarios:
 
 #### Dependencias de herramientas de desarrollo (fuera del alcance del SRS)
 
-Las siguientes herramientas se utilizan para desarrollo, pero no son requisitos del sistema en producción:
+Las siguientes herramientas se utilizan para desarrollo y deployment, pero no son requisitos del sistema en producción:
+- Docker: Containerización para deployment (ver Sección 1.2 - Fuera del alcance).
 - pnpm: Gestor de paquetes para frontend (alternativa a npm/yarn).
 - Git: Control de versiones del código fuente.
-
-*Nota: el despliegue de instancias queda fuera del alcance del SRS; puede realizarse en VPS/servidor propio (venv, systemd, nginx) o en PaaS (Railway, Vercel, etc.), sin Docker ni Traefik en el stack actual.*

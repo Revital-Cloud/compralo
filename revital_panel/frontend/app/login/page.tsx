@@ -1,27 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Eye, EyeOff, RefreshCw, ArrowLeft } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useTranslations } from 'next-intl';
-import { useRouter } from '@/i18n/routing';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Button,
+  Input,
+  Label,
+} from "@/components/ui";
 
 import { useLogin, useAuth } from '@/hooks/use-auth';
 import { isAuthenticated } from '@/utils/apiWrapper';
 
 export default function LoginPage() {
-  const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const loginMutation = useLogin();
-
+  
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -44,7 +47,7 @@ export default function LoginPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
+    
     if (!formData.email || !formData.password) {
       return;
     }
@@ -71,7 +74,7 @@ export default function LoginPage() {
         <Button variant="ghost" asChild>
           <Link href="/">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {t('auth.login.backToHome')}
+            Back to Home
           </Link>
         </Button>
       </div>
@@ -92,24 +95,24 @@ export default function LoginPage() {
               <span className="text-2xl font-bold text-revital-green">Revital</span>
             </div>
           </Link>
-          <CardTitle className="text-xl">{t('auth.login.title')}</CardTitle>
-          <CardDescription>{t('auth.login.description')}</CardDescription>
+          <CardTitle className="text-xl">Welcome back</CardTitle>
+          <CardDescription>
+            Sign in to access your dashboard
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">{t('auth.login.emailLabel')}</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder={t('auth.login.emailPlaceholder')}
+                placeholder="you@company.com"
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    email: e.target.value,
-                  }))
-                }
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  email: e.target.value 
+                }))}
                 disabled={loginMutation.isPending}
                 autoComplete="email"
                 autoFocus
@@ -118,33 +121,24 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/login/page.tsx
-                <Label htmlFor="password">{t('auth.login.passwordLabel')}</Label>
-                <Link
-                  href="/forgot-password"
-                  className="text-xs text-synkro-green hover:underline"
-========
                 <Label htmlFor="password">Password</Label>
                 <Link 
                   href="/forgot-password" 
                   className="text-xs text-revital-green hover:underline"
->>>>>>>> main:revital_panel/frontend/app/login/page.tsx
                 >
-                  {t('auth.login.forgotPassword')}
+                  Forgot password?
                 </Link>
               </div>
               <div className="relative">
                 <Input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder={t('auth.login.passwordPlaceholder')}
+                  placeholder="••••••••"
                   value={formData.password}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      password: e.target.value,
-                    }))
-                  }
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    password: e.target.value 
+                  }))}
                   disabled={loginMutation.isPending}
                   autoComplete="current-password"
                 />
@@ -162,42 +156,29 @@ export default function LoginPage() {
               </div>
             </div>
 
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/login/page.tsx
-            <Button
-              type="submit"
-              className="w-full bg-synkro-green hover:bg-synkro-green/90 text-synkro-black"
-========
             <Button 
               type="submit" 
               className="w-full bg-revital-green hover:bg-revital-green/90 text-revital-black"
->>>>>>>> main:revital_panel/frontend/app/login/page.tsx
               disabled={loginMutation.isPending}
             >
               {loginMutation.isPending ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  {t('auth.login.submitting')}
+                  Signing in...
                 </>
               ) : (
-                t('auth.login.submitButton')
+                'Sign in'
               )}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/login/page.tsx
-            {t('auth.login.noAccount')}{' '}
-            <Link
-              href="/register"
-              className="text-synkro-green hover:underline font-medium"
-========
             Don&apos;t have an account?{' '}
             <Link 
               href="/register" 
               className="text-revital-green hover:underline font-medium"
->>>>>>>> main:revital_panel/frontend/app/login/page.tsx
             >
-              {t('auth.login.registerLink')}
+              Sign up
             </Link>
           </div>
         </CardContent>
@@ -205,13 +186,8 @@ export default function LoginPage() {
 
       {/* Footer */}
       <p className="mt-8 text-center text-sm text-muted-foreground">
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/login/page.tsx
-        {t('footer.copyright', { year: new Date().getFullYear() })}
-========
         © {new Date().getFullYear()} Revital. All rights reserved.
->>>>>>>> main:revital_panel/frontend/app/login/page.tsx
       </p>
     </div>
   );
 }
-

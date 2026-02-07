@@ -2,37 +2,43 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLocale, useTranslations } from 'next-intl';
 import { ArrowLeft, Save, RefreshCw } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Button,
+  Input,
+  Label,
+  Skeleton,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui";
 
 import { useInstances, useUpdateInstance } from '@/hooks/use-instances';
 import type { InstanceUpdate, RegionDeployment } from '@/types';
 
+const regions: { value: RegionDeployment; label: string }[] = [
+  { value: 'us-east-1', label: 'US East (N. Virginia)' },
+  { value: 'us-west-2', label: 'US West (Oregon)' },
+  { value: 'sa-east-1', label: 'South America (São Paulo)' },
+  { value: 'eu-west-1', label: 'Europe (Ireland)' },
+  { value: 'eu-central-1', label: 'Europe (Frankfurt)' },
+  { value: 'ap-southeast-1', label: 'Asia Pacific (Singapore)' },
+  { value: 'ap-northeast-1', label: 'Asia Pacific (Tokyo)' },
+];
+
 export default function InstanceSettingsPage() {
   const router = useRouter();
-  const locale = useLocale();
-  const t = useTranslations();
-  const localePrefix = `/${locale}`;
   const { data: instances, isLoading } = useInstances();
   const updateInstance = useUpdateInstance();
   
   const instance = instances && instances.length > 0 ? instances[0] : null;
-
-  const regions: { value: RegionDeployment; label: string }[] = [
-    { value: 'us-east-1', label: t('instance.settings.regions.us-east-1') },
-    { value: 'us-west-2', label: t('instance.settings.regions.us-west-2') },
-    { value: 'sa-east-1', label: t('instance.settings.regions.sa-east-1') },
-    { value: 'eu-west-1', label: t('instance.settings.regions.eu-west-1') },
-    { value: 'eu-central-1', label: t('instance.settings.regions.eu-central-1') },
-    { value: 'ap-southeast-1', label: t('instance.settings.regions.ap-southeast-1') },
-    { value: 'ap-northeast-1', label: t('instance.settings.regions.ap-northeast-1') },
-  ];
 
   const [formData, setFormData] = useState<InstanceUpdate>({
     nom_instancia: '',
@@ -82,9 +88,9 @@ export default function InstanceSettingsPage() {
   if (!instance) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <p className="text-muted-foreground mb-4">{t('instance.settings.notFound')}</p>
-        <Button onClick={() => router.push(`${localePrefix}/instance`)}>
-          {t('instance.settings.goToInstance')}
+        <p className="text-muted-foreground mb-4">No instance found</p>
+        <Button onClick={() => router.push('/instance')}>
+          Go to Instance
         </Button>
       </div>
     );
@@ -97,14 +103,14 @@ export default function InstanceSettingsPage() {
         <Button 
           variant="ghost" 
           size="icon"
-          onClick={() => router.push(`${localePrefix}/instance`)}
+          onClick={() => router.push('/instance')}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">{t('instance.settings.title')}</h1>
+          <h1 className="text-2xl font-bold">Instance Settings</h1>
           <p className="text-muted-foreground">
-            {t('instance.settings.subtitle')}
+            Configure your e-commerce instance
           </p>
         </div>
       </div>
@@ -113,15 +119,15 @@ export default function InstanceSettingsPage() {
       <form onSubmit={handleSubmit}>
         <Card>
           <CardHeader>
-            <CardTitle>{t('instance.settings.general')}</CardTitle>
+            <CardTitle>General Settings</CardTitle>
             <CardDescription>
-              {t('instance.settings.generalDescription')}
+              Update your instance&apos;s basic information
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="nom_instancia">{t('instance.settings.storeName')}</Label>
+                <Label htmlFor="nom_instancia">Store Name</Label>
                 <Input
                   id="nom_instancia"
                   value={formData.nom_instancia}
@@ -134,7 +140,7 @@ export default function InstanceSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="subdominio">{t('instance.settings.subdomain')}</Label>
+                <Label htmlFor="subdominio">Subdomain</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     id="subdominio"
@@ -147,17 +153,13 @@ export default function InstanceSettingsPage() {
                     disabled={updateInstance.isPending}
                   />
                   <span className="text-sm text-muted-foreground whitespace-nowrap">
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/instance/settings/page.tsx
-                    {t('instance.settings.subdomainSuffix')}
-========
                     .revital.store
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/instance/settings/page.tsx
                   </span>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="dominio_personalizado">{t('instance.settings.customDomain')}</Label>
+                <Label htmlFor="dominio_personalizado">Custom Domain</Label>
                 <Input
                   id="dominio_personalizado"
                   value={formData.dominio_personalizado || ''}
@@ -165,16 +167,16 @@ export default function InstanceSettingsPage() {
                     ...prev, 
                     dominio_personalizado: e.target.value 
                   }))}
-                  placeholder={t('instance.settings.customDomainPlaceholder')}
+                  placeholder="www.mystore.com"
                   disabled={updateInstance.isPending}
                 />
                 <p className="text-xs text-muted-foreground">
-                  {t('instance.settings.customDomainHelp')}
+                  Configure DNS to point to your store
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="region">{t('instance.settings.region')}</Label>
+                <Label htmlFor="region">Deployment Region</Label>
                 <Select
                   value={formData.region_deployment}
                   onValueChange={(value) => setFormData(prev => ({ 
@@ -184,7 +186,7 @@ export default function InstanceSettingsPage() {
                   disabled={updateInstance.isPending}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={t('instance.settings.regionPlaceholder')} />
+                    <SelectValue placeholder="Select region" />
                   </SelectTrigger>
                   <SelectContent>
                     {regions.map((region) => (
@@ -201,9 +203,9 @@ export default function InstanceSettingsPage() {
               <Button 
                 type="button" 
                 variant="outline"
-                onClick={() => router.push(`${localePrefix}/instance`)}
+                onClick={() => router.push('/instance')}
               >
-                {t('common.cancel')}
+                Cancel
               </Button>
               <Button 
                 type="submit"
@@ -213,12 +215,12 @@ export default function InstanceSettingsPage() {
                 {updateInstance.isPending ? (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    {t('instance.settings.saving')}
+                    Saving...
                   </>
                 ) : (
                   <>
                     <Save className="mr-2 h-4 w-4" />
-                    {t('instance.settings.saveChanges')}
+                    Save Changes
                   </>
                 )}
               </Button>

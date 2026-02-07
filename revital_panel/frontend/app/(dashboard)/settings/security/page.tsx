@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLocale, useTranslations } from 'next-intl';
 import {
   ArrowLeft,
   Key,
@@ -11,19 +10,22 @@ import {
   EyeOff,
   RefreshCw,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Button,
+  Input,
+  Label,
+} from "@/components/ui";
 import { toast } from 'sonner';
 
 import { useChangePassword } from '@/hooks/use-auth';
 
 export default function SecurityPage() {
   const router = useRouter();
-  const locale = useLocale();
-  const t = useTranslations();
-  const localePrefix = `/${locale}`;
   const changePassword = useChangePassword();
   
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -41,22 +43,22 @@ export default function SecurityPage() {
 
     // Validate passwords
     if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
-      toast.error(t('settings.security.errors.fillAllFields'));
+      toast.error('Please fill in all password fields');
       return;
     }
 
     if (formData.newPassword.length < 8) {
-      toast.error(t('settings.security.errors.minLength'));
+      toast.error('New password must be at least 8 characters');
       return;
     }
 
     if (formData.newPassword !== formData.confirmPassword) {
-      toast.error(t('settings.security.errors.passwordsDontMatch'));
+      toast.error('New passwords do not match');
       return;
     }
 
     if (formData.currentPassword === formData.newPassword) {
-      toast.error(t('settings.security.errors.samePassword'));
+      toast.error('New password must be different from current password');
       return;
     }
 
@@ -81,14 +83,14 @@ export default function SecurityPage() {
         <Button 
           variant="ghost" 
           size="icon"
-          onClick={() => router.push(`${localePrefix}/settings`)}
+          onClick={() => router.push('/settings')}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">{t('settings.security.title')}</h1>
+          <h1 className="text-2xl font-bold">Security Settings</h1>
           <p className="text-muted-foreground">
-            {t('settings.security.subtitle')}
+            Manage your password and security preferences
           </p>
         </div>
       </div>
@@ -98,16 +100,16 @@ export default function SecurityPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Key className="h-5 w-5" />
-            {t('settings.security.changePassword')}
+            Change Password
           </CardTitle>
           <CardDescription>
-            {t('settings.security.changePasswordDescription')}
+            Update your password to keep your account secure
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="currentPassword">{t('settings.security.currentPassword')}</Label>
+              <Label htmlFor="currentPassword">Current Password</Label>
               <div className="relative">
                 <Input
                   id="currentPassword"
@@ -134,7 +136,7 @@ export default function SecurityPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="newPassword">{t('settings.security.newPassword')}</Label>
+              <Label htmlFor="newPassword">New Password</Label>
               <div className="relative">
                 <Input
                   id="newPassword"
@@ -159,12 +161,12 @@ export default function SecurityPage() {
                 </button>
               </div>
               <p className="text-xs text-muted-foreground">
-                {t('settings.security.passwordHelp')}
+                Must be at least 8 characters
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">{t('settings.security.confirmPassword')}</Label>
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
@@ -199,12 +201,12 @@ export default function SecurityPage() {
                 {changePassword.isPending ? (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    {t('settings.security.updating')}
+                    Updating...
                   </>
                 ) : (
                   <>
                     <Key className="mr-2 h-4 w-4" />
-                    {t('settings.security.updatePassword')}
+                    Update Password
                   </>
                 )}
               </Button>
@@ -218,32 +220,12 @@ export default function SecurityPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
-            {t('settings.security.securityTips')}
+            Security Tips
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/settings/security/page.tsx
-              <span className="text-synkro-green">•</span>
-              {t('settings.security.tips.unique')}
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-synkro-green">•</span>
-              {t('settings.security.tips.mix')}
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-synkro-green">•</span>
-              {t('settings.security.tips.avoid')}
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-synkro-green">•</span>
-              {t('settings.security.tips.change')}
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-synkro-green">•</span>
-              {t('settings.security.tips.share')}
-========
               <span className="text-revital-green">•</span>
               Use a unique password that you don&apos;t use for other accounts
             </li>
@@ -262,7 +244,6 @@ export default function SecurityPage() {
             <li className="flex items-start gap-2">
               <span className="text-revital-green">•</span>
               Never share your password with anyone
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/settings/security/page.tsx
             </li>
           </ul>
         </CardContent>

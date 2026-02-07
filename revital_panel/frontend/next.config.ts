@@ -1,14 +1,6 @@
 import type { NextConfig } from "next";
-import createNextIntlPlugin from 'next-intl/plugin';
-
-const withNextIntl = createNextIntlPlugin('./i18n/config.ts');
 
 const nextConfig: NextConfig = {
-<<<<<<< HEAD:synkro_panel/frontend/next.config.ts
-  experimental: {
-    // Persist Turbopack cache between dev runs so repeat navigations don't recompile
-    turbopackFileSystemCacheForDev: true,
-=======
   /* config options here */
   // En producción no se muestran console.log/info/debug/warn; solo console.error
   compiler: {
@@ -16,7 +8,6 @@ const nextConfig: NextConfig = {
       process.env.NODE_ENV === 'production'
         ? { exclude: ['error'] }
         : false,
->>>>>>> main:revital_panel/frontend/next.config.ts
   },
   images: {
     remotePatterns: [
@@ -48,4 +39,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+export default nextConfig;

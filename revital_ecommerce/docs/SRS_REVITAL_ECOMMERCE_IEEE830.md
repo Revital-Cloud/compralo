@@ -3,30 +3,14 @@
 **Versión:** [VERSION]  
 **Fecha:** [FECHA]
 
-<<<<<<< HEAD:synkro_ecommerce/docs/SRS_SYNKRO_ECOMMERCE_IEEE830.md
-Este documento es la Especificación de Requisitos de Software (SRS) de la aplicación **synkro_ecommerce**, componente de la plataforma Synkro. Proporciona una vista general del producto, objetivo, alcance, definiciones, referencias, descripción general, requisitos específicos (funcionales y no funcionales) y gestión de pruebas.
-=======
 Este documento es la Especificación de Requisitos de Software (SRS) de la aplicación **revital_ecommerce**, componente de la plataforma Revital. Sigue la estructura IEEE 830-1998 y define requisitos funcionales y no funcionales verificables únicamente para esta aplicación.
->>>>>>> main:revital_ecommerce/docs/SRS_REVITAL_ECOMMERCE_IEEE830.md
 
 ---
 
 # 1. Introducción
 
-La introducción proporciona el objetivo de la SRS, el alcance, las definiciones y acrónimos, las referencias, el personal involucrado y un resumen de la organización del documento.
-
 ## 1.1 Propósito
 
-<<<<<<< HEAD:synkro_ecommerce/docs/SRS_SYNKRO_ECOMMERCE_IEEE830.md
-- **Propósito del documento:** Definir de forma completa y verificable los requisitos funcionales y no funcionales de **synkro_ecommerce**; servir como contrato técnico para el diseño, implementación y pruebas; permitir la trazabilidad entre requisitos (RF/RNF), diseño, código y casos de prueba; facilitar la validación y aceptación del producto por instancia.
-- **Audiencia a la que va dirigido:** Equipo de desarrollo, aseguramiento de calidad, gestores de proyecto y stakeholders técnicos con capacidad de validar el cumplimiento de los requisitos de synkro_ecommerce.
-
-## 1.2 Alcance
-
-- **Identificación del producto:** synkro_ecommerce — Aplicación de e-commerce por instancia.
-- **Descripción breve:** synkro_ecommerce es la aplicación de comercio electrónico desplegada **una vez por cada cliente SaaS**. Cada instancia es independiente: base de datos PostgreSQL propia, backend FastAPI y frontend Next.js 15 dedicados, configuración y dominio propios.
-- **Consistencia con documentos de mayor nivel:** Este SRS es coherente con [SRS Synkro] (docs/SRS_SYNKRO_IEEE830.md), que define el alcance global de la plataforma Synkro.
-=======
 Este documento define de forma completa y verificable los requisitos funcionales y no funcionales de **revital_ecommerce**. El propósito del documento es:
 
 - Servir como contrato técnico para el diseño, implementación y pruebas de revital_ecommerce.
@@ -40,21 +24,11 @@ Este documento define de forma completa y verificable los requisitos funcionales
 **Nombre del producto:** revital_ecommerce — Aplicación de e-commerce por instancia.
 
 **Descripción breve:** revital_ecommerce es la aplicación de comercio electrónico desplegada **una vez por cada cliente SaaS**. Cada instancia es independiente: base de datos PostgreSQL propia, backend FastAPI y frontend Next.js 15 dedicados, configuración y dominio propios.
->>>>>>> main:revital_ecommerce/docs/SRS_REVITAL_ECOMMERCE_IEEE830.md
 
 **Dentro del alcance de este SRS:**
 
 - Requisitos funcionales y no funcionales del backend (FastAPI, Python 3.13+, PostgreSQL por instancia).
 - Requisitos funcionales y no funcionales del frontend (Next.js 15, React 19, TypeScript).
-<<<<<<< HEAD:synkro_ecommerce/docs/SRS_SYNKRO_ECOMMERCE_IEEE830.md
-- Esquema y uso de la base de datos por instancia (db_synkro.sql, funciones almacenadas, triggers, vistas).
-- Integraciones con sistemas externos (Wompi, Resend, Cloudinary opcional).
-
-**Fuera del alcance de este SRS:**
-
-- Requisitos de synkro_panel (gestión SaaS, instancias, planes, facturación).
-- Detalle de la infraestructura de despliegue (VPS, servidor propio, PaaS como Railway/Vercel, etc.) y procedimientos de operación. *Nota: el proyecto no utiliza Docker ni Traefik en el stack actual.*
-=======
 - Esquema y uso de la base de datos por instancia (db_revital.sql, funciones almacenadas, triggers, vistas).
 - Integraciones con sistemas externos utilizadas por revital_ecommerce (Wompi, Resend, Cloudinary opcional).
 
@@ -62,22 +36,9 @@ Este documento define de forma completa y verificable los requisitos funcionales
 
 - Requisitos de revital_panel (gestión SaaS, instancias, planes, facturación).
 - Infraestructura de despliegue (Docker, Traefik, VPS) y procedimientos de operación.
->>>>>>> main:revital_ecommerce/docs/SRS_REVITAL_ECOMMERCE_IEEE830.md
 - Herramientas de desarrollo, CI/CD y configuración de entornos de desarrollo.
 
-## 1.3 Personal involucrado
-
-Relación de personas involucradas en el desarrollo del sistema, con información de contacto. Útil para que el gestor del proyecto pueda localizar a los participantes y recabar información para requisitos, validaciones y seguimiento.
-
-| Nombre | Rol | Categoría profesional | Responsabilidades | Información de contacto | Aprobación |
-|--------|-----|------------------------|-------------------|--------------------------|------------|
-| [Inserte nombre] | [Inserte rol] | [Inserte categoría] | [Inserte responsabilidades] | [Inserte contacto] | [Inserte aprobación] |
-
-*Completar con los datos del equipo del proyecto.*
-
-## 1.4 Definiciones, acrónimos y abreviaturas
-
-Definición de todos los términos, abreviaturas y acrónimos necesarios para interpretar este documento.
+## 1.3 Definiciones, siglas y abreviaturas
 
 | Término | Definición |
 |---------|------------|
@@ -90,11 +51,8 @@ Definición de todos los términos, abreviaturas y acrónimos necesarios para in
 | **SRS** | Software Requirements Specification. Este documento. |
 | **session_id** | Identificador UUID v4 que identifica el carrito de un usuario anónimo; persistido en el cliente. |
 
-## 1.5 Referencias
+## 1.4 Referencias
 
-<<<<<<< HEAD:synkro_ecommerce/docs/SRS_SYNKRO_ECOMMERCE_IEEE830.md
-Relación de documentos relacionados en la especificación, con título, referencia, ruta, fecha y organización/autor.
-=======
 | Identificador | Documento o recurso |
 |---------------|---------------------|
 | IEEE 830-1998 | IEEE Recommended Practice for Software Requirements Specifications. |
@@ -103,27 +61,14 @@ Relación de documentos relacionados en la especificación, con título, referen
 | [README frontend] | revital_ecommerce/frontend/README.md. |
 | [Arquitectura] | docs/REVITAL_ARQUITECTURA_Y_INTEGRACIONES.md. |
 | [DB docs] | revital_ecommerce/db/docs/ — documentación del esquema y funciones. |
->>>>>>> main:revital_ecommerce/docs/SRS_REVITAL_ECOMMERCE_IEEE830.md
 
-| Referencia | Título | Ruta | Fecha | Autor |
-|------------|--------|------|-------|-------|
-| IEEE 830-1998 | IEEE Recommended Practice for Software Requirements Specifications | — | 1998 | IEEE |
-| [SRS Synkro] | SRS de la plataforma Synkro | docs/SRS_SYNKRO_IEEE830.md | [FECHA] | Proyecto Synkro |
-| [README backend] | README backend e-commerce | synkro_ecommerce/backend/README.md | — | Proyecto Synkro |
-| [README frontend] | README frontend e-commerce | synkro_ecommerce/frontend/README.md | — | Proyecto Synkro |
-| [Arquitectura] | Arquitectura e integraciones | docs/SYNKRO_ARQUITECTURA_Y_INTEGRACIONES.md | — | Proyecto Synkro |
-| [DB docs] | Documentación del esquema y funciones | synkro_ecommerce/db/docs/ | — | Proyecto Synkro |
+## 1.5 Visión general del documento
 
-<<<<<<< HEAD:synkro_ecommerce/docs/SRS_SYNKRO_ECOMMERCE_IEEE830.md
-## 1.6 Resumen
-=======
 - **Sección 2 — Descripción general:** Perspectiva del producto, funciones de alto nivel, características de los usuarios, restricciones, supuestos y dependencias (solo revital_ecommerce).
 - **Sección 3 — Requisitos específicos:** Requisitos funcionales (RF) y no funcionales (RNF) detallados, con entradas, procesos y salidas donde corresponda.
 - **Sección 4 — Gestión de pruebas:** Criterios de aceptación y relación entre requisitos y pruebas.
->>>>>>> main:revital_ecommerce/docs/SRS_REVITAL_ECOMMERCE_IEEE830.md
 
-- **Descripción del contenido del resto del documento:** La Sección 2 describe la perspectiva del producto, funcionalidad, características de los usuarios, restricciones, supuestos, dependencias y evolución previsible. La Sección 3 detalla los requisitos comunes de interfaces (usuario, hardware, software, comunicación), los requisitos funcionales (RF-01 a RF-32), los requisitos no funcionales (rendimiento, seguridad, fiabilidad, disponibilidad, mantenibilidad, portabilidad) y otros requisitos. La Sección 4 contiene apéndices. La Sección 5 describe la gestión de pruebas (pruebas de base de datos, interfaz de usuario y seguridad).
-- **Organización del documento:** Los requisitos se numeran de forma única (RF-01, RF-02, …; RNF-01, RNF-02, …) para permitir trazabilidad con diseño, código y casos de prueba.
+Los requisitos se numeran de forma única (RF-01, RF-02, …; RNF-01, RNF-02, …) para permitir trazabilidad con diseño, código y casos de prueba.
 
 ---
 
@@ -131,13 +76,7 @@ Relación de documentos relacionados en la especificación, con título, referen
 
 ## 2.1 Perspectiva del producto
 
-<<<<<<< HEAD:synkro_ecommerce/docs/SRS_SYNKRO_ECOMMERCE_IEEE830.md
-synkro_ecommerce es **parte de un sistema mayor** (la plataforma Synkro). Es el componente de e-commerce desplegado una vez por cada cliente SaaS; synkro_panel es el sistema central que gestiona instancias, planes y facturación. A continuación se describe el producto y sus conexiones.
-
-synkro_ecommerce es un sistema autocontenido por instancia: backend (FastAPI), frontend (Next.js 15) y base de datos PostgreSQL. No comparte datos ni procesos con otras instancias ni con synkro_panel. La configuración se realiza mediante variables de entorno y credenciales por instancia.
-=======
 revital_ecommerce es un sistema autocontenido por instancia: backend (FastAPI), frontend (Next.js 15) y base de datos PostgreSQL. No comparte datos ni procesos con otras instancias ni con revital_panel. La configuración se realiza mediante variables de entorno y credenciales por instancia.
->>>>>>> main:revital_ecommerce/docs/SRS_REVITAL_ECOMMERCE_IEEE830.md
 
 ### Relación con sistemas externos
 
@@ -153,9 +92,9 @@ revital_ecommerce es un sistema autocontenido por instancia: backend (FastAPI), 
 - **Frontend:** `app/(auth)`, `app/(shop)`, `app/(dashboard)/admin`, `components/`, `services/`, `hooks/`, `stores/`.
 - **Base de datos:** `db_revital.sql`, `Functions/`, `triggers/`, `views/`.
 
-## 2.2 Funcionalidad del producto
+## 2.2 Funciones del producto
 
-Resumen de las funcionalidades principales que el producto debe realizar, sin entrar en detalle. El detalle verificable está en la Sección 3 (Requisitos específicos). Las funcionalidades están organizadas para que el cliente o cualquier interlocutor pueda entenderlas.
+Agrupación de alto nivel de las funciones (el detalle verificable está en la Sección 3):
 
 | Módulo | Descripción breve |
 |--------|-------------------|
@@ -173,20 +112,16 @@ Resumen de las funcionalidades principales que el producto debe realizar, sin en
 | Comentarios | Comentarios sobre productos (si aplica). |
 | Dashboard y analytics | KPIs, estadísticas de ventas, analytics para administradores. |
 
-## 2.3 Características de los usuarios
+## 2.3 Características del usuario
 
-Descripción de los usuarios del producto, incluyendo nivel educacional, experiencia y experiencia técnica.
-
-| Tipo de usuario | Formación | Habilidades | Actividades |
-|-----------------|-----------|-------------|-------------|
-| Administrador | Conocimientos básicos de e-commerce y gestión de inventario. | Uso de interfaces web administrativas. | Gestión completa de la tienda: productos, órdenes, usuarios, analytics. Rol: Admin (id_rol: 1). |
-| Empleado | Conocimientos básicos de gestión de productos y órdenes. | Uso básico de interfaces administrativas. | Gestión de productos y órdenes bajo supervisión. Rol: Employee (id_rol: 2). |
-| Cliente | Conocimientos básicos de navegación web y compras online. | Navegación web, uso de carrito y checkout. | Navegación, carrito, checkout, perfil, historial de órdenes. Rol: Customer (id_rol: 3). |
-| Usuario anónimo | Navegación web. | Navegación web. | Navegación y carrito sin cuenta; identificado por session_id. |
+| Tipo de usuario | Descripción | Experiencia técnica | Roles/Permisos |
+|-----------------|-------------|---------------------|----------------|
+| Administrador | Gestión completa de la tienda (productos, órdenes, usuarios, analytics). | Uso de interfaces web administrativas. | Admin (id_rol: 1). |
+| Empleado | Gestión de productos y órdenes bajo supervisión. | Uso básico de interfaces administrativas. | Employee (id_rol: 2). |
+| Cliente | Navegación, carrito, checkout, perfil, historial de órdenes. | Navegación web y compras online. | Customer (id_rol: 3). |
+| Usuario anónimo | Navegación y carrito sin cuenta. | Navegación web. | Sin rol; identificado por session_id. |
 
 ## 2.4 Restricciones
-
-Descripción de las limitaciones a tener en cuenta al diseñar y desarrollar el sistema: metodologías, lenguajes, normas, hardware, sistema operativo, etc.
 
 - **Técnicas:** Stack fijo (FastAPI, Python 3.13+, Next.js 15, React 19, PostgreSQL 15+). Autenticación JWT y hash Argon2. Integraciones Wompi y Resend según diseño actual.
 - **Legales:** Cumplimiento GDPR (cookies, datos personales). PCI-DSS vía Wompi (no almacenar datos de tarjetas).
@@ -194,84 +129,25 @@ Descripción de las limitaciones a tener en cuenta al diseñar y desarrollar el 
 
 ## 2.5 Supuestos y dependencias
 
-- **Supuestos:** Los usuarios finales usan navegadores modernos con JavaScript; Wompi y Resend están disponibles; la instancia dispone de recursos suficientes según su uso; el sistema operativo y el hardware requerido están disponibles para el despliegue.
-- **Dependencias:** PostgreSQL 15+, Python 3.13+, Node.js 18+; APIs de Wompi y Resend; opcionalmente Cloudinary. Bibliotecas: FastAPI, SQLAlchemy, Pydantic, python-jose, pwdlib (Argon2), Next.js, React, TanStack React Query, Zustand, Axios. Si alguna dependencia (p. ej. versión de API de Wompi) cambia, la SRS y el diseño deben revisarse.
-
-## 2.6 Evolución previsible del sistema
-
-Identificación de futuras mejoras que podrán analizarse e implementarse en un futuro:
-
-- **Checkout completo:** Flujo de checkout end-to-end con confirmación de pago y estados de orden del lado del usuario.
-- **Dashboard de analytics avanzado:** Más métricas, gráficos y exportación de reportes.
-- **Notificaciones en tiempo real:** WebSockets o Server-Sent Events para actualizaciones de estado de órdenes y stock.
-- **Sistema de reviews y comentarios:** Valoraciones y comentarios de productos por clientes.
-- **CMS:** Gestión de contenido (páginas estáticas, banners) si se requiere.
-- **Órdenes de compra a proveedores:** Módulo de compras para administradores.
-- **Integración con más pasarelas de pago:** Soporte opcional para otras pasarelas además de Wompi.
-- **App móvil o PWA:** Experiencia móvil nativa o Progressive Web App.
+- **Supuestos:** Los usuarios finales usan navegadores modernos con JavaScript; Wompi y Resend están disponibles; la instancia dispone de recursos suficientes según su uso.
+- **Dependencias:** PostgreSQL 15+, Python 3.13+, Node.js 18+; APIs de Wompi y Resend; opcionalmente Cloudinary. Bibliotecas: FastAPI, SQLAlchemy, Pydantic, python-jose, pwdlib (Argon2), Next.js, React, TanStack React Query, Zustand, Axios.
 
 ---
 
 # 3. Requisitos específicos
 
-Esta es la sección más extensa e importante del documento. Contiene la lista detallada y completa de requisitos que debe cumplir el sistema. Los requisitos se disponen en forma de listas numeradas (RF-01, RF-02, …; RNF-01, RNF-02, …) para identificación, seguimiento, trazabilidad y validación.
+## 3.1 Requisitos funcionales
 
-Para cada requisito funcional se indica: número, nombre, tipo (Requisito/Restricción), fuente, prioridad (Alta/Esencial, Media/Deseado, Baja/Opcional) y descripción (entrada, proceso, salida).
-
-## 3.1 Requisitos comunes de los interfaces
-
-Descripción de las entradas y salidas del sistema y de los interfaces con usuario, hardware, software y comunicación.
-
-### 3.1.1 Interfaces de usuario
-
-- **Estilo:** Interfaz web responsive con diseño coherente (Tailwind CSS, shadcn/ui). Modo claro/oscuro.
-- **Tienda (público):** Catálogo de productos, filtros, búsqueda, carrito, checkout, perfil de usuario, favoritos, historial de órdenes. Navegación intuitiva y mensajes de error comprensibles.
-- **Dashboard administrativo:** Gestión de productos, categorías/líneas/sublíneas, marcas, proveedores, órdenes, inventario, descuentos, puntos, usuarios, direcciones. Tablas con paginación, formularios con validación en cliente y servidor.
-- **Autenticación:** Pantallas de login, registro, recuperación y restablecimiento de contraseña. Mensajes claros ante credenciales inválidas o token expirado.
-- **Estados de carga y error:** Indicadores de carga y mensajes de error ante fallos de red o respuestas 4xx/5xx.
-
-### 3.1.2 Interfaces de hardware
-
-- No se especifican requisitos de hardware propios del producto. El sistema se ejecuta en servidores estándar (VPS, PaaS) con PostgreSQL, Python y Node.js. La configuración de hardware queda fuera del alcance de este SRS.
-
-### 3.1.3 Interfaces de software
-
-| Producto software | Propósito del interfaz | Definición del interfaz |
-|-------------------|------------------------|-------------------------|
-| **Wompi API** | Procesamiento de pagos (tokenización, payment sources, transacciones). | API REST; autenticación por API key; webhooks con firma HMAC. Payload JSON según documentación Wompi. |
-| **Resend API** | Envío de emails transaccionales. | API REST; autenticación por API key. Contenido HTML (templates Jinja2) y destinatario. |
-| **Cloudinary API** (opcional) | Almacenamiento y transformación de imágenes de productos. | API REST; subida y transformación de imágenes; URLs de recurso. |
-| **PostgreSQL** | Persistencia de datos por instancia. | Conexión vía SQLAlchemy (ORM); esquema en db_synkro.sql; funciones almacenadas, triggers, vistas. |
-
-### 3.1.4 Interfaces de comunicación
-
-- **API REST (backend):** Endpoints JSON sobre HTTPS. Autenticación mediante JWT en header (Bearer). CORS configurado según origen del frontend.
-- **Webhooks:** Recepción de webhooks de Wompi (firma HMAC); verificación de firma antes de procesar; respuesta 200 para confirmar recepción; idempotencia ante reintentos.
-- **Cliente HTTP:** El backend utiliza cliente HTTP (requests o similar) para llamadas a Wompi, Resend y Cloudinary. Timeouts y reintentos según política del proyecto.
-
-## 3.2 Requisitos funcionales
-
-Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Restricción), **Fuente del requisito**, **Prioridad** (Alta/Esencial, Media/Deseado, Baja/Opcional) y descripción (Entrada, Proceso, Salida).
-
-### 3.2.1 RF-01 — Registro de usuarios
-
-| Atributo | Valor |
-|----------|--------|
-| **Número de requisito** | RF-01 |
-| **Nombre de requisito** | Registro de usuarios |
-| **Tipo** | Requisito |
-| **Fuente del requisito** | SRS Synkro, stakeholders |
-| **Prioridad del requisito** | Alta/Esencial |
-
-**Descripción:**
+### RF-01 — Registro de usuarios
 
 | Atributo | Descripción |
 |----------|-------------|
 | **Entrada** | Email, contraseña, datos de perfil (nombre, apellido, etc.) según esquema de registro. |
 | **Proceso** | Validación de datos (Pydantic); comprobación de email no duplicado; hash de contraseña (Argon2); persistencia en BD; envío de email de confirmación (Resend) si aplica. |
 | **Salida** | Usuario creado; código HTTP 201; cuerpo con datos del usuario (sin contraseña) o mensaje de error verificable. |
+| **Prioridad** | Alta. |
 
-### 3.2.2 RF-02 — Inicio de sesión (login)
+### RF-02 — Inicio de sesión (login)
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -280,7 +156,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Access token, refresh token, tipo de token, tiempo de expiración; código 200; o 401 si credenciales inválidas. |
 | **Prioridad** | Alta. |
 
-### 3.2.3 RF-03 — Refresh de token
+### RF-03 — Refresh de token
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -298,7 +174,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Confirmación de envío de email (sin revelar si el email existe); 200. |
 | **Prioridad** | Media. |
 
-### 3.2.5 RF-05 — Restablecimiento de contraseña
+### RF-05 — Restablecimiento de contraseña
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -307,7 +183,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Confirmación de cambio; 200; o 400/401 si token inválido o expirado. |
 | **Prioridad** | Media. |
 
-### 3.2.6 RF-06 — Obtención de usuario actual (me)
+### RF-06 — Obtención de usuario actual (me)
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -316,7 +192,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Datos del usuario (id, email, rol, perfil) sin datos sensibles; 200; o 401 si no autenticado. |
 | **Prioridad** | Alta. |
 
-### 3.2.7 RF-07 — Cierre de sesión (logout)
+### RF-07 — Cierre de sesión (logout)
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -325,7 +201,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Confirmación; 200. |
 | **Prioridad** | Media. |
 
-### 3.2.8 RF-08 — CRUD de productos
+### RF-08 — CRUD de productos
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -343,7 +219,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Lista de productos que cumplan filtros; total de registros; metadatos de paginación; 200. |
 | **Prioridad** | Alta. |
 
-### 3.2.10 RF-10 — Gestión de categorías, líneas y sublíneas
+### RF-10 — Gestión de categorías, líneas y sublíneas
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -361,7 +237,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Recurso(s) o listado; códigos HTTP apropiados. |
 | **Prioridad** | Media. |
 
-### 3.2.12 RF-12 — Carrito: obtener o crear
+### RF-12 — Carrito: obtener o crear
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -379,7 +255,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Carrito actualizado; 200; o 400 si stock insuficiente o límite superado. |
 | **Prioridad** | Alta. |
 
-### 3.2.14 RF-14 — Carrito: actualizar cantidad o eliminar ítem
+### RF-14 — Carrito: actualizar cantidad o eliminar ítem
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -397,7 +273,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Carrito unificado del usuario; 200; o 400 si error de validación. |
 | **Prioridad** | Alta. |
 
-### 3.2.16 RF-16 — Carrito: calcular total
+### RF-16 — Carrito: calcular total
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -415,7 +291,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Orden creada con id y estado; 201; o 400 si validación falla (ej. stock insuficiente). |
 | **Prioridad** | Alta. |
 
-### 3.2.18 RF-18 — Consulta de órdenes del usuario
+### RF-18 — Consulta de órdenes del usuario
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -424,7 +300,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Lista de órdenes o detalle de una orden; 200; o 404 si no existe o no autorizado. |
 | **Prioridad** | Alta. |
 
-### 3.2.19 RF-19 — Actualización de estado de orden (admin)
+### RF-19 — Actualización de estado de orden (admin)
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -442,7 +318,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Token o datos necesarios para el widget; 200; o código de error de Wompi. |
 | **Prioridad** | Alta. |
 
-### 3.2.21 RF-21 — Integración Wompi: métodos de pago y transacciones
+### RF-21 — Integración Wompi: métodos de pago y transacciones
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -460,7 +336,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | 200 para confirmar recepción; 401 si firma inválida. |
 | **Prioridad** | Alta. |
 
-### 3.2.23 RF-23 — Movimientos de inventario
+### RF-23 — Movimientos de inventario
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -469,7 +345,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Movimiento registrado y stock actualizado; 200/201; o 400 si cantidad inválida. |
 | **Prioridad** | Alta. |
 
-### 3.2.24 RF-24 — Descuentos: CRUD y aplicación
+### RF-24 — Descuentos: CRUD y aplicación
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -478,7 +354,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Descuento(s) o importe descontado; códigos HTTP apropiados. |
 | **Prioridad** | Alta. |
 
-### 3.2.25 RF-25 — Puntos: acumulación y consulta
+### RF-25 — Puntos: acumulación y consulta
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -496,7 +372,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Canje realizado; 200; o 400 si saldo insuficiente o regla no cumplida. |
 | **Prioridad** | Media. |
 
-### 3.2.27 RF-27 — Favoritos: agregar y quitar
+### RF-27 — Favoritos: agregar y quitar
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -514,7 +390,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Dirección(es) creada(s)/actualizada(s)/eliminada(s) o listado; 200/201. |
 | **Prioridad** | Alta. |
 
-### 3.2.29 RF-29 — Envío de emails transaccionales
+### RF-29 — Envío de emails transaccionales
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -523,7 +399,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Email enviado; respuesta Resend; no debe bloquear operación crítica si Resend falla (degradación controlada). |
 | **Prioridad** | Alta. |
 
-### 3.2.30 RF-30 — Dashboard y analytics (admin)
+### RF-30 — Dashboard y analytics (admin)
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -532,7 +408,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Datos de dashboard/analytics; 200; o 403 si no autorizado. |
 | **Prioridad** | Media. |
 
-### 3.2.31 RF-31 — Gestión de usuarios (admin)
+### RF-31 — Gestión de usuarios (admin)
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -541,7 +417,7 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 | **Salida** | Usuario(s) o listado; códigos HTTP apropiados. |
 | **Prioridad** | Alta. |
 
-### 3.2.32 RF-32 — Protección de rutas por autenticación y rol
+### RF-32 — Protección de rutas por autenticación y rol
 
 | Atributo | Descripción |
 |----------|-------------|
@@ -552,123 +428,89 @@ Para cada requisito se indica: **Número**, **Nombre**, **Tipo** (Requisito/Rest
 
 Los requisitos funcionales que dependan de CMS, comentarios u órdenes a proveedores se documentan de forma análoga (CRUD, entradas/salidas verificables) y se numeran en continuidad (RF-33, RF-34, …) si se desea trazabilidad exhaustiva.
 
-## 3.3 Requisitos no funcionales
+## 3.2 Requisitos no funcionales
 
-### 3.3.1 Requisitos de rendimiento
+### RNF-01 — Tiempo de respuesta de la API
 
-Especificación de los requisitos relacionados con la carga que debe soportar el sistema. Deben ser mesurables.
+| Atributo | Descripción |
+|----------|-------------|
+| **Requisito** | El 95% de las peticiones a la API deben completarse en menos de 500 ms bajo carga normal de la instancia. |
+| **Criterio de verificación** | Medición con herramienta de carga o APM; percentil P95 de latencia por endpoint o global. |
 
-| Id. | Requisito | Criterio de verificación |
-|-----|-----------|--------------------------|
-| **RNF-01** | El 95% de las peticiones a la API deben completarse en menos de 500 ms bajo carga normal de la instancia. | Medición con herramienta de carga o APM; percentil P95 de latencia por endpoint o global. |
-| **RNF-07** | El frontend debe ser utilizable en navegadores modernos (Chrome, Firefox, Safari, Edge) con JavaScript habilitado. | Pruebas manuales o automatizadas en dichos navegadores; sin dependencias de APIs obsoletas. |
+### RNF-02 — Autenticación y almacenamiento de contraseñas
 
-### 3.3.2 Seguridad
+| Atributo | Descripción |
+|----------|-------------|
+| **Requisito** | Las contraseñas deben almacenarse con hash Argon2 (pwdlib). Los tokens de sesión deben ser JWT firmados con algoritmo y secret configurados. |
+| **Criterio de verificación** | Revisión de código (jwt_utils, modelos de usuario); no almacenamiento de contraseña en claro. |
 
-Protección del software frente a accesos, usos y sabotajes maliciosos, y modificaciones o destrucciones accidentales o maliciosas.
+### RNF-03 — Validación de entradas
 
-| Id. | Requisito | Criterio de verificación |
-|-----|-----------|--------------------------|
-| **RNF-02** | Las contraseñas deben almacenarse con hash Argon2 (pwdlib). Los tokens de sesión deben ser JWT firmados con algoritmo y secret configurados. | Revisión de código (jwt_utils, modelos de usuario); no almacenamiento de contraseña en claro. |
-| **RNF-03** | Todas las entradas de usuario y parámetros de API deben validarse con esquemas Pydantic antes de su uso en lógica o BD. | Revisión de routers y schemas; rechazo 422 con detalle de validación ante datos inválidos. |
-| **RNF-04** | La API debe aplicar CORS y middleware de seguridad (cabeceras, saneamiento) según configuración del proyecto. | Revisión de main.py y SecurityMiddleware; pruebas de cabeceras en respuestas. |
+| Atributo | Descripción |
+|----------|-------------|
+| **Requisito** | Todas las entradas de usuario y parámetros de API deben validarse con esquemas Pydantic antes de su uso en lógica o BD. |
+| **Criterio de verificación** | Revisión de routers y schemas; rechazo 422 con detalle de validación ante datos inválidos. |
 
-### 3.3.3 Fiabilidad
+### RNF-04 — CORS y seguridad de cabeceras
 
-Factores de fiabilidad necesarios del sistema (tiempo entre incidentes permisibles, total de incidentes permisible).
+| Atributo | Descripción |
+|----------|-------------|
+| **Requisito** | La API debe aplicar CORS y middleware de seguridad (cabeceras, saneamiento) según configuración del proyecto. |
+| **Criterio de verificación** | Revisión de main.py y SecurityMiddleware; pruebas de cabeceras en respuestas. |
 
-| Id. | Requisito | Criterio de verificación |
-|-----|-----------|--------------------------|
-| **RNF-06** | Operaciones que modifiquen carrito (migración), stock (orden, movimiento) u órdenes deben ejecutarse en transacciones atómicas (BD o servicio). | Revisión de servicios y funciones almacenadas; pruebas de rollback ante fallo. |
-| **RNF-09** | El carrito anónimo debe identificarse mediante un session_id con formato UUID v4, generado en el cliente y persistido (ej. localStorage) de forma coherente con el backend. | Revisión de cart-store y endpoints de carrito; migración anónimo→usuario sin pérdida de ítems. |
+### RNF-05 — Disponibilidad de la API
 
-### 3.3.4 Disponibilidad
+| Atributo | Descripción |
+|----------|-------------|
+| **Requisito** | La API debe responder a solicitudes de salud (ej. GET /) para comprobar que la instancia está en ejecución. |
+| **Criterio de verificación** | Petición GET al endpoint raíz; respuesta 200 en tiempo razonable. |
 
-Factores de disponibilidad exigidos al sistema (% de tiempo en que el software debe estar disponible).
+### RNF-06 — Transaccionalidad en operaciones críticas
 
-| Id. | Requisito | Criterio de verificación |
-|-----|-----------|--------------------------|
-| **RNF-05** | La API debe responder a solicitudes de salud (ej. GET /) para comprobar que la instancia está en ejecución. | Petición GET al endpoint raíz; respuesta 200 en tiempo razonable. |
+| Atributo | Descripción |
+|----------|-------------|
+| **Requisito** | Operaciones que modifiquen carrito (migración), stock (orden, movimiento) u órdenes deben ejecutarse en transacciones atómicas (BD o servicio). |
+| **Criterio de verificación** | Revisión de servicios y funciones almacenadas; pruebas de rollback ante fallo. |
 
-### 3.3.5 Mantenibilidad
+### RNF-07 — Frontend: compatibilidad de navegadores
 
-Tipo de mantenimiento necesario, quién debe realizarlo y cuándo.
+| Atributo | Descripción |
+|----------|-------------|
+| **Requisito** | El frontend debe ser utilizable en navegadores modernos (Chrome, Firefox, Safari, Edge) con JavaScript habilitado. |
+| **Criterio de verificación** | Pruebas manuales o automatizadas en dichos navegadores; sin dependencias de APIs obsoletas. |
 
-- **Mantenimiento correctivo:** Corrección de defectos; lo realiza el equipo de desarrollo.
-- **Mantenimiento evolutivo:** Nuevas funcionalidades; lo realiza el equipo de desarrollo según priorización.
-- **Mantenimiento de datos:** Backups de BD por instancia; responsabilidad del gestor de la instancia o del proveedor de hosting.
-- **RNF-10:** Las operaciones críticas deben registrarse con timestamp y usuario responsable para auditoría; revisión de esquema de BD y lógica de servicios.
+### RNF-08 — Frontend: manejo de errores y estados de carga
 
-### 3.3.6 Portabilidad
+| Atributo | Descripción |
+|----------|-------------|
+| **Requisito** | Las pantallas que consuman API deben mostrar estados de carga y mensajes de error comprensibles ante fallos de red o respuestas 4xx/5xx. |
+| **Criterio de verificación** | Revisión de hooks y componentes; pruebas simulando error de API. |
 
-Atributos del software para facilitar su traslado a otras plataformas u entornos.
+### RNF-09 — Identificación de carrito anónimo
 
-- Stack independiente de infraestructura concreta: backend Python/FastAPI, frontend Next.js, BD PostgreSQL. No se utiliza Docker ni Traefik en el stack actual; el despliegue puede realizarse en VPS/servidor propio (venv, systemd, nginx) o en PaaS (Railway, Vercel, etc.).
-- Configuración mediante variables de entorno; sin dependencias de sistema operativo o hardware específicos más allá de PostgreSQL, Python 3.13+ y Node.js 18+.
+| Atributo | Descripción |
+|----------|-------------|
+| **Requisito** | El carrito anónimo debe identificarse mediante un session_id con formato UUID v4, generado en el cliente y persistido (ej. localStorage) de forma coherente con el backend. |
+| **Criterio de verificación** | Revisión de cart-store y endpoints de carrito; migración anónimo→usuario sin pérdida de ítems. |
 
-### 3.3.7 Frontend: manejo de errores y estados de carga
+### RNF-10 — Trazabilidad y auditoría
 
-| Id. | Requisito | Criterio de verificación |
-|-----|-----------|--------------------------|
-| **RNF-08** | Las pantallas que consuman API deben mostrar estados de carga y mensajes de error comprensibles ante fallos de red o respuestas 4xx/5xx. | Revisión de hooks y componentes; pruebas simulando error de API. |
-
-## 3.4 Otros requisitos
-
-- **Requisitos legales:** Cumplimiento GDPR (cookies, consentimiento, datos personales, derecho al olvido, portabilidad). PCI-DSS nivel 1 mediante integración con Wompi; el sistema no almacena datos de tarjetas; tokenización vía Wompi.
-- **Requisitos culturales/idioma:** El frontend y los mensajes de error deben ser coherentes con la configuración de idioma de la instancia (i18n si aplica).
-- **Retención de datos:** Datos de facturación y auditoría según legislación aplicable; operaciones críticas con timestamp y usuario responsable (RNF-10).
-
----
-
-# 4. Apéndices
-
-Pueden contener información relevante para la SRS que no forme parte estructural del documento:
-
-- **Esquema de base de datos:** Referencia a synkro_ecommerce/db/docs/ y a db_synkro.sql para el detalle de tablas, funciones almacenadas, triggers y vistas.
-- **Documentación de API:** Referencia a la documentación OpenAPI/Swagger generada por FastAPI (endpoints, schemas).
-- **Glosario ampliado:** Términos de dominio (orden, carrito, línea de carrito, payment source, etc.) pueden ampliarse en un apéndice si se requiere.
+| Atributo | Descripción |
+|----------|-------------|
+| **Requisito** | Las operaciones críticas (creación de orden, movimientos de inventario, cambios de estado) deben registrarse con timestamp y usuario responsable (usr_insert/usr_update o equivalente). |
+| **Criterio de verificación** | Revisión de esquema de BD y lógica de servicios; existencia de campos de auditoría. |
 
 ---
 
-# 5. Gestión de pruebas
+# 4. Gestión de pruebas
 
-Cada RF debe tener al menos un caso de prueba que verifique Entrada/Proceso/Salida. Cada RNF debe tener un criterio de verificación aplicable. Las pruebas de API se ejecutan contra el backend con BD de prueba; las pruebas E2E contra frontend y backend integrados cuando sea posible.
+## 4.1 Criterios de aceptación
 
-## 5.1 Pruebas realizadas a la base de datos
+- Cada RF debe tener al menos un caso de prueba que verifique el comportamiento descrito en Entrada/Proceso/Salida.
+- Cada RNF debe tener un criterio de verificación aplicable (prueba de rendimiento, revisión de código, prueba de seguridad o usabilidad según corresponda).
+- Las pruebas de API deben ejecutarse contra el backend con BD de prueba; las pruebas E2E contra frontend y backend integrados cuando sea posible.
 
-**Pruebas de completitud de datos:** Comprobar que todos los datos necesarios estén presentes y que no falte información crítica. Verificar que todos los registros, campos y atributos estén presentes y se rellenan con los valores adecuados.
-
-**Pruebas de coherencia de los datos:** Garantizar que los datos de distintas tablas o sistemas sean coherentes y sigan las mismas reglas (integridad referencial, estados de orden, stock vs. movimientos de inventario).
-
-**Prueba de precisión de datos:** Verificar que los datos representen con exactitud las entidades del mundo real (precios, cantidades, totales calculados correctamente).
-
-**Pruebas de integridad de datos:** Garantizar que los datos permanezcan inalterados y mantengan coherencia y exactitud a lo largo del ciclo de vida (transacciones atómicas, no corrupción ante fallos).
-
-**Pruebas de validación de datos:** Verificar que los datos introducidos cumplan las normas y requisitos predefinidos (esquemas Pydantic, restricciones de BD, formatos y rangos).
-
-## 5.2 Pruebas de interfaz de usuario
-
-1. **Pruebas visuales:** Verificar layout responsive en diferentes resoluciones; validar consistencia de colores, fuentes y espaciados; comprobar que imágenes y recursos se carguen correctamente.
-2. **Pruebas funcionales:** Validar formularios (inputs, validaciones, mensajes de error); verificar navegación y enlaces; probar interacciones (clicks, hover, carrito, favoritos); validar comportamiento de modales, dropdowns, tooltips.
-3. **Pruebas cross-browser:** Chrome, Firefox, Safari, Edge; versiones móviles.
-4. **Pruebas de accesibilidad:** Herramientas como axe-core, WAVE, Lighthouse; validar navegación por teclado; verificar atributos ARIA.
-5. **Pruebas de performance:** Lighthouse (Google), WebPageTest, GTmetrix.
-
-## 5.3 Pruebas de seguridad
-
-Buscar posibles errores de gestión de software basado en red, alineados con OWASP:
-
-- Inyección (SQL, LDAP, NoSQL)
-- Autenticación rota y gestión de sesiones
-- Exposición de datos sensibles (PII, contraseñas)
-- Entidades externas XML (XXE)
-- Control de acceso roto (Broken Access Control)
-- Configuración de seguridad incorrecta
-- Cross-Site Scripting (XSS)
-- Deserialización insegura
-- Uso de componentes con vulnerabilidades conocidas
-
-## 5.4 Relación requisitos — pruebas
+## 4.2 Relación requisitos — pruebas
 
 | Requisito | Tipo de prueba sugerida |
 |-----------|-------------------------|
@@ -684,7 +526,7 @@ Buscar posibles errores de gestión de software basado en red, alineados con OWA
 | RNF-02 a RNF-06, RNF-09, RNF-10 | Revisión de código y pruebas unitarias/integración según criterio. |
 | RNF-07, RNF-08 | Pruebas manuales o E2E en navegadores; simulación de errores. |
 
-## 5.5 Trazabilidad
+## 4.3 Trazabilidad
 
 - **Diseño:** Cada RF/RNF debe poder asociarse a módulos de diseño (routers, services, esquema BD).
 - **Código:** Los identificadores RF-xx y RNF-xx pueden referenciarse en comentarios, issues o casos de prueba para mantener trazabilidad.

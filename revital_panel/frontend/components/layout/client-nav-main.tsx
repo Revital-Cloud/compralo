@@ -1,8 +1,6 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { useQueryClient } from '@tanstack/react-query';
-import { useCallback } from 'react';
 import { LucideIcon } from 'lucide-react';
 import {
   SidebarGroup,
@@ -10,10 +8,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar";
+} from '@/components/ui/sidebar';
 import { Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
-import { prefetchForPath } from '@/lib/prefetch-routes';
 
 interface NavItem {
   title: string;
@@ -22,29 +19,19 @@ interface NavItem {
   section?: string;
 }
 
-interface NavMainProps {
+interface AdminNavMainProps {
   items: NavItem[];
 }
 
-/** Normalize path for comparison (next-intl with localePrefix: 'never' may still expose path with locale in some setups). */
 function pathWithoutLocale(path: string): string {
   return path.replace(/^\/[a-z]{2}(?=\/|$)/, '') || '/';
 }
 
-export function ClientNavMain({ items }: NavMainProps) {
+export function AdminNavMain({ items }: AdminNavMainProps) {
   const pathname = usePathname();
-  const queryClient = useQueryClient();
   const t = useTranslations('sidebar');
   const currentPath = pathWithoutLocale(pathname);
 
-  const handlePrefetch = useCallback(
-    (url: string) => {
-      prefetchForPath(queryClient, url);
-    },
-    [queryClient]
-  );
-
-  // Best match: only the most specific item is active (longest matching path)
   const getMatchLength = (url: string): number => {
     const p = pathWithoutLocale(url);
     if (currentPath === p) return p.length;
@@ -54,7 +41,7 @@ export function ClientNavMain({ items }: NavMainProps) {
   const bestMatchLength = Math.max(0, ...items.map((item) => getMatchLength(item.url)));
 
   const groupedItems = items.reduce((acc, item) => {
-    const section = item.section || 'other';
+    const section = item.section ?? 'other';
     if (!acc[section]) acc[section] = [];
     acc[section].push(item);
     return acc;
@@ -62,15 +49,18 @@ export function ClientNavMain({ items }: NavMainProps) {
 
   const sections = [
     { key: 'overview', labelKey: 'overview' as const },
-    { key: 'store', labelKey: 'myStore' as const },
-    { key: 'subscription', labelKey: 'subscription' as const },
-    { key: 'settings', labelKey: 'settings' as const },
+    { key: 'management', labelKey: 'management' as const },
   ];
+
+  const sectionLabels: Record<string, string> = {
+    overview: t('overview'),
+    management: t('management'),
+  };
 
   return (
     <>
       {sections.map((section, sectionIndex) => {
-        const sectionItems = groupedItems[section.key] || [];
+        const sectionItems = groupedItems[section.key] ?? [];
         if (sectionItems.length === 0) return null;
 
         return (
@@ -82,7 +72,7 @@ export function ClientNavMain({ items }: NavMainProps) {
             )}
             <div className="px-3 py-2">
               <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                {t(section.labelKey)}
+                {sectionLabels[section.key]}
               </h3>
             </div>
             <SidebarGroupContent className="flex flex-col gap-1">
@@ -96,30 +86,17 @@ export function ClientNavMain({ items }: NavMainProps) {
                         tooltip={item.title}
                         asChild
                         className={`transition-colors duration-200 ${
-<<<<<<< HEAD:synkro_panel/frontend/components/layout/client-nav-main.tsx
                           isActive
-                            ? 'bg-synkro-green/10 text-synkro-green hover:bg-synkro-green/20 border-l-4 border-synkro-green'
-                            : 'text-muted-foreground hover:text-synkro-green hover:bg-muted'
+                            ? 'bg-revital-green/10 text-revital-green hover:bg-revital-green/20 border-l-4 border-revital-green'
+                            : 'text-muted-foreground hover:text-revital-green hover:bg-muted'
                         }`}
                       >
                         <Link
                           href={item.url}
                           className="flex flex-1 items-center gap-2 overflow-hidden text-left outline-none [&>svg]:shrink-0"
-                          onMouseEnter={() => handlePrefetch(item.url)}
-                          onFocus={() => handlePrefetch(item.url)}
                         >
-                          {item.icon && <item.icon className={isActive ? 'text-synkro-green' : ''} />}
-                          <span className={isActive ? 'font-semibold truncate' : 'truncate'}>{item.title}</span>
-=======
-                          isActive 
-                            ? 'bg-revital-green/10 text-revital-green hover:bg-revital-green/20 border-l-4 border-revital-green' 
-                            : 'text-muted-foreground hover:text-revital-green hover:bg-muted'
-                        }`}
-                      >
-                        <Link href={item.url}>
                           {item.icon && <item.icon className={isActive ? 'text-revital-green' : ''} />}
-                          <span className={isActive ? 'font-semibold' : ''}>{item.title}</span>
->>>>>>> main:revital_panel/frontend/components/layout/client-nav-main.tsx
+                          <span className={isActive ? 'font-semibold truncate' : 'truncate'}>{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

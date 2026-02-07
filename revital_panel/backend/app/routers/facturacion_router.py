@@ -11,12 +11,8 @@ from sqlalchemy.orm import Session
 import logging
 
 from core.database import get_db
-<<<<<<< HEAD:synkro_panel/backend/app/routers/facturacion_router.py
-from core.dependencies import get_current_user, require_admin_synkro
-from core.config import settings
-=======
 from core.dependencies import get_current_user, require_admin_revital
->>>>>>> main:revital_panel/backend/app/routers/facturacion_router.py
+from core.config import settings
 from schemas.auth_schema import UserInToken, ResponseMessage
 from schemas.facturacion_schema import (
     FacturaCabeceraCreate,
@@ -54,7 +50,7 @@ def get_facturas(
     return [FacturaPublic(**dict(f)) for f in facturas]
 
 
-@router.get("/pending", response_model=List[dict])
+@router.get("/pendientes", response_model=List[dict])
 def get_facturas_pendientes(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user)
@@ -88,14 +84,14 @@ def get_factura(
     if not factura:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invoice not found"
+            detail="Factura no encontrada"
         )
     
     # Verificar permisos
     if current_user.user_type == "cliente" and factura.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view this invoice"
+            detail="No tienes permisos para ver esta factura"
         )
     
     # Obtener detalles
@@ -122,13 +118,13 @@ def get_factura_pdf(
     if not factura:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invoice not found"
+            detail="Factura no encontrada"
         )
 
     if current_user.user_type == "cliente" and factura.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to download this invoice"
+            detail="No tienes permisos para descargar esta factura"
         )
 
     detalles = facturacion_service.get_factura_detalles(db, id_factura)
@@ -141,11 +137,11 @@ def get_factura_pdf(
         logger.exception("Error generating invoice PDF: %s", e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error generating PDF"
+            detail="Error al generar PDF"
         ) from e
 
     num_factura = factura.get("num_factura") or id_factura
-    filename = f"invoice-{num_factura}.pdf".replace(" ", "-")
+    filename = f"factura-{num_factura}.pdf".replace(" ", "-")
 
     return Response(
         content=pdf_bytes,
@@ -181,13 +177,13 @@ def create_factura(
                 )
         
         return ResponseMessage(
-            message=f"Invoice created successfully: {result.get('num_factura')}",
+            message=f"Factura creada correctamente: {result.get('num_factura')}",
             success=True
         )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error creating invoice") if result else "Error creating invoice"
+            detail=result.get("message", "Error al crear factura") if result else "Error al crear factura"
         )
 
 
@@ -207,17 +203,17 @@ def add_factura_detalle(
     if not factura:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invoice not found"
+            detail="Factura no encontrada"
         )
     
     result = facturacion_service.create_factura_detalle(db, id_factura, detalle, current_user.email)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Line item added successfully", success=True)
+        return ResponseMessage(message="Detalle agregado correctamente", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error adding line item") if result else "Error adding line item"
+            detail=result.get("message", "Error al agregar detalle") if result else "Error al agregar detalle"
         )
 
 
@@ -237,17 +233,17 @@ def update_factura(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invoice not found"
+            detail="Factura no encontrada"
         )
     
     result = facturacion_service.update_factura(db, id_factura, factura, current_user.email)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Invoice updated successfully", success=True)
+        return ResponseMessage(message="Factura actualizada correctamente", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error updating invoice") if result else "Error updating invoice"
+            detail=result.get("message", "Error al actualizar factura") if result else "Error al actualizar factura"
         )
 
 
@@ -266,17 +262,17 @@ def delete_factura(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invoice not found"
+            detail="Factura no encontrada"
         )
     
     result = facturacion_service.delete_factura(db, id_factura)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Invoice deleted successfully", success=True)
+        return ResponseMessage(message="Factura eliminada correctamente", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error deleting invoice") if result else "Error deleting invoice"
+            detail=result.get("message", "Error al eliminar factura") if result else "Error al eliminar factura"
         )
 
 
@@ -297,7 +293,7 @@ def create_checkout_session(
     if not factura:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invoice not found"
+            detail="Factura no encontrada"
         )
     
     # Verificar permisos: cliente solo puede pagar sus propias facturas
@@ -305,7 +301,7 @@ def create_checkout_session(
         if factura.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="You do not have permission to pay this invoice"
+                detail="No tienes permisos para pagar esta factura"
             )
     
     # Verificar que la factura está pendiente

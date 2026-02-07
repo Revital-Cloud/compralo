@@ -21,11 +21,7 @@ from schemas.usuario_revital_schema import (
 )
 from services import usuario_revital_service
 
-<<<<<<< HEAD:synkro_panel/backend/app/routers/usuario_synkro_router.py
-router = APIRouter(prefix="/api/admin/users", tags=["Synkro Users (Admin)"])
-=======
 router = APIRouter(prefix="/api/admin/usuarios", tags=["Usuarios Revital (Admin)"])
->>>>>>> main:revital_panel/backend/app/routers/usuario_revital_router.py
 
 
 @router.get("", response_model=List[UsuarioRevitalPublic])

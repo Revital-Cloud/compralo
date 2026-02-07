@@ -11,12 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
 from core.database import get_db
-<<<<<<< HEAD:synkro_panel/backend/app/routers/suscripcion_router.py
 from core.config import settings
-from core.dependencies import get_current_user, require_admin_synkro
-=======
 from core.dependencies import get_current_user, require_admin_revital
->>>>>>> main:revital_panel/backend/app/routers/suscripcion_router.py
 from schemas.auth_schema import UserInToken, ResponseMessage
 from schemas.suscripcion_schema import SuscripcionCreate, SuscripcionUpdate, SuscripcionPublic, CrearPrimeraSuscripcionResponse
 from schemas.facturacion_schema import FacturaCabeceraCreate, FacturaDetalleCreate
@@ -47,7 +43,7 @@ def get_suscripciones(
     return [SuscripcionPublic(**dict(s)) for s in suscripciones]
 
 
-@router.get("/active", response_model=List[dict])
+@router.get("/activas", response_model=List[dict])
 def get_suscripciones_activas(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user)
@@ -81,14 +77,14 @@ def get_suscripcion(
     if not suscripcion:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Subscription not found"
+            detail="Suscripcion no encontrada"
         )
     
     # Verificar permisos
     if current_user.user_type == "cliente" and suscripcion.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You do not have permission to view this subscription"
+            detail="No tienes permisos para ver esta suscripcion"
         )
     
     return SuscripcionPublic(**dict(suscripcion))
@@ -109,13 +105,13 @@ def create_suscripcion(
     
     if result and result.get("success"):
         return ResponseMessage(
-            message=f"Subscription created successfully with ID: {result.get('id_suscripcion')}",
+            message=f"Suscripcion creada correctamente con ID: {result.get('id_suscripcion')}",
             success=True
         )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error creating subscription") if result else "Error creating subscription"
+            detail=result.get("message", "Error al crear suscripcion") if result else "Error al crear suscripcion"
         )
 
 
@@ -135,17 +131,17 @@ def update_suscripcion(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Subscription not found"
+            detail="Suscripcion no encontrada"
         )
     
     result = suscripcion_service.update_suscripcion(db, id_suscripcion, suscripcion, current_user.email)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Subscription updated successfully", success=True)
+        return ResponseMessage(message="Suscripcion actualizada correctamente", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error updating subscription") if result else "Error updating subscription"
+            detail=result.get("message", "Error al actualizar suscripcion") if result else "Error al actualizar suscripcion"
         )
 
 
@@ -164,13 +160,13 @@ def delete_suscripcion(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Subscription not found"
+            detail="Suscripcion no encontrada"
         )
     
     result = suscripcion_service.delete_suscripcion(db, id_suscripcion)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Subscription deleted successfully", success=True)
+        return ResponseMessage(message="Suscripcion eliminada correctamente", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -440,4 +436,3 @@ def crear_primera_suscripcion(
         success=True,
         checkout_url=checkout_url,
     )
-

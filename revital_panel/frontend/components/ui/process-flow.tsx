@@ -1,5 +1,5 @@
 "use client";
-import { useState, type ElementType } from "react";
+import { useState } from "react";
 import {
   Clock,
   Rocket,
@@ -12,75 +12,16 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-type StepColor = "blue" | "purple" | "green" | "orange" | "pink";
-
-const STEP_THEME: Record<
-  StepColor,
-  {
-    activeText: string;
-    activeBg: string;
-    activeBadge: string;
-    activeIconWrap: string;
-    activeDot: string;
-  }
-> = {
-  blue: {
-    activeText: "text-blue-700 dark:text-blue-300",
-    activeBg: "bg-blue-50 dark:bg-blue-950/30",
-    activeBadge:
-      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-    activeIconWrap:
-      "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300",
-    activeDot: "bg-blue-500",
-  },
-  purple: {
-    activeText: "text-purple-700 dark:text-purple-300",
-    activeBg: "bg-purple-50 dark:bg-purple-950/30",
-    activeBadge:
-      "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-    activeIconWrap:
-      "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300",
-    activeDot: "bg-purple-500",
-  },
-  green: {
-    activeText: "text-green-700 dark:text-green-300",
-    activeBg: "bg-green-50 dark:bg-green-950/30",
-    activeBadge:
-      "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
-    activeIconWrap:
-      "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300",
-    activeDot: "bg-green-500",
-  },
-  orange: {
-    activeText: "text-orange-700 dark:text-orange-300",
-    activeBg: "bg-orange-50 dark:bg-orange-950/30",
-    activeBadge:
-      "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-    activeIconWrap:
-      "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300",
-    activeDot: "bg-orange-500",
-  },
-  pink: {
-    activeText: "text-pink-700 dark:text-pink-300",
-    activeBg: "bg-pink-50 dark:bg-pink-950/30",
-    activeBadge:
-      "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
-    activeIconWrap:
-      "bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300",
-    activeDot: "bg-pink-500",
-  },
-};
-
 interface ProcessStep {
   id: number;
   title: string;
   phase: string;
   description: string;
-  icon: ElementType;
+  icon: React.ElementType;
   status: "completed" | "in-progress" | "pending";
   duration: string;
   features: string[];
-  color: StepColor;
+  color: string;
   gradient: string;
 }
 
@@ -153,8 +94,8 @@ const processSteps: ProcessStep[] = [
       "¡Tu tienda está lista! Lanza al mercado y utiliza nuestras herramientas de marketing y análisis para crecer continuamente.",
     icon: Rocket,
     status: "pending",
-    duration: "Continuo",
-    features: ["Lanzamiento oficial", "Herramientas de marketing", "Analíticas avanzadas"],
+    duration: "Ongoing",
+    features: ["Lanzamiento oficial", "Marketing tools", "Analytics avanzados"],
     color: "pink",
     gradient: "from-pink-500 to-pink-600",
   },
@@ -173,19 +114,21 @@ export default function ProcessFlow({
     setCurrentStep(stepIndex);
   };
 
-  const getStepStatus = (stepIndex: number) =>
-    stepIndex === currentStep ? "in-progress" : "pending";
+  const getStepStatus = (stepIndex: number) => {
+    if (stepIndex === currentStep) return "in-progress";
+    return "pending";
+  };
 
-  const getTheme = (step: ProcessStep, status: "in-progress" | "pending") => {
-    const theme = STEP_THEME[step.color];
-    if (status === "in-progress") return theme;
-    return {
-      activeText: "text-gray-600 dark:text-gray-300",
-      activeBg: "bg-gray-100 dark:bg-gray-900/40",
-      activeBadge: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300",
-      activeIconWrap: "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-300",
-      activeDot: "bg-gray-400",
-    };
+  const getStepColor = (step: ProcessStep, status: string) => {
+    if (status === "in-progress")
+      return `text-${step.color}-600 dark:text-${step.color}-400`;
+    return "text-gray-500 dark:text-gray-400";
+  };
+
+  const getStepBgColor = (step: ProcessStep, status: string) => {
+    if (status === "in-progress")
+      return `bg-${step.color}-100 dark:bg-${step.color}-900/20`;
+    return "bg-gray-100 dark:bg-gray-800";
   };
 
   return (
@@ -217,39 +160,31 @@ export default function ProcessFlow({
           </div>
 
           {/* Pasos del proceso */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-4 items-stretch">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-4">
             {steps.map((step, index) => {
               const status = getStepStatus(index);
               const isActive = index === currentStep;
               const Icon = step.icon;
-              const theme = getTheme(step, status);
 
               return (
-                <button
+                <div
                   key={step.id}
-                  type="button"
-                  className={cn(
-                    "relative group text-left h-full",
-                    "focus:outline-none focus-visible:ring-2 focus-visible:ring-synkro-green/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-xl"
-                  )}
+                  className="relative group cursor-pointer"
                   onClick={() => handleStepClick(index)}
-                  aria-current={isActive ? "step" : undefined}
                 >
-                  {/* Conector móvil (vertical, entre cards apiladas) */}
+                  {/* Conector móvil */}
                   {index < steps.length - 1 && (
-                    <div className="absolute left-1/2 -bottom-6 h-6 w-0.5 -translate-x-1/2 bg-gray-200 dark:bg-gray-700 lg:hidden">
+                    <div className="absolute top-8 left-1/2 w-full h-0.5 bg-gray-200 dark:bg-gray-700 transform translate-x-1/2 lg:hidden">
                       <div
                         className={cn(
-                          "w-full transition-all duration-700",
+                          "h-full transition-all duration-1000",
                           index < currentStep
-<<<<<<< HEAD:synkro_panel/frontend/components/ui/process-flow.tsx
-                            ? "bg-linear-to-b from-synkro-green to-synkro-green/80"
-=======
                             ? "bg-linear-to-r from-revital-green to-revital-green/80"
->>>>>>> main:revital_panel/frontend/components/ui/process-flow.tsx
                             : "bg-transparent"
                         )}
-                        style={{ height: index < currentStep ? "100%" : "0%" }}
+                        style={{
+                          width: index < currentStep ? "100%" : "0%",
+                        }}
                       />
                     </div>
                   )}
@@ -257,17 +192,11 @@ export default function ProcessFlow({
                   {/* Card del paso */}
                   <Card
                     className={cn(
-                      "relative h-full",
-                      "transition-all duration-300 will-change-transform",
-                      "hover:-translate-y-1",
+                      "relative transition-all duration-500 transform hover:scale-105",
                       isActive
-<<<<<<< HEAD:synkro_panel/frontend/components/ui/process-flow.tsx
-                        ? "ring-2 ring-synkro-green/35 shadow-xl shadow-synkro-green/15"
-=======
                         ? "scale-105 shadow-xl shadow-revital-green/20"
->>>>>>> main:revital_panel/frontend/components/ui/process-flow.tsx
                         : "hover:shadow-lg",
-                      theme.activeBg
+                      getStepBgColor(step, status)
                     )}
                   >
                     <CardHeader className="pb-3">
@@ -275,7 +204,9 @@ export default function ProcessFlow({
                         <Badge
                           className={cn(
                             "text-xs px-2 py-1",
-                            theme.activeBadge
+                            status === "in-progress"
+                              ? `bg-${step.color}-100 text-${step.color}-800 dark:bg-${step.color}-900/30 dark:text-${step.color}-400`
+                              : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
                           )}
                         >
                           {step.phase}
@@ -291,8 +222,9 @@ export default function ProcessFlow({
                         <div
                           className={cn(
                             "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500",
-                            theme.activeIconWrap,
-                            status === "in-progress" && "animate-pulse"
+                            status === "in-progress"
+                              ? `bg-${step.color}-100 dark:bg-${step.color}-900/30 text-${step.color}-600 dark:text-${step.color}-400 animate-pulse`
+                              : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400"
                           )}
                         >
                           <Icon size={20} />
@@ -301,21 +233,21 @@ export default function ProcessFlow({
 
                       <CardTitle
                         className={cn(
-                          "text-sm font-semibold text-center text-balance line-clamp-2 min-h-10",
-                          theme.activeText
+                          "text-sm font-semibold text-center",
+                          getStepColor(step, status)
                         )}
                       >
                         {step.title}
                       </CardTitle>
                     </CardHeader>
 
-                    <CardContent className="pt-0 flex flex-1 flex-col">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-4 leading-relaxed line-clamp-4">
+                    <CardContent className="pt-0">
+                      <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-4 leading-relaxed">
                         {step.description}
                       </p>
 
                       {/* Features del paso */}
-                      <div className="mt-auto space-y-1">
+                      <div className="space-y-1">
                         {step.features.map((feature, featureIndex) => (
                           <div
                             key={featureIndex}
@@ -324,7 +256,9 @@ export default function ProcessFlow({
                             <div
                               className={cn(
                                 "w-1.5 h-1.5 rounded-full",
-                                status === "in-progress" ? theme.activeDot : "bg-gray-400"
+                                status === "in-progress"
+                                  ? `bg-${step.color}-500`
+                                  : "bg-gray-400"
                               )}
                             />
                             {feature}
@@ -340,7 +274,7 @@ export default function ProcessFlow({
                       </div>
                     )}
                   </Card>
-                </button>
+                </div>
               );
             })}
           </div>

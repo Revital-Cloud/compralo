@@ -12,76 +12,76 @@ import { isAuthenticated } from "@/utils/apiWrapper";
 const pricingPlans = [
   {
     id: "emprendedor",
-    name: "Emprendedor",
+    name: "Starter",
     description:
-      "Perfecto para empezar tu viaje e-commerce con funciones esenciales.",
+      "Perfect for those starting their e-commerce journey with essential selling features.",
     price: "$29",
-    period: "/mes",
+    period: "/month",
     annualPrice: "$290",
-    annualSavings: "Ahorra $58",
+    annualSavings: "Save $58",
     icon: ShoppingBag,
     features: [
-      "Hasta 100 productos",
-      "Panel de analíticas básico",
-      "Integración con Wompi",
-      "1 usuario administrador",
-      "Soporte por email",
-      "SSL incluido",
+      "Up to 100 products",
+      "Basic analytics dashboard",
+      "Wompi integration",
+      "1 admin user",
+      "Email support",
+      "SSL included",
     ],
-    limitations: ["Sin CMS headless", "Sin webhooks"],
-    cta: "Comenzar",
+    limitations: ["No headless CMS", "No webhooks"],
+    cta: "Get Started",
     ctaLink: "/register",
     variant: "outline" as const,
     popular: false,
   },
   {
     id: "profesional",
-    name: "Profesional",
+    name: "Professional",
     description:
-      "Ideal para negocios en crecimiento que necesitan más herramientas y personalización.",
+      "Ideal for growing businesses that need more tools and customization options.",
     price: "$79",
-    period: "/mes",
+    period: "/month",
     annualPrice: "$790",
-    annualSavings: "Ahorra $158",
+    annualSavings: "Save $158",
     icon: Zap,
     features: [
-      "Productos ilimitados",
-      "Analíticas avanzadas + reportes",
-      "CMS headless incluido",
-      "Pasarelas de pago + Webhooks",
-      "Hasta 5 admins",
-      "Soporte prioritario",
-      "Acceso completo a la API",
-      "Backups automáticos",
+      "Unlimited products",
+      "Advanced analytics + reports",
+      "Headless CMS included",
+      "All payment gateways + Webhooks",
+      "Up to 5 admin users",
+      "Priority support",
+      "Full API access",
+      "Automatic backups",
     ],
     limitations: [],
-    cta: "Iniciar prueba",
+    cta: "Start Free Trial",
     ctaLink: "/register",
     variant: "revital" as const,
     popular: true,
   },
   {
     id: "corporativo",
-    name: "Empresarial",
+    name: "Enterprise",
     description:
-      "Soluciones a medida para empresas con alto volumen y necesidades específicas.",
-    price: "Personalizado",
+      "Custom solutions for large businesses with high volume and specific requirements.",
+    price: "Custom",
     period: "",
     annualPrice: "",
     annualSavings: "",
     icon: Building,
     features: [
-      "Todo lo de Profesional",
-      "Usuarios ilimitados",
-      "Integraciones personalizadas",
-      "SLA garantizado",
-      "Soporte dedicado",
-      "Consultoría especializada",
-      "Infraestructura dedicada",
-      "Migración asistida",
+      "Everything in Professional",
+      "Unlimited users",
+      "Custom integrations",
+      "Guaranteed SLA",
+      "Dedicated support",
+      "Specialized consulting",
+      "Dedicated infrastructure",
+      "Assisted migration",
     ],
     limitations: [],
-    cta: "Contactar ventas",
+    cta: "Contact Sales",
     ctaLink: "#contact",
     variant: "outline" as const,
     popular: false,
@@ -119,46 +119,31 @@ export function PricingCards() {
       <div className="container mx-auto max-w-7xl px-4 sm:px-6">
         {/* Header */}
         <div className="text-center mb-16">
-<<<<<<< HEAD:synkro_panel/frontend/components/ui/pricing-cards.tsx
-          <Badge variant="synkro" className="mb-4">
-            Planes y precios
-=======
           <Badge variant="revital" className="mb-4">
             Pricing Plans
->>>>>>> main:revital_panel/frontend/components/ui/pricing-cards.tsx
           </Badge>
           <h2 className="text-3xl md:text-5xl font-regular tracking-tighter mb-4 text-gray-900 dark:text-white">
-            Planes flexibles para tu crecimiento
+            Flexible Plans for Your Growth
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-<<<<<<< HEAD:synkro_panel/frontend/components/ui/pricing-cards.tsx
-            Elige el plan Synkro que mejor se adapte a tu negocio. Empieza y escala cuando lo necesites.
-=======
             Choose the Revital plan that best fits your business size and needs.
             Start free, upgrade as you grow.
->>>>>>> main:revital_panel/frontend/components/ui/pricing-cards.tsx
           </p>
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           {pricingPlans.map(plan => {
             const Icon = plan.icon;
             return (
               <Card
                 key={plan.id}
                 className={cn(
-                  "relative h-full transition-all duration-300 hover:shadow-xl group",
+                  "relative transition-all duration-300 hover:shadow-xl group",
                   plan.popular
-<<<<<<< HEAD:synkro_panel/frontend/components/ui/pricing-cards.tsx
-                    ? "border-2 border-synkro-green shadow-lg shadow-synkro-green/20 ring-2 ring-synkro-green/15"
-                    : "border border-gray-200 dark:border-synkro-green/20 hover:border-synkro-green/40",
-                  "bg-white dark:bg-synkro-black"
-=======
                     ? "border-2 border-revital-green shadow-lg shadow-revital-green/20 lg:scale-105"
                     : "border border-gray-200 dark:border-revital-green/20 hover:border-revital-green/40",
                   "bg-white dark:bg-revital-black"
->>>>>>> main:revital_panel/frontend/components/ui/pricing-cards.tsx
                 )}
               >
                 {/* Popular Badge */}
@@ -166,7 +151,7 @@ export function PricingCards() {
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <Badge className="bg-revital-green text-revital-black px-4 py-1 font-medium">
                       <Star className="w-3 h-3 mr-1" />
-                      Más popular
+                      Most Popular
                     </Badge>
                   </div>
                 )}
@@ -180,12 +165,12 @@ export function PricingCards() {
                   <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
                     {plan.name}
                   </CardTitle>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2 min-h-10">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
                     {plan.description}
                   </p>
                 </CardHeader>
 
-                <CardContent className="pt-0 flex flex-1 flex-col">
+                <CardContent className="pt-0">
                   {/* Price */}
                   <div className="text-center mb-6">
                     <div className="flex items-baseline justify-center">
@@ -199,19 +184,14 @@ export function PricingCards() {
                       )}
                     </div>
                     {plan.annualSavings && (
-<<<<<<< HEAD:synkro_panel/frontend/components/ui/pricing-cards.tsx
-                      <p className="text-sm text-synkro-green mt-1 font-medium">
-                        {plan.annualSavings} con pago anual
-=======
                       <p className="text-sm text-revital-green mt-1 font-medium">
                         {plan.annualSavings} with annual billing
->>>>>>> main:revital_panel/frontend/components/ui/pricing-cards.tsx
                       </p>
                     )}
                   </div>
 
                   {/* Features */}
-                  <div className="space-y-3 mb-8 flex-1">
+                  <div className="space-y-3 mb-8">
                     {plan.features.map((feature, featureIndex) => (
                       <div
                         key={featureIndex}
@@ -236,24 +216,6 @@ export function PricingCards() {
                   </div>
 
                   {/* CTA Button */}
-<<<<<<< HEAD:synkro_panel/frontend/components/ui/pricing-cards.tsx
-                  <div className="mt-auto">
-                    <Button
-                      onClick={() => handleCTAClick(plan)}
-                      variant={plan.variant}
-                      className={cn(
-                        "w-full group/btn",
-                        plan.variant === "synkro" &&
-                          "bg-synkro-green hover:bg-synkro-green/90 text-synkro-black",
-                        plan.variant === "outline" &&
-                          "border-synkro-green/50 text-synkro-green hover:bg-synkro-green hover:text-synkro-black"
-                      )}
-                    >
-                      <span>{isLoggedIn ? "Gestionar plan" : plan.cta}</span>
-                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
-                    </Button>
-                  </div>
-=======
                   <Button
                     onClick={() => handleCTAClick(plan)}
                     variant={plan.variant}
@@ -268,7 +230,6 @@ export function PricingCards() {
                     <span>{isLoggedIn ? "Manage Plan" : plan.cta}</span>
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                   </Button>
->>>>>>> main:revital_panel/frontend/components/ui/pricing-cards.tsx
                 </CardContent>
               </Card>
             );
@@ -278,19 +239,19 @@ export function PricingCards() {
         {/* Additional Info */}
         <div className="text-center mt-12 space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Todos los planes incluyen 14 días de prueba. No se requiere tarjeta.
+            All plans include a 14-day free trial. No credit card required.
           </p>
           {isLoggedIn ? (
             <Button asChild variant="outline" className="border-revital-green text-revital-green hover:bg-revital-green hover:text-revital-black">
               <Link href="/subscription">
-                Ver comparación completa
+                View Full Plan Comparison
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           ) : (
             <Button asChild variant="outline" className="border-revital-green text-revital-green hover:bg-revital-green hover:text-revital-black">
               <Link href="/register">
-                Crear cuenta ahora
+                Sign Up Now
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>

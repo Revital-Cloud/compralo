@@ -87,15 +87,15 @@ export function AdminNavMain({ items }: AdminNavMainProps) {
                         asChild
                         className={`transition-colors duration-200 ${
                           isActive
-                            ? 'bg-synkro-green/10 text-synkro-green hover:bg-synkro-green/20 border-l-4 border-synkro-green'
-                            : 'text-muted-foreground hover:text-synkro-green hover:bg-muted'
+                            ? 'bg-revital-green/10 text-revital-green hover:bg-revital-green/20 border-l-4 border-revital-green'
+                            : 'text-muted-foreground hover:text-revital-green hover:bg-muted'
                         }`}
                       >
                         <Link
                           href={item.url}
                           className="flex flex-1 items-center gap-2 overflow-hidden text-left outline-none [&>svg]:shrink-0"
                         >
-                          {item.icon && <item.icon className={isActive ? 'text-synkro-green' : ''} />}
+                          {item.icon && <item.icon className={isActive ? 'text-revital-green' : ''} />}
                           <span className={isActive ? 'font-semibold truncate' : 'truncate'}>{item.title}</span>
                         </Link>
                       </SidebarMenuButton>

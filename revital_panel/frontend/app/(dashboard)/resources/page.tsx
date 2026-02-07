@@ -1,6 +1,5 @@
 'use client';
 
-import { Suspense } from 'react';
 import {
   Package,
   Users,
@@ -9,18 +8,23 @@ import {
   AlertTriangle,
   ArrowUp,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  Button,
+  Skeleton,
+  Progress,
+} from "@/components/ui";
 import Link from 'next/link';
-import { useLocale, useTranslations } from 'next-intl';
 
-import { useInstancesSuspense } from '@/hooks/use-instances';
+import { useInstances } from '@/hooks/use-instances';
 import { useResourceUsage, useLatestResourceUsage } from '@/hooks/use-resource-usage';
 import { useActiveSubscriptions } from '@/hooks/use-subscriptions';
 import { usePlan } from '@/hooks/use-planes';
-import { ResourceCard } from '@/components/dashboard/resource-card';
+import { ResourceCard } from '@/components/dashboard';
 import type { ResourceUsagePublic } from '@/types';
 
 // Resource Detail Card
@@ -41,7 +45,6 @@ function ResourceDetailCard({
   hasAlert?: boolean;
   loading?: boolean;
 }) {
-  const t = useTranslations();
   if (loading) {
     return (
       <Card>
@@ -63,13 +66,13 @@ function ResourceDetailCard({
   return (
     <Card className={hasAlert ? 'border-amber-200 dark:border-amber-800' : ''}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm sm:text-base font-medium">{title}</CardTitle>
-        <div className={`p-2 rounded-lg shrink-0 ${
+        <CardTitle className="text-base font-medium">{title}</CardTitle>
+        <div className={`p-2 rounded-lg ${
           hasAlert 
             ? 'bg-amber-100 dark:bg-amber-900/30' 
             : 'bg-muted'
         }`}>
-          <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${
+          <Icon className={`h-5 w-5 ${
             hasAlert 
               ? 'text-amber-600 dark:text-amber-400' 
               : 'text-muted-foreground'
@@ -78,15 +81,15 @@ function ResourceDetailCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <div className="flex flex-wrap items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold">{current.toLocaleString()}</span>
-            <span className="text-sm sm:text-base text-muted-foreground">
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold">{current.toLocaleString()}</span>
+            <span className="text-muted-foreground">
               / {max !== null ? max.toLocaleString() : '∞'} {unit}
             </span>
           </div>
           {max !== null && (
             <p className="text-sm text-muted-foreground mt-1">
-              {t('resources.used', { percentage: percentage.toFixed(1) })}
+              {percentage.toFixed(1)}% used
             </p>
           )}
         </div>
@@ -106,7 +109,7 @@ function ResourceDetailCard({
             {hasAlert && (
               <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
                 <AlertTriangle className="h-4 w-4" />
-                <span>{t('resources.approachingLimit')}</span>
+                <span>Approaching limit - consider upgrading</span>
               </div>
             )}
           </div>
@@ -114,7 +117,7 @@ function ResourceDetailCard({
 
         {max !== null && (
           <p className="text-sm text-muted-foreground">
-            {t('resources.remaining', { count: (max - current).toLocaleString(), unit: unit || '' })}
+            {(max - current).toLocaleString()} {unit} remaining
           </p>
         )}
       </CardContent>
@@ -124,21 +127,17 @@ function ResourceDetailCard({
 
 // No Instance Message
 function NoInstanceMessage() {
-  const locale = useLocale();
-  const t = useTranslations();
-  const localePrefix = `/${locale}`;
-
   return (
     <Card className="border-dashed">
       <CardContent className="py-12 text-center">
         <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-        <h3 className="text-lg font-semibold mb-2">{t('resources.noInstance.title')}</h3>
+        <h3 className="text-lg font-semibold mb-2">No Instance Yet</h3>
         <p className="text-muted-foreground mb-4 max-w-sm mx-auto">
-          {t('resources.noInstance.description')}
+          Create your e-commerce instance to start tracking resource usage.
         </p>
         <Button asChild>
-          <Link href={`${localePrefix}/instance`}>
-            {t('resources.noInstance.createButton')}
+          <Link href="/instance">
+            Create Instance
           </Link>
         </Button>
       </CardContent>
@@ -146,53 +145,52 @@ function NoInstanceMessage() {
   );
 }
 
-// Skeleton shown while instances load (Suspense fallback)
-function ResourcesPageSkeleton() {
-  return (
-    <div className="space-y-6">
-      <Skeleton className="h-10 w-48" />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Skeleton className="h-48" />
-        <Skeleton className="h-48" />
-        <Skeleton className="h-48" />
-      </div>
-    </div>
-  );
-}
-
-// Content that suspends until instances are loaded
-function ResourcesPageContent() {
-  const locale = useLocale();
-  const t = useTranslations();
-  const localePrefix = `/${locale}`;
-  const { data: instances } = useInstancesSuspense();
+// Main Resources Page
+export default function ResourcesPage() {
+  const { data: instances, isLoading: loadingInstances } = useInstances();
   const { data: subscriptions, isLoading: loadingSubscription } = useActiveSubscriptions();
-
+  
   const instance = instances && instances.length > 0 ? instances[0] : null;
   const activeSubscription = subscriptions && subscriptions.length > 0 ? subscriptions[0] : null;
-
+  
   const { data: currentPlan, isLoading: loadingPlan } = usePlan(
     activeSubscription?.id_plan || ''
   );
-
+  
   const { data: latestUsage, isLoading: loadingUsage } = useLatestResourceUsage(
     instance?.id_instancia || ''
   );
 
-  const loading = loadingSubscription || loadingPlan || loadingUsage;
+  const loading = loadingInstances || loadingSubscription || loadingPlan || loadingUsage;
+
+  if (loadingInstances) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Skeleton className="h-48" />
+          <Skeleton className="h-48" />
+          <Skeleton className="h-48" />
+        </div>
+      </div>
+    );
+  }
 
   if (!instance) {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">{t('resources.title')}</h1>
-          <p className="text-muted-foreground mt-1">{t('resources.subtitle')}</p>
+          <h1 className="text-2xl font-bold">Resource Usage</h1>
+          <p className="text-muted-foreground mt-1">
+            Monitor your e-commerce resource consumption.
+          </p>
         </div>
         <NoInstanceMessage />
       </div>
     );
   }
 
+  // Get resource data
   const products = {
     current: latestUsage?.productos_actuales || 0,
     max: latestUsage?.max_productos || currentPlan?.max_productos || null,
@@ -207,10 +205,10 @@ function ResourcesPageContent() {
 
   const storage = {
     current: Number(latestUsage?.almacenamiento_actual_gb || 0),
-    max: latestUsage?.max_almacenamiento_gb
-      ? Number(latestUsage.max_almacenamiento_gb)
-      : currentPlan?.max_almacenamiento_gb
-        ? Number(currentPlan.max_almacenamiento_gb)
+    max: latestUsage?.max_almacenamiento_gb 
+      ? Number(latestUsage.max_almacenamiento_gb) 
+      : currentPlan?.max_almacenamiento_gb 
+        ? Number(currentPlan.max_almacenamiento_gb) 
         : null,
     hasAlert: latestUsage?.ind_alerta_almacenamiento || false,
   };
@@ -219,21 +217,25 @@ function ResourcesPageContent() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold">{t('resources.title')}</h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1">{t('resources.subtitle')}</p>
+          <h1 className="text-2xl font-bold">Resource Usage</h1>
+          <p className="text-muted-foreground mt-1">
+            Monitor your e-commerce resource consumption.
+          </p>
         </div>
         {hasAnyAlert && (
           <Button asChild>
-            <Link href={`${localePrefix}/subscription`}>
+            <Link href="/subscription">
               <ArrowUp className="h-4 w-4 mr-2" />
-              {t('resources.upgradePlan')}
+              Upgrade Plan
             </Link>
           </Button>
         )}
       </div>
 
+      {/* Alert Banner */}
       {hasAnyAlert && (
         <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50">
           <CardContent className="py-4">
@@ -241,10 +243,11 @@ function ResourcesPageContent() {
               <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
               <div>
                 <p className="font-medium text-amber-800 dark:text-amber-200">
-                  {t('resources.alert.title')}
+                  Resource Usage Alert
                 </p>
                 <p className="text-sm text-amber-600 dark:text-amber-400">
-                  {t('resources.alert.description')}
+                  One or more resources are approaching their limits. 
+                  Consider upgrading your plan to avoid service interruption.
                 </p>
               </div>
             </div>
@@ -252,9 +255,10 @@ function ResourcesPageContent() {
         </Card>
       )}
 
+      {/* Resource Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <ResourceDetailCard
-          title={t('resources.products')}
+          title="Products"
           icon={Package}
           current={products.current}
           max={products.max}
@@ -262,7 +266,7 @@ function ResourcesPageContent() {
           loading={loadingUsage}
         />
         <ResourceDetailCard
-          title={t('resources.users')}
+          title="Users"
           icon={Users}
           current={users.current}
           max={users.max}
@@ -270,91 +274,65 @@ function ResourcesPageContent() {
           loading={loadingUsage}
         />
         <ResourceDetailCard
-          title={t('resources.storage')}
+          title="Storage"
           icon={HardDrive}
           current={storage.current}
           max={storage.max}
-          unit={t('resources.planLimits.gbStorage')}
+          unit="GB"
           hasAlert={storage.hasAlert}
           loading={loadingUsage}
         />
       </div>
 
+      {/* Plan Info */}
       <Card>
         <CardHeader>
-          <CardTitle>{t('resources.planLimits.title')}</CardTitle>
+          <CardTitle>Current Plan Limits</CardTitle>
           <CardDescription>
-            {t('resources.planLimits.description', {
-              planName: currentPlan?.nom_plan || t('common.loading'),
-            })}
+            Your {currentPlan?.nom_plan || 'subscription'} plan includes the following resource limits.
           </CardDescription>
         </CardHeader>
         <CardContent>
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/resources/page.tsx
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
-            <div className="p-3 sm:p-4 rounded-lg bg-muted/50">
-              <p className="text-2xl sm:text-3xl font-bold text-synkro-green">
-========
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
             <div className="p-4 rounded-lg bg-muted/50">
               <p className="text-3xl font-bold text-revital-green">
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/resources/page.tsx
                 {currentPlan?.max_productos || '∞'}
               </p>
-              <p className="text-xs sm:text-sm text-muted-foreground">{t('resources.planLimits.maxProducts')}</p>
+              <p className="text-sm text-muted-foreground">Max Products</p>
             </div>
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/resources/page.tsx
-            <div className="p-3 sm:p-4 rounded-lg bg-muted/50">
-              <p className="text-2xl sm:text-3xl font-bold text-synkro-green">
-========
             <div className="p-4 rounded-lg bg-muted/50">
               <p className="text-3xl font-bold text-revital-green">
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/resources/page.tsx
                 {currentPlan?.max_usuarios || '∞'}
               </p>
-              <p className="text-xs sm:text-sm text-muted-foreground">{t('resources.planLimits.maxUsers')}</p>
+              <p className="text-sm text-muted-foreground">Max Users</p>
             </div>
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/resources/page.tsx
-            <div className="p-3 sm:p-4 rounded-lg bg-muted/50">
-              <p className="text-2xl sm:text-3xl font-bold text-synkro-green">
-========
             <div className="p-4 rounded-lg bg-muted/50">
               <p className="text-3xl font-bold text-revital-green">
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/resources/page.tsx
                 {currentPlan?.max_almacenamiento_gb || '∞'}
               </p>
-              <p className="text-xs sm:text-sm text-muted-foreground">{t('resources.planLimits.gbStorage')}</p>
+              <p className="text-sm text-muted-foreground">GB Storage</p>
             </div>
           </div>
-
+          
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground mb-4">
-              {t('resources.planLimits.needMore')}
+              Need more resources? Upgrade to a higher plan.
             </p>
             <Button asChild variant="outline">
-              <Link href={`${localePrefix}/subscription`}>
-                {t('resources.planLimits.viewPlans')}
+              <Link href="/subscription">
+                View Available Plans
               </Link>
             </Button>
           </div>
         </CardContent>
       </Card>
 
+      {/* Last Updated */}
       {latestUsage?.fecha_medicion && (
         <p className="text-sm text-muted-foreground text-center">
-          {t('resources.lastUpdated', {
-            date: new Date(latestUsage.fecha_medicion).toLocaleString(),
-          })}
+          Last updated: {new Date(latestUsage.fecha_medicion).toLocaleString()}
         </p>
       )}
     </div>
-  );
-}
-
-export default function ResourcesPage() {
-  return (
-    <Suspense fallback={<ResourcesPageSkeleton />}>
-      <ResourcesPageContent />
-    </Suspense>
   );
 }

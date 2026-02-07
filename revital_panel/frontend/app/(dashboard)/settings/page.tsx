@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useLocale, useTranslations } from 'next-intl';
 import {
   User,
   Bell,
@@ -11,43 +10,45 @@ import {
   Building2,
   Key,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui";
+
+const settingsSections = [
+  {
+    title: 'Profile',
+    description: 'Manage your company and contact information',
+    icon: User,
+    href: '/settings/profile',
+  },
+  {
+    title: 'Security',
+    description: 'Change your password and security settings',
+    icon: Shield,
+    href: '/settings/security',
+  },
+  {
+    title: 'Notifications',
+    description: 'Configure email and push notifications',
+    icon: Bell,
+    href: '/settings/notifications',
+    disabled: true,
+    comingSoon: true,
+  },
+];
 
 export default function SettingsPage() {
-  const locale = useLocale();
-  const t = useTranslations();
-  const localePrefix = `/${locale}`;
-
-  const settingsSections = [
-    {
-      title: t('settings.sections.profile.title'),
-      description: t('settings.sections.profile.description'),
-      icon: User,
-      href: `${localePrefix}/settings/profile`,
-    },
-    {
-      title: t('settings.sections.security.title'),
-      description: t('settings.sections.security.description'),
-      icon: Shield,
-      href: `${localePrefix}/settings/security`,
-    },
-    {
-      title: t('settings.sections.notifications.title'),
-      description: t('settings.sections.notifications.description'),
-      icon: Bell,
-      href: `${localePrefix}/settings/notifications`,
-      disabled: true,
-      comingSoon: true,
-    },
-  ];
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
+        <h1 className="text-2xl font-bold">Settings</h1>
         <p className="text-muted-foreground mt-1">
-          {t('settings.subtitle')}
+          Manage your account and preferences.
         </p>
       </div>
 
@@ -74,13 +75,8 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold">{section.title}</h3>
                         {section.comingSoon && (
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/settings/page.tsx
-                          <span className="text-xs bg-synkro-green/10 text-synkro-green px-2 py-0.5 rounded-full">
-                            {t('settings.comingSoon')}
-========
                           <span className="text-xs bg-revital-green/10 text-revital-green px-2 py-0.5 rounded-full">
                             Coming Soon
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/settings/page.tsx
                           </span>
                         )}
                       </div>
@@ -102,41 +98,31 @@ export default function SettingsPage() {
       {/* Quick Info */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{t('settings.accountInfo')}</CardTitle>
+          <CardTitle className="text-base">Account Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between py-3 border-b">
             <div className="flex items-center gap-3">
               <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{t('settings.companyProfile')}</span>
+              <span className="text-sm">Company Profile</span>
             </div>
             <Link 
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/settings/page.tsx
-              href={`${localePrefix}/settings/profile`} 
-              className="text-sm text-synkro-green hover:underline"
-========
               href="/settings/profile" 
               className="text-sm text-revital-green hover:underline"
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/settings/page.tsx
             >
-              {t('common.edit')}
+              Edit
             </Link>
           </div>
           <div className="flex items-center justify-between py-3 border-b">
             <div className="flex items-center gap-3">
               <Key className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{t('settings.password')}</span>
+              <span className="text-sm">Password</span>
             </div>
             <Link 
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/settings/page.tsx
-              href={`${localePrefix}/settings/security`} 
-              className="text-sm text-synkro-green hover:underline"
-========
               href="/settings/security" 
               className="text-sm text-revital-green hover:underline"
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/settings/page.tsx
             >
-              {t('common.edit')}
+              Change
             </Link>
           </div>
         </CardContent>

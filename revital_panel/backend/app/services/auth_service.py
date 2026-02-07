@@ -22,11 +22,7 @@ from core.jwt_utils import (
 )
 from schemas.auth_schema import LoginRequest, TokenResponse, UserInToken, RegisterRequest
 from schemas.cliente_schema import ClienteCreate
-<<<<<<< HEAD:synkro_panel/backend/app/services/auth_service.py
-from services import usuario_synkro_service, cliente_service, email_service
-=======
 from services import usuario_revital_service, cliente_service
->>>>>>> main:revital_panel/backend/app/services/auth_service.py
 
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[UserInToken]:

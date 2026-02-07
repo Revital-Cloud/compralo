@@ -15,12 +15,9 @@ import {
   Twitter,
   Linkedin,
 } from "lucide-react";
-import { useTranslations } from 'next-intl';
 import { useAuth } from "@/hooks/use-auth";
 import { isAuthenticated } from "@/utils/apiWrapper";
 
-<<<<<<< HEAD:synkro_panel/frontend/components/footer-section.tsx
-=======
 const platformLinks = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, authRequired: true },
   { title: "Login", href: "/login", icon: LogIn, authRequired: false, hideWhenAuth: true },
@@ -55,45 +52,9 @@ const socialLinks = [
   { title: "LinkedIn", href: "https://linkedin.com/company/revital", icon: Linkedin },
 ];
 
->>>>>>> main:revital_panel/frontend/components/footer-section.tsx
 export function Footer() {
-  const t = useTranslations();
   const { user } = useAuth();
   const isLoggedIn = isAuthenticated() && !!user;
-
-  const platformLinks = [
-    { title: t('dashboard.title'), href: "/dashboard", icon: LayoutDashboard, authRequired: true },
-    { title: t('auth.login.submitButton'), href: "/login", icon: LogIn, authRequired: false, hideWhenAuth: true },
-    { title: t('auth.register.submitButton'), href: "/register", icon: UserPlus, authRequired: false, hideWhenAuth: true },
-  ];
-
-  const productLinks = [
-    { title: t('footer.sections.product.links.features'), href: "#features" },
-    { title: t('footer.sections.product.links.pricing'), href: "#pricing" },
-    { title: t('navigation.menuItems.security'), href: "#security" },
-    { title: t('navigation.menuItems.faq'), href: "#faq" },
-  ];
-
-  const companyLinks = [
-    { title: t('footer.sections.company.links.about'), href: "/about" },
-    { title: t('footer.sections.company.links.privacy'), href: "/privacy" },
-    { title: t('footer.sections.company.links.terms'), href: "/terms" },
-    { title: t('footer.sections.company.links.contact'), href: "#contact" },
-  ];
-
-  const resourceLinks = [
-    { title: t('footer.sections.resources.links.docs'), href: "/docs" },
-    { title: t('footer.sections.resources.links.blog'), href: "/blog" },
-    { title: t('footer.sections.resources.links.support'), href: "/help" },
-    { title: t('footer.sections.resources.links.changelog'), href: "/changelog" },
-  ];
-
-  const socialLinks = [
-    { title: t('footer.sections.social.links.facebook'), href: "https://facebook.com/synkro", icon: Facebook },
-    { title: t('footer.sections.social.links.instagram'), href: "https://instagram.com/synkro", icon: Instagram },
-    { title: t('footer.sections.social.links.twitter'), href: "https://twitter.com/synkro", icon: Twitter },
-    { title: t('footer.sections.social.links.linkedin'), href: "https://linkedin.com/company/synkro", icon: Linkedin },
-  ];
 
   const handleScrollLink = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith("#")) {
@@ -123,7 +84,8 @@ export function Footer() {
               <span className="text-2xl font-bold text-revital-green">Revital</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-xs">
-              {t('footer.company.description')}
+              The all-in-one e-commerce platform designed for the Colombian market. 
+              Build, manage, and scale your online store with ease.
             </p>
             {/* Social Links */}
             <div className="flex gap-4 pt-4">
@@ -150,13 +112,8 @@ export function Footer() {
             <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
               {/* Platform */}
               <div>
-<<<<<<< HEAD:synkro_panel/frontend/components/footer-section.tsx
-                <h3 className="text-sm font-semibold text-synkro-green mb-4">
-                  {t('footer.sections.platform.label')}
-=======
                 <h3 className="text-sm font-semibold text-revital-green mb-4">
                   Platform
->>>>>>> main:revital_panel/frontend/components/footer-section.tsx
                 </h3>
                 <ul className="space-y-3">
                   {platformLinks.map((link) => {
@@ -186,13 +143,8 @@ export function Footer() {
 
               {/* Product */}
               <div>
-<<<<<<< HEAD:synkro_panel/frontend/components/footer-section.tsx
-                <h3 className="text-sm font-semibold text-synkro-green mb-4">
-                  {t('footer.sections.product.label')}
-=======
                 <h3 className="text-sm font-semibold text-revital-green mb-4">
                   Product
->>>>>>> main:revital_panel/frontend/components/footer-section.tsx
                 </h3>
                 <ul className="space-y-3">
                   {productLinks.map((link) => (
@@ -211,13 +163,8 @@ export function Footer() {
 
               {/* Company */}
               <div>
-<<<<<<< HEAD:synkro_panel/frontend/components/footer-section.tsx
-                <h3 className="text-sm font-semibold text-synkro-green mb-4">
-                  {t('footer.sections.company.label')}
-=======
                 <h3 className="text-sm font-semibold text-revital-green mb-4">
                   Company
->>>>>>> main:revital_panel/frontend/components/footer-section.tsx
                 </h3>
                 <ul className="space-y-3">
                   {companyLinks.map((link) => (
@@ -245,13 +192,8 @@ export function Footer() {
 
               {/* Resources */}
               <div>
-<<<<<<< HEAD:synkro_panel/frontend/components/footer-section.tsx
-                <h3 className="text-sm font-semibold text-synkro-green mb-4">
-                  {t('footer.sections.resources.label')}
-=======
                 <h3 className="text-sm font-semibold text-revital-green mb-4">
                   Resources
->>>>>>> main:revital_panel/frontend/components/footer-section.tsx
                 </h3>
                 <ul className="space-y-3">
                   {resourceLinks.map((link) => (
@@ -276,11 +218,7 @@ export function Footer() {
         <div className="mx-auto max-w-7xl px-6 py-6">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <p className="text-sm text-muted-foreground">
-<<<<<<< HEAD:synkro_panel/frontend/components/footer-section.tsx
-              {t('footer.copyright', { year: new Date().getFullYear() })}
-=======
               © {new Date().getFullYear()} Revital. All rights reserved.
->>>>>>> main:revital_panel/frontend/components/footer-section.tsx
             </p>
             <div className="flex items-center gap-4">
               <a

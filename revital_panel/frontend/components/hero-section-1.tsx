@@ -7,7 +7,7 @@ import { ArrowRight, LayoutDashboard, Sparkles, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AnimatedGroup } from "@/components/ui/animated-group";
 import { Header } from "./header";
-import { useTranslations } from 'next-intl';
+import { heroContent } from "@/content";
 import { useAuth } from "@/hooks/use-auth";
 import { isAuthenticated } from "@/utils/apiWrapper";
 
@@ -23,7 +23,7 @@ const transitionVariants = {
       filter: "blur(0px)",
       y: 0,
       transition: {
-        type: "spring" as const,
+        type: "spring",
         bounce: 0.3,
         duration: 1.5,
       },
@@ -32,14 +32,8 @@ const transitionVariants = {
 };
 
 export function HeroSection() {
-  const t = useTranslations();
-  const [isMounted, setIsMounted] = React.useState(false);
   const { user, isLoading } = useAuth();
   const isLoggedIn = isAuthenticated() && !!user;
-
-  React.useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   const scrollToSection = (id: string) => {
     document.querySelector(id)?.scrollIntoView({ behavior: "smooth" });
@@ -78,13 +72,8 @@ export function HeroSection() {
                     className="hover:bg-background dark:hover:border-t-border bg-muted group mx-auto flex w-fit items-center gap-4 rounded-full border p-1 pl-4 shadow-md shadow-black/5 transition-all duration-300 dark:border-t-white/5 dark:shadow-zinc-950 border-revital-green/20 hover:border-revital-green/40"
                   >
                     <span className="text-foreground text-sm flex items-center gap-2">
-<<<<<<< HEAD:synkro_panel/frontend/components/hero-section-1.tsx
-                      <Sparkles className="h-4 w-4 text-synkro-green" />
-                      Introduciendo Synkro: tu plataforma e-commerce todo‑en‑uno
-=======
                       <Sparkles className="h-4 w-4 text-revital-green" />
                       Introducing Revital: Your All-in-One E-commerce Platform
->>>>>>> main:revital_panel/frontend/components/hero-section-1.tsx
                     </span>
                     <span className="dark:border-background block h-4 w-0.5 border-l bg-revital-green dark:bg-revital-green"></span>
 
@@ -101,10 +90,10 @@ export function HeroSection() {
                   </a>
 
                   <h1 className="mt-8 max-w-4xl mx-auto text-balance text-5xl md:text-6xl lg:mt-16 xl:text-7xl animate-float">
-                    {t('hero.title')}
+                    {heroContent.title}
                   </h1>
                   <p className="mx-auto mt-8 max-w-2xl text-balance text-lg text-muted-foreground">
-                    {t('hero.subtitle')}
+                    {heroContent.subtitle}
                   </p>
                 </AnimatedGroup>
 
@@ -123,8 +112,8 @@ export function HeroSection() {
                   }}
                   className="mt-12 flex flex-col items-center justify-center gap-3 md:flex-row"
                 >
-                  {!isMounted || isLoading ? (
-                    // Loading state - only show during SSR or while loading
+                  {isLoading ? (
+                    // Loading state
                     <div className="flex gap-3">
                       <div className="h-12 w-40 animate-pulse rounded-xl bg-muted" />
                       <div className="h-12 w-32 animate-pulse rounded-xl bg-muted" />
@@ -140,7 +129,7 @@ export function HeroSection() {
                         >
                           <Link href="/dashboard">
                             <LayoutDashboard className="mr-2 h-5 w-5" />
-                            <span>Ir al Dashboard</span>
+                            <span>Go to Dashboard</span>
                           </Link>
                         </Button>
                       </div>
@@ -150,7 +139,7 @@ export function HeroSection() {
                         className="h-10.5 rounded-xl px-5 hover:bg-revital-green/10 hover:text-revital-green"
                         onClick={() => scrollToSection("#features")}
                       >
-                        <span>Ver características</span>
+                        <span>Explore Features</span>
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </>
@@ -164,7 +153,7 @@ export function HeroSection() {
                           className="rounded-xl px-6 text-base bg-revital-green hover:bg-revital-green/90 text-revital-black font-medium"
                         >
                           <Link href="/register">
-                            <span>{t('navigation.ctaButton')}</span>
+                            <span>Get Started Free</span>
                             <ArrowRight className="ml-2 h-5 w-5" />
                           </Link>
                         </Button>
@@ -176,7 +165,7 @@ export function HeroSection() {
                         onClick={() => scrollToSection("#pricing")}
                       >
                         <Play className="mr-2 h-4 w-4" />
-                        <span>Ver precios</span>
+                        <span>View Pricing</span>
                       </Button>
                     </>
                   )}
@@ -198,20 +187,6 @@ export function HeroSection() {
                   className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground"
                 >
                   <div className="flex items-center gap-2">
-<<<<<<< HEAD:synkro_panel/frontend/components/hero-section-1.tsx
-                    <div className="h-2 w-2 rounded-full bg-synkro-green animate-pulse" />
-                    <span>No se requiere tarjeta</span>
-                  </div>
-                  <div className="hidden sm:block h-4 w-px bg-border" />
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-synkro-green animate-pulse" />
-                    <span>Plan gratis para siempre</span>
-                  </div>
-                  <div className="hidden sm:block h-4 w-px bg-border" />
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-synkro-green animate-pulse" />
-                    <span>Setup en minutos</span>
-=======
                     <div className="h-2 w-2 rounded-full bg-revital-green animate-pulse" />
                     <span>No credit card required</span>
                   </div>
@@ -224,7 +199,6 @@ export function HeroSection() {
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-revital-green animate-pulse" />
                     <span>Setup in minutes</span>
->>>>>>> main:revital_panel/frontend/components/hero-section-1.tsx
                   </div>
                 </AnimatedGroup>
               </div>
