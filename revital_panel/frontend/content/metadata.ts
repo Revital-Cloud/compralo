@@ -76,7 +76,7 @@ export const defaultMetadata: Metadata = {
     ],
     apple: [{ url: "/logo.webp", sizes: "180x180", type: "image/webp" }],
   },
-  manifest: `${siteConfig.url}/manifest.json`,
+  manifest: "/manifest.json",
 };
 
 export const pageMetadata = {

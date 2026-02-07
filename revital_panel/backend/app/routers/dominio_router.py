@@ -14,7 +14,7 @@ from schemas.auth_schema import UserInToken, ResponseMessage
 from schemas.dominio_schema import DominioCreate, DominioUpdate, DominioPublic
 from services import dominio_service, instancia_service
 
-router = APIRouter(prefix="/api/dominios", tags=["Dominios"])
+router = APIRouter(prefix="/api/domains", tags=["Domains"])
 
 
 @router.get("", response_model=List[DominioPublic])
@@ -35,10 +35,14 @@ def get_dominios(
             if not instancia or instancia.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="No tienes permisos para ver estos dominios"
+                    detail="You do not have permission to view these domains"
                 )
         else:
-            return []
+            # Si no se especifica instancia, tomar la primera instancia del cliente (si existe)
+            instancias = instancia_service.get_instancias(db, current_user.identificacion_fiscal)
+            if not instancias:
+                return []
+            id_instancia = instancias[0].get("id_instancia")
     
     dominios = dominio_service.get_dominios(db, id_instancia)
     return [DominioPublic(**dict(d)) for d in dominios]
@@ -57,7 +61,7 @@ def get_dominio(
     if not dominio:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dominio no encontrado"
+            detail="Domain not found"
         )
     
     if current_user.user_type == "cliente":
@@ -65,7 +69,7 @@ def get_dominio(
         if not instancia or instancia.get("identificacion_fiscal_cliente") != current_user.identificacion_fiscal:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="No tienes permisos para ver este dominio"
+                detail="You do not have permission to view this domain"
             )
     
     return DominioPublic(**dict(dominio))
@@ -86,20 +90,20 @@ def create_dominio(
     if not instancia:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Instancia no encontrada"
+            detail="Instance not found"
         )
     
     result = dominio_service.create_dominio(db, dominio, current_user.email)
     
     if result and result.get("success"):
         return ResponseMessage(
-            message=f"Dominio creado correctamente con ID: {result.get('id_dominio')}",
+            message=f"Domain created successfully with ID: {result.get('id_dominio')}",
             success=True
         )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al crear dominio") if result else "Error al crear dominio"
+            detail=result.get("message", "Error creating domain") if result else "Error creating domain"
         )
 
 
@@ -119,17 +123,17 @@ def update_dominio(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dominio no encontrado"
+            detail="Domain not found"
         )
     
     result = dominio_service.update_dominio(db, id_dominio, dominio, current_user.email)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Dominio actualizado correctamente", success=True)
+        return ResponseMessage(message="Domain updated successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al actualizar dominio") if result else "Error al actualizar dominio"
+            detail=result.get("message", "Error updating domain") if result else "Error updating domain"
         )
 
 
@@ -148,15 +152,15 @@ def delete_dominio(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Dominio no encontrado"
+            detail="Domain not found"
         )
     
     result = dominio_service.delete_dominio(db, id_dominio)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Dominio eliminado correctamente", success=True)
+        return ResponseMessage(message="Domain deleted successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al eliminar dominio") if result else "Error al eliminar dominio"
+            detail=result.get("message", "Error deleting domain") if result else "Error deleting domain"
         )

@@ -49,3 +49,4 @@ apps/ecommerce/backend/app/.env.production
 .gemini/
 .github/copilot-instructions.md
 .cursor/skills/
+revital_ecommerce/backend/.env.development

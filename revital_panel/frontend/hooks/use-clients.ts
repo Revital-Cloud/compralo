@@ -5,7 +5,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import clientService from '@/services/client.service';
-import type { ClientPublic, ClientCreate, ClientUpdate } from '@/types';
+import { getErrorMessage } from '@/types/errors';
+import type { ClientCreate, ClientUpdate } from '@/types';
 
 export const CLIENT_KEYS = {
   all: ['clients'] as const,
@@ -68,9 +69,8 @@ export function useCreateClient() {
       toast.success('Cliente creado exitosamente');
       queryClient.invalidateQueries({ queryKey: CLIENT_KEYS.lists() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al crear cliente';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al crear cliente'));
     },
   });
 }
@@ -119,9 +119,8 @@ export function useDeleteClient() {
       toast.success('Cliente eliminado exitosamente');
       queryClient.invalidateQueries({ queryKey: CLIENT_KEYS.lists() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al eliminar cliente';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al eliminar cliente'));
     },
   });
 }

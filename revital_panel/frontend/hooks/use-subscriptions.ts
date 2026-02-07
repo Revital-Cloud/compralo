@@ -2,10 +2,16 @@
  * Custom Hook for Subscriptions
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import subscriptionService from '@/services/subscription.service';
-import type { SubscriptionPublic, SubscriptionCreate, SubscriptionUpdate } from '@/types';
+import { getErrorMessage } from '@/types/errors';
+import { PLAN_HISTORY_KEYS } from '@/hooks/use-plan-history';
+import type {
+  SubscriptionCreate,
+  SubscriptionUpdate,
+  ActiveSubscriptionWithPlan,
+} from '@/types';
 
 export const SUBSCRIPTION_KEYS = {
   all: ['subscriptions'] as const,
@@ -27,7 +33,15 @@ export function useSubscriptions() {
 export function useActiveSubscriptions() {
   return useQuery({
     queryKey: SUBSCRIPTION_KEYS.active(),
-    queryFn: () => subscriptionService.getActiveSubscriptions(),
+    queryFn: (): Promise<ActiveSubscriptionWithPlan[]> => subscriptionService.getActiveSubscriptions(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useActiveSubscriptionsSuspense() {
+  return useSuspenseQuery({
+    queryKey: SUBSCRIPTION_KEYS.active(),
+    queryFn: (): Promise<ActiveSubscriptionWithPlan[]> => subscriptionService.getActiveSubscriptions(),
     staleTime: 5 * 60 * 1000,
   });
 }
@@ -46,7 +60,13 @@ export function useCreateSubscription() {
 
   return useMutation({
     mutationFn: (data: SubscriptionCreate) => subscriptionService.createSubscription(data),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data?.checkout_url) {
+        queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.lists() });
+        queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.active() });
+        window.location.href = data.checkout_url;
+        return;
+      }
       toast.success('Suscripción creada exitosamente');
       queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.lists() });
       queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.active() });
@@ -70,9 +90,8 @@ export function useUpdateSubscription() {
       queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.lists() });
       queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.active() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al actualizar suscripción';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al actualizar suscripción'));
     },
   });
 }
@@ -91,6 +110,40 @@ export function useCancelSubscription() {
     onError: (error: any) => {
       const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al cancelar suscripción';
       toast.error(message);
+    },
+  });
+}
+
+export function useChangeSubscriptionPlan() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      idSubscription,
+      idPlanNuevo,
+      tipoCambio,
+      motivo,
+    }: {
+      idSubscription: number | string;
+      idPlanNuevo: number | string;
+      tipoCambio: 'upgrade' | 'downgrade' | 'lateral';
+      motivo?: string;
+    }) =>
+      subscriptionService.changeSubscriptionPlan(
+        idSubscription,
+        idPlanNuevo,
+        tipoCambio,
+        motivo,
+      ),
+    onSuccess: (_, variables) => {
+      toast.success('Subscription plan updated successfully');
+      queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.lists() });
+      queryClient.invalidateQueries({ queryKey: SUBSCRIPTION_KEYS.active() });
+      queryClient.invalidateQueries({ queryKey: PLAN_HISTORY_KEYS.list(variables.idSubscription) });
+      queryClient.invalidateQueries({ queryKey: PLAN_HISTORY_KEYS.lists() });
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error updating subscription plan'));
     },
   });
 }

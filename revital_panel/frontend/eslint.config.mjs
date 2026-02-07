@@ -20,7 +20,19 @@ const eslintConfig = [
 
       // Reglas específicas para TypeScript/React
       "@typescript-eslint/no-unused-vars": "error",
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-explicit-any": "error",
+      "no-restricted-imports": [
+        "warn",
+        {
+          patterns: [
+            {
+              group: ["@/components/ui", "@/components/dashboard"],
+              message:
+                "Use direct imports (e.g. @/components/ui/button) instead of barrel files for better tree-shaking",
+            },
+          ],
+        },
+      ],
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
     },

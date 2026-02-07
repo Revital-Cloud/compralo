@@ -27,6 +27,7 @@ from routers.deployment_router import router as deployment_router
 from routers.dominio_router import router as dominio_router
 from routers.uso_recurso_router import router as uso_recurso_router
 from routers.historial_plan_router import router as historial_plan_router
+from routers.admin_metrics_router import router as admin_metrics_router
 
 # Configurar logging: en producción solo WARNING y superior (no se muestran INFO/DEBUG)
 logging.basicConfig(level=logging.WARNING if is_production() else logging.INFO)
@@ -60,17 +61,18 @@ El sistema usa JWT con dos tipos de usuarios:
 
 ## Endpoints principales
 
-- `/api/auth`: Autenticacion unificada
-- `/api/admin/usuarios`: Gestion de admins de Revital
-- `/api/clientes`: Gestion de clientes
-- `/api/planes`: Planes de suscripcion
-- `/api/instancias`: Instancias de e-commerce
-- `/api/suscripciones`: Suscripciones de clientes
-- `/api/facturacion`: Facturas
-- `/api/deployments`: Deployments de instancias
-- `/api/dominios`: Dominios asociados
-- `/api/uso-recursos`: Tracking de recursos
-- `/api/historial-planes`: Historial de cambios de plan
+- `/api/auth`: Authentication
+- `/api/admin/users`: Revital admin users management
+- `/api/clients`: Clients management
+- `/api/plans`: Subscription plans
+- `/api/instances`: E-commerce instances
+- `/api/subscriptions`: Client subscriptions
+- `/api/billing`: Invoices and payments
+- `/api/deployments`: Instance deployments
+- `/api/domains`: Associated domains
+- `/api/resource-usage`: Resource usage tracking
+- `/api/plan-history`: Plan change history
+- `/api/admin/metrics`: Admin dashboard metrics
     """,
     version="1.0.0",
     docs_url="/docs",
@@ -88,7 +90,23 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+# Middleware para Private Network Access (PNA): permite que paginas cargadas
+# desde IP publica (ej. http://46.224.101.179:3001) llamen a la API en
+# localhost (red privada). Sin esto, Chrome y otros navegadores bloquean
+# la peticion por politica de seguridad.
+PNA_HEADER = "Access-Control-Allow-Private-Network"
+PNA_REQUEST_HEADER = "Access-Control-Request-Private-Network"
+
+
+@app.middleware("http")
+async def add_private_network_access_header(request, call_next):
+    response = await call_next(request)
+    if request.headers.get(PNA_REQUEST_HEADER, "").lower() == "true":
+        response.headers[PNA_HEADER] = "true"
+    return response
 
 # Agregar middleware de seguridad
 app.add_middleware(SecurityMiddleware)
@@ -129,6 +147,9 @@ app.include_router(uso_recurso_router)
 
 # Historial de planes
 app.include_router(historial_plan_router)
+
+# Métricas admin (dashboard central de Synkro)
+app.include_router(admin_metrics_router)
 
 
 # ============================================================

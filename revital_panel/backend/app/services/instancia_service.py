@@ -9,7 +9,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import Optional, List
 
+from core.config import settings
 from schemas.instancia_schema import InstanciaCreate, InstanciaUpdate
+
+from . import provisioning_hook
 
 
 def get_instancias(db: Session, identificacion_fiscal_cliente: str = None) -> List[dict]:
@@ -140,8 +143,18 @@ def create_instancia(db: Session, instancia: InstanciaCreate, usr_insert: str) -
         result = db.execute(query, params)
         fetched_result = result.fetchone()
         db.commit()
-        
-        return fetched_result[0] if fetched_result else None
+
+        create_result = fetched_result[0] if fetched_result else None
+        if (
+            create_result
+            and isinstance(create_result, dict)
+            and create_result.get("success")
+            and settings.PROVISIONING_WEBHOOK_URL
+        ):
+            provisioning_hook.notify_provisioner(
+                settings.PROVISIONING_WEBHOOK_URL, create_result, instancia
+            )
+        return create_result
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al crear instancia: {str(e)}")

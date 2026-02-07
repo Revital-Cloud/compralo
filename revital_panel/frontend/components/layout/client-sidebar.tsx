@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import {
   LayoutDashboard,
   Server,
@@ -9,8 +9,6 @@ import {
   Receipt,
   BarChart3,
   Settings,
-  HelpCircle,
-  User,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -18,53 +16,18 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
-} from "@/components/ui";
+} from "@/components/ui/sidebar";
+import { Link } from '@/i18n/routing';
 import { ClientNavMain } from './client-nav-main';
 import { ClientNavUser } from './client-nav-user';
 
-const navigationItems = [
-  {
-    title: 'Dashboard',
-    url: '/dashboard',
-    icon: LayoutDashboard,
-    section: 'overview',
-  },
-  {
-    title: 'My Instance',
-    url: '/instance',
-    icon: Server,
-    section: 'store',
-  },
-  {
-    title: 'Resources',
-    url: '/resources',
-    icon: BarChart3,
-    section: 'store',
-  },
-  {
-    title: 'Subscription',
-    url: '/subscription',
-    icon: CreditCard,
-    section: 'subscription',
-  },
-  {
-    title: 'Billing',
-    url: '/billing',
-    icon: Receipt,
-    section: 'subscription',
-  },
-  {
-    title: 'Profile',
-    url: '/settings/profile',
-    icon: User,
-    section: 'settings',
-  },
-  {
-    title: 'Settings',
-    url: '/settings',
-    icon: Settings,
-    section: 'settings',
-  },
+const navigationItemsConfig = [
+  { key: 'dashboard', url: '/dashboard', icon: LayoutDashboard, section: 'overview' as const },
+  { key: 'myInstance', url: '/instance', icon: Server, section: 'store' as const },
+  { key: 'resources', url: '/resources', icon: BarChart3, section: 'store' as const },
+  { key: 'subscription', url: '/subscription', icon: CreditCard, section: 'subscription' as const },
+  { key: 'billing', url: '/billing', icon: Receipt, section: 'subscription' as const },
+  { key: 'settings', url: '/settings', icon: Settings, section: 'settings' as const },
 ];
 
 interface ClientSidebarProps {
@@ -72,6 +35,15 @@ interface ClientSidebarProps {
 }
 
 export function ClientSidebar({ variant = 'inset' }: ClientSidebarProps) {
+  const t = useTranslations('sidebar');
+
+  const navigationItems = navigationItemsConfig.map((item) => ({
+    title: t(item.key),
+    url: item.url,
+    icon: item.icon,
+    section: item.section,
+  }));
+
   return (
     <Sidebar 
       variant={variant} 
@@ -95,7 +67,7 @@ export function ClientSidebar({ variant = 'inset' }: ClientSidebarProps) {
                 Revital
               </span>
               <span className="text-xs text-muted-foreground font-medium tracking-wide hidden sm:block">
-                Client Portal
+                {t('clientPortal')}
               </span>
             </div>
           </Link>

@@ -1028,10 +1028,10 @@ DECLARE
     num_factura VARCHAR;
 BEGIN
     -- Obtener el siguiente número de secuencia del mes actual
-    SELECT COALESCE(MAX(CAST(SUBSTRING(num_factura FROM '[0-9]+$') AS INTEGER)), 0) + 1
+    SELECT COALESCE(MAX(CAST(SUBSTRING(fc.num_factura FROM '[0-9]+$') AS INTEGER)), 0) + 1
     INTO num_secuencia
-    FROM tab_facturacion_cabecera
-    WHERE num_factura LIKE prefijo || anio || '-' || mes || '-%';
+    FROM tab_facturacion_cabecera fc
+    WHERE fc.num_factura LIKE prefijo || anio || '-' || mes || '-%';
     
     -- Formato: FAC-YYYY-MM-XXXXX (ej: FAC-2025-12-00001)
     num_factura := prefijo || anio || '-' || mes || '-' || LPAD(num_secuencia::TEXT, 5, '0');

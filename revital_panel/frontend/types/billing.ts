@@ -75,3 +75,15 @@ export interface InvoicePublic {
 export interface InvoiceWithDetails extends InvoicePublic {
   detalles: InvoiceDetail[];
 }
+
+export interface InvoicePending {
+  id_factura: number | string;
+  id_suscripcion: number | string;
+  identificacion_fiscal_cliente: string;
+  num_factura: string;
+  total: number | string;
+  moneda: string;
+  estado_pago: PaymentStatus | string;
+  fecha_emision: string;
+  fecha_vencimiento?: string | null;
+}

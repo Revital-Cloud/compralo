@@ -4,10 +4,11 @@ Modulo de Servicios de Facturacion.
 Este modulo contiene la logica de negocio para gestionar las facturas
 de suscripciones.
 """
+import json
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from typing import Optional, List
+from typing import Optional, List, Any
 
 from schemas.facturacion_schema import FacturaCabeceraCreate, FacturaCabeceraUpdate, FacturaDetalleCreate
 
@@ -122,16 +123,20 @@ def create_factura(db: Session, factura: FacturaCabeceraCreate, usr_insert: str)
     """Crea una nueva factura llamando a la funcion SQL."""
     try:
         query = text("""
-            SELECT fun_insert_factura(
-                :id_suscripcion,
-                :identificacion_fiscal_cliente,
-                :moneda::enum_moneda,
-                :metodo_pago::enum_metodo_pago,
-                :fecha_vencimiento,
-                :periodo_facturado_desde,
-                :periodo_facturado_hasta,
-                :notas,
-                :usr_insert
+            SELECT fun_insert_factura_cabecera(
+                CAST(:id_suscripcion AS DECIMAL),
+                CAST(:identificacion_fiscal_cliente AS VARCHAR),
+                CAST(:usr_insert AS VARCHAR),
+                NULL::VARCHAR,
+                CAST(:moneda AS enum_moneda),
+                CAST('pendiente' AS enum_estado_pago),
+                CAST(:metodo_pago AS enum_metodo_pago),
+                LOCALTIMESTAMP,
+                CAST(:fecha_vencimiento AS TIMESTAMP WITHOUT TIME ZONE),
+                CAST(:periodo_facturado_desde AS TIMESTAMP WITHOUT TIME ZONE),
+                CAST(:periodo_facturado_hasta AS TIMESTAMP WITHOUT TIME ZONE),
+                NULL::VARCHAR,
+                CAST(:notas AS TEXT)
             )
         """)
         
@@ -151,7 +156,14 @@ def create_factura(db: Session, factura: FacturaCabeceraCreate, usr_insert: str)
         fetched_result = result.fetchone()
         db.commit()
         
-        return fetched_result[0] if fetched_result else None
+        raw = fetched_result[0] if fetched_result else None
+        if raw is None:
+            return None
+        if isinstance(raw, dict):
+            return raw
+        if isinstance(raw, str):
+            return json.loads(raw)
+        return None
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al crear factura: {str(e)}")
@@ -195,7 +207,7 @@ def create_factura_detalle(db: Session, id_factura: Decimal, detalle: FacturaDet
                 :total_linea,
                 :id_plan,
                 :id_instancia,
-                :metadata_json::jsonb,
+                CAST(:metadata_json AS jsonb),
                 :usr_insert,
                 CURRENT_TIMESTAMP
             ) RETURNING id_detalle

@@ -5,7 +5,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import domainService from '@/services/domain.service';
-import type { DomainPublic, DomainCreate, DomainUpdate } from '@/types';
+import { getErrorMessage } from '@/types/errors';
+import type { DomainCreate, DomainUpdate } from '@/types';
 
 export const DOMAIN_KEYS = {
   all: ['domains'] as const,
@@ -60,9 +61,8 @@ export function useUpdateDomain() {
       queryClient.invalidateQueries({ queryKey: DOMAIN_KEYS.detail(variables.idDomain) });
       queryClient.invalidateQueries({ queryKey: DOMAIN_KEYS.lists() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al actualizar dominio';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al actualizar dominio'));
     },
   });
 }
@@ -76,9 +76,8 @@ export function useDeleteDomain() {
       toast.success('Dominio eliminado exitosamente');
       queryClient.invalidateQueries({ queryKey: DOMAIN_KEYS.lists() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al eliminar dominio';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al eliminar dominio'));
     },
   });
 }

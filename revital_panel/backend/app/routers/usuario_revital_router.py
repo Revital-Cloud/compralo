@@ -21,7 +21,7 @@ from schemas.usuario_revital_schema import (
 )
 from services import usuario_revital_service
 
-router = APIRouter(prefix="/api/admin/usuarios", tags=["Usuarios Revital (Admin)"])
+router = APIRouter(prefix="/api/admin/users", tags=["Revital Users (Admin)"])
 
 
 @router.get("", response_model=List[UsuarioRevitalPublic])
@@ -61,7 +61,7 @@ def get_usuario(
     if not usuario:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
+            detail="User not found"
         )
     return UsuarioRevitalPublic(**dict(usuario))
 
@@ -100,13 +100,13 @@ def create_usuario(
     
     if result and result.get("success"):
         return ResponseMessage(
-            message=f"Usuario creado correctamente con ID: {result.get('id_usuario')}",
+            message=f"User created successfully with ID: {result.get('id_usuario')}",
             success=True
         )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al crear usuario") if result else "Error al crear usuario"
+            detail=result.get("message", "Error creating user") if result else "Error creating user"
         )
 
 
@@ -133,7 +133,7 @@ def update_usuario(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
+            detail="User not found"
         )
     
     # Si se proporciona contraseña, hashearla
@@ -148,11 +148,11 @@ def update_usuario(
     )
     
     if result and result.get("success"):
-        return ResponseMessage(message="Usuario actualizado correctamente", success=True)
+        return ResponseMessage(message="User updated successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al actualizar usuario") if result else "Error al actualizar usuario"
+            detail=result.get("message", "Error updating user") if result else "Error updating user"
         )
 
 
@@ -177,7 +177,7 @@ def delete_usuario(
     if str(id_usuario) == str(current_user.id):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No puedes eliminarte a ti mismo"
+            detail="You cannot delete yourself"
         )
     
     # Verificar que el usuario existe
@@ -185,15 +185,15 @@ def delete_usuario(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
+            detail="User not found"
         )
     
     result = usuario_revital_service.delete_usuario(db, id_usuario)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Usuario eliminado correctamente", success=True)
+        return ResponseMessage(message="User deleted successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al eliminar usuario") if result else "Error al eliminar usuario"
+            detail=result.get("message", "Error deleting user") if result else "Error deleting user"
         )

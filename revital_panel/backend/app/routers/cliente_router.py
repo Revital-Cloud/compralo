@@ -23,7 +23,7 @@ from schemas.cliente_schema import (
 )
 from services import cliente_service
 
-router = APIRouter(prefix="/api/clientes", tags=["Clientes"])
+router = APIRouter(prefix="/api/clients", tags=["Clients"])
 
 
 @router.get("/me", response_model=ClientePublic)
@@ -43,7 +43,7 @@ def get_my_profile(
     if not cliente:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cliente no encontrado"
+            detail="Client not found"
         )
     return ClientePublic(**dict(cliente))
 
@@ -79,15 +79,15 @@ def update_my_profile(
     )
     
     if result and result.get("success"):
-        return ResponseMessage(message="Perfil actualizado correctamente", success=True)
+        return ResponseMessage(message="Profile updated successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al actualizar perfil") if result else "Error al actualizar perfil"
+            detail=result.get("message", "Error updating profile") if result else "Error updating profile"
         )
 
 
-@router.get("/me/suscripcion")
+@router.get("/me/subscription")
 def get_my_subscription(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(require_cliente)
@@ -104,7 +104,7 @@ def get_my_subscription(
     if not suscripcion:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No tienes una suscripción activa"
+            detail="You do not have an active subscription"
         )
     return dict(suscripcion)
 
@@ -126,7 +126,7 @@ def get_my_plan(
     if not plan:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No tienes un plan activo"
+            detail="You do not have an active plan"
         )
     return dict(plan)
 
@@ -171,14 +171,14 @@ def get_cliente(
     if current_user.user_type == "cliente" and current_user.identificacion_fiscal != identificacion_fiscal:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para ver este cliente"
+            detail="You do not have permission to view this client"
         )
     
     cliente = cliente_service.get_cliente(db, identificacion_fiscal)
     if not cliente:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cliente no encontrado"
+            detail="Client not found"
         )
     return ClientePublic(**dict(cliente))
 
@@ -205,13 +205,13 @@ def create_cliente(
     
     if result and result.get("success"):
         return ResponseMessage(
-            message=f"Cliente creado correctamente: {result.get('identificacion_fiscal')}",
+            message=f"Client created successfully: {result.get('identificacion_fiscal')}",
             success=True
         )
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al crear cliente") if result else "Error al crear cliente"
+            detail=result.get("message", "Error creating client") if result else "Error creating client"
         )
 
 
@@ -237,7 +237,7 @@ def update_cliente(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cliente no encontrado"
+            detail="Client not found"
         )
     
     # Si se proporciona contraseña, hashearla
@@ -252,11 +252,11 @@ def update_cliente(
     )
     
     if result and result.get("success"):
-        return ResponseMessage(message="Cliente actualizado correctamente", success=True)
+        return ResponseMessage(message="Client updated successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al actualizar cliente") if result else "Error al actualizar cliente"
+            detail=result.get("message", "Error updating client") if result else "Error updating client"
         )
 
 
@@ -281,15 +281,15 @@ def delete_cliente(
     if not existing:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cliente no encontrado"
+            detail="Client not found"
         )
     
     result = cliente_service.delete_cliente(db, identificacion_fiscal)
     
     if result and result.get("success"):
-        return ResponseMessage(message="Cliente eliminado correctamente", success=True)
+        return ResponseMessage(message="Client deleted successfully", success=True)
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=result.get("message", "Error al eliminar cliente") if result else "Error al eliminar cliente"
+            detail=result.get("message", "Error deleting client") if result else "Error deleting client"
         )

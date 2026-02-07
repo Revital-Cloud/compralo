@@ -1,9 +1,10 @@
 'use client';
 
-import { SidebarProvider, SidebarInset } from "@/components/ui";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { ClientSidebar } from '@/components/layout/client-sidebar';
 import { ClientHeader } from '@/components/layout/client-header';
 import { ClientGuard } from '@/components/auth/client-guard';
+import { PrefetchOnMount } from '@/components/layout/prefetch-on-mount';
 
 export default function DashboardLayout({
   children,
@@ -12,6 +13,7 @@ export default function DashboardLayout({
 }>) {
   return (
     <ClientGuard>
+      <PrefetchOnMount />
       <SidebarProvider
         style={
           {
@@ -26,9 +28,7 @@ export default function DashboardLayout({
           <div className="flex flex-1 flex-col bg-background transition-colors duration-200">
             <div className="@container/main flex flex-1 flex-col gap-2">
               <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-                <div className="px-4 lg:px-6">
-                  {children}
-                </div>
+                <div className="px-4 lg:px-6">{children}</div>
               </div>
             </div>
           </div>
@@ -37,3 +37,4 @@ export default function DashboardLayout({
     </ClientGuard>
   );
 }
+

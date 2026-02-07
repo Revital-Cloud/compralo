@@ -1,6 +1,8 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, Progress, Skeleton } from "@/components/ui";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, Package, Users, HardDrive } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ResourceUsagePublic } from '@/types';
@@ -160,14 +162,14 @@ export function ResourceCard({
         <ResourceItem 
           label="Products" 
           current={products.current} 
-          max={products.max}
+          max={products.max ?? null}
           icon={Package}
           hasAlert={products.hasAlert}
         />
         <ResourceItem 
           label="Users" 
           current={users.current} 
-          max={users.max}
+          max={users.max ?? null}
           icon={Users}
           hasAlert={users.hasAlert}
         />

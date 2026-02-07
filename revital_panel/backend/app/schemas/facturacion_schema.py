@@ -137,3 +137,14 @@ class FacturaPublic(BaseModel):
 class FacturaConDetalle(FacturaPublic):
     """Esquema de factura con detalles incluidos."""
     detalles: List[FacturaDetalle] = Field(default_factory=list, description="Lineas de la factura")
+
+
+# --- Esquemas de Stripe ---
+
+class StripeCheckoutSessionResponse(BaseModel):
+    """Esquema de respuesta para creación de Checkout Session."""
+    checkout_url: str = Field(..., description="URL de Stripe Checkout para redirigir al usuario")
+    session_id: Optional[str] = Field(None, description="ID de la sesión de Stripe")
+    
+    class Config:
+        from_attributes = True

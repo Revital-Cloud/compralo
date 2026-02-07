@@ -8,9 +8,8 @@ import {
   CreditCard,
   MoreVertical,
 } from 'lucide-react';
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
-  Avatar,
-  AvatarFallback,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
@@ -18,27 +17,33 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
+} from "@/components/ui/sidebar";
+import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  Button,
-} from "@/components/ui";
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { toast } from 'sonner';
 import { useAuth, useLogout } from '@/hooks/use-auth';
-import Link from 'next/link';
+import { Link } from '@/i18n/routing';
+import { useTranslations } from 'next-intl';
 
 export function ClientNavUser() {
   const { isMobile } = useSidebar();
   const { user } = useAuth();
   const logoutMutation = useLogout();
   const [open, setOpen] = React.useState(false);
+  const t = useTranslations('sidebar');
 
   const handleLogout = () => {
     setOpen(true);
@@ -120,30 +125,30 @@ export function ClientNavUser() {
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link href="/settings/profile">
                   <User className="mr-2 h-4 w-4" />
-                  Profile
+                  {t('profile')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link href="/billing">
                   <CreditCard className="mr-2 h-4 w-4" />
-                  Billing
+                  {t('billing')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link href="/settings">
                   <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                  {t('settings')}
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className={`cursor-pointer text-red-600 dark:text-red-400 focus:text-red-600 dark:focus:text-red-400 focus:bg-red-50 dark:focus:bg-red-900/20 ${logoutMutation.isPending ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={handleLogout}
               disabled={logoutMutation.isPending}
             >
               <LogOut className={`mr-2 h-4 w-4 ${logoutMutation.isPending ? 'animate-spin' : ''}`} />
-              {logoutMutation.isPending ? 'Logging out...' : 'Log out'}
+              {logoutMutation.isPending ? t('loggingOut') : t('logOut')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

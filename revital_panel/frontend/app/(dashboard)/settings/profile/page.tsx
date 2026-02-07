@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   ArrowLeft,
   Save,
@@ -12,44 +13,37 @@ import {
   Phone,
   MapPin,
 } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  Button,
-  Input,
-  Label,
-  Skeleton,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Separator,
-} from "@/components/ui";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 import { useMyProfile, useUpdateMyProfile } from '@/hooks/use-clients';
 import type { ClientUpdate } from '@/types';
 
-const countries = [
-  { value: 'CO', label: 'Colombia' },
-  { value: 'US', label: 'United States' },
-  { value: 'MX', label: 'Mexico' },
-  { value: 'AR', label: 'Argentina' },
-  { value: 'CL', label: 'Chile' },
-  { value: 'PE', label: 'Peru' },
-  { value: 'EC', label: 'Ecuador' },
-  { value: 'PA', label: 'Panama' },
-  { value: 'UY', label: 'Uruguay' },
-  { value: 'BR', label: 'Brazil' },
-  { value: 'ES', label: 'Spain' },
-  { value: 'OTRO', label: 'Other' },
-];
-
 export default function ProfilePage() {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations();
+  const localePrefix = `/${locale}`;
+  
+  const countries = [
+    { value: 'CO', label: t('settings.profile.countries.CO') },
+    { value: 'US', label: t('settings.profile.countries.US') },
+    { value: 'MX', label: t('settings.profile.countries.MX') },
+    { value: 'AR', label: t('settings.profile.countries.AR') },
+    { value: 'CL', label: t('settings.profile.countries.CL') },
+    { value: 'PE', label: t('settings.profile.countries.PE') },
+    { value: 'EC', label: t('settings.profile.countries.EC') },
+    { value: 'PA', label: t('settings.profile.countries.PA') },
+    { value: 'UY', label: t('settings.profile.countries.UY') },
+    { value: 'BR', label: t('settings.profile.countries.BR') },
+    { value: 'ES', label: t('settings.profile.countries.ES') },
+    { value: 'OTRO', label: t('settings.profile.countries.OTRO') },
+  ];
   const { data: profile, isLoading } = useMyProfile();
   const updateProfile = useUpdateMyProfile();
 
@@ -110,14 +104,14 @@ export default function ProfilePage() {
         <Button 
           variant="ghost" 
           size="icon"
-          onClick={() => router.push('/settings')}
+          onClick={() => router.push(`${localePrefix}/settings`)}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">Company Profile</h1>
+          <h1 className="text-2xl font-bold">{t('settings.profile.title')}</h1>
           <p className="text-muted-foreground">
-            Update your company and contact information
+            {t('settings.profile.subtitle')}
           </p>
         </div>
       </div>
@@ -129,16 +123,16 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
-              Company Information
+              {t('settings.profile.companyInfo')}
             </CardTitle>
             <CardDescription>
-              Your business details and registration information
+              {t('settings.profile.companyInfoDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="nom_empresa">Company Name</Label>
+                <Label htmlFor="nom_empresa">{t('settings.profile.companyName')}</Label>
                 <Input
                   id="nom_empresa"
                   value={formData.nom_empresa}
@@ -148,7 +142,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email_contacto">Company Email</Label>
+                <Label htmlFor="email_contacto">{t('settings.profile.companyEmail')}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -163,7 +157,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="telefono_contacto">Phone Number</Label>
+                <Label htmlFor="telefono_contacto">{t('settings.profile.phoneNumber')}</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -177,14 +171,14 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="pais">Country</Label>
+                <Label htmlFor="pais">{t('settings.profile.country')}</Label>
                 <Select
                   value={formData.pais as string}
                   onValueChange={(value) => handleInputChange('pais', value)}
                   disabled={updateProfile.isPending}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select country" />
+                    <SelectValue placeholder={t('settings.profile.countryPlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     {countries.map((country) => (
@@ -197,7 +191,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="ciudad">City</Label>
+                <Label htmlFor="ciudad">{t('settings.profile.city')}</Label>
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -211,7 +205,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="direccion_empresa">Address</Label>
+                <Label htmlFor="direccion_empresa">{t('settings.profile.address')}</Label>
                 <Input
                   id="direccion_empresa"
                   value={formData.direccion_empresa || ''}
@@ -228,16 +222,16 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Primary Contact
+              {t('settings.profile.primaryContact')}
             </CardTitle>
             <CardDescription>
-              The main person we should contact about your account
+              {t('settings.profile.primaryContactDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="nom_contacto_principal">Full Name</Label>
+                <Label htmlFor="nom_contacto_principal">{t('settings.profile.fullName')}</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -251,7 +245,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email_contacto_principal">Email</Label>
+                <Label htmlFor="email_contacto_principal">{t('settings.profile.email')}</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -266,7 +260,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="telefono_contacto_principal">Phone</Label>
+                <Label htmlFor="telefono_contacto_principal">{t('settings.profile.phone')}</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -287,9 +281,9 @@ export default function ProfilePage() {
           <Button 
             type="button" 
             variant="outline"
-            onClick={() => router.push('/settings')}
+            onClick={() => router.push(`${localePrefix}/settings`)}
           >
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button 
             type="submit"
@@ -299,12 +293,12 @@ export default function ProfilePage() {
             {updateProfile.isPending ? (
               <>
                 <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                {t('settings.profile.saving')}
               </>
             ) : (
               <>
                 <Save className="mr-2 h-4 w-4" />
-                Save Changes
+                {t('settings.profile.saveChanges')}
               </>
             )}
           </Button>

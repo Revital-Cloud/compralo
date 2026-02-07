@@ -1,10 +1,10 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent } from "@/components/ui";
-import { Input } from "@/components/ui";
-import { Button } from "@/components/ui";
-import { Badge } from "@/components/ui";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { NativeSelect } from "@/components/ui/native-select";
 import {
   IconSearch,
@@ -148,7 +148,7 @@ export const UniversalFilters: React.FC<UniversalFiltersProps> = ({
                     <label className="text-xs font-medium text-gray-300/90 dark:text-gray-300">
                       Ordenar:
                     </label>
-                    <Select 
+                    <NativeSelect 
                       value={sortBy} 
                       onChange={(e) => onSortByChange(e.target.value)}
                       className="h-8 text-sm w-full min-w-[140px]"
@@ -159,7 +159,7 @@ export const UniversalFilters: React.FC<UniversalFiltersProps> = ({
                           {option.label}
                         </option>
                       ))}
-                    </Select>
+                    </NativeSelect>
 
                     {/* Botón de orden */}
                     {onSortOrderChange && (

@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import authService from '@/services/auth.service';
 import { isAuthenticated, clearTokens, getStoredRefreshToken } from '@/utils/apiWrapper';
+import { getErrorMessage } from '@/types/errors';
 import type {
   LoginRequest,
   TokenResponse,
@@ -77,8 +78,9 @@ export function useLogin() {
         const urlParams = new URLSearchParams(window.location.search);
         const redirectTo = urlParams.get('redirect');
         
-        if (currentPath === '/login') {
-          let targetUrl = '/';
+        // Redirigir si estamos en la página de login (con o sin locale)
+        if (currentPath === '/login' || currentPath.endsWith('/login')) {
+          let targetUrl = '/dashboard'; // Por defecto al dashboard para clientes
           
           if (redirectTo && redirectTo.startsWith('/')) {
             targetUrl = redirectTo;
@@ -90,9 +92,8 @@ export function useLogin() {
         }
       }
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al iniciar sesión';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al iniciar sesión'));
     },
   });
 }
@@ -141,7 +142,7 @@ export function useLogout() {
 export function useRefreshToken() {
   return useMutation({
     mutationFn: () => authService.refreshToken(),
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       console.error('Error al refrescar token:', error);
       clearTokens();
     },
@@ -157,9 +158,8 @@ export function useChangePassword() {
     onSuccess: () => {
       toast.success('Contraseña actualizada correctamente');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al cambiar contraseña';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al cambiar contraseña'));
     },
   });
 }
@@ -173,9 +173,8 @@ export function useRequestPasswordReset() {
     onSuccess: () => {
       toast.success('Si el email existe, recibirás instrucciones para resetear tu contraseña');
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al solicitar reset de contraseña';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al solicitar reset de contraseña'));
     },
   });
 }
@@ -192,9 +191,8 @@ export function useConfirmPasswordReset() {
         window.location.href = '/login';
       }
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al restablecer contraseña';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al restablecer contraseña'));
     },
   });
 }
@@ -221,9 +219,8 @@ export function useRegister() {
         window.location.href = '/dashboard';
       }
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Failed to create account';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Failed to create account'));
     },
   });
 }

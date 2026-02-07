@@ -10,7 +10,16 @@ from fastapi import HTTPException, status
 from decimal import Decimal
 from typing import Optional, Union
 
-from core.jwt_utils import verify_password, get_password_hash, create_access_token, create_refresh_token, verify_token
+from core.config import settings
+from core.jwt_utils import (
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    create_refresh_token,
+    verify_token,
+    create_password_reset_token,
+    verify_password_reset_token,
+)
 from schemas.auth_schema import LoginRequest, TokenResponse, UserInToken, RegisterRequest
 from schemas.cliente_schema import ClienteCreate
 from services import usuario_revital_service, cliente_service
@@ -75,6 +84,45 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[UserIn
             )
         return None
     
+    return None
+
+
+def _find_user_for_password_reset(
+    db: Session,
+    email: str,
+) -> Optional[UserInToken]:
+    """
+    Busca un usuario (admin o cliente) para el flujo de reset de contraseña.
+
+    No lanza excepciones: si no existe, retorna None para permitir un
+    flujo seguro que no filtre información.
+    """
+    # Intentar con admin
+    admin = usuario_synkro_service.get_usuario_by_email(db, email)
+    if admin and admin.get("ind_activo", False):
+        return UserInToken(
+            user_type="admin_synkro",
+            id=admin["id_usuario"],
+            email=admin["email_usuario"],
+            nombre=f"{admin['nom_usuario']} {admin['ape_usuario']}",
+            rol=admin["rol_synkro"],
+            identificacion_fiscal=None,
+            ind_activo=admin["ind_activo"],
+        )
+
+    # Intentar con cliente
+    cliente = cliente_service.get_cliente_by_email(db, email)
+    if cliente and cliente.get("ind_activo", False):
+        return UserInToken(
+            user_type="cliente",
+            id=cliente["identificacion_fiscal"],
+            email=cliente["email_contacto_principal"],
+            nombre=cliente["nom_contacto_principal"],
+            rol=None,
+            identificacion_fiscal=cliente["identificacion_fiscal"],
+            ind_activo=cliente["ind_activo"],
+        )
+
     return None
 
 
@@ -388,4 +436,82 @@ def register_user(db: Session, register_data: RegisterRequest) -> TokenResponse:
         access_token=access_token,
         refresh_token=refresh_token,
         user_type="cliente"
+    )
+
+
+def request_password_reset(db: Session, email: str) -> None:
+    """
+    Inicia el flujo de reset de contraseña.
+
+    - No revela si el email existe o no.
+    - Si existe, genera un token JWT de reset y envía un email con el enlace.
+    """
+    user = _find_user_for_password_reset(db, email)
+    if not user:
+        # Por seguridad, no revelamos que el usuario no existe.
+        return
+
+    # Generar token de reset
+    reset_token = create_password_reset_token(
+        user_id=int(user.id) if isinstance(user.id, Decimal) else user.id,
+        email=user.email,
+    )
+
+    # Construir URL de reset (frontend)
+    base_url = settings.RESET_PASSWORD_URL.rstrip("/")
+    reset_url = f"{base_url}?token={reset_token}"
+
+    # Enviar email (errores se manejan internamente)
+    email_service.send_password_reset_email(
+        to_email=user.email,
+        reset_url=reset_url,
+        user_name=user.nombre,
+    )
+
+
+def reset_password(db: Session, token: str, new_password: str) -> None:
+    """
+    Completa el flujo de reset de contraseña usando un token válido.
+
+    - Verifica el token de reset.
+    - Localiza al usuario (admin o cliente) por email.
+    - Actualiza la contraseña usando las funciones de servicio existentes.
+    """
+    payload = verify_password_reset_token(token)
+    email = payload.get("email")
+    user_id = payload.get("sub")
+
+    if not email or not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Token de reset inválido",
+        )
+
+    # Buscar primero admin, luego cliente
+    admin = usuario_synkro_service.get_usuario_by_email(db, email)
+    if admin and admin.get("ind_activo", False):
+        hashed_password = get_password_hash(new_password)
+        usuario_synkro_service.update_password(
+            db=db,
+            id_usuario=admin["id_usuario"],
+            hashed_password=hashed_password,
+            usr_update=email,
+        )
+        return
+
+    cliente = cliente_service.get_cliente_by_email(db, email)
+    if cliente and cliente.get("ind_activo", False):
+        hashed_password = get_password_hash(new_password)
+        cliente_service.update_password(
+            db=db,
+            identificacion_fiscal=cliente["identificacion_fiscal"],
+            hashed_password=hashed_password,
+            usr_update=email,
+        )
+        return
+
+    # Si no se encontró usuario activo para el token
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Usuario no encontrado o inactivo",
     )

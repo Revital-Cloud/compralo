@@ -5,7 +5,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import planHistoryService from '@/services/plan-history.service';
-import type { PlanHistoryPublic, PlanHistoryCreate } from '@/types';
+import { getErrorMessage } from '@/types/errors';
+import type { PlanHistoryCreate } from '@/types';
 
 export const PLAN_HISTORY_KEYS = {
   all: ['plan-history'] as const,
@@ -42,9 +43,8 @@ export function useCreatePlanHistory() {
       queryClient.invalidateQueries({ queryKey: PLAN_HISTORY_KEYS.list(variables.id_suscripcion) });
       queryClient.invalidateQueries({ queryKey: PLAN_HISTORY_KEYS.lists() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al crear registro';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al crear registro'));
     },
   });
 }

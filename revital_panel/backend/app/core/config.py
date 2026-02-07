@@ -82,6 +82,17 @@ class Settings(BaseSettings):
     WOMPI_INTEGRITY_SECRET: str
     WOMPI_ENVIRONMENT: str = "sandbox"
 
+    # Configuración de Stripe
+    STRIPE_SECRET_KEY: str
+    STRIPE_PUBLISHABLE_KEY: str
+    STRIPE_WEBHOOK_SECRET: Optional[str] = None
+    STRIPE_ENVIRONMENT: str = "test"
+
+    # Provisioning externo: si está definido, al crear una instancia se envía POST a esta URL
+    # con el payload de la instancia. El provisionador (otro servidor) crea BD y despliega
+    # synkro_ecommerce y luego actualiza la instancia en el panel.
+    PROVISIONING_WEBHOOK_URL: Optional[str] = None
+
 
     class Config:
         env_file = _ENV_FILES

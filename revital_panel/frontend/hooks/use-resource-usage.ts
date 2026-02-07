@@ -2,10 +2,11 @@
  * Custom Hook for Resource Usage
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useSuspenseQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import resourceUsageService from '@/services/resource-usage.service';
-import type { ResourceUsagePublic, ResourceUsageCreate } from '@/types';
+import { getErrorMessage } from '@/types/errors';
+import type { ResourceUsageCreate } from '@/types';
 
 export const RESOURCE_USAGE_KEYS = {
   all: ['resource-usage'] as const,
@@ -40,6 +41,15 @@ export function useLatestResourceUsage(idInstance: number | string) {
   });
 }
 
+/** Only use when idInstance is non-empty (e.g. after instances have loaded). */
+export function useLatestResourceUsageSuspense(idInstance: number | string) {
+  return useSuspenseQuery({
+    queryKey: RESOURCE_USAGE_KEYS.latest(idInstance),
+    queryFn: () => resourceUsageService.getLatestResourceUsage(idInstance),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useCreateResourceUsage() {
   const queryClient = useQueryClient();
 
@@ -51,9 +61,8 @@ export function useCreateResourceUsage() {
       queryClient.invalidateQueries({ queryKey: RESOURCE_USAGE_KEYS.latest(variables.id_instancia) });
       queryClient.invalidateQueries({ queryKey: RESOURCE_USAGE_KEYS.alerts() });
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || error?.response?.data?.message || 'Error al crear registro';
-      toast.error(message);
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'Error al crear registro'));
     },
   });
 }

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui";
-import { Textarea } from "@/components/ui";
-import { StarRating } from "@/components/ui";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { StarRating } from "@/components/ui/star-rating";
 import { Send, X } from "lucide-react";
 
 interface ReviewFormProps {

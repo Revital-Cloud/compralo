@@ -14,3 +14,4 @@ export * from './domain';
 export * from './resource-usage';
 export * from './plan-history';
 export * from './revital-user';
+export * from './admin-metrics';
