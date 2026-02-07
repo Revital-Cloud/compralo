@@ -1,0 +1,6 @@
+app/__pycache__/
+venv/
+.env
+.env.development
+.env.production
+*/*/__pycache__/*

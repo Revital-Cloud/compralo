@@ -5,7 +5,7 @@ description: >
   Trigger: When writing Python tests with pytest.
 license: MIT
 metadata:
-  author: synkro
+  author: revital
   version: "1.0"
   scope: [root]
   auto_invoke: "Writing Python tests with pytest"

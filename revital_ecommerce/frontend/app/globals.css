@@ -1,0 +1,200 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+  /* Colores principales de Compralo - Valores hexadecimales exactos */
+  --background: #F5F5F5;
+  --foreground: #000000;
+  --card: #FFFFFF;
+  --card-foreground: #000000;
+  --popover: #FFFFFF;
+  --popover-foreground: #000000;
+  
+  /* Rojo como color primario */
+  --primary: #FF0000;
+  --primary-foreground: #FFFFFF;
+  
+  /* Naranja como color secundario */
+  --secondary: #FF7A00;
+  --secondary-foreground: #FFFFFF;
+  
+  /* Amarillo para acentos */
+  --accent: #FFD600;
+  --accent-foreground: #000000;
+  
+  /* Rojo para elementos destructivos */
+  --destructive: #FF0000;
+  
+  /* Bordes y elementos de interfaz */
+  --border: #E5E5E5;
+  --input: #E5E5E5;
+  --ring: #FF0000;
+  
+  /* Colores para gráficos */
+  --chart-1: #FF0000;
+  --chart-2: #FF7A00;
+  --chart-3: #FFD600;
+  --chart-4: #F5F5F5;
+  --chart-5: #000000;
+  
+  /* Colores para la barra lateral */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #FF0000;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #F5F5F5;
+  --sidebar-accent-foreground: #FF7A00;
+  --sidebar-border: #E5E5E5;
+  --sidebar-ring: #FF0000;
+  
+  /* Colores muteados */
+  --muted: #F5F5F5;
+  --muted-foreground: #666666;
+}
+
+.dark {
+  /* Colores oscuros de Compralo (azules profundos) */
+  --background: #0b1220; /* fondo principal azul oscuro */
+  --foreground: #FFFFFF;
+  --card: #10192e; /* un poco más claro que background */
+  --card-foreground: #FFFFFF;
+  --popover: #10192e;
+  --popover-foreground: #FFFFFF;
+
+  /* Colores de marca en modo oscuro */
+  --primary: #FF0000;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FF7A00;
+  --secondary-foreground: #FFFFFF;
+  --accent: #FFD600;
+  --accent-foreground: #000000;
+
+  /* Bordes y elementos de interfaz en modo oscuro (azul/gris profundo) */
+  --border: #1f2940;
+  --input: #1f2940;
+  --ring: #FF0000;
+
+  /* Colores para gráficos en modo oscuro */
+  --chart-1: #FF0000;
+  --chart-2: #FF7A00;
+  --chart-3: #FFD600;
+  --chart-4: #0b1220;
+  --chart-5: #FFFFFF;
+
+  /* Sidebar en modo oscuro con azul consistente */
+  --sidebar: #0f1629;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #FF0000;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FF7A00;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: #1f2940;
+  --sidebar-ring: #FF0000;
+
+  /* Colores muteados en modo oscuro */
+  --muted: #0f1629;
+  --muted-foreground: #B8C1D4;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Fix: texto invisible en los selects nativos de react-day-picker (mes/año)
+   En Windows/Chrome el popup del <select> usa el color del elemento.
+   Forzamos color y fondo para que los items sean legibles en dark y light. */
+[data-slot=calendar] .rdp-caption select,
+.rdp-caption select {
+  color: var(--foreground);
+  background-color: var(--popover);
+  /* Forzar esquema oscuro del popup nativo en Windows/Chrome */
+  color-scheme: var(--color-scheme, light);
+  forced-color-adjust: none;
+}
+
+[data-slot=calendar] .rdp-caption select option,
+.rdp-caption select option {
+  color: var(--foreground);
+  background-color: var(--popover);
+}
+
+/* Ajustar esquema automáticamente según tema */
+:root { --color-scheme: light; }
+.dark { --color-scheme: dark; }
+
+/* Reglas explícitas para dark mode del popup nativo */
+.dark [data-slot=calendar] .rdp-caption select,
+.dark .rdp-caption select {
+  color-scheme: dark;
+}
+.dark [data-slot=calendar] .rdp-caption select option,
+.dark .rdp-caption select option {
+  color: #ffffff;
+  background-color: #0f1629;
+}
+
+/* Hide spin buttons on number inputs */
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Scroll suave para anclas (#productos, #categorias, etc.) */
+html {
+  scroll-behavior: smooth;
+}

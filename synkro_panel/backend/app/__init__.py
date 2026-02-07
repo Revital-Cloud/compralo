@@ -1,2 +1,0 @@
-# Synkro Backend Application
-

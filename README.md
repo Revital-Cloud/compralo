@@ -1,8 +1,8 @@
-# Synkro - Plataforma SaaS de E-Commerce 🚀
+# Revital - Plataforma SaaS de E-Commerce 🚀
 
 **Solución integral de e-commerce con instancias dedicadas para empresas**
 
-Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a múltiples empresas como **instancias completamente separadas**. Cada cliente obtiene su propia copia completa del software, su propia base de datos y su propio deployment aislado.
+Revital es una plataforma SaaS de comercio electrónico diseñada para venderse a múltiples empresas como **instancias completamente separadas**. Cada cliente obtiene su propia copia completa del software, su propia base de datos y su propio deployment aislado.
 
 ## 🎯 Estado Actual del Proyecto
 
@@ -12,7 +12,7 @@ Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a
 
 ### ✅ Funcionalidades Implementadas
 
-#### 🛍️ synkro_ecommerce (Aplicación E-Commerce por Instancia)
+#### 🛍️ revital_ecommerce (Aplicación E-Commerce por Instancia)
 
 **Backend (FastAPI)**:
 - ✅ **Autenticación JWT** completa con roles (Admin, Employee, Customer)
@@ -50,12 +50,12 @@ Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a
 - ✅ Triggers automáticos
 - ✅ Vistas materializadas para analytics
 
-#### 🎛️ synkro_panel (Panel de Control SaaS)
+#### 🎛️ revital_panel (Panel de Control SaaS)
 
 **Backend (FastAPI)**:
 - ✅ **Autenticación JWT** para usuarios SaaS
 - ✅ **Gestión de instancias** (crear, configurar, monitorear)
-- ✅ **Gestión de clientes** (empresas que contratan Synkro)
+- ✅ **Gestión de clientes** (empresas que contratan Revital)
 - ✅ **Gestión de planes** de suscripción (Starter, Business, Enterprise)
 - ✅ **Gestión de suscripciones** activas
 - ✅ **Sistema de facturación** y pagos recurrentes
@@ -90,15 +90,15 @@ Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a
 
 ### 🚧 En Desarrollo
 
-#### synkro_ecommerce:
+#### revital_ecommerce:
 - ⏳ **Proceso de checkout** completo (parcialmente implementado)
 - ⏳ **Gestión de órdenes** del lado del usuario (historial completo)
 - ⏳ **Dashboard de analytics** avanzado con más métricas
 - ⏳ **Sistema de notificaciones** en tiempo real
 - ⏳ **Sistema de reviews** y comentarios de productos
 
-#### synkro_panel:
-- ⏳ **Panel administrativo** completo para Synkro (gestión de todas las instancias)
+#### revital_panel:
+- ⏳ **Panel administrativo** completo para Revital (gestión de todas las instancias)
 - ⏳ **Automatización de deployments** (integración con Docker/CI-CD)
 - ⏳ **Sistema de alertas** por uso de recursos
 - ⏳ **Integración con pasarelas de pago** para facturación automática
@@ -149,8 +149,8 @@ Synkro es una plataforma SaaS de comercio electrónico diseñada para venderse a
 ## 📁 Estructura del Proyecto
 
 ```
-synkro/                          # Repositorio GitHub (solo código fuente)
-├── synkro_ecommerce/            # 🛍️ APLICACIÓN E-COMMERCE (por instancia cliente)
+revital/                          # Repositorio GitHub (solo código fuente)
+├── revital_ecommerce/            # 🛍️ APLICACIÓN E-COMMERCE (por instancia cliente)
 │   ├── backend/                 # FastAPI - API REST de e-commerce
 │   │   ├── app/
 │   │   │   ├── core/            # Configuración (DB, JWT, dependencias)
@@ -180,12 +180,12 @@ synkro/                          # Repositorio GitHub (solo código fuente)
 │   │   ├── package.json
 │   │   └── README.md
 │   └── db/                      # Base de datos PostgreSQL
-│       ├── db_synkro.sql        # Esquema completo
+│       ├── db_revital.sql        # Esquema completo
 │       ├── Functions/           # Funciones almacenadas por tabla
 │       ├── triggers/            # Triggers de BD
 │       └── views/               # Vistas materializadas
 │
-├── synkro_panel/                # 🎛️ PANEL DE CONTROL SAAS (gestión de instancias)
+├── revital_panel/                # 🎛️ PANEL DE CONTROL SAAS (gestión de instancias)
 │   ├── backend/                 # FastAPI - API gestión SaaS
 │   │   ├── app/
 │   │   │   ├── core/            # Configuración (DB, JWT, rate limiting)
@@ -222,7 +222,7 @@ synkro/                          # Repositorio GitHub (solo código fuente)
 │   │   ├── package.json
 │   │   └── README.md
 │   └── db/                      # Base de datos PostgreSQL SaaS
-│       ├── db_synkrosaas.sql    # Esquema completo
+│       ├── db_revitalsaas.sql    # Esquema completo
 │       ├── Functions/            # Funciones almacenadas por tabla
 │       └── triggers/            # Triggers de BD
 │
@@ -232,11 +232,11 @@ synkro/                          # Repositorio GitHub (solo código fuente)
 
 ### 🎯 Explicación de Cada Aplicación
 
-#### 🛍️ **synkro_ecommerce** - Aplicación de E-Commerce (por Instancia Cliente)
+#### 🛍️ **revital_ecommerce** - Aplicación de E-Commerce (por Instancia Cliente)
 
 **Propósito**: Esta es la aplicación que se despliega **una vez por cada cliente SaaS**. Cada cliente tiene su propia instancia completa e independiente.
 
-**Backend (`synkro_ecommerce/backend`)**:
+**Backend (`revital_ecommerce/backend`)**:
 - **FastAPI** con 24+ routers que manejan toda la lógica de e-commerce
 - **Funcionalidades principales**:
   - Autenticación JWT (Admin, Employee, Customer)
@@ -247,9 +247,9 @@ synkro/                          # Repositorio GitHub (solo código fuente)
   - Gestión de inventario y movimientos de stock
   - Emails transaccionales con Resend
   - Analytics y dashboards
-- **Base de datos**: PostgreSQL dedicada por cliente (`db_synkro.sql`)
+- **Base de datos**: PostgreSQL dedicada por cliente (`db_revital.sql`)
 
-**Frontend (`synkro_ecommerce/frontend`)**:
+**Frontend (`revital_ecommerce/frontend`)**:
 - **Next.js 15** con App Router
 - **Interfaz de tienda** completa para clientes finales:
   - Catálogo de productos con filtros avanzados
@@ -267,15 +267,15 @@ synkro/                          # Repositorio GitHub (solo código fuente)
 
 ---
 
-#### 🎛️ **synkro_panel** - Panel de Control SaaS (Gestión Centralizada)
+#### 🎛️ **revital_panel** - Panel de Control SaaS (Gestión Centralizada)
 
-**Propósito**: Esta es la aplicación que permite a **Synkro (la empresa)** gestionar todas las instancias de clientes, suscripciones, facturación y el proceso de onboarding de nuevos clientes.
+**Propósito**: Esta es la aplicación que permite a **Revital (la empresa)** gestionar todas las instancias de clientes, suscripciones, facturación y el proceso de onboarding de nuevos clientes.
 
-**Backend (`synkro_panel/backend`)**:
+**Backend (`revital_panel/backend`)**:
 - **FastAPI** para gestión SaaS centralizada
 - **Funcionalidades principales**:
   - Gestión de **instancias** de clientes (crear, configurar, monitorear)
-  - Gestión de **clientes** (empresas que contratan Synkro)
+  - Gestión de **clientes** (empresas que contratan Revital)
   - Gestión de **planes** de suscripción (Starter, Business, Enterprise)
   - Gestión de **suscripciones** activas
   - **Facturación** y pagos recurrentes
@@ -283,9 +283,9 @@ synkro/                          # Repositorio GitHub (solo código fuente)
   - **Dominios** personalizados por cliente
   - **Uso de recursos** (monitoreo de consumo)
   - **Historial de planes** (cambios de plan)
-- **Base de datos**: PostgreSQL centralizada (`db_synkrosaas.sql`) que almacena metadatos de todas las instancias
+- **Base de datos**: PostgreSQL centralizada (`db_revitalsaas.sql`) que almacena metadatos de todas las instancias
 
-**Frontend (`synkro_panel/frontend`)**:
+**Frontend (`revital_panel/frontend`)**:
 - **Next.js 15** con App Router
 - **Landing page** de marketing para atraer nuevos clientes
 - **Panel de control** para clientes SaaS que incluye:
@@ -295,12 +295,12 @@ synkro/                          # Repositorio GitHub (solo código fuente)
   - Configuración de dominio personalizado
   - Monitoreo de uso de recursos
   - Configuración de cuenta y seguridad
-- **Panel administrativo** (futuro) para que Synkro gestione todas las instancias
+- **Panel administrativo** (futuro) para que Revital gestione todas las instancias
 
 **Cuándo se usa**: 
 - **Landing page**: Para marketing y captación de nuevos clientes
 - **Panel de cliente**: Cuando un cliente SaaS necesita gestionar su instancia, cambiar de plan, ver facturación, etc.
-- **Panel admin**: Para que Synkro gestione todas las instancias de forma centralizada
+- **Panel admin**: Para que Revital gestione todas las instancias de forma centralizada
 
 ---
 
@@ -308,8 +308,8 @@ synkro/                          # Repositorio GitHub (solo código fuente)
 
 ```
 ┌───────────────────────────────────────────────────────────┐
-│                    synkro_panel                           │
-│  (Gestión SaaS - Una sola instancia para Synkro)          │
+│                    revital_panel                           │
+│  (Gestión SaaS - Una sola instancia para Revital)          │
 │                                                           │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
 │  │  Cliente A   │  │  Cliente B   │  │  Cliente C   │     │
@@ -319,7 +319,7 @@ synkro/                          # Repositorio GitHub (solo código fuente)
           │                 │                 │
           ▼                 ▼                 ▼
 ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│ synkro_ecommerce│ │ synkro_ecommerce│ │ synkro_ecommerce│
+│ revital_ecommerce│ │ revital_ecommerce│ │ revital_ecommerce│
 │  (Instancia A)  │ │  (Instancia B)  │ │  (Instancia C)  │
 │                 │ │                 │ │                 │
 │ • BD propia     │ │ • BD propia     │ │ • BD propia     │
@@ -330,20 +330,20 @@ synkro/                          # Repositorio GitHub (solo código fuente)
 ```
 
 **Flujo típico**:
-1. Un cliente potencial visita la **landing page** (`synkro_panel`)
-2. Se registra y elige un plan en **synkro_panel**
-3. Se crea una nueva **instancia** en `synkro_panel/backend`
-4. Se despliega automáticamente una nueva instancia de **synkro_ecommerce** para ese cliente
-5. El cliente gestiona su tienda desde **synkro_ecommerce**
-6. El cliente gestiona su suscripción desde **synkro_panel**
+1. Un cliente potencial visita la **landing page** (`revital_panel`)
+2. Se registra y elige un plan en **revital_panel**
+3. Se crea una nueva **instancia** en `revital_panel/backend`
+4. Se despliega automáticamente una nueva instancia de **revital_ecommerce** para ese cliente
+5. El cliente gestiona su tienda desde **revital_ecommerce**
+6. El cliente gestiona su suscripción desde **revital_panel**
 
 ---
 
 > **Nota**: 
-> - Cada proyecto (`synkro_ecommerce` y `synkro_panel`) funciona de forma **independiente** sin necesidad de workspaces o monorepo tools.
+> - Cada proyecto (`revital_ecommerce` y `revital_panel`) funciona de forma **independiente** sin necesidad de workspaces o monorepo tools.
 > - Los componentes UI están copiados localmente en cada `frontend/components/ui/` siguiendo el estándar de [shadcn/ui](https://ui.shadcn.com/).
 > - Cada frontend tiene su propio `package.json` y se gestiona independientemente.
-> - Este repositorio contiene solo el código fuente. La configuración de deployment (Docker, Traefik, etc.) se gestiona en `/srv/synkro/containers/`.
+> - Este repositorio contiene solo el código fuente. La configuración de deployment (Docker, Traefik, etc.) se gestiona en `/srv/revital/containers/`.
 
 ## 🚀 Inicio Rápido (Desarrollo)
 
@@ -359,8 +359,8 @@ synkro/                          # Repositorio GitHub (solo código fuente)
 
 ```bash
 # El repositorio contiene solo el código fuente
-git clone https://github.com/KevinBermudezC/synkro.git
-cd synkro
+git clone https://github.com/KevinBermudezC/revital.git
+cd revital
 ```
 
 ### 1.1. Configurar AI Skills (Opcional pero Recomendado)
@@ -382,31 +382,31 @@ Si usas un asistente de IA para desarrollo (Cursor, Claude Code, GitHub Copilot,
 
 El script **detecta automáticamente** qué asistentes de IA tienes instalados y los configura. Después de ejecutar el setup, **reinicia tu asistente de IA** para que cargue los skills.
 
-Los skills proporcionan contexto específico del proyecto a los asistentes de IA, mejorando la calidad del código generado y asegurando que siga los patrones y convenciones de Synkro.
+Los skills proporcionan contexto específico del proyecto a los asistentes de IA, mejorando la calidad del código generado y asegurando que siga los patrones y convenciones de Revital.
 
 Para más información, consulta [AGENTS.md](./AGENTS.md) y [skills/README.md](./skills/README.md).
 
 ---
 
-## 🛍️ Configuración de synkro_ecommerce (E-Commerce)
+## 🛍️ Configuración de revital_ecommerce (E-Commerce)
 
 ### 2.1. Configurar Base de Datos
 
 ```bash
 # Crear base de datos PostgreSQL
-createdb synkro_ecommerce
+createdb revital_ecommerce
 
 # Importar esquema
-psql synkro_ecommerce < synkro_ecommerce/db/db_synkro.sql
+psql revital_ecommerce < revital_ecommerce/db/db_revital.sql
 
 # (Opcional) Importar funciones almacenadas
-# psql synkro_ecommerce < synkro_ecommerce/db/Functions/[archivo].sql
+# psql revital_ecommerce < revital_ecommerce/db/Functions/[archivo].sql
 ```
 
 ### 2.2. Configurar Backend
 
 ```bash
-cd synkro_ecommerce/backend
+cd revital_ecommerce/backend
 
 # Crear entorno virtual
 python -m venv venv
@@ -423,7 +423,7 @@ pip install -r requirements.txt
 # Configurar variables de entorno
 cp .env.example .env
 # Editar .env con tu configuración de BD:
-# DATABASE_URL=postgresql://usuario:password@localhost:5432/synkro_ecommerce
+# DATABASE_URL=postgresql://usuario:password@localhost:5432/revital_ecommerce
 # JWT_SECRET=tu_secret_key_aqui
 # WOMPI_ACCESS_TOKEN=tu_token_wompi
 # RESEND_API_KEY=tu_key_resend
@@ -443,16 +443,16 @@ cp .env.local.example .env.local
 # NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-### 2.4. Ejecutar synkro_ecommerce
+### 2.4. Ejecutar revital_ecommerce
 
 ```bash
 # Terminal 1 - Backend
-cd synkro_ecommerce/backend
+cd revital_ecommerce/backend
 source venv/bin/activate  # Linux/Mac
 fastapi dev app/main.py
 
 # Terminal 2 - Frontend
-cd synkro_ecommerce/frontend
+cd revital_ecommerce/frontend
 pnpm dev
 ```
 
@@ -464,25 +464,25 @@ pnpm dev
 
 ---
 
-## 🎛️ Configuración de synkro_panel (Panel SaaS)
+## 🎛️ Configuración de revital_panel (Panel SaaS)
 
 ### 3.1. Configurar Base de Datos
 
 ```bash
 # Crear base de datos PostgreSQL
-createdb synkro_saas
+createdb revital_saas
 
 # Importar esquema
-psql synkro_saas < synkro_panel/db/db_synkrosaas.sql
+psql revital_saas < revital_panel/db/db_revitalsaas.sql
 
 # (Opcional) Importar funciones almacenadas
-# psql synkro_saas < synkro_panel/db/Functions/[archivo].sql
+# psql revital_saas < revital_panel/db/Functions/[archivo].sql
 ```
 
 ### 3.2. Configurar Backend
 
 ```bash
-cd synkro_panel/backend
+cd revital_panel/backend
 
 # Crear entorno virtual
 python -m venv venv
@@ -497,7 +497,7 @@ pip install -r requirements.txt
 # Configurar variables de entorno
 cp .env.example .env
 # Editar .env con tu configuración de BD:
-# DATABASE_URL=postgresql://usuario:password@localhost:5432/synkro_saas
+# DATABASE_URL=postgresql://usuario:password@localhost:5432/revital_saas
 # JWT_SECRET=tu_secret_key_aqui
 ```
 
@@ -515,16 +515,16 @@ cp .env.local.example .env.local
 # NEXT_PUBLIC_API_URL=http://localhost:8001
 ```
 
-### 3.4. Ejecutar synkro_panel
+### 3.4. Ejecutar revital_panel
 
 ```bash
 # Terminal 3 - Backend
-cd synkro_panel/backend
+cd revital_panel/backend
 source venv/bin/activate
 fastapi dev app/main.py
 
 # Terminal 4 - Frontend
-cd synkro_panel/frontend
+cd revital_panel/frontend
 pnpm dev
 ```
 
@@ -537,16 +537,16 @@ pnpm dev
 
 ## 👤 Accesos por Defecto
 
-### synkro_ecommerce (Usuarios de la tienda)
+### revital_ecommerce (Usuarios de la tienda)
 
-- **Admin**: admin@synkro.com / admin123
-- **Employee**: empleado@synkro.com / empleado123
-- **Customer**: cliente@synkro.com / cliente123
+- **Admin**: admin@revital.com / admin123
+- **Employee**: empleado@revital.com / empleado123
+- **Customer**: cliente@revital.com / cliente123
 
-### synkro_panel (Usuarios del panel SaaS)
+### revital_panel (Usuarios del panel SaaS)
 
 - **Cliente SaaS**: (crear desde el registro en la landing page)
-- **Admin Synkro**: (configurar según necesidad)
+- **Admin Revital**: (configurar según necesidad)
 
 ---
 
@@ -556,8 +556,8 @@ pnpm dev
 - Los frontends usan **pnpm** como gestor de paquetes
 - Los backends usan **FastAPI** con hot-reload en modo desarrollo
 - Las bases de datos son **completamente separadas** (una para e-commerce, otra para SaaS)
-- Para desarrollo local, puedes ejecutar solo `synkro_ecommerce` si solo trabajas en la tienda
-- Para desarrollo local, puedes ejecutar solo `synkro_panel` si solo trabajas en el panel SaaS
+- Para desarrollo local, puedes ejecutar solo `revital_ecommerce` si solo trabajas en la tienda
+- Para desarrollo local, puedes ejecutar solo `revital_panel` si solo trabajas en el panel SaaS
 
 ## 🏗️ Deployment de Instancias de Cliente
 
@@ -579,7 +579,7 @@ pnpm dev
 version: "3.8"
 services:
   backend:
-    image: synkro-backend:latest
+    image: revital-backend:latest
     environment:
       - DATABASE_URL=postgresql://user:pass@postgres:5432/empresa_abc_db
       - CLIENT_NAME=empresa_abc
@@ -587,7 +587,7 @@ services:
       - WOMPI_ACCESS_TOKEN=client_specific_token
 
   frontend:
-    image: synkro-frontend:latest
+    image: revital-frontend:latest
     environment:
       - NEXT_PUBLIC_API_URL=https://api.empresa-abc.com
       - NEXT_PUBLIC_BRAND_COLOR=#1a56db
@@ -610,7 +610,7 @@ services:
 - ✅ **Compliance máximo** - GDPR, CCPA, regulaciones locales
 - ✅ **Performance dedicada** - Recursos no compartidos
 - ✅ **API personalizada** - Endpoints con credenciales únicas
-- ✅ **White-label total** - Sin marca Synkro visible
+- ✅ **White-label total** - Sin marca Revital visible
 
 ### Para Diferentes Sectores
 
@@ -647,10 +647,10 @@ services:
 
 ## 📚 Documentación
 
-- **[Backend E-commerce](./synkro_ecommerce/backend/README.md)** - Documentación detallada del backend
-- **[Frontend E-commerce](./synkro_ecommerce/frontend/README.md)** - Guía del frontend y componentes
-- **[Frontend Synkro Panel](./synkro_panel/frontend/README.md)** - Documentación de la landing page y panel
-- **[Backend Synkro Panel](./synkro_panel/backend/README.md)** - Documentación del backend de gestión
+- **[Backend E-commerce](./revital_ecommerce/backend/README.md)** - Documentación detallada del backend
+- **[Frontend E-commerce](./revital_ecommerce/frontend/README.md)** - Guía del frontend y componentes
+- **[Frontend Revital Panel](./revital_panel/frontend/README.md)** - Documentación de la landing page y panel
+- **[Backend Revital Panel](./revital_panel/backend/README.md)** - Documentación del backend de gestión
 - **API Interactive**: Swagger UI disponible en cada instancia en `/docs`
 
 ## 🤝 Contribución
@@ -667,4 +667,4 @@ Este proyecto está licenciado bajo la Licencia MIT - ver el archivo [LICENSE](L
 
 ---
 
-**Synkro** - Transformando el e-commerce con soluciones SaaS de deployment aislado 🛍️✨
+**Revital** - Transformando el e-commerce con soluciones SaaS de deployment aislado 🛍️✨

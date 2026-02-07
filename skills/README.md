@@ -86,19 +86,19 @@ Reusable patterns for common technologies:
 | `pytest` | Fixtures, mocking, markers |
 | `fastapi` | FastAPI patterns, routers, dependencies |
 
-### Synkro-Specific Skills
+### Revital-Specific Skills
 
-Patterns tailored for Synkro development:
+Patterns tailored for Revital development:
 
 | Skill | Description |
 |-------|-------------|
-| `synkro` | Project overview, component navigation |
-| `synkro-ecommerce` | E-commerce instance patterns |
-| `synkro-panel` | SaaS panel patterns |
-| `synkro-ecommerce-backend` | FastAPI backend for e-commerce |
-| `synkro-ecommerce-frontend` | Next.js frontend for e-commerce |
-| `synkro-panel-backend` | FastAPI backend for SaaS panel |
-| `synkro-panel-frontend` | Next.js frontend for SaaS panel |
+| `revital` | Project overview, component navigation |
+| `revital-ecommerce` | E-commerce instance patterns |
+| `revital-panel` | SaaS panel patterns |
+| `revital-ecommerce-backend` | FastAPI backend for e-commerce |
+| `revital-ecommerce-frontend` | Next.js frontend for e-commerce |
+| `revital-panel-backend` | FastAPI backend for SaaS panel |
+| `revital-panel-frontend` | Next.js frontend for SaaS panel |
 
 ## Directory Structure
 
@@ -140,4 +140,4 @@ skills/
 
 - [Agent Skills Standard](https://agentskills.io) - Open standard specification
 - [Agent Skills GitHub](https://github.com/anthropics/skills) - Example skills
-- [Synkro AGENTS.md](../AGENTS.md) - AI agent general rules
+- [Revital AGENTS.md](../AGENTS.md) - AI agent general rules

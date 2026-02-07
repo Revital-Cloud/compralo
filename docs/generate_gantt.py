@@ -1,5 +1,5 @@
 """
-Script para generar diagrama de Gantt en Excel para Synkro SaaS Platform
+Script para generar diagrama de Gantt en Excel para Revital SaaS Platform
 """
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -174,7 +174,7 @@ def crear_gantt_excel():
     """Crea el archivo Excel con el diagrama de Gantt"""
     wb = Workbook()
     ws = wb.active
-    ws.title = "Gantt Chart - Synkro"
+    ws.title = "Gantt Chart - Revital"
     
     # Fecha de inicio del proyecto (hoy)
     fecha_inicio_proyecto = datetime(2025, 1, 15)
@@ -360,7 +360,7 @@ def crear_gantt_excel():
     # Agregar información del proyecto
     ws_info = wb.create_sheet("Información del Proyecto")
     info_data = [
-        ["PROYECTO", "Synkro - Plataforma SaaS de E-Commerce"],
+        ["PROYECTO", "Revital - Plataforma SaaS de E-Commerce"],
         ["Versión Objetivo", "V1.0 - Lanzamiento Comercial"],
         ["Estado Actual", "85% completado"],
         ["Fecha de Inicio", fecha_inicio_proyecto.strftime("%Y-%m-%d")],
@@ -390,7 +390,7 @@ def crear_gantt_excel():
     ws_info.column_dimensions['B'].width = 50
     
     # Guardar archivo
-    nombre_archivo = "GANTT_SYNKRO_SAAS.xlsx"
+    nombre_archivo = "GANTT_REVITAL_SAAS.xlsx"
     wb.save(nombre_archivo)
     print(f"[OK] Archivo Excel generado exitosamente: {nombre_archivo}")
     return nombre_archivo

@@ -1,8 +1,0 @@
-export { default as ChevronIcon } from './chevron-icon'
-export * from './navigation'
-export * from './mobile-menu'
-export * from './theme-toggle'
-export { default as SearchBar } from './search-bar'
-export { default as CartButton } from './cart-button'
-export { default as UserMenu } from './user-menu'
-export { default as EcommerceHeader } from '../header' 

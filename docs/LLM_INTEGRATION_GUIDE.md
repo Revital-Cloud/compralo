@@ -1,4 +1,4 @@
-# 🤖 Guía de Integración LLM para Transformación de Datos en Synkro
+# 🤖 Guía de Integración LLM para Transformación de Datos en Revital
 
 ## 📋 Índice
 
@@ -17,7 +17,7 @@
 
 ### ¿Qué problema resuelve?
 
-Synkro necesita importar productos desde múltiples plataformas de e-commerce (Shopify, PrestaShop, TiendaNube, ERPs, etc.), pero cada una tiene:
+Revital necesita importar productos desde múltiples plataformas de e-commerce (Shopify, PrestaShop, TiendaNube, ERPs, etc.), pero cada una tiene:
 - **Formatos diferentes** (JSON, XML, CSV)
 - **Estructuras de datos distintas** (campos con nombres diferentes)
 - **Calidad de datos variable** (descripciones pobres, categorización inconsistente)
@@ -28,7 +28,7 @@ En lugar de crear un parser específico para cada plataforma (50+ conectores dif
 
 ✅ Entiende cualquier formato de entrada  
 ✅ Normaliza y estandariza los datos  
-✅ Mapea inteligentemente a la estructura de Synkro  
+✅ Mapea inteligentemente a la estructura de Revital  
 ✅ Enriquece descripciones pobres  
 ✅ Corrige errores comunes automáticamente  
 ✅ Clasifica productos en categorías correctas  
@@ -55,7 +55,7 @@ En lugar de crear un parser específico para cada plataforma (50+ conectores dif
          ┌─────────────────────────────────────────┐
          │     Servicio de Transformación LLM      │
          │  • Analiza formato de entrada           │
-         │  • Obtiene contexto de Synkro           │
+         │  • Obtiene contexto de Revital           │
          │  • Transforma con OpenAI/Claude         │
          │  • Valida con Pydantic                  │
          └──────────────────┬──────────────────────┘
@@ -146,7 +146,7 @@ POST /api/integrations/import
 El servicio construye un prompt estructurado con:
 
 1. **Contexto del sistema** (qué debe hacer el LLM)
-2. **Esquema objetivo** (estructura de productos en Synkro)
+2. **Esquema objetivo** (estructura de productos en Revital)
 3. **Datos de entrada** (productos a transformar)
 4. **Catálogos de referencia** (categorías, marcas, líneas existentes)
 
@@ -155,9 +155,9 @@ prompt = f"""
 Eres un experto en normalización de datos de e-commerce.
 
 TAREA: Transforma los siguientes productos del formato {source_platform} 
-al esquema de Synkro.
+al esquema de Revital.
 
-ESQUEMA SYNKRO ESPERADO:
+ESQUEMA REVITAL ESPERADO:
 {{
   "nom_producto": "string (requerido, max 255)",
   "des_producto": "string (requerido, max 1000)",
@@ -173,14 +173,14 @@ ESQUEMA SYNKRO ESPERADO:
 DATOS DE ENTRADA:
 {json.dumps(raw_data, indent=2)}
 
-CATEGORÍAS DISPONIBLES EN SYNKRO:
+CATEGORÍAS DISPONIBLES EN REVITAL:
 [
   {{"id_categoria": 1, "nom_categoria": "Electrónica"}},
   {{"id_categoria": 2, "nom_categoria": "Deportes"}},
   {{"id_categoria": 3, "nom_categoria": "Ropa"}}
 ]
 
-MARCAS DISPONIBLES EN SYNKRO:
+MARCAS DISPONIBLES EN REVITAL:
 [
   {{"id_marca": 5, "nom_marca": "Nike"}},
   {{"id_marca": 8, "nom_marca": "Adidas"}},
@@ -188,11 +188,11 @@ MARCAS DISPONIBLES EN SYNKRO:
 ]
 
 INSTRUCCIONES:
-1. Mapea cada campo al esquema Synkro
+1. Mapea cada campo al esquema Revital
 2. Normaliza nombres: capitaliza correctamente, elimina caracteres especiales
 3. Enriquece descripciones cortas (mínimo 100 caracteres)
 4. Clasifica productos en categorías/líneas/sublíneas correctas
-5. Mapea marcas a IDs existentes en Synkro
+5. Mapea marcas a IDs existentes en Revital
 6. Si falta información crítica, usa valores por defecto inteligentes
 7. Devuelve SOLO JSON válido, sin comentarios
 
@@ -303,7 +303,7 @@ async def transform_with_llm(raw_data: list, source: str) -> dict:
    - Uso recomendado
    - Atributos de calidad
 
-3. ✅ **Mapeó la marca**: `"Nike"` → buscó en las marcas disponibles en Synkro y asignó `id_marca: 5`
+3. ✅ **Mapeó la marca**: `"Nike"` → buscó en las marcas disponibles en Revital y asignó `id_marca: 5`
 
 4. ✅ **Clasificó automáticamente**: 
    - Analizó: "running", "sports", "apparel", "shirt"
@@ -809,8 +809,8 @@ class LLMTransformService:
         Transforma datos usando LLM
         """
         
-        # 1. Obtener contexto de Synkro
-        context = await self._get_synkro_context()
+        # 1. Obtener contexto de Revital
+        context = await self._get_revital_context()
         
         # 2. Construir prompt
         prompt = self._build_prompt(raw_data, source, context)
@@ -847,9 +847,9 @@ class LLMTransformService:
             }
         }
     
-    async def _get_synkro_context(self) -> Dict:
+    async def _get_revital_context(self) -> Dict:
         """
-        Obtiene categorías, marcas, líneas y sublíneas de Synkro
+        Obtiene categorías, marcas, líneas y sublíneas de Revital
         """
         return {
             "categorias": await self._get_categorias(),
@@ -869,9 +869,9 @@ class LLMTransformService:
         """
         
         return f"""
-Transforma los siguientes productos de {source} al esquema de Synkro.
+Transforma los siguientes productos de {source} al esquema de Revital.
 
-ESQUEMA SYNKRO:
+ESQUEMA REVITAL:
 {{
   "nom_producto": "string (requerido, max 255)",
   "des_producto": "string (requerido, min 50, max 1000)",
@@ -887,7 +887,7 @@ ESQUEMA SYNKRO:
 DATOS A TRANSFORMAR:
 {json.dumps(raw_data[:10], indent=2)}
 
-CONTEXTO SYNKRO:
+CONTEXTO REVITAL:
 Categorías disponibles: {json.dumps(context['categorias'])}
 Marcas disponibles: {json.dumps(context['marcas'])}
 Líneas disponibles: {json.dumps(context['lineas'])}
@@ -918,7 +918,7 @@ Formato de respuesta:
 ### **Caso 1: Migración Completa desde Shopify**
 
 **Escenario:**
-> "Tengo 5,000 productos en Shopify y quiero migrar completamente a Synkro"
+> "Tengo 5,000 productos en Shopify y quiero migrar completamente a Revital"
 
 **Solución:**
 
@@ -928,7 +928,7 @@ Formato de respuesta:
    Products → Export → Export as CSV
    ```
 
-2. **Importar a Synkro**:
+2. **Importar a Revital**:
    ```bash
    POST /api/integrations/import
    
@@ -969,12 +969,12 @@ Formato de respuesta:
    ```python
    # scripts/sync_erp_nightly.py
    
-   async def sync_erp_to_synkro():
+   async def sync_erp_to_revital():
        # 1. Obtener productos del ERP
        erp_products = await erp_client.get_products()
        
        # 2. Transformar con LLM
-       response = await synkro_api.post(
+       response = await revital_api.post(
            "/api/integrations/import",
            json={
                "source_platform": "generic_erp",
@@ -988,7 +988,7 @@ Formato de respuesta:
        logger.info(f"Sincronización completada: {response['imported']} actualizados")
    ```
 
-2. **LLM transforma** XML propietario del ERP a formato Synkro
+2. **LLM transforma** XML propietario del ERP a formato Revital
 
 3. **Actualiza** solo precios y stock (no recrea productos)
 
@@ -1283,7 +1283,7 @@ if "auriculares" in titulo:
 
 ## 📝 Resumen Ejecutivo
 
-Esta guía documenta el sistema de **transformación inteligente de datos usando LLM** para Synkro, que permite:
+Esta guía documenta el sistema de **transformación inteligente de datos usando LLM** para Revital, que permite:
 
 ✅ Importar productos desde **cualquier plataforma** sin código específico  
 ✅ Normalizar y estandarizar datos automáticamente  
@@ -1292,13 +1292,13 @@ Esta guía documenta el sistema de **transformación inteligente de datos usando
 ✅ Corregir errores comunes  
 ✅ Reducir tiempo de desarrollo de integraciones en **90%**  
 
-**Beneficio principal:** Convertir Synkro en una plataforma **verdaderamente universal** que puede conectarse con cualquier sistema de e-commerce existente sin necesidad de desarrollar conectores específicos.
+**Beneficio principal:** Convertir Revital en una plataforma **verdaderamente universal** que puede conectarse con cualquier sistema de e-commerce existente sin necesidad de desarrollar conectores específicos.
 
 ---
 
 **Documento creado:** 22 de Octubre, 2025  
 **Versión:** 1.0  
-**Proyecto:** Synkro SaaS E-commerce Platform  
-**Autor:** Equipo de Desarrollo Synkro
+**Proyecto:** Revital SaaS E-commerce Platform  
+**Autor:** Equipo de Desarrollo Revital
 
 
