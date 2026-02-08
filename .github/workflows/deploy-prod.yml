@@ -48,6 +48,7 @@ jobs:
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
           nvm use default 2>/dev/null || true
+          export PATH="$(dirname $(command -v node)):$PATH"
 
           cd /home/revital/revital
           git pull origin main
