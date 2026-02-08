@@ -31,6 +31,9 @@ jobs:
             echo "Store the *base64* of your key in SERVER_SSH_KEY: cat ~/.ssh/id_ed25519 | base64 -w 0"
             exit 1
           fi
+          echo "Public key used by this workflow (must be in server's ~/.ssh/authorized_keys):"
+          ssh-keygen -y -f ~/.ssh/id_ed25519
+          echo "Fingerprint: $(ssh-keygen -l -f ~/.ssh/id_ed25519 | awk '{print $2}')"
 
       - name: Deploy to server
         env:
