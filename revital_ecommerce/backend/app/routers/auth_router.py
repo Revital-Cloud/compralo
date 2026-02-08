@@ -5,7 +5,7 @@ Define los endpoints relacionados con la autenticación de usuarios,
 incluyendo login, refresh de tokens, cambio de contraseña y obtención
 de información del usuario actual.
 """
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
@@ -25,13 +25,17 @@ from schemas.user_schema import ResponseMessage, User, UserCreate, UserUpdate, U
 from services import auth_service
 from services import user_service
 from core.dependencies import get_current_user
+from core.rate_limiter import limiter
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Autenticación"])
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("10/minute")
+@limiter.limit("100/hour")
 async def login(
+    request: Request,
     login_data: LoginRequest,
     db: Session = Depends(get_db)
 ):
@@ -51,7 +55,9 @@ async def login(
     return auth_service.login_user(db, login_data)
 
 @router.post("/refresh", response_model=TokenResponse)
+@limiter.limit("30/minute")
 async def refresh_token(
+    request: Request,
     refresh_data: RefreshTokenRequest,
     db: Session = Depends(get_db)
 ):
@@ -181,7 +187,10 @@ async def verify_token(
     }
 
 @router.post("/send-verification-email")
+@limiter.limit("5/minute")
+@limiter.limit("20/hour")
 async def send_verification_email(
+    request: Request,
     user_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
@@ -245,7 +254,9 @@ async def send_verification_email(
         )
 
 @router.post("/verify-email")
+@limiter.limit("10/minute")
 async def verify_email_endpoint(
+    request: Request,
     token: str,
     db: Session = Depends(get_db)
 ):
@@ -304,8 +315,11 @@ async def verify_email_endpoint(
         )
 
 @router.post("/forgot-password", response_model=ResponseMessage)
+@limiter.limit("5/minute")
+@limiter.limit("20/hour")
 async def forgot_password(
-    request: ResetPasswordRequest,
+    request: Request,
+    reset_request: ResetPasswordRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
@@ -313,7 +327,7 @@ async def forgot_password(
     Solicita reset de contraseña. Público (sin autenticación requerida).
     
     Args:
-        request (ResetPasswordRequest): Email del usuario
+        reset_request (ResetPasswordRequest): Email del usuario
         db (Session): Sesión de base de datos
         
     Returns:
@@ -321,12 +335,12 @@ async def forgot_password(
         
     Security:
         - No revela si el email existe o no
-        - Rate limiting recomendado
+        - Rate limiting implementado
         - Logs de seguridad
     """
     try:
         # Buscar usuario por email
-        user = user_service.get_user_by_email(db, request.email)
+        user = user_service.get_user_by_email(db, reset_request.email)
         
         if user:
             # Crear token de reset específico
@@ -346,10 +360,10 @@ async def forgot_password(
                 reset_token=reset_token
             )
             
-            logger.info(f"Password reset requested for existing user: {request.email}")
+            logger.info(f"Password reset requested for existing user: {reset_request.email}")
         else:
             # Usuario no existe, pero no revelamos esta información
-            logger.warning(f"Password reset requested for non-existent user: {request.email}")
+            logger.warning(f"Password reset requested for non-existent user: {reset_request.email}")
         
         # SIEMPRE retornamos éxito (no revelamos si el email existe)
         return ResponseMessage(
@@ -366,7 +380,10 @@ async def forgot_password(
         )
 
 @router.post("/reset-password", response_model=ResponseMessage)
+@limiter.limit("5/minute")
+@limiter.limit("20/hour")
 async def reset_password(
+    request: Request,
     reset_data: ResetPasswordConfirm,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)

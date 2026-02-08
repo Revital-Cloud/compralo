@@ -5,7 +5,7 @@ Define las rutas y endpoints relacionados con la gestión de descuentos,
 incluyendo la creación, actualización, visualización y canje de descuentos.
 """
 from decimal import Decimal
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user, require_admin
@@ -13,6 +13,7 @@ from schemas.auth_schema import UserInToken
 from schemas.discount_schema import DiscountCreate, DiscountExchangeableResponse, DiscountUpdate, Discount, ResponseMessage
 from services import discount_service
 from schemas.user_discounts_schema import ValidateDiscountRequest, ValidateDiscountResponse
+from core.rate_limiter import limiter
 
 router = APIRouter(tags=["Descuentos"])
 
@@ -55,7 +56,9 @@ async def get_discount_by_code(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error: {str(e)}")
 
 @router.post("/discounts/validate-for-cart", summary="Valida código de descuento para el carrito actual")
+@limiter.limit("30/minute")
 async def validate_discount_for_cart(
+    request: Request,
     payload: dict = Body(...),
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user)
@@ -243,7 +246,9 @@ async def deactivate_activate_discount(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.post("/discounts/validate", response_model=ValidateDiscountResponse)
+@limiter.limit("30/minute")
 async def validate_discount(
+    request: Request,
     payload: ValidateDiscountRequest,
     db: Session = Depends(get_db)
 ):

@@ -5,12 +5,13 @@ Define las rutas y endpoints relacionados con la gestión de descuentos por usua
 incluyendo la visualización, validación y registro de descuentos por usuario.
 """
 from decimal import Decimal
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user
 from schemas.user_discounts_schema import UserDiscounts, ResponseMessage, ValidateDiscountRequest, ValidateDiscountResponse
 from services import user_discounts_service
+from core.rate_limiter import limiter
 
 router = APIRouter(tags=["Descuentos por Usuario"])
 
@@ -32,7 +33,9 @@ async def get_user_discounts(db:Session = Depends(get_db)):
 
 #ruta para validar un descuento por usuario con JSON body
 @router.post("/discounts/validate", response_model=ValidateDiscountResponse)
+@limiter.limit("30/minute")
 async def validate_discount(
+    request: Request,
     payload: ValidateDiscountRequest,
     db: Session = Depends(get_db),
 ):

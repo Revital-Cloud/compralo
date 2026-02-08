@@ -42,6 +42,7 @@ from services.payment_widget_service import (
 )
 from services import order_service
 from services import cart_product_service
+from core.rate_limiter import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +112,7 @@ async def test_signature(
     summary="Crear sesión de checkout (sin orden)",
     description="Crea una sesión de checkout y retorna la config de Wompi. La orden se crea solo cuando el pago es APPROVED."
 )
+@limiter.limit("30/minute")
 async def create_checkout_session_endpoint(
     payload: CheckoutCreateRequest,
     request: Request,
@@ -256,6 +258,7 @@ async def confirm_checkout(
     summary="Crear pago con widget de Wompi",
     description="Crea un registro de pago y genera la configuración necesaria para abrir el widget de Wompi"
 )
+@limiter.limit("30/minute")
 async def create_payment_widget(
     payload: PaymentCreateRequest,
     request: Request,

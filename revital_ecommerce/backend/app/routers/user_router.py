@@ -4,7 +4,7 @@ Módulo de enrutador para la gestión de usuarios.
 Define las rutas y endpoints relacionados con la gestión de usuarios,
 incluyendo la creación, actualización y visualización de usuarios.
 """
-from fastapi import APIRouter, Depends,HTTPException, status,Body, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Body, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 from decimal import Decimal
 from core.database import get_db
@@ -14,6 +14,7 @@ from schemas.auth_schema import UserInToken
 from services import user_service
 from core.jwt_utils import get_password_hash, create_verification_token
 from services.email_service import send_welcome_email, send_verification_email
+from core.rate_limiter import limiter
 
 router = APIRouter(tags=["Usuarios"])
 
@@ -73,7 +74,10 @@ async def get_users(db: Session = Depends(get_db)):
     return users
 
 @router.post("/users", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
+@limiter.limit("5/minute")
+@limiter.limit("20/hour")
 async def create_users(
+    request: Request,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: UserCreate = Body(...)

@@ -5,10 +5,13 @@ Este módulo inicializa la aplicación FastAPI, define rutas básicas
 y registra los routers de la aplicación, como el router de productos.
 También puede incluir configuraciones globales de la aplicación y middlewares.
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from starlette.middleware.gzip import GZipMiddleware
 import logging
+
+from slowapi.errors import RateLimitExceeded
 
 from middlewares.auth_middleware import AuthMiddleware
 from middlewares.security_middleware import SecurityMiddleware
@@ -41,6 +44,7 @@ from routers.movements_inventory_router import router as movements_inventory_rou
 from routers.dashboard_router import router as dashboard_router
 from routers.analytics_router import router as analytics_router
 from routers.top_info_bar_router import router as top_info_bar_router
+from core.rate_limiter import limiter
 
 # Configurar logging: en producción solo WARNING y superior (no se muestran INFO/DEBUG)
 logging.basicConfig(level=logging.WARNING if is_production() else logging.INFO)
@@ -51,6 +55,23 @@ app = FastAPI(
     description="API para la plataforma Compralo",
     version="1.0.0"
 )
+
+def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    """
+    Custom handler for rate limit exceeded errors.
+    Returns a JSON response with a user-friendly message.
+    """
+    return JSONResponse(
+        status_code=429,
+        content={
+            "detail": "Too many requests. Please try again later.",
+            "retry_after": exc.detail
+        }
+    )
+
+# Configurar Rate Limiter en la app
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 # Compresión de respuestas (mejora Lighthouse uses-text-compression)
 app.add_middleware(GZipMiddleware, minimum_size=500)
@@ -109,7 +130,8 @@ app.add_middleware(
 )
 
 @app.get("/")
-def read_root():
+@limiter.limit("120/minute")
+def read_root(request: Request):
     """
     Endpoint Raíz.
 
