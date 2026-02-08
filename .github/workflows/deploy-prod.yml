@@ -44,6 +44,11 @@ jobs:
 
           ssh $SSH_OPTS ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'REMOTE_EOF'
           set -e
+          # Load nvm so pnpm, node, pm2 are in PATH
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          nvm use default 2>/dev/null || true
+
           cd /home/revital/revital
           git pull origin main
 
