@@ -1,0 +1,47 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SERVER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        run: |
+          # Copy systemd unit (includes ENVIRONMENT=production) to server
+          scp .github/systemd/compralo-api.service ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/compralo-api.service
+
+          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'REMOTE_EOF'
+          set -e
+          cd /home/revital/revital
+          git pull origin main
+
+          # Backend: install unit if changed, then restart
+          sudo cp /tmp/compralo-api.service /etc/systemd/system/compralo-api.service
+          sudo systemctl daemon-reload
+
+          cd revital_ecommerce/backend
+          source venv/bin/activate
+          pip install -r requirements.txt
+          sudo systemctl restart compralo-api
+
+          # Frontend (revital_ecommerce/frontend)
+          cd ../frontend
+          pnpm install
+          pnpm build
+          pm2 restart compralo || pm2 start pnpm --name compralo -- start
+          REMOTE_EOF
