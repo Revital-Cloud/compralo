@@ -21,12 +21,25 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to server
+      - name: Verify SSH key
         run: |
-          # Copy systemd unit to server
-          scp .github/systemd/compralo-api.service ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/compralo-api.service
+          first_line=$(head -1 ~/.ssh/id_ed25519)
+          if [ "$first_line" = "-----BEGIN OPENSSH PRIVATE KEY-----" ] || [ "$first_line" = "-----BEGIN RSA PRIVATE KEY-----" ]; then
+            echo "Key format OK (key file is valid)"
+          else
+            echo "Key format FAIL: first line is not BEGIN PRIVATE KEY"
+            echo "Store the *base64* of your key in SERVER_SSH_KEY: cat ~/.ssh/id_ed25519 | base64 -w 0"
+            exit 1
+          fi
 
-          ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'REMOTE_EOF'
+      - name: Deploy to server
+        env:
+          SSH_OPTS: -o StrictHostKeyChecking=no -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/id_ed25519
+        run: |
+          # Copy systemd unit to server (use -i so this key is used)
+          scp $SSH_OPTS .github/systemd/compralo-api.service ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/compralo-api.service
+
+          ssh $SSH_OPTS ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'REMOTE_EOF'
           set -e
           cd /home/revital/revital
           git pull origin main
