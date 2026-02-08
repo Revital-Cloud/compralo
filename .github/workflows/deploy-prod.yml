@@ -22,7 +22,7 @@ jobs:
 
       - name: Deploy to server
         run: |
-          # Copy systemd unit (includes ENVIRONMENT=production) to server
+          # Copy systemd unit to server
           scp .github/systemd/compralo-api.service ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/compralo-api.service
 
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'REMOTE_EOF'
