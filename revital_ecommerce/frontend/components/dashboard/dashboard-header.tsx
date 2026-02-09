@@ -38,7 +38,13 @@ export const DashboardHeader = ({
       </div>
     </div>
     <div className="flex items-center space-x-2">
-      <Select value={timeRange} onChange={(e) => onTimeRangeChange(e.target.value)} className="w-32">
+      <Select
+        value={timeRange}
+        onChange={(e) => onTimeRangeChange(e.target.value)}
+        sizeVariant="sm"
+        className="w-32"
+        aria-label="Rango de tiempo"
+      >
         <option value="weekly">Semanal</option>
         <option value="monthly">Mensual</option>
         <option value="quarterly">Trimestral</option>
@@ -49,7 +55,7 @@ export const DashboardHeader = ({
         size="sm" 
         onClick={onRefresh}
         disabled={loading}
-        className="min-w-[100px]"
+        className="min-w-[120px]"
       >
         <IconRefresh className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
         {loading ? 'Actualizando...' : 'Actualizar'}
