@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Input } from "@/components/ui"
-import { Select } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
 import { Button } from "@/components/ui"
 import { IconSearch, IconFilter, IconCalendar } from '@tabler/icons-react'
 import type { OrderFilters } from '@/types/order'
@@ -48,11 +48,16 @@ export const OrderFilters = ({ filters, onFiltersChange, onSearch, onClear }: Or
           </div>
         </div>
 
-        <Select value={filters.status?.toString() || 'all'} onChange={(e) => handleStatusChange(e.target.value)} className="w-[180px]">
-          <option value="all">Todos los estados</option>
-          <option value="1">Pendiente</option>
-          <option value="2">Completada</option>
-          <option value="3">Cancelada</option>
+        <Select value={filters.status?.toString() || 'all'} onValueChange={handleStatusChange}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Estado" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos los estados</SelectItem>
+            <SelectItem value="1">Pendiente</SelectItem>
+            <SelectItem value="2">Completada</SelectItem>
+            <SelectItem value="3">Cancelada</SelectItem>
+          </SelectContent>
         </Select>
 
         <div className="flex gap-2">

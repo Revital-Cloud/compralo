@@ -8,7 +8,7 @@ import { OrderStatusBadge } from '@/components/admin/orders/order-status-badge'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
 import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui"
-import { Select } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
 import { IconArrowLeft, IconPackage, IconCoins, IconDiscount, IconCalendar, IconUser } from '@tabler/icons-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -105,10 +105,18 @@ const OrderDetailPage = () => {
         <div className="flex items-center gap-4">
           <OrderStatusBadge status={orden.ind_estado} />
           <div className="flex items-center gap-2">
-            <Select value={newStatus?.toString() || orden.ind_estado.toString()} onChange={(e) => setNewStatus(parseInt(e.target.value))}>
-              <option value="1">Pendiente</option>
-              <option value="2">Completada</option>
-              <option value="3">Cancelada</option>
+            <Select
+              value={newStatus?.toString() ?? orden.ind_estado.toString()}
+              onValueChange={(v) => setNewStatus(parseInt(v, 10))}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Pendiente</SelectItem>
+                <SelectItem value="2">Completada</SelectItem>
+                <SelectItem value="3">Cancelada</SelectItem>
+              </SelectContent>
             </Select>
             {newStatus !== undefined && newStatus !== orden.ind_estado && (
               <Button 
