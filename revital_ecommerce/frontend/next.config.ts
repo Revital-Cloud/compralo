@@ -33,17 +33,36 @@ const nextConfig: NextConfig = {
   // Configuración de seguridad
   async headers() {
     const isDevelopment = process.env.NODE_ENV === 'development';
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    
+    if (!apiUrl) {
+      throw new Error('NEXT_PUBLIC_API_URL no está definida en las variables de entorno');
+    }
+    
     // CSP connect-src requiere el ORIGEN (sin path): así se permiten todas las rutas /api/*.
     // Si se usa solo "http://host:8000/api", algunos navegadores bloquean /api/carrito-usuario, etc.
     const apiOrigin = (() => {
-      try {
-        const u = new URL(apiUrl);
-        return `${u.protocol}//${u.host}`;
-      } catch {
-        return 'http://localhost:8000';
-      }
+      const u = new URL(apiUrl);
+      return `${u.protocol}//${u.host}`;
     })();
+
+    // En desarrollo, permitir conexiones a localhost y a la IP del servidor
+    const connectSrc = [
+      "'self'",
+      apiOrigin,
+      "http://localhost:8000",
+      "http://localhost:8001",
+      "http://localhost:8002",
+      "http://46.225.94.64:8000",
+      "http://46.225.94.64:8001",
+      "http://46.225.94.64:8002",
+      "https://api.revital.com",
+      "https://*.cloudinary.com",
+      "https://sandbox.wompi.co",
+      "https://production.wompi.co",
+      "https://checkout.wompi.co",
+      ...(isDevelopment ? ["ws://localhost:*", "ws://46.225.94.64:*"] : [])
+    ].join(' ');
 
     return [
       {
@@ -74,7 +93,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
-              `connect-src 'self' ${apiOrigin} http://localhost:8000 https://api.revital.com https://*.cloudinary.com https://sandbox.wompi.co https://production.wompi.co https://checkout.wompi.co${isDevelopment ? ' ws://localhost:*' : ''}`,
+              `connect-src ${connectSrc}`,
               "frame-src 'self' https://checkout.wompi.co",
               "object-src 'none'",
               "base-uri 'self'",

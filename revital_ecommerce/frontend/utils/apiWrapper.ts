@@ -22,6 +22,12 @@ let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 function createApiInstance(): AxiosInstance {
   const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
   
+  // Log para debugging (solo en desarrollo)
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.log('[API Wrapper] Base URL configurada:', baseURL);
+    console.log('[API Wrapper] NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
+  }
+  
   const instance = axios.create({
     baseURL,
     timeout: 30000, // 30 segundos para operaciones complejas como pagos

@@ -1,5 +1,5 @@
 # Revital Backend - API SaaS de E-Commerce 🚀
-
+ 
 **API RESTful de alto rendimiento para deployment de instancias aisladas**
 
 El backend de Revital está diseñado para funcionar como una API independiente por cada cliente SaaS. Cada instancia tiene su propia base de datos PostgreSQL y configuración específica, eliminando la complejidad multi-tenant tradicional.

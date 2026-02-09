@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui"
 import { Button } from "@/components/ui"
 import { IconEye, IconDots, IconTruck, IconClock, IconPackage, IconX } from "@tabler/icons-react"
+import { formatPrice } from "@/utils/format-price"
 
 interface RecentOrder {
   id: string
@@ -80,16 +81,16 @@ export const RecentOrders = ({ recentOrders, loading }: RecentOrdersProps) => (
               {recentOrders.map((order, index) => {
                 const statusConfig = getOrderStatusConfig(order.status)
                 return (
-                  <div key={order.id} className="grid grid-cols-6 gap-4 text-sm items-center py-3 hover:bg-gray-50 rounded-lg px-2 transition-colors">
+                  <div key={order.id} className="grid grid-cols-6 gap-4 text-sm items-center py-3 hover:bg-muted rounded-lg px-2 transition-colors text-foreground">
                     <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-medium text-gray-600">
+                      <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                        <span className="text-xs font-medium text-muted-foreground">
                           {order.customer.split(' ').map(n => n[0]).join('')}
                         </span>
                       </div>
                       <span className="font-medium">{order.customer}</span>
                     </div>
-                    <div className="font-medium text-gray-900">{order.product}</div>
+                    <div className="font-medium">{order.product}</div>
                     <div className="text-muted-foreground font-mono">{order.id}</div>
                     <div className="text-muted-foreground">{order.date}</div>
                     <div>
@@ -97,7 +98,7 @@ export const RecentOrders = ({ recentOrders, loading }: RecentOrdersProps) => (
                         {statusConfig.label}
                       </Badge>
                     </div>
-                    <div className="text-right font-semibold">${order.amount.toFixed(2)}</div>
+                    <div className="text-right font-semibold">{formatPrice(order.amount)}</div>
                   </div>
                 )
               })}
@@ -109,12 +110,12 @@ export const RecentOrders = ({ recentOrders, loading }: RecentOrdersProps) => (
             {recentOrders.map((order) => {
               const statusConfig = getOrderStatusConfig(order.status)
               return (
-                <Card key={order.id} className="p-4 hover:shadow-md transition-shadow">
+                <Card key={order.id} className="p-4 hover:shadow-md hover:bg-muted/50 transition-all">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center">
-                          <span className="text-xs font-medium text-gray-600">
+                        <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center">
+                          <span className="text-xs font-medium text-muted-foreground">
                             {order.customer.split(' ').map(n => n[0]).join('')}
                           </span>
                         </div>
@@ -132,7 +133,7 @@ export const RecentOrders = ({ recentOrders, loading }: RecentOrdersProps) => (
                       <div className="text-xs text-muted-foreground">
                         {order.id} • {order.date}
                       </div>
-                      <div className="font-bold">${order.amount.toFixed(2)}</div>
+                      <div className="font-bold">{formatPrice(order.amount)}</div>
                     </div>
                   </div>
                 </Card>
