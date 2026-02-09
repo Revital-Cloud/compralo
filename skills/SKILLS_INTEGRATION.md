@@ -2,17 +2,17 @@
 
 ## Current Setup
 
-Synkro uses a **hybrid approach** combining project-specific skills and global skills from Vercel.
+Revital uses a **hybrid approach** combining project-specific skills and global skills from Vercel.
 
 ### Project-Level Skills (`./skills/`)
 
-These are versioned in git and specific to Synkro:
+These are versioned in git and specific to Revital:
 
 - **15 skills total** including:
-  - Synkro-specific skills (7): `synkro`, `synkro-ecommerce`, `synkro-panel`, etc.
+  - Revital-specific skills (7): `revital`, `revital-ecommerce`, `revital-panel`, etc.
   - Generic skills (6): `typescript`, `react-19`, `nextjs-15`, `tailwind-4`, `pytest`, `fastapi`
-  - Performance skill (1): `react-performance` (adapted for Synkro)
-  - PR skill (1): `synkro-pr`
+  - Performance skill (1): `react-performance` (adapted for Revital)
+  - PR skill (1): `revital-pr`
 
 **Location**: `./.cursor/skills/` (symlink to `./skills/`)
 
@@ -34,8 +34,8 @@ Cursor loads skills from both locations:
 ## Skill Overlap: `react-performance` vs `vercel-react-best-practices`
 
 ### `react-performance` (Project-specific)
-- ✅ Adapted for Synkro's architecture
-- ✅ Includes Synkro-specific examples
+- ✅ Adapted for Revital's architecture
+- ✅ Includes Revital-specific examples
 - ✅ Focused on most critical patterns
 - ⚠️ 40+ rules (subset)
 
@@ -43,10 +43,10 @@ Cursor loads skills from both locations:
 - ✅ Complete 45-rule reference
 - ✅ More comprehensive coverage
 - ✅ Updated by Vercel team
-- ⚠️ Generic (not Synkro-specific)
+- ⚠️ Generic (not Revital-specific)
 
 **Recommendation**: Keep both! They complement each other:
-- Use `react-performance` for Synkro-specific patterns
+- Use `react-performance` for Revital-specific patterns
 - Use `vercel-react-best-practices` for comprehensive reference
 
 ## Setup for New Collaborators
@@ -54,7 +54,7 @@ Cursor loads skills from both locations:
 ### Required: Project Skills
 
 ```bash
-cd synkro
+cd revital
 ./skills/setup.sh  # Auto-detects and configures
 ```
 

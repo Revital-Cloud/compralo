@@ -1,0 +1,300 @@
+@import 'tailwindcss';
+
+@plugin 'tailwindcss-animate';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-revital-black: hsl(var(--revital-black));
+  --color-revital-green: hsl(var(--revital-green));
+  --color-revital-white: hsl(var(--revital-white));
+
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
+/* Revital-specific utility classes */
+@utility text-revital-green {
+  color: hsl(142 64% 65%);
+}
+@utility bg-revital-green {
+  background-color: hsl(142 64% 65%);
+}
+@utility border-revital-green {
+  border-color: hsl(142 64% 65%);
+}
+@utility text-revital-black {
+  color: hsl(0 0% 11%);
+}
+@utility bg-revital-black {
+  background-color: hsl(0 0% 11%);
+}
+@utility border-revital-black {
+  border-color: hsl(0 0% 11%);
+}
+@utility bg-revital-section {
+  /* Nuevas utilidades para fondos consistentes */
+  background-color: hsl(0 0% 11%);
+}
+@utility bg-revital-section-alt {
+  background-color: hsl(0 0% 13%);
+}
+@utility border-revital-section {
+  border-color: hsl(0 0% 11%);
+}
+
+@layer base {
+  :root {
+    /* Revital Color Palette */
+    --revital-black: 0 0% 11%; /* #1c1c1c */
+    --revital-green: 142 64% 65%; /* #63e581 */
+    --revital-white: 0 0% 100%; /* #ffffff */
+
+    /* Light Theme - Revital Colors */
+    --background: 0 0% 100%; /* White background */
+    --foreground: 0 0% 11%; /* Revital black text */
+
+    --card: 0 0% 100%; /* White cards */
+    --card-foreground: 0 0% 11%; /* Black text on cards */
+
+    --popover: 0 0% 100%; /* White popovers */
+    --popover-foreground: 0 0% 11%; /* Black text on popovers */
+
+    --primary: 142 64% 65%; /* Revital green as primary */
+    --primary-foreground: 0 0% 100%; /* White text on green */
+
+    --secondary: 0 0% 96%; /* Light gray secondary */
+    --secondary-foreground: 0 0% 11%; /* Black text on secondary */
+
+    --muted: 0 0% 96%; /* Light gray muted */
+    --muted-foreground: 0 0% 45%; /* Medium gray text */
+
+    --accent: 142 64% 65%; /* Revital green accent */
+    --accent-foreground: 0 0% 100%; /* White text on accent */
+
+    --destructive: 0 84% 60%; /* Red for errors */
+    --destructive-foreground: 0 0% 100%; /* White text on red */
+
+    --border: 0 0% 85%; /* Slightly darker borders for better visibility */
+    --input: 0 0% 95%; /* Light gray inputs */
+    --ring: 142 64% 65%; /* Revital green focus rings */
+
+    /* Chart colors using Revital palette */
+    --chart-1: 142 64% 65%; /* Revital green */
+    --chart-2: 0 0% 11%; /* Revital black */
+    --chart-3: 0 0% 100%; /* White */
+    --chart-4: 142 64% 65%; /* Revital green variant */
+    --chart-5: 0 0% 45%; /* Medium gray */
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark Theme - Revital Colors - Consistente con Revital Black */
+    --background: 0 0% 11%; /* Revital black background */
+    --foreground: 0 0% 100%; /* White text */
+
+    --card: 0 0% 15%; /* Slightly lighter than background for contrast */
+    --card-foreground: 0 0% 100%; /* White text on cards */
+
+    --popover: 0 0% 11%; /* Revital black popovers */
+    --popover-foreground: 0 0% 100%; /* White text on popovers */
+
+    --primary: 142 64% 65%; /* Revital green as primary */
+    --primary-foreground: 0 0% 11%; /* Black text on green */
+
+    --secondary: 0 0% 11%; /* Revital black secondary */
+    --secondary-foreground: 0 0% 100%; /* White text on secondary */
+
+    --muted: 0 0% 11%; /* Revital black muted */
+    --muted-foreground: 0 0% 64%; /* Light gray text */
+
+    --accent: 142 64% 65%; /* Revital green accent */
+    --accent-foreground: 0 0% 11%; /* Black text on accent */
+
+    --destructive: 0 63% 31%; /* Darker red for errors */
+    --destructive-foreground: 0 0% 100%; /* White text on red */
+
+    --border: 0 0% 20%; /* Lighter borders for visibility */
+    --input: 0 0% 15%; /* Slightly lighter inputs */
+    --ring: 142 64% 65%; /* Revital green focus rings */
+
+    /* Chart colors for dark theme */
+    --chart-1: 142 64% 65%; /* Revital green */
+    --chart-2: 0 0% 100%; /* White */
+    --chart-3: 0 0% 11%; /* Revital black */
+    --chart-4: 142 64% 65%; /* Revital green variant */
+    --chart-5: 0 0% 64%; /* Light gray */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html,
+  body {
+    overflow-x: hidden;
+  }
+  * {
+    max-width: 100%;
+  }
+}
+
+/* Custom animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(2rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(2rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(-2rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(99, 229, 129, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(99, 229, 129, 0.6);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s ease-out forwards;
+}
+
+.animate-slide-left {
+  animation: slide-left 0.6s ease-out forwards;
+}
+
+.animate-slide-right {
+  animation: slide-right 0.6s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.6s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}

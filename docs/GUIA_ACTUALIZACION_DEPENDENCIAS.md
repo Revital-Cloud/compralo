@@ -1,4 +1,4 @@
-# Guía: Actualización de Dependencias en Synkro
+# Guía: Actualización de Dependencias en Revital
 
 Esta guía explica cómo agregar nuevas dependencias (paquetes) al frontend o backend y qué hacer con Docker.
 
@@ -8,7 +8,7 @@ Esta guía explica cómo agregar nuevas dependencias (paquetes) al frontend o ba
 
 ### Paso 1: Agregar la dependencia
 
-Desde la raíz del monorepo (`/srv/synkro/code/`):
+Desde la raíz del monorepo (`/srv/revital/code/`):
 
 ```bash
 # Agregar dependencia a un frontend específico
@@ -43,15 +43,15 @@ pnpm dev
 2. Ejecutar `pnpm install --frozen-lockfile`
 
 **Los Dockerfiles relevantes están en:**
-- `/srv/synkro/containers/base/ecommerce/frontend/Dockerfile`
-- `/srv/synkro/containers/base/synkro/frontend/Dockerfile`
+- `/srv/revital/containers/base/ecommerce/frontend/Dockerfile`
+- `/srv/revital/containers/base/revital/frontend/Dockerfile`
 
 ### Paso 4: Reconstruir contenedores (cuando despliegues)
 
 Cuando hagas deploy, los comandos estándar ya incluyen el rebuild:
 
 ```bash
-cd /srv/synkro/containers/dev  # o staging/prod según corresponda
+cd /srv/revital/containers/dev  # o staging/prod según corresponda
 docker compose pull
 docker compose build  # Esto reconstruirá con las nuevas dependencias
 docker compose up -d --force-recreate
@@ -105,13 +105,13 @@ python -m uvicorn app.main:app --reload
 2. Ejecutar `pip install --no-cache-dir -r requirements.txt`
 
 **Los Dockerfiles relevantes están en:**
-- `/srv/synkro/containers/base/ecommerce/backend/Dockerfile`
-- `/srv/synkro/containers/base/synkro/backend/Dockerfile`
+- `/srv/revital/containers/base/ecommerce/backend/Dockerfile`
+- `/srv/revital/containers/base/revital/backend/Dockerfile`
 
 ### Paso 4: Reconstruir contenedores (cuando despliegues)
 
 ```bash
-cd /srv/synkro/containers/dev  # o staging/prod según corresponda
+cd /srv/revital/containers/dev  # o staging/prod según corresponda
 docker compose pull
 docker compose build  # Esto reconstruirá con las nuevas dependencias
 docker compose up -d --force-recreate
@@ -140,8 +140,8 @@ pnpm install
 pnpm build
 pnpm dev
 
-# Synkro Frontend  
-cd apps/synkro/frontend
+# Revital Frontend  
+cd apps/revital/frontend
 pnpm install
 pnpm build
 pnpm dev
@@ -162,7 +162,7 @@ Solo necesitas modificar configuración si:
 
 ```bash
 # 1. Agregar dependencia
-cd /srv/synkro/code/apps/ecommerce/frontend
+cd /srv/revital/code/apps/ecommerce/frontend
 pnpm add date-fns
 
 # 2. Usar en tu código
@@ -185,7 +185,7 @@ git push origin tu-branch
 
 ```bash
 # 1. Agregar dependencia
-cd /srv/synkro/code/apps/ecommerce/backend
+cd /srv/revital/code/apps/ecommerce/backend
 pip install python-jose[cryptography]
 
 # 2. Actualizar requirements.txt
@@ -260,7 +260,7 @@ git commit -m "chore: update requirements"
 **Solución:**
 ```bash
 # Regenerar lockfile
-cd /srv/synkro/code
+cd /srv/revital/code
 rm pnpm-lock.yaml
 pnpm install
 git add pnpm-lock.yaml

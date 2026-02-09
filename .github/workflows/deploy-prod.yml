@@ -1,0 +1,70 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          # SERVER_SSH_KEY: paste the *base64* of your private key (cat ~/.ssh/id_ed25519 | base64 -w 0)
+          echo "${{ secrets.SERVER_SSH_KEY }}" | base64 -d > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Verify SSH key
+        run: |
+          first_line=$(head -1 ~/.ssh/id_ed25519)
+          if [ "$first_line" = "-----BEGIN OPENSSH PRIVATE KEY-----" ] || [ "$first_line" = "-----BEGIN RSA PRIVATE KEY-----" ]; then
+            echo "Key format OK (key file is valid)"
+          else
+            echo "Key format FAIL: first line is not BEGIN PRIVATE KEY"
+            echo "Store the *base64* of your key in SERVER_SSH_KEY: cat ~/.ssh/id_ed25519 | base64 -w 0"
+            exit 1
+          fi
+          echo "Public key used by this workflow (must be in server's ~/.ssh/authorized_keys):"
+          ssh-keygen -y -f ~/.ssh/id_ed25519
+          echo "Fingerprint: $(ssh-keygen -l -f ~/.ssh/id_ed25519 | awk '{print $2}')"
+
+      - name: Deploy to server
+        env:
+          SSH_OPTS: -o StrictHostKeyChecking=no -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/id_ed25519
+        run: |
+          # Copy systemd unit to server (use -i so this key is used)
+          scp $SSH_OPTS .github/systemd/compralo-api.service ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/compralo-api.service
+
+          ssh $SSH_OPTS ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'REMOTE_EOF'
+          set -e
+          # Load nvm so pnpm, node, pm2 are in PATH
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          nvm use default 2>/dev/null || true
+          export PATH="$(dirname $(command -v node)):$PATH"
+
+          cd /home/revital/revital
+          git pull origin main
+
+          # Backend: install unit if changed, then restart
+          sudo cp /tmp/compralo-api.service /etc/systemd/system/compralo-api.service
+          sudo systemctl daemon-reload
+
+          cd revital_ecommerce/backend
+          source venv/bin/activate
+          pip install -r requirements.txt
+          sudo systemctl restart compralo-api
+
+          # Frontend (revital_ecommerce/frontend)
+          cd ../frontend
+          pnpm install
+          pnpm build
+          pm2 restart compralo || pm2 start pnpm --name compralo -- start
+          REMOTE_EOF

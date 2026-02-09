@@ -1,0 +1,771 @@
+{
+  "common": {
+    "welcome": "Welcome back",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "update": "Update",
+    "search": "Search",
+    "filter": "Filter",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "optional": "Optional",
+    "required": "Required",
+    "error": "Error",
+    "success": "Success",
+    "warning": "Warning",
+    "info": "Info",
+    "settings": "Settings"
+  },
+  "sidebar": {
+    "overview": "Overview",
+    "myStore": "My Store",
+    "subscription": "Subscription",
+    "settings": "Settings",
+    "dashboard": "Dashboard",
+    "myInstance": "My Instance",
+    "resources": "Resources",
+    "billing": "Billing",
+    "clientPortal": "Client Portal",
+    "adminPortal": "Admin Panel",
+    "clients": "Clients",
+    "instances": "Instances",
+    "subscriptions": "Subscriptions",
+    "plans": "Plans",
+    "management": "Management",
+    "profile": "Profile",
+    "logOut": "Log out",
+    "loggingOut": "Logging out..."
+  },
+  "hero": {
+    "title": "The All-in-One E-commerce Platform for Colombia",
+    "subtitle": "Create, manage and scale your online store with our comprehensive platform. Real-time statistics dashboard, product manager with automatic SEO, headless CMS and marketing tools.",
+    "primaryButton": "Create My Store",
+    "secondaryButton": "Request Demo",
+    "features": [
+      "Native Wompi integration for Colombia",
+      "Detailed real-time statistics dashboard",
+      "Simplified product manager with automatic SEO",
+      "Integrated, flexible and powerful headless CMS"
+    ]
+  },
+  "navigation": {
+    "logo": "Synkro",
+    "menuItems": {
+      "features": "Features",
+      "security": "Security",
+      "pricing": "Pricing",
+      "faq": "FAQ"
+    },
+    "ctaButton": "Get Started Free"
+  },
+  "features": {
+    "title": "Everything you need to sell online",
+    "subtitle": "A complete platform designed specifically for the Colombian market",
+    "items": {
+      "statistics": {
+        "title": "Detailed Statistics Dashboard",
+        "meta": "Real-time",
+        "description": "Visualize sales, conversions, best-selling products and customer behavior with interactive dashboards and exportable reports.",
+        "status": "Active",
+        "tags": ["Analytics", "Reports", "KPIs"]
+      },
+      "products": {
+        "title": "Advanced Product Manager",
+        "meta": "Bulk upload + SEO",
+        "description": "Manage inventory, variants, dynamic pricing, categories and automatic SEO optimization for each product.",
+        "status": "Optimized",
+        "tags": ["Inventory", "SEO", "Catalog"]
+      },
+      "wompi": {
+        "title": "Wompi Payments",
+        "meta": "Main gateway",
+        "description": "Native Wompi integration for Colombia. Discount configuration, coupons and points programs.",
+        "status": "Integrated",
+        "tags": ["Wompi", "Payments", "Discounts"]
+      },
+      "cms": {
+        "title": "Headless CMS + Integrated Blog",
+        "meta": "API-First",
+        "description": "Manage content, custom pages, SEO blog and landing pages without technical limitations.",
+        "tags": ["CMS", "Blog", "API"]
+      },
+      "marketing": {
+        "title": "Marketing Tools",
+        "description": "Configurable discounts, points system and automated campaigns"
+      },
+      "payments": {
+        "title": "Secure Payments",
+        "description": "Complete integration with Wompi for the Colombian market"
+      }
+    }
+  },
+  "security": {
+    "title": "Enterprise-Level Security",
+    "subtitle": "Your store and data are protected with the highest security standards",
+    "badge": "Security and Reliability",
+    "heading": "Your Business, Protected",
+    "subheading": "Enterprise-level infrastructure with the highest security certifications so you can focus on selling.",
+    "trustIndicators": "Companies trust our security:",
+    "items": {
+      "ssl": {
+        "title": "SSL/TLS Encryption",
+        "description": "All communications protected with military-grade encryption.",
+        "status": "Active"
+      },
+      "pci": {
+        "title": "PCI DSS Certification",
+        "description": "Full compliance with security standards for payment processing.",
+        "status": "Certified"
+      },
+      "backups": {
+        "title": "Automatic Backups",
+        "description": "Daily automatic backups with recovery in less than 4 hours.",
+        "status": "Daily"
+      },
+      "monitoring": {
+        "title": "Continuous Monitoring",
+        "description": "Infrastructure supervision to ensure maximum availability"
+      },
+      "uptime": {
+        "title": "99.9% Uptime",
+        "description": "Redundant infrastructure with availability guarantee.",
+        "status": "SLA"
+      },
+      "audits": {
+        "title": "Security Audits",
+        "description": "Monthly security reviews and penetration testing.",
+        "status": "Monthly"
+      },
+      "gdpr": {
+        "title": "GDPR Compliance",
+        "description": "Compliance with international data protection regulations.",
+        "status": "Compliant"
+      }
+    },
+    "stats": {
+      "uptime": "Guaranteed Uptime",
+      "recovery": "Recovery Time",
+      "encryption": "SSL Encryption",
+      "monitoring": "Security Monitoring"
+    }
+  },
+  "pricing": {
+    "title": "Plans that adapt to your business",
+    "subtitle": "Start free and scale as you grow",
+    "plans": {
+      "starter": {
+        "name": "Starter",
+        "price": "$0",
+        "period": "/month",
+        "description": "Perfect to start your online store",
+        "features": [
+          "Up to 100 products",
+          "Basic Wompi integration",
+          "Basic statistics dashboard",
+          "Email support",
+          "SSL included",
+          ".synkro.com domain"
+        ],
+        "cta": "Start Now"
+      },
+      "professional": {
+        "name": "Professional",
+        "price": "$49",
+        "period": "/month",
+        "description": "For growing businesses",
+        "features": [
+          "Unlimited products",
+          "All payment integrations",
+          "Advanced dashboard + analytics",
+          "Complete headless CMS",
+          "Priority support",
+          "Custom domain",
+          "Marketing automation",
+          "Complete API"
+        ],
+        "cta": "Choose Plan"
+      },
+      "enterprise": {
+        "name": "Enterprise",
+        "price": "Custom",
+        "period": "",
+        "description": "Custom solutions for large companies",
+        "features": [
+          "Everything from Professional plan",
+          "Priority support",
+          "Custom integrations",
+          "Guaranteed SLA",
+          "Specialized consulting",
+          "Dedicated infrastructure"
+        ],
+        "cta": "Contact Sales"
+      }
+    }
+  },
+  "faq": {
+    "title": "Frequently Asked Questions",
+    "subtitle": "We answer the most common questions about Synkro",
+    "notFound": "Can't find the answer you're looking for?",
+    "contactUs": "Contact us directly",
+    "questions": {
+      "wompi": {
+        "question": "What does the Wompi integration include?",
+        "answer": "Our Wompi integration includes payment processing with credit/debit cards, PSE, Nequi and other popular methods in Colombia. Automatic webhook configuration, payment status handling and automatic reconciliation."
+      },
+      "cms": {
+        "question": "How does the CMS work?",
+        "answer": "Our CMS allows you to create basic pages, blog posts and content for your store visually and easily. Perfect to start without technical complications."
+      },
+      "support": {
+        "question": "What kind of technical support do you offer?",
+        "answer": "We offer email support on all plans, priority chat on the Professional plan, and priority support on the Enterprise plan. We also include complete documentation, video tutorials and monthly webinars."
+      },
+      "customization": {
+        "question": "Can I customize my store design?",
+        "answer": "Yes, we include pre-designed templates and a basic visual editor to customize colors, logos and content. Ideal to start quickly with a professional design."
+      },
+      "security": {
+        "question": "How do you handle security and compliance?",
+        "answer": "We comply with PCI DSS standards for payments, use SSL/TLS encryption, daily automatic backups, and follow security best practices. All data is protected and stored on certified servers."
+      }
+    }
+  },
+  "contact": {
+    "title": "Ready to get started?",
+    "subtitle": "We're available to answer your questions, provide technical support or discuss how Synkro can boost your online business.",
+    "contactInfo": "Contact Information",
+    "phone": "Phone",
+    "email": "Email",
+    "web": "Web",
+    "form": {
+      "firstName": "First Name",
+      "firstNamePlaceholder": "Your first name",
+      "lastName": "Last Name",
+      "lastNamePlaceholder": "Your last name",
+      "nameLabel": "Full name",
+      "emailLabel": "Email",
+      "emailPlaceholder": "your@email.com",
+      "companyLabel": "Company",
+      "companyPlaceholder": "Your company name",
+      "interest": "What interests you?",
+      "selectOption": "Select an option",
+      "options": {
+        "store": "Create an online store",
+        "migrate": "Migrate my current store",
+        "integration": "Integrations with other platforms",
+        "demo": "Request a demo",
+        "support": "Technical support",
+        "other": "Other reason"
+      },
+      "messageLabel": "Message",
+      "messagePlaceholder": "Write your message here...",
+      "submitButton": "Send Message"
+    }
+  },
+  "footer": {
+    "company": {
+      "name": "Synkro",
+      "description": "The all-in-one e-commerce platform designed for the Colombian market. Build, manage, and scale your online store with ease."
+    },
+    "sections": {
+      "platform": {
+        "label": "Platform"
+      },
+      "product": {
+        "label": "Product",
+        "links": {
+          "features": "Features",
+          "pricing": "Pricing",
+          "testimonials": "Testimonials",
+          "integrations": "Integrations"
+        }
+      },
+      "company": {
+        "label": "Company",
+        "links": {
+          "faq": "FAQ",
+          "about": "About Us",
+          "privacy": "Privacy Policy",
+          "terms": "Terms of Service",
+          "contact": "Contact"
+        }
+      },
+      "resources": {
+        "label": "Resources",
+        "links": {
+          "blog": "Blog",
+          "changelog": "Updates",
+          "docs": "Documentation",
+          "support": "Support"
+        }
+      },
+      "social": {
+        "label": "Follow Us",
+        "links": {
+          "facebook": "Facebook",
+          "instagram": "Instagram",
+          "twitter": "Twitter",
+          "linkedin": "LinkedIn"
+        }
+      }
+    },
+    "copyright": "© {year} Synkro. All rights reserved."
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "description": "Sign in to access your panel",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "you@company.com",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "••••••••",
+      "forgotPassword": "Forgot your password?",
+      "submitButton": "Sign in",
+      "submitting": "Signing in...",
+      "noAccount": "Don't have an account yet?",
+      "registerLink": "Sign up",
+      "backToHome": "Back to home"
+    },
+    "register": {
+      "title": "Create your account",
+      "description": "Start your e-commerce journey with Synkro",
+      "nameLabel": "Full name",
+      "emailLabel": "Email address",
+      "passwordLabel": "Password",
+      "confirmPasswordLabel": "Confirm password",
+      "submitButton": "Create account",
+      "submitting": "Creating account...",
+      "hasAccount": "Already have an account?",
+      "loginLink": "Sign in"
+    },
+    "forgotPassword": {
+      "title": "Forgot password",
+      "description": "Enter your email and we'll send you a reset link",
+      "emailLabel": "Email address",
+      "submitButton": "Send reset link",
+      "submitting": "Sending...",
+      "backToLogin": "Back to login"
+    },
+    "resetPassword": {
+      "title": "Reset password",
+      "description": "Enter your new password",
+      "passwordLabel": "New password",
+      "confirmPasswordLabel": "Confirm new password",
+      "submitButton": "Reset password",
+      "submitting": "Resetting..."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back, {name}!",
+    "subtitle": "Here's a summary of your e-commerce platform status.",
+    "metrics": {
+      "instanceStatus": "Instance Status",
+      "currentPlan": "Current Plan",
+      "pendingInvoices": "Pending Invoices",
+      "resourceUsage": "Resource Usage"
+    },
+    "values": {
+      "active": "Active",
+      "noInstance": "No instance",
+      "noPlan": "No plan",
+      "allPaid": "All paid",
+      "pendingPayment": "Pending payment",
+      "productsUsed": "Products used",
+      "selectPlanToStart": "Select a plan to get started"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "viewStore": "View my store",
+      "manageInstance": "Manage instance",
+      "viewInvoices": "View invoices",
+      "resourceUsage": "Resource usage"
+    },
+    "subscription": {
+      "title": "Current Plan",
+      "started": "Started",
+      "nextPayment": "Next payment",
+      "manageSubscription": "Manage Subscription"
+    }
+  },
+  "subscription": {
+    "title": "Subscription",
+    "subtitle": "Manage your subscription and billing preferences.",
+    "currentPlan": {
+      "title": "Current Plan",
+      "description": "Your active subscription",
+      "noSubscription": {
+        "title": "No Active Subscription",
+        "description": "Choose a plan below to get started with Synkro."
+      },
+      "started": "Started",
+      "nextPayment": "Next payment",
+      "planFeatures": "Plan Features",
+      "planLimits": "Plan Limits",
+      "products": "Products",
+      "users": "Users",
+      "storage": "GB Storage"
+    },
+    "availablePlans": {
+      "title": "Available Plans",
+      "subtitle": "Upgrade or downgrade your plan at any time.",
+      "subtitleNoSubscription": "Choose the plan that best fits your needs.",
+      "currentPlanBadge": "Current Plan",
+      "upgrade": "Upgrade",
+      "downgrade": "Downgrade",
+      "selectPlan": "Select Plan",
+      "perMonth": "/month",
+      "perYear": "/year",
+      "or": "or",
+      "save20": " (save 20%)",
+      "unlimited": "unlimited",
+      "upTo": "Up to {count} products",
+      "upToUsers": "Up to {count} users",
+      "unlimitedProducts": "Up to unlimited products",
+      "unlimitedUsers": "Up to unlimited users"
+    },
+    "planHistory": {
+      "title": "Plan History",
+      "noHistory": "No plan changes recorded yet.",
+      "priceChanged": "Price changed: {oldPrice} → {newPrice}",
+      "reason": "Reason: {reason}",
+      "paginationShowing": "Showing {from}-{to} of {total}",
+      "previous": "Previous",
+      "next": "Next"
+    },
+    "changePlan": {
+      "title": "Change Plan",
+      "description": "Are you sure you want to change to the {planName} plan?",
+      "newPrice": "Your new price will be {price}/month.",
+      "payWithStripe": "You will be redirected to Stripe to complete payment for the new plan.",
+      "reasonLabel": "Reason for change",
+      "reasonPlaceholder": "e.g. Need more products or users",
+      "cancel": "Cancel",
+      "confirm": "Confirm Change",
+      "confirmAndPay": "Confirm and pay with Stripe",
+      "applying": "Applying..."
+    },
+    "selectPlan": {
+      "title": "Select Plan",
+      "description": "Are you sure you want to select the {planName} plan?",
+      "price": "The price will be {price}/month.",
+      "confirm": "Confirm Selection",
+      "creating": "Creating subscription..."
+    },
+    "create": {
+      "errors": {
+        "userInfoNotAvailable": "Could not get user information. Please reload the page."
+      }
+    }
+  },
+  "billing": {
+    "title": "Billing",
+    "subtitle": "Manage your invoices and payment methods",
+    "stats": {
+      "totalPaid": "Total paid",
+      "pending": "Pending",
+      "totalInvoices": "Total invoices"
+    },
+    "overdue": {
+      "title": "You have {count} overdue invoice{plural}",
+      "description": "Please make payment as soon as possible to avoid service interruption."
+    },
+    "tabs": {
+      "all": "All",
+      "pending": "Pending",
+      "paid": "Paid"
+    },
+    "empty": {
+      "all": "No invoices found.",
+      "pending": "You have no pending invoices. You're all caught up!",
+      "paid": "You don't have any paid invoices yet."
+    },
+    "invoice": {
+      "title": "Invoice {number}",
+      "issuedOn": "Issued on {date}",
+      "notFound": "Invoice Not Found",
+      "notFoundDescription": "The invoice you're looking for doesn't exist or has been deleted.",
+      "backToBilling": "Back to Billing",
+      "details": "Invoice Details",
+      "billingPeriod": "Billing Period",
+      "items": "Items",
+      "summary": "Summary",
+      "subscriptionPayment": "Subscription payment",
+      "subtotal": "Subtotal",
+      "discounts": "Discounts",
+      "taxes": "Taxes",
+      "total": "Total",
+      "paymentInfo": "Payment Information",
+      "status": "Status",
+      "dueDate": "Due Date",
+      "paidOn": "Paid On",
+      "paymentMethod": "Payment Method",
+      "reference": "Reference",
+      "notes": "Notes",
+      "payNow": "Pay Now",
+      "processing": "Processing...",
+      "paymentError": "Error processing payment. Please try again.",
+      "downloadPDF": "Download PDF",
+      "downloadStarted": "Download started",
+      "downloadError": "Error downloading PDF. Please try again.",
+      "overdue": "Overdue"
+    },
+    "status": {
+      "paid": "Paid",
+      "pending": "Pending",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "success": {
+      "pageTitle": "Payment Successful",
+      "pageSubtitle": "Your payment has been processed successfully",
+      "title": "Payment Successful!",
+      "description": "Your invoice has been paid successfully. You will receive a confirmation email.",
+      "sessionId": "Session ID",
+      "backToBilling": "Back to Billing",
+      "backToDashboard": "Go to Dashboard"
+    }
+  },
+  "instance": {
+    "title": "Instance",
+    "subtitle": "Manage your e-commerce instance",
+    "create": {
+      "title": "Create Your E-commerce",
+      "description": "Set up your online store in just a few minutes. Choose a name and unique identifier for your store.",
+      "storeName": "Store Name",
+      "storeNamePlaceholder": "My Awesome Store",
+      "storeNameHelp": "This is the display name for your store.",
+      "storeSlug": "Store URL Slug",
+      "storeSlugHelp": "Only lowercase letters, numbers, and hyphens. This will be your store's URL.",
+      "createButton": "Create my e-commerce",
+      "creating": "Creating...",
+      "noSubscriptionWarning": {
+        "title": "Plan Required",
+        "description": "You must have an active plan to create an instance. Select a plan first.",
+        "selectPlan": "Select Plan"
+      },
+      "errors": {
+        "userInfoNotAvailable": "User information not available",
+        "fillAllFields": "Please fill all fields",
+        "invalidSlug": "Slug should only contain lowercase letters, numbers and hyphens",
+        "noActiveSubscription": "You must have an active plan to create an instance. Please select a plan first."
+      }
+    },
+    "noInstance": {
+      "title": "No Instance Yet",
+      "description": "Create your e-commerce instance to start tracking resource usage.",
+      "createButton": "Create Instance"
+    },
+    "info": {
+      "title": "Instance Information",
+      "storeUrl": "Store URL",
+      "viewStore": "View Store",
+      "version": "Version",
+      "region": "Region",
+      "activated": "Activated",
+      "lastDeploy": "Last Deploy"
+    },
+    "domains": {
+      "title": "Domains",
+      "addDomain": "Add Domain",
+      "noDomains": "No custom domains configured yet.",
+      "addTitle": "Add Custom Domain",
+      "addDescription": "Add a custom domain to your store. You'll need to configure DNS settings.",
+      "domainName": "Domain Name",
+      "domainPlaceholder": "www.mystore.com",
+      "adding": "Adding...",
+      "addButton": "Add Domain",
+      "sslEnabled": "SSL enabled",
+      "sslDisabled": "SSL disabled",
+      "errors": {
+        "enterDomainName": "Please enter a domain name"
+      },
+      "status": {
+        "activo": "Active",
+        "error": "Error",
+        "pendiente": "Pending"
+      },
+      "type": {
+        "personalizado": "Custom",
+        "predeterminado": "Default"
+      }
+    },
+    "deployments": {
+      "title": "Recent Deployments",
+      "noDeployments": "No deployments yet."
+    },
+    "settings": {
+      "title": "Instance Settings",
+      "subtitle": "Configure your e-commerce instance",
+      "general": "General Settings",
+      "generalDescription": "Update your instance's basic information",
+      "storeName": "Store Name",
+      "subdomain": "Subdomain",
+      "subdomainSuffix": ".synkro.store",
+      "customDomain": "Custom Domain",
+      "customDomainPlaceholder": "www.mystore.com",
+      "customDomainHelp": "Configure DNS to point to your store",
+      "region": "Deployment Region",
+      "regionPlaceholder": "Select region",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes",
+      "notFound": "No instance found",
+      "goToInstance": "Go to Instance",
+      "regions": {
+        "us-east-1": "US East (N. Virginia)",
+        "us-west-2": "US West (Oregon)",
+        "sa-east-1": "South America (São Paulo)",
+        "eu-west-1": "Europe (Ireland)",
+        "eu-central-1": "Europe (Frankfurt)",
+        "ap-southeast-1": "Asia Pacific (Singapore)",
+        "ap-northeast-1": "Asia Pacific (Tokyo)"
+      }
+    }
+  },
+  "resources": {
+    "title": "Resource Usage",
+    "subtitle": "Monitor your e-commerce resource consumption.",
+    "noInstance": {
+      "title": "No Instance Yet",
+      "description": "Create your e-commerce instance to start tracking resource usage.",
+      "createButton": "Create Instance"
+    },
+    "upgradePlan": "Upgrade Plan",
+    "alert": {
+      "title": "Resource Usage Alert",
+      "description": "One or more resources are approaching their limits. Consider upgrading your plan to avoid service interruption."
+    },
+    "products": "Products",
+    "users": "Users",
+    "storage": "Storage",
+    "used": "{percentage}% used",
+    "remaining": "{count} {unit} remaining",
+    "approachingLimit": "Approaching limit - consider upgrading",
+    "planLimits": {
+      "title": "Current Plan Limits",
+      "description": "Your {planName} plan includes the following resource limits.",
+      "maxProducts": "Max Products",
+      "maxUsers": "Max Users",
+      "gbStorage": "GB Storage",
+      "needMore": "Need more resources? Upgrade to a higher plan.",
+      "viewPlans": "View Available Plans"
+    },
+    "lastUpdated": "Last updated: {date}"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account and preferences.",
+    "sections": {
+      "profile": {
+        "title": "Profile",
+        "description": "Manage your company and contact information"
+      },
+      "security": {
+        "title": "Security",
+        "description": "Change your password and security settings"
+      },
+      "notifications": {
+        "title": "Notifications",
+        "description": "Configure email and push notifications"
+      }
+    },
+    "comingSoon": "Coming Soon",
+    "accountInfo": "Account Information",
+    "companyProfile": "Company Profile",
+    "password": "Password",
+    "profile": {
+      "title": "Company Profile",
+      "subtitle": "Update your company and contact information",
+      "companyInfo": "Company Information",
+      "companyInfoDescription": "Your business details and registration information",
+      "companyName": "Company Name",
+      "companyEmail": "Company Email",
+      "phoneNumber": "Phone Number",
+      "country": "Country",
+      "countryPlaceholder": "Select country",
+      "city": "City",
+      "address": "Address",
+      "primaryContact": "Primary Contact",
+      "primaryContactDescription": "The main person we should contact about your account",
+      "fullName": "Full Name",
+      "email": "Email",
+      "phone": "Phone",
+      "saving": "Saving...",
+      "saveChanges": "Save Changes",
+      "countries": {
+        "CO": "Colombia",
+        "US": "United States",
+        "MX": "Mexico",
+        "AR": "Argentina",
+        "CL": "Chile",
+        "PE": "Peru",
+        "EC": "Ecuador",
+        "PA": "Panama",
+        "UY": "Uruguay",
+        "BR": "Brazil",
+        "ES": "Spain",
+        "OTRO": "Other"
+      }
+    },
+    "security": {
+      "title": "Security Settings",
+      "subtitle": "Manage your password and security preferences",
+      "changePassword": "Change Password",
+      "changePasswordDescription": "Update your password to keep your account secure",
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "confirmPassword": "Confirm New Password",
+      "passwordHelp": "Must be at least 8 characters",
+      "updating": "Updating...",
+      "updatePassword": "Update Password",
+      "securityTips": "Security Tips",
+      "errors": {
+        "fillAllFields": "Please fill in all password fields",
+        "minLength": "New password must be at least 8 characters",
+        "passwordsDontMatch": "New passwords do not match",
+        "samePassword": "New password must be different from current password"
+      },
+      "tips": {
+        "unique": "Use a unique password that you don't use for other accounts",
+        "mix": "Include a mix of uppercase, lowercase, numbers, and symbols",
+        "avoid": "Avoid using easily guessable information like birthdays or names",
+        "change": "Change your password regularly to maintain security",
+        "share": "Never share your password with anyone"
+      }
+    }
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "subtitle": "Global view of clients, instances and Synkro billing.",
+    "dateRange": {
+      "30d": "Last 30 days",
+      "90d": "Last 90 days",
+      "180d": "Last 180 days"
+    },
+    "metrics": {
+      "activeClients": "Active Clients",
+      "totalInstances": "Total Instances",
+      "approximateMRR": "Approximate MRR",
+      "revenue30Days": "Revenue 30 days"
+    },
+    "charts": {
+      "revenue": "Revenue",
+      "clientsFunnel": "Clients Funnel (6 months)",
+      "instancesByPlan": "Instances by Plan",
+      "clientsGrowth": "Clients growth trend",
+      "instancesByStatus": "Instances by status",
+      "instancesByRegion": "Instances by region",
+      "mrrByPlan": "MRR by plan"
+    }
+  }
+}

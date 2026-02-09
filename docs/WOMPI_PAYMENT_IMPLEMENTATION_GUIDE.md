@@ -2,7 +2,7 @@
 
 ## 📋 Resumen
 
-Esta guía te explica cómo implementar y usar Wompi para el sistema de pagos del carrito en Synkro. Ya tienes la infraestructura backend implementada, ahora te explico cómo usarla y completar la integración.
+Esta guía te explica cómo implementar y usar Wompi para el sistema de pagos del carrito en Revital. Ya tienes la infraestructura backend implementada, ahora te explico cómo usarla y completar la integración.
 
 ## 🏗️ Arquitectura Actual
 

@@ -5,7 +5,7 @@ description: >
   Trigger: When working with Tailwind classes or styling components.
 license: MIT
 metadata:
-  author: synkro
+  author: revital
   version: "1.0"
   scope: [root]
   auto_invoke: "Working with Tailwind classes"

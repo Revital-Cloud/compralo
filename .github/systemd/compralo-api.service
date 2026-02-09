@@ -1,0 +1,16 @@
+[Unit]
+Description=Compralo E-commerce API (FastAPI)
+After=network.target
+
+[Service]
+Type=simple
+User=revital
+Group=revital
+WorkingDirectory=/home/revital/revital/revital_ecommerce/backend
+
+ExecStart=/home/revital/revital/revital_ecommerce/backend/venv/bin/fastapi run app/main.py --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
