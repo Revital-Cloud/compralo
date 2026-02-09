@@ -53,8 +53,21 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Compralo API",
     description="API para la plataforma Compralo",
-    version="1.0.0"
+    version="1.0.0",
 )
+
+# Orígenes permitidos para CORS (dev y prod)
+ALLOWED_CORS_ORIGINS = [
+    # Producción
+    "https://compralo.revital.cloud",
+    # Frontend local en dev
+    "http://localhost:3001",
+    # Frontend dev expuesto por IP del servidor
+    "http://46.225.94.64:3001",
+    # Compatibilidad con puerto 3002 si se usa en algún entorno
+    "http://localhost:3002",
+    "http://46.225.94.64:3002",
+]
 
 def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
     """
@@ -75,15 +88,6 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 # Compresión de respuestas (mejora Lighthouse uses-text-compression)
 app.add_middleware(GZipMiddleware, minimum_size=500)
-
-# Configurar CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://compralo.revital.cloud"],  # En producción, especificar dominios específicos
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Agregar middleware de seguridad
 app.add_middleware(SecurityMiddleware)
@@ -120,10 +124,11 @@ app.add_middleware(
     ]
 )
 
-# Configurar CORS como capa más externa (debe ir DESPUÉS para que envuelva todas las respuestas)
+# Configurar CORS como capa más externa (debe ir AL FINAL para que se ejecute PRIMERO)
+# En FastAPI, los middlewares se ejecutan en orden inverso al que se agregan
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://compralo.revital.cloud"],  # En producción, especificar dominios específicos
+    allow_origins=ALLOWED_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
