@@ -2,6 +2,7 @@ import EcommerceHeroCarousel from "@/components/layout/shop/hero/hero";
 import FeaturedProducts from "@/components/layout/shop/featured-products/featured-products";
 import { FeaturedCategoriesClient, TestimonialsSectionClient } from "./home-sections.client";
 import { NoSSR, CookieBanner } from "@/components/ui";
+import { InformativeChatbotWidget } from "@/components/chatbot-widget/informative-chatbot-widget";
 
 export default function Home() {
   return (
@@ -20,6 +21,11 @@ export default function Home() {
       
       <NoSSR>
         <CookieBanner />
+      </NoSSR>
+
+      {/* Solo en Home - Bot Asistente */}
+      <NoSSR>
+        <InformativeChatbotWidget />
       </NoSSR>
     </div>
   );

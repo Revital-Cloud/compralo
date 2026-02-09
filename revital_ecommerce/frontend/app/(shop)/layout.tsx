@@ -3,11 +3,10 @@
 import EcommerceHeader from "@/components/layout/shop/header/header";
 import { defaultMenuItems } from "@/lib/menu-config";
 import EcommerceFooter from "@/components/layout/shop/footer/footer";
-import { InformativeChatbotWidget } from "@/components/chatbot-widget/informative-chatbot-widget";
 import { TopInfoBar } from "@/components/layout/shop/top-info-bar";
 import { useAuth } from "@/hooks/use-auth";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export default function ShopLayout({
   children,
@@ -16,16 +15,17 @@ export default function ShopLayout({
 }>) {
   const { user, isAuthenticated, isLoadingUser, isHydrated } = useAuth();
   const router = useRouter();
+  const redirectDone = useRef(false);
 
-  // Solo redirigir admins, no proteger la ruta
+  // Solo redirigir admins una vez, no proteger la ruta
   useEffect(() => {
-    if (isHydrated && !isLoadingUser && isAuthenticated) {
-      const userRole = Number(user?.id_rol);
-      if (userRole === 1) {
-        router.replace('/admin');
-      }
+    if (redirectDone.current || !isHydrated || isLoadingUser || !isAuthenticated) return;
+    const userRole = Number(user?.id_rol);
+    if (userRole === 1) {
+      redirectDone.current = true;
+      router.replace('/admin');
     }
-  }, [isHydrated, isLoadingUser, isAuthenticated, user, router]);
+  }, [isHydrated, isLoadingUser, isAuthenticated, user?.id_rol, router]);
 
   // Mostrar loader mientras se carga
   if (!isHydrated || isLoadingUser) {
@@ -49,7 +49,6 @@ export default function ShopLayout({
       />
       {children}
       <EcommerceFooter />
-      <InformativeChatbotWidget />
     </>
   );
 }

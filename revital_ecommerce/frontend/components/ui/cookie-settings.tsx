@@ -124,16 +124,15 @@ export function CookieSettings() {
           <Separator />
 
           {/* Acciones */}
-          <div className="flex justify-between items-center pt-4">
+          <div className="flex flex-col gap-4 pt-4 sm:flex-row sm:justify-between sm:items-center">
             <Button
               variant="destructive"
               onClick={handleRevokeConsent}
-              className="text-sm"
+              className="text-sm w-full sm:w-auto"
             >
               Revocar Consentimiento
             </Button>
-            
-            <div className="text-xs text-gray-500 dark:text-gray-400">
+            <div className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
               Última actualización: {new Date(cookieConsent.timestamp).toLocaleDateString()}
             </div>
           </div>
