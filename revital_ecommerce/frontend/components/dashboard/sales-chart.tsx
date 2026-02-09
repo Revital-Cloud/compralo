@@ -3,8 +3,10 @@
 import React, { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui"
 import { Button } from "@/components/ui"
-import { Select } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui"
 import { IconDownload } from "@tabler/icons-react"
+import { formatPrice } from "@/utils/format-price"
 
 interface SalesDataPoint {
   month: string
@@ -36,14 +38,16 @@ export const SalesChart = ({ salesData, summary, loading }: SalesChartProps) => 
             <CardDescription>Rendimiento de ventas mensual</CardDescription>
           </div>
           <div className="flex items-center space-x-2">
-            <Select defaultValue="monthly" className="w-28">
-              <option value="weekly">Semanal</option>
-              <option value="monthly">Mensual</option>
-              <option value="yearly">Anual</option>
-            </Select>
-            <Button variant="outline" size="sm">
-              <IconDownload className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" aria-label="Descargar resumen">
+                  <IconDownload className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>Esta funcionalidad está en desarrollo</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </CardHeader>
@@ -73,8 +77,8 @@ export const SalesChart = ({ salesData, summary, loading }: SalesChartProps) => 
                       }}
                     />
                     {hoveredIndex === index && (
-                      <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
-                        ${data.revenue.toFixed(0)} ingresos
+                      <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground border border-border text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
+                        {formatPrice(data.revenue)} ingresos
                       </div>
                     )}
                   </div>
@@ -84,7 +88,7 @@ export const SalesChart = ({ salesData, summary, loading }: SalesChartProps) => 
             </div>
             <div className="mt-6 flex items-center justify-between">
               <div className="space-y-1">
-                <span className="text-2xl font-bold">${summary.totalSales}</span>
+                <span className="text-2xl font-bold">{formatPrice(summary.totalSales)}</span>
                 <p className="text-sm text-muted-foreground">{summary.totalOrders} órdenes</p>
               </div>
               <div className="text-right space-y-1">

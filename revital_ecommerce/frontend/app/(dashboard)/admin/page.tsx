@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   IconShoppingCart, 
   IconCash,
@@ -17,13 +17,39 @@ import {
   DashboardHeader,
   LoadingSkeleton
 } from '@/components/dashboard'
+import type { DashboardRefreshIntervalKey } from '@/components/dashboard/dashboard-header'
 
 // Custom Hook
-import { useDashboardData } from '@/hooks/use-dashboard-data'
+import { useDashboardData, DASHBOARD_REFRESH_INTERVALS } from '@/hooks/use-dashboard-data'
+
+const STORAGE_KEY = 'dashboard-refresh-interval'
+const DEFAULT_REFRESH: DashboardRefreshIntervalKey = '30s'
 
 const AdminDashboard = () => {
   const [timeRange, setTimeRange] = useState('monthly')
-  const { data, loading, lastUpdate, refetch } = useDashboardData(timeRange)
+  const [refreshInterval, setRefreshInterval] = useState<DashboardRefreshIntervalKey>(DEFAULT_REFRESH)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY) as DashboardRefreshIntervalKey | null
+      if (stored && Object.keys(DASHBOARD_REFRESH_INTERVALS).includes(stored)) {
+        setRefreshInterval(stored)
+      }
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, refreshInterval)
+    } catch {
+      // ignore
+    }
+  }, [refreshInterval])
+
+  const refreshIntervalMs = DASHBOARD_REFRESH_INTERVALS[refreshInterval as keyof typeof DASHBOARD_REFRESH_INTERVALS] ?? 30_000
+  const { data, loading, lastUpdate, refetch } = useDashboardData(timeRange, refreshIntervalMs)
 
   // Show loading skeleton on initial load
   if (!data && loading) {
@@ -36,6 +62,8 @@ const AdminDashboard = () => {
       <DashboardHeader
         timeRange={timeRange}
         onTimeRangeChange={setTimeRange}
+        refreshInterval={refreshInterval}
+        onRefreshIntervalChange={setRefreshInterval}
         loading={loading}
         lastUpdate={lastUpdate}
         onRefresh={refetch}

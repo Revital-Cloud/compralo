@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { dashboardService } from '@/services/dashboard.service'
 import type { KPIData } from '@/components/dashboard/kpi-card'
 import type { SalesDataPoint } from '@/components/dashboard/sales-chart'
@@ -21,12 +21,26 @@ interface DashboardData {
   }
 }
 
-export const useDashboardData = (timeRange: string) => {
+/** Intervalo en ms. 0 = sin auto-actualización. */
+export const DASHBOARD_REFRESH_INTERVALS = {
+  off: 0,
+  '30s': 30_000,
+  '1m': 60_000,
+  '2m': 120_000,
+  '5m': 300_000,
+} as const
+
+export type DashboardRefreshIntervalKey = keyof typeof DASHBOARD_REFRESH_INTERVALS
+
+export const useDashboardData = (
+  timeRange: string,
+  refreshIntervalMs: number = 30_000
+) => {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(false)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     
     try {
@@ -96,17 +110,18 @@ export const useDashboardData = (timeRange: string) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [timeRange])
 
   useEffect(() => {
     fetchData()
-  }, [timeRange])
+  }, [fetchData])
 
-  // Auto-refresh cada 30 segundos
+  // Auto-refresh según el intervalo elegido (0 = desactivado)
   useEffect(() => {
-    const interval = setInterval(fetchData, 30000)
+    if (refreshIntervalMs <= 0) return
+    const interval = setInterval(fetchData, refreshIntervalMs)
     return () => clearInterval(interval)
-  }, [timeRange])
+  }, [refreshIntervalMs, fetchData])
 
   return { data, loading, lastUpdate, refetch: fetchData }
 } 

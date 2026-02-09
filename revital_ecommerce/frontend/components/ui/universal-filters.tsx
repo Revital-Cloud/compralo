@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui";
 import { Input } from "@/components/ui";
 import { Button } from "@/components/ui";
 import { Badge } from "@/components/ui";
-import { Select } from "@/components/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import {
   IconSearch,
   IconFilter,
@@ -54,21 +54,24 @@ export const UniversalFilters: React.FC<UniversalFiltersProps> = ({
 
       case 'select':
         return (
-          <Select 
-            value={filter.value || "all"} 
-            onChange={(e) => filter.onChange?.(e.target.value === "all" ? "" : e.target.value)}
-            className="h-9 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20"
-            sizeVariant="sm"
+          <Select
+            value={filter.value && String(filter.value) ? String(filter.value) : "all"}
+            onValueChange={(v) => filter.onChange?.(v === "all" ? "" : v)}
             disabled={filter.isLoading}
           >
-            <option value="all">
-              {filter.isLoading ? 'Cargando...' : `Todos los ${filter.label.toLowerCase()}`}
-            </option>
-            {!filter.isLoading && filter.options?.map((option, idx) => (
-              <option key={`${filter.id}-${String(option.id)}-${idx}`} value={String(option.id)}>
-                {option.label || option.nombre}
-              </option>
-            ))}
+            <SelectTrigger className="h-9 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20">
+              <SelectValue placeholder={filter.isLoading ? 'Cargando...' : `Todos los ${filter.label.toLowerCase()}`} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                {filter.isLoading ? 'Cargando...' : `Todos los ${filter.label.toLowerCase()}`}
+              </SelectItem>
+              {!filter.isLoading && filter.options?.map((option, idx) => (
+                <SelectItem key={`${filter.id}-${String(option.id)}-${idx}`} value={String(option.id)}>
+                  {option.label || option.nombre}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
         );
 
@@ -148,17 +151,17 @@ export const UniversalFilters: React.FC<UniversalFiltersProps> = ({
                     <label className="text-xs font-medium text-gray-300/90 dark:text-gray-300">
                       Ordenar:
                     </label>
-                    <Select 
-                      value={sortBy} 
-                      onChange={(e) => onSortByChange(e.target.value)}
-                      className="h-8 text-sm w-full min-w-[140px]"
-                      sizeVariant="sm"
-                    >
-                      {sortOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
+                    <Select value={sortBy} onValueChange={onSortByChange}>
+                      <SelectTrigger className="h-8 text-sm w-full min-w-[140px]">
+                        <SelectValue placeholder="Ordenar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sortOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
 
                     {/* Botón de orden */}

@@ -8,6 +8,7 @@ import {
   SortingState,
   useReactTable,
   Row,
+  PaginationState,
 } from '@tanstack/react-table'
 import {
   Table as UITable,
@@ -18,15 +19,21 @@ import {
   TableRow,
 } from "@/components/ui"
 import { Button } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
 import { cn } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+
+const DEFAULT_PAGE_SIZE_OPTIONS = [5, 10, 20, 50]
 
 export type GenericTableProps<TData, TValue> = {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   pageSize?: number
+  /** Opciones para el select "Filas por página". Si no se pasa, se usa [5, 10, 20, 50] */
+  pageSizeOptions?: number[]
   className?: string
-  emptyMessage?: string
+  /** Contenido a mostrar cuando no hay filas (se renderiza dentro del tbody). */
+  emptyMessage?: React.ReactNode
   actions?: (row: Row<TData>) => React.ReactNode
   actionsHeader?: React.ReactNode
   /** Clave única por fila (evita duplicados cuando id_linea/id_sublinea se repiten por categoría) */
@@ -37,6 +44,7 @@ function DataTable<TData, TValue>({
   columns,
   data,
   pageSize = 10,
+  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   className,
   emptyMessage = 'No hay datos disponibles',
   actions,
@@ -44,19 +52,26 @@ function DataTable<TData, TValue>({
   getRowId,
 }: GenericTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
+  const [pagination, setPagination] = React.useState<PaginationState>({
+    pageIndex: 0,
+    pageSize,
+  })
 
   const table = useReactTable({
     data,
     columns,
     getRowId: getRowId as (row: TData, index: number) => string,
-    state: { sorting },
+    state: { sorting, pagination },
     onSortingChange: setSorting,
+    onPaginationChange: (updater) => {
+      setPagination((prev) => {
+        const next = typeof updater === 'function' ? updater(prev) : prev
+        return next ?? prev
+      })
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    initialState: {
-      pagination: { pageIndex: 0, pageSize },
-    },
   })
 
   return (
@@ -120,28 +135,52 @@ function DataTable<TData, TValue>({
         </TableBody>
       </UITable>
 
-      <div className="flex items-center justify-end gap-2">
-        <div className="text-sm text-muted-foreground mr-auto">
-          Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount() || 1}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">Filas por página</span>
+          <Select
+            value={String(table.getState().pagination.pageSize)}
+            onValueChange={(v) => {
+              const size = Number(v)
+              table.setPageSize(size)
+              table.setPageIndex(0)
+            }}
+          >
+            <SelectTrigger className="h-8 w-[72px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {pageSizeOptions.map((n) => (
+                <SelectItem key={n} value={String(n)}>
+                  {n}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          <ChevronLeft className="mr-1" />
-          Anterior
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Siguiente
-          <ChevronRight className="ml-1" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">
+            Página {table.getState().pagination.pageIndex + 1} de {table.getPageCount() || 1}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <ChevronLeft className="mr-1" />
+            Anterior
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            Siguiente
+            <ChevronRight className="ml-1" />
+          </Button>
+        </div>
       </div>
     </div>
   )

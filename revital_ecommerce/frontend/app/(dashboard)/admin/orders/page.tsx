@@ -12,7 +12,13 @@ import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui"
 import { IconEye, IconCalendar, IconUser, IconMail, IconShoppingCart } from '@tabler/icons-react'
 import Link from 'next/link'
+import { parseDateSafe } from '@/utils/date-helpers'
 import type { Order, OrderFilters as OrderFiltersType } from '@/types/order'
+
+/** Devuelve el timestamp de inicio del día en hora local para una fecha (para comparar solo por día). */
+function getLocalDayStart(d: Date): number {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+}
 
 const OrdersPage = () => {
   const [filters, setFilters] = useState<OrderFiltersType>({
@@ -51,15 +57,14 @@ const OrdersPage = () => {
   const filteredOrders = useMemo(() => {
     let filtered = orders
 
-    // Filtrar por búsqueda
+    // Filtrar por búsqueda (campos pueden venir como número del API)
     if (filters.search) {
-      const q = filters.search.toLowerCase()
+      const q = String(filters.search).toLowerCase()
       filtered = filtered.filter(order => {
-        const id = (order.id_orden || '').toLowerCase()
-        const nom = (order.nom_usuario || '').toLowerCase()
-        const ape = (order.ape_usuario || '').toLowerCase()
-        const email = (order.email_usuario || '').toLowerCase()
-        
+        const id = String(order.id_orden ?? '').toLowerCase()
+        const nom = String(order.nom_usuario ?? '').toLowerCase()
+        const ape = String(order.ape_usuario ?? '').toLowerCase()
+        const email = String(order.email_usuario ?? '').toLowerCase()
         return id.includes(q) || nom.includes(q) || ape.includes(q) || email.includes(q)
       })
     }
@@ -69,26 +74,18 @@ const OrdersPage = () => {
       filtered = filtered.filter(order => order.ind_estado === filters.status)
     }
 
-    // Filtrar por fechas
-    if (filters.dateFrom) {
-      const fromDate = new Date(filters.dateFrom)
+    // Filtrar por fechas (en hora local para no depender de UTC)
+    const fromLocal = parseDateSafe(filters.dateFrom)
+    const toLocal = parseDateSafe(filters.dateTo)
+    if (fromLocal || toLocal) {
+      const fromTs = fromLocal ? getLocalDayStart(fromLocal) : -Infinity
+      const toTs = toLocal ? getLocalDayStart(toLocal) : Infinity
       filtered = filtered.filter(order => {
         if (!order.fec_pedido) return false
         try {
-          return new Date(order.fec_pedido) >= fromDate
-        } catch {
-          return false
-        }
-      })
-    }
-
-    if (filters.dateTo) {
-      const toDate = new Date(filters.dateTo)
-      toDate.setHours(23, 59, 59, 999) // Incluir todo el día
-      filtered = filtered.filter(order => {
-        if (!order.fec_pedido) return false
-        try {
-          return new Date(order.fec_pedido) <= toDate
+          const orderDate = new Date(order.fec_pedido)
+          const orderDayTs = getLocalDayStart(orderDate)
+          return orderDayTs >= fromTs && orderDayTs <= toTs
         } catch {
           return false
         }
@@ -203,14 +200,14 @@ const OrdersPage = () => {
     setFilters(newFilters)
   }
 
-  const handleSearch = () => {
-    // Los filtros ya se aplican automáticamente en el useMemo
-  }
-
   const handleClear = () => {
     setFilters({
+      search: undefined,
+      status: undefined,
+      dateFrom: undefined,
+      dateTo: undefined,
       limit: 50,
-      offset: 0
+      offset: 0,
     })
   }
 
@@ -229,27 +226,42 @@ const OrdersPage = () => {
       <OrderFilters
         filters={filters}
         onFiltersChange={handleFiltersChange}
-        onSearch={handleSearch}
         onClear={handleClear}
       />
 
       {/* Tabla de órdenes */}
-      {isLoading && <div className="text-sm text-muted-foreground">Cargando órdenes...</div>}
-      {isError && <div className="text-sm text-red-600">No se pudieron cargar las órdenes.</div>}
-      {!isLoading && !isError && Array.isArray(filteredOrders) && (
-        <DataTable 
-          columns={[...columns, ...actions]} 
-          data={filteredOrders} 
-          pageSize={10} 
-        />
+      {isError && (
+        <div className="text-sm text-red-600">No se pudieron cargar las órdenes.</div>
       )}
-
-      {!isLoading && !isError && filteredOrders.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground">
-          <IconShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <div className="text-lg font-medium">No se encontraron órdenes</div>
-          <div className="text-sm">Intenta ajustar los filtros de búsqueda</div>
+      {isLoading ? (
+        <div className="mt-2 space-y-4">
+          {/* Skeleton de header de tabla / controles */}
+          <div className="h-10 rounded-md bg-muted/60 animate-pulse" />
+          {/* Skeleton de filas de tabla */}
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-14 rounded-md bg-muted/40 animate-pulse"
+              />
+            ))}
+          </div>
         </div>
+      ) : (
+        !isError && (
+          <DataTable
+            columns={[...columns, ...actions]}
+            data={Array.isArray(filteredOrders) ? filteredOrders : []}
+            pageSize={10}
+            emptyMessage={
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <IconShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <div className="text-lg font-medium">No se encontraron órdenes</div>
+                <div className="text-sm">Intenta ajustar los filtros de búsqueda</div>
+              </div>
+            }
+          />
+        )
       )}
     </div>
   )

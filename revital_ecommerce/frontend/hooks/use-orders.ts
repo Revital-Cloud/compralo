@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { orderService } from '@/services/order.service'
 import type { OrderFilters } from '@/types/order'
 
@@ -7,6 +7,7 @@ export const useAllOrders = (filters?: OrderFilters) => {
     queryKey: ['orders', 'admin', 'all', filters],
     queryFn: () => orderService.getAllOrders(filters),
     staleTime: 1000 * 60 * 2, // 2 minutos
+    placeholderData: keepPreviousData,
   })
 }
 

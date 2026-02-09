@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/hooks/use-cart";
@@ -420,19 +420,19 @@ function InformationStep({
                   Dirección <span className="text-red-500">*</span>
                 </Label>
                 <div className="flex gap-2 mt-1">
-                  <Select
-                    id="direccion-select"
-                    value={selectedAddressId}
-                    onChange={(e) => setSelectedAddressId(e.target.value)}
-                    className="flex-1"
-                  >
-                    <option value="">Selecciona una dirección</option>
-                    {Array.isArray(addresses) &&
-                      addresses.map((addr) => (
-                        <option key={addr.id_direccion} value={addr.id_direccion}>
-                          {addr.nombre_direccion} - {addr.calle_direccion}, {addr.ciudad}
-                        </option>
-                      ))}
+                  <Select value={selectedAddressId} onValueChange={setSelectedAddressId}>
+                    <SelectTrigger id="direccion-select" className="flex-1">
+                      <SelectValue placeholder="Selecciona una dirección" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Selecciona una dirección</SelectItem>
+                      {Array.isArray(addresses) &&
+                        addresses.map((addr) => (
+                          <SelectItem key={addr.id_direccion} value={String(addr.id_direccion)}>
+                            {addr.nombre_direccion} - {addr.calle_direccion}, {addr.ciudad}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
                   </Select>
                   <Button
                     type="button"
@@ -511,14 +511,16 @@ function InformationStep({
                     País/Región <span className="text-red-500">*</span>
                   </Label>
                   <Select
-                    id="pais"
-                    {...form.register("pais")}
-                    className="mt-1"
                     value={form.watch("pais") || "Colombia"}
-                    onChange={(e) => form.setValue("pais", e.target.value)}
+                    onValueChange={(v) => form.setValue("pais", v)}
                     disabled={!!selectedAddress}
                   >
-                    <option value="Colombia">Colombia</option>
+                    <SelectTrigger id="pais" className="mt-1">
+                      <SelectValue placeholder="País" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Colombia">Colombia</SelectItem>
+                    </SelectContent>
                   </Select>
                 </div>
                 <div>
@@ -1064,17 +1066,19 @@ function PaymentStep({
                       Tipo de Identificación <span className="text-red-500">*</span>
                     </Label>
                     <Select
-                      id="tipoIdentificacion"
-                      {...form.register("tipoIdentificacion")}
-                      className="mt-1"
-                      value={form.watch("tipoIdentificacion")}
-                      onChange={(e) => form.setValue("tipoIdentificacion", e.target.value)}
+                      value={form.watch("tipoIdentificacion") || ""}
+                      onValueChange={(v) => form.setValue("tipoIdentificacion", v)}
                     >
-                      <option value="">Elige una opción</option>
-                      <option value="CC">Cédula de Ciudadanía</option>
-                      <option value="CE">Cédula de Extranjería</option>
-                      <option value="NIT">NIT</option>
-                      <option value="PP">Pasaporte</option>
+                      <SelectTrigger id="tipoIdentificacion" className="mt-1">
+                        <SelectValue placeholder="Elige una opción" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Elige una opción</SelectItem>
+                        <SelectItem value="CC">Cédula de Ciudadanía</SelectItem>
+                        <SelectItem value="CE">Cédula de Extranjería</SelectItem>
+                        <SelectItem value="NIT">NIT</SelectItem>
+                        <SelectItem value="PP">Pasaporte</SelectItem>
+                      </SelectContent>
                     </Select>
                   </div>
                   <div>

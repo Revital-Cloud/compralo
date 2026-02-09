@@ -42,8 +42,8 @@ def get_dashboard_data(db: Session, time_range: str = 'monthly') -> Dict[str, An
         # Obtener datos de ventas para el gráfico
         sales_data = _get_sales_data(db, start_date, end_date, period_format, period_label)
         
-        # Obtener productos más vendidos
-        best_sellers = _get_best_sellers(db, limit=10)
+        # Obtener productos más vendidos (top 5 para mantener el dashboard compacto)
+        best_sellers = _get_best_sellers(db, limit=5)
         
         # Obtener órdenes recientes
         recent_orders = _get_recent_orders(db, limit=10)

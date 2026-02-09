@@ -21,7 +21,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui";
-import { Select } from "@/components/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { PasswordStrength } from "@/components/ui";
 import Link from "next/link";
 import {
@@ -219,13 +219,17 @@ export function RegisterForm() {
                       <FormControl>
                         <Select
                           disabled={isLoading}
-                          onChange={(e) => field.onChange(e.target.value)}
                           value={field.value}
-                          className="bg-background"
+                          onValueChange={field.onChange}
                         >
-                          <option value="masculino">Masculino</option>
-                          <option value="femenino">Femenino</option>
-                          <option value="otro">Otro</option>
+                          <SelectTrigger className="bg-background">
+                            <SelectValue placeholder="Género" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="masculino">Masculino</SelectItem>
+                            <SelectItem value="femenino">Femenino</SelectItem>
+                            <SelectItem value="otro">Otro</SelectItem>
+                          </SelectContent>
                         </Select>
                       </FormControl>
                       <FormMessage className="min-h-[1.25rem]" />

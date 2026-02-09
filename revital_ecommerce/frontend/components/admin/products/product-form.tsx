@@ -10,13 +10,14 @@ import { Label } from "@/components/ui";
 import { Button } from "@/components/ui";
 import { Badge } from "@/components/ui";
 import { Textarea } from "@/components/ui";
-import { Select } from "@/components/ui";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
 import { IconX, IconPlus, IconSettings } from "@tabler/icons-react";
 import { useCategories, useBrands } from "@/hooks/use-products";
 import { useAllLines, useLinesByCategory } from "@/hooks/use-lines";
 import { useSublinesByLine } from "@/hooks/use-sublines";
 import { useAllProviders } from "@/hooks/use-providers";
 import { useFormXSSValidation } from "@/hooks/use-xss-validation";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 // Presets de especificaciones por tipo de producto
@@ -465,28 +466,30 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="id_categoria">Categoría *</Label>
-              <Select 
-                value={watch('id_categoria')}
-                onChange={(e) => {
-                  setValue('id_categoria', e.target.value);
-                  // Al cambiar categoría, reiniciar línea y sublínea
+              <Select
+                value={watch('id_categoria') || ''}
+                onValueChange={(value) => {
+                  setValue('id_categoria', value);
                   setValue('id_linea', '');
                   setValue('id_sublinea', '');
                 }}
-                className={errors.id_categoria ? 'border-red-500' : ''}
-                fullWidth
-                disabled={isEditing} // Deshabilitar al editar
+                disabled={isEditing}
               >
-                <option value="" disabled>Selecciona una categoría</option>
-                {safeCategories.map((category) => {
-                  const categoryId = category?.id_categoria;
-                  if (!categoryId) return null;
-                  return (
-                    <option key={`cat-${categoryId}`} value={String(categoryId)}>
-                      {category.nom_categoria || ''}
-                  </option>
-                  );
-                })}
+                <SelectTrigger className={cn('w-full', errors.id_categoria && 'border-red-500')}>
+                  <SelectValue placeholder="Selecciona una categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Selecciona una categoría</SelectItem>
+                  {safeCategories.map((category) => {
+                    const categoryId = category?.id_categoria;
+                    if (!categoryId) return null;
+                    return (
+                      <SelectItem key={`cat-${categoryId}`} value={String(categoryId)}>
+                        {category.nom_categoria || ''}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
               </Select>
               {errors.id_categoria && (
                 <p className="text-sm text-red-600">{errors.id_categoria.message}</p>
@@ -498,22 +501,22 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="id_marca">Marca *</Label>
-              <Select 
-                value={watch('id_marca')}
-                onChange={(e) => setValue('id_marca', e.target.value)}
-                className={errors.id_marca ? 'border-red-500' : ''}
-                fullWidth
-              >
-                <option value="" disabled>Selecciona una marca</option>
-                {safeBrands.map((brand) => {
-                  const brandId = brand?.id_marca;
-                  if (!brandId) return null;
-                  return (
-                    <option key={brandId} value={String(brandId)}>
-                      {brand.nom_marca || ''}
-                  </option>
-                  );
-                })}
+              <Select value={watch('id_marca') || ''} onValueChange={(value) => setValue('id_marca', value)}>
+                <SelectTrigger className={cn('w-full', errors.id_marca && 'border-red-500')}>
+                  <SelectValue placeholder="Selecciona una marca" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Selecciona una marca</SelectItem>
+                  {safeBrands.map((brand) => {
+                    const brandId = brand?.id_marca;
+                    if (!brandId) return null;
+                    return (
+                      <SelectItem key={brandId} value={String(brandId)}>
+                        {brand.nom_marca || ''}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
               </Select>
               {errors.id_marca && (
                 <p className="text-sm text-red-600">{errors.id_marca.message}</p>
@@ -528,27 +531,29 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 <Label htmlFor="id_linea">Línea *</Label>
                 {!isEditing && <span className="text-xs text-muted-foreground">(elige primero la categoría)</span>}
               </div>
-              <Select 
-                value={watch('id_linea')}
-                onChange={(e) => {
-                  setValue('id_linea', e.target.value);
-                  // Limpiar sublínea cuando cambie la línea
+              <Select
+                value={watch('id_linea') || ''}
+                onValueChange={(value) => {
+                  setValue('id_linea', value);
                   setValue('id_sublinea', '');
                 }}
-                className={errors.id_linea ? 'border-red-500' : ''}
-                disabled={isEditing || !watchedCategory} // Deshabilitar al editar o si no hay categoría
-                fullWidth
+                disabled={isEditing || !watchedCategory}
               >
-                <option value="" disabled>Selecciona una línea</option>
-                {uniqueLines.map((line) => {
-                  const lineId = line?.id_linea;
-                  if (!lineId) return null;
-                  return (
-                    <option key={`line-${lineId}`} value={String(lineId)}>
-                      {line.nom_linea || ''}
-                  </option>
-                  );
-                })}
+                <SelectTrigger className={cn('w-full', errors.id_linea && 'border-red-500')}>
+                  <SelectValue placeholder="Selecciona una línea" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Selecciona una línea</SelectItem>
+                  {uniqueLines.map((line) => {
+                    const lineId = line?.id_linea;
+                    if (!lineId) return null;
+                    return (
+                      <SelectItem key={`line-${lineId}`} value={String(lineId)}>
+                        {line.nom_linea || ''}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
               </Select>
               {errors.id_linea && (
                 <p className="text-sm text-red-600">{errors.id_linea.message}</p>
@@ -560,23 +565,26 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 <Label htmlFor="id_sublinea">Sublínea *</Label>
                 {!isEditing && <span className="text-xs text-muted-foreground">(elige primero la línea)</span>}
               </div>
-              <Select 
-                value={watch('id_sublinea')}
-                onChange={(e) => setValue('id_sublinea', e.target.value)}
-                className={errors.id_sublinea ? 'border-red-500' : ''}
-                disabled={isEditing || !watchedLine} // Deshabilitar al editar o si no hay línea
-                fullWidth
+              <Select
+                value={watch('id_sublinea') || ''}
+                onValueChange={(value) => setValue('id_sublinea', value)}
+                disabled={isEditing || !watchedLine}
               >
-                <option value="" disabled>Selecciona una sublínea</option>
-                {uniqueSublines.map((subline) => {
-                  const sublineId = subline?.id_sublinea;
-                  if (!sublineId) return null;
-                  return (
-                    <option key={`subline-${sublineId}`} value={String(sublineId)}>
-                      {subline.nom_sublinea || ''}
-                  </option>
-                  );
-                })}
+                <SelectTrigger className={cn('w-full', errors.id_sublinea && 'border-red-500')}>
+                  <SelectValue placeholder="Selecciona una sublínea" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Selecciona una sublínea</SelectItem>
+                  {uniqueSublines.map((subline) => {
+                    const sublineId = subline?.id_sublinea;
+                    if (!sublineId) return null;
+                    return (
+                      <SelectItem key={`subline-${sublineId}`} value={String(sublineId)}>
+                        {subline.nom_sublinea || ''}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
               </Select>
               {errors.id_sublinea && (
                 <p className="text-sm text-red-600">{errors.id_sublinea.message}</p>
@@ -590,22 +598,22 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           {/* Proveedor */}
           <div className="space-y-2">
             <Label htmlFor="id_proveedor">Proveedor *</Label>
-            <Select 
-              value={watch('id_proveedor')}
-              onChange={(e) => setValue('id_proveedor', e.target.value)}
-              className={errors.id_proveedor ? 'border-red-500' : ''}
-              fullWidth
-            >
-              <option value="" disabled>Selecciona un proveedor</option>
+            <Select value={watch('id_proveedor') || ''} onValueChange={(value) => setValue('id_proveedor', value)}>
+              <SelectTrigger className={cn('w-full', errors.id_proveedor && 'border-red-500')}>
+                <SelectValue placeholder="Selecciona un proveedor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Selecciona un proveedor</SelectItem>
                 {safeProviders.map((provider) => {
                   const providerId = provider?.id_proveedor;
                   if (!providerId) return null;
                   return (
-                    <option key={providerId} value={String(providerId)}>
+                    <SelectItem key={providerId} value={String(providerId)}>
                       {provider.nom_proveedor || ''}
-                </option>
+                    </SelectItem>
                   );
                 })}
+              </SelectContent>
             </Select>
             {errors.id_proveedor && (
               <p className="text-sm text-red-600">{errors.id_proveedor.message}</p>

@@ -17,6 +17,7 @@ import { brandService } from '@/services/brand.service'
 import { getProducts } from '@/services/product.service'
 import { lineService } from '@/services/line.service'
 import { sublineService } from '@/services/subline.service'
+import { parseDateSafe, toLocalISOString, isPastDate } from '@/utils/date-helpers'
 
 const discountSchema = z.object({
   nom_descuento: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
@@ -97,15 +98,6 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
     }
   })
   
-  // Función para convertir string de fecha a Date sin problemas de timezone
-  const parseDateString = (dateString: string | undefined): Date | undefined => {
-    if (!dateString) return undefined
-    // Parsear YYYY-MM-DD directamente sin timezone
-    const [year, month, day] = dateString.split('-').map(Number)
-    if (isNaN(year) || isNaN(month) || isNaN(day)) return undefined
-    return new Date(year, month - 1, day)
-  }
-
   const tipoDescuento = form.watch('tipo_descuento')
   const aplicaA = form.watch('aplica_a')
 
@@ -547,21 +539,11 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                 <PopoverContent className="p-0" align="start">
                   <Calendar
                     mode="single"
-                    disabled={(date) => {
-                      const today = new Date()
-                      today.setHours(0, 0, 0, 0)
-                      date.setHours(0, 0, 0, 0)
-                      return date < today
-                    }}
-                    selected={parseDateString(form.watch('fec_inicio'))}
+                    disabled={isPastDate}
+                    selected={parseDateSafe(form.watch('fec_inicio'))}
                     onSelect={(date) => {
                       if (date) {
-                        const year = date.getFullYear()
-                        const month = String(date.getMonth() + 1).padStart(2, '0')
-                        const day = String(date.getDate()).padStart(2, '0')
-                        const dateString = `${year}-${month}-${day}`
-                        form.setValue('fec_inicio', dateString)
-                        // Cerrar el Popover después de seleccionar
+                        form.setValue('fec_inicio', toLocalISOString(date))
                         setOpenStartDate(false)
                       } else {
                         form.setValue('fec_inicio', '')
@@ -588,21 +570,11 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                 <PopoverContent className="p-0" align="start">
                   <Calendar
                     mode="single"
-                    disabled={(date) => {
-                      const today = new Date()
-                      today.setHours(0, 0, 0, 0)
-                      date.setHours(0, 0, 0, 0)
-                      return date < today
-                    }}
-                    selected={parseDateString(form.watch('fec_fin'))}
+                    disabled={isPastDate}
+                    selected={parseDateSafe(form.watch('fec_fin'))}
                     onSelect={(date) => {
                       if (date) {
-                        const year = date.getFullYear()
-                        const month = String(date.getMonth() + 1).padStart(2, '0')
-                        const day = String(date.getDate()).padStart(2, '0')
-                        const dateString = `${year}-${month}-${day}`
-                        form.setValue('fec_fin', dateString)
-                        // Cerrar el Popover después de seleccionar
+                        form.setValue('fec_fin', toLocalISOString(date))
                         setOpenEndDate(false)
                       } else {
                         form.setValue('fec_fin', '')

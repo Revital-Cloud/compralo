@@ -28,7 +28,7 @@ import { exchangeService } from "@/services/exchange.service";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { WompiPaymentModal } from "@/components/payment/wompi-payment-modal";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, Alert, AlertDescription, Button, Input, Loading, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, RadioGroup, RadioGroupItem, Select, Badge } from "@/components/ui";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, Alert, AlertDescription, Button, Input, Loading, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, RadioGroup, RadioGroupItem, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Badge } from "@/components/ui";
 
 const cartTexts = {
   es: {
@@ -703,10 +703,8 @@ const CartPage = () => {
                         Descuento por puntos
                       </p>
                       <Select
-                        fullWidth
                         value={selectedCanjeId != null ? String(selectedCanjeId) : "none"}
-                        onChange={(e) => {
-                          const v = e.target.value;
+                        onValueChange={(v) => {
                           if (v === "none") {
                             setSelectedCanjeId(null);
                             router.replace("/cart");
@@ -719,13 +717,18 @@ const CartPage = () => {
                           }
                         }}
                       >
-                        <option value="none">Ninguno</option>
-                        {availableCanjes.map((c) => (
-                          <option key={c.id_canje} value={String(c.id_canje)}>
-                            {c.nom_descuento}
-                            {c.puntos_utilizados != null ? ` (${c.puntos_utilizados} pts)` : ""}
-                          </option>
-                        ))}
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Descuento por puntos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Ninguno</SelectItem>
+                          {availableCanjes.map((c) => (
+                            <SelectItem key={c.id_canje} value={String(c.id_canje)}>
+                              {c.nom_descuento}
+                              {c.puntos_utilizados != null ? ` (${c.puntos_utilizados} pts)` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
                       </Select>
                     </div>
                   )}
