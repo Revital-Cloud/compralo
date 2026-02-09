@@ -32,7 +32,8 @@ export type GenericTableProps<TData, TValue> = {
   /** Opciones para el select "Filas por página". Si no se pasa, se usa [5, 10, 20, 50] */
   pageSizeOptions?: number[]
   className?: string
-  emptyMessage?: string
+  /** Contenido a mostrar cuando no hay filas (se renderiza dentro del tbody). */
+  emptyMessage?: React.ReactNode
   actions?: (row: Row<TData>) => React.ReactNode
   actionsHeader?: React.ReactNode
   /** Clave única por fila (evita duplicados cuando id_linea/id_sublinea se repiten por categoría) */
