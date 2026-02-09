@@ -29,7 +29,7 @@ export const BestSellers = ({ bestSellers, loading }: BestSellersProps) => (
     <CardHeader className="flex flex-row items-center justify-between">
       <div>
         <CardTitle>Productos Destacados</CardTitle>
-        <CardDescription>Artículos con mejor rendimiento</CardDescription>
+        <CardDescription>Top 5 por ventas</CardDescription>
       </div>
     </CardHeader>
     <CardContent className="space-y-4">
