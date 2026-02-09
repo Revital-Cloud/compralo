@@ -32,13 +32,13 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription, Alert, Alert
 
 const cartTexts = {
   es: {
-    title: "Cesta de la compra",
-    subtitle: "Revisa y gestiona los artículos de tu cesta.",
+    title: "Carrito de la compra",
+    subtitle: "Revisa y gestiona los artículos de tu carrito.",
     signInText:
       "¿Ya tienes una cuenta? Inicia sesión para una experiencia más rápida.",
-    yourBag: "Tu Cesta",
-    bagSubtitle: "Los artículos en tu cesta no están reservados.",
-    emptyCartTitle: "Tu cesta está vacía",
+    yourBag: "Tu Carrito",
+    bagSubtitle: "Los artículos en tu carrito no están reservados.",
+    emptyCartTitle: "Tu carrito está vacío",
     emptyCartSubtitle: "Parece que aún no has añadido nada.",
     youMayAlsoLike: "También te puede gustar",
     orderSummary: "Resumen del Pedido",
@@ -445,7 +445,7 @@ const CartPage = () => {
 
         <div className="lg:grid lg:grid-cols-3 lg:gap-8 lg:items-start">
           <div className="lg:col-span-2">
-            {/* Tu Cesta */}
+            {/* Tu Carrito */}
             <Card className="mb-8 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-lg">
               <CardHeader className="pb-6 border-b border-gray-200 dark:border-gray-700">
                 <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">

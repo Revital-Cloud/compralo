@@ -69,7 +69,8 @@ const CategoriesSection: React.FC<CategoriesSectionProps> = ({
         {categories.map((category, index) => (
           <li key={`${category.label}-${index}`}>
             <Link 
-              href={category.href} 
+              href={category.href}
+              prefetch={false}
               className="text-sm text-gray-600 dark:text-gray-400 hover:text-[#ec2538] dark:hover:text-red-400 transition-colors duration-300 block py-1"
             >
               {category.label}

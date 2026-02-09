@@ -165,17 +165,27 @@ export function InformativeChatbotWidget() {
     return (
       <button
         onClick={handleOpen}
-        className="fixed bottom-6 right-6 w-16 h-16 bg-background text-foreground rounded-full shadow-lg hover:shadow-2xl transition-all duration-300 hover:scale-105 flex items-center justify-center z-50 border-2 border-border hover:border-primary/50"
+        className="fixed z-[100] flex items-center justify-center rounded-full border-2 border-border bg-background text-foreground shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:border-primary/50
+                   bottom-[calc(env(safe-area-inset-bottom)+1rem)] right-[calc(env(safe-area-inset-right)+1rem)]
+                   h-14 w-14 sm:h-16 sm:w-16"
         aria-label="Abrir asistente"
       >
-        <Image src="/carrito.svg" alt="Asistente" width={32} height={32} />
+        <img src="/carrito.svg" alt="Asistente" className="h-8 w-8 shrink-0 object-contain sm:h-8 sm:w-8" width={32} height={32} />
       </button>
     )
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
-      <Card className="w-[400px] h-[600px] shadow-2xl bg-card flex flex-col overflow-hidden rounded-2xl">
+    <div
+      className="fixed z-[100]
+                 bottom-[calc(env(safe-area-inset-bottom)+1rem)] right-[calc(env(safe-area-inset-right)+1rem)]
+                 left-[calc(env(safe-area-inset-left)+1rem)] sm:left-auto"
+    >
+      <Card
+        className="flex flex-col overflow-hidden rounded-2xl bg-card shadow-2xl
+                   w-full sm:w-[400px]
+                   h-[min(600px,calc(100dvh-7rem))] sm:h-[600px]"
+      >
         <div className="bg-primary text-primary-foreground px-5 py-4 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 bg-primary-foreground/20 rounded-full flex items-center justify-center ring-2 ring-primary-foreground/30 overflow-hidden">
@@ -199,7 +209,7 @@ export function InformativeChatbotWidget() {
 
         <div className="flex-1 overflow-hidden bg-background min-h-0 bg-card">
           <ScrollArea className="h-full bg-card">
-            <div ref={scrollRef} className="p-5 space-y-4 max-h-[calc(600px-180px)] overflow-y-auto">
+            <div ref={scrollRef} className="p-5 space-y-4 overflow-y-auto">
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -210,8 +220,8 @@ export function InformativeChatbotWidget() {
                       <AvatarFallback className="text-xs font-semibold text-primary-foreground">TÚ</AvatarFallback>
                     </Avatar>
                   ) : (
-                    <div className="w-9 h-9 flex-shrink-0 rounded-full bg-muted flex items-center justify-center ring-2 ring-border overflow-hidden">
-                      <Image src="/carrito.svg" alt="" width={20} height={20} />
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted ring-2 ring-border">
+                      <img src="/carrito.svg" alt="" className="h-5 w-5 object-contain" width={20} height={20} />
                     </div>
                   )}
                   <div className={`flex-1 min-w-0 ${message.role === "user" ? "text-right" : "text-left"}`}>

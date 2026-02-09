@@ -25,6 +25,7 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
   const [isLoading, setIsLoading] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
+  const [showNoResultsMessage, setShowNoResultsMessage] = useState(false)
   const router = useRouter()
   const searchRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -34,17 +35,18 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
     if (!query.trim()) {
       setSuggestions([])
       setIsOpen(false)
+      setShowNoResultsMessage(false)
       return
     }
 
     const timeoutId = setTimeout(async () => {
       setIsLoading(true)
+      setShowNoResultsMessage(false)
       try {
         const response = await get<ProductFilterResponse>('/products/search', {
           params: { q: query.trim(), limit: 5 }
         })
         const products = response?.products || []
-        console.log("🔍 Búsqueda:", query.trim(), "Resultados:", products.length, products)
         setSuggestions(products)
         setIsOpen(products.length > 0)
       } catch (error) {
@@ -64,6 +66,7 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setIsOpen(false)
+        setShowNoResultsMessage(false)
       }
     }
 
@@ -79,13 +82,34 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
     setIsOpen(false)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (query.trim()) {
-      router.push(`/products?q=${encodeURIComponent(query.trim())}`)
-      setQuery("")
+    const trimmed = query.trim()
+    if (!trimmed) return
+
+    setIsLoading(true)
+    setShowNoResultsMessage(false)
+    try {
+      const response = await get<ProductFilterResponse>('/products/search', {
+        params: { q: trimmed, limit: 5 }
+      })
+      const products = response?.products || []
+      if (products.length === 0) {
+        setSuggestions([])
+        setShowNoResultsMessage(true)
+        setIsOpen(true)
+      } else {
+        router.push(`/products?q=${encodeURIComponent(trimmed)}`)
+        setQuery("")
+        setSuggestions([])
+        setIsOpen(false)
+      }
+    } catch {
       setSuggestions([])
-      setIsOpen(false)
+      setShowNoResultsMessage(true)
+      setIsOpen(true)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -118,6 +142,7 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
           onChange={(e) => {
             setQuery(e.target.value)
             setSelectedIndex(-1)
+            setShowNoResultsMessage(false)
           }}
           onKeyDown={handleKeyDown}
           onFocus={() => {
@@ -141,11 +166,16 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
         </Button>
       </form>
 
-      {/* Dropdown de sugerencias */}
-      {isOpen && suggestions.length > 0 && (
+      {/* Mensaje "no existe" o dropdown de sugerencias */}
+      {isOpen && (
         <div className="absolute z-9999 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-96 overflow-y-auto">
           <div className="py-1">
-            {suggestions.map((product, index) => {
+            {showNoResultsMessage ? (
+              <p className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">
+                Este producto no existe.
+              </p>
+            ) : (
+              suggestions.map((product, index) => {
               const imageUrl = getProductImageUrl(product.img_producto)
               return (
                 <button
@@ -183,7 +213,8 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
                   </div>
                 </button>
               )
-            })}
+            })
+            )}
           </div>
         </div>
       )}

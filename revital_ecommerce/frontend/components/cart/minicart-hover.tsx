@@ -80,7 +80,7 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
           <div className="p-6 text-center space-y-2">
             <p className="text-sm font-medium">Tu carrito está vacío</p>
             <p className="text-xs text-muted-foreground">Explora los productos y añade tus favoritos</p>
-            <Link href="/" className="inline-block">
+            <Link href="/products" className="inline-block">
               <Button size="sm" className="mt-2">Ir a comprar</Button>
             </Link>
           </div>

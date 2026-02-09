@@ -23,14 +23,13 @@ export const companyLinks = [
     { label: "Acerca de", href: "/nosotros" },
     { label: "Contacto", href: "/contacto" },
     { label: "Blog", href: "/blog" },
-    { label: "Carreras", href: "/carreras" },
     { label: "Prensa", href: "/prensa" },
     { label: "Inversionistas", href: "/inversionistas" }
 ]
   
-// Datos de atención al cliente
+// Datos de atención al cliente (Mi Cuenta → /profile; si no está logueado, profile redirige a /login)
 export const customerServiceLinks = [
-    { label: "Mi Cuenta", href: "/mi-cuenta" },
+    { label: "Mi Cuenta", href: "/profile" },
     { label: "Seguir Pedido", href: "/seguimiento" },
     { label: "Centro de Ayuda", href: "/ayuda" },
     { label: "Devoluciones", href: "/devoluciones" }

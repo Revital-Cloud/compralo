@@ -78,7 +78,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
           <div className="flex items-center justify-between h-14 sm:h-16">
             {/* Logo */}
             <div className="flex items-center space-x-2 sm:space-x-4">
-              <Link href="/">
+              <Link href="/" prefetch={false}>
                 {logo || (
                   <div className="flex items-center space-x-2">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center">
@@ -100,6 +100,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
                   <Link
                     key={index}
                     href={item.href || "#"}
+                    prefetch={false}
                     className={`text-sm font-medium transition-colors duration-300 ${
                       pathname === item.href
                         ? "text-[#ec2538] dark:text-red-500 border-b-2 border-[#ec2538] dark:border-red-500 pb-2" 

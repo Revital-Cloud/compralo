@@ -18,7 +18,7 @@ export function useCookies() {
   const [cookieConsent, setCookieConsent] = useState<CookieConsent | null>(null)
   const [isHydrated, setIsHydrated] = useState(false)
 
-  // Solo cargar cookies después de la hidratación
+  // Solo cargar cookies después de la hidratación. Primera visita = no guardar nada, el banner se muestra.
   useEffect(() => {
     const loadCookiePreferences = () => {
       try {
@@ -32,40 +32,12 @@ export function useCookies() {
             timestamp: Date.now()
           })
         } else {
-          // Si no hay cookies configuradas, establecer cookies necesarias por defecto
-          // para evitar problemas de acceso a funcionalidades básicas
-          const defaultPreferences: CookiePreferences = {
-            necessary: true,
-            functional: false,
-            analytics: false,
-            marketing: false
-          }
-          
-          setCookieConsent({
-            accepted: true,
-            preferences: defaultPreferences,
-            timestamp: Date.now()
-          })
-          
-          // Guardar en localStorage
-          localStorage.setItem('cookies-accepted', 'true')
-          localStorage.setItem('cookies-preferences', JSON.stringify(defaultPreferences))
+          // Primera vez: no hay decisión guardada → dejar null para que el banner se muestre
+          setCookieConsent(null)
         }
       } catch (error) {
         console.error('Error loading cookie preferences:', error)
-        // En caso de error, establecer cookies necesarias por defecto
-        const defaultPreferences: CookiePreferences = {
-          necessary: true,
-          functional: false,
-          analytics: false,
-          marketing: false
-        }
-        
-        setCookieConsent({
-          accepted: true,
-          preferences: defaultPreferences,
-          timestamp: Date.now()
-        })
+        setCookieConsent(null)
       } finally {
         setIsHydrated(true)
       }
@@ -135,12 +107,14 @@ export function useCookies() {
   }
 
   const canUseCookie = (type: keyof CookiePreferences): boolean => {
-    // Si no está hidratado, permitir cookies necesarias por defecto
+    // Si no está hidratado, permitir solo cookies necesarias para que el sitio funcione
     if (!isHydrated && type === 'necessary') {
       return true
     }
-    
-    if (!cookieConsent?.accepted) return false
+    // Primera visita (cookieConsent null): solo permitir necesarias hasta que acepte el banner
+    if (!cookieConsent?.accepted) {
+      return type === 'necessary'
+    }
     return cookieConsent.preferences[type]
   }
 

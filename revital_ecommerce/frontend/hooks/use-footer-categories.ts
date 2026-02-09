@@ -2,59 +2,62 @@ import { useQuery } from '@tanstack/react-query'
 import { getCategories } from '@/services/category.service'
 import { mapCategoriesToDisplay } from '@/utils/category-mapper'
 import type { CategoryDisplay } from '@/types/category'
+import { lineService } from '@/services/line.service'
+import { sublineService } from '@/services/subline.service'
 
-interface FooterCategoryItem {
+export interface FooterCategoryItem {
   label: string
   href: string
 }
 
-interface FooterCategories {
-  mainCategories: FooterCategoryItem[]
-  additionalCategories: FooterCategoryItem[]
+export interface FooterCategories {
+  categories: FooterCategoryItem[]
+  lineas: FooterCategoryItem[]
+  sublineas: FooterCategoryItem[]
 }
 
 /**
- * Hook para obtener categorías del footer divididas en dos columnas
+ * Hook para obtener categorías, líneas y sublíneas del footer (tres columnas)
  */
 export function useFooterCategories() {
   return useQuery({
-    queryKey: ['categories', 'footer'],
+    queryKey: ['categories', 'lines', 'sublines', 'footer'],
     queryFn: async (): Promise<FooterCategories> => {
-      console.log('Fetching footer categories...');
       try {
-        const apiCategories = await getCategories();
-        console.log('API categories response for footer:', apiCategories);
-        
-        const displayCategories = mapCategoriesToDisplay(apiCategories);
-        console.log('Mapped categories for footer:', displayCategories);
-        
-        // Dividir las categorías en dos columnas
-        const midPoint = Math.ceil(displayCategories.length / 2);
-        const mainCategories = displayCategories.slice(0, midPoint);
-        const additionalCategories = displayCategories.slice(midPoint);
-        
-        // Convertir a formato del footer
-        const formatCategoriesForFooter = (categories: CategoryDisplay[]): FooterCategoryItem[] => {
-          return categories.map(category => ({
-            label: category.name,
-            href: `/categories/${category.id}` // Enlace a la página de categoría específica
-          }));
-        };
-        
-        const result = {
-          mainCategories: formatCategoriesForFooter(mainCategories),
-          additionalCategories: formatCategoriesForFooter(additionalCategories)
-        };
-        
-        console.log('Footer categories result:', result);
-        return result;
+        const [apiCategories, apiLines, apiSublines] = await Promise.all([
+          getCategories(),
+          lineService.getAllLines(),
+          sublineService.getAllSublines(),
+        ])
+
+        const displayCategories = mapCategoriesToDisplay(apiCategories)
+        const categories: FooterCategoryItem[] = displayCategories.map((c: CategoryDisplay) => ({
+          label: c.name,
+          href: `/categories/${c.id}`,
+        }))
+
+        const lineas: FooterCategoryItem[] = (apiLines || [])
+          .filter((l: { ind_activo?: boolean }) => l.ind_activo !== false)
+          .map((l: { id_categoria: number; id_linea: number; nom_linea: string }) => ({
+            label: l.nom_linea,
+            href: `/categories/${l.id_categoria}/lines/${l.id_linea}`,
+          }))
+
+        const sublineas: FooterCategoryItem[] = (apiSublines || [])
+          .filter((s: { ind_activo?: boolean }) => s.ind_activo !== false)
+          .map((s: { id_categoria: number; id_linea: number; id_sublinea: number; nom_sublinea: string }) => ({
+            label: s.nom_sublinea,
+            href: `/categories/${s.id_categoria}/lines/${s.id_linea}/sublines/${s.id_sublinea}/products`,
+          }))
+
+        return { categories, lineas, sublineas }
       } catch (error) {
-        console.error('Error fetching footer categories:', error);
-        throw error;
+        console.error('Error fetching footer data:', error)
+        throw error
       }
     },
-    staleTime: 10 * 60 * 1000, // 10 minutos - las categorías cambian poco
-    gcTime: 30 * 60 * 1000, // 30 minutos - mantener en caché más tiempo
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   })
