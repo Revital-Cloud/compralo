@@ -26,3 +26,21 @@ Para restaurar un dump:
 ```bash
 pg_restore -d "postgresql://user:pass@host:5432/nombre_bd" -Fc backups/YYYY-MM-DD_HH-MM-SS/synkro_ecommerce.dump
 ```
+
+### PostgreSQL recién instalado (sin usuario creado)
+
+1. **Pon contraseña al usuario `postgres`** (en tu terminal, te pedirá tu contraseña de sudo):
+
+```bash
+sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'tu_password';"
+```
+
+2. **Restaura las bases** (usa la misma contraseña que pusiste):
+
+```bash
+DATABASE_URL_ECOM='postgresql://postgres:tu_password@localhost/synkro_ecommerce' \
+DATABASE_URL_PANEL='postgresql://postgres:tu_password@localhost/synkro_panel' \
+./scripts/restore-databases.sh backups/YYYY-MM-DD_HH-MM-SS
+```
+
+3. **Opcional:** actualiza los `.env` de cada backend con esa URL para que las apps conecten a la base local.

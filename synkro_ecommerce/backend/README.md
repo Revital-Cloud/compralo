@@ -224,10 +224,10 @@ REDIS_URL=redis://localhost:6379/0
 # Desde apps/ecommerce/backend/
 # Método recomendado (FastAPI CLI)
 # Nota: usa --host 0.0.0.0 para que sea accesible por IP (LAN) y no solo por localhost
-fastapi dev app/main.py --host 0.0.0.0 --port 8000
+fastapi dev app/main.py --host 0.0.0.0 --port 8001
 
 # Método alternativo (Uvicorn)
-python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 
 # O desde el directorio del backend:
 # pnpm dev
