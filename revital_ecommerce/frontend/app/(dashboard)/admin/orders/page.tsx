@@ -51,15 +51,14 @@ const OrdersPage = () => {
   const filteredOrders = useMemo(() => {
     let filtered = orders
 
-    // Filtrar por búsqueda
+    // Filtrar por búsqueda (campos pueden venir como número del API)
     if (filters.search) {
-      const q = filters.search.toLowerCase()
+      const q = String(filters.search).toLowerCase()
       filtered = filtered.filter(order => {
-        const id = (order.id_orden || '').toLowerCase()
-        const nom = (order.nom_usuario || '').toLowerCase()
-        const ape = (order.ape_usuario || '').toLowerCase()
-        const email = (order.email_usuario || '').toLowerCase()
-        
+        const id = String(order.id_orden ?? '').toLowerCase()
+        const nom = String(order.nom_usuario ?? '').toLowerCase()
+        const ape = String(order.ape_usuario ?? '').toLowerCase()
+        const email = String(order.email_usuario ?? '').toLowerCase()
         return id.includes(q) || nom.includes(q) || ape.includes(q) || email.includes(q)
       })
     }
@@ -203,14 +202,14 @@ const OrdersPage = () => {
     setFilters(newFilters)
   }
 
-  const handleSearch = () => {
-    // Los filtros ya se aplican automáticamente en el useMemo
-  }
-
   const handleClear = () => {
     setFilters({
+      search: undefined,
+      status: undefined,
+      dateFrom: undefined,
+      dateTo: undefined,
       limit: 50,
-      offset: 0
+      offset: 0,
     })
   }
 
@@ -229,7 +228,6 @@ const OrdersPage = () => {
       <OrderFilters
         filters={filters}
         onFiltersChange={handleFiltersChange}
-        onSearch={handleSearch}
         onClear={handleClear}
       />
 

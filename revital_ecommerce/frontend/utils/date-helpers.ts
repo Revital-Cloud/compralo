@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Helpers para manejar fechas y evitar problemas de zona horaria
  * Especialmente útil para calendarios y formularios
  */
@@ -25,6 +25,26 @@ export const createLocalDate = (year: number, month: number, day: number): Date 
 export const toLocalISOString = (date: Date): string => {
   const localDate = createLocalDate(date.getFullYear(), date.getMonth(), date.getDate())
   return format(localDate, 'yyyy-MM-dd')
+}
+
+/**
+ * Parsea un string YYYY-MM-DD como fecha local (sin desplazamiento UTC).
+ * Útil para inputs/calendarios y para comparar solo el día.
+ * @param s - String YYYY-MM-DD o undefined
+ * @returns Date en hora local o undefined si vacío/inválido
+ */
+export const parseDateSafe = (s: string | undefined): Date | undefined => {
+  if (!s?.trim()) return undefined
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s.trim())
+  if (match) {
+    const y = parseInt(match[1], 10)
+    const m = parseInt(match[2], 10) - 1
+    const day = parseInt(match[3], 10)
+    const d = new Date(y, m, day)
+    return isNaN(d.getTime()) ? undefined : d
+  }
+  const d = new Date(s)
+  return isNaN(d.getTime()) ? undefined : d
 }
 
 /**
