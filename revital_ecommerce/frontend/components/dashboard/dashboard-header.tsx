@@ -1,12 +1,16 @@
 'use client'
 
 import { Button } from "@/components/ui"
-import { Select } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
 import { IconCalendar, IconRefresh } from "@tabler/icons-react"
+
+export type DashboardRefreshIntervalKey = 'off' | '30s' | '1m' | '2m' | '5m'
 
 interface DashboardHeaderProps {
   timeRange: string
   onTimeRangeChange: (value: string) => void
+  refreshInterval: DashboardRefreshIntervalKey
+  onRefreshIntervalChange: (value: DashboardRefreshIntervalKey) => void
   loading: boolean
   lastUpdate: Date
   onRefresh: () => void
@@ -20,9 +24,19 @@ const formatLastUpdate = (date: Date) => {
   })
 }
 
+const REFRESH_INTERVAL_LABELS: Record<DashboardRefreshIntervalKey, string> = {
+  off: 'No auto',
+  '30s': 'Cada 30 s',
+  '1m': 'Cada 1 min',
+  '2m': 'Cada 2 min',
+  '5m': 'Cada 5 min',
+}
+
 export const DashboardHeader = ({ 
   timeRange, 
   onTimeRangeChange, 
+  refreshInterval,
+  onRefreshIntervalChange,
   loading, 
   lastUpdate, 
   onRefresh 
@@ -37,18 +51,29 @@ export const DashboardHeader = ({
         <span>Actualizado: {formatLastUpdate(lastUpdate)}</span>
       </div>
     </div>
-    <div className="flex items-center space-x-2">
-      <Select
-        value={timeRange}
-        onChange={(e) => onTimeRangeChange(e.target.value)}
-        sizeVariant="sm"
-        className="w-32"
-        aria-label="Rango de tiempo"
-      >
-        <option value="weekly">Semanal</option>
-        <option value="monthly">Mensual</option>
-        <option value="quarterly">Trimestral</option>
-        <option value="yearly">Anual</option>
+    <div className="flex flex-wrap items-center gap-2">
+      <Select value={timeRange} onValueChange={onTimeRangeChange}>
+        <SelectTrigger className="h-8 w-32" aria-label="Rango de tiempo">
+          <SelectValue placeholder="Rango" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="weekly">Semanal</SelectItem>
+          <SelectItem value="monthly">Mensual</SelectItem>
+          <SelectItem value="quarterly">Trimestral</SelectItem>
+          <SelectItem value="yearly">Anual</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={refreshInterval} onValueChange={(v) => onRefreshIntervalChange(v as DashboardRefreshIntervalKey)}>
+        <SelectTrigger className="h-8 w-36" aria-label="Intervalo de actualización">
+          <SelectValue placeholder="Actualizar" />
+        </SelectTrigger>
+        <SelectContent>
+          {(Object.keys(REFRESH_INTERVAL_LABELS) as DashboardRefreshIntervalKey[]).map((key) => (
+            <SelectItem key={key} value={key}>
+              {REFRESH_INTERVAL_LABELS[key]}
+            </SelectItem>
+          ))}
+        </SelectContent>
       </Select>
       <Button 
         variant="outline" 

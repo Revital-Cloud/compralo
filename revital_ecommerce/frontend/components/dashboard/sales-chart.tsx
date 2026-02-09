@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui"
 import { Button } from "@/components/ui"
-import { Select } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui"
 import { IconDownload } from "@tabler/icons-react"
 import { formatPrice } from "@/utils/format-price"
@@ -38,11 +38,6 @@ export const SalesChart = ({ salesData, summary, loading }: SalesChartProps) => 
             <CardDescription>Rendimiento de ventas mensual</CardDescription>
           </div>
           <div className="flex items-center space-x-2">
-            <Select defaultValue="monthly" className="w-28">
-              <option value="weekly">Semanal</option>
-              <option value="monthly">Mensual</option>
-              <option value="yearly">Anual</option>
-            </Select>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="outline" size="sm" aria-label="Descargar resumen">
