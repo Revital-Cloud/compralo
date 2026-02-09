@@ -1,19 +1,35 @@
 'use client';
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent } from "@/components/ui"
 import { Badge } from "@/components/ui"
 import { Button } from "@/components/ui"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui"
-import { IconDownload } from "@tabler/icons-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui"
+import { Input } from "@/components/ui"
+import { Label } from "@/components/ui"
 
 import { toast } from "sonner"
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
-import { Pencil, Power } from 'lucide-react'
+import { Pencil, Power, Users, UserCircle, Shield, UserCheck, UserX } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getUsers, toggleUserStatus } from '@/services/user.service'
+import { getUsers, toggleUserStatus, updateUser } from '@/services/user.service'
 import type { User } from '@/types'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+
+const editUserSchema = z.object({
+  nom_usuario: z.string().min(1, 'Nombre requerido'),
+  ape_usuario: z.string().optional(),
+  email_usuario: z.string().email('Email inválido'),
+  cel_usuario: z.string().optional(),
+  ind_genero: z.boolean().optional(),
+  fec_nacimiento: z.string().optional(),
+})
+
+type EditUserForm = z.infer<typeof editUserSchema>
 
 const getRoleBadge = (roleId: number) => {
   switch (roleId) {
@@ -40,8 +56,19 @@ const getGenderLabel = (ind_genero: boolean | null | undefined) => {
   return '-'
 }
 
+const statCards = [
+  { key: 'total' as const, label: 'Total', icon: Users, color: 'text-foreground', bg: 'bg-muted/50', border: 'border-l-4 border-l-slate-500' },
+  { key: 'customers' as const, label: 'Clientes', icon: UserCircle, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-l-4 border-l-emerald-500' },
+  { key: 'admins' as const, label: 'Admins', icon: Shield, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-500/10', border: 'border-l-4 border-l-red-500' },
+  { key: 'active' as const, label: 'Activos', icon: UserCheck, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-500/10', border: 'border-l-4 border-l-green-500' },
+  { key: 'inactive' as const, label: 'Inactivos', icon: UserX, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/10', border: 'border-l-4 border-l-amber-500' },
+]
+
 const UsersPage = () => {
   const queryClient = useQueryClient()
+  const [editOpen, setEditOpen] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+
   const { data: usersResponse, isLoading, isError } = useQuery({
     queryKey: ['users'],
     queryFn: () => getUsers(),
@@ -49,13 +76,54 @@ const UsersPage = () => {
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, active }: { id: number; active: boolean }) => toggleUserStatus(id, active),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      toast.success(variables.active ? 'Usuario activado' : 'Usuario desactivado')
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || err?.message || 'Error al cambiar estado'
+      toast.error(typeof msg === 'string' ? msg : 'Error al cambiar estado')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: EditUserForm }) => {
+      const payload: Record<string, unknown> = {
+        nom_usuario: data.nom_usuario,
+        ape_usuario: data.ape_usuario ?? '',
+        email_usuario: data.email_usuario,
+        cel_usuario: data.cel_usuario ?? '',
+        ind_genero: data.ind_genero,
+        fec_nacimiento: data.fec_nacimiento || undefined,
+      }
+      return updateUser(id, payload as any)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+      setEditOpen(false)
+      setEditingUser(null)
+      toast.success('Usuario actualizado')
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || err?.message || 'Error al actualizar'
+      toast.error(typeof msg === 'string' ? msg : 'Error al actualizar')
+    },
+  })
+
+  const form = useForm<EditUserForm>({
+    resolver: zodResolver(editUserSchema),
+    defaultValues: {
+      nom_usuario: '',
+      ape_usuario: '',
+      email_usuario: '',
+      cel_usuario: '',
+      fec_nacimiento: '',
+    },
   })
 
   const users = Array.isArray(usersResponse) ? usersResponse : (usersResponse?.items || [])
   const totalUsers = Array.isArray(usersResponse) ? usersResponse.length : (usersResponse?.total || 0)
 
-  // Calcular estadísticas
   const userStats = {
     total: totalUsers,
     customers: users.filter(u => Number((u as any).id_rol) === 2).length,
@@ -64,9 +132,24 @@ const UsersPage = () => {
     inactive: users.filter(u => !(u as any).ind_activo).length,
   }
 
-  const handleExportComplete = (filename: string) => {
-    toast.success(`¡Usuarios exportados exitosamente en ${filename}!`);
-  };
+  const openEdit = (user: User) => {
+    setEditingUser(user)
+    form.reset({
+      nom_usuario: user.nom_usuario,
+      ape_usuario: user.ape_usuario ?? '',
+      email_usuario: user.email_usuario,
+      cel_usuario: user.cel_usuario ?? '',
+      ind_genero: user.ind_genero,
+      fec_nacimiento: user.fec_nacimiento ? String(user.fec_nacimiento).slice(0, 10) : '',
+    })
+    setEditOpen(true)
+  }
+
+  const handleEditSubmit = form.handleSubmit((data) => {
+    if (!editingUser) return
+    const id = Number(editingUser.id_usuario)
+    updateMutation.mutate({ id, data })
+  })
 
   const columns: ColumnDef<User>[] = [
     {
@@ -123,7 +206,7 @@ const UsersPage = () => {
             variant="outline"
             size="icon"
             aria-label="Editar usuario"
-            onClick={() => window.location.href = `/admin/users/${row.original.id_usuario}/edit`}
+            onClick={() => openEdit(row.original)}
           >
             <Pencil className="w-4 h-4" />
           </Button>
@@ -133,6 +216,7 @@ const UsersPage = () => {
               size="icon"
               aria-label="Desactivar"
               onClick={() => toggleMutation.mutate({ id: row.original.id_usuario as unknown as number, active: false })}
+              disabled={toggleMutation.isPending}
             >
               <Power className="w-4 h-4" />
             </Button>
@@ -142,6 +226,8 @@ const UsersPage = () => {
               size="icon"
               aria-label="Activar"
               onClick={() => toggleMutation.mutate({ id: row.original.id_usuario as unknown as number, active: true })}
+              disabled={toggleMutation.isPending}
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
               <Power className="w-4 h-4" />
             </Button>
@@ -153,7 +239,6 @@ const UsersPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Usuarios</h1>
@@ -163,69 +248,108 @@ const UsersPage = () => {
         </div>
       </div>
 
-      {/* Estadísticas */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold">{userStats.total}</div>
-            <p className="text-sm text-muted-foreground">Total</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">{userStats.customers}</div>
-            <p className="text-sm text-muted-foreground">Clientes</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-red-600">{userStats.admins}</div>
-            <p className="text-sm text-muted-foreground">Admins</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-green-600">{userStats.active}</div>
-            <p className="text-sm text-muted-foreground">Activos</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-orange-600">{userStats.inactive}</div>
-            <p className="text-sm text-muted-foreground">Inactivos</p>
-          </CardContent>
-        </Card>
+      {/* Tarjetas de resumen mejoradas */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {statCards.map(({ key, label, icon: Icon, color, bg, border }) => (
+          <Card key={key} className={`overflow-hidden ${border} ${bg} transition-shadow hover:shadow-lg`}>
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+                  <p className={`text-2xl font-bold mt-1 ${color}`}>{userStats[key]}</p>
+                </div>
+                <div className={`rounded-lg p-2 bg-black/20 ${color}`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Loading State */}
       {isLoading && (
         <div className="text-center py-12">
           <div className="text-muted-foreground">Cargando usuarios...</div>
         </div>
       )}
 
-      {/* Error State */}
       {isError && (
         <div className="text-center py-12">
           <div className="text-red-600">No se pudieron cargar los usuarios.</div>
         </div>
       )}
 
-      {/* Users Table */}
       {!isLoading && !isError && users.length > 0 && (
-        <DataTable 
-          columns={[...columns, ...actions]} 
+        <DataTable
+          columns={[...columns, ...actions]}
           data={users}
           pageSize={10}
         />
       )}
 
-      {/* Empty State */}
       {!isLoading && !isError && users.length === 0 && (
         <div className="text-center py-12">
           <div className="text-muted-foreground">No hay usuarios registrados</div>
         </div>
       )}
+
+      {/* Modal editar usuario */}
+      <Dialog open={editOpen} onOpenChange={(open) => { setEditOpen(open); if (!open) setEditingUser(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar usuario</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nom_usuario">Nombre</Label>
+                <Input id="nom_usuario" {...form.register('nom_usuario')} />
+                {form.formState.errors.nom_usuario && (
+                  <p className="text-xs text-destructive">{form.formState.errors.nom_usuario.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ape_usuario">Apellido</Label>
+                <Input id="ape_usuario" {...form.register('ape_usuario')} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email_usuario">Email</Label>
+              <Input id="email_usuario" type="email" {...form.register('email_usuario')} />
+              {form.formState.errors.email_usuario && (
+                <p className="text-xs text-destructive">{form.formState.errors.email_usuario.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cel_usuario">Teléfono</Label>
+              <Input id="cel_usuario" {...form.register('cel_usuario')} />
+            </div>
+            <div className="space-y-2">
+              <Label>Género</Label>
+              <select
+                className="w-full border rounded-md h-9 px-3 text-sm bg-background"
+                {...form.register('ind_genero', { setValueAs: (v) => v === 'true' })}
+              >
+                <option value="">Sin especificar</option>
+                <option value="false">Masculino</option>
+                <option value="true">Femenino</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fec_nacimiento">Fecha de nacimiento</Label>
+              <Input id="fec_nacimiento" type="date" {...form.register('fec_nacimiento')} />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={updateMutation.isPending}>
+                {updateMutation.isPending ? 'Guardando...' : 'Guardar'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

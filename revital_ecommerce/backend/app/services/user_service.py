@@ -42,6 +42,7 @@ def get_users(db: Session):
             ind_genero,
             cel_usuario,
             fec_nacimiento,
+            ind_activo,
             usr_insert,
             fec_insert,
             usr_update,
@@ -72,6 +73,7 @@ def get_user(db: Session, id_usuario: Decimal):
             ind_genero,
             cel_usuario,
             fec_nacimiento,
+            ind_activo,
             usr_insert,
             fec_insert,
             usr_update,
@@ -306,6 +308,35 @@ def update_password(db: Session, id_usuario: Decimal, hashed_password: str):
         raise Exception(f"Error al actualizar contraseña: {str(e)}")
 
 # Alias para compatibilidad con diferentes nomenclaturas
+def update_user_status(db: Session, id_usuario: Decimal, ind_activo: bool):
+    """
+    Actualiza solo el estado activo/inactivo de un usuario.
+
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        id_usuario (Decimal): El ID del usuario a actualizar.
+        ind_activo (bool): Nuevo valor de ind_activo.
+
+    Returns:
+        dict or None: El usuario actualizado o None si no existe.
+    """
+    try:
+        existing = get_user(db, id_usuario)
+        if not existing:
+            raise Exception("Usuario no encontrado")
+        query = text("""
+            UPDATE tab_usuarios
+            SET ind_activo = :ind_activo
+            WHERE id_usuario = :id_usuario
+        """)
+        db.execute(query, {"id_usuario": id_usuario, "ind_activo": ind_activo})
+        db.commit()
+        return get_user(db, id_usuario)
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al actualizar estado del usuario: {e}")
+
+
 def get_user_by_id(db: Session, id_usuario: Decimal):
     """
     Obtiene un usuario específico de la base de datos por su ID.

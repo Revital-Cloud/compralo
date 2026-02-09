@@ -146,6 +146,38 @@ async def create_users(
                 detail="Error al crear el usuario. Verifique los datos e inténtelo de nuevo."
             )
     
+@router.put("/users/{id_usuario}/status", response_model=User, status_code=status.HTTP_200_OK)
+async def update_user_status(
+    id_usuario: Decimal,
+    body: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Activa o desactiva un usuario (solo administradores).
+
+    - **active** (bool): true para activar, false para desactivar.
+    """
+    if current_user.id_rol != 1:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Solo los administradores pueden activar o desactivar usuarios"
+        )
+    active = body.get("active")
+    if active is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El campo 'active' (boolean) es requerido"
+        )
+    try:
+        updated = user_service.update_user_status(db, id_usuario, bool(active))
+        return updated
+    except Exception as e:
+        if "no encontrado" in str(e).lower():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
 @router.put("/users/{id_usuario}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def update_user(
     id_usuario: Decimal,
