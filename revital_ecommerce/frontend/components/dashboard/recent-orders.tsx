@@ -4,7 +4,7 @@ import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui"
 import { Badge } from "@/components/ui"
 import { Button } from "@/components/ui"
-import { IconEye, IconDots, IconTruck, IconClock, IconPackage, IconX } from "@tabler/icons-react"
+import { IconEye, IconTruck, IconClock, IconPackage, IconX } from "@tabler/icons-react"
 import { formatPrice } from "@/utils/format-price"
 
 interface RecentOrder {
@@ -45,9 +45,6 @@ export const RecentOrders = ({ recentOrders, loading }: RecentOrdersProps) => (
         <Button variant="outline" size="sm">
           <IconEye className="h-4 w-4 mr-2" />
           Ver Todo
-        </Button>
-        <Button variant="ghost" size="sm">
-          <IconDots className="h-4 w-4" />
         </Button>
       </div>
     </CardHeader>

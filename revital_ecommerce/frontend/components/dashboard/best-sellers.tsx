@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui"
 import { Badge } from "@/components/ui"
 import { Button } from "@/components/ui"
-import { IconPackage, IconEye, IconDots } from "@tabler/icons-react"
+import { IconPackage, IconEye } from "@tabler/icons-react"
 import { formatPrice } from "@/utils/format-price"
 
 interface BestSeller {
@@ -31,9 +31,6 @@ export const BestSellers = ({ bestSellers, loading }: BestSellersProps) => (
         <CardTitle>Productos Destacados</CardTitle>
         <CardDescription>Artículos con mejor rendimiento</CardDescription>
       </div>
-      <Button variant="ghost" size="sm">
-        <IconDots className="h-4 w-4" />
-      </Button>
     </CardHeader>
     <CardContent className="space-y-4">
       {loading ? (
