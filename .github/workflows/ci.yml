@@ -45,6 +45,33 @@ jobs:
       run:
         working-directory: revital_ecommerce/backend
 
+    env:
+      PYTHONPATH: app
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      COMPANY_NAME: CI Test
+      APP_NAME: CI Test App
+      COMPANY_TAGLINE: CI tagline
+      COMPANY_ADDRESS: CI address
+      SUPPORT_EMAIL: ci@example.com
+      SECRET_KEY: ci-secret-key-min-32-chars-long
+      ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+      ALGORITHM: HS256
+      REFRESH_TOKEN_EXPIRE_DAYS: "7"
+      CLOUDINARY_CLOUD_NAME: ci-cloud
+      CLOUDINARY_API_KEY: ci-key
+      CLOUDINARY_API_SECRET: ci-secret
+      RESEND_API_KEY: re_ci_fake_key
+      RESEND_FROM_EMAIL: ci@example.com
+      RESEND_FROM_NAME: CI Sender
+      FRONTEND_URL: http://localhost:3000
+      VERIFY_EMAIL_URL: http://localhost:3000/verify-email
+      RESET_PASSWORD_URL: http://localhost:3000/reset-password
+      WOMPI_PUBLIC_KEY: TEST_ci_public_key
+      WOMPI_PRIVATE_KEY: TEST_ci_private_key
+      WOMPI_EVENTS_SECRET: ci_events_secret
+      WOMPI_INTEGRITY_SECRET: ci_integrity_secret
+
     steps:
       - uses: actions/checkout@v4
 
@@ -62,8 +89,6 @@ jobs:
         run: pip install pytest pytest-asyncio pytest-cov httpx
 
       - name: Verify app loads
-        env:
-          PYTHONPATH: app
         run: python -c "from main import app; print('OK')"
 
       - name: Run tests
