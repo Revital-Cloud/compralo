@@ -62,7 +62,9 @@ jobs:
         run: pip install pytest pytest-asyncio pytest-cov httpx
 
       - name: Verify app loads
-        run: python -c "from app.main import app; print('OK')"
+        env:
+          PYTHONPATH: app
+        run: python -c "from main import app; print('OK')"
 
       - name: Run tests
         run: pytest --cov=app --cov-report=term-missing tests/
