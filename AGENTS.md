@@ -48,6 +48,10 @@ Use these skills for detailed patterns on-demand:
 | `tailwind-4` | cn() utility, Tailwind patterns | [SKILL.md](skills/tailwind-4/SKILL.md) |
 | `pytest` | Fixtures, mocking, markers, parametrize | [SKILL.md](skills/pytest/SKILL.md) |
 | `fastapi` | FastAPI patterns, routers, dependencies | [SKILL.md](skills/fastapi/SKILL.md) |
+| `performance` | Web performance (Lighthouse, Core Web Vitals, budgets) | [SKILL.md](skills/performance/SKILL.md) |
+| `doc` | DOCX creation/editing, python-docx, layout fidelity | [SKILL.md](skills/doc/SKILL.md) |
+| `pricing-strategy` | Pricing, packaging, tier structure | [SKILL.md](skills/pricing-strategy/SKILL.md) |
+| `security-best-practices` | Backend/frontend security by stack | [SKILL.md](skills/security-best-practices/SKILL.md) |
 
 ### Revital-Specific Skills
 | Skill | Description | URL |
@@ -86,6 +90,10 @@ When performing these actions, ALWAYS invoke the corresponding skill FIRST:
 | Create a PR with gh pr create | `revital-pr` |
 | Review PR requirements: template, title conventions | `revital-pr` |
 | Fill .github/pull_request_template.md | `revital-pr` |
+| Creating/editing DOCX, layout-sensitive docs | `doc` |
+| Speed up site, performance audit, Core Web Vitals | `performance` |
+| Pricing, tiers, packaging strategy | `pricing-strategy` |
+| Security review, auth, input validation, OWASP | `security-best-practices` |
 
 ---
 

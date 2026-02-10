@@ -8,11 +8,11 @@ Revital uses a **hybrid approach** combining project-specific skills and global 
 
 These are versioned in git and specific to Revital:
 
-- **15 skills total** including:
+- **19 skills total** including:
   - Revital-specific skills (7): `revital`, `revital-ecommerce`, `revital-panel`, etc.
   - Generic skills (6): `typescript`, `react-19`, `nextjs-15`, `tailwind-4`, `pytest`, `fastapi`
-  - Performance skill (1): `react-performance` (adapted for Revital)
-  - PR skill (1): `revital-pr`
+  - Performance skills (2): `react-performance` (Revital/React), `performance` (Lighthouse, Core Web Vitals)
+  - Other (4): `doc`, `pricing-strategy`, `security-best-practices`, `revital-pr`
 
 **Location**: `./.cursor/skills/` (symlink to `./skills/`)
 

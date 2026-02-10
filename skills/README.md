@@ -85,6 +85,10 @@ Reusable patterns for common technologies:
 | `tailwind-4` | cn() utility, Tailwind 4 patterns |
 | `pytest` | Fixtures, mocking, markers |
 | `fastapi` | FastAPI patterns, routers, dependencies |
+| `performance` | Web performance (Lighthouse, Core Web Vitals) |
+| `doc` | DOCX creation/editing, python-docx |
+| `pricing-strategy` | Pricing, packaging, tier structure |
+| `security-best-practices` | Security by stack (FastAPI, Django, React, etc.) |
 
 ### Revital-Specific Skills
 
