@@ -4,7 +4,7 @@
 
 Revital uses a **hybrid approach** combining project-specific skills and global skills from Vercel.
 
-### Project-Level Skills (`./skills/`)
+### Project-Level Skills (`.agents/skills/`)
 
 These are versioned in git and specific to Revital:
 
@@ -14,7 +14,7 @@ These are versioned in git and specific to Revital:
   - Performance skills (2): `react-performance` (Revital/React), `performance` (Lighthouse, Core Web Vitals)
   - Other (4): `doc`, `pricing-strategy`, `security-best-practices`, `revital-pr`
 
-**Location**: `./.cursor/skills/` (symlink to `./skills/`)
+**Location**: `.agents/skills/` (source). `./.cursor/skills/` is a symlink to it (created by `./.agents/setup.sh`).
 
 ### Global Skills (`~/.cursor/skills/`)
 
@@ -55,7 +55,7 @@ Cursor loads skills from both locations:
 
 ```bash
 cd revital
-./skills/setup.sh  # Auto-detects and configures
+./.agents/setup.sh  # Auto-detects and configures
 ```
 
 ### Optional: Global Skills
@@ -70,14 +70,14 @@ npx add-skill vercel-labs/agent-skills \
 ## Verifying Installation
 
 ```bash
-# Check project skills
+# Check project skills (source)
+ls -la .agents/skills/
+
+# Check symlink
 ls -la .cursor/skills/
 
-# Check global skills
-ls -la ~/.cursor/skills/
-
 # Count total skills
-find .cursor/skills ~/.cursor/skills -name "SKILL.md" 2>/dev/null | wc -l
+find .agents/skills ~/.cursor/skills -name "SKILL.md" 2>/dev/null | wc -l
 ```
 
 ## Troubleshooting
@@ -101,7 +101,7 @@ rm -rf ~/.cursor/skills/web-design-guidelines
 
 ## Best Practices
 
-1. **Project skills** (`./skills/`) - Version in git, required for all collaborators
+1. **Project skills** (`.agents/skills/`) - Version in git, required for all collaborators
 2. **Global skills** (`~/.cursor/skills/`) - Optional, personal preference
 3. **Keep both** - They serve different purposes and complement each other
 4. **Document additions** - If adding new global skills, document them here

@@ -1,121 +1,58 @@
 {% extends "base.html" %}
 
-{% block title %}¿Olvidaste algo en tu carrito? - Compralo{% endblock %}
+{% block title %}Tu carrito te espera – {{ app_name }}{% endblock %}
+
+{% block preheader %}Tienes productos en tu carrito. Completa tu compra antes de que se vacíe. Total ${{ cart.total }}.{% endblock %}
 
 {% block content %}
-<div class="greeting">
-    ¡No te pierdas estos productos! 🛒
-</div>
+<div class="greeting">¡No te pierdas estos productos!</div>
 
 <div class="alert alert-warning">
-    <strong>⏰ ¡Tu carrito te está esperando!</strong><br>
-    Tienes productos increíbles esperando ser comprados.
+    <strong>Tu carrito te está esperando.</strong> Tienes productos listos para comprar.
 </div>
 
 <div class="content-block">
-    <h2>Productos en tu Carrito</h2>
-    <div class="product-grid">
-        {% for item in cart.items %}
-        <div class="product-card">
-            <div style="font-size: 30px; margin-bottom: 10px;">🛍️</div>
-            <strong>{{ item.product_name }}</strong>
-            <p style="font-size: 12px; color: #888;">Cantidad: {{ item.quantity }}</p>
-            <p style="font-size: 14px; color: #FF0000; font-weight: bold;">${{ item.price }}</p>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-
-<div class="content-block">
-    <h3>Resumen de tu Carrito</h3>
+    <h2>Productos en tu carrito</h2>
     <table class="table">
+        <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th></tr></thead>
+        <tbody>
+        {% for item in (cart.items or []) %}
         <tr>
-            <td><strong>Subtotal:</strong></td>
-            <td>${{ cart.subtotal }}</td>
+            <td>{{ item.product_name }}</td>
+            <td>{{ item.quantity }}</td>
+            <td class="price">${{ item.price }}</td>
         </tr>
-        <tr>
-            <td><strong>Envío:</strong></td>
-            <td>{{ cart.shipping_cost }}</td>
-        </tr>
-        <tr>
-            <td><strong>Total:</strong></td>
-            <td style="color: #FF0000; font-weight: bold; font-size: 18px;">${{ cart.total }}</td>
-        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="content-block">
+    <table class="table">
+        <tr><td><strong>Subtotal</strong></td><td>${{ cart.subtotal }}</td></tr>
+        <tr><td><strong>Envío</strong></td><td>{{ cart.shipping_cost }}</td></tr>
+        <tr><td><strong>Total</strong></td><td class="price">${{ cart.total }}</td></tr>
     </table>
 </div>
 
 <div class="alert alert-info">
-    <strong>🎁 ¡Oferta Especial!</strong><br>
-    <p>Completa tu compra ahora y obtén:</p>
-    <ul style="margin: 10px 0 0 20px; padding: 0;">
-        <li>Envío gratis en compras mayores a $75</li>
-        <li>Descuento del 10% en tu primera compra</li>
-        <li>Garantía de satisfacción del 100%</li>
-        <li>Devoluciones gratuitas por 30 días</li>
-    </ul>
+    Completa tu compra y obtén envío gratis en compras mayores a $75, y devoluciones gratuitas por 30 días.
 </div>
 
+{% set cart_url = frontend_url ~ '/cart' %}
 <div class="text-center">
-    <a href="{{ frontend_url }}/cart" class="btn">
-        🛒 Completar Compra
-    </a>
-    <a href="{{ frontend_url }}/productos" class="btn btn-secondary" style="margin-left: 10px;">
-        🛍️ Seguir Comprando
-    </a>
-</div>
-
-<div class="divider"></div>
-
-<div class="content-block">
-    <h3>¿Por qué elegir Compralo?</h3>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
-        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #FFF5F5, #FFE5E5); border-radius: 8px; border: 1px solid #FFE5E5;">
-            <div style="font-size: 24px; margin-bottom: 5px;">⚡</div>
-            <strong>Envío Rápido</strong>
-            <p style="font-size: 12px; margin: 5px 0; color: #666;">Recibe tu pedido en 24-48 horas</p>
-        </div>
-        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #FFF5F5, #FFE5E5); border-radius: 8px; border: 1px solid #FFE5E5;">
-            <div style="font-size: 24px; margin-bottom: 5px;">💯</div>
-            <strong>Calidad Garantizada</strong>
-            <p style="font-size: 12px; margin: 5px 0; color: #666;">Productos de la mejor calidad</p>
-        </div>
-        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #FFF5F5, #FFE5E5); border-radius: 8px; border: 1px solid #FFE5E5;">
-            <div style="font-size: 24px; margin-bottom: 5px;">🔒</div>
-            <strong>Compra Segura</strong>
-            <p style="font-size: 12px; margin: 5px 0; color: #666;">Protección total de tus datos</p>
-        </div>
-        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #FFF5F5, #FFE5E5); border-radius: 8px; border: 1px solid #FFE5E5;">
-            <div style="font-size: 24px; margin-bottom: 5px;">🎁</div>
-            <strong>Ofertas Exclusivas</strong>
-            <p style="font-size: 12px; margin: 5px 0; color: #666;">Descuentos solo para ti</p>
-        </div>
-    </div>
+    {% set url = cart_url %}
+{% set label = "Completar compra" %}
+{% set variant = "primary" %}
+{% include "_button.html" %}
 </div>
 
 <div class="alert alert-danger">
-    <strong>⏰ ¡Tiempo Limitado!</strong><br>
-    <p>Tu carrito se vaciará automáticamente en 24 horas. ¡No pierdas estos productos increíbles!</p>
+    <strong>Tiempo limitado.</strong> Tu carrito puede vaciarse. No pierdas estos productos.
 </div>
 
-<div class="content-block">
-    <h3>¿Necesitas ayuda?</h3>
-    <p>Si tienes alguna pregunta sobre tu carrito o necesitas asistencia:</p>
-    <div style="text-align: center; margin: 20px 0;">
-        <a href="mailto:{{ support_email }}" style="color: #FF0000; text-decoration: none; margin: 0 15px;">
-            📧 {{ support_email }}
-        </a>
-        <a href="{{ frontend_url }}/chat" style="color: #FF0000; text-decoration: none; margin: 0 15px;">
-            💬 Chat en vivo
-        </a>
-    </div>
-</div>
-
-<div class="text-center" style="margin: 30px 0;">
-    <p style="font-size: 18px; color: #FF0000; font-weight: 600;">
-        ¡No dejes escapar esta oportunidad! 🛒
-    </p>
-    <p style="color: #888;">
-        Tus productos favoritos te están esperando.
-    </p>
+<div class="content-block text-center">
+    <p>¿Ayuda? <a href="mailto:{{ support_email }}" style="color:#dc2626;">{{ support_email }}</a></p>
+    <p class="text-muted">Gracias por elegir {{ app_name }}.</p>
 </div>
 {% endblock %}

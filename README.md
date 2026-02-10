@@ -369,13 +369,13 @@ Si usas un asistente de IA para desarrollo (Cursor, Claude Code, GitHub Copilot,
 
 ```bash
 # Auto-detecta los asistentes instalados (recomendado)
-./skills/setup.sh
+./.agents/setup.sh
 
 # O especifica manualmente
-./skills/setup.sh --cursor --claude
+./.agents/setup.sh --cursor --claude
 
 # O configura todos los asistentes
-./skills/setup.sh --all
+./.agents/setup.sh --all
 ```
 
 **Nota importante**: Cada colaborador debe ejecutar este script en su máquina local. Los symlinks generados son específicos de cada desarrollador y no se versionan en git.
@@ -384,7 +384,7 @@ El script **detecta automáticamente** qué asistentes de IA tienes instalados y
 
 Los skills proporcionan contexto específico del proyecto a los asistentes de IA, mejorando la calidad del código generado y asegurando que siga los patrones y convenciones de Revital.
 
-Para más información, consulta [AGENTS.md](./AGENTS.md) y [skills/README.md](./skills/README.md).
+Para más información, consulta [AGENTS.md](./AGENTS.md) y [.agents/README.md](./.agents/README.md).
 
 ---
 

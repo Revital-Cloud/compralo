@@ -1,131 +1,72 @@
 {% extends "base.html" %}
 
-{% block title %}Recomendaciones Personalizadas - Compralo{% endblock %}
+{% block title %}Recomendaciones para ti – {{ app_name }}{% endblock %}
+
+{% block preheader %}Productos recomendados para ti en {{ app_name }}. Código RECOMENDADO15: 15% OFF. Válido hasta {{ offer_expiry }}.{% endblock %}
 
 {% block content %}
-<div class="greeting">
-    ¡Hola {{ customer_name }}! 👋
-</div>
+<div class="greeting">¡Hola {{ customer_name }}!</div>
 
 <div class="highlight-box">
-    <h2 style="margin: 0; color: #FF0000;">🎯 Recomendaciones Solo para Ti</h2>
-    <p style="margin: 10px 0; font-size: 18px; color: #666;">
-        Basado en tus compras anteriores, creemos que te encantarán estos productos
-    </p>
+    <h2 style="margin:0; font-size:22px; color:#dc2626;">Recomendaciones para ti</h2>
+    <p style="margin:10px 0 0; font-size:15px; color:#6b7280;">Basado en tus compras, creemos que te gustarán estos productos.</p>
 </div>
 
 <div class="content-block">
-    <h3>🛍️ Productos Recomendados</h3>
-    <div class="product-grid">
-        {% for product in recommended_products %}
-        <div class="product-card">
-            <div style="font-size: 30px; margin-bottom: 10px;">⭐</div>
-            <strong>{{ product.name }}</strong>
-            <p style="font-size: 12px; color: #888;">{{ product.category }}</p>
-            <p style="font-size: 14px; color: #FF0000; font-weight: bold;">${{ product.price }}</p>
-            {% if product.discount %}
-            <div class="discount-badge">{{ product.discount }}% OFF</div>
-            {% endif %}
-            <div style="margin-top: 10px;">
-                <a href="{{ frontend_url }}/productos/{{ product.slug }}" class="btn" style="padding: 8px 16px; font-size: 12px;">
-                    Ver Producto
-                </a>
-            </div>
-        </div>
+    <h3>Productos recomendados</h3>
+    <table class="table">
+        <thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th><th></th></tr></thead>
+        <tbody>
+        {% for product in (recommended_products or []) %}
+        <tr>
+            <td>{{ product.name }}</td>
+            <td>{{ product.category }}</td>
+            <td class="price">${{ product.price }}{% if product.discount %} {{ product.discount }}% OFF{% endif %}</td>
+            <td><a href="{{ frontend_url }}/productos/{{ product.slug }}" style="color:#dc2626; font-size:14px;">Ver</a></td>
+        </tr>
         {% endfor %}
-    </div>
+        </tbody>
+    </table>
 </div>
 
 <div class="alert alert-info">
-    <strong>🤖 ¿Cómo elegimos estos productos?</strong><br>
-    <p>Nuestro algoritmo analiza tus compras anteriores, productos que has visto y tus preferencias para sugerirte los mejores productos que realmente te interesarán.</p>
+    Elegimos estos productos según tus compras y lo que has visto.
 </div>
 
-<div class="content-block">
-    <h3>🔥 Ofertas Relacionadas</h3>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
-        {% for offer in related_offers %}
-        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #FFF5F5, #FFE5E5); border-radius: 8px; border: 1px solid #FFE5E5;">
-            <div style="font-size: 24px; margin-bottom: 5px;">{{ offer.icon }}</div>
-            <strong>{{ offer.title }}</strong>
-            <p style="font-size: 12px; margin: 5px 0; color: #666;">{{ offer.description }}</p>
-            <div style="margin: 10px 0;">
-                <span style="color: #FF0000; font-weight: bold;">{{ offer.discount }}</span>
-            </div>
-            <a href="{{ frontend_url }}/ofertas/{{ offer.slug }}" style="color: #FF0000; text-decoration: none; font-size: 12px;">Ver oferta →</a>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-
+{% set rec_url = frontend_url ~ '/productos?recomendados=true' %}
 <div class="text-center">
-    <a href="{{ frontend_url }}/productos?recomendados=true" class="btn">
-        🛍️ Ver Todas las Recomendaciones
-    </a>
-    <a href="{{ frontend_url }}/productos" class="btn btn-secondary" style="margin-left: 10px;">
-        🛒 Explorar Tienda
-    </a>
+    {% set url = rec_url %}
+{% set label = "Ver todas las recomendaciones" %}
+{% set variant = "primary" %}
+{% include "_button.html" %}
 </div>
 
-<div class="divider"></div>
-
+{% if related_offers %}
 <div class="content-block">
-    <h3>💡 Productos que Otros Compradores También Compraron</h3>
-    <div class="product-grid">
-        {% for product in also_bought %}
-        <div class="product-card">
-            <div style="font-size: 30px; margin-bottom: 10px;">👥</div>
-            <strong>{{ product.name }}</strong>
-            <p style="font-size: 12px; color: #888;">{{ product.category }}</p>
-            <p style="font-size: 14px; color: #FF0000; font-weight: bold;">${{ product.price }}</p>
-            <div style="margin-top: 10px;">
-                <a href="{{ frontend_url }}/productos/{{ product.slug }}" class="btn" style="padding: 8px 16px; font-size: 12px;">
-                    Ver Producto
-                </a>
-            </div>
-        </div>
+    <h3>Ofertas relacionadas</h3>
+    <table class="table">
+        {% for offer in related_offers %}
+        <tr><td>{{ offer.title }}</td><td>{{ offer.discount }}</td><td><a href="{{ frontend_url }}/ofertas/{{ offer.slug }}" style="color:#dc2626;">Ver oferta</a></td></tr>
         {% endfor %}
-    </div>
+    </table>
 </div>
+{% endif %}
 
 <div class="alert alert-success">
-    <strong>🎁 ¡Oferta Especial de Recomendaciones!</strong><br>
-    <p>Usa el código <strong style="color: #FF0000;">RECOMENDADO15</strong> y obtén 15% de descuento en cualquiera de estos productos recomendados.</p>
-    <p><small>*Válido hasta el {{ offer_expiry }}. Solo para productos recomendados.</small></p>
+    Código <strong>RECOMENDADO15</strong>: 15% de descuento en productos recomendados. Válido hasta {{ offer_expiry }}.
 </div>
 
+{% if stats %}
 <div class="content-block">
-    <h3>📊 Tus Estadísticas de Compra</h3>
-    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin: 20px 0;">
-        <div style="text-align: center; padding: 15px; background: #F5F5F5; border-radius: 8px;">
-            <div style="font-size: 24px; margin-bottom: 5px;">🛒</div>
-            <strong>{{ stats.total_orders }}</strong>
-            <p style="font-size: 12px; color: #666;">Órdenes Totales</p>
-        </div>
-        <div style="text-align: center; padding: 15px; background: #F5F5F5; border-radius: 8px;">
-            <div style="font-size: 24px; margin-bottom: 5px;">💰</div>
-            <strong>${{ stats.total_spent }}</strong>
-            <p style="font-size: 12px; color: #666;">Total Gastado</p>
-        </div>
-        <div style="text-align: center; padding: 15px; background: #F5F5F5; border-radius: 8px;">
-            <div style="font-size: 24px; margin-bottom: 5px;">⭐</div>
-            <strong>{{ stats.favorite_category }}</strong>
-            <p style="font-size: 12px; color: #666;">Categoría Favorita</p>
-        </div>
-    </div>
+    <p><strong>Tu actividad:</strong> {{ stats.total_orders }} órdenes · ${{ stats.total_spent }} · Favorita: {{ stats.favorite_category }}</p>
 </div>
+{% endif %}
 
 <div class="alert alert-warning">
-    <strong>📧 ¿No te interesan estas recomendaciones?</strong><br>
-    <p>Puedes <a href="{{ frontend_url }}/preferences" style="color: #FF0000;">actualizar tus preferencias</a> o <a href="{{ unsubscribe_url }}" style="color: #FF0000;">cancelar las recomendaciones por email</a>.</p>
+    <a href="{{ frontend_url }}/preferences" style="color:#d97706;">Actualizar preferencias</a> o <a href="{{ unsubscribe_url }}" style="color:#d97706;">dejar de recibir recomendaciones</a>.
 </div>
 
-<div class="text-center" style="margin: 30px 0;">
-    <p style="font-size: 18px; color: #FF0000; font-weight: 600;">
-        ¡Esperamos que encuentres algo perfecto! 🛍️
-    </p>
-    <p style="color: #888;">
-        Gracias por confiar en Compralo para tus compras.
-    </p>
+<div class="text-center text-muted">
+    <p>Gracias por confiar en {{ app_name }}.</p>
 </div>
 {% endblock %}

@@ -1,0 +1,10 @@
+{# Bulletproof CTA (email-design). Before include set: url, label, variant (optional, default primary). #}
+{% set v = variant|default('primary') %}
+{% set bg = v == 'success' and '#16a34a' or v == 'secondary' and '#ea580c' or v == 'warning' and '#d97706' or '#dc2626' %}
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:16px 0;">
+<tr>
+<td align="center" bgcolor="{{ bg }}" style="border-radius:6px;">
+<a href="{{ url }}" target="_blank" style="font-size:16px; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif; color:#ffffff; text-decoration:none; padding:12px 24px; display:inline-block; font-weight:bold;">{{ label }}</a>
+</td>
+</tr>
+</table>

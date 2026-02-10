@@ -6,7 +6,7 @@ así como para el hash y verificación de contraseñas usando pwdlib con Argon2.
 """
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from jose import JWTError, jwt
+import jwt
 from pwdlib import PasswordHash
 from fastapi import HTTPException, status
 
@@ -80,7 +80,7 @@ def verify_token(token: str, token_type: str = "access") -> dict:
             )
         
         return payload
-    except JWTError:
+    except jwt.PyJWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido",
@@ -182,7 +182,7 @@ def verify_verification_token(token: str) -> dict:
             )
         
         return payload
-    except JWTError:
+    except jwt.PyJWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token de verificación inválido o expirado",
@@ -212,7 +212,7 @@ def verify_password_reset_token(token: str) -> dict:
             )
         
         return payload
-    except JWTError:
+    except jwt.PyJWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token de reset inválido o expirado",

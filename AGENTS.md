@@ -11,15 +11,15 @@
 **Important**: Each collaborator must run the setup script on their local machine. The script **auto-detects** installed AI assistants:
 
 ```bash
-./skills/setup.sh  # Auto-detects and configures installed agents
+./.agents/setup.sh  # Auto-detects and configures installed agents
 ```
 
 Or specify manually:
 
 ```bash
-./skills/setup.sh --cursor --claude  # Specific agents
-./skills/setup.sh --all               # All agents
-./skills/setup.sh --no-auto           # Interactive mode
+./.agents/setup.sh --cursor --claude  # Specific agents
+./.agents/setup.sh --all               # All agents
+./.agents/setup.sh --no-auto           # Interactive mode
 ```
 
 The symlinks created are local to each developer and are not versioned in git. After running setup, restart your AI assistant to load the skills.
@@ -32,7 +32,7 @@ You can also install Vercel's React Best Practices globally (recommended):
 npx add-skill vercel-labs/agent-skills
 ```
 
-This installs skills globally (`~/.cursor/skills/`) that complement our project-specific skills. See [skills/SKILLS_INTEGRATION.md](./skills/SKILLS_INTEGRATION.md) for details.
+This installs skills globally (`~/.cursor/skills/`) that complement our project-specific skills. See [.agents/SKILLS_INTEGRATION.md](./.agents/SKILLS_INTEGRATION.md) for details.
 
 ## Available Skills
 
@@ -41,28 +41,28 @@ Use these skills for detailed patterns on-demand:
 ### Generic Skills (Any Project)
 | Skill | Description | URL |
 |-------|-------------|-----|
-| `typescript` | Const types, flat interfaces, utility types | [SKILL.md](skills/typescript/SKILL.md) |
-| `react-19` | React 19 patterns, hooks, components | [SKILL.md](skills/react-19/SKILL.md) |
-| `react-performance` | React/Next.js performance optimization (Vercel best practices) | [SKILL.md](skills/react-performance/SKILL.md) |
-| `nextjs-15` | App Router, Server Actions, streaming | [SKILL.md](skills/nextjs-15/SKILL.md) |
-| `tailwind-4` | cn() utility, Tailwind patterns | [SKILL.md](skills/tailwind-4/SKILL.md) |
-| `pytest` | Fixtures, mocking, markers, parametrize | [SKILL.md](skills/pytest/SKILL.md) |
-| `fastapi` | FastAPI patterns, routers, dependencies | [SKILL.md](skills/fastapi/SKILL.md) |
-| `performance` | Web performance (Lighthouse, Core Web Vitals, budgets) | [SKILL.md](skills/performance/SKILL.md) |
-| `doc` | DOCX creation/editing, python-docx, layout fidelity | [SKILL.md](skills/doc/SKILL.md) |
-| `pricing-strategy` | Pricing, packaging, tier structure | [SKILL.md](skills/pricing-strategy/SKILL.md) |
-| `security-best-practices` | Backend/frontend security by stack | [SKILL.md](skills/security-best-practices/SKILL.md) |
+| `typescript` | Const types, flat interfaces, utility types | [SKILL.md](.agents/skills/typescript/SKILL.md) |
+| `react-19` | React 19 patterns, hooks, components | [SKILL.md](.agents/skills/react-19/SKILL.md) |
+| `react-performance` | React/Next.js performance optimization (Vercel best practices) | [SKILL.md](.agents/skills/react-performance/SKILL.md) |
+| `nextjs-15` | App Router, Server Actions, streaming | [SKILL.md](.agents/skills/nextjs-15/SKILL.md) |
+| `tailwind-4` | cn() utility, Tailwind patterns | [SKILL.md](.agents/skills/tailwind-4/SKILL.md) |
+| `pytest` | Fixtures, mocking, markers, parametrize | [SKILL.md](.agents/skills/pytest/SKILL.md) |
+| `fastapi` | FastAPI patterns, routers, dependencies | [SKILL.md](.agents/skills/fastapi/SKILL.md) |
+| `performance` | Web performance (Lighthouse, Core Web Vitals, budgets) | [SKILL.md](.agents/skills/performance/SKILL.md) |
+| `doc` | DOCX creation/editing, python-docx, layout fidelity | [SKILL.md](.agents/skills/doc/SKILL.md) |
+| `pricing-strategy` | Pricing, packaging, tier structure | [SKILL.md](.agents/skills/pricing-strategy/SKILL.md) |
+| `security-best-practices` | Backend/frontend security by stack | [SKILL.md](.agents/skills/security-best-practices/SKILL.md) |
 
 ### Revital-Specific Skills
 | Skill | Description | URL |
 |-------|-------------|-----|
-| `revital` | Project overview, component navigation | [SKILL.md](skills/revital/SKILL.md) |
-| `revital-ecommerce` | E-commerce instance patterns | [SKILL.md](skills/revital-ecommerce/SKILL.md) |
-| `revital-panel` | SaaS panel patterns | [SKILL.md](skills/revital-panel/SKILL.md) |
-| `revital-ecommerce-backend` | FastAPI backend for e-commerce | [SKILL.md](skills/revital-ecommerce-backend/SKILL.md) |
-| `revital-ecommerce-frontend` | Next.js frontend for e-commerce | [SKILL.md](skills/revital-ecommerce-frontend/SKILL.md) |
-| `revital-panel-backend` | FastAPI backend for SaaS panel | [SKILL.md](skills/revital-panel-backend/SKILL.md) |
-| `revital-panel-frontend` | Next.js frontend for SaaS panel | [SKILL.md](skills/revital-panel-frontend/SKILL.md) |
+| `revital` | Project overview, component navigation | [SKILL.md](.agents/skills/revital/SKILL.md) |
+| `revital-ecommerce` | E-commerce instance patterns | [SKILL.md](.agents/skills/revital-ecommerce/SKILL.md) |
+| `revital-panel` | SaaS panel patterns | [SKILL.md](.agents/skills/revital-panel/SKILL.md) |
+| `revital-ecommerce-backend` | FastAPI backend for e-commerce | [SKILL.md](.agents/skills/revital-ecommerce-backend/SKILL.md) |
+| `revital-ecommerce-frontend` | Next.js frontend for e-commerce | [SKILL.md](.agents/skills/revital-ecommerce-frontend/SKILL.md) |
+| `revital-panel-backend` | FastAPI backend for SaaS panel | [SKILL.md](.agents/skills/revital-panel-backend/SKILL.md) |
+| `revital-panel-frontend` | Next.js frontend for SaaS panel | [SKILL.md](.agents/skills/revital-panel-frontend/SKILL.md) |
 
 ### Auto-invoke Skills
 

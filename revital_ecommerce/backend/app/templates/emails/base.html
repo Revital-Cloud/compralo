@@ -5,443 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ app_name }}{% endblock %}</title>
     <style>
-        /* Reset CSS */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        /* Fuentes importadas */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        
-        /* Estilos base */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #000000;
-            background: #F5F5F5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.5;
+            color: #111827;
+            background: #f0f0f0;
             margin: 0;
             padding: 20px 0;
         }
-        
-        .email-container {
-            max-width: 600px;
-            margin: 0 auto;
-            background-color: #ffffff;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* Header con gradiente de Compralo */
-        .email-header {
-            background: linear-gradient(135deg, #FF0000 0%, #FF7A00 50%, #FFD600 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .logo {
-            font-size: 36px;
-            font-weight: 800;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-            position: relative;
-            z-index: 1;
-            letter-spacing: -0.5px;
-        }
-        
-        .logo::before {
-            content: '🛒';
-            margin-right: 8px;
-            font-size: 32px;
-        }
-        
-        .tagline {
-            font-size: 16px;
-            opacity: 0.95;
-            font-weight: 500;
-            letter-spacing: 0.5px;
-            position: relative;
-            z-index: 1;
-        }
-        
-        /* Contenido principal */
-        .email-content {
-            padding: 50px 40px;
-            background: linear-gradient(180deg, #ffffff 0%, #fefefe 100%);
-        }
-        
-        .greeting {
-            font-size: 24px;
-            margin-bottom: 30px;
-            color: #FF0000;
-            font-weight: 700;
-            text-align: center;
-        }
-        
-        .content-block {
-            margin-bottom: 30px;
-        }
-        
-        .content-block h2 {
-            color: #000000;
-            margin-bottom: 20px;
-            font-size: 24px;
-            font-weight: 700;
-            border-bottom: 3px solid #FF0000;
-            padding-bottom: 10px;
-            display: inline-block;
-        }
-        
-        .content-block h3 {
-            color: #333333;
-            margin-bottom: 15px;
-            font-size: 18px;
-            font-weight: 600;
-        }
-        
-        .content-block p {
-            margin-bottom: 15px;
-            line-height: 1.7;
-            color: #666666;
-        }
-        
-        /* Botones modernos de Compralo */
-        .btn {
-            display: inline-block;
-            padding: 14px 28px;
-            background: linear-gradient(135deg, #FF0000 0%, #FF7A00 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 600;
-            text-align: center;
-            margin: 15px 0;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(255, 0, 0, 0.3);
-            border: none;
-            font-size: 16px;
-            letter-spacing: 0.3px;
-        }
-        
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(255, 0, 0, 0.4);
-        }
-        
-        .btn-secondary {
-            background: linear-gradient(135deg, #FF7A00 0%, #FFD600 100%);
-            box-shadow: 0 4px 12px rgba(255, 122, 0, 0.3);
-        }
-        
-        .btn-success {
-            background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
-            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-        }
-        
-        .btn-warning {
-            background: linear-gradient(135deg, #FFD600 0%, #FFA000 100%);
-            box-shadow: 0 4px 12px rgba(255, 214, 0, 0.3);
-        }
-        
-        .btn-danger {
-            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
-            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
-        }
-        
-        /* Alertas con diseño moderno de Compralo */
-        .alert {
-            padding: 20px;
-            border-radius: 8px;
-            margin: 25px 0;
-            border-left: 4px solid;
-            backdrop-filter: blur(10px);
-        }
-        
-        .alert-info {
-            background: linear-gradient(135deg, rgba(255, 0, 0, 0.05) 0%, rgba(255, 122, 0, 0.05) 100%);
-            border-left-color: #FF0000;
-            color: #CC0000;
-        }
-        
-        .alert-success {
-            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(76, 175, 80, 0.05) 100%);
-            border-left-color: #4caf50;
-            color: #2e7d32;
-        }
-        
-        .alert-warning {
-            background: linear-gradient(135deg, rgba(255, 214, 0, 0.1) 0%, rgba(255, 214, 0, 0.05) 100%);
-            border-left-color: #FFD600;
-            color: #B8860B;
-        }
-        
-        .alert-danger {
-            background: linear-gradient(135deg, rgba(255, 0, 0, 0.1) 0%, rgba(255, 0, 0, 0.05) 100%);
-            border-left-color: #FF0000;
-            color: #CC0000;
-        }
-        
-        /* Tablas elegantes de Compralo */
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 25px 0;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        
-        .table th,
-        .table td {
-            padding: 15px 20px;
-            text-align: left;
-            border-bottom: 1px solid #E5E5E5;
-        }
-        
-        .table th {
-            background: linear-gradient(135deg, #FF0000 0%, #FF7A00 100%);
-            color: white;
-            font-weight: 600;
-            font-size: 14px;
-            letter-spacing: 0.3px;
-            text-transform: uppercase;
-        }
-        
-        .table tr:nth-child(even) {
-            background-color: #F5F5F5;
-        }
-        
-        .table tr:hover {
-            background-color: #FFF5F5;
-            transition: all 0.3s ease;
-        }
-        
-        /* Footer elegante de Compralo */
-        .email-footer {
-            background: linear-gradient(135deg, #000000 0%, #333333 100%);
-            color: white;
-            padding: 40px 30px;
-            text-align: center;
-            position: relative;
-        }
-        
-        .footer-content {
-            margin-bottom: 25px;
-        }
-        
-        .footer-links {
-            margin: 20px 0;
-        }
-        
-        .footer-links a {
-            color: #FF7A00;
-            text-decoration: none;
-            margin: 0 15px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        .footer-links a:hover {
-            color: #FFD600;
-            text-decoration: underline;
-        }
-        
-        .footer-info {
-            font-size: 13px;
-            opacity: 0.8;
-            margin-top: 25px;
-            line-height: 1.6;
-        }
-        
-        .footer-info a {
-            color: #FF7A00;
-            text-decoration: none;
-        }
-        
-        /* Elementos decorativos de Compralo */
-        .divider {
-            height: 3px;
-            background: linear-gradient(90deg, transparent 0%, #FF0000 50%, transparent 100%);
-            margin: 40px 0;
-            border-radius: 2px;
-        }
-        
-        .highlight-box {
-            background: linear-gradient(135deg, #FFF5F5 0%, #FFE5E5 100%);
-            border: 2px solid #FF0000;
-            border-radius: 8px;
-            padding: 25px;
-            margin: 25px 0;
-            text-align: center;
-        }
-        
-        .price {
-            font-size: 24px;
-            font-weight: 700;
-            color: #FF0000;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-        }
-        
-        .discount-badge {
-            background: linear-gradient(135deg, #FF0000 0%, #FF7A00 100%);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            display: inline-block;
-            margin: 10px 0;
-        }
-        
-        /* Responsive */
-        @media only screen and (max-width: 600px) {
-            body {
-                padding: 10px 0;
-            }
-            
-            .email-container {
-                margin: 0 10px;
-                border-radius: 15px;
-            }
-            
-            .email-content {
-                padding: 30px 20px;
-            }
-            
-            .email-header {
-                padding: 30px 20px;
-            }
-            
-            .btn {
-                display: block;
-                width: 100%;
-                margin: 15px 0;
-            }
-            
-            .table {
-                font-size: 12px;
-            }
-            
-            .table th,
-            .table td {
-                padding: 10px 8px;
-            }
-            
-            .logo {
-                font-size: 26px;
-            }
-            
-            .greeting {
-                font-size: 20px;
-            }
-        }
-        
-        /* Utilidades */
+        .greeting { font-size: 22px; margin-bottom: 24px; color: #dc2626; font-weight: 700; text-align: center; }
+        .content-block { margin-bottom: 24px; }
+        .content-block h2 { color: #111827; margin-bottom: 16px; font-size: 22px; font-weight: 700; border-bottom: 3px solid #dc2626; padding-bottom: 8px; }
+        .content-block h3 { color: #374151; margin-bottom: 12px; font-size: 18px; font-weight: 600; }
+        .content-block p { margin-bottom: 12px; line-height: 1.5; color: #6b7280; font-size: 15px; }
+        .alert { padding: 16px 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid; font-size: 15px; }
+        .alert-info { background: #fef2f2; border-left-color: #dc2626; color: #991b1b; }
+        .alert-success { background: #f0fdf4; border-left-color: #16a34a; color: #166534; }
+        .alert-warning { background: #fffbeb; border-left-color: #d97706; color: #92400e; }
+        .alert-danger { background: #fef2f2; border-left-color: #dc2626; color: #991b1b; }
+        .table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 15px; }
+        .table th, .table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+        .table th { background: #dc2626; color: #ffffff; font-weight: 600; font-size: 14px; }
+        .table tr:nth-child(even) { background: #f9fafb; }
+        .highlight-box { background: #fef2f2; border: 2px solid #dc2626; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
+        .divider { height: 2px; background: #e5e7eb; margin: 32px 0; }
+        .price { font-size: 22px; font-weight: 700; color: #dc2626; }
+        .discount-badge { background: #dc2626; color: #ffffff; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; display: inline-block; margin: 8px 0; }
         .text-center { text-align: center; }
-        .text-left { text-align: left; }
-        .text-right { text-align: right; }
-        .mb-0 { margin-bottom: 0; }
-        .mb-10 { margin-bottom: 10px; }
-        .mb-20 { margin-bottom: 20px; }
-        .mt-20 { margin-top: 20px; }
-        .p-20 { padding: 20px; }
-        
-        .text-muted {
-            color: #888;
-            font-size: 14px;
-        }
-        
-        .text-small {
-            font-size: 12px;
-        }
-        
-        .text-bold {
-            font-weight: 600;
-        }
-        
-        .text-pink {
-            color: #ff1493;
-        }
-        
-        /* Elementos específicos de Compralo */
-        .compralo-icon {
-            display: inline-block;
-            margin: 0 5px;
-        }
-        
-        .product-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 20px;
-            margin: 25px 0;
-        }
-        
-        .product-card {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
-            border: 1px solid #E5E5E5;
-        }
-        
-        .product-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 12px rgba(255, 0, 0, 0.1);
+        .text-muted { color: #6b7280; font-size: 14px; }
+        .text-small { font-size: 12px; }
+        .product-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .product-table td { padding: 16px; border: 1px solid #e5e7eb; vertical-align: top; font-size: 15px; }
+        @media only screen and (max-width: 600px) {
+            .email-body-cell { padding: 24px 20px !important; }
+            .product-table td { display: block; width: 100% !important; }
         }
     </style>
 </head>
-<body>
-    <div class="email-container">
-        <!-- Header -->
-        <div class="email-header">
-            <div class="logo">Compralo</div>
-            <div class="tagline">Tu tienda online de confianza</div>
-        </div>
-        
-        <!-- Contenido principal -->
-        <div class="email-content">
-            {% block content %}
-            <!-- El contenido específico del email va aquí -->
-            {% endblock %}
-        </div>
-        
-        <!-- Footer -->
-        <div class="email-footer">
-            <div class="footer-content">
-                <strong>Compralo</strong><br>
-                <span class="compralo-icon">🛒</span> <span class="compralo-icon">⚡</span> <span class="compralo-icon">💯</span><br>
-                Tu tienda online de confianza
-            </div>
-            
-            <div class="footer-links">
-                <a href="{{ frontend_url }}">🏠 Inicio</a>
-                <a href="{{ frontend_url }}/productos">🛍️ Productos</a>
-                <a href="{{ frontend_url }}/ofertas">🎁 Ofertas</a>
-                <a href="{{ frontend_url }}/contacto">💬 Contacto</a>
-            </div>
-            
-            <div class="footer-info">
-                <p>© {{ current_year }} Compralo. Todos los derechos reservados.</p>
-                <p>Tu tienda online de confianza <span class="compralo-icon">💖</span></p>
-                <p>
-                    <a href="{{ frontend_url }}/unsubscribe">Cancelar suscripción</a> |
-                    <a href="{{ frontend_url }}/privacidad">Política de Privacidad</a>
-                </p>
-                <p class="text-small">
-                    ¿Problemas para ver este email? 
-                    <a href="{{ frontend_url }}/email-view">Ábrelo en tu navegador</a>
-                </p>
-            </div>
-        </div>
-    </div>
+<body style="margin:0; padding:20px 0; background:#f0f0f0;">
+    <div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">{% block preheader %}{% endblock %}</div>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0f0f0;">
+        <tr>
+            <td align="center" style="padding:20px 0;">
+                <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; width:100%;">
+                    <!-- Header -->
+                    <tr>
+                        <td bgcolor="#dc2626" style="padding:24px 32px; text-align:center;">
+                            <div style="font-size:28px; font-weight:800; color:#ffffff; margin-bottom:8px;">{{ app_name }}</div>
+                            <div style="font-size:16px; color:rgba(255,255,255,0.95);">{{ company_tagline }}</div>
+                        </td>
+                    </tr>
+                    <!-- Body -->
+                    <tr>
+                        <td bgcolor="#ffffff" class="email-body-cell" style="padding:32px 40px;">
+                            {% block content %}
+                            {% endblock %}
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td bgcolor="#1f2937" style="padding:32px 40px; text-align:center;">
+                            <div style="color:#ffffff; font-weight:600; margin-bottom:8px;">{{ company_name }}</div>
+                            <div style="color:rgba(255,255,255,0.8); font-size:14px; margin-bottom:20px;">{{ company_tagline }}</div>
+                            <div style="margin:16px 0;">
+                                <a href="{{ frontend_url }}" style="color:#f97316; text-decoration:none; margin:0 12px; font-size:14px;">Inicio</a>
+                                <a href="{{ frontend_url }}/productos" style="color:#f97316; text-decoration:none; margin:0 12px; font-size:14px;">Productos</a>
+                                <a href="{{ frontend_url }}/ofertas" style="color:#f97316; text-decoration:none; margin:0 12px; font-size:14px;">Ofertas</a>
+                                <a href="{{ frontend_url }}/contacto" style="color:#f97316; text-decoration:none; margin:0 12px; font-size:14px;">Contacto</a>
+                            </div>
+                            <div style="font-size:12px; color:rgba(255,255,255,0.7); line-height:1.6;">
+                                <p style="margin:8px 0;">© {{ current_year }} {{ company_name }}. Todos los derechos reservados.</p>
+                                <p style="margin:8px 0;">
+                                    <a href="{{ frontend_url }}/unsubscribe" style="color:#f97316; text-decoration:none;">Cancelar suscripción</a>
+                                    &nbsp;|&nbsp;
+                                    <a href="{{ frontend_url }}/privacidad" style="color:#f97316; text-decoration:none;">Política de Privacidad</a>
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
