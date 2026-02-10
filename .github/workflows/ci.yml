@@ -58,11 +58,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Install test dependencies
+        run: pip install pytest pytest-asyncio pytest-cov httpx
+
       - name: Verify app loads
         run: python -c "from app.main import app; print('OK')"
 
-      # Optional: run tests when pytest is added to the project
-      # - name: Install pytest
-      #   run: pip install pytest
-      # - name: Run tests
-      #   run: pytest
+      - name: Run tests
+        run: pytest --cov=app --cov-report=term-missing tests/
