@@ -30,7 +30,7 @@ const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }
 
       {/* Main Footer Content */}
       <div className="container mx-auto px-4 py-8 sm:py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 lg:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[1.4fr_0.85fr_0.85fr_0.85fr_1fr_1.3fr] gap-6 lg:gap-6 xl:gap-4">
           {/* About Us */}
           <AboutSection />
 
@@ -61,8 +61,8 @@ const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }
           {/* Company */}
           <CategoriesSection title="Empresa" categories={companyLinks} />
 
-          {/* Follow Us & Customer Service */}
-          <div className="space-y-6 sm:col-span-2 lg:col-span-1">
+          {/* Follow Us & Customer Service - columna con más espacio para iconos */}
+          <div className="space-y-6 sm:col-span-2 lg:col-span-1 min-w-0">
             {/* Social Media */}
             <SocialSection />
 
