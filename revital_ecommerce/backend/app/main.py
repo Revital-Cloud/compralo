@@ -50,10 +50,19 @@ from core.rate_limiter import limiter
 logging.basicConfig(level=logging.WARNING if is_production() else logging.INFO)
 logger = logging.getLogger(__name__)
 
+# En producción no exponemos documentación pública (Swagger / ReDoc) ni el schema OpenAPI.
+# Nota: esto depende de que `ENVIRONMENT=production` esté configurado en el entorno.
+_docs_url = None if is_production() else "/docs"
+_redoc_url = None if is_production() else "/redoc"
+_openapi_url = None if is_production() else "/openapi.json"
+
 app = FastAPI(
     title="Compralo API",
     description="API para la plataforma Compralo",
     version="1.0.0",
+    docs_url=_docs_url,
+    redoc_url=_redoc_url,
+    openapi_url=_openapi_url,
 )
 
 # Orígenes permitidos para CORS (dev y prod)
