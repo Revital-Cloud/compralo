@@ -68,9 +68,9 @@ const SocialSection: React.FC<SocialSectionProps> = ({
   links = defaultSocialLinks 
 }) => {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-w-0">
       <h3 className="text-[#ec2538] dark:text-red-400 text-lg font-semibold transition-colors duration-300">{title}</h3>
-      <div className="flex flex-nowrap gap-3">
+      <div className="flex flex-wrap gap-2 sm:gap-3">
         {links.map((link, index) => (
           <Link
             key={index}
