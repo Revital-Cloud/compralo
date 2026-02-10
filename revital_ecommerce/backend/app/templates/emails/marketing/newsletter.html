@@ -1,110 +1,72 @@
 {% extends "base.html" %}
 
-{% block title %}{{ newsletter.title }} - Compralo{% endblock %}
+{% block title %}{{ newsletter.title }} – {{ app_name }}{% endblock %}
+
+{% block preheader %}{{ newsletter.subtitle }}. Código NEWSLETTER20: 20% OFF en tu próxima compra. Válido hasta {{ offer_expiry }}.{% endblock %}
 
 {% block content %}
-<div class="greeting">
-    ¡Hola {{ subscriber_name }}! 👋
-</div>
+<div class="greeting">¡Hola {{ subscriber_name }}!</div>
 
 <div class="highlight-box">
-    <h2 style="margin: 0; color: #FF0000;">📧 {{ newsletter.title }}</h2>
-    <p style="margin: 10px 0; font-size: 18px; color: #666;">
-        {{ newsletter.subtitle }}
-    </p>
+    <h2 style="margin:0; font-size:22px; color:#dc2626;">{{ newsletter.title }}</h2>
+    <p style="margin:10px 0 0; font-size:15px; color:#6b7280;">{{ newsletter.subtitle }}</p>
 </div>
 
 <div class="content-block">
-    <h3>🔥 Ofertas Destacadas de la Semana</h3>
-    <div class="product-grid">
-        {% for product in featured_products %}
-        <div class="product-card">
-            <div style="font-size: 30px; margin-bottom: 10px;">🛍️</div>
-            <strong>{{ product.name }}</strong>
-            <p style="font-size: 12px; color: #888;">{{ product.category }}</p>
-            <div style="margin: 10px 0;">
-                <span style="text-decoration: line-through; color: #999; font-size: 12px;">${{ product.original_price }}</span>
-                <span style="color: #FF0000; font-weight: bold; font-size: 16px; margin-left: 5px;">${{ product.sale_price }}</span>
-            </div>
-            <div class="discount-badge">{{ product.discount }}% OFF</div>
-        </div>
+    <h3>Ofertas destacadas</h3>
+    <table class="table">
+        <thead><tr><th>Producto</th><th>Categoría</th><th>Precio</th></tr></thead>
+        <tbody>
+        {% for product in (featured_products or []) %}
+        <tr>
+            <td>{{ product.name }}</td>
+            <td>{{ product.category }}</td>
+            <td><span style="text-decoration:line-through; color:#9ca3af;">${{ product.original_price }}</span> <strong class="price">${{ product.sale_price }}</strong> {{ product.discount }}% OFF</td>
+        </tr>
         {% endfor %}
-    </div>
+        </tbody>
+    </table>
 </div>
 
 <div class="alert alert-success">
-    <strong>🎁 ¡Oferta Especial de Newsletter!</strong><br>
-    <p>Usa el código <strong style="color: #FF0000;">NEWSLETTER20</strong> y obtén 20% de descuento en tu próxima compra.</p>
-    <p><small>*Válido hasta el {{ offer_expiry }}. No acumulable con otras ofertas.</small></p>
+    Código <strong>NEWSLETTER20</strong>: 20% de descuento en tu próxima compra. Válido hasta {{ offer_expiry }}. No acumulable.
 </div>
 
+{% set ofertas_url = frontend_url ~ '/ofertas' %}
 <div class="text-center">
-    <a href="{{ frontend_url }}/ofertas" class="btn">
-        🛍️ Ver Todas las Ofertas
-    </a>
-    <a href="{{ frontend_url }}/productos?categoria=nuevos" class="btn btn-secondary" style="margin-left: 10px;">
-        🆕 Productos Nuevos
-    </a>
+    {% set url = ofertas_url %}
+{% set label = "Ver todas las ofertas" %}
+{% set variant = "primary" %}
+{% include "_button.html" %}
 </div>
 
 <div class="divider"></div>
 
+{% if popular_categories %}
 <div class="content-block">
-    <h3>📱 Lo Más Popular Esta Semana</h3>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
-        {% for category in popular_categories %}
-        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #FFF5F5, #FFE5E5); border-radius: 8px; border: 1px solid #FFE5E5;">
-            <div style="font-size: 24px; margin-bottom: 5px;">{{ category.icon }}</div>
-            <strong>{{ category.name }}</strong>
-            <p style="font-size: 12px; margin: 5px 0; color: #666;">{{ category.description }}</p>
-            <a href="{{ frontend_url }}/productos/{{ category.slug }}" style="color: #FF0000; text-decoration: none; font-size: 12px;">Ver más →</a>
-        </div>
+    <h3>Lo más popular</h3>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+    {% for row in popular_categories|batch(2) %}
+    <tr>
+        {% for category in row %}
+        <td style="padding:12px; border:1px solid #e5e7eb; width:50%; text-align:center;">
+            <strong>{{ category.name }}</strong><br>
+            <span style="font-size:14px; color:#6b7280;">{{ category.description }}</span><br>
+            <a href="{{ frontend_url }}/productos/{{ category.slug }}" style="color:#dc2626; font-size:14px;">Ver más</a>
+        </td>
         {% endfor %}
-    </div>
+        {% if row|length == 1 %}<td style="padding:12px; width:50%;"></td>{% endif %}
+    </tr>
+    {% endfor %}
+    </table>
 </div>
-
-<div class="content-block">
-    <h3>💡 Consejos de Compra</h3>
-    <div class="alert alert-info">
-        <strong>🛒 Cómo Ahorrar en Compralo</strong><br>
-        <ul style="margin: 10px 0 0 20px; padding: 0;">
-            <li>Suscríbete a nuestro newsletter para ofertas exclusivas</li>
-            <li>Compra en lotes para obtener descuentos por volumen</li>
-            <li>Revisa nuestras ofertas de fin de semana</li>
-            <li>Sigue nuestras redes sociales para promociones especiales</li>
-        </ul>
-    </div>
-</div>
-
-<div class="content-block">
-    <h3>📱 Síguenos en Redes Sociales</h3>
-    <p style="text-align: center;">
-        Mantente al día con las últimas novedades y ofertas exclusivas
-    </p>
-    <div style="text-align: center; margin: 20px 0;">
-        <a href="https://instagram.com/compralo" style="text-decoration: none; margin: 0 10px; color: #FF0000;">
-            📷 Instagram
-        </a>
-        <a href="https://tiktok.com/@compralo" style="text-decoration: none; margin: 0 10px; color: #FF0000;">
-            🎵 TikTok
-        </a>
-        <a href="https://youtube.com/compralo" style="text-decoration: none; margin: 0 10px; color: #FF0000;">
-            📺 YouTube
-        </a>
-    </div>
-</div>
+{% endif %}
 
 <div class="alert alert-warning">
-    <strong>📧 ¿No quieres recibir más emails?</strong><br>
-    <p>Si prefieres no recibir nuestro newsletter, puedes <a href="{{ unsubscribe_url }}" style="color: #FF0000;">cancelar tu suscripción aquí</a>.</p>
+    ¿No quieres recibir más emails? <a href="{{ unsubscribe_url }}" style="color:#d97706;">Cancelar suscripción</a>.
 </div>
 
-<div class="text-center" style="margin: 30px 0;">
-    <p style="font-size: 18px; color: #FF0000; font-weight: 600;">
-        ¡Gracias por ser parte de Compralo! 🛒
-    </p>
-    <p style="color: #888;">
-        Esperamos que encuentres algo que te encante.
-    </p>
+<div class="text-center text-muted">
+    <p>Gracias por ser parte de {{ app_name }}.</p>
 </div>
 {% endblock %}

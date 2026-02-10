@@ -1,95 +1,47 @@
 {% extends "base.html" %}
 
-{% block title %}Email de Prueba - Compralo{% endblock %}
+{% block title %}Email de prueba – {{ app_name }}{% endblock %}
+
+{% block preheader %}Prueba del sistema de email de {{ app_name }}. Si ves este mensaje, Resend y los templates funcionan correctamente.{% endblock %}
 
 {% block content %}
-<div class="greeting">
-    🧪 Email de Prueba
-</div>
+<div class="greeting">Email de prueba</div>
 
 <div class="content-block">
-    <h2>¡Funciona perfectamente!</h2>
-    <p>
-        Este es un email de prueba para verificar que el sistema de envío 
-        con Resend está funcionando correctamente con el nuevo branding de Compralo.
-    </p>
+    <h2>Todo funciona correctamente</h2>
+    <p>Este email verifica que el envío con Resend y los templates de {{ app_name }} funcionan bien.</p>
 </div>
 
 <div class="alert alert-success">
-    <strong>✅ Sistema de Email Operativo</strong><br>
-    Si estás viendo este mensaje, significa que:
-    <ul style="margin-top: 10px; margin-left: 20px;">
-        <li>La configuración de Resend es correcta</li>
-        <li>Los templates HTML se renderizan bien</li>
-        <li>El servicio de email está funcionando</li>
-        <li>El nuevo branding de Compralo está aplicado</li>
-    </ul>
+    <strong>Sistema operativo.</strong> Si ves este mensaje: la configuración de Resend es correcta, los templates se renderizan bien y el servicio de email está activo.
 </div>
 
 <div class="content-block">
-    <h3>Mensaje personalizado:</h3>
-    <div style="background-color: #FFF5F5; padding: 20px; border-radius: 8px; border-left: 4px solid #FF0000;">
-        <p style="margin: 0; font-style: italic; color: #FF0000;">
-            "{{ message }}"
-        </p>
+    <h3>Mensaje personalizado</h3>
+    <div class="highlight-box">
+        <p style="margin:0; font-style:italic;">"{{ message }}"</p>
     </div>
 </div>
 
 <div class="content-block">
-    <h3>Detalles técnicos:</h3>
+    <h3>Detalles técnicos</h3>
     <table class="table">
-        <tr>
-            <td><strong>Fecha de envío:</strong></td>
-            <td>{{ test_date | datetime }}</td>
-        </tr>
-        <tr>
-            <td><strong>Sistema:</strong></td>
-            <td>Compralo Email Service</td>
-        </tr>
-        <tr>
-            <td><strong>Proveedor:</strong></td>
-            <td>Resend</td>
-        </tr>
-        <tr>
-            <td><strong>Template:</strong></td>
-            <td>test_email.html</td>
-        </tr>
-        <tr>
-            <td><strong>Branding:</strong></td>
-            <td>Compralo (Actualizado)</td>
-        </tr>
+        <tr><td><strong>Fecha de envío</strong></td><td>{{ test_date | datetime }}</td></tr>
+        <tr><td><strong>Sistema</strong></td><td>{{ app_name }} Email Service</td></tr>
+        <tr><td><strong>Proveedor</strong></td><td>Resend</td></tr>
+        <tr><td><strong>Template</strong></td><td>test_email.html</td></tr>
     </table>
 </div>
 
-<div class="alert alert-info">
-    <strong>🎨 Nuevo Diseño Aplicado</strong><br>
-    <p>Este email utiliza el nuevo sistema de templates con:</p>
-    <ul style="margin: 10px 0 0 20px; padding: 0;">
-        <li>Colores de marca: Rojo (#FF0000), Naranja (#FF7A00), Amarillo (#FFD600)</li>
-        <li>Tipografía Inter para mejor legibilidad</li>
-        <li>Diseño responsive optimizado</li>
-        <li>Elementos visuales modernos</li>
-    </ul>
-</div>
-
+{% set url = frontend_url %}
+{% set label = "Ir al sitio" %}
+{% set variant = "primary" %}
 <div class="text-center">
-    <a href="{{ frontend_url }}" class="btn">
-        🏠 Ir al sitio web
-    </a>
-    <a href="{{ frontend_url }}/admin" class="btn btn-secondary" style="margin-left: 10px;">
-        🔧 Panel de Administración
-    </a>
+    {% include "_button.html" %}
 </div>
-
-<div class="divider"></div>
 
 <div class="text-center text-muted">
-    <p>
-        Este es un email automático generado para pruebas.<br>
-        No es necesario responder a este mensaje.
-    </p>
-    <p style="color: #FF0000; font-weight: bold;">
-        ¡Compralo - Tu tienda online de confianza! 🛒
-    </p>
+    <p>Email automático de prueba. No responder.</p>
+    <p><strong>{{ app_name }}</strong></p>
 </div>
-{% endblock %} 
+{% endblock %}

@@ -1,173 +1,59 @@
 {% extends "base.html" %}
 
-{% block title %}¡Bienvenido a Compralo! 🛒{% endblock %}
+{% block title %}Bienvenido a {{ app_name }}{% endblock %}
+
+{% block preheader %}Bienvenido a {{ app_name }}. Verifica tu email para completar tu registro y empezar a comprar.{% endblock %}
 
 {% block content %}
-<div class="greeting">
-    ¡Hola {{ user_name }}! 🎉
-</div>
+<div class="greeting">¡Hola {{ user_name }}!</div>
 
 <div class="highlight-box">
-    <h2 style="margin: 0; color: #FF0000;">🛒 ¡Bienvenido a Compralo! 🛒</h2>
-    <p style="margin: 10px 0; font-size: 18px; color: #666;">
-        Tu tienda online de confianza te da la bienvenida
-    </p>
+    <h2 style="margin:0; font-size:22px; color:#dc2626;">Bienvenido a {{ app_name }}</h2>
+    <p style="margin:10px 0 0; font-size:15px; color:#6b7280;">Tu tienda online de confianza te da la bienvenida.</p>
 </div>
 
 <div class="content-block">
-    <p>
-        Nos emociona muchísimo tenerte como parte de nuestra comunidad de compradores. 
-        Has dado el primer paso para descubrir productos increíbles a los mejores precios 
-        y disfrutar de una experiencia de compra excepcional.
-    </p>
+    <p>Estamos encantados de tenerte. Has dado el primer paso para descubrir productos a los mejores precios y una experiencia de compra sencilla.</p>
 </div>
 
-<div class="content-block">
-    <h3>🛍️ ¿Qué te espera en Compralo?</h3>
-    <div class="product-grid">
-        <div class="product-card">
-            <div style="font-size: 30px; margin-bottom: 10px;">⚡</div>
-            <strong>Envío Rápido</strong>
-            <p style="font-size: 12px; color: #888;">Recibe tus pedidos en tiempo récord</p>
-        </div>
-        <div class="product-card">
-            <div style="font-size: 30px; margin-bottom: 10px;">💯</div>
-            <strong>Calidad Garantizada</strong>
-            <p style="font-size: 12px; color: #888;">Productos de la mejor calidad</p>
-        </div>
-        <div class="product-card">
-            <div style="font-size: 30px; margin-bottom: 10px;">🎁</div>
-            <strong>Ofertas Exclusivas</strong>
-            <p style="font-size: 12px; color: #888;">Descuentos especiales para ti</p>
-        </div>
-    </div>
-</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse; margin:20px 0;">
+<tr>
+<td style="padding:16px; border:1px solid #e5e7eb; width:33%; text-align:center; font-size:15px;">
+<strong>Envío rápido</strong><br><span style="font-size:14px; color:#6b7280;">Pedidos en tiempo récord</span>
+</td>
+<td style="padding:16px; border:1px solid #e5e7eb; width:33%; text-align:center; font-size:15px;">
+<strong>Calidad garantizada</strong><br><span style="font-size:14px; color:#6b7280;">Productos de calidad</span>
+</td>
+<td style="padding:16px; border:1px solid #e5e7eb; width:33%; text-align:center; font-size:15px;">
+<strong>Ofertas exclusivas</strong><br><span style="font-size:14px; color:#6b7280;">Descuentos para ti</span>
+</td>
+</tr>
+</table>
 
 {% if verify_url %}
 <div class="alert alert-info">
-    <strong>🔐 ¡Un pasito más para comprar!</strong><br>
-    Para completar tu registro y acceder a nuestros descuentos exclusivos, 
-    verifica tu email haciendo clic en el botón de abajo.
+    <strong>Un paso más:</strong> Verifica tu email para completar el registro.
 </div>
-
 <div class="text-center">
-    <a href="{{ verify_url }}" class="btn btn-success">
-        ✅ Verificar mi email ahora
-    </a>
+    {% set url = verify_url %}
+    {% set label = "Verificar mi email ahora" %}
+    {% set variant = "success" %}
+    {% include "_button.html" %}
+</div>
+{% else %}
+<div class="text-center">
+    {% set explore_url = frontend_url ~ '/productos' %}
+    {% set url = explore_url %}
+    {% set label = "Explorar productos" %}
+    {% set variant = "primary" %}
+    {% include "_button.html" %}
 </div>
 {% endif %}
-
-<div class="content-block">
-    <h3>🎁 ¡Oferta especial de bienvenida!</h3>
-    <div class="highlight-box">
-        <div class="discount-badge">¡OFERTA LIMITADA!</div>
-        <div class="price">15% OFF</div>
-        <p style="margin: 15px 0; font-size: 18px;">
-            <strong>Código: COMPRALO15</strong>
-        </p>
-        <p style="margin: 0; color: #888;">
-            Válido por los próximos 7 días en tu primera compra<br>
-            <small>*Mínimo de compra $50. No acumulable con otras ofertas</small>
-        </p>
-    </div>
-</div>
-
-<div class="text-center">
-    <a href="{{ frontend_url }}/productos?categoria=nuevos" class="btn">
-        🛒 Explorar productos nuevos
-    </a>
-    <a href="{{ frontend_url }}/ofertas" class="btn btn-secondary" style="margin-left: 10px;">
-        🎁 Ver todas las ofertas
-    </a>
-</div>
 
 <div class="divider"></div>
 
 <div class="content-block">
-    <h3>🛍️ Nuestras categorías más populares</h3>
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0;">
-        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #FFF5F5, #FFE5E5); border-radius: 8px; border: 1px solid #FFE5E5;">
-            <div style="font-size: 24px; margin-bottom: 5px;">📱</div>
-            <strong>Electrónicos</strong>
-            <p style="font-size: 12px; margin: 5px 0; color: #666;">Tecnología de última generación</p>
-            <a href="{{ frontend_url }}/productos/electronicos" style="color: #FF0000; text-decoration: none; font-size: 12px;">Ver más →</a>
-        </div>
-        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #FFF5F5, #FFE5E5); border-radius: 8px; border: 1px solid #FFE5E5;">
-            <div style="font-size: 24px; margin-bottom: 5px;">👕</div>
-            <strong>Ropa</strong>
-            <p style="font-size: 12px; margin: 5px 0; color: #666;">Moda para todas las ocasiones</p>
-            <a href="{{ frontend_url }}/productos/ropa" style="color: #FF0000; text-decoration: none; font-size: 12px;">Ver más →</a>
-        </div>
-        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #FFF5F5, #FFE5E5); border-radius: 8px; border: 1px solid #FFE5E5;">
-            <div style="font-size: 24px; margin-bottom: 5px;">🏠</div>
-            <strong>Hogar</strong>
-            <p style="font-size: 12px; margin: 5px 0; color: #666;">Decora tu espacio perfecto</p>
-            <a href="{{ frontend_url }}/productos/hogar" style="color: #FF0000; text-decoration: none; font-size: 12px;">Ver más →</a>
-        </div>
-        <div style="text-align: center; padding: 15px; background: linear-gradient(45deg, #FFF5F5, #FFE5E5); border-radius: 8px; border: 1px solid #FFE5E5;">
-            <div style="font-size: 24px; margin-bottom: 5px;">🎮</div>
-            <strong>Entretenimiento</strong>
-            <p style="font-size: 12px; margin: 5px 0; color: #666;">Diversión garantizada</p>
-            <a href="{{ frontend_url }}/productos/entretenimiento" style="color: #FF0000; text-decoration: none; font-size: 12px;">Ver más →</a>
-        </div>
-    </div>
-</div>
-
-<div class="content-block">
-    <h3>📱 Síguenos en redes sociales</h3>
-    <p style="text-align: center;">
-        Únete a nuestra comunidad de compradores y descubre las mejores ofertas y novedades
-    </p>
-    <div style="text-align: center; margin: 20px 0;">
-        <a href="https://instagram.com/compralo" style="text-decoration: none; margin: 0 10px; color: #FF0000;">
-            📷 Instagram
-        </a>
-        <a href="https://tiktok.com/@compralo" style="text-decoration: none; margin: 0 10px; color: #FF0000;">
-            🎵 TikTok
-        </a>
-        <a href="https://youtube.com/compralo" style="text-decoration: none; margin: 0 10px; color: #FF0000;">
-            📺 YouTube
-        </a>
-    </div>
-</div>
-
-<div class="alert alert-success">
-    <strong>🎉 Beneficios exclusivos como miembro:</strong>
-    <ul style="margin: 10px 0 0 20px; padding: 0;">
-        <li>Envío gratis en compras mayores a $75</li>
-        <li>Descuentos exclusivos para miembros</li>
-        <li>Acceso anticipado a nuevos productos</li>
-        <li>Programa de puntos y recompensas</li>
-        <li>Soporte prioritario 24/7</li>
-    </ul>
-</div>
-
-<div class="content-block">
-    <h3>💬 ¿Necesitas ayuda?</h3>
-    <p>
-        Nuestro equipo de atención al cliente está aquí para ayudarte a encontrar 
-        los productos perfectos para ti. ¡No dudes en contactarnos!
-    </p>
-    <div style="text-align: center; margin: 20px 0;">
-        <a href="mailto:{{ support_email }}" style="color: #FF0000; text-decoration: none; margin: 0 15px;">
-            📧 {{ support_email }}
-        </a>
-        <a href="{{ frontend_url }}/chat" style="color: #FF0000; text-decoration: none; margin: 0 15px;">
-            💬 Chat en vivo
-        </a>
-        <a href="https://wa.me/+1234567890" style="color: #FF0000; text-decoration: none; margin: 0 15px;">
-            📱 WhatsApp
-        </a>
-    </div>
-</div>
-
-<div class="text-center" style="margin: 30px 0;">
-    <p style="font-size: 18px; color: #FF0000; font-weight: 600;">
-        ¡Gracias por elegir Compralo! 🛒
-    </p>
-    <p style="color: #888;">
-        Esperamos que tengas una experiencia de compra increíble con nosotros.
-        ¡Prepárate para comprar! 💯
-    </p>
+    <p>¿Necesitas ayuda? <a href="mailto:{{ support_email }}" style="color:#dc2626;">{{ support_email }}</a> · <a href="{{ frontend_url }}/contacto" style="color:#dc2626;">Contacto</a></p>
+    <p class="text-muted">Gracias por elegir {{ app_name }}.</p>
 </div>
 {% endblock %}

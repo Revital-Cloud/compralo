@@ -1,77 +1,43 @@
 {% extends "base.html" %}
 
-{% block title %}Nueva Orden Recibida - Compralo{% endblock %}
+{% block title %}Nueva orden #{{ order.id }} – {{ app_name }}{% endblock %}
+
+{% block preheader %}Nueva orden #{{ order.id }} de {{ order.customer_name }}. Total ${{ order.total }}. Revisar en el panel.{% endblock %}
 
 {% block content %}
-<div class="greeting">
-    ¡Nueva Orden! 🛒
-</div>
+<div class="greeting">Nueva orden</div>
 
 <div class="alert alert-success">
-    <strong>🎉 ¡Nueva Orden Recibida!</strong><br>
-    Se ha recibido un nuevo pedido que requiere tu atención.
+    <strong>Se ha recibido un nuevo pedido</strong> que requiere tu atención.
 </div>
 
 <div class="content-block">
-    <h2>Detalles de la Orden</h2>
+    <h2>Detalles de la orden</h2>
     <table class="table">
-        <tr>
-            <td><strong>ID de la Orden:</strong></td>
-            <td>#{{ order.id }}</td>
-        </tr>
-        <tr>
-            <td><strong>Fecha:</strong></td>
-            <td>{{ order.created_at }}</td>
-        </tr>
-        <tr>
-            <td><strong>Cliente:</strong></td>
-            <td>{{ order.customer_name }}</td>
-        </tr>
-        <tr>
-            <td><strong>Email:</strong></td>
-            <td>{{ order.customer_email }}</td>
-        </tr>
-        <tr>
-            <td><strong>Teléfono:</strong></td>
-            <td>{{ order.customer_phone }}</td>
-        </tr>
-        <tr>
-            <td><strong>Dirección:</strong></td>
-            <td>{{ order.customer_address }}</td>
-        </tr>
-        <tr>
-            <td><strong>Total:</strong></td>
-            <td style="color: #FF0000; font-weight: bold; font-size: 18px;">${{ order.total }}</td>
-        </tr>
-        <tr>
-            <td><strong>Estado:</strong></td>
-            <td><span style="background: #FFD600; color: #000; padding: 4px 8px; border-radius: 4px; font-weight: bold;">{{ order.status }}</span></td>
-        </tr>
+        <tr><td><strong>ID</strong></td><td>#{{ order.id }}</td></tr>
+        <tr><td><strong>Fecha</strong></td><td>{{ order.created_at }}</td></tr>
+        <tr><td><strong>Cliente</strong></td><td>{{ order.customer_name }}</td></tr>
+        <tr><td><strong>Email</strong></td><td>{{ order.customer_email }}</td></tr>
+        <tr><td><strong>Teléfono</strong></td><td>{{ order.customer_phone }}</td></tr>
+        <tr><td><strong>Dirección</strong></td><td>{{ order.customer_address }}</td></tr>
+        <tr><td><strong>Total</strong></td><td class="price">${{ order.total }}</td></tr>
+        <tr><td><strong>Estado</strong></td><td><span style="background:#d97706; color:#fff; padding:4px 8px; border-radius:4px;">{{ order.status }}</span></td></tr>
     </table>
 </div>
 
 <div class="alert alert-info">
-    <strong>📋 Próximos Pasos</strong><br>
-    <ul style="margin: 10px 0 0 20px; padding: 0;">
-        <li>Revisar los detalles de la orden</li>
-        <li>Verificar el stock de los productos</li>
-        <li>Procesar el pago si es necesario</li>
-        <li>Preparar el envío</li>
-        <li>Actualizar el estado de la orden</li>
-    </ul>
+    Revisar detalles, verificar stock, procesar pago si aplica y preparar envío.
 </div>
 
+{% set order_admin_url = frontend_url ~ '/admin/orders/' ~ order.id %}
+{% set url = order_admin_url %}
+{% set label = "Ver orden completa" %}
+{% set variant = "primary" %}
 <div class="text-center">
-    <a href="{{ frontend_url }}/admin/orders/{{ order.id }}" class="btn">
-        📝 Ver Orden Completa
-    </a>
-    <a href="{{ frontend_url }}/admin/orders" class="btn btn-secondary" style="margin-left: 10px;">
-        📊 Ver Todas las Órdenes
-    </a>
+    {% include "_button.html" %}
 </div>
 
-<div class="content-block">
-    <p><strong>Equipo de Compralo</strong></p>
-    <p>Este es un email automático del sistema de gestión de órdenes.</p>
+<div class="content-block text-center text-muted">
+    <p>{{ app_name }} – Sistema de órdenes. Email automático.</p>
 </div>
 {% endblock %}

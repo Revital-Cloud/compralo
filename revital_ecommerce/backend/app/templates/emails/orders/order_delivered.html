@@ -1,110 +1,52 @@
 {% extends "base.html" %}
 
-{% block title %}Tu Orden ha sido Entregada - Compralo{% endblock %}
+{% block title %}Tu pedido #{{ order.id }} fue entregado – {{ app_name }}{% endblock %}
+
+{% block preheader %}Tu pedido #{{ order.id }} fue entregado. ¿Nos dejas tu opinión? Gracias por comprar en {{ app_name }}.{% endblock %}
 
 {% block content %}
-<div class="greeting">
-    ¡Tu orden ha llegado! 🎉
-</div>
+<div class="greeting">¡Tu orden ha llegado!</div>
 
 <div class="alert alert-success">
-    <strong>📦 ¡Entrega Exitosa!</strong><br>
-    Tu pedido ha sido entregado exitosamente en tu dirección.
+    <strong>Entrega completada.</strong> Tu pedido fue entregado en tu dirección.
 </div>
 
 <div class="content-block">
-    <h2>Detalles de la Entrega</h2>
+    <h2>Detalles de la entrega</h2>
     <table class="table">
-        <tr>
-            <td><strong>Número de Orden:</strong></td>
-            <td>#{{ order.id }}</td>
-        </tr>
-        <tr>
-            <td><strong>Fecha de Entrega:</strong></td>
-            <td>{{ order.delivered_at }}</td>
-        </tr>
-        <tr>
-            <td><strong>Dirección de Entrega:</strong></td>
-            <td>{{ order.delivery_address }}</td>
-        </tr>
-        <tr>
-            <td><strong>Estado:</strong></td>
-            <td><span style="background: #4caf50; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;">Entregado</span></td>
-        </tr>
+        <tr><td><strong>N.º de orden</strong></td><td>#{{ order.id }}</td></tr>
+        <tr><td><strong>Fecha de entrega</strong></td><td>{{ order.delivered_at }}</td></tr>
+        <tr><td><strong>Dirección</strong></td><td>{{ order.delivery_address }}</td></tr>
+        <tr><td><strong>Estado</strong></td><td><span style="background:#16a34a; color:#fff; padding:4px 8px; border-radius:4px;">Entregado</span></td></tr>
     </table>
 </div>
 
 <div class="content-block">
-    <h3>Productos Entregados</h3>
-    <div class="product-grid">
-        {% for item in order.items %}
-        <div class="product-card">
-            <div style="font-size: 30px; margin-bottom: 10px;">✅</div>
-            <strong>{{ item.product_name }}</strong>
-            <p style="font-size: 12px; color: #888;">Cantidad: {{ item.quantity }}</p>
-        </div>
+    <h3>Productos entregados</h3>
+    <table class="table">
+        <thead><tr><th>Producto</th><th>Cantidad</th></tr></thead>
+        <tbody>
+        {% for item in (order.items or []) %}
+        <tr><td>{{ item.product_name }}</td><td>{{ item.quantity }}</td></tr>
         {% endfor %}
-    </div>
+        </tbody>
+    </table>
 </div>
 
 <div class="alert alert-info">
-    <strong>⭐ ¡Califica tu Experiencia!</strong><br>
-    <p>Nos encantaría conocer tu opinión sobre tu compra. Tu feedback nos ayuda a mejorar:</p>
-    <div style="text-align: center; margin: 15px 0;">
-        <a href="{{ frontend_url }}/orders/{{ order.id }}/review" class="btn btn-warning">
-            ⭐ Dejar Reseña
-        </a>
-    </div>
+    Nos encantaría conocer tu opinión. Tu reseña nos ayuda a mejorar.
 </div>
 
-<div class="alert alert-success">
-    <strong>🎁 ¿Te gustó tu compra?</strong><br>
-    <ul style="margin: 10px 0 0 20px; padding: 0;">
-        <li>Explora más productos en nuestra tienda</li>
-        <li>Disfruta de ofertas exclusivas para miembros</li>
-        <li>Comparte tu experiencia con amigos</li>
-        <li>Mantente al día con nuestras novedades</li>
-    </ul>
-</div>
-
+{% set review_url = frontend_url ~ '/orders/' ~ order.id ~ '/review' %}
 <div class="text-center">
-    <a href="{{ frontend_url }}/productos" class="btn">
-        🛍️ Seguir Comprando
-    </a>
-    <a href="{{ frontend_url }}/orders/{{ order.id }}" class="btn btn-secondary" style="margin-left: 10px;">
-        📋 Ver Orden
-    </a>
+    {% set url = review_url %}
+{% set label = "Dejar reseña" %}
+{% set variant = "warning" %}
+{% include "_button.html" %}
 </div>
 
-<div class="content-block">
-    <h3>¿Necesitas ayuda?</h3>
-    <p>Si tienes algún problema con tu pedido o necesitas asistencia:</p>
-    <div style="text-align: center; margin: 20px 0;">
-        <a href="mailto:{{ support_email }}" style="color: #FF0000; text-decoration: none; margin: 0 15px;">
-            📧 {{ support_email }}
-        </a>
-        <a href="{{ frontend_url }}/chat" style="color: #FF0000; text-decoration: none; margin: 0 15px;">
-            💬 Chat en vivo
-        </a>
-    </div>
-</div>
-
-<div class="alert alert-warning">
-    <strong>🔄 Política de Devoluciones</strong><br>
-    <p>Si no estás completamente satisfecho con tu compra, tienes 30 días para devolver los productos en su estado original.</p>
-    <div style="text-align: center; margin: 15px 0;">
-        <a href="{{ frontend_url }}/returns" class="btn btn-danger">
-            🔄 Iniciar Devolución
-        </a>
-    </div>
-</div>
-
-<div class="text-center" style="margin: 30px 0;">
-    <p style="font-size: 18px; color: #FF0000; font-weight: 600;">
-        ¡Gracias por elegir Compralo! 🛒
-    </p>
-    <p style="color: #888;">
-        Esperamos que disfrutes tu compra y que vuelvas pronto.
-    </p>
+<div class="content-block text-center">
+    <p><a href="{{ frontend_url }}/productos" style="color:#dc2626;">Seguir comprando</a> · <a href="mailto:{{ support_email }}" style="color:#dc2626;">Ayuda</a></p>
+    <p class="text-muted">Gracias por elegir {{ app_name }}.</p>
 </div>
 {% endblock %}

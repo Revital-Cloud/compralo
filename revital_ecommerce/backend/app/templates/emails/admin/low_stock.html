@@ -1,72 +1,40 @@
 {% extends "base.html" %}
 
-{% block title %}Alerta de Stock Bajo - Compralo{% endblock %}
+{% block title %}Alerta de stock bajo – {{ app_name }}{% endblock %}
+
+{% block preheader %}Stock bajo: {{ product.name }}. Actual: {{ product.stock }}, Mínimo: {{ product.min_stock }}. Acción requerida.{% endblock %}
 
 {% block content %}
-<div class="greeting">
-    ¡Alerta de Stock! ⚠️
-</div>
+<div class="greeting">Alerta de stock</div>
 
 <div class="alert alert-warning">
-    <strong>📦 Stock Bajo Detectado</strong><br>
-    El siguiente producto necesita reposición urgente:
+    <strong>Stock bajo detectado.</strong> El siguiente producto necesita reposición.
 </div>
 
 <div class="content-block">
-    <h2>Detalles del Producto</h2>
+    <h2>Detalles del producto</h2>
     <table class="table">
-        <tr>
-            <td><strong>ID del Producto:</strong></td>
-            <td>{{ product.id }}</td>
-        </tr>
-        <tr>
-            <td><strong>Nombre:</strong></td>
-            <td>{{ product.name }}</td>
-        </tr>
-        <tr>
-            <td><strong>Stock Actual:</strong></td>
-            <td style="color: #FF0000; font-weight: bold;">{{ product.stock }}</td>
-        </tr>
-        <tr>
-            <td><strong>Stock Mínimo:</strong></td>
-            <td>{{ product.min_stock }}</td>
-        </tr>
-        <tr>
-            <td><strong>Stock Máximo:</strong></td>
-            <td>{{ product.max_stock }}</td>
-        </tr>
-        <tr>
-            <td><strong>Stock Recomendado:</strong></td>
-            <td>{{ product.recommended_stock }}</td>
-        </tr>
-        <tr>
-            <td><strong>Stock Crítico:</strong></td>
-            <td>{{ product.critical_stock }}</td>
-        </tr>
+        <tr><td><strong>ID</strong></td><td>{{ product.id }}</td></tr>
+        <tr><td><strong>Nombre</strong></td><td>{{ product.name }}</td></tr>
+        <tr><td><strong>Stock actual</strong></td><td style="font-weight:bold; color:#dc2626;">{{ product.stock }}</td></tr>
+        <tr><td><strong>Stock mínimo</strong></td><td>{{ product.min_stock }}</td></tr>
+        <tr><td><strong>Stock recomendado</strong></td><td>{{ product.recommended_stock }}</td></tr>
     </table>
 </div>
 
 <div class="alert alert-danger">
-    <strong>🚨 Acción Requerida</strong><br>
-    <ul style="margin: 10px 0 0 20px; padding: 0;">
-        <li>Revisar el inventario inmediatamente</li>
-        <li>Contactar al proveedor para reposición</li>
-        <li>Considerar pausar las ventas si es necesario</li>
-        <li>Actualizar el stock en el sistema</li>
-    </ul>
+    Revisar inventario, contactar proveedor, pausar ventas si es necesario y actualizar stock.
 </div>
 
+{% set product_admin_url = frontend_url ~ '/admin/products/' ~ product.id %}
+{% set url = product_admin_url %}
+{% set label = "Gestionar producto" %}
+{% set variant = "primary" %}
 <div class="text-center">
-    <a href="{{ frontend_url }}/admin/products/{{ product.id }}" class="btn">
-        📝 Gestionar Producto
-    </a>
-    <a href="{{ frontend_url }}/admin/inventory" class="btn btn-secondary" style="margin-left: 10px;">
-        📊 Ver Inventario
-    </a>
+    {% include "_button.html" %}
 </div>
 
-<div class="content-block">
-    <p><strong>Equipo de Compralo</strong></p>
-    <p>Este es un email automático del sistema de gestión de inventario.</p>
+<div class="content-block text-center text-muted">
+    <p>{{ app_name }} – Gestión de inventario. Email automático.</p>
 </div>
 {% endblock %}

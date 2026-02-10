@@ -17,7 +17,8 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
-SKILLS_SOURCE="$SCRIPT_DIR"
+# Skills live under .agents/skills so new skills brought in create a single .agents tree
+SKILLS_SOURCE="$REPO_ROOT/.agents/skills"
 
 # Colors for output
 RED='\033[0;31m'
@@ -407,5 +408,5 @@ echo ""
 echo -e "${BLUE}Note: Restart your AI assistant to load the skills.${NC}"
 echo -e "${BLUE}      AGENTS.md is the source of truth - edit it, then re-run this script.${NC}"
 echo ""
-echo -e "${CYAN}Tip: Run './skills/setup.sh --all' to configure all agents, or${NC}"
-echo -e "${CYAN}     './skills/setup.sh --no-auto' to use interactive mode.${NC}"
+echo -e "${CYAN}Tip: Run './.agents/setup.sh --all' to configure all agents, or${NC}"
+echo -e "${CYAN}     './.agents/setup.sh --no-auto' to use interactive mode.${NC}"
