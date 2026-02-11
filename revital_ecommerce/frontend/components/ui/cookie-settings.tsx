@@ -7,13 +7,13 @@ import { Switch } from "@/components/ui"
 import { Label } from "@/components/ui"
 import { Separator } from "@/components/ui"
 import { Settings, Cookie, Shield, BarChart3, Target } from "lucide-react"
-import { useCookies } from "@/hooks/use-cookies"
+import { useCookies, type CookiePreferences } from "@/hooks/use-cookies"
 
 export function CookieSettings() {
   const { cookieConsent, updateCookiePreferences, revokeConsent } = useCookies()
   const [isOpen, setIsOpen] = useState(false)
 
-  const handleToggleCookie = (type: keyof typeof cookieConsent.preferences) => {
+  const handleToggleCookie = (type: keyof CookiePreferences) => {
     if (!cookieConsent) return
     
     updateCookiePreferences({

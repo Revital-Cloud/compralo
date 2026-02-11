@@ -1,28 +1,41 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui";
 import { Badge } from "@/components/ui";
 import { Button } from "@/components/ui";
-import { Edit, Star } from "lucide-react";
-import { getInitials } from "@/lib/utils";
+import { UserAvatar } from "@/components/ui";
+import { cn } from "@/lib/utils";
+import { Edit, Pencil, Star } from "lucide-react";
 import { UserPublic } from "@/types/auth";
 
 interface ProfileHeaderProps {
   user: UserPublic;
   isEditing: boolean;
   onEditToggle: () => void;
+  onAvatarClick?: () => void;
 }
 
-export default function ProfileHeader({ user, isEditing, onEditToggle }: ProfileHeaderProps) {
+export default function ProfileHeader({ user, isEditing, onEditToggle, onAvatarClick }: ProfileHeaderProps) {
   return (
     <div className="bg-card border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="py-6">
           <div className="flex items-center space-x-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src="" alt="Profile" />
-              <AvatarFallback>{getInitials(`${user.nom_usuario} ${user.ape_usuario}`)}</AvatarFallback>
-            </Avatar>
+            <div
+              role={onAvatarClick ? "button" : undefined}
+              onClick={onAvatarClick}
+              className={cn(
+                "relative rounded-md overflow-hidden",
+                onAvatarClick && "cursor-pointer group"
+              )}
+              aria-label={onAvatarClick ? "Editar avatar" : undefined}
+            >
+              <UserAvatar user={user} size={80} />
+              {onAvatarClick && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Pencil className="h-8 w-8 text-white" strokeWidth={2} />
+                </div>
+              )}
+            </div>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-foreground">
                 {user.nom_usuario} {user.ape_usuario}

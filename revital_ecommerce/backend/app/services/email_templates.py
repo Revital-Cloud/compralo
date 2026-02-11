@@ -175,7 +175,34 @@ class EmailTemplates:
             verify_url=verify_url,
             expires_in_hours=expires_in_hours
         )
-    
+
+    def get_verification_otp_template(
+        self,
+        user_name: str,
+        otp_code: str,
+        verify_url: str,
+        expires_in_minutes: int = 15,
+    ) -> str:
+        """
+        Genera el template de verificación de email por OTP (código de 6 dígitos + enlace).
+
+        Args:
+            user_name (str): Nombre del usuario
+            otp_code (str): Código OTP de 6 dígitos
+            verify_url (str): URL de la página para ingresar el código
+            expires_in_minutes (int): Minutos hasta que expire el código
+
+        Returns:
+            str: HTML del email
+        """
+        return self.render_template(
+            'auth/verify_email_otp.html',
+            user_name=user_name,
+            otp_code=otp_code,
+            verify_url=verify_url,
+            expires_in_minutes=expires_in_minutes,
+        )
+
     def get_password_reset_template(self, user_name: str, reset_token: str, expires_in_hours: int = 1) -> str:
         """
         Genera el template de reset de contraseña.
@@ -209,10 +236,13 @@ class EmailTemplates:
         Returns:
             str: HTML del email de confirmación
         """
+        # Formatear fecha en formato: año-mes-dia hora-minuto-segundo (sin microsegundos)
+        formatted_date = change_date.strftime('%Y-%m-%d %H:%M:%S')
+        
         return self.render_template(
             'auth/password_changed.html',
             user_name=user_name,
-            change_date=change_date,
+            change_date=formatted_date,
             ip_address=ip_address
         )
     

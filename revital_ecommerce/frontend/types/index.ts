@@ -171,6 +171,8 @@ export interface UserUpdate {
   cel_usuario?: string;
   fec_nacimiento?: string;
   ind_activo?: boolean;
+  avatar_seed?: string | null;
+  avatar_colors?: string | null;
 }
 
 export interface User extends UserBase {

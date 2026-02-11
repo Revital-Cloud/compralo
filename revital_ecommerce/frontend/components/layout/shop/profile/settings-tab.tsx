@@ -23,7 +23,7 @@ export default function SettingsTab() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   
-  const { mutate: changePassword, isPending } = useChangePassword();
+  const { mutateAsync: changePassword, isPending } = useChangePassword();
   
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(changePasswordSchema),
@@ -33,9 +33,18 @@ export default function SettingsTab() {
     },
   });
 
-  const onSubmit = (data: PasswordFormValues) => {
+  const onSubmit = async (data: PasswordFormValues) => {
+    // Validación extra: no permitir misma contraseña
+    if (data.current_password === data.new_password) {
+      form.setError("new_password", {
+        type: "manual",
+        message: "La nueva contraseña no puede ser igual a la contraseña actual",
+      });
+      return;
+    }
+
     try {
-      changePassword(data);
+      await changePassword(data);
       setIsOpen(false);
       form.reset();
     } catch (error) {

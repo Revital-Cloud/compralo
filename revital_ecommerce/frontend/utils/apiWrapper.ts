@@ -61,10 +61,11 @@ function setupInterceptors(instance: AxiosInstance): void {
     (config) => {
       // Endpoints que NO requieren autenticación
       const publicEndpoints = [
-        '/login', 
-        '/refresh', 
-        '/auth/forgot-password', 
-        '/auth/reset-password',
+        '/login',
+        '/refresh',
+        '/forgot-password',
+        '/reset-password',
+        '/verify-email-otp',
         // Endpoints del carrito (soportan usuarios anónimos)
         '/carrito-usuario',
         '/carrito-productos',
@@ -116,6 +117,8 @@ function setupInterceptors(instance: AxiosInstance): void {
       const publicEndpoints = [
         '/login', 
         '/refresh', 
+        '/forgot-password',
+        '/reset-password',
         '/auth/forgot-password', 
         '/auth/reset-password',
         // Endpoints del carrito (soportan usuarios anónimos)

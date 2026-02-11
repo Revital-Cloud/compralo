@@ -9,11 +9,7 @@ import {
   IconUserCircle,
 } from "@tabler/icons-react"
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui"
+import { UserAvatar } from "@/components/ui"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,11 +58,7 @@ export function NavUser() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors duration-300"
             >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarFallback className="rounded-lg bg-[#fec806] text-black font-semibold">
-                  {user.nom_usuario?.charAt(0)}{user.ape_usuario?.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
+              <UserAvatar user={user} size={32} variant="squircle" />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">
                   {user.nom_usuario} {user.ape_usuario}
@@ -86,11 +78,7 @@ export function NavUser() {
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarFallback className="rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                    {user.nom_usuario?.charAt(0)}{user.ape_usuario?.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar user={user} size={32} variant="squircle" />
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium text-gray-900 dark:text-white">
                     {user.nom_usuario} {user.ape_usuario}

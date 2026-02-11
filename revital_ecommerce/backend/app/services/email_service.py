@@ -150,6 +150,46 @@ async def send_verification_email(user_email: str, user_name: str, verification_
         logger.error(f"Error al enviar email de verificación: {str(e)}")
         return False
 
+
+async def send_verification_otp_email(
+    user_email: str,
+    user_name: str,
+    otp_code: str,
+    verify_url: str,
+    expires_in_minutes: int = 15,
+) -> bool:
+    """
+    Envía email de verificación con código OTP de 6 dígitos y enlace a la página.
+
+    Args:
+        user_email (str): Email del usuario
+        user_name (str): Nombre del usuario
+        otp_code (str): Código de 6 dígitos
+        verify_url (str): URL de la página para verificar (ej. frontend /verify-email?email=...)
+        expires_in_minutes (int): Minutos de validez del código
+
+    Returns:
+        bool: True si se envió correctamente
+    """
+    try:
+        html_content = email_templates.get_verification_otp_template(
+            user_name=user_name,
+            otp_code=otp_code,
+            verify_url=verify_url,
+            expires_in_minutes=expires_in_minutes,
+        )
+        email_data = EmailSend(
+            to=user_email,
+            subject=f"Verifica tu cuenta – {settings.APP_NAME}",
+            html_content=html_content,
+        )
+        response = await send_basic_email(email_data)
+        return response.success
+    except Exception as e:
+        logger.error(f"Error al enviar email OTP a {user_email}: {str(e)}")
+        return False
+
+
 async def send_password_reset_email(user_email: str, user_name: str, reset_token: str) -> bool:
     """
     Envía email para reset de contraseña.

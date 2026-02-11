@@ -1,4 +1,5 @@
 export { default as ProfileTab } from './profile-tab'
+export { default as AvatarTab } from './avatar-tab'
 export { default as OrdersTab } from './orders-tab'
 export { default as AddressesTab } from './addresses-tab'
 export { default as ExchangeTab } from './exchange-tab'

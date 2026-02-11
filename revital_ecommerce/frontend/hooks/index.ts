@@ -1,5 +1,5 @@
 // Auth hooks
-export { useAuth } from './use-auth'
+export { useAuth, AUTH_KEYS } from './use-auth'
 export { useLoginRedirect } from './use-role-redirect'
 
 // Favorites hooks

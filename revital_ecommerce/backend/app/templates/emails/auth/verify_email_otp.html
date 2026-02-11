@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Verifica tu cuenta – {{ app_name }}{% endblock %}
+
+{% block preheader %}Tu código de verificación es {{ otp_code }}. Verifica tu email para activar tu cuenta en {{ app_name }}.{% endblock %}
+
+{% block content %}
+<div class="greeting">¡Hola {{ user_name }}!</div>
+
+<div class="content-block">
+    <h2>Verifica tu dirección de email</h2>
+    <p>Para completar tu registro en {{ app_name }}, ingresa el siguiente código de 6 dígitos en la página de verificación:</p>
+</div>
+
+<div class="text-center" style="margin: 24px 0;">
+    <span style="font-size: 28px; font-weight: 700; letter-spacing: 8px; background: #f0fdf4; padding: 12px 24px; border-radius: 8px; display: inline-block;">{{ otp_code }}</span>
+</div>
+
+<div class="content-block">
+    <p>O haz clic en el botón para ir directo a la página e ingresar el código:</p>
+</div>
+
+<div class="text-center">
+    {% set url = verify_url %}
+    {% set label = "Verificar mi email" %}
+    {% set variant = "success" %}
+    {% include "_button.html" %}
+</div>
+
+<div class="alert alert-warning">
+    <strong>Importante:</strong> El código expira en {{ expires_in_minutes }} minutos y solo puede usarse una vez.
+</div>
+
+<div class="alert alert-info">
+    <strong>¿No ves el botón?</strong> Copia y pega en tu navegador:<br>
+    <span style="word-break:break-all; background:#f9fafb; padding:8px; display:inline-block; margin-top:8px; font-size:14px;">{{ verify_url }}</span>
+</div>
+
+<div class="divider"></div>
+
+<div class="content-block">
+    <p>Si no creaste una cuenta en {{ app_name }}, ignora este email.</p>
+    <p>¿Ayuda? Escribe a <a href="mailto:{{ support_email }}" style="color:#dc2626;">{{ support_email }}</a>.</p>
+</div>
+{% endblock %}

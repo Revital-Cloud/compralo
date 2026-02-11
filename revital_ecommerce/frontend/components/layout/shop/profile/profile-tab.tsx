@@ -19,6 +19,7 @@ interface ProfileTabProps {
 
 export default function ProfileTab({ user, form, isEditing, onSubmit }: ProfileTabProps) {
   const { data: stats, isLoading } = useAccountStats(user.id_usuario);
+
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2">

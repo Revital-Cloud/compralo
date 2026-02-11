@@ -49,8 +49,13 @@ export function useFooterCategories() {
             label: s.nom_sublinea,
             href: `/categories/${s.id_categoria}/lines/${s.id_linea}/sublines/${s.id_sublinea}/products`,
           }))
-
-        return { categories, lineas, sublineas }
+        
+        // Limitar a 5 ítems por columna en el footer
+        return { 
+          categories: categories.slice(0, 5), 
+          lineas: lineas.slice(0, 5), 
+          sublineas: sublineas.slice(0, 5) 
+        }
       } catch (error) {
         console.error('Error fetching footer data:', error)
         throw error

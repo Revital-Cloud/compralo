@@ -157,11 +157,14 @@ const colorMapping: Record<string, { color: string; bgGradient: string; iconBg: 
   'electronica': { color: '#FF8C00', bgGradient: 'from-orange-500 to-orange-600', iconBg: 'bg-orange-100' },
   'electrónicos': { color: '#FF8C00', bgGradient: 'from-orange-500 to-orange-600', iconBg: 'bg-orange-100' },
   'tecnologia': { color: '#3B82F6', bgGradient: 'from-blue-500 to-blue-600', iconBg: 'bg-blue-100' },
+  'tecnología': { color: '#3B82F6', bgGradient: 'from-blue-500 to-blue-600', iconBg: 'bg-blue-100' },
   'hogar y jardín': { color: '#8B5CF6', bgGradient: 'from-purple-500 to-purple-600', iconBg: 'bg-purple-100' },
   'casa': { color: '#8B5CF6', bgGradient: 'from-purple-500 to-purple-600', iconBg: 'bg-purple-100' },
   'jardin': { color: '#10B981', bgGradient: 'from-green-500 to-green-600', iconBg: 'bg-green-100' },
   'jardín': { color: '#10B981', bgGradient: 'from-green-500 to-green-600', iconBg: 'bg-green-100' },
-  'belleza': { color: '#fec806', bgGradient: 'from-yellow-500 to-yellow-600', iconBg: 'bg-yellow-100' },
+  'belleza': { color: '#EC4899', bgGradient: 'from-pink-500 to-pink-600', iconBg: 'bg-pink-100' },
+  'belleza y cuidado personal': { color: '#EC4899', bgGradient: 'from-pink-500 to-pink-600', iconBg: 'bg-pink-100' },
+  'cuidado personal': { color: '#EC4899', bgGradient: 'from-pink-500 to-pink-600', iconBg: 'bg-pink-100' },
   'cosmeticos': { color: '#EC4899', bgGradient: 'from-pink-500 to-pink-600', iconBg: 'bg-pink-100' },
   'cosméticos': { color: '#EC4899', bgGradient: 'from-pink-500 to-pink-600', iconBg: 'bg-pink-100' },
   'moda': { color: '#ec2538', bgGradient: 'from-red-500 to-red-600', iconBg: 'bg-red-100' },
@@ -170,8 +173,15 @@ const colorMapping: Record<string, { color: string; bgGradient: string; iconBg: 
   'ropa y accesorios': { color: '#ec2538', bgGradient: 'from-red-500 to-red-600', iconBg: 'bg-red-100' },
   'gaming': { color: '#8B5CF6', bgGradient: 'from-purple-500 to-purple-600', iconBg: 'bg-purple-100' },
   'videojuegos': { color: '#8B5CF6', bgGradient: 'from-purple-500 to-purple-600', iconBg: 'bg-purple-100' },
-  'salud': { color: '#EF4444', bgGradient: 'from-pink-500 to-pink-600', iconBg: 'bg-pink-100' },
+  'salud': { color: '#10B981', bgGradient: 'from-green-500 to-green-600', iconBg: 'bg-green-100' },
+  'salud y bienestar': { color: '#10B981', bgGradient: 'from-green-500 to-green-600', iconBg: 'bg-green-100' },
+  'bienestar': { color: '#10B981', bgGradient: 'from-green-500 to-green-600', iconBg: 'bg-green-100' },
   'deportes': { color: '#10B981', bgGradient: 'from-green-500 to-green-600', iconBg: 'bg-green-100' },
+  'ferreteria': { color: '#F59E0B', bgGradient: 'from-amber-500 to-amber-600', iconBg: 'bg-amber-100' },
+  'ferretería': { color: '#F59E0B', bgGradient: 'from-amber-500 to-amber-600', iconBg: 'bg-amber-100' },
+  'construccion': { color: '#EF4444', bgGradient: 'from-red-500 to-red-600', iconBg: 'bg-red-100' },
+  'construcción': { color: '#EF4444', bgGradient: 'from-red-500 to-red-600', iconBg: 'bg-red-100' },
+  'oficina': { color: '#6366F1', bgGradient: 'from-indigo-500 to-indigo-600', iconBg: 'bg-indigo-100' },
   'automoviles': { color: '#374151', bgGradient: 'from-gray-600 to-gray-700', iconBg: 'bg-gray-100' },
   'autos': { color: '#374151', bgGradient: 'from-gray-600 to-gray-700', iconBg: 'bg-gray-100' },
   'libros': { color: '#F59E0B', bgGradient: 'from-amber-500 to-amber-600', iconBg: 'bg-amber-100' },
@@ -194,11 +204,14 @@ const generateDescription = (categoryName: string): string => {
     'electronica': 'Últimos gadgets y tecnología',
     'electrónicos': 'Últimos gadgets y tecnología',
     'tecnologia': 'Computadores y accesorios',
+    'tecnología': 'Computadores y accesorios',
     'hogar': 'Decoración y muebles',
     'casa': 'Decoración y muebles',
     'jardin': 'Plantas y herramientas de jardín',
     'jardín': 'Plantas y herramientas de jardín',
     'belleza': 'Productos de cuidado personal',
+    'belleza y cuidado personal': 'Productos de Belleza y cuidado personal',
+    'cuidado personal': 'Productos de cuidado personal',
     'cosmeticos': 'Maquillaje y cuidado facial',
     'cosméticos': 'Maquillaje y cuidado facial',
     'moda': 'Ropa y accesorios',
@@ -208,7 +221,14 @@ const generateDescription = (categoryName: string): string => {
     'gaming': 'Videojuegos y consolas',
     'videojuegos': 'Entretenimiento digital',
     'salud': 'Bienestar y cuidado',
+    'salud y bienestar': 'Productos de Salud y bienestar',
+    'bienestar': 'Bienestar y cuidado',
     'deportes': 'Equipos y accesorios deportivos',
+    'ferreteria': 'Productos de Ferretería',
+    'ferretería': 'Productos de Ferretería',
+    'construccion': 'Productos de Construcción',
+    'construcción': 'Productos de Construcción',
+    'oficina': 'Productos de Oficina',
     'automoviles': 'Accesorios para vehículos',
     'autos': 'Accesorios para vehículos',
     'libros': 'Literatura y educación',
@@ -255,7 +275,26 @@ export const getIconForLine = (nomLinea: string) => getIconByName(nomLinea);
 /** Icono para sublínea por nombre (exportado para uso en páginas). */
 export const getIconForSubline = (nomSublinea: string) => getIconByName(nomSublinea);
 
-// Función para obtener colores basados en el nombre
+// Paleta de colores predefinida para asignar automáticamente a las categorías
+const colorPalette = [
+  { color: '#3B82F6', bgGradient: 'from-blue-500 to-blue-600', iconBg: 'bg-blue-100' }, // Azul
+  { color: '#10B981', bgGradient: 'from-green-500 to-green-600', iconBg: 'bg-green-100' }, // Verde
+  { color: '#EC4899', bgGradient: 'from-pink-500 to-pink-600', iconBg: 'bg-pink-100' }, // Rosa
+  { color: '#F59E0B', bgGradient: 'from-amber-500 to-amber-600', iconBg: 'bg-amber-100' }, // Ámbar
+  { color: '#EF4444', bgGradient: 'from-red-500 to-red-600', iconBg: 'bg-red-100' }, // Rojo
+  { color: '#6366F1', bgGradient: 'from-indigo-500 to-indigo-600', iconBg: 'bg-indigo-100' }, // Índigo
+  { color: '#8B5CF6', bgGradient: 'from-purple-500 to-purple-600', iconBg: 'bg-purple-100' }, // Púrpura
+  { color: '#06B6D4', bgGradient: 'from-cyan-500 to-cyan-600', iconBg: 'bg-cyan-100' }, // Cian
+  { color: '#F97316', bgGradient: 'from-orange-500 to-orange-600', iconBg: 'bg-orange-100' }, // Naranja
+  { color: '#84CC16', bgGradient: 'from-lime-500 to-lime-600', iconBg: 'bg-lime-100' }, // Lima
+];
+
+// Función para obtener colores basados en el índice (posición en la lista)
+const getColorsByIndex = (index: number) => {
+  return colorPalette[index % colorPalette.length];
+};
+
+// Función para obtener colores basados en el nombre (mantenida para compatibilidad si se necesita)
 const getColorsForCategory = (categoryName: string) => {
   const normalizedName = categoryName.toLowerCase().trim();
   return colorMapping[normalizedName] || {
@@ -271,8 +310,9 @@ export const mapCategoriesToDisplay = (categories: Category[]): CategoryDisplay[
 
   return categories
     .filter((category) => category && category.ind_activo)
-    .map((category) => {
-      const colors = getColorsForCategory(category.nom_categoria);
+    .map((category, index) => {
+      // Asignar colores automáticamente basados en la posición
+      const colors = getColorsByIndex(index);
       const icon = getIconByName(category.nom_categoria);
       const description = generateDescription(category.nom_categoria);
       return {

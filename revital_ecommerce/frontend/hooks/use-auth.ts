@@ -237,16 +237,19 @@ export function useConfirmPasswordReset() {
   return useMutation({
     mutationFn: (confirmData: ResetPasswordConfirm) => authService.confirmPasswordReset(confirmData),
     onSuccess: () => {
+      // El componente se encarga de mostrar la UI de éxito / redirección
       toast.success('Contraseña restablecida exitosamente. Ya puedes iniciar sesión.');
-      
-      // Redirigir al login
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
     },
     onError: (error: any) => {
-      const message = error?.response?.data?.message || 'Error al restablecer la contraseña';
+      const data = error?.response?.data;
+      const message =
+        data?.detail ||
+        data?.message ||
+        error?.message ||
+        'Error al restablecer la contraseña';
       toast.error(message);
+      // Re-lanzar para que los componentes que usen mutateAsync puedan manejarlo
+      throw error;
     },
   });
 }

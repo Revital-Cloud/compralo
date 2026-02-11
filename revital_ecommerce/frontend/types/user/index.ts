@@ -31,6 +31,8 @@ export interface UserUpdate {
   cel_usuario?: string;
   fec_nacimiento?: string;
   ind_activo?: boolean;
+  avatar_seed?: string | null;
+  avatar_colors?: string | null;
 }
 
 export interface User extends UserBase {
@@ -55,6 +57,7 @@ export interface UserProfile {
   ind_genero: boolean;
   fec_nacimiento?: string;
   avatar?: string;
+  avatar_seed?: string | null; // Seed personalizado para Facehash
 }
 
 export interface UpdateProfileRequest {
@@ -64,6 +67,7 @@ export interface UpdateProfileRequest {
   cel_usuario?: string;
   fec_nacimiento?: string;
   avatar?: string;
+  avatar_seed?: string | null; // Seed personalizado para Facehash
 }
 
 // =============================================================================

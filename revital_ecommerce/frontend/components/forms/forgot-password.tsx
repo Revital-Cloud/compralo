@@ -27,25 +27,48 @@ export function ForgotPasswordForm({
   const [isSuccess, setIsSuccess] = useState(false)
   const { showSuccess, showError } = useToastActions()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    
-    if (!email) {
+
+    // Soportar casos donde el navegador autocompleta el email sin disparar onChange
+    const formData = new FormData(e.currentTarget)
+    const rawEmail = (formData.get("email") as string | null) ?? email
+    const emailValue = (rawEmail || "").trim()
+
+    if (!emailValue) {
       showError("Error", "Por favor ingresa tu correo electrónico")
       return
+    }
+
+    // Sincronizar estado por si venía solo del autocomplete del navegador
+    if (emailValue !== email) {
+      setEmail(emailValue)
     }
 
     setIsLoading(true)
     
     try {
-      const resetData: ResetPasswordRequest = { email }
-      await authService.requestPasswordReset(resetData)
+      const resetData: ResetPasswordRequest = { email: emailValue }
+      console.log('Enviando solicitud de reset con:', resetData)
+      const response = await authService.requestPasswordReset(resetData)
+      console.log('Respuesta del servidor:', response)
       
       setIsSuccess(true)
       showSuccess("¡Enlace enviado!", "Revisa tu correo electrónico para restablecer tu contraseña")
     } catch (error: any) {
-      console.error('Error al solicitar restablecimiento:', error)
-      showError("Error", error?.response?.data?.detail || "Error al enviar el enlace de restablecimiento")
+      console.error('Error completo al solicitar restablecimiento:', error)
+      console.error('Detalles del error:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status
+      })
+      
+      const errorMessage = error?.response?.data?.detail 
+        || error?.response?.data?.message
+        || error?.message
+        || "Error al enviar el enlace de restablecimiento"
+      
+      showError("Error", errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -114,12 +137,14 @@ export function ForgotPasswordForm({
                 <Label htmlFor="email">Correo electrónico</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="correo@ejemplo.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
+                  autoComplete="email"
                 />
               </div>
               <Button type="submit" className="w-full" disabled={isLoading}>
