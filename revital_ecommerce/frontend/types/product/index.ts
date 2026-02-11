@@ -91,6 +91,13 @@ export interface ProductAdminParams {
   orden?: 'ASC' | 'DESC';
   limit?: number;
   offset?: number;
+  // Filtros opcionales para el endpoint admin
+  search?: string;
+  id_categoria?: number;
+  id_linea?: number;
+  id_sublinea?: number;
+  id_marca?: number;
+  id_proveedor?: number;
 }
 
 // =============================================================================

@@ -16,6 +16,8 @@ export interface FilterConfig {
   label: string;
   type: 'search' | 'select' | 'multiselect' | 'date' | 'range';
   placeholder?: string;
+  /** Texto para la opción "sin filtrar" en selects (ej. "Todas las categorías"). Si no se define, se usa "Todos los {label}". */
+  emptyOptionLabel?: string;
   options?: FilterOption[];
   value?: any;
   onChange?: (value: any) => void;

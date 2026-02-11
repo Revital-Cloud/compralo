@@ -1,6 +1,12 @@
 import { Grid, List, Filter } from "lucide-react"
-import { Button } from "@/components/ui"
-import { Badge } from "@/components/ui"
+import { Button, Badge } from "@/components/ui"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const sortOptions = [
   { value: 'nombre-asc', label: 'Nombre (A-Z)' },
@@ -68,18 +74,19 @@ export const ProductsHeader = ({
               )}
             </Button>
 
-            {/* Sort Dropdown (native) */}
-            <select
-              value={sortBy}
-              onChange={(e) => { const v = e.target.value; if (v !== sortBy) setSortBy(v) }}
-              className="w-[140px] sm:w-[180px] h-9 rounded-md border border-gray-200 dark:border-gray-700 bg-transparent px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring/50"
-            >
-              {sortOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            {/* Sort Dropdown */}
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[140px] sm:w-[180px] h-9">
+                <SelectValue placeholder="Ordenar por" />
+              </SelectTrigger>
+              <SelectContent>
+                {sortOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             {/* View Mode Toggles */}
             <div className="hidden md:flex border border-gray-200 dark:border-gray-700 rounded-lg p-1">
