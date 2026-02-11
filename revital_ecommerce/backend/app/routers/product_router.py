@@ -48,6 +48,12 @@ async def get_products_admin(
     orden: str = "ASC", 
     limit: int = 50,
     offset: int = 0,
+    search: str | None = None,
+    id_categoria: int | None = None,
+    id_linea: int | None = None,
+    id_sublinea: int | None = None,
+    id_marca: int | None = None,
+    id_proveedor: int | None = None,
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(require_admin())
 ):
@@ -63,6 +69,12 @@ async def get_products_admin(
         orden (str): Dirección del orden ('ASC' o 'DESC')
         limit (int): Límite de resultados (máximo 1000)
         offset (int): Offset para paginación
+        search (str | None): Búsqueda por nombre de producto
+        id_categoria (int | None): Filtrar por categoría
+        id_linea (int | None): Filtrar por línea
+        id_sublinea (int | None): Filtrar por sublínea
+        id_marca (int | None): Filtrar por marca
+        id_proveedor (int | None): Filtrar por proveedor
         db (Session): Sesión de la base de datos
         current_user (UserInToken): Usuario autenticado (debe ser admin)
         
@@ -86,14 +98,18 @@ async def get_products_admin(
         'ordenar_por': ordenar_por,
         'orden': orden.upper(),
         'limit': limit,
-        'offset': offset
+        'offset': offset,
+        'search': search,
+        'id_categoria': id_categoria,
+        'id_linea': id_linea,
+        'id_sublinea': id_sublinea,
+        'id_marca': id_marca,
+        'id_proveedor': id_proveedor,
     }
     
     products = product_service.get_products_admin(db, params)
-    if not products:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron productos")
-    
-    return products
+    # Devolver lista vacía si no hay productos (resultado válido con filtros)
+    return products if products else []
 
 #endpoint de prueba temporal (sin autenticación)
 @router.get("/products-admin-test", response_model=list[ProductAdminResponse])
@@ -102,6 +118,12 @@ async def get_products_admin_test(
     orden: str = "ASC", 
     limit: int = 50,
     offset: int = 0,
+    search: str | None = None,
+    id_categoria: int | None = None,
+    id_linea: int | None = None,
+    id_sublinea: int | None = None,
+    id_marca: int | None = None,
+    id_proveedor: int | None = None,
     db: Session = Depends(get_db)
 ):
     """
@@ -126,14 +148,40 @@ async def get_products_admin_test(
         'ordenar_por': ordenar_por,
         'orden': orden.upper(),
         'limit': limit,
-        'offset': offset
+        'offset': offset,
+        'search': search,
+        'id_categoria': id_categoria,
+        'id_linea': id_linea,
+        'id_sublinea': id_sublinea,
+        'id_marca': id_marca,
+        'id_proveedor': id_proveedor,
     }
     
     products = product_service.get_products_admin(db, params)
-    if not products:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron productos")
-    
-    return products
+    # Devolver lista vacía si no hay productos (resultado válido con filtros)
+    return products if products else []
+
+
+@router.get("/products-admin/filter-options")
+async def get_filter_options_admin(
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin()),
+):
+    """
+    Opciones de filtro para el panel de administración.
+
+    Devuelve categorías, líneas, sublíneas, marcas y proveedores sin filtrar por ind_activo,
+    para que el admin pueda ver y filtrar todos los productos (activos e inactivos).
+    La tienda usa GET /products/filter/options (solo activos).
+    """
+    try:
+        return product_service.get_filter_options_admin(db)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        )
+
 
 #un solo producto
 @router.get(

@@ -25,6 +25,7 @@ export const PRODUCT_KEYS = {
   filter: (filters: ProductFilterParams) => [...PRODUCT_KEYS.filters(), filters] as const,
   filterStats: (filters: ProductFilterParams) => [...PRODUCT_KEYS.filters(), 'stats', filters] as const,
   filterOptions: () => [...PRODUCT_KEYS.filters(), 'options'] as const,
+  filterOptionsAdmin: () => [...PRODUCT_KEYS.admin(), 'filter-options'] as const,
   search: (query: string) => [...PRODUCT_KEYS.all, 'search', query] as const,
 };
 
@@ -247,13 +248,24 @@ export function useFilterStats(filters: ProductFilterParams) {
 }
 
 /**
- * Hook para obtener opciones de filtros
+ * Hook para obtener opciones de filtros (tienda: solo activos)
  */
 export function useFilterOptions() {
   return useQuery({
     queryKey: PRODUCT_KEYS.filterOptions(),
     queryFn: () => productService.getFilterOptions(),
     staleTime: 15 * 60 * 1000, // 15 minutos - las opciones cambian poco
+  });
+}
+
+/**
+ * Hook para opciones de filtro en admin (incluye activos e inactivos)
+ */
+export function useFilterOptionsAdmin() {
+  return useQuery({
+    queryKey: PRODUCT_KEYS.filterOptionsAdmin(),
+    queryFn: () => productService.getFilterOptionsAdmin(),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
