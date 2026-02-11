@@ -20,6 +20,9 @@ import { useFormXSSValidation } from "@/hooks/use-xss-validation";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+// Valor usado para "no seleccionado" en Select (Radix no permite value="" en SelectItem)
+const SELECT_EMPTY_VALUE = '__empty__';
+
 // Presets de especificaciones por tipo de producto
 const SPEC_PRESETS = {
   ropa: {
@@ -467,9 +470,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             <div className="space-y-2">
               <Label htmlFor="id_categoria">Categoría *</Label>
               <Select
-                value={watch('id_categoria') || ''}
+                value={watch('id_categoria') || SELECT_EMPTY_VALUE}
                 onValueChange={(value) => {
-                  setValue('id_categoria', value);
+                  const v = value === SELECT_EMPTY_VALUE ? '' : value;
+                  setValue('id_categoria', v);
                   setValue('id_linea', '');
                   setValue('id_sublinea', '');
                 }}
@@ -479,7 +483,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   <SelectValue placeholder="Selecciona una categoría" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Selecciona una categoría</SelectItem>
+                  <SelectItem value={SELECT_EMPTY_VALUE}>Selecciona una categoría</SelectItem>
                   {safeCategories.map((category) => {
                     const categoryId = category?.id_categoria;
                     if (!categoryId) return null;
@@ -501,12 +505,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({
 
             <div className="space-y-2">
               <Label htmlFor="id_marca">Marca *</Label>
-              <Select value={watch('id_marca') || ''} onValueChange={(value) => setValue('id_marca', value)}>
+              <Select value={watch('id_marca') || SELECT_EMPTY_VALUE} onValueChange={(value) => setValue('id_marca', value === SELECT_EMPTY_VALUE ? '' : value)}>
                 <SelectTrigger className={cn('w-full', errors.id_marca && 'border-red-500')}>
                   <SelectValue placeholder="Selecciona una marca" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Selecciona una marca</SelectItem>
+                  <SelectItem value={SELECT_EMPTY_VALUE}>Selecciona una marca</SelectItem>
                   {safeBrands.map((brand) => {
                     const brandId = brand?.id_marca;
                     if (!brandId) return null;
@@ -532,9 +536,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 {!isEditing && <span className="text-xs text-muted-foreground">(elige primero la categoría)</span>}
               </div>
               <Select
-                value={watch('id_linea') || ''}
+                value={watch('id_linea') || SELECT_EMPTY_VALUE}
                 onValueChange={(value) => {
-                  setValue('id_linea', value);
+                  const v = value === SELECT_EMPTY_VALUE ? '' : value;
+                  setValue('id_linea', v);
                   setValue('id_sublinea', '');
                 }}
                 disabled={isEditing || !watchedCategory}
@@ -543,7 +548,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   <SelectValue placeholder="Selecciona una línea" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Selecciona una línea</SelectItem>
+                  <SelectItem value={SELECT_EMPTY_VALUE}>Selecciona una línea</SelectItem>
                   {uniqueLines.map((line) => {
                     const lineId = line?.id_linea;
                     if (!lineId) return null;
@@ -566,15 +571,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                 {!isEditing && <span className="text-xs text-muted-foreground">(elige primero la línea)</span>}
               </div>
               <Select
-                value={watch('id_sublinea') || ''}
-                onValueChange={(value) => setValue('id_sublinea', value)}
+                value={watch('id_sublinea') || SELECT_EMPTY_VALUE}
+                onValueChange={(value) => setValue('id_sublinea', value === SELECT_EMPTY_VALUE ? '' : value)}
                 disabled={isEditing || !watchedLine}
               >
                 <SelectTrigger className={cn('w-full', errors.id_sublinea && 'border-red-500')}>
                   <SelectValue placeholder="Selecciona una sublínea" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Selecciona una sublínea</SelectItem>
+                  <SelectItem value={SELECT_EMPTY_VALUE}>Selecciona una sublínea</SelectItem>
                   {uniqueSublines.map((subline) => {
                     const sublineId = subline?.id_sublinea;
                     if (!sublineId) return null;
@@ -598,12 +603,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           {/* Proveedor */}
           <div className="space-y-2">
             <Label htmlFor="id_proveedor">Proveedor *</Label>
-            <Select value={watch('id_proveedor') || ''} onValueChange={(value) => setValue('id_proveedor', value)}>
+            <Select value={watch('id_proveedor') || SELECT_EMPTY_VALUE} onValueChange={(value) => setValue('id_proveedor', value === SELECT_EMPTY_VALUE ? '' : value)}>
               <SelectTrigger className={cn('w-full', errors.id_proveedor && 'border-red-500')}>
                 <SelectValue placeholder="Selecciona un proveedor" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Selecciona un proveedor</SelectItem>
+                <SelectItem value={SELECT_EMPTY_VALUE}>Selecciona un proveedor</SelectItem>
                 {safeProviders.map((provider) => {
                   const providerId = provider?.id_proveedor;
                   if (!providerId) return null;

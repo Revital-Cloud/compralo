@@ -282,6 +282,7 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
     {
       id: 'category',
       label: 'Categoría',
+      emptyOptionLabel: 'Todas las categorías',
       type: 'select',
       value: category,
       onChange: handleCategoryChange,
@@ -291,6 +292,7 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
     {
       id: 'line',
       label: 'Línea',
+      emptyOptionLabel: 'Todas las líneas',
       type: 'select',
       value: lineSelectValue,
       onChange: handleLineChange,
@@ -300,6 +302,7 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
     {
       id: 'subline',
       label: 'Sublínea',
+      emptyOptionLabel: 'Todas las sublíneas',
       type: 'select',
       value: sublineSelectValue,
       onChange: handleSublineChange,
@@ -309,6 +312,7 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
     {
       id: 'brand',
       label: 'Marca',
+      emptyOptionLabel: 'Todas las marcas',
       type: 'select',
       value: brand,
       onChange: onBrandChange,
@@ -318,6 +322,7 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
     {
       id: 'provider',
       label: 'Proveedor',
+      emptyOptionLabel: 'Todos los proveedores',
       type: 'select',
       value: provider,
       onChange: onProviderChange,
