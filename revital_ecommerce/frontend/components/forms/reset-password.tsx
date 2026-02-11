@@ -30,7 +30,7 @@ export function ResetPasswordForm({
   const [errorType, setErrorType] = useState<'none' | 'used' | 'invalid' | 'expired'>('none')
   
   const { showSuccess, showError } = useToastActions()
-  const { mutate: confirmPasswordReset, isPending } = useConfirmPasswordReset()
+  const { mutateAsync: confirmPasswordReset, isPending } = useConfirmPasswordReset()
   const searchParams = useSearchParams()
   const router = useRouter()
 
@@ -90,8 +90,12 @@ export function ResetPasswordForm({
     } catch (error: any) {
       console.error('Error al restablecer contraseña:', error)
       
-      // Manejar diferentes tipos de errores
-      const errorMessage = error?.response?.data?.detail || "Error al restablecer la contraseña"
+      const data = error?.response?.data
+      const errorMessage =
+        data?.detail ||
+        data?.message ||
+        error?.message ||
+        "Error al restablecer la contraseña"
       
       if (errorMessage.includes("ya fue utilizado")) {
         setErrorType('used')
@@ -99,6 +103,10 @@ export function ResetPasswordForm({
       } else if (errorMessage.includes("inválido") || errorMessage.includes("expirado")) {
         setErrorType('invalid')
         showError("Token Inválido", "El enlace de restablecimiento no es válido o ha expirado. Por favor, solicita uno nuevo.")
+      } else if (errorMessage.includes("no puede ser igual a la contraseña actual")) {
+        // Error específico cuando intenta usar la misma contraseña
+        setErrorType('none')
+        showError("Contraseña inválida", "La nueva contraseña no puede ser igual a la contraseña actual")
       } else {
         setErrorType('none')
         showError("Error", errorMessage)

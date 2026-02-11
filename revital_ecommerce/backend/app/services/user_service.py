@@ -43,6 +43,8 @@ def get_users(db: Session):
             cel_usuario,
             fec_nacimiento,
             ind_activo,
+            avatar_seed,
+            avatar_colors,
             usr_insert,
             fec_insert,
             usr_update,
@@ -74,6 +76,8 @@ def get_user(db: Session, id_usuario: Decimal):
             cel_usuario,
             fec_nacimiento,
             ind_activo,
+            avatar_seed,
+            avatar_colors,
             usr_insert,
             fec_insert,
             usr_update,
@@ -191,6 +195,21 @@ def update_user(db: Session, id_usuario: Decimal, user: UserUpdate, current_user
         
         result = db.execute(query, update_params)
         fetched_result = result.fetchone()
+        # Actualizar avatar_seed y avatar_colors si vienen en el payload (no están en fun_update_usuarios)
+        if user.avatar_seed is not None or user.avatar_colors is not None:
+            updates = []
+            params = {"id_usuario": id_usuario}
+            if user.avatar_seed is not None:
+                updates.append("avatar_seed = :avatar_seed")
+                params["avatar_seed"] = user.avatar_seed
+            if user.avatar_colors is not None:
+                updates.append("avatar_colors = :avatar_colors")
+                params["avatar_colors"] = user.avatar_colors
+            if updates:
+                db.execute(
+                    text(f"UPDATE tab_usuarios SET {', '.join(updates)} WHERE id_usuario = :id_usuario"),
+                    params,
+                )
         db.commit()
         return fetched_result[0] if fetched_result else None
     except Exception as e:
@@ -247,7 +266,8 @@ def get_user_by_email(db: Session, email: str):
             ape_usuario,
             email_usuario,
             password_usuario,
-            id_rol
+            id_rol,
+            ind_activo
         FROM tab_usuarios 
         WHERE email_usuario = :email
         """)
@@ -283,7 +303,7 @@ def get_user_by_email_auth_only(db: Session, email: str):
         db.rollback()
         raise Exception(f"Error al obtener credenciales: {str(e)}")
 
-def update_password(db: Session, id_usuario: Decimal, hashed_password: str):
+def update_password(db: Session, id_usuario: Decimal, hashed_password: str, usr_operacion: Decimal = None):
     """
     Actualiza solo la contraseña de un usuario.
 
@@ -291,15 +311,25 @@ def update_password(db: Session, id_usuario: Decimal, hashed_password: str):
         db (Session): La sesión de base de datos SQLAlchemy.
         id_usuario (Decimal): ID del usuario.
         hashed_password (str): Contraseña hasheada.
+        usr_operacion (Decimal, optional): ID del usuario que realiza la operación. 
+                                         Si no se proporciona, se usa el mismo id_usuario.
 
     Returns:
         bool: True si la actualización fue exitosa.
     """
     try:
+        # Si no se proporciona usr_operacion, usar el mismo id_usuario
+        if usr_operacion is None:
+            usr_operacion = id_usuario
+        
         query = text("""
-        SELECT fun_update_password_usuario(:id_usuario, :password)
+        SELECT fun_update_password_usuario(:id_usuario, CAST(:password AS VARCHAR), :usr_operacion)
         """)
-        result = db.execute(query, {"password": hashed_password, "id_usuario": id_usuario})
+        result = db.execute(query, {
+            "password": hashed_password, 
+            "id_usuario": int(id_usuario),
+            "usr_operacion": int(usr_operacion)
+        })
         fetched_result = result.fetchone()
         db.commit()
         return fetched_result[0] if fetched_result else None

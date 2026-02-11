@@ -240,7 +240,10 @@ const FeaturedProducts = () => {
           whileInView="visible"
           viewport={{ once: true }}
         >
-          {products?.slice(0, 4)?.map((product: Product) => (
+          {products
+            ?.filter((product: Product) => product.ind_activo !== false)
+            ?.slice(0, 4)
+            ?.map((product: Product) => (
             <motion.div
               key={`${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
               variants={cardVariants}

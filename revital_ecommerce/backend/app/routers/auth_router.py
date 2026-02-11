@@ -13,13 +13,14 @@ import logging
 from core.database import get_db
 from core.dependencies import get_current_user
 from schemas.auth_schema import (
-    LoginRequest, 
-    TokenResponse, 
-    RefreshTokenRequest, 
-    UserInToken, 
+    LoginRequest,
+    TokenResponse,
+    RefreshTokenRequest,
+    UserInToken,
     ChangePasswordRequest,
     ResetPasswordRequest,
-    ResetPasswordConfirm
+    ResetPasswordConfirm,
+    VerifyEmailOtpRequest,
 )
 from schemas.user_schema import ResponseMessage, User, UserCreate, UserUpdate, UserPublic
 from services import auth_service
@@ -53,6 +54,21 @@ async def login(
         HTTPException: Si las credenciales son inválidas
     """
     return auth_service.login_user(db, login_data)
+
+
+@router.post("/verify-email-otp", response_model=TokenResponse)
+@limiter.limit("10/minute")
+async def verify_email_otp(
+    request: Request,
+    body: VerifyEmailOtpRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Verifica el código OTP enviado al email y activa la cuenta.
+    Devuelve tokens para iniciar sesión automáticamente.
+    """
+    return auth_service.verify_email_otp(db, body.email, body.code)
+
 
 @router.post("/refresh", response_model=TokenResponse)
 @limiter.limit("30/minute")
@@ -116,7 +132,9 @@ async def get_current_user_info(
         id_rol=full_user.get('id_rol'),
         cel_usuario=full_user.get('cel_usuario'),
         fec_nacimiento=fec_nacimiento_str,
-        des_direccion=None  # Las direcciones están en tab_direcciones_usuario, no en tab_usuarios
+        des_direccion=None,  # Las direcciones están en tab_direcciones_usuario, no en tab_usuarios
+        avatar_seed=full_user.get('avatar_seed'),
+        avatar_colors=full_user.get('avatar_colors'),
     )
 
 @router.post("/change-password", response_model=ResponseMessage)
@@ -429,12 +447,19 @@ async def reset_password(
                 detail="Token de reset inválido o expirado"
             )
         
+        # Verificar que la nueva contraseña no sea igual a la actual
+        from core.jwt_utils import get_password_hash, verify_password
+        if verify_password(reset_data.new_password, user.password_usuario):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La nueva contraseña no puede ser igual a la contraseña actual"
+            )
+        
         # Cambiar contraseña
-        from core.jwt_utils import get_password_hash
         hashed_password = get_password_hash(reset_data.new_password)
         
-        # Actualizar contraseña en BD
-        user_service.update_password(db, user_id, hashed_password)
+        # Actualizar contraseña en BD (el usuario cambia su propia contraseña)
+        user_service.update_password(db, user_id, hashed_password, usr_operacion=user_id)
         
         # Agregar token a blacklist para evitar reutilización
         add_token_to_blacklist(reset_data.token)

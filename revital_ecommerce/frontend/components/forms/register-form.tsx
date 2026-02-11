@@ -71,8 +71,8 @@ export function RegisterForm() {
       };
       
       await registerUser(dataToSubmit);
-      // Solo redirigir si el registro fue exitoso
-      router.push("/login");
+      // Redirigir a verificación de email (código OTP enviado al correo)
+      router.push(`/verify-email?email=${encodeURIComponent(values.email_usuario)}`);
     } catch (error: any) {
       console.error('Error en registro:', error);
       // El error ya se maneja en el hook useAuth con toast

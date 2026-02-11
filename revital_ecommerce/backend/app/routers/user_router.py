@@ -4,62 +4,53 @@ Módulo de enrutador para la gestión de usuarios.
 Define las rutas y endpoints relacionados con la gestión de usuarios,
 incluyendo la creación, actualización y visualización de usuarios.
 """
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Body, BackgroundTasks, Request
 from sqlalchemy.orm import Session
 from decimal import Decimal
+from urllib.parse import quote
 from core.database import get_db
 from core.dependencies import get_current_user, get_current_user_optional
-from schemas.user_schema import User, UserCreate, UserUpdate, ResponseMessage
+from schemas.user_schema import User, UserCreate, UserUpdate, UserPublic, ResponseMessage
 from schemas.auth_schema import UserInToken
 from services import user_service
-from core.jwt_utils import get_password_hash, create_verification_token
-from services.email_service import send_welcome_email, send_verification_email
+from core.jwt_utils import get_password_hash
+from core.otp_store import set_otp, get_otp_expires_minutes
+from core.config import settings
+from services.email_service import send_welcome_email, send_verification_otp_email
 from core.rate_limiter import limiter
 
 router = APIRouter(tags=["Usuarios"])
 
-async def send_user_registration_emails(user_email: str, user_name: str, user_id: int):
+async def send_user_registration_emails(user_email: str, user_name: str):
     """
-    Función para enviar emails de registro en background.
-    
+    Envía email de bienvenida y email con código OTP para verificar el correo.
+
     Args:
         user_email (str): Email del usuario
         user_name (str): Nombre del usuario
-        user_id (int): ID del usuario
     """
     try:
-        # 1. Email de bienvenida
-        welcome_sent = await send_welcome_email(
-            user_email=user_email,
-            user_name=user_name
-        )
-        
-        # 2. Email de verificación con token
-        verification_token = create_verification_token(
-            user_id=user_id,
-            email=user_email,
-            expires_hours=24
-        )
-        
-        verification_sent = await send_verification_email(
+        await send_welcome_email(
             user_email=user_email,
             user_name=user_name,
-            verification_token=verification_token
         )
-        
-        # Log del estado de envío
-        if welcome_sent:
-            print(f"✅ Email de bienvenida enviado a {user_email}")
+        otp_code = set_otp(user_email)
+        verify_url = f"{settings.VERIFY_EMAIL_URL}?email={quote(user_email)}"
+        expires_min = get_otp_expires_minutes()
+        otp_sent = await send_verification_otp_email(
+            user_email=user_email,
+            user_name=user_name,
+            otp_code=otp_code,
+            verify_url=verify_url,
+            expires_in_minutes=expires_min,
+        )
+        if not otp_sent:
+            print(f"❌ Error enviando email OTP a {user_email}")
         else:
-            print(f"❌ Error enviando email de bienvenida a {user_email}")
-            
-        if verification_sent:
-            print(f"✅ Email de verificación enviado a {user_email}")
-        else:
-            print(f"❌ Error enviando email de verificación a {user_email}")
-            
-    except Exception as email_error:
-        print(f"⚠️ Error enviando emails al usuario {user_email}: {str(email_error)}")
+            print(f"✅ Email OTP de verificación enviado a {user_email}")
+    except Exception as e:
+        print(f"⚠️ Error enviando emails al usuario {user_email}: {str(e)}")
 
 @router.get("/users", response_model=list[User])
 async def get_users(db: Session = Depends(get_db)):
@@ -113,15 +104,17 @@ async def create_users(
                 detail=result
             )
         
-        # Envío automático de emails en background (no bloquea la respuesta)
+        # Usuario recién creado: requiere verificación de email (ind_activo = False)
+        user_service.update_user_status(db, Decimal(user.id_usuario), False)
+        
+        # Envío de emails en background (bienvenida + OTP con código y enlace)
         background_tasks.add_task(
             send_user_registration_emails,
             user_email=user.email_usuario,
             user_name=user.nom_usuario,
-            user_id=int(user.id_usuario)
         )
         
-        return ResponseMessage(message="Usuario creado exitosamente. Revisa tu email para verificar tu cuenta.")
+        return ResponseMessage(message="Usuario creado. Revisa tu correo: te enviamos un código de 6 dígitos y un enlace para verificar tu cuenta.")
             
     except HTTPException:
         raise  # Re-lanzar HTTPExceptions específicas
@@ -146,6 +139,53 @@ async def create_users(
                 detail="Error al crear el usuario. Verifique los datos e inténtelo de nuevo."
             )
     
+@router.put("/users/me", response_model=UserPublic, status_code=status.HTTP_200_OK)
+async def update_current_user(
+    user: UserUpdate = Body(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user),
+):
+    """
+    Actualiza el perfil del usuario autenticado (avatar, nombre, etc.).
+    Devuelve el usuario actualizado para que el frontend actualice la caché.
+    """
+    try:
+        current_user_id = Decimal(str(current_user.id_usuario))
+        result = user_service.update_user(
+            db=db,
+            id_usuario=current_user_id,
+            user=user,
+            current_user_id=current_user_id,
+        )
+        if result and isinstance(result, str) and "Error:" in result:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result)
+        full_user = user_service.get_user(db, current_user_id)
+        if full_user is None:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        fec_nacimiento_str = None
+        if full_user.get("fec_nacimiento"):
+            if isinstance(full_user["fec_nacimiento"], datetime):
+                fec_nacimiento_str = full_user["fec_nacimiento"].strftime("%Y-%m-%d")
+            else:
+                fec_nacimiento_str = str(full_user["fec_nacimiento"])
+        return UserPublic(
+            id_usuario=full_user["id_usuario"],
+            nom_usuario=full_user["nom_usuario"],
+            ape_usuario=full_user["ape_usuario"],
+            email_usuario=full_user["email_usuario"],
+            id_rol=full_user.get("id_rol"),
+            cel_usuario=full_user.get("cel_usuario"),
+            fec_nacimiento=fec_nacimiento_str,
+            des_direccion=None,
+            avatar_seed=full_user.get("avatar_seed"),
+            avatar_colors=full_user.get("avatar_colors"),
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
 @router.put("/users/{id_usuario}/status", response_model=User, status_code=status.HTTP_200_OK)
 async def update_user_status(
     id_usuario: Decimal,

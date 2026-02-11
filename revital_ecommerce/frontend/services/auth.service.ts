@@ -13,6 +13,7 @@ import type {
   ChangePasswordRequest,
   ResetPasswordRequest,
   ResetPasswordConfirm,
+  VerifyEmailOtpRequest,
   ApiResponse,
   RefreshTokenRequest,
   RegisterRequest,
@@ -96,6 +97,15 @@ export async function confirmPasswordReset(confirmData: ResetPasswordConfirm): P
 }
 
 /**
+ * Verificar email con código OTP. Devuelve tokens para auto-login.
+ */
+export async function verifyEmailOtp(data: VerifyEmailOtpRequest): Promise<TokenResponse> {
+  const tokens = await post<TokenResponse>('/verify-email-otp', data);
+  storeTokens(tokens.access_token, tokens.refresh_token);
+  return tokens;
+}
+
+/**
  * Registro de un nuevo usuario
  */
 export async function register(userData: RegisterRequest): Promise<ApiResponse> {
@@ -116,6 +126,7 @@ const authService = {
   changePassword,
   requestPasswordReset,
   confirmPasswordReset,
+  verifyEmailOtp,
   verifyToken,
 };
 

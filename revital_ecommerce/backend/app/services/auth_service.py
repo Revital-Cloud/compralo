@@ -12,35 +12,42 @@ from typing import Optional
 from core.jwt_utils import verify_password, get_password_hash, create_access_token, create_refresh_token, verify_token
 from schemas.auth_schema import LoginRequest, TokenResponse, UserInToken
 from services import user_service
+from core.otp_store import verify_otp
+
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[UserInToken]:
     """
     Autentica un usuario verificando sus credenciales.
-    
+    Rechaza a usuarios con email no verificado (ind_activo = False).
+
     Args:
         db (Session): Sesión de la base de datos
         email (str): Email del usuario
         password (str): Contraseña en texto plano
-        
+
     Returns:
         Optional[UserInToken]: Información del usuario si las credenciales son válidas, None en caso contrario
     """
-    # Buscar usuario por email
     user = user_service.get_user_by_email(db, email)
     if not user:
         return None
-    
-    # Verificar contraseña
+
     if not verify_password(password, user.password_usuario):
         return None
-    
-    # Retornar información del usuario
+
+    # Usuario pendiente de verificación de email no puede iniciar sesión
+    if user.get("ind_activo", True) is False:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Verifica tu correo electrónico antes de iniciar sesión. Revisa el código que te enviamos.",
+        )
+
     return UserInToken(
         id_usuario=user.id_usuario,
         email_usuario=user.email_usuario,
         nom_usuario=user.nom_usuario,
         ape_usuario=user.ape_usuario,
-        id_rol=user.id_rol
+        id_rol=user.id_rol,
     )
 
 def login_user(db: Session, login_data: LoginRequest) -> TokenResponse:
@@ -77,6 +84,46 @@ def login_user(db: Session, login_data: LoginRequest) -> TokenResponse:
         access_token=access_token,
         refresh_token=refresh_token
     )
+
+
+def verify_email_otp(db: Session, email: str, code: str) -> TokenResponse:
+    """
+    Verifica el código OTP para el email, activa al usuario y devuelve tokens (auto-login).
+
+    Args:
+        db (Session): Sesión de la base de datos
+        email (str): Email del usuario
+        code (str): Código OTP de 6 dígitos
+
+    Returns:
+        TokenResponse: Tokens para iniciar sesión
+
+    Raises:
+        HTTPException: Si el código es inválido o expiró
+    """
+    if not verify_otp(email, code):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Código inválido o expirado. Solicita uno nuevo desde el registro.",
+        )
+    user = user_service.get_user_by_email(db, email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado",
+        )
+    user_service.update_user_status(db, user.id_usuario, True)
+    access_token = create_access_token(
+        data={"sub": str(user.id_usuario), "email": user.email_usuario}
+    )
+    refresh_token = create_refresh_token(
+        data={"sub": str(user.id_usuario), "email": user.email_usuario}
+    )
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+    )
+
 
 def refresh_access_token(db: Session, refresh_token: str) -> TokenResponse:
     """
@@ -198,8 +245,15 @@ def change_password(db: Session, user_id: Decimal, current_password: str, new_pa
             detail="Contraseña actual incorrecta"
         )
     
+    # Verificar que la nueva contraseña no sea igual a la actual
+    if verify_password(new_password, user.password_usuario):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La nueva contraseña no puede ser igual a la contraseña actual"
+        )
+    
     # Actualizar contraseña
     hashed_password = get_password_hash(new_password)
-    user_service.update_password(db, user_id, hashed_password)
+    user_service.update_password(db, user_id, hashed_password, usr_operacion=user_id)
     
     return True 

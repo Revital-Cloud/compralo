@@ -11,6 +11,7 @@ import {
   ShoppingBag,
 } from "lucide-react"
 import { Button } from "@/components/ui"
+import { UserAvatar } from "@/components/ui"
 import { useAuth } from "@/hooks/use-auth"
 import Link from "next/link"
 
@@ -110,9 +111,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ className = "" }) => {
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
-        <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full ${getAvatarColor()} flex items-center justify-center text-white font-semibold text-xs sm:text-sm`}>
-          {getUserInitials()}
-        </div>
+        {user && <UserAvatar user={user} size={32} className="w-6 h-6 sm:w-8 sm:h-8" />}
         <ChevronDown className={`w-3 h-3 sm:w-4 sm:h-4 text-gray-600 dark:text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
       </Button>
 
@@ -129,9 +128,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ className = "" }) => {
             {/* Header del usuario */}
             <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-600">
               <div className="flex items-center space-x-3">
-                <div className={`w-10 h-10 rounded-full ${getAvatarColor()} flex items-center justify-center text-white font-semibold`}>
-                  {getUserInitials()}
-                </div>
+                {user && <UserAvatar user={user} size={40} />}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                     {user?.nom_usuario && user?.ape_usuario 

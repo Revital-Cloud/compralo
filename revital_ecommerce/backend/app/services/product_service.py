@@ -165,7 +165,7 @@ def get_products(db: Session):
               en una lista de objetos `Product`.
     """
     try:
-        # Primero obtener todos los productos
+        # Obtener solo productos activos y con categorías/líneas/sublíneas activas
         products_query = text("""
         SELECT 
             p.id_categoria,
@@ -185,6 +185,15 @@ def get_products(db: Session):
             p.usr_update,
             p.fec_update
         FROM tab_productos p
+        INNER JOIN tab_categorias c ON p.id_categoria = c.id_categoria
+        INNER JOIN tab_lineas l ON p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria
+        INNER JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea 
+            AND p.id_linea = s.id_linea 
+            AND p.id_categoria = s.id_categoria
+        WHERE p.ind_activo = true
+            AND c.ind_activo = true
+            AND l.ind_activo = true
+            AND s.ind_activo = true
         """)
         products_result = db.execute(products_query)
         products_data = products_result.mappings().all()

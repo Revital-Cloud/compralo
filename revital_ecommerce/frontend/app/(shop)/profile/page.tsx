@@ -4,10 +4,13 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import type { UserPublic } from "@/types/auth";
 import { profileSchema } from "@/schemas/user.schema";
 import { 
   Gift, 
+  ImageIcon,
   MapPin, 
   Package, 
   Settings, 
@@ -18,18 +21,34 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   ProfileHeader,
   ProfileTab,
+  AvatarTab,
   OrdersTab,
   AddressesTab,
   ExchangeTab,
   SettingsTab
 } from "@/components/layout/shop/profile";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  AvatarSelector,
+  Button,
+} from "@/components/ui";
+
+const CURRENT_USER_QUERY_KEY = ["auth", "currentUser"] as const;
 
 export default function ProfilePage() {
+  const queryClient = useQueryClient();
   const { user, isAuthenticated, updateProfile, isLoadingUser, isHydrated } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
 
   // Obtener la pestaña activa de la URL o usar 'profile' por defecto (payment redirige a canje)
   const tabParam = searchParams.get('tab') || 'profile';
@@ -83,6 +102,8 @@ export default function ProfilePage() {
         cel_usuario: user.cel_usuario || "",
         des_direccion: user.des_direccion || "",
         fec_nacimiento: user.fec_nacimiento ? new Date(user.fec_nacimiento).toISOString().split('T')[0] : "",
+        avatar_seed: user.avatar_seed || null,
+        avatar_colors: user.avatar_colors ?? null,
         password_usuario: "",
       });
     }
@@ -95,6 +116,9 @@ export default function ProfilePage() {
     if (values.ape_usuario && values.ape_usuario.trim() !== "") updatedValues.ape_usuario = values.ape_usuario.trim();
     if (values.email_usuario && values.email_usuario.trim() !== "") updatedValues.email_usuario = values.email_usuario.trim();
     if (values.cel_usuario && values.cel_usuario.trim() !== "") updatedValues.cel_usuario = values.cel_usuario.trim();
+    // avatar_seed puede ser null o string, siempre incluirlo si está presente
+    if (values.avatar_seed !== undefined) updatedValues.avatar_seed = values.avatar_seed;
+    if (values.avatar_colors !== undefined) updatedValues.avatar_colors = values.avatar_colors;
     // fec_nacimiento no se puede actualizar, se omite
     // password_usuario se omite ya que se quitó del formulario
     // des_direccion no está en el esquema UserUpdate del backend, se omite
@@ -125,6 +149,33 @@ export default function ProfilePage() {
     } else {
       // Si no está editando, activar modo edición
       setIsEditing(true);
+    }
+  };
+
+  const handleSelectSeed = (seed: string) => {
+    form.setValue("avatar_seed", seed);
+    queryClient.setQueryData(CURRENT_USER_QUERY_KEY, (old: UserPublic | undefined) =>
+      old ? { ...old, avatar_seed: seed } : old
+    );
+  };
+
+  const handleSelectColors = (colors: string) => {
+    form.setValue("avatar_colors", colors);
+    queryClient.setQueryData(CURRENT_USER_QUERY_KEY, (old: UserPublic | undefined) =>
+      old ? { ...old, avatar_colors: colors } : old
+    );
+  };
+
+  const handleSaveAvatarModal = async () => {
+    const avatar_seed = form.getValues("avatar_seed");
+    const avatar_colors = form.getValues("avatar_colors");
+    try {
+      await updateProfile({ avatar_seed, avatar_colors });
+      toast.success("Avatar actualizado correctamente.");
+      setAvatarModalOpen(false);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { detail?: string } }; message?: string };
+      toast.error(err?.response?.data?.detail || err?.message || "No se pudo guardar el avatar.");
     }
   };
 
@@ -176,7 +227,30 @@ export default function ProfilePage() {
         user={user}
         isEditing={isEditing}
         onEditToggle={handleEditToggle}
+        onAvatarClick={() => setAvatarModalOpen(true)}
       />
+
+      {/* Modal editar avatar */}
+      <Dialog open={avatarModalOpen} onOpenChange={setAvatarModalOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar avatar</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <AvatarSelector
+              currentSeed={form.watch("avatar_seed") || user.avatar_seed}
+              currentColors={form.watch("avatar_colors") ?? user.avatar_colors ?? undefined}
+              userEmail={user.email_usuario}
+              userName={`${user.nom_usuario} ${user.ape_usuario}`}
+              onSelect={handleSelectSeed}
+              onSelectColors={handleSelectColors}
+            />
+            <Button onClick={handleSaveAvatarModal} className="w-full">
+              Guardar avatar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -214,6 +288,11 @@ export default function ProfilePage() {
               isEditing={isEditing}
               onSubmit={onSubmit}
             />
+          </TabsContent>
+
+          {/* Avatar Tab */}
+          <TabsContent value="avatar">
+            <AvatarTab user={user} form={form} updateProfile={updateProfile} />
           </TabsContent>
 
           {/* Orders Tab */}

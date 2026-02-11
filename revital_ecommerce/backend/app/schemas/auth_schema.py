@@ -48,4 +48,10 @@ class ResetPasswordRequest(BaseModel):
 class ResetPasswordConfirm(BaseModel):
     """Schema para confirmación de reset de contraseña."""
     token: str
-    new_password: str 
+    new_password: str
+
+
+class VerifyEmailOtpRequest(BaseModel):
+    """Schema para verificación de email con código OTP."""
+    email: EmailStr
+    code: str  # Código de 6 dígitos

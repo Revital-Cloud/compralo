@@ -71,8 +71,10 @@ class UserUpdate(BaseModel):
     cel_usuario: Optional[str] = Field(None, description="Número de celular del usuario.")
     fec_nacimiento: Optional[str] = Field(None, description="Fecha de nacimiento del usuario.")
     ind_activo: Optional[bool] = Field(None, description="Indica si el usuario está activo.")
-    usr_update: Decimal = Field(None, description="Usuario que actualizó el registro.")
-    
+    avatar_seed: Optional[str] = Field(None, description="Seed personalizado para el avatar Facehash.")
+    avatar_colors: Optional[str] = Field(None, description="Colores hex separados por coma para Facehash.")
+    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
+
 class User(UserBase):
     """
     Esquema para la Visualización de Usuarios.
@@ -99,6 +101,8 @@ class UserPublic(BaseModel):
     cel_usuario: Optional[str] = Field(None, description="Número de celular del usuario.")
     fec_nacimiento: Optional[str] = Field(None, description="Fecha de nacimiento del usuario.")
     des_direccion: Optional[str] = Field(None, description="Dirección del usuario.")
+    avatar_seed: Optional[str] = Field(None, description="Seed personalizado para el avatar Facehash.")
+    avatar_colors: Optional[str] = Field(None, description="Colores hex separados por coma para Facehash.")
     
     class Config:
         from_attributes = True

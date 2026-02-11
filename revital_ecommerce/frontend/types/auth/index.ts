@@ -44,6 +44,8 @@ export interface UserPublic {
   des_direccion?: string;
   fec_nacimiento?: string;
   ind_genero?: boolean;
+  avatar_seed?: string | null; // Seed personalizado para Facehash (opcional)
+  avatar_colors?: string | null; // Colores hex separados por coma para Facehash (opcional)
 }
 
 export interface ChangePasswordRequest {
@@ -58,6 +60,11 @@ export interface ResetPasswordRequest {
 export interface ResetPasswordConfirm {
   token: string;
   new_password: string;
+}
+
+export interface VerifyEmailOtpRequest {
+  email: string;
+  code: string;
 }
 
 // =============================================================================
