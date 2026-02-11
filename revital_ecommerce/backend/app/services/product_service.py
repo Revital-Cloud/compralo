@@ -40,8 +40,18 @@ def get_products_admin(db: Session, params: dict):
     """
     try:
         # Mapear campo de orden a columna SQL segura
-        ordenar_por = (params or {}).get('ordenar_por', 'nombre')
-        orden = (params or {}).get('orden', 'ASC')
+        params = params or {}
+
+        ordenar_por = params.get('ordenar_por', 'nombre')
+        orden = params.get('orden', 'ASC')
+
+        # Filtros opcionales
+        search = params.get('search')
+        id_categoria = params.get('id_categoria')
+        id_linea = params.get('id_linea')
+        id_sublinea = params.get('id_sublinea')
+        id_marca = params.get('id_marca')
+        id_proveedor = params.get('id_proveedor')
 
         order_column_map = {
             'nombre': 'p.nom_producto',
@@ -53,6 +63,41 @@ def get_products_admin(db: Session, params: dict):
         }
         order_column = order_column_map.get(str(ordenar_por).lower(), 'p.nom_producto')
         order_direction = 'DESC' if str(orden).upper() == 'DESC' else 'ASC'
+
+        # Construir cláusulas WHERE dinámicas según filtros presentes
+        where_clauses = []
+        sql_params = {
+            'limit': params.get('limit'),
+            'offset': params.get('offset'),
+        }
+
+        if id_categoria is not None:
+            where_clauses.append("p.id_categoria = :id_categoria")
+            sql_params['id_categoria'] = id_categoria
+
+        if id_linea is not None:
+            where_clauses.append("p.id_linea = :id_linea")
+            sql_params['id_linea'] = id_linea
+
+        if id_sublinea is not None:
+            where_clauses.append("p.id_sublinea = :id_sublinea")
+            sql_params['id_sublinea'] = id_sublinea
+
+        if id_marca is not None:
+            where_clauses.append("p.id_marca = :id_marca")
+            sql_params['id_marca'] = id_marca
+
+        if id_proveedor is not None:
+            where_clauses.append("p.id_proveedor = :id_proveedor")
+            sql_params['id_proveedor'] = id_proveedor
+
+        if search:
+            where_clauses.append("p.nom_producto ILIKE :search")
+            sql_params['search'] = f"%{search}%"
+
+        where_sql = ""
+        if where_clauses:
+            where_sql = "WHERE " + " AND ".join(where_clauses)
 
         # Usar CTE + DISTINCT ON y COUNT(*) OVER() para obtener total sin subconsulta costosa
         # DISTINCT ON requiere que las columnas de DISTINCT estén primero en ORDER BY
@@ -88,6 +133,7 @@ def get_products_admin(db: Session, params: dict):
                 INNER JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea AND p.id_categoria = s.id_categoria
                 INNER JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
                 INNER JOIN tab_marcas m ON p.id_marca = m.id_marca
+                {where_sql}
                 ORDER BY p.id_categoria, p.id_linea, p.id_sublinea, p.id_producto, {order_column} {order_direction}
             )
             SELECT 
@@ -97,7 +143,7 @@ def get_products_admin(db: Session, params: dict):
             LIMIT :limit OFFSET :offset
         """)
 
-        result = db.execute(query, params)
+        result = db.execute(query, sql_params)
         return result.mappings().all()
     except Exception as e:
         db.rollback()
@@ -1197,18 +1243,18 @@ def get_filter_options(db: Session) -> dict:
         """)
         categorias = db.execute(categorias_query).mappings().all()
         
-        # Obtener líneas activas
+        # Obtener líneas activas. La clave real es (id_categoria, id_linea): id_linea se repite por categoría.
         lineas_query = text("""
             SELECT id_linea, nom_linea, id_categoria
             FROM tab_lineas 
             WHERE ind_activo = true 
-            ORDER BY nom_linea
+            ORDER BY id_categoria, nom_linea
         """)
         lineas = db.execute(lineas_query).mappings().all()
         
-        # Obtener sublíneas activas
+        # Obtener sublíneas activas (incluyendo id_categoria para poder relacionar correctamente)
         sublineas_query = text("""
-            SELECT id_sublinea, nom_sublinea, id_linea
+            SELECT id_sublinea, nom_sublinea, id_linea, id_categoria
             FROM tab_sublineas 
             WHERE ind_activo = true 
             ORDER BY nom_sublinea
@@ -1258,3 +1304,76 @@ def get_filter_options(db: Session) -> dict:
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener opciones de filtro: {str(e)}")
+
+
+def get_filter_options_admin(db: Session) -> dict:
+    """
+    Obtiene las opciones de filtro para el panel de administración.
+
+    Igual estructura que get_filter_options pero incluye TODOS los registros
+    (activos e inactivos), para que el admin pueda filtrar y ver todos los productos.
+    La tienda sigue usando get_filter_options (solo activos).
+
+    Returns:
+        dict: categorias, lineas, sublineas, marcas, proveedores, precio_rango.
+    """
+    try:
+        categorias_query = text("""
+            SELECT id_categoria, nom_categoria
+            FROM tab_categorias
+            ORDER BY nom_categoria
+        """)
+        categorias = db.execute(categorias_query).mappings().all()
+
+        lineas_query = text("""
+            SELECT id_linea, nom_linea, id_categoria
+            FROM tab_lineas
+            ORDER BY id_categoria, nom_linea
+        """)
+        lineas = db.execute(lineas_query).mappings().all()
+
+        sublineas_query = text("""
+            SELECT id_sublinea, nom_sublinea, id_linea, id_categoria
+            FROM tab_sublineas
+            ORDER BY id_categoria, id_linea, nom_sublinea
+        """)
+        sublineas = db.execute(sublineas_query).mappings().all()
+
+        marcas_query = text("""
+            SELECT id_marca, nom_marca
+            FROM tab_marcas
+            ORDER BY nom_marca
+        """)
+        marcas = db.execute(marcas_query).mappings().all()
+
+        proveedores_query = text("""
+            SELECT id_proveedor, nom_proveedor
+            FROM tab_proveedores
+            ORDER BY nom_proveedor
+        """)
+        proveedores = db.execute(proveedores_query).mappings().all()
+
+        precios_query = text("""
+            SELECT
+                MIN(val_precio) AS precio_minimo,
+                MAX(val_precio) AS precio_maximo
+            FROM tab_productos
+        """)
+        precios = db.execute(precios_query).mappings().first()
+
+        return {
+            "categorias": [dict(c) for c in categorias],
+            "lineas": [dict(l) for l in lineas],
+            "sublineas": [dict(s) for s in sublineas],
+            "marcas": [dict(m) for m in marcas],
+            "proveedores": [dict(p) for p in proveedores],
+            "precio_rango": {
+                "minimo": float(precios["precio_minimo"]) if precios and precios["precio_minimo"] is not None else 0,
+                "maximo": float(precios["precio_maximo"]) if precios and precios["precio_maximo"] is not None else 0,
+            }
+            if precios
+            else {"minimo": 0, "maximo": 0},
+        }
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener opciones de filtro admin: {str(e)}")

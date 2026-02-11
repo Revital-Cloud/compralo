@@ -60,11 +60,11 @@ export const UniversalFilters: React.FC<UniversalFiltersProps> = ({
             disabled={filter.isLoading}
           >
             <SelectTrigger className="h-9 text-sm transition-all duration-200 focus:ring-2 focus:ring-primary/20">
-              <SelectValue placeholder={filter.isLoading ? 'Cargando...' : `Todos los ${filter.label.toLowerCase()}`} />
+              <SelectValue placeholder={filter.isLoading ? 'Cargando...' : (filter.emptyOptionLabel ?? `Todos los ${filter.label.toLowerCase()}`)} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">
-                {filter.isLoading ? 'Cargando...' : `Todos los ${filter.label.toLowerCase()}`}
+                {filter.isLoading ? 'Cargando...' : (filter.emptyOptionLabel ?? `Todos los ${filter.label.toLowerCase()}`)}
               </SelectItem>
               {!filter.isLoading && filter.options?.map((option, idx) => (
                 <SelectItem key={`${filter.id}-${String(option.id)}-${idx}`} value={String(option.id)}>

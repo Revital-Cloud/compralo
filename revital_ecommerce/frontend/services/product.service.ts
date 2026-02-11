@@ -290,10 +290,17 @@ export async function getFilterStats(filters: ProductFilterParams): Promise<Prod
 }
 
 /**
- * Obtener opciones disponibles para los filtros
+ * Obtener opciones disponibles para los filtros (tienda: solo activos)
  */
 export async function getFilterOptions(): Promise<FilterOptions> {
   return await get<FilterOptions>('/products/filter/options');
+}
+
+/**
+ * Obtener opciones de filtro para admin (incluye activos e inactivos)
+ */
+export async function getFilterOptionsAdmin(): Promise<FilterOptions> {
+  return await get<FilterOptions>('/products-admin/filter-options');
 }
 
 /**
