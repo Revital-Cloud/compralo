@@ -2,15 +2,11 @@
 
 import React from 'react';
 import { UniversalFilters } from "@/components/ui";
-import { FilterConfig, SortOption } from '@/types/filters';
+import { FilterConfig } from '@/types/filters';
 
 interface BrandsFiltersProps {
   search: string;
   onSearchChange: (value: string) => void;
-  sortBy: string;
-  onSortByChange: (value: string) => void;
-  sortOrder: 'ASC' | 'DESC';
-  onSortOrderChange: (value: 'ASC' | 'DESC') => void;
   onClearFilters: () => void;
   totalResults: number;
 }
@@ -18,20 +14,10 @@ interface BrandsFiltersProps {
 export const BrandsFilters: React.FC<BrandsFiltersProps> = ({
   search,
   onSearchChange,
-  sortBy,
-  onSortByChange,
-  sortOrder,
-  onSortOrderChange,
   onClearFilters,
   totalResults
 }) => {
-  const sortOptions: SortOption[] = [
-    { value: 'nombre', label: 'Nombre' },
-    { value: 'fecha', label: 'Fecha de creación' }
-  ];
-
-  const hasActiveFilters = Boolean(search || sortBy !== 'nombre' || sortOrder !== 'ASC');
-
+  const hasActiveFilters = !!search;
   const filters: FilterConfig[] = [];
 
   return (
@@ -41,11 +27,7 @@ export const BrandsFilters: React.FC<BrandsFiltersProps> = ({
       onSearchChange={onSearchChange}
       searchPlaceholder="Buscar marca..."
       filters={filters}
-      sortBy={sortBy}
-      onSortByChange={onSortByChange}
-      sortOrder={sortOrder}
-      onSortOrderChange={onSortOrderChange}
-      sortOptions={sortOptions}
+      sortOptions={[]}
       totalResults={totalResults}
       onClearFilters={onClearFilters}
       hasActiveFilters={hasActiveFilters}
@@ -55,4 +37,3 @@ export const BrandsFilters: React.FC<BrandsFiltersProps> = ({
     />
   );
 };
-

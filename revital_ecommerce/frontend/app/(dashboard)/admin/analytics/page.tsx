@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui"
 import { Badge } from "@/components/ui"
 import { Button } from "@/components/ui"
@@ -43,6 +44,21 @@ const iconMap: Record<string, React.ElementType> = {
   'IconTrendingUp': IconTrendingUp,
   'IconTrendingDown': IconTrendingDown
 }
+
+// Sincronización tab ↔ URL
+const TAB_TO_URL: Record<string, string> = {
+  conversion: 'conversacion',
+  traffic: 'trafico',
+  customers: 'clientes',
+  products: 'productos'
+}
+const URL_TO_TAB: Record<string, string> = {
+  conversacion: 'conversion',
+  trafico: 'traffic',
+  clientes: 'customers',
+  productos: 'products'
+}
+const DEFAULT_TAB = 'conversion'
 
 // Componente para métricas de conversión
 const ConversionMetrics = ({ metrics }: { metrics: ConversionMetric[] }) => {
@@ -150,7 +166,19 @@ const CustomerDemographics = ({ demographics }: { demographics: CustomerDemograp
   )
 }
 
-// Componente para performance de productos
+// Colores para el gráfico de dona por categoría (usan variables del tema + fallbacks)
+const CHART_COLORS = [
+  'var(--chart-1, #3b82f6)',
+  'var(--chart-2, #10b981)',
+  'var(--chart-3, #f59e0b)',
+  'var(--chart-4, #8b5cf6)',
+  'var(--chart-5, #ec4899)',
+  '#0ea5e9',
+  '#6366f1',
+  '#14b8a6'
+]
+
+// Componente para performance de productos (barras + gráfico dona)
 const ProductPerformance = ({ performance }: { performance: ProductPerformanceData[] }) => {
   if (performance.length === 0) {
     return (
@@ -168,27 +196,143 @@ const ProductPerformance = ({ performance }: { performance: ProductPerformanceDa
     )
   }
 
+  const totalSales = performance.reduce((sum, p) => sum + p.sales, 0)
+  const maxSales = Math.max(...performance.map((p) => p.sales), 1)
+  const circumference = 2 * Math.PI * 42
+  let offset = 0
+  const chartHeight = 200
+  const barGap = 12
+  const barMinHeight = 8
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>Performance por Categoría</CardTitle>
         <CardDescription>Ventas y crecimiento por categoría</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {performance.map((product, index) => (
-          <div key={`${product.category}-${index}`} className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-medium">{product.category}</span>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-muted-foreground">${product.sales.toLocaleString()}</span>
-                <Badge variant={product.growth > 0 ? "default" : "destructive"}>
-                  {product.growth > 0 ? '+' : ''}{product.growth.toFixed(1)}%
-                </Badge>
+      <CardContent className="space-y-6">
+        {/* Fila 1: Dona + Gráfico de barras verticales (para que se vea más lleno) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border-b pb-6">
+          {/* Dona: participación por categoría */}
+          <div className="flex flex-col sm:flex-row items-center gap-6">
+            <div className="relative flex-shrink-0" aria-hidden>
+              <svg width={120} height={120} className="rotate-[-90deg]">
+                <circle
+                  cx={60}
+                  cy={60}
+                  r={42}
+                  fill="none"
+                  stroke="hsl(var(--muted))"
+                  strokeWidth={14}
+                />
+                {performance.map((product, index) => {
+                  const segment = (product.percentage / 100) * circumference
+                  const color = CHART_COLORS[index % CHART_COLORS.length]
+                  const el = (
+                    <circle
+                      key={`${product.category}-${index}`}
+                      cx={60}
+                      cy={60}
+                      r={42}
+                      fill="none"
+                      stroke={color}
+                      strokeWidth={14}
+                      strokeDasharray={`${segment} ${circumference}`}
+                      strokeDashoffset={-offset}
+                      strokeLinecap="round"
+                      className="transition-all duration-300"
+                    />
+                  )
+                  offset += segment
+                  return el
+                })}
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-lg font-bold text-muted-foreground">
+                  {totalSales > 0 ? `${performance.length} cat.` : '—'}
+                </span>
               </div>
             </div>
-            <Progress value={product.percentage} className="h-2" />
+            <div className="flex-1 min-w-0 space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Participación por categoría</p>
+              <ul className="space-y-1.5">
+                {performance.map((product, index) => (
+                  <li key={`${product.category}-${index}`} className="flex items-center gap-2 text-sm">
+                    <span
+                      className="inline-block w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
+                      aria-hidden
+                    />
+                    <span className="truncate">{product.category}</span>
+                    <span className="text-muted-foreground tabular-nums">{product.percentage.toFixed(1)}%</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-        ))}
+
+          {/* Gráfico de barras verticales: ventas en $ */}
+          <div className="min-h-[220px]">
+            <p className="text-sm font-medium text-muted-foreground mb-4">Ventas por categoría</p>
+            <div
+              className="flex items-end justify-around gap-2 w-full h-[200px] px-2"
+              style={{ minHeight: chartHeight }}
+              role="img"
+              aria-label="Gráfico de barras de ventas por categoría"
+            >
+              {performance.map((product, index) => {
+                const heightRatio = maxSales > 0 ? product.sales / maxSales : 0
+                const barHeight = Math.max(barMinHeight, heightRatio * (chartHeight - 24))
+                const color = CHART_COLORS[index % CHART_COLORS.length]
+                return (
+                  <div
+                    key={`bar-${product.category}-${index}`}
+                    className="flex flex-col items-center flex-1 min-w-0 group"
+                  >
+                    <span
+                      className="text-xs font-medium text-muted-foreground mb-1 truncate w-full text-center"
+                      title={product.category}
+                    >
+                      {product.category.length > 12 ? `${product.category.slice(0, 10)}…` : product.category}
+                    </span>
+                    <div className="w-full flex justify-center items-end flex-1">
+                      <div
+                        className="w-full max-w-[56px] rounded-t-md transition-all duration-300 hover:opacity-90"
+                        style={{
+                          height: barHeight,
+                          backgroundColor: color,
+                          minHeight: barMinHeight
+                        }}
+                        title={`${product.category}: $${product.sales.toLocaleString()}`}
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground mt-1 tabular-nums">
+                      ${(product.sales / 1e6).toFixed(1)}M
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Barras horizontales: ventas y crecimiento */}
+        <div className="space-y-4">
+          {performance.map((product, index) => (
+            <div key={`${product.category}-${index}`} className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">{product.category}</span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-muted-foreground">${product.sales.toLocaleString()}</span>
+                  <Badge variant={product.growth > 0 ? "default" : "destructive"}>
+                    {product.growth > 0 ? '+' : ''}{product.growth.toFixed(1)}%
+                  </Badge>
+                </div>
+              </div>
+              <Progress value={product.percentage} className="h-2" />
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   )
@@ -290,9 +434,29 @@ const HourlyTrafficChart = ({ hourlyTraffic }: { hourlyTraffic: { hour: string; 
 }
 
 const AnalyticsPage = () => {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const tabParam = searchParams.get('tab') ?? ''
+  const currentTab = (URL_TO_TAB[tabParam] as keyof typeof TAB_TO_URL) ?? DEFAULT_TAB
+
+  const handleTabChange = (value: string) => {
+    const urlTab = TAB_TO_URL[value] ?? TAB_TO_URL[DEFAULT_TAB]
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('tab', urlTab)
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+  }
+
+  // Escribir tab por defecto en la URL si no existe
+  useEffect(() => {
+    if (!searchParams.get('tab')) {
+      router.replace(`${pathname}?tab=${TAB_TO_URL[DEFAULT_TAB]}`, { scroll: false })
+    }
+  }, [pathname, router, searchParams])
 
   const fetchAnalyticsData = async () => {
     setLoading(true)
@@ -366,8 +530,8 @@ const AnalyticsPage = () => {
         </div>
       )}
 
-      {/* Tabs para diferentes vistas de analytics */}
-      <Tabs defaultValue="conversion" className="space-y-6">
+      {/* Tabs para diferentes vistas de analytics (sincronizado con URL ?tab=conversacion|trafico|clientes|productos) */}
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="conversion">Conversión</TabsTrigger>
           <TabsTrigger value="traffic">Tráfico</TabsTrigger>

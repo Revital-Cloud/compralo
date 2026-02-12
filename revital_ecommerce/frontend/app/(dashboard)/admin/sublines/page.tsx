@@ -35,22 +35,28 @@ const SublinesPage = () => {
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
     let rows = data as unknown as Subline[]
-    if (search) {
-      const q = search.toLowerCase()
-      rows = rows.filter(r => (
-        (r as any).nom_sublinea?.toLowerCase().includes(q) ||
-        (r as any).nom_linea?.toLowerCase().includes(q) ||
-        (r as any).nom_categoria?.toLowerCase().includes(q) ||
-        String((r as any).id_categoria).includes(q)
-      ))
+    if (search.trim()) {
+      const q = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      const asTypedRegex = new RegExp(`(^|\\W)${q}`, 'i')
+      rows = rows.filter(r => {
+        const nomSub = String((r as any).nom_sublinea ?? '')
+        const nomLine = String((r as any).nom_linea ?? '')
+        const nomCat = String((r as any).nom_categoria ?? '')
+        return asTypedRegex.test(nomSub) || asTypedRegex.test(nomLine) || asTypedRegex.test(nomCat)
+      })
     }
     if (category) {
-      rows = rows.filter(r => String((r as any).id_categoria) === String(category))
+      const catNum = Number(category)
+      if (!Number.isNaN(catNum)) {
+        rows = rows.filter(r => Number((r as any).id_categoria) === catNum)
+      }
     }
-    if (line) {
-      const parts = line.split('-').map(Number)
-      if (parts.length >= 2 && !Number.isNaN(parts[0]) && !Number.isNaN(parts[1])) {
-        rows = rows.filter(r => r.id_categoria === parts[0] && r.id_linea === parts[1])
+    if (line && line.includes('-')) {
+      const [catPart, linePart] = line.split('-')
+      const catNum = Number(catPart)
+      const lineNum = Number(linePart)
+      if (!Number.isNaN(catNum) && !Number.isNaN(lineNum)) {
+        rows = rows.filter(r => Number((r as any).id_categoria) === catNum && Number(r.id_linea) === lineNum)
       }
     }
     return [...rows].sort((a, b) =>

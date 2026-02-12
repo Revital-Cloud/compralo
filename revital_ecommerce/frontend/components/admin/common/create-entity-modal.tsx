@@ -2,15 +2,17 @@
 
 import React from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui"
-import { Button } from "@/components/ui"
-import { Input } from "@/components/ui"
-import { Label } from "@/components/ui"
+import { Button, Input, Label } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAllCategories } from '@/hooks/use-categories'
-import { useLinesByCategory } from '@/hooks/use-lines'
+import { useAllLines, useLinesByCategory } from '@/hooks/use-lines'
+import { PHONE_COUNTRY_CODES } from '@/lib/phone-country-codes'
 import { Checkbox } from "@/components/ui"
+
+const COUNTRY_PHONE_CODES = PHONE_COUNTRY_CODES
 
 type EntityType = 'category' | 'brand' | 'provider' | 'line' | 'subline'
 
@@ -20,7 +22,8 @@ const schemas: Record<EntityType, z.ZodSchema<any>> = {
   provider: z.object({ 
     nom_proveedor: z.string().min(2, 'Requerido'), 
     email: z.string().email('Email inválido').min(1, 'Requerido'),
-    tel_proveedor: z.coerce.number({ message: 'Teléfono requerido' }).positive('Teléfono debe ser positivo'),
+    tel_country_code: z.string().min(1, 'Seleccione país'),
+    tel_numero: z.string().min(7, 'Mínimo 7 dígitos').regex(/^\d+$/, 'Solo números'),
     ind_activo: z.boolean().optional().default(true) 
   }),
   line: z.object({ id_categoria: z.coerce.number({ message: 'Seleccione una categoría' }).positive(), nom_linea: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
@@ -38,7 +41,10 @@ export interface CreateEntityModalProps {
 
 export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({ open, onOpenChange, type, title, onSubmit, extraFields }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const form = useForm<any>({ resolver: zodResolver(schemas[type] as any), defaultValues: { ind_activo: true } })
+  const form = useForm<any>({
+    resolver: zodResolver(schemas[type] as any),
+    defaultValues: { ind_activo: true, tel_country_code: '57', tel_numero: '' }
+  })
   const { data: allCategories = [], isLoading: loadingCategories } = useAllCategories()
   const categories = React.useMemo(() => {
     return Array.isArray(allCategories)
@@ -48,17 +54,25 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({ open, onOp
   const watchedCategoryId = form.watch('id_categoria')
   const categoryId = watchedCategoryId && watchedCategoryId !== '' && !isNaN(Number(watchedCategoryId)) ? Number(watchedCategoryId) : null
   const { data: lines = [], isLoading: loadingLines } = useLinesByCategory(categoryId || 0)
+  const { data: allLines = [], isLoading: loadingAllLines } = useAllLines()
 
-  // Determinar si el formulario está válido para sublíneas
+  const sublineCat = form.watch('id_categoria')
+  const sublineLineId = form.watch('id_linea')
   const isSublineFormValid = React.useMemo(() => {
     if (type !== 'subline') return true
-    return categoryId && Array.isArray(lines) && lines.length > 0
-  }, [type, categoryId, lines])
+    return !!sublineCat && !!sublineLineId && !isNaN(Number(sublineCat)) && !isNaN(Number(sublineLineId))
+  }, [type, sublineCat, sublineLineId])
 
   const handleSubmit = form.handleSubmit(async (values) => {
-    await onSubmit(values)
+    const payload = { ...values }
+    if (type === 'provider' && payload.tel_country_code != null && payload.tel_numero != null) {
+      payload.tel_proveedor = Number(payload.tel_country_code + payload.tel_numero)
+      delete payload.tel_country_code
+      delete payload.tel_numero
+    }
+    await onSubmit(payload)
     onOpenChange(false)
-    form.reset()
+    form.reset({ ind_activo: true, tel_country_code: '57', tel_numero: '' })
   })
 
   return (
@@ -104,15 +118,36 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({ open, onOp
               </div>
               <div className="space-y-2">
                 <Label>Teléfono *</Label>
-                <Input 
-                  type="tel" 
-                  {...form.register('tel_proveedor')} 
-                  placeholder="Ej. 3001234567" 
-                />
-                {form.formState.errors.tel_proveedor && (
-                  <p className="text-xs text-red-600">{form.formState.errors.tel_proveedor.message as string}</p>
+                <div className="flex gap-2">
+                  <Select
+                    value={form.watch('tel_country_code') || '57'}
+                    onValueChange={(v) => form.setValue('tel_country_code', v)}
+                  >
+                    <SelectTrigger className="w-[180px] shrink-0">
+                      <SelectValue placeholder="País" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {COUNTRY_PHONE_CODES.map((c) => (
+                        <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    placeholder="Ej. 3001234567"
+                    className="flex-1"
+                    value={form.watch('tel_numero') ?? ''}
+                    onChange={(e) => form.setValue('tel_numero', e.target.value.replace(/\D/g, ''), { shouldValidate: true })}
+                  />
+                </div>
+                {(form.formState.errors.tel_numero || form.formState.errors.tel_country_code) && (
+                  <p className="text-xs text-red-600">
+                    {(form.formState.errors.tel_numero?.message ?? form.formState.errors.tel_country_code?.message) as string}
+                  </p>
                 )}
-            </div>
+              </div>
             </>
           )}
 
@@ -120,16 +155,23 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({ open, onOp
             <>
               <div className="space-y-2">
                 <Label>Categoría</Label>
-                <select className="w-full border rounded-md h-9 px-3 text-sm bg-white dark:bg-gray-900" {...form.register('id_categoria')}>
-                  <option value="">{loadingCategories ? 'Cargando...' : 'Seleccione'}</option>
-                  {Array.isArray(categories) && categories.length > 0 ? (
-                    categories.map((c: any, idx: number) => (
-                      <option key={`cat-${c.id}-${idx}`} value={c.id}>{c.name}</option>
-                    ))
-                  ) : (
-                    !loadingCategories && <option value="" disabled>No hay categorías. Cree una primero.</option>
-                  )}
-                </select>
+                <Select
+                  value={form.watch('id_categoria') ? String(form.watch('id_categoria')) : ''}
+                  onValueChange={(v) => form.setValue('id_categoria', v ? Number(v) : undefined)}
+                  disabled={loadingCategories}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingCategories ? 'Cargando...' : 'Seleccione'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.isArray(categories) && categories.map((c: any, idx: number) => (
+                      <SelectItem key={`cat-${c.id}-${idx}`} value={String(c.id)}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!loadingCategories && Array.isArray(categories) && categories.length === 0 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">No hay categorías. Cree una primero.</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Nombre</Label>
@@ -142,46 +184,61 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({ open, onOp
             <>
               <div className="space-y-2">
                 <Label>Categoría *</Label>
-                <select className="w-full border rounded-md h-9 px-3 text-sm bg-white dark:bg-gray-900" {...form.register('id_categoria')}
-                  onChange={(e) => { form.setValue('id_categoria', Number(e.target.value) || ''); form.setValue('id_linea', ''); }}>
-                  <option value="">{loadingCategories ? 'Cargando...' : 'Seleccione una categoría'}</option>
-                  {Array.isArray(categories) && categories.length > 0 ? (
-                    categories.map((c: any, idx: number) => (
-                      <option key={`cat-${c.id}-${idx}`} value={c.id}>{c.name}</option>
-                    ))
-                  ) : (
-                    !loadingCategories && <option value="" disabled>No hay categorías. Cree una primero.</option>
-                  )}
-                </select>
-                <p className="text-xs text-muted-foreground">Primero seleccione una categoría para habilitar las líneas</p>
+                <Select
+                  value={form.watch('id_categoria') ? String(form.watch('id_categoria')) : ''}
+                  onValueChange={(v) => {
+                    form.setValue('id_categoria', v ? Number(v) : undefined)
+                    form.setValue('id_linea', '')
+                  }}
+                  disabled={loadingCategories}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingCategories ? 'Cargando...' : 'Seleccione una categoría'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.isArray(categories) && categories.map((c: any, idx: number) => (
+                      <SelectItem key={`cat-${c.id}-${idx}`} value={String(c.id)}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!loadingCategories && Array.isArray(categories) && categories.length === 0 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">No hay categorías. Cree una primero.</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Línea *</Label>
-                <select 
-                  className={`w-full border rounded-md h-9 px-3 text-sm bg-white dark:bg-gray-900 ${
-                    !categoryId ? 'opacity-50 cursor-not-allowed' : ''
-                  }`} 
-                  {...form.register('id_linea')} 
-                  disabled={!categoryId}
+                <Select
+                  value={
+                    form.watch('id_categoria') && form.watch('id_linea')
+                      ? `${form.watch('id_categoria')}-${form.watch('id_linea')}`
+                      : ''
+                  }
+                  onValueChange={(v) => {
+                    if (v && v.includes('-')) {
+                      const [catId, lineId] = v.split('-').map(Number)
+                      form.setValue('id_categoria', catId)
+                      form.setValue('id_linea', lineId)
+                    } else {
+                      form.setValue('id_categoria', form.watch('id_categoria') || undefined)
+                      form.setValue('id_linea', undefined)
+                    }
+                  }}
+                  disabled={loadingAllLines}
                 >
-                  <option value="">
-                    {loadingLines ? 'Cargando...' : 
-                     !categoryId ? 'Seleccione categoría primero' : 
-                     'Seleccione una línea'}
-                  </option>
-                  {Array.isArray(lines) && lines.length > 0 && lines.map((l: any, idx: number) => (
-                    <option key={`line-${l.id_categoria}-${l.id_linea}-${idx}`} value={l.id_linea}>{l.nom_linea}</option>
-                  ))}
-                </select>
-                {!categoryId && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
-                    ⚠️ Debe seleccionar una categoría primero
-                  </p>
-                )}
-                {categoryId && Array.isArray(lines) && lines.length === 0 && !loadingLines && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
-                    ⚠️ No hay líneas disponibles para esta categoría. Debe crear una línea primero.
-                  </p>
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingAllLines ? 'Cargando...' : 'Seleccione una línea (se asigna su categoría)'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.isArray(allLines) && allLines.map((l: any, idx: number) => (
+                      <SelectItem key={`line-${l.id_categoria}-${l.id_linea}-${idx}`} value={`${l.id_categoria}-${l.id_linea}`}>
+                        {l.nom_linea} {(l as any).nom_categoria ? `(${(l as any).nom_categoria})` : `— Cat ${l.id_categoria}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Puede elegir categoría primero o una línea (se asignará su categoría).</p>
+                {!loadingAllLines && Array.isArray(allLines) && allLines.length === 0 && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400">No hay líneas. Cree antes una categoría y una línea.</p>
                 )}
               </div>
               <div className="space-y-2">
@@ -213,7 +270,7 @@ export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({ open, onOp
           </div>
           {type === 'subline' && !isSublineFormValid && (
             <p className="text-xs text-center text-amber-600 dark:text-amber-400 mt-2">
-              ⚠️ No se puede crear la sublínea. Primero debe crear una línea para esta categoría.
+              ⚠️ Seleccione una línea y complete el nombre.
             </p>
           )}
         </form>

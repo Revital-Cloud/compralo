@@ -43,6 +43,14 @@ export const SublinesFilters: React.FC<SublinesFiltersProps> = ({
     onLineChange('');
   };
 
+  const handleLineChange = (value: string) => {
+    if (value && value.includes('-')) {
+      const [catId] = value.split('-');
+      onCategoryChange(catId);
+    }
+    onLineChange(value);
+  };
+
   const hasActiveFilters = !!search || !!category || !!line;
 
   const filters: FilterConfig[] = [
@@ -52,7 +60,7 @@ export const SublinesFilters: React.FC<SublinesFiltersProps> = ({
       type: 'select',
       value: category,
       onChange: handleCategoryChange,
-      options: (categories || []).map((cat: any) => ({ id: `${cat.id}`, nombre: `${cat.name}`, label: `${cat.name} (ID: ${cat.id})` })),
+      options: (categories || []).map((cat: any) => ({ id: `${cat.id}`, nombre: cat.name, label: cat.name })),
       isLoading: categoriesLoading
     },
     {
@@ -60,8 +68,8 @@ export const SublinesFilters: React.FC<SublinesFiltersProps> = ({
       label: 'Línea',
       type: 'select',
       value: line,
-      onChange: onLineChange,
-      options: (lines as any)?.map((l: any) => ({ id: `${(l as any).id_categoria}-${l.id_linea}`, nombre: `${l.nom_linea}`, label: `${l.nom_linea} — Cat ${(l as any).id_categoria}` })) || [],
+      onChange: handleLineChange,
+      options: (lines as any)?.map((l: any) => ({ id: `${(l as any).id_categoria}-${l.id_linea}`, nombre: l.nom_linea, label: l.nom_linea })) || [],
       isLoading: linesLoading
     }
   ];

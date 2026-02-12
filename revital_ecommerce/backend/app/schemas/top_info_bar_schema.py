@@ -44,8 +44,12 @@ class TopInfoBarPayload(BaseModel):
     color_texto: Optional[str] = Field(None, description="Color del texto (hex o nombre CSS)")
     fec_inicio: Optional[date] = Field(None, description="Fecha inicio vigencia")
     fec_fin: Optional[date] = Field(None, description="Fecha fin vigencia")
+    boton_texto: Optional[str] = Field(None, max_length=80, description="Texto del botón CTA (opcional)")
+    boton_url: Optional[str] = Field(None, max_length=2000, description="URL del botón CTA (opcional)")
+    boton_color_fondo: Optional[str] = Field(None, description="Color de fondo del botón CTA (hex o nombre CSS)")
+    boton_color_texto: Optional[str] = Field(None, description="Color del texto del botón CTA (hex o nombre CSS)")
 
-    @field_validator("color_fondo", "color_texto")
+    @field_validator("color_fondo", "color_texto", "boton_color_fondo", "boton_color_texto")
     @classmethod
     def validate_color_field(cls, v: Optional[str]) -> Optional[str]:
         return _validate_color(v)
@@ -64,6 +68,10 @@ class TopInfoBarPublic(BaseModel):
     des_mensaje: str
     color_fondo: Optional[str] = None
     color_texto: Optional[str] = None
+    boton_texto: Optional[str] = None
+    boton_url: Optional[str] = None
+    boton_color_fondo: Optional[str] = None
+    boton_color_texto: Optional[str] = None
 
 
 class TopInfoBar(BaseModel):
@@ -78,6 +86,10 @@ class TopInfoBar(BaseModel):
     color_texto: Optional[str] = None
     fec_inicio: Optional[date] = None
     fec_fin: Optional[date] = None
+    boton_texto: Optional[str] = None
+    boton_url: Optional[str] = None
+    boton_color_fondo: Optional[str] = None
+    boton_color_texto: Optional[str] = None
     num_version: int
 
     class Config:

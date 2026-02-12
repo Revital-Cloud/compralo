@@ -531,8 +531,8 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
     console.log('Errors:', errors);
     console.log('Is valid:', isValid);
     
-    // Validar que la sublínea pertenezca a la categoría/línea seleccionadas
-    if (watchedLine && watchedSubline) {
+    // Validar que la sublínea pertenezca a la categoría/línea seleccionadas (solo en creación: en edición no se pueden cambiar y ya vienen válidos del servidor)
+    if (!isEditing && watchedLine && watchedSubline) {
       const exists = uniqueSublines.some(
         (s: any) => String(s.id_sublinea) === String(watchedSubline)
       );
