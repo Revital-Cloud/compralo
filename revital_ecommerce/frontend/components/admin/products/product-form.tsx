@@ -11,10 +11,14 @@ import { Button } from "@/components/ui";
 import { Badge } from "@/components/ui";
 import { Textarea } from "@/components/ui";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui";
-import { IconX, IconPlus, IconSettings } from "@tabler/icons-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui";
+import { Checkbox } from "@/components/ui";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui";
+import { ColorPicker } from "@/components/admin/color-picker";
+import { IconX, IconPlus, IconSettings, IconInfoCircle, IconChevronDown } from "@tabler/icons-react";
 import { useCategories, useBrands } from "@/hooks/use-products";
-import { useAllLines, useLinesByCategory } from "@/hooks/use-lines";
-import { useSublinesByLine } from "@/hooks/use-sublines";
+import { useAllLines } from "@/hooks/use-lines";
+import { useAllSublines } from "@/hooks/use-sublines";
 import { useAllProviders } from "@/hooks/use-providers";
 import { useFormXSSValidation } from "@/hooks/use-xss-validation";
 import { cn } from "@/lib/utils";
@@ -22,6 +26,59 @@ import { toast } from "sonner";
 
 // Valor usado para "no seleccionado" en Select (Radix no permite value="" en SelectItem)
 const SELECT_EMPTY_VALUE = '__empty__';
+const COLOR_OTHER_VALUE = '__color_otro__';
+const MATERIAL_OTHER_VALUE = '__material_otro__';
+
+const DESC_CORTA_MAX_LENGTH = 500;
+
+const COLOR_OPTIONS = [
+  'Negro', 'Blanco', 'Rojo', 'Azul', 'Verde', 'Amarillo', 'Naranja', 'Rosa', 'Morado', 'Gris',
+  'Marrón', 'Beige', 'Celeste', 'Turquesa', 'Dorado', 'Plateado', 'Multicolor',
+];
+
+const MATERIAL_OPTIONS = [
+  'Algodón', 'Poliéster', 'Cuero', 'Sintético', 'Metal', 'Plástico', 'Madera', 'Vidrio',
+  'Cerámica', 'Silicona', 'Tela', 'Nylon', 'Lana', 'Lino', 'EVA', 'Goma', 'Cartón', 'Papel',
+];
+
+const GARANTIA_UNIDADES = [
+  { value: 'días', label: 'Días' },
+  { value: 'semanas', label: 'Semanas' },
+  { value: 'meses', label: 'Meses' },
+  { value: 'años', label: 'Años' },
+];
+
+const PESO_UNIDADES = [
+  { value: 'g', label: 'g' },
+  { value: 'kg', label: 'kg' },
+  { value: 'lb', label: 'lb' },
+  { value: 'oz', label: 'oz' },
+];
+
+const COLOR_HEX: Record<string, string> = {
+  Negro: '#000000',
+  Blanco: '#ffffff',
+  Rojo: '#dc2626',
+  Azul: '#2563eb',
+  Verde: '#16a34a',
+  Amarillo: '#eab308',
+  Naranja: '#ea580c',
+  Rosa: '#ec4899',
+  Morado: '#9333ea',
+  Gris: '#6b7280',
+  Marrón: '#78350f',
+  Beige: '#d4b896',
+  Celeste: '#0ea5e9',
+  Turquesa: '#0d9488',
+  Dorado: '#ca8a04',
+  Plateado: '#94a3b8',
+  Multicolor: 'linear-gradient(90deg, #ef4444, #eab308, #22c55e, #3b82f6)',
+};
+
+const COMMON_SPEC_KEYS = [
+  'Talla', 'Color', 'Material', 'Peso', 'Dimensiones', 'Garantía', 'Modelo', 'Marca',
+  'Origen', 'Contenido', 'Caducidad', 'Lote', 'SKU', 'UPC', 'Certificación',
+];
 
 // Presets de especificaciones por tipo de producto
 const SPEC_PRESETS = {
@@ -145,25 +202,38 @@ type ProductFormData = z.input<typeof productSchema> & {
   spcf_producto: Record<string, unknown>;
 };
 
+export interface ProductFormRef {
+  reset: () => void;
+}
+
 interface ProductFormProps {
   onSubmit: (data: ProductFormData) => void;
   isLoading?: boolean;
   initialData?: Partial<ProductFormData>;
   submitLabel?: string;
-  isEditing?: boolean; // Nuevo: indica si estamos editando
+  isEditing?: boolean;
+  /** Si true, no se muestran los botones LIMPIAR/Guardar (se renderizan fuera para ponerlos al final en responsive) */
+  hideActionButtons?: boolean;
+  /** id del form para asociar botón submit externo (form="...") */
+  formId?: string;
 }
 
-export const ProductForm: React.FC<ProductFormProps> = ({ 
-  onSubmit, 
-  isLoading = false,
-  initialData,
-  submitLabel = 'CREAR PRODUCTO',
-  isEditing = false, // Por defecto, no estamos editando
-}) => {
+export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(function ProductForm(props, ref) {
+  const {
+    onSubmit,
+    isLoading = false,
+    initialData,
+    submitLabel = 'CREAR PRODUCTO',
+    isEditing = false,
+    hideActionButtons = false,
+    formId = 'product-form',
+  } = props;
+
   const { data: categories = [] } = useCategories();
   const { data: brands = [] } = useBrands();
   const { data: providers = [] } = useAllProviders();
   const { data: allLines = [] } = useAllLines();
+  const { data: allSublines = [] } = useAllSublines();
   
   // Hook de validación XSS
   const { validateForm } = useFormXSSValidation('product-form');
@@ -193,11 +263,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     formState: { errors, isValid, isDirty },
     setValue,
     watch,
-    reset
+    reset,
   } = useForm<ProductFormData>({
     resolver,
     defaultValues,
   });
+
+  React.useImperativeHandle(ref, () => ({ reset }), [reset]);
 
   React.useEffect(() => {
     if (initialData) {
@@ -233,14 +305,63 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const [newCustomKey, setNewCustomKey] = React.useState('');
   const [newCustomValue, setNewCustomValue] = React.useState('');
   
-  // Campos base siempre presentes
+  const parseGarantia = (str: string | undefined): { numero: string; unidad: string } => {
+    if (!str || !str.trim()) return { numero: '', unidad: '' };
+    const match = str.trim().match(/^(\d+)\s*(días|día|semanas|semana|meses|mes|años|año)$/i);
+    if (match) {
+      const u = match[2].toLowerCase();
+      const unidad = u.startsWith('a') ? 'años' : u.startsWith('me') ? 'meses' : u.startsWith('se') ? 'semanas' : 'días';
+      return { numero: match[1], unidad };
+    }
+    return { numero: '', unidad: '' };
+  };
+
+  const parsePeso = (str: string | undefined): { numero: string; unidad: string } => {
+    if (!str || !str.trim()) return { numero: '', unidad: '' };
+    const match = str.trim().match(/^([\d.,]+)\s*(g|kg|lb|oz)$/i);
+    if (match) {
+      return { numero: match[1].replace(',', '.'), unidad: match[2].toLowerCase() };
+    }
+    return { numero: '', unidad: '' };
+  };
+
+  const initialGarantia = parseGarantia(initialData?.spcf_producto?.garantia as string | undefined);
+  const initialPeso = parsePeso(initialData?.spcf_producto?.peso as string | undefined);
+  const initialColorStr = (initialData?.spcf_producto?.color as string | undefined) || '';
+  const initialColorHex = initialData?.spcf_producto?.color_hex as string | undefined;
+
+  const parseColorInitial = (str: string): { colors: string[]; color_other: string } => {
+    if (!str || !str.trim()) return { colors: [], color_other: '' };
+    const parts = str.split(',').map((s) => s.trim()).filter(Boolean);
+    const colors: string[] = [];
+    let color_other = '';
+    for (const p of parts) {
+      if (COLOR_OPTIONS.includes(p)) colors.push(p);
+      else if (!color_other) color_other = p;
+    }
+    return { colors, color_other };
+  };
+  const initialParsed = parseColorInitial(initialColorStr);
+  const [isColorOtherSelected, setIsColorOtherSelected] = React.useState(!!initialParsed.color_other);
+  const [colorPopoverOpen, setColorPopoverOpen] = React.useState(false);
+
+  const initialMaterial = initialData?.spcf_producto?.material as string | undefined;
+  const initialMaterialIsOther = !!(initialMaterial && !MATERIAL_OPTIONS.includes(initialMaterial));
+  const [isMaterialOtherSelected, setIsMaterialOtherSelected] = React.useState(initialMaterialIsOther);
+
   const [baseSpecs, setBaseSpecs] = React.useState<Record<string, any>>({
-    descripcion_corta: initialData?.spcf_producto?.descripcion_corta || initialData?.des_producto || '',
-    color: initialData?.spcf_producto?.color || '',
+    descripcion_corta: (initialData?.spcf_producto?.descripcion_corta || initialData?.des_producto || '').slice(0, DESC_CORTA_MAX_LENGTH),
+    colors: initialParsed.colors,
+    color_other: initialParsed.color_other,
+    color_hex: initialColorHex || '#6b7280',
     material: initialData?.spcf_producto?.material || '',
     garantia: initialData?.spcf_producto?.garantia || '',
+    garantia_numero: initialGarantia.numero,
+    garantia_unidad: initialGarantia.unidad,
     dimensiones: initialData?.spcf_producto?.dimensiones || '',
     peso: initialData?.spcf_producto?.peso || '',
+    peso_numero: initialPeso.numero,
+    peso_unidad: initialPeso.unidad,
   });
   const baseSpecsRef = React.useRef(baseSpecs);
   baseSpecsRef.current = baseSpecs;
@@ -258,18 +379,32 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     setValue('des_producto', baseSpecs.descripcion_corta);
   }, [baseSpecs.descripcion_corta, setValue]);
 
-  // Sincronizar baseSpecs cuando lleguen initialData/spcf desde el servidor (editar)
   React.useEffect(() => {
     if (initialData?.spcf_producto) {
       const s = initialData.spcf_producto as Record<string, any>;
+      const garantiaParsed = parseGarantia(s.garantia);
+      const pesoParsed = parsePeso(s.peso);
+      const colorStr = (s.color ?? '') as string;
+      const parsed = parseColorInitial(colorStr);
+      if (parsed.color_other) setIsColorOtherSelected(true);
+      const materialVal = s.material ?? baseSpecsRef.current.material ?? '';
+      if (materialVal && !MATERIAL_OPTIONS.includes(materialVal)) {
+        setIsMaterialOtherSelected(true);
+      }
       const next = {
         ...baseSpecsRef.current,
-        descripcion_corta: s.descripcion_corta ?? baseSpecsRef.current.descripcion_corta ?? '',
-        color: s.color ?? baseSpecsRef.current.color ?? '',
-        material: s.material ?? baseSpecsRef.current.material ?? '',
+        descripcion_corta: (s.descripcion_corta ?? baseSpecsRef.current.descripcion_corta ?? '').slice(0, DESC_CORTA_MAX_LENGTH),
+        colors: parsed.colors,
+        color_other: parsed.color_other,
+        color_hex: s.color_hex ?? baseSpecsRef.current.color_hex ?? '#6b7280',
+        material: materialVal,
         garantia: s.garantia ?? baseSpecsRef.current.garantia ?? '',
+        garantia_numero: (garantiaParsed.numero || baseSpecsRef.current.garantia_numero) ?? '',
+        garantia_unidad: (garantiaParsed.unidad || baseSpecsRef.current.garantia_unidad) ?? '',
         dimensiones: s.dimensiones ?? baseSpecsRef.current.dimensiones ?? '',
         peso: s.peso ?? baseSpecsRef.current.peso ?? '',
+        peso_numero: (pesoParsed.numero || baseSpecsRef.current.peso_numero) ?? '',
+        peso_unidad: (pesoParsed.unidad || baseSpecsRef.current.peso_unidad) ?? '',
       };
       baseSpecsRef.current = next;
       setBaseSpecs(next);
@@ -312,33 +447,57 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     setPresetSpecs(newPresetSpecs);
   }, [currentPreset, initialData?.spcf_producto, presetFields.length]);
 
-  // Obtener líneas filtradas por categoría seleccionada
-  const { data: linesByCategory = [] } = useLinesByCategory(
-    watchedCategory ? parseInt(watchedCategory) : 0
-  );
-  
-  // Obtener sublíneas filtradas por línea seleccionada
-  const { data: sublinesByLine = [] } = useSublinesByLine(
-    watchedLine ? parseInt(watchedLine) : 0,
-    watchedCategory ? parseInt(watchedCategory) : undefined
-  );
+  // Índices compuestos: cada línea se identifica por id_categoria-id_linea; cada sublínea por id_categoria-id_linea-id_sublinea.
+  // Así se puede elegir línea o sublínea directamente y rellenar categoría (y línea) automáticamente.
+  const lineOptionsComposite = React.useMemo(() => {
+    return (allLines || []).filter((l: any) => l?.id_categoria != null && l?.id_linea != null).map((l: any) => ({
+      value: `${l.id_categoria}-${l.id_linea}`,
+      label: l.nom_linea || '',
+      id_categoria: l.id_categoria,
+      id_linea: l.id_linea,
+    }));
+  }, [allLines]);
 
-  // Usar líneas filtradas por categoría si hay una seleccionada, sino todas las líneas
-  const availableLines = watchedCategory ? linesByCategory : allLines;
+  const sublineOptionsComposite = React.useMemo(() => {
+    return (allSublines || []).filter((s: any) => s?.id_categoria != null && s?.id_linea != null && s?.id_sublinea != null).map((s: any) => ({
+      value: `${s.id_categoria}-${s.id_linea}-${s.id_sublinea}`,
+      label: s.nom_sublinea || '',
+      id_categoria: s.id_categoria,
+      id_linea: s.id_linea,
+      id_sublinea: s.id_sublinea,
+    }));
+  }, [allSublines]);
 
-  // Utilidad: eliminar duplicados por id
-  const uniqueById = <T extends Record<string, any>>(items: T[], idKey: string): T[] => {
-    const seen = new Set<string>();
-    return (items || []).filter((item) => {
-      const id = item && item[idKey] != null ? String(item[idKey]) : '';
-      if (!id || seen.has(id)) return false;
-      seen.add(id);
+  // Valor mostrado en el select de línea (compuesto para que coincida la opción correcta)
+  const lineSelectValue = React.useMemo(() => {
+    if (watchedCategory && watchedLine) return `${watchedCategory}-${watchedLine}`;
+    if (watchedLine) {
+      const found = lineOptionsComposite.find((l: any) => String(l.id_linea) === String(watchedLine));
+      return found ? found.value : SELECT_EMPTY_VALUE;
+    }
+    return SELECT_EMPTY_VALUE;
+  }, [watchedCategory, watchedLine, lineOptionsComposite]);
+  // Valor mostrado en el select de sublínea (compuesto)
+  const sublineSelectValue = React.useMemo(() => {
+    if (watchedCategory && watchedLine && watchedSubline) return `${watchedCategory}-${watchedLine}-${watchedSubline}`;
+    if (watchedSubline) {
+      const found = sublineOptionsComposite.find((s: any) => String(s.id_sublinea) === String(watchedSubline));
+      return found ? found.value : SELECT_EMPTY_VALUE;
+    }
+    return SELECT_EMPTY_VALUE;
+  }, [watchedCategory, watchedLine, watchedSubline, sublineOptionsComposite]);
+
+  // Para validación en submit: comprobar que la sublínea pertenece a la línea/categoría (por si hubiera desincronización)
+  const uniqueSublines = React.useMemo(() => {
+    const cat = watchedCategory ? Number(watchedCategory) : null;
+    const lin = watchedLine ? Number(watchedLine) : null;
+    if (cat == null && lin == null) return sublineOptionsComposite;
+    return sublineOptionsComposite.filter((s: any) => {
+      if (cat != null && s.id_categoria !== cat) return false;
+      if (lin != null && s.id_linea !== lin) return false;
       return true;
     });
-  };
-
-  const uniqueLines = uniqueById(availableLines, 'id_linea');
-  const uniqueSublines = uniqueById(sublinesByLine, 'id_sublinea');
+  }, [watchedCategory, watchedLine, sublineOptionsComposite]);
 
   const addTag = () => {
     if (newTag.trim() && !watchedTags.includes(newTag.trim())) {
@@ -371,13 +530,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     console.log('Errors:', errors);
     console.log('Is valid:', isValid);
     
-    // Validar que la sublínea pertenezca a la línea seleccionada
-    if (watchedLine) {
-      const existsInLine = uniqueSublines.some(
-        (s) => String(s.id_sublinea) === String(watchedSubline)
+    // Validar que la sublínea pertenezca a la categoría/línea seleccionadas
+    if (watchedLine && watchedSubline) {
+      const exists = uniqueSublines.some(
+        (s: any) => String(s.id_sublinea) === String(watchedSubline)
       );
-      if (!existsInLine) {
-        toast.error('La sublínea seleccionada no pertenece a la línea elegida');
+      if (!exists) {
+        toast.error('La sublínea seleccionada no pertenece a la categoría/línea elegidas');
         return;
       }
     }
@@ -416,16 +575,27 @@ export const ProductForm: React.FC<ProductFormProps> = ({
       spcf_producto: { ...data.spcf_producto, ...latestBaseSpecs, ...latestPresetSpecs, ...customSpecsObj }
     });
 
+    const garantiaStr =
+      latestBaseSpecs.garantia_numero && latestBaseSpecs.garantia_unidad
+        ? `${latestBaseSpecs.garantia_numero} ${latestBaseSpecs.garantia_unidad}`
+        : (latestBaseSpecs.garantia || '');
+
+    const pesoStr =
+      latestBaseSpecs.peso_numero && latestBaseSpecs.peso_unidad
+        ? `${latestBaseSpecs.peso_numero}${latestBaseSpecs.peso_unidad}`
+        : (latestBaseSpecs.peso || '');
+
+    const colorStr = [...(latestBaseSpecs.colors || []), latestBaseSpecs.color_other].filter(Boolean).join(', ');
+
     const formattedData = {
       ...sanitizedData,
-      // sincronizar descripción corta al campo des_producto para compatibilidad
       des_producto: latestBaseSpecs.descripcion_corta || data.des_producto,
-      // Construir spcf: datos iniciales primero, luego refs (base/preset/custom) al final para que
-      // los valores actuales del usuario (talla, color, etc.) no sean sobrescritos por data.spcf_producto
-      // que react-hook-form no actualiza cuando se editan los campos preset.
       spcf_producto: {
         ...data.spcf_producto,
         ...latestBaseSpecs,
+        color: colorStr,
+        garantia: garantiaStr,
+        peso: pesoStr,
         ...latestPresetSpecs,
         ...customSpecsObj,
         tags: data.tags || [],
@@ -443,7 +613,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit(handleFormSubmit as any)} className="space-y-6">
+    <form id={formId} onSubmit={handleSubmit(handleFormSubmit as any)} className="space-y-6">
       {/* Información del Producto */}
       <Card>
         <CardHeader>
@@ -528,36 +698,40 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </div>
           </div>
 
-          {/* Línea y Sublínea */}
+          {/* Línea y Sublínea (selección directa con índices compuestos: al elegir línea se rellena categoría; al elegir sublínea, línea y categoría) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="id_linea">Línea *</Label>
-                {!isEditing && <span className="text-xs text-muted-foreground">(elige primero la categoría)</span>}
-              </div>
+              <Label htmlFor="id_linea">Línea *</Label>
               <Select
-                value={watch('id_linea') || SELECT_EMPTY_VALUE}
+                value={lineSelectValue}
                 onValueChange={(value) => {
-                  const v = value === SELECT_EMPTY_VALUE ? '' : value;
-                  setValue('id_linea', v);
-                  setValue('id_sublinea', '');
+                  if (value === SELECT_EMPTY_VALUE) {
+                    setValue('id_linea', '');
+                    setValue('id_sublinea', '');
+                    return;
+                  }
+                  if (value.includes('-')) {
+                    const [cat, lineId] = value.split('-');
+                    setValue('id_categoria', cat);
+                    setValue('id_linea', lineId);
+                    setValue('id_sublinea', '');
+                  } else {
+                    setValue('id_linea', value);
+                    setValue('id_sublinea', '');
+                  }
                 }}
-                disabled={isEditing || !watchedCategory}
+                disabled={isEditing}
               >
                 <SelectTrigger className={cn('w-full', errors.id_linea && 'border-red-500')}>
                   <SelectValue placeholder="Selecciona una línea" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={SELECT_EMPTY_VALUE}>Selecciona una línea</SelectItem>
-                  {uniqueLines.map((line) => {
-                    const lineId = line?.id_linea;
-                    if (!lineId) return null;
-                    return (
-                      <SelectItem key={`line-${lineId}`} value={String(lineId)}>
-                        {line.nom_linea || ''}
-                      </SelectItem>
-                    );
-                  })}
+                  {lineOptionsComposite.map((line: any) => (
+                    <SelectItem key={`line-${line.value}`} value={line.value}>
+                      {line.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {errors.id_linea && (
@@ -566,29 +740,35 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="id_sublinea">Sublínea *</Label>
-                {!isEditing && <span className="text-xs text-muted-foreground">(elige primero la línea)</span>}
-              </div>
+              <Label htmlFor="id_sublinea">Sublínea *</Label>
               <Select
-                value={watch('id_sublinea') || SELECT_EMPTY_VALUE}
-                onValueChange={(value) => setValue('id_sublinea', value === SELECT_EMPTY_VALUE ? '' : value)}
-                disabled={isEditing || !watchedLine}
+                value={sublineSelectValue}
+                onValueChange={(value) => {
+                  if (value === SELECT_EMPTY_VALUE) {
+                    setValue('id_sublinea', '');
+                    return;
+                  }
+                  const parts = value.split('-');
+                  if (parts.length >= 3) {
+                    setValue('id_categoria', parts[0]);
+                    setValue('id_linea', parts[1]);
+                    setValue('id_sublinea', parts[2]);
+                  } else {
+                    setValue('id_sublinea', value);
+                  }
+                }}
+                disabled={isEditing}
               >
                 <SelectTrigger className={cn('w-full', errors.id_sublinea && 'border-red-500')}>
                   <SelectValue placeholder="Selecciona una sublínea" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={SELECT_EMPTY_VALUE}>Selecciona una sublínea</SelectItem>
-                  {uniqueSublines.map((subline) => {
-                    const sublineId = subline?.id_sublinea;
-                    if (!sublineId) return null;
-                    return (
-                      <SelectItem key={`subline-${sublineId}`} value={String(sublineId)}>
-                        {subline.nom_sublinea || ''}
-                      </SelectItem>
-                    );
-                  })}
+                  {sublineOptionsComposite.map((subline: any) => (
+                    <SelectItem key={`subline-${subline.value}`} value={subline.value}>
+                      {subline.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               {errors.id_sublinea && (
@@ -671,77 +851,324 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                   {SPEC_PRESETS[currentPreset]?.label}
                 </Badge>
               )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" className="text-muted-foreground hover:text-foreground">
+                    <IconInfoCircle className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-xs">
+                  Datos técnicos y atributos que se muestran en la ficha del producto. Usa opciones predefinidas cuando puedas para mantener filtros consistentes.
+                </TooltipContent>
+              </Tooltip>
             </div>
 
-            {/* Campos base siempre presentes */}
+            {/* Descripción corta */}
             <div className="space-y-2">
-              <Label>Descripción corta *</Label>
+              <div className="flex items-center gap-1.5">
+                <Label>Descripción corta *</Label>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="text-muted-foreground hover:text-foreground">
+                      <IconInfoCircle className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Resumen breve que aparece en listados y buscadores. Máximo {DESC_CORTA_MAX_LENGTH} caracteres.</TooltipContent>
+                </Tooltip>
+              </div>
               <Input
                 value={baseSpecs.descripcion_corta}
-                onChange={(e) => setBaseSpecs((prev) => ({ ...prev, descripcion_corta: e.target.value }))}
+                onChange={(e) => setBaseSpecs((prev) => ({ ...prev, descripcion_corta: e.target.value.slice(0, DESC_CORTA_MAX_LENGTH) }))}
                 placeholder="Resumen breve del producto"
+                maxLength={DESC_CORTA_MAX_LENGTH}
                 className={errors.des_producto ? 'border-red-500' : ''}
               />
+              <p className="text-xs text-muted-foreground">{baseSpecs.descripcion_corta?.length ?? 0}/{DESC_CORTA_MAX_LENGTH}</p>
               {errors.des_producto && (
                 <p className="text-sm text-red-600">{errors.des_producto.message}</p>
               )}
             </div>
 
+            {/* Color, Material, Garantía */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Color</Label>
-                <Input
-                  value={baseSpecs.color}
-                  onChange={(e) => {
-                  const next = { ...baseSpecsRef.current, color: e.target.value };
-                  baseSpecsRef.current = next;
-                  setBaseSpecs(next);
-                }}
-                  placeholder="Ej. Negro, Blanco, Rojo"
-                />
+                <div className="flex items-center gap-1.5">
+                  <Label>Color</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="text-muted-foreground hover:text-foreground">
+                        <IconInfoCircle className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Elige uno o varios colores. Opción &quot;Otro&quot; para un color personalizado con nombre y tono.</TooltipContent>
+                  </Tooltip>
+                </div>
+                <Popover open={colorPopoverOpen} onOpenChange={setColorPopoverOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className={cn('w-full justify-between font-normal')}
+                    >
+                      <span className="truncate">
+                        {(() => {
+                          const colors = baseSpecs.colors || [];
+                          const otherLabel = isColorOtherSelected ? (baseSpecs.color_other || 'Otro') : null;
+                          const list = [...colors, otherLabel].filter(Boolean);
+                          if (list.length === 0) return 'Selecciona colores';
+                          if (list.length <= 2) return list.join(', ');
+                          return `${list.length} colores`;
+                        })()}
+                      </span>
+                      <IconChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full min-w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <div className="max-h-[280px] overflow-y-auto p-2">
+                      {COLOR_OPTIONS.map((c) => (
+                        <label
+                          key={c}
+                          className="flex items-center gap-2 rounded-sm py-2 px-2 text-sm cursor-pointer hover:bg-muted/60"
+                        >
+                          <Checkbox
+                            checked={(baseSpecs.colors || []).includes(c)}
+                            onCheckedChange={(checked) => {
+                              const prev = baseSpecsRef.current.colors || [];
+                              const next = checked ? [...prev, c] : prev.filter((x) => x !== c);
+                              const spec = { ...baseSpecsRef.current, colors: next };
+                              baseSpecsRef.current = spec;
+                              setBaseSpecs(spec);
+                            }}
+                          />
+                          <span>{c}</span>
+                        </label>
+                      ))}
+                      <label className="flex items-center gap-2 rounded-sm py-2 px-2 text-sm cursor-pointer hover:bg-muted/60 border-t mt-1 pt-2">
+                        <Checkbox
+                          checked={isColorOtherSelected}
+                          onCheckedChange={(checked) => {
+                            setIsColorOtherSelected(!!checked);
+                            if (!checked) {
+                              const spec = { ...baseSpecsRef.current, color_other: '' };
+                              baseSpecsRef.current = spec;
+                              setBaseSpecs(spec);
+                            } else {
+                              setColorPopoverOpen(false);
+                            }
+                          }}
+                        />
+                        <span>Otro</span>
+                      </label>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+                {isColorOtherSelected && (
+                  <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-3 mt-2">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium text-muted-foreground">Nombre del color</Label>
+                      <Input
+                        placeholder="Ej. Coral, Verde musgo"
+                        value={baseSpecs.color_other || ''}
+                        onChange={(e) => {
+                          const next = { ...baseSpecsRef.current, color_other: e.target.value };
+                          baseSpecsRef.current = next;
+                          setBaseSpecs(next);
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <ColorPicker
+                        value={baseSpecs.color_hex || '#6b7280'}
+                        onChange={(hex) => {
+                          const next = { ...baseSpecsRef.current, color_hex: hex };
+                          baseSpecsRef.current = next;
+                          setBaseSpecs(next);
+                        }}
+                        label="Tono (hex)"
+                        placeholder="#000000"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
-                <Label>Material</Label>
-                <Input
-                  value={baseSpecs.material}
-                  onChange={(e) => {
-                  const next = { ...baseSpecsRef.current, material: e.target.value };
-                  baseSpecsRef.current = next;
-                  setBaseSpecs(next);
-                }}
-                  placeholder="Ej. Algodón, Aluminio, Plástico"
-                />
+                <div className="flex items-center gap-1.5">
+                  <Label>Material</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="text-muted-foreground hover:text-foreground">
+                        <IconInfoCircle className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Material principal del producto. Usa &quot;Otro&quot; si no está en la lista.</TooltipContent>
+                  </Tooltip>
+                </div>
+                <Select
+                  value={baseSpecs.material === '' ? (isMaterialOtherSelected ? MATERIAL_OTHER_VALUE : SELECT_EMPTY_VALUE) : (MATERIAL_OPTIONS.includes(baseSpecs.material) ? baseSpecs.material : MATERIAL_OTHER_VALUE)}
+                  onValueChange={(v) => {
+                    if (v === SELECT_EMPTY_VALUE) {
+                      setIsMaterialOtherSelected(false);
+                      const next = { ...baseSpecsRef.current, material: '' };
+                      baseSpecsRef.current = next;
+                      setBaseSpecs(next);
+                      return;
+                    }
+                    if (v === MATERIAL_OTHER_VALUE) {
+                      setIsMaterialOtherSelected(true);
+                      const next = { ...baseSpecsRef.current, material: '' };
+                      baseSpecsRef.current = next;
+                      setBaseSpecs(next);
+                      return;
+                    }
+                    setIsMaterialOtherSelected(false);
+                    const next = { ...baseSpecsRef.current, material: v };
+                    baseSpecsRef.current = next;
+                    setBaseSpecs(next);
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecciona material" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={SELECT_EMPTY_VALUE}>Selecciona material</SelectItem>
+                    {MATERIAL_OPTIONS.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                    <SelectItem value={MATERIAL_OTHER_VALUE}>Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+                {isMaterialOtherSelected && (
+                  <Input
+                    placeholder="Ej. Fibra de carbono"
+                    value={baseSpecs.material || ''}
+                    onChange={(e) => {
+                      const next = { ...baseSpecsRef.current, material: e.target.value };
+                      baseSpecsRef.current = next;
+                      setBaseSpecs(next);
+                    }}
+                    className="mt-1"
+                  />
+                )}
               </div>
               <div className="space-y-2">
-                <Label>Garantía</Label>
-                <Input
-                  value={baseSpecs.garantia}
-                  onChange={(e) => setBaseSpecs((prev) => ({ ...prev, garantia: e.target.value }))}
-                  placeholder="Ej. 12 meses, 2 años"
-                />
+                <div className="flex items-center gap-1.5">
+                  <Label>Garantía</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="text-muted-foreground hover:text-foreground">
+                        <IconInfoCircle className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Duración de la garantía. Se mostrará como texto (ej. 12 meses) en la ficha.</TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="Nº"
+                    value={baseSpecs.garantia_numero || ''}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 3);
+                      const next = { ...baseSpecsRef.current, garantia_numero: v };
+                      baseSpecsRef.current = next;
+                      setBaseSpecs(next);
+                    }}
+                    className="w-20"
+                  />
+                  <Select
+                    value={baseSpecs.garantia_unidad || SELECT_EMPTY_VALUE}
+                    onValueChange={(v) => {
+                      const val = v === SELECT_EMPTY_VALUE ? '' : v;
+                      const next = { ...baseSpecsRef.current, garantia_unidad: val };
+                      baseSpecsRef.current = next;
+                      setBaseSpecs(next);
+                    }}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Unidad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={SELECT_EMPTY_VALUE}>Unidad</SelectItem>
+                      {GARANTIA_UNIDADES.map((u) => (
+                        <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
+            {/* Dimensiones y Peso */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Dimensiones</Label>
+                <div className="flex items-center gap-1.5">
+                  <Label>Dimensiones</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="text-muted-foreground hover:text-foreground">
+                        <IconInfoCircle className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Alto x ancho x profundidad con unidad (ej. 146.7 x 71.5 x 7.8 mm o 100x50x30 cm).</TooltipContent>
+                  </Tooltip>
+                </div>
                 <Input
                   value={baseSpecs.dimensiones}
                   onChange={(e) => {
-                  const next = { ...baseSpecsRef.current, dimensiones: e.target.value };
-                  baseSpecsRef.current = next;
-                  setBaseSpecs(next);
-                }}
+                    const next = { ...baseSpecsRef.current, dimensiones: e.target.value };
+                    baseSpecsRef.current = next;
+                    setBaseSpecs(next);
+                  }}
                   placeholder="Ej. 146.7 x 71.5 x 7.8 mm"
                 />
               </div>
               <div className="space-y-2">
-                <Label>Peso</Label>
-                <Input
-                  value={baseSpecs.peso}
-                  onChange={(e) => setBaseSpecs((prev) => ({ ...prev, peso: e.target.value }))}
-                  placeholder="Ej. 172g, 1.5kg"
-                />
+                <div className="flex items-center gap-1.5">
+                  <Label>Peso</Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="text-muted-foreground hover:text-foreground">
+                        <IconInfoCircle className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Peso del producto. Indica el valor y la unidad (g, kg, lb, oz).</TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Ej. 172"
+                    value={baseSpecs.peso_numero || ''}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(',', '.');
+                      const next = { ...baseSpecsRef.current, peso_numero: v };
+                      baseSpecsRef.current = next;
+                      setBaseSpecs(next);
+                    }}
+                    className="w-24"
+                  />
+                  <Select
+                    value={baseSpecs.peso_unidad || SELECT_EMPTY_VALUE}
+                    onValueChange={(v) => {
+                      const val = v === SELECT_EMPTY_VALUE ? '' : v;
+                      const next = { ...baseSpecsRef.current, peso_unidad: val };
+                      baseSpecsRef.current = next;
+                      setBaseSpecs(next);
+                    }}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="Unidad" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={SELECT_EMPTY_VALUE}>Unidad</SelectItem>
+                      {PESO_UNIDADES.map((u) => (
+                        <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
 
@@ -749,9 +1176,19 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             {presetFields.length > 0 && (
               <div className="space-y-4">
                 <div className="border-t pt-4">
-                  <h4 className="text-md font-medium text-muted-foreground mb-3">
-                    Especificaciones específicas para {currentPreset && SPEC_PRESETS[currentPreset] ? SPEC_PRESETS[currentPreset].label : ''}
-                  </h4>
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <h4 className="text-md font-medium text-muted-foreground">
+                      Especificaciones para {currentPreset && SPEC_PRESETS[currentPreset] ? SPEC_PRESETS[currentPreset].label : ''}
+                    </h4>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" className="text-muted-foreground hover:text-foreground">
+                          <IconInfoCircle className="h-3.5 w-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Campos recomendados según la categoría del producto.</TooltipContent>
+                    </Tooltip>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {presetFields.map((field) => (
                       <div key={field.key} className="space-y-2">
@@ -762,10 +1199,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                         <Input
                           value={presetSpecs[field.key] || ''}
                           onChange={(e) => {
-                          const next = { ...presetSpecsRef.current, [field.key]: e.target.value };
-                          presetSpecsRef.current = next;
-                          setPresetSpecs(next);
-                        }}
+                            const next = { ...presetSpecsRef.current, [field.key]: e.target.value };
+                            presetSpecsRef.current = next;
+                            setPresetSpecs(next);
+                          }}
                           placeholder={field.placeholder}
                         />
                       </div>
@@ -775,27 +1212,96 @@ export const ProductForm: React.FC<ProductFormProps> = ({
               </div>
             )}
 
-            {/* Campos personalizados */}
+            {/* Especificaciones personalizadas */}
             <div className="border-t pt-4">
-              <h4 className="text-md font-medium text-muted-foreground mb-3">
-                Especificaciones personalizadas
-              </h4>
-              
+              <div className="flex items-center gap-1.5 mb-3">
+                <h4 className="text-md font-medium text-muted-foreground">
+                  Especificaciones personalizadas
+                </h4>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button type="button" className="text-muted-foreground hover:text-foreground">
+                      <IconInfoCircle className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>Atributos extra nombre-valor. Usa sugerencias para mantener nombres consistentes entre productos.</TooltipContent>
+                </Tooltip>
+              </div>
+
+              {presetFields.length > 0 && (() => {
+                const existingKeys = new Set(customSpecs.map((s) => s.key.toLowerCase()));
+                const suggested = presetFields
+                  .filter((f) => !existingKeys.has(f.key.toLowerCase()))
+                  .slice(0, 6);
+                if (suggested.length === 0) return null;
+                return (
+                  <div className="mb-3">
+                    <p className="text-xs text-muted-foreground mb-2">Añadir desde sugerencias de categoría:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {suggested.map((f) => (
+                        <Button
+                          key={f.key}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-xs"
+                          onClick={() => {
+                            setCustomSpecs((prev) => [...prev, { key: f.key, value: '' }]);
+                            setNewCustomKey('');
+                            setNewCustomValue('');
+                          }}
+                        >
+                          + {f.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    value={newCustomKey}
-                    onChange={(e) => setNewCustomKey(e.target.value)}
-                    placeholder="Nombre del atributo"
-                    className="flex-1"
-                  />
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex-1 space-y-1">
+                    <Input
+                      value={newCustomKey}
+                      onChange={(e) => setNewCustomKey(e.target.value)}
+                      placeholder="Nombre del atributo (ej. Talla, SKU)"
+                      className="w-full"
+                      list="custom-spec-keys-list"
+                    />
+                    <datalist id="custom-spec-keys-list">
+                      {COMMON_SPEC_KEYS.filter((k) =>
+                        !newCustomKey || k.toLowerCase().includes(newCustomKey.toLowerCase())
+                      ).slice(0, 12).map((k) => (
+                        <option key={k} value={k} />
+                      ))}
+                    </datalist>
+                    {newCustomKey && COMMON_SPEC_KEYS.filter((k) =>
+                      k.toLowerCase().includes(newCustomKey.toLowerCase())
+                    ).length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mt-1">
+                        {COMMON_SPEC_KEYS.filter((k) =>
+                          k.toLowerCase().includes(newCustomKey.toLowerCase())
+                        ).slice(0, 5).map((k) => (
+                          <button
+                            key={k}
+                            type="button"
+                            onClick={() => setNewCustomKey(k)}
+                            className="text-xs px-2 py-1 rounded-md bg-muted hover:bg-muted/80"
+                          >
+                            {k}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <Input
                     value={newCustomValue}
                     onChange={(e) => setNewCustomValue(e.target.value)}
                     placeholder="Valor"
-                    className="flex-1"
+                    className="sm:w-48"
                   />
-                  <Button type="button" onClick={addCustomSpec} variant="outline" size="sm">
+                  <Button type="button" onClick={addCustomSpec} variant="outline" size="sm" className="shrink-0">
                     <IconPlus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -805,13 +1311,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                     {customSpecs.map((spec, index) => (
                       <div key={index} className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
                         <span className="font-medium text-sm">{spec.key}:</span>
-                        <span className="text-sm text-muted-foreground">{spec.value}</span>
+                        <span className="text-sm text-muted-foreground truncate">{spec.value || '—'}</span>
                         <Button
                           type="button"
                           onClick={() => removeCustomSpec(index)}
                           variant="ghost"
                           size="sm"
-                          className="ml-auto h-6 w-6 p-0"
+                          className="ml-auto h-6 w-6 p-0 shrink-0"
                         >
                           <IconX className="h-3 w-3" />
                         </Button>
@@ -864,19 +1370,21 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         </CardContent>
       </Card>
 
-      {/* Botones de Acción */}
-      <div className="flex items-center justify-end space-x-4 pt-6 border-t">
-        <Button type="button" variant="outline" onClick={() => reset()}>
-          LIMPIAR
-        </Button>
-        <Button 
-          type="submit" 
-          disabled={isLoading}
-          className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-        >
-          {isLoading ? 'GUARDANDO...' : submitLabel}
-        </Button>
-      </div>
+      {/* Botones de Acción (ocultos si hideActionButtons; se renderizan en la página al final) */}
+      {!hideActionButtons && (
+        <div className="flex items-center justify-end space-x-4 pt-6 border-t">
+          <Button type="button" variant="outline" onClick={() => reset()}>
+            LIMPIAR
+          </Button>
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            {isLoading ? 'GUARDANDO...' : submitLabel}
+          </Button>
+        </div>
+      )}
     </form>
   );
-};
+});
