@@ -16,7 +16,8 @@ import { Checkbox } from "@/components/ui";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui";
 import { ColorPicker } from "@/components/admin/color-picker";
 import { IconX, IconPlus, IconSettings, IconInfoCircle, IconChevronDown } from "@tabler/icons-react";
-import { useCategories, useBrands } from "@/hooks/use-products";
+import { useCategoriesRaw } from "@/hooks/use-categories";
+import { useBrands } from "@/hooks/use-products";
 import { useAllLines } from "@/hooks/use-lines";
 import { useAllSublines } from "@/hooks/use-sublines";
 import { useAllProviders } from "@/hooks/use-providers";
@@ -229,7 +230,7 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
     formId = 'product-form',
   } = props;
 
-  const { data: categories = [] } = useCategories();
+  const { data: categories = [] } = useCategoriesRaw();
   const { data: brands = [] } = useBrands();
   const { data: providers = [] } = useAllProviders();
   const { data: allLines = [] } = useAllLines();
@@ -350,7 +351,7 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
   const [isMaterialOtherSelected, setIsMaterialOtherSelected] = React.useState(initialMaterialIsOther);
 
   const [baseSpecs, setBaseSpecs] = React.useState<Record<string, any>>({
-    descripcion_corta: (initialData?.spcf_producto?.descripcion_corta || initialData?.des_producto || '').slice(0, DESC_CORTA_MAX_LENGTH),
+    descripcion_corta: String(initialData?.spcf_producto?.descripcion_corta ?? initialData?.des_producto ?? '').slice(0, DESC_CORTA_MAX_LENGTH),
     colors: initialParsed.colors,
     color_other: initialParsed.color_other,
     color_hex: initialColorHex || '#6b7280',
@@ -934,7 +935,7 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
                             checked={(baseSpecs.colors || []).includes(c)}
                             onCheckedChange={(checked) => {
                               const prev = baseSpecsRef.current.colors || [];
-                              const next = checked ? [...prev, c] : prev.filter((x) => x !== c);
+                              const next = checked ? [...prev, c] : prev.filter((x: string) => x !== c);
                               const spec = { ...baseSpecsRef.current, colors: next };
                               baseSpecsRef.current = spec;
                               setBaseSpecs(spec);

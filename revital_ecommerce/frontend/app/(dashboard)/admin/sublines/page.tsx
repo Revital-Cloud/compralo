@@ -8,9 +8,9 @@ import { sublineService } from '@/services/subline.service'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
-import { Button } from "@/components/ui"
+import { Button, Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui'
 import { Badge } from "@/components/ui"
-import { Pencil, Power } from 'lucide-react'
+import { Pencil, Power, Eye } from 'lucide-react'
 import { CreateEntityModal } from '@/components/admin/common/create-entity-modal'
 import { EditEntityModal } from '@/components/admin/common/edit-entity-modal'
 import { lineService } from '@/services/line.service'
@@ -21,17 +21,13 @@ const SublinesPage = () => {
   const queryClient = useQueryClient()
   const { data, isLoading, isError } = useAllSublines()
 
-  // Filtros locales
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<'nombre' | 'linea' | 'categoria' | 'fecha'>('nombre')
-  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC')
   const [category, setCategory] = useState('')
   const [line, setLine] = useState('')
+  const [selectedSubline, setSelectedSubline] = useState<Subline | null>(null)
 
   const clearFilters = () => {
     setSearch('')
-    setSortBy('nombre')
-    setSortOrder('ASC')
     setCategory('')
     setLine('')
   }
@@ -44,6 +40,7 @@ const SublinesPage = () => {
       rows = rows.filter(r => (
         (r as any).nom_sublinea?.toLowerCase().includes(q) ||
         (r as any).nom_linea?.toLowerCase().includes(q) ||
+        (r as any).nom_categoria?.toLowerCase().includes(q) ||
         String((r as any).id_categoria).includes(q)
       ))
     }
@@ -51,33 +48,15 @@ const SublinesPage = () => {
       rows = rows.filter(r => String((r as any).id_categoria) === String(category))
     }
     if (line) {
-      const [catId, lineId] = line.includes('-') ? line.split('-').map(Number) : [undefined, Number(line)]
-      if (catId != null && !Number.isNaN(catId) && lineId != null && !Number.isNaN(lineId)) {
-        rows = rows.filter(r => r.id_categoria === catId && r.id_linea === lineId)
-      } else if (lineId != null && !Number.isNaN(lineId)) {
-        rows = rows.filter(r => r.id_linea === lineId)
+      const parts = line.split('-').map(Number)
+      if (parts.length >= 2 && !Number.isNaN(parts[0]) && !Number.isNaN(parts[1])) {
+        rows = rows.filter(r => r.id_categoria === parts[0] && r.id_linea === parts[1])
       }
     }
-    rows = [...rows].sort((a, b) => {
-      let va: any, vb: any
-      if (sortBy === 'fecha') {
-        va = (a as any).fec_insert || ''
-        vb = (b as any).fec_insert || ''
-      } else if (sortBy === 'linea') {
-        va = (a as any).nom_linea || ''
-        vb = (b as any).nom_linea || ''
-      } else if (sortBy === 'categoria') {
-        va = (a as any).nom_categoria || ''
-        vb = (b as any).nom_categoria || ''
-      } else {
-        va = (a as any).nom_sublinea || ''
-        vb = (b as any).nom_sublinea || ''
-      }
-      const cmp = String(va).localeCompare(String(vb))
-      return sortOrder === 'ASC' ? cmp : -cmp
-    })
-    return rows
-  }, [data, search, category, line, sortBy, sortOrder])
+    return [...rows].sort((a, b) =>
+      String((a as any).nom_sublinea || '').localeCompare(String((b as any).nom_sublinea || ''))
+    )
+  }, [data, search, category, line])
 
   // Modal crear sublínea
   const [openCreate, setOpenCreate] = useState(false)
@@ -155,38 +134,44 @@ const SublinesPage = () => {
     {
       id: 'actions',
       header: 'Acciones',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Editar sublínea"
-            onClick={() => { setEditing(row.original); setOpenEdit(true) }}
-          >
-            <Pencil className="w-4 h-4" />
-          </Button>
-          <Button
-            variant={row.original.ind_activo ? "default" : "destructive"}
-            size="icon"
-            aria-label={row.original.ind_activo ? "Desactivar" : "Activar"}
-            onClick={() => {
-              const isActive = Boolean(row.original.ind_activo)
-              deactivateActivateSublineMutation.mutate({
-                ids: {
-                  id_categoria: (row.original as any).id_categoria,
-                  id_linea: (row.original as any).id_linea,
-                  id_sublinea: row.original.id_sublinea,
-                },
-                activar: !isActive
-              })
-            }}
-            disabled={deactivateActivateSublineMutation.isPending}
-            className={row.original.ind_activo ? "bg-green-600 hover:bg-green-700 text-white" : ""}
-          >
-            <Power className="w-4 h-4" />
-          </Button>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const isActive = Boolean(row.original.ind_activo)
+        const isPending = deactivateActivateSublineMutation.isPending
+        return (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" aria-label="Ver sublínea" onClick={() => setSelectedSubline(row.original)}>
+              <Eye className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              aria-label="Editar sublínea"
+              onClick={() => { setEditing(row.original); setOpenEdit(true) }}
+            >
+              <Pencil className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={row.original.ind_activo ? "default" : "destructive"}
+              size="icon"
+              aria-label={row.original.ind_activo ? "Desactivar" : "Activar"}
+              onClick={() => {
+                deactivateActivateSublineMutation.mutate({
+                  ids: {
+                    id_categoria: (row.original as any).id_categoria,
+                    id_linea: (row.original as any).id_linea,
+                    id_sublinea: row.original.id_sublinea,
+                  },
+                  activar: !isActive
+                })
+              }}
+              disabled={isPending}
+              className={row.original.ind_activo ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+            >
+              <Power className="w-4 h-4" />
+            </Button>
+          </div>
+        )
+      },
     },
   ]
 
@@ -197,6 +182,7 @@ const SublinesPage = () => {
         description="Organiza productos dentro de cada línea"
         onCreateClick={() => setOpenCreate(true)}
         createLabel="Agregar Sublínea"
+        showImportButton={false}
       />
 
       <CreateEntityModal
@@ -228,14 +214,9 @@ const SublinesPage = () => {
         }}
       />
 
-      {/* Filtros */}
       <SublinesFilters
         search={search}
         onSearchChange={setSearch}
-        sortBy={sortBy}
-        onSortByChange={(v) => setSortBy(v as any)}
-        sortOrder={sortOrder}
-        onSortOrderChange={setSortOrder}
         category={category}
         onCategoryChange={setCategory}
         line={line}
@@ -258,7 +239,6 @@ const SublinesPage = () => {
           description="Crea sublíneas para clasificar los productos dentro de cada línea."
           iconPath="M4 6h16M8 10h8M6 14h12M10 18h4"
           primaryAction={<a href="/admin/sublines/create" className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">Agregar Sublínea</a>}
-          secondaryAction={<button className="inline-flex items-center justify-center px-6 py-3 border-2 border-border text-foreground font-semibold rounded-lg hover:bg-muted/50 transition-all">Importar Excel</button>}
         />
       )}
 
@@ -270,6 +250,80 @@ const SublinesPage = () => {
           getRowId={(row: Subline) => `${row.id_categoria}-${row.id_linea}-${row.id_sublinea}`}
         />
       )}
+
+      {/* Drawer ver sublínea */}
+      <Sheet open={!!selectedSubline} onOpenChange={(open) => !open && setSelectedSubline(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto px-6 sm:px-8 pt-8 pb-8">
+          <SheetHeader className="px-0 pb-6">
+            <SheetTitle className="pr-8">Detalle de sublínea</SheetTitle>
+          </SheetHeader>
+          {selectedSubline && (
+            <div className="space-y-6 pt-2">
+              <div className="space-y-1">
+                <h3 className="font-semibold text-lg">{(selectedSubline as any).nom_sublinea}</h3>
+                <p className="text-sm text-muted-foreground">ID: {(selectedSubline as any).id_categoria}-{(selectedSubline as any).id_linea}-{selectedSubline.id_sublinea}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Categoría</h4>
+                <p className="text-sm">{(selectedSubline as any).nom_categoria ?? '-'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Línea</h4>
+                <p className="text-sm">{(selectedSubline as any).nom_linea ?? '-'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Estado</h4>
+                <span className={selectedSubline.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+                  {selectedSubline.ind_activo ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
+              {(selectedSubline as any).fec_insert && (
+                <p className="text-sm text-muted-foreground">
+                  Fecha de creación: {new Date((selectedSubline as any).fec_insert).toLocaleDateString('es', { dateStyle: 'medium' })}
+                </p>
+              )}
+              {(selectedSubline as any).fec_update && (
+                <p className="text-sm text-muted-foreground">
+                  Fecha de actualización: {new Date((selectedSubline as any).fec_update).toLocaleDateString('es', { dateStyle: 'medium' })}
+                </p>
+              )}
+              <div className="flex flex-col gap-3 pt-6 mt-2 border-t border-border">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setEditing(selectedSubline);
+                    setSelectedSubline(null);
+                    setOpenEdit(true);
+                  }}
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Editar sublínea
+                </Button>
+                <Button
+                  variant={selectedSubline.ind_activo ? 'default' : 'destructive'}
+                  className={selectedSubline.ind_activo ? 'w-full bg-green-600 hover:bg-green-700' : 'w-full'}
+                  onClick={() => {
+                    deactivateActivateSublineMutation.mutate({
+                      ids: {
+                        id_categoria: (selectedSubline as any).id_categoria,
+                        id_linea: (selectedSubline as any).id_linea,
+                        id_sublinea: selectedSubline.id_sublinea,
+                      },
+                      activar: !selectedSubline.ind_activo,
+                    });
+                    setSelectedSubline(null);
+                  }}
+                  disabled={deactivateActivateSublineMutation.isPending}
+                >
+                  <Power className="w-4 h-4 mr-2" />
+                  {selectedSubline.ind_activo ? 'Desactivar' : 'Activar'} sublínea
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

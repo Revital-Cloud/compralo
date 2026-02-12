@@ -22,9 +22,7 @@ import { parseDateSafe, toLocalISOString, isPastDate } from '@/utils/date-helper
 const discountSchema = z.object({
   nom_descuento: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
   des_descuento: z.string().min(3, 'La descripción debe tener al menos 3 caracteres'),
-  tipo_descuento: z.enum(['porcentaje', 'monto_fijo'], {
-    required_error: 'Seleccione un tipo de descuento'
-  }),
+  tipo_descuento: z.enum(['porcentaje', 'monto_fijo']),
   val_descuento: z.string().min(1, 'El valor es requerido'),
   aplica_a: z.string().default('total_pedido'),
   // IDs condicionales
@@ -85,7 +83,8 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
   const [openEndDate, setOpenEndDate] = useState(false)
 
   const form = useForm<DiscountFormData>({ 
-    resolver: zodResolver(discountSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(discountSchema as any),
     defaultValues: {
       tipo_descuento: 'porcentaje',
       aplica_a: 'total_pedido',

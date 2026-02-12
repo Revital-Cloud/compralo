@@ -37,7 +37,8 @@ export interface CreateEntityModalProps {
 }
 
 export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({ open, onOpenChange, type, title, onSubmit, extraFields }) => {
-  const form = useForm<any>({ resolver: zodResolver(schemas[type]), defaultValues: { ind_activo: true } })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const form = useForm<any>({ resolver: zodResolver(schemas[type] as any), defaultValues: { ind_activo: true } })
   const { data: allCategories = [], isLoading: loadingCategories } = useAllCategories()
   const categories = React.useMemo(() => {
     return Array.isArray(allCategories)

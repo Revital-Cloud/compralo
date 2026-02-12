@@ -1,5 +1,3 @@
-"use client"
-
 import Link from "next/link"
 import { RotateCcw, Clock, Package } from "lucide-react"
 

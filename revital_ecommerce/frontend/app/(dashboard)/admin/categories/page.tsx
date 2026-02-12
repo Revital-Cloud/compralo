@@ -3,11 +3,10 @@
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { EmptyState } from '@/components/admin/empty-states'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getAllCategories, updateCategory, deactivateActivateCategory } from '@/services/category.service'
+import { getAllCategories, updateCategory } from '@/services/category.service'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Button, Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui'
-import { Badge } from "@/components/ui"
 import { Pencil, Power, Eye } from 'lucide-react'
 import { CreateEntityModal } from '@/components/admin/common/create-entity-modal'
 import { EditEntityModal } from '@/components/admin/common/edit-entity-modal'
@@ -52,6 +51,8 @@ const CategoriesPage = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['categories', 'all'] })
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      queryClient.invalidateQueries({ queryKey: ['categories', 'raw'] })
       toast.success(variables.activar ? 'Categoría activada exitosamente' : 'Categoría desactivada exitosamente')
     },
     onError: (error: any, variables) => {
@@ -141,6 +142,7 @@ const CategoriesPage = () => {
         description="Gestiona las categorías para organizar tus productos"
         onCreateClick={() => setOpenCreate(true)}
         createLabel="Agregar Categoría"
+        showImportButton={false}
       />
 
       <CreateEntityModal
@@ -152,6 +154,8 @@ const CategoriesPage = () => {
           const { createCategory } = await import('@/services/category.service')
           await createCategory({ nom_categoria: values.nom_categoria, ind_activo: values.ind_activo })
           queryClient.invalidateQueries({ queryKey: ['categories', 'all'] })
+          queryClient.invalidateQueries({ queryKey: ['categories'] })
+          queryClient.invalidateQueries({ queryKey: ['categories', 'raw'] })
         }}
       />
 
@@ -164,6 +168,8 @@ const CategoriesPage = () => {
         onSubmit={async (values) => {
           await updateCategory((editing as any)?.id_categoria, { nom_categoria: values.nom_categoria, ind_activo: values.ind_activo })
           queryClient.invalidateQueries({ queryKey: ['categories', 'all'] })
+          queryClient.invalidateQueries({ queryKey: ['categories'] })
+          queryClient.invalidateQueries({ queryKey: ['categories', 'raw'] })
         }}
       />
 
@@ -188,15 +194,6 @@ const CategoriesPage = () => {
           description="Crea categorías para organizar tus productos por tipo."
           iconPath="M4 6h16M4 10h16M4 14h10"
           primaryAction={<a href="/admin/categories/create" className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">Agregar Categoría</a>}
-          secondaryAction={
-            <button
-              type="button"
-              title="Funcionalidad en desarrollo"
-              className="inline-flex items-center justify-center px-6 py-3 border-2 border-border text-foreground font-semibold rounded-lg hover:bg-muted/50 transition-all"
-            >
-              Importar Excel
-            </button>
-          }
         />
       )}
 

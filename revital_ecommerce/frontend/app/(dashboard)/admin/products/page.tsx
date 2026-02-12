@@ -218,7 +218,10 @@ const ProductsPage = () => {
         if (selectedSubline) {
           params.set('subline', value);
           params.set('line', String(selectedSubline.id_linea));
-          params.set('category', String(selectedSubline.id_categoria));
+          const selectedLine = filterOptions?.lineas?.find((l: any) => l.id_linea === selectedSubline.id_linea);
+          if (selectedLine?.id_categoria != null) {
+            params.set('category', String(selectedLine.id_categoria));
+          }
         } else {
           params.set('subline', value);
         }
@@ -244,8 +247,8 @@ const ProductsPage = () => {
     setSortBy(value as 'nombre' | 'precio' | 'stock' | 'fecha' | 'categoria' | 'marca');
   };
 
-  const handleSortOrderChange = (value: 'ASC' | 'DESC') => {
-    setSortOrder(value);
+  const handleSortOrderChange = (value: string) => {
+    setSortOrder(value as 'ASC' | 'DESC');
   };
 
   const handleClearFilters = () => {

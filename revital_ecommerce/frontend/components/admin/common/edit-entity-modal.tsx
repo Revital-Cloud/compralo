@@ -37,7 +37,8 @@ export interface EditEntityModalProps {
 }
 
 export const EditEntityModal: React.FC<EditEntityModalProps> = ({ open, onOpenChange, type, title, initialValues, onSubmit }) => {
-  const form = useForm<any>({ resolver: zodResolver(schemas[type]), defaultValues: initialValues })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const form = useForm<any>({ resolver: zodResolver(schemas[type] as any), defaultValues: initialValues })
 
   useEffect(() => { form.reset(initialValues) }, [initialValues, form])
 

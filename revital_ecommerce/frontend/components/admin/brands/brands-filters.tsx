@@ -30,7 +30,7 @@ export const BrandsFilters: React.FC<BrandsFiltersProps> = ({
     { value: 'fecha', label: 'Fecha de creación' }
   ];
 
-  const hasActiveFilters = search || sortBy !== 'nombre' || sortOrder !== 'ASC';
+  const hasActiveFilters = Boolean(search || sortBy !== 'nombre' || sortOrder !== 'ASC');
 
   const filters: FilterConfig[] = [];
 
