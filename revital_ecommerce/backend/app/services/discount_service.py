@@ -1,3 +1,4 @@
+import json
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -197,9 +198,31 @@ def update_discount(db:Session, id_descuento:Decimal, discount:DiscountUpdate, u
     Utiliza la función de base de datos `fun_update_descuento` para actualizar
     un descuento existente, identificado por `id_descuento`. Los datos para la
     actualización se toman del esquema `DiscountUpdate` (solo campos proporcionados).
+    Se fusionan con los valores actuales del descuento para asegurar que todos
+    los parámetros requeridos por la función SQL estén presentes.
     """
     try:
-        params = discount.model_dump(exclude_unset=True)
+        # Obtener el descuento actual para fusionar con la actualización
+        fetch_query = text("""
+        SELECT
+            nom_descuento, des_descuento, tipo_calculo, val_porce_descuento, val_monto_descuento,
+            aplica_a, id_categoria, id_linea, id_sublinea, id_producto_aplica, id_categoria_aplica,
+            id_marca_aplica, id_linea_aplica, id_sublinea_aplica, min_valor_pedido, ind_es_para_cumpleanos,
+            fec_inicio, fec_fin, max_usos_total, costo_puntos_canje, ind_canjeable_puntos,
+            codigo_descuento, max_usos_por_usuario, dias_semana_aplica, horas_inicio, horas_fin,
+            solo_primera_compra, monto_minimo_producto, cantidad_minima_producto, requiere_codigo
+        FROM tab_descuentos
+        WHERE id_descuento = :id_descuento
+        """)
+        fetch_result = db.execute(fetch_query, {"id_descuento": id_descuento})
+        row = fetch_result.fetchone()
+        if not row:
+            raise Exception("El descuento especificado no existe")
+        current = dict(row._mapping) if hasattr(row, "_mapping") else dict(zip(row.keys(), row))
+
+        # Fusionar con los datos de actualización (update sobrescribe)
+        update_data = discount.model_dump(exclude_unset=True)
+        params = {**current, **update_data}
         params["id_descuento"] = id_descuento
         params["usr_update"] = usr_update
         query = text("""
@@ -241,6 +264,11 @@ def update_discount(db:Session, id_descuento:Decimal, discount:DiscountUpdate, u
         result = db.execute(query, params)
         fetched_result = result.fetchone()
         db.commit()
+        # La función SQL retorna JSON; verificar éxito
+        if fetched_result and fetched_result[0]:
+            result_json = json.loads(fetched_result[0]) if isinstance(fetched_result[0], str) else fetched_result[0]
+            if result_json.get("success") is False:
+                raise Exception(result_json.get("message", "Error desconocido al actualizar descuento"))
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
@@ -478,15 +506,21 @@ def validate_discount_for_cart(db: Session, codigo_descuento: str, id_usuario: D
 
 def get_active_discounts(db: Session, limit: int = 50):
     """
-    Obtiene todos los descuentos activos disponibles para usuarios.
-    Filtra por descuentos activos, dentro de fechas de vigencia y con usos disponibles.
+    Obtiene los descuentos activos disponibles para toda la tienda.
+    Excluye descuentos canjeables por puntos (ind_canjeable_puntos = TRUE), ya que esos
+    solo se muestran en la sección de canjes y solo aplican al usuario que los canjeó.
+    
+    Reglas:
+    - Activo + Canjeable: NO aparece aquí (solo en canjes del usuario que lo canjeó)
+    - Solo Activo: Sí aparece para toda la tienda
+    - Solo Canjeable (inactivo): No aparece en ningún lado
     
     Args:
         db (Session): Sesión de base de datos
         limit (int): Límite de resultados a retornar
         
     Returns:
-        list: Lista de descuentos activos disponibles
+        list: Lista de descuentos activos disponibles para la tienda
     """
     try:
         query = text("""
@@ -519,6 +553,7 @@ def get_active_discounts(db: Session, limit: int = 50):
             requiere_codigo
         FROM tab_descuentos
         WHERE ind_activo = TRUE
+            AND COALESCE(ind_canjeable_puntos, FALSE) = FALSE
             AND (fec_inicio IS NULL OR fec_inicio <= CURRENT_DATE)
             AND (fec_fin IS NULL OR fec_fin >= CURRENT_DATE)
             AND (max_usos_total IS NULL OR usos_actuales_total IS NULL OR usos_actuales_total < max_usos_total)

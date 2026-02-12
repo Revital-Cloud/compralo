@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { useToggleDiscountStatus, useCreateDiscount, useUpdateDiscount, useDiscountStats } from '@/hooks/use-discounts'
+import { transformDiscountPayload } from '@/services/discount.service'
 import { CreateDiscountModal } from '@/components/admin/discounts/create-discount-modal'
 import { EditDiscountModal } from '@/components/admin/discounts/edit-discount-modal'
 import { DiscountStatsCards } from '@/components/admin/discounts/discount-stats-cards'
@@ -84,7 +85,16 @@ const DiscountsPage = () => {
       await updateMutation.mutateAsync({ id: String(editing?.id_descuento) || '', data: payload })
       toast.success('Descuento actualizado exitosamente')
     } catch (error: any) {
-      toast.error(error?.response?.data?.detail || 'Error al actualizar el descuento')
+      let errorMessage = 'Error al actualizar el descuento'
+      if (error?.response?.data?.detail) {
+        const detail = error.response.data.detail
+        errorMessage = Array.isArray(detail)
+          ? detail.map((d: any) => d.msg || JSON.stringify(d)).join(', ')
+          : typeof detail === 'string' ? detail : JSON.stringify(detail)
+      } else if (error?.message) {
+        errorMessage = error.message
+      }
+      toast.error(errorMessage)
     }
   }
 

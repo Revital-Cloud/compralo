@@ -2,7 +2,8 @@ import type { Discount } from '@/types/discount'
 import type { Product } from '@/types'
 
 /**
- * Verifica si un producto tiene un descuento aplicable
+ * Verifica si un producto tiene un descuento aplicable.
+ * Para marca_especifica se usa id_marca del producto (debe venir en la respuesta del API).
  */
 export const getApplicableDiscount = (
   product: Product | any,
@@ -12,6 +13,9 @@ export const getApplicableDiscount = (
 
   // Buscar descuentos que aplican a este producto específico
   const applicableDiscount = discounts.find(discount => {
+    // Descuentos canjeables NO se muestran en productos: solo aparecen en canjes y aplican al usuario que los canjeó
+    if (discount.ind_canjeable_puntos) return false
+
     // Verificar si el descuento está activo y dentro de fechas
     if (!discount.ind_activo) return false
 
@@ -62,24 +66,32 @@ export const getApplicableDiscount = (
       return productMatches
     }
 
-    // Si aplica a una categoría específica
-    if (aplicaA === 'categoria_especifica' && discount.id_categoria_aplica) {
-      return product.id_categoria?.toString() === discount.id_categoria_aplica.toString()
+    // Si aplica a una categoría específica (comparación robusta string|number)
+    if (aplicaA === 'categoria_especifica' && discount.id_categoria_aplica != null) {
+      const prodCat = product.id_categoria != null ? String(product.id_categoria) : ''
+      const discCat = String(discount.id_categoria_aplica)
+      return prodCat === discCat
     }
 
-    // Si aplica a una marca específica
-    if (aplicaA === 'marca_especifica' && discount.id_marca_aplica) {
-      return product.id_marca?.toString() === discount.id_marca_aplica.toString()
+    // Si aplica a una marca específica (comparación por id_marca)
+    if (aplicaA === 'marca_especifica' && discount.id_marca_aplica != null) {
+      const prodMarca = product.id_marca != null ? String(product.id_marca) : ''
+      const discMarca = String(discount.id_marca_aplica)
+      return prodMarca === discMarca
     }
 
-    // Si aplica a una línea específica
-    if (aplicaA === 'linea_especifica' && discount.id_linea_aplica) {
-      return product.id_linea?.toString() === discount.id_linea_aplica.toString()
+    // Si aplica a una línea específica (comparación robusta string|number)
+    if (aplicaA === 'linea_especifica' && discount.id_linea_aplica != null) {
+      const prodLin = product.id_linea != null ? String(product.id_linea) : ''
+      const discLin = String(discount.id_linea_aplica)
+      return prodLin === discLin
     }
 
-    // Si aplica a una sublínea específica
-    if (aplicaA === 'sublinea_especifica' && discount.id_sublinea_aplica) {
-      return product.id_sublinea?.toString() === discount.id_sublinea_aplica.toString()
+    // Si aplica a una sublínea específica (comparación robusta string|number)
+    if (aplicaA === 'sublinea_especifica' && discount.id_sublinea_aplica != null) {
+      const prodSub = product.id_sublinea != null ? String(product.id_sublinea) : ''
+      const discSub = String(discount.id_sublinea_aplica)
+      return prodSub === discSub
     }
 
     return false

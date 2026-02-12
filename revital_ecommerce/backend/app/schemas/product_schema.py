@@ -268,7 +268,7 @@ class ProductFiltered(BaseModel):
         val_precio (Decimal): Precio del producto.
         num_stock (int): Stock disponible.
         nom_proveedor (str): Nombre del proveedor.
-        rating (Optional[float]): Promedio de calificaciones del producto (1-5 estrellas).
+        id_marca (Optional[int]): ID de la marca (para descuentos por marca).
         nom_marca (str): Nombre de la marca.
         fec_insert (datetime): Fecha de inserción.
         total_registros (int): Total de registros encontrados.
@@ -286,6 +286,7 @@ class ProductFiltered(BaseModel):
     val_precio: Decimal
     num_stock: int
     nom_proveedor: str
+    id_marca: Optional[int] = None
     nom_marca: str
     fec_insert: datetime
     total_registros: int

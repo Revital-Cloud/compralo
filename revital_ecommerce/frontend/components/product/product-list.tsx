@@ -9,7 +9,9 @@ import type { Product } from "@/types"
 import Image from "next/image"
 import { getProductImageUrl } from "@/utils/image-helpers"
 import { useFavorites } from "@/hooks/use-favorites"
+import { useActiveDiscounts } from "@/hooks/use-discounts"
 import { formatPrice } from "@/utils/format-price"
+import { getApplicableDiscount, calculateDiscountedPrice, calculateDiscountPercentage } from "@/utils/discount-utils"
 
 interface ProductListProps {
   products: Product[]
@@ -25,6 +27,7 @@ const ProductList: React.FC<ProductListProps> = ({
   onToggleFavorite
 }) => {
   const { toggleFavorite, isProductFavorite } = useFavorites()
+  const { data: discounts } = useActiveDiscounts()
 
   const getBadgeVariant = (color?: string) => {
     switch (color) {
@@ -114,7 +117,18 @@ const ProductList: React.FC<ProductListProps> = ({
 
   return (
     <div className="space-y-3">
-      {products.map((product) => (
+      {products.map((product) => {
+        const applicableDiscount = discounts ? getApplicableDiscount(product, discounts) : null
+        const originalPrice = parseFloat(product.val_precio?.toString() || '0')
+        const discountedPrice = applicableDiscount
+          ? calculateDiscountedPrice(originalPrice, applicableDiscount)
+          : originalPrice
+        const hasDiscount = applicableDiscount && discountedPrice < originalPrice
+        const discountPercentage = hasDiscount
+          ? calculateDiscountPercentage(originalPrice, discountedPrice)
+          : 0
+
+        return (
         <div
           key={`${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
           className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-all duration-200 overflow-hidden"
@@ -149,10 +163,20 @@ const ProductList: React.FC<ProductListProps> = ({
                 </Link>
                 
                 <div className="flex items-center justify-between mt-2">
-                    <div className="flex flex-col">
-                     <span className="font-bold text-lg text-gray-900 dark:text-white">
-                       {formatPrice(product.val_precio)}
-                     </span>
+                    <div className="flex flex-col gap-1">
+                     <div className="flex items-center gap-2 flex-wrap">
+                       <span className="font-bold text-lg text-gray-900 dark:text-white">
+                         {formatPrice(discountedPrice)}
+                       </span>
+                       {hasDiscount && (
+                         <>
+                           <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                             {formatPrice(originalPrice)}
+                           </span>
+                           <Badge variant="destructive" className="text-xs">{discountPercentage}% OFF</Badge>
+                         </>
+                       )}
+                     </div>
                    </div>
                   
                   <div className="flex items-center gap-2">
@@ -250,10 +274,20 @@ const ProductList: React.FC<ProductListProps> = ({
 
                 {/* Price */}
                 <div className="col-span-3">
-                  <div className="flex flex-col items-start">
-                    <span className="font-bold text-lg text-gray-900 dark:text-white">
-                      {formatPrice(product.val_precio)}
-                    </span>
+                  <div className="flex flex-col items-start gap-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-lg text-gray-900 dark:text-white">
+                        {formatPrice(discountedPrice)}
+                      </span>
+                      {hasDiscount && (
+                        <>
+                          <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                            {formatPrice(originalPrice)}
+                          </span>
+                          <Badge variant="destructive" className="text-xs">{discountPercentage}% OFF</Badge>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -297,7 +331,7 @@ const ProductList: React.FC<ProductListProps> = ({
             </div>
           </div>
         </div>
-      ))}
+      )})}
     </div>
   )
 }

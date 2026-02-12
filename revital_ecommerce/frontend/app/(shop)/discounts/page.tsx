@@ -142,6 +142,20 @@ export default function DiscountsPage() {
                     </div>
                   )}
 
+                  {/* Ejemplo de precio resultante */}
+                  <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3">
+                    <p className="text-xs text-emerald-700 dark:text-emerald-400 mb-1 font-medium">
+                      Ejemplo de precio
+                    </p>
+                    <p className="text-sm text-emerald-800 dark:text-emerald-300">
+                      {discount.tipo_calculo ? (
+                        <>$100.000 → {formatPrice(100000 * (1 - (discount.val_porce_descuento || 0) / 100))}</>
+                      ) : (
+                        <>$100.000 → {formatPrice(Math.max(0, 100000 - (discount.val_monto_descuento || 0)))}</>
+                      )}
+                    </p>
+                  </div>
+
                   {/* Requisitos adicionales */}
                   {discount.min_valor_pedido && discount.min_valor_pedido > 0 && (
                     <div className="flex items-center gap-2 text-sm">

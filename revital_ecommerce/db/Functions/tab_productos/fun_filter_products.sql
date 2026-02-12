@@ -38,6 +38,7 @@
  * FECHA: 2025
  * VERSIÓN: 2.2 - Agregado soporte para arrays de múltiples valores
  */
+
 CREATE OR REPLACE FUNCTION fun_filter_products(
     p_id_categoria tab_categorias.id_categoria%TYPE DEFAULT NULL,
     p_id_linea tab_lineas.id_linea%TYPE DEFAULT NULL,
@@ -65,6 +66,7 @@ RETURNS TABLE (
     id_linea tab_productos.id_linea%TYPE,
     id_sublinea tab_productos.id_sublinea%TYPE,
     id_producto tab_productos.id_producto%TYPE,
+    id_marca tab_productos.id_marca%TYPE,
     nom_categoria tab_categorias.nom_categoria%TYPE,
     nom_linea tab_lineas.nom_linea%TYPE,
     nom_sublinea tab_sublineas.nom_sublinea%TYPE,
@@ -190,6 +192,7 @@ BEGIN
             p.id_linea,
             p.id_sublinea,
             p.id_producto,
+            p.id_marca,
             c.nom_categoria, 
             l.nom_linea, 
             s.nom_sublinea, 
