@@ -194,7 +194,10 @@ def update_cart_product_quantity(db: Session, id_carrito_producto: int, nueva_ca
         stock_query = text("""
         SELECT p.num_stock, cp.id_producto, cp.cantidad as cantidad_actual
         FROM tab_carrito_productos cp
-        JOIN tab_productos p ON cp.id_producto = p.id_producto
+        JOIN tab_productos p ON cp.id_categoria_producto = p.id_categoria
+            AND cp.id_linea_producto = p.id_linea
+            AND cp.id_sublinea_producto = p.id_sublinea
+            AND cp.id_producto = p.id_producto
         WHERE cp.id_carrito_producto = :id_carrito_producto
         """)
         stock_result = db.execute(stock_query, {"id_carrito_producto": id_carrito_producto})
