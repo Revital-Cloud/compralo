@@ -125,11 +125,28 @@ def get_user_orders(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user)
 ):
-    # Asumiendo que tienes una función `fun_obtener_ordenes_usuario`
-    # Si no, esta parte necesitará una query directa
-    query = text("SELECT * FROM fun_obtener_ordenes_usuario(:id_usuario, :limite)")
+    """
+    Obtiene el historial de órdenes del usuario autenticado usando la función
+    `fun_obtener_ordenes_usuario`. Se evita `SELECT *` para mantener un contrato
+    explícito de columnas.
+    """
+    query = text(
+        """
+        SELECT
+            id_orden,
+            fecha_pedido,
+            total_productos,
+            total_descuentos,
+            total_pedido,
+            estado_orden,
+            metodo_pago,
+            cantidad_productos,
+            descuentos_aplicados
+        FROM fun_obtener_ordenes_usuario(:id_usuario, :limite)
+        """
+    )
     params = {"id_usuario": current_user.id_usuario, "limite": limit}
-    
+
     result = db.execute(query, params).fetchall()
     return result
 

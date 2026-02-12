@@ -63,7 +63,19 @@ def get_discount_exchangeable(db:Session, id_usuario:Decimal, limit:int = 20):
     """
     try:
         query = text("""
-        SELECT * FROM fun_listar_descuentos_canjeables(
+        SELECT
+            id_descuento,
+            nom_descuento,
+            des_descuento,
+            costo_puntos_canje,
+            tipo_calculo_texto,
+            valor_descuento,
+            aplica_a,
+            fec_inicio,
+            fec_fin,
+            puede_canjear,
+            puntos_usuario
+        FROM fun_listar_descuentos_canjeables(
             :id_usuario,
             :limit
         )
