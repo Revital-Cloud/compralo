@@ -10,24 +10,27 @@ export function useCategories() {
   return useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      console.log('Fetching categories...');
-      try {
-        const apiCategories = await getCategories();
-        console.log('API categories response:', apiCategories);
-        
-        const mappedCategories = mapCategoriesToDisplay(apiCategories);
-        console.log('Mapped categories:', mappedCategories);
-        
-        return mappedCategories;
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-        throw error;
-      }
+      const apiCategories = await getCategories()
+      return mapCategoriesToDisplay(apiCategories)
     },
     staleTime: 5 * 60 * 1000, // 5 minutos - los datos se consideran frescos
     gcTime: 10 * 60 * 1000, // 10 minutos - tiempo en caché
     retry: 2, // Reintentar 2 veces en caso de error
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Backoff exponencial
+  })
+}
+
+/**
+ * Hook para obtener categorías crudas (Category[]) – útil en formularios admin
+ */
+export function useCategoriesRaw() {
+  return useQuery({
+    queryKey: ['categories', 'raw'],
+    queryFn: () => getCategories(),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   })
 }
 

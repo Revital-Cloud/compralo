@@ -15,7 +15,7 @@ export {
   useQuickSearch 
 } from './use-products'
 export { useCreateProduct } from './use-products'
-export { useCategories } from './use-categories'
+export { useCategories, useCategoriesRaw } from './use-categories'
 export { useFooterCategories } from './use-footer-categories'
 export { useAllLines, useLinesByCategory, useLine } from './use-lines'
 export { useAllSublines, useSublinesByLine, useSubline } from './use-sublines'
@@ -25,7 +25,6 @@ export { useDashboardData } from './use-dashboard-data'
 // Discounts and Points hooks
 export { 
   useDiscounts, 
-  useExchangeableDiscounts, 
   useCreateDiscount, 
   useUpdateDiscount, 
   useToggleDiscountStatus 

@@ -9,6 +9,10 @@ import type { FilterOptions } from '@/types/product';
 interface ProductsFiltersProps {
   search: string;
   onSearchChange: (value: string) => void;
+  sortBy?: string;
+  onSortByChange?: (value: string) => void;
+  sortOrder?: 'ASC' | 'DESC';
+  onSortOrderChange?: (value: string) => void;
   category: string;
   onCategoryChange: (value: string) => void;
   brand: string;
@@ -27,9 +31,22 @@ interface ProductsFiltersProps {
   optionsLoading?: boolean;
 }
 
+const SORT_OPTIONS = [
+  { value: 'nombre', label: 'Nombre' },
+  { value: 'precio', label: 'Precio' },
+  { value: 'stock', label: 'Stock' },
+  { value: 'fecha', label: 'Fecha' },
+  { value: 'categoria', label: 'Categoría' },
+  { value: 'marca', label: 'Marca' },
+];
+
 export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
   search,
   onSearchChange,
+  sortBy = 'nombre',
+  onSortByChange,
+  sortOrder = 'ASC',
+  onSortOrderChange,
   category,
   onCategoryChange,
   brand,
@@ -338,6 +355,11 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
       onSearchChange={onSearchChange}
       searchPlaceholder="Nombre del producto..."
       filters={filters}
+      sortBy={sortBy}
+      onSortByChange={onSortByChange}
+      sortOrder={sortOrder}
+      onSortOrderChange={onSortOrderChange}
+      sortOptions={SORT_OPTIONS}
       stockStats={stockStats}
       totalResults={totalResults}
       onClearFilters={onClearFilters}

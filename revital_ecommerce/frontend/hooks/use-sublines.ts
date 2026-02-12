@@ -4,8 +4,10 @@ import { sublineService } from '@/services/subline.service';
 export interface Subline {
   id_sublinea: number;
   nom_sublinea: string;
+  desc_sublinea?: string;
   id_categoria: number;
   id_linea: number;
+  productos_count?: number;
   ind_activo?: boolean;
   fec_insert?: string;
   fec_update?: string;

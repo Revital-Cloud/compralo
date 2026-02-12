@@ -32,21 +32,11 @@ function validateCartLimit(
   quantity: number
 ): string | null {
   const newTotal = currentTotal + productPrice * quantity;
-  console.log("🔍 [VALIDATE LIMIT] Calculando:", {
-    currentTotal,
-    productPrice,
-    quantity,
-    newTotal,
-    limit: cartService.CART_LIMITS.MAX_TOTAL,
-    exceeds: newTotal > cartService.CART_LIMITS.MAX_TOTAL,
-  });
 
   if (newTotal > cartService.CART_LIMITS.MAX_TOTAL) {
-    const errorMsg = `Límite de carrito alcanzado. El máximo permitido es ${formatPrice(
+    return `Límite de carrito alcanzado. El máximo permitido es ${formatPrice(
       cartService.CART_LIMITS.MAX_TOTAL
     )}`;
-    console.log("❌ [VALIDATE LIMIT] Error:", errorMsg);
-    return errorMsg;
   }
   return null;
 }
@@ -55,25 +45,13 @@ function validateCartLimit(
  * Valida si el carrito migrado excede el límite y muestra alerta
  */
 function validateCartLimitAfterMigration(currentTotal: number): boolean {
-  console.log("🔍 [CART LIMIT] Validando límite después de migración:", {
-    currentTotal,
-    limit: cartService.CART_LIMITS.MAX_TOTAL,
-    exceeds: currentTotal > cartService.CART_LIMITS.MAX_TOTAL,
-  });
-
   if (currentTotal > cartService.CART_LIMITS.MAX_TOTAL) {
     const limitFormatted = formatPrice(cartService.CART_LIMITS.MAX_TOTAL);
     const currentFormatted = formatPrice(currentTotal);
 
-    // Mostrar toast de error con información detallada
     toast.error("Límite de carrito excedido", {
       description: `El total de tu carrito (${currentFormatted}) excede el límite máximo permitido (${limitFormatted}). Por favor, elimina algunos productos del carrito para continuar.`,
       duration: 8000,
-    });
-
-    console.log("❌ [CART LIMIT] Límite excedido después de migración:", {
-      currentTotal,
-      limit: cartService.CART_LIMITS.MAX_TOTAL,
     });
 
     return true; // Indica que se excedió el límite

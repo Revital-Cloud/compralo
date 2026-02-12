@@ -10,6 +10,10 @@ export interface TopInfoBarConfig {
   color_texto: string | null
   fec_inicio: string | null
   fec_fin: string | null
+  boton_texto: string | null
+  boton_url: string | null
+  boton_color_fondo: string | null
+  boton_color_texto: string | null
   num_version: number
 }
 
@@ -21,6 +25,10 @@ export interface TopInfoBarPayload {
   color_texto?: string | null
   fec_inicio?: string | null
   fec_fin?: string | null
+  boton_texto?: string | null
+  boton_url?: string | null
+  boton_color_fondo?: string | null
+  boton_color_texto?: string | null
 }
 
 export const topInfoBarService = {

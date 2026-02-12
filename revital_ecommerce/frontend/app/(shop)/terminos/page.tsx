@@ -1,5 +1,3 @@
-"use client"
-
 import Link from "next/link"
 import { getSectionById } from "@/components/chatbot-widget/chatbot-menu-content"
 

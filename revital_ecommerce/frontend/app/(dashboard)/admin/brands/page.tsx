@@ -10,9 +10,9 @@ import { brandService } from '@/services/brand.service'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
-import { Button } from "@/components/ui"
+import { Button, Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui'
 import { Badge } from "@/components/ui"
-import { Pencil, Power } from 'lucide-react'
+import { Pencil, Power, Eye } from 'lucide-react'
 import { BrandsFilters } from '@/components/admin/brands/brands-filters'
 import { toast } from 'sonner'
 
@@ -28,16 +28,10 @@ const BrandsPage = () => {
   const queryClient = useQueryClient()
   const { data, isLoading, isError } = useAllBrands()
 
-  // Filtros locales
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<'nombre' | 'fecha'>('nombre')
-  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC')
+  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null)
 
-  const clearFilters = () => {
-    setSearch('')
-    setSortBy('nombre')
-    setSortOrder('ASC')
-  }
+  const clearFilters = () => setSearch('')
 
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
@@ -46,20 +40,8 @@ const BrandsPage = () => {
       const q = search.toLowerCase()
       rows = rows.filter(r => r.nom_marca?.toLowerCase().includes(q))
     }
-    rows = [...rows].sort((a, b) => {
-      let va: any, vb: any
-      if (sortBy === 'fecha') {
-        va = a.fec_insert || ''
-        vb = b.fec_insert || ''
-      } else {
-        va = a.nom_marca || ''
-        vb = b.nom_marca || ''
-      }
-      const cmp = String(va).localeCompare(String(vb))
-      return sortOrder === 'ASC' ? cmp : -cmp
-    })
-    return rows
-  }, [data, search, sortBy, sortOrder])
+    return [...rows].sort((a, b) => String(a.nom_marca || '').localeCompare(String(b.nom_marca || '')))
+  }, [data, search])
 
   const deactivateActivateBrandMutation = useMutation({
     mutationFn: async ({ id_marca, activar }: { id_marca: number; activar: boolean }) => {
@@ -124,6 +106,9 @@ const BrandsPage = () => {
       header: 'Acciones',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" aria-label="Ver marca" onClick={() => setSelectedBrand(row.original)}>
+            <Eye className="w-4 h-4" />
+          </Button>
           <Button variant="outline" size="icon" aria-label="Editar marca" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
             <Pencil className="w-4 h-4" />
           </Button>
@@ -156,6 +141,7 @@ const BrandsPage = () => {
         description="Registra las marcas con las que trabajas"
         onCreateClick={() => setOpenCreate(true)}
         createLabel="Agregar Marca"
+        showImportButton={false}
       />
 
       <CreateEntityModal
@@ -181,14 +167,9 @@ const BrandsPage = () => {
         }}
       />
 
-      {/* Filtros */}
       <BrandsFilters
         search={search}
         onSearchChange={setSearch}
-        sortBy={sortBy}
-        onSortByChange={(v) => setSortBy(v as any)}
-        sortOrder={sortOrder}
-        onSortOrderChange={setSortOrder}
         onClearFilters={clearFilters}
         totalResults={Array.isArray(filteredData) ? filteredData.length : 0}
       />
@@ -207,7 +188,6 @@ const BrandsPage = () => {
           description="Registra marcas para asociarlas a tus productos."
           iconPath="M12 6l-2 4-4 .5 3 3-.8 4.5L12 16l3.8 2-1-4.5 3-3-4-.5L12 6z"
           primaryAction={<a href="/admin/brands/create" className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">Agregar Marca</a>}
-          secondaryAction={<button className="inline-flex items-center justify-center px-6 py-3 border-2 border-border text-foreground font-semibold rounded-lg hover:bg-muted/50 transition-all">Importar Excel</button>}
         />
       )}
 
@@ -216,8 +196,59 @@ const BrandsPage = () => {
           columns={[...columns, ...actions]} 
           data={filteredData}
           pageSize={10}
+          getRowId={(row: Brand) => String(row.id_marca)}
         />
       )}
+
+      <Sheet open={!!selectedBrand} onOpenChange={(open) => !open && setSelectedBrand(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto px-6 sm:px-8 pt-8 pb-8">
+          <SheetHeader className="px-0 pb-6">
+            <SheetTitle className="pr-8">Detalle de marca</SheetTitle>
+          </SheetHeader>
+          {selectedBrand && (
+            <div className="space-y-6 pt-2">
+              <div className="space-y-1">
+                <h3 className="font-semibold text-lg">{selectedBrand.nom_marca}</h3>
+                <p className="text-sm text-muted-foreground">ID: {selectedBrand.id_marca}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Estado</h4>
+                <span className={selectedBrand.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+                  {selectedBrand.ind_activo ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
+              {selectedBrand.fec_insert && (
+                <p className="text-sm text-muted-foreground">
+                  Fecha de creación: {new Date(selectedBrand.fec_insert).toLocaleDateString('es', { dateStyle: 'medium' })}
+                </p>
+              )}
+              {selectedBrand.fec_update && (
+                <p className="text-sm text-muted-foreground">
+                  Fecha de actualización: {new Date(selectedBrand.fec_update).toLocaleDateString('es', { dateStyle: 'medium' })}
+                </p>
+              )}
+              <div className="flex flex-col gap-3 pt-6 mt-2 border-t border-border">
+                <Button variant="outline" className="w-full" onClick={() => { setEditing(selectedBrand); setSelectedBrand(null); setOpenEdit(true) }}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Editar marca
+                </Button>
+                <Button
+                  variant={selectedBrand.ind_activo ? 'default' : 'destructive'}
+                  className={selectedBrand.ind_activo ? 'w-full bg-green-600 hover:bg-green-700' : 'w-full'}
+                  onClick={() => {
+                    deactivateActivateBrandMutation.mutate({ id_marca: selectedBrand.id_marca, activar: !selectedBrand.ind_activo })
+                    setSelectedBrand(null)
+                  }}
+                  disabled={deactivateActivateBrandMutation.isPending}
+                >
+                  <Power className="w-4 h-4 mr-2" />
+                  {selectedBrand.ind_activo ? 'Desactivar' : 'Activar'} marca
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

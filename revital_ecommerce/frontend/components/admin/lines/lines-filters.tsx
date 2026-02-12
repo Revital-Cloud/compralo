@@ -3,15 +3,11 @@
 import React from 'react';
 import { UniversalFilters } from "@/components/ui";
 import { useCategories } from '@/hooks/use-categories';
-import { FilterConfig, SortOption } from '@/types/filters';
+import { FilterConfig } from '@/types/filters';
 
 interface LinesFiltersProps {
   search: string;
   onSearchChange: (value: string) => void;
-  sortBy: string;
-  onSortByChange: (value: string) => void;
-  sortOrder: 'ASC' | 'DESC';
-  onSortOrderChange: (value: 'ASC' | 'DESC') => void;
   category: string;
   onCategoryChange: (value: string) => void;
   onClearFilters: () => void;
@@ -21,10 +17,6 @@ interface LinesFiltersProps {
 export const LinesFilters: React.FC<LinesFiltersProps> = ({
   search,
   onSearchChange,
-  sortBy,
-  onSortByChange,
-  sortOrder,
-  onSortOrderChange,
   category,
   onCategoryChange,
   onClearFilters,
@@ -32,13 +24,7 @@ export const LinesFilters: React.FC<LinesFiltersProps> = ({
 }) => {
   const { data: categories, isLoading: categoriesLoading } = useCategories();
 
-  const sortOptions: SortOption[] = [
-    { value: 'nombre', label: 'Nombre' },
-    { value: 'categoria', label: 'Categoría' },
-    { value: 'fecha', label: 'Fecha de creación' }
-  ];
-
-  const hasActiveFilters = search || category || sortBy !== 'nombre' || sortOrder !== 'ASC';
+  const hasActiveFilters = !!search || !!category;
 
   const filters: FilterConfig[] = [
     {
@@ -59,11 +45,7 @@ export const LinesFilters: React.FC<LinesFiltersProps> = ({
       onSearchChange={onSearchChange}
       searchPlaceholder="Buscar línea..."
       filters={filters}
-      sortBy={sortBy}
-      onSortByChange={onSortByChange}
-      sortOrder={sortOrder}
-      onSortOrderChange={onSortOrderChange}
-      sortOptions={sortOptions}
+      sortOptions={[]}
       totalResults={totalResults}
       onClearFilters={onClearFilters}
       hasActiveFilters={hasActiveFilters}

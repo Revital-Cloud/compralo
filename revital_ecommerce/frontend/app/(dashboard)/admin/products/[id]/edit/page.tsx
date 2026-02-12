@@ -1,16 +1,20 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ProductCreateHeader, ProductForm, ProductImageUpload } from '@/components/admin/products';
+import { ProductCreateHeader, ProductForm, type ProductFormRef, ProductImageUpload } from '@/components/admin/products';
+import { Button } from '@/components/ui';
 import { useProductAdminDetail, useUpdateProduct } from '@/hooks/use-products';
 import type { ProductCreate } from '@/types';
+
+const FORM_ID = 'product-form-edit';
 
 const ProductEditPage = () => {
   const params = useParams();
   const router = useRouter();
   const slug = (params?.id as string) || '';
+  const formRef = useRef<ProductFormRef>(null);
   const [selectedImages, setSelectedImages] = useState<any[]>([]);
 
   const { data: product, isLoading, error } = useProductAdminDetail(slug);
@@ -131,27 +135,40 @@ const ProductEditPage = () => {
         backUrl="/admin/products"
       />
 
-      {/* Main Content */}
+      {/* Main Content: formulario e imágenes; botones siempre al final en responsive */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {/* Form Section */}
         <div className="xl:col-span-2">
-          <ProductForm 
+          <ProductForm
+            ref={formRef}
+            formId={FORM_ID}
+            hideActionButtons
             initialData={initialData}
             isLoading={isLoading || updateProductMutation.isPending}
             submitLabel="GUARDAR CAMBIOS"
             onSubmit={handleFormSubmit}
-            isEditing={true} // Indicar que estamos editando
+            isEditing
           />
         </div>
-
-        {/* Image Upload Section */}
         <div className="xl:col-span-1">
-          <ProductImageUpload 
+          <ProductImageUpload
             onImagesChange={handleImagesChange}
             maxImages={10}
             maxFileSize={5}
             existingImages={product?.img_producto}
           />
+        </div>
+        <div className="col-span-1 xl:col-span-3 flex flex-wrap items-center justify-end gap-4 pt-6 border-t">
+          <Button type="button" variant="outline" onClick={() => formRef.current?.reset()}>
+            LIMPIAR
+          </Button>
+          <Button
+            type="submit"
+            form={FORM_ID}
+            disabled={isLoading || updateProductMutation.isPending}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            {updateProductMutation.isPending ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
+          </Button>
         </div>
       </div>
     </div>
