@@ -218,15 +218,12 @@ export function useBrands() {
 export function useFilterProducts(filters: ProductFilterParams) {
   return useQuery({
     queryKey: PRODUCT_KEYS.filter(filters),
-    queryFn: () => {
-      console.log('🚀 Ejecutando query de filtros:', filters)
-      return productService.filterProducts(filters)
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutos - aumentar para evitar llamadas frecuentes
-    placeholderData: (previousData) => previousData, // Mantener datos anteriores durante la carga
-    refetchOnWindowFocus: false, // Evitar refetch innecesario
-    refetchOnMount: false, // Evitar refetch al montar si ya tenemos datos
-    refetchOnReconnect: false, // Evitar refetch al reconectar
+    queryFn: () => productService.filterProducts(filters),
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    placeholderData: (previousData) => previousData,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   });
 }
 

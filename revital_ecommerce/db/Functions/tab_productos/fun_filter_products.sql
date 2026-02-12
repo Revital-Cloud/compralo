@@ -205,7 +205,7 @@ BEGIN
              FROM tab_productos p2
              LEFT JOIN tab_categorias c2 ON p2.id_categoria = c2.id_categoria
              LEFT JOIN tab_lineas l2 ON p2.id_linea = l2.id_linea AND p2.id_categoria = l2.id_categoria
-             LEFT JOIN tab_sublineas s2 ON p2.id_sublinea = s2.id_sublinea AND p2.id_linea = s2.id_linea
+             LEFT JOIN tab_sublineas s2 ON p2.id_sublinea = s2.id_sublinea AND p2.id_linea = s2.id_linea AND p2.id_categoria = s2.id_categoria
              LEFT JOIN tab_proveedores pr2 ON p2.id_proveedor = pr2.id_proveedor
              LEFT JOIN tab_marcas m2 ON p2.id_marca = m2.id_marca
              WHERE p2.ind_activo = true' || 
@@ -233,7 +233,7 @@ BEGIN
         FROM tab_productos p
         LEFT JOIN tab_categorias c ON p.id_categoria = c.id_categoria
         LEFT JOIN tab_lineas l ON p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria
-        LEFT JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea
+        LEFT JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea AND p.id_categoria = s.id_categoria
         LEFT JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
         LEFT JOIN tab_marcas m ON p.id_marca = m.id_marca
         ' || v_where_conditions || '
