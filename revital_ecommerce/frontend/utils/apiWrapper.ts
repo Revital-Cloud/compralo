@@ -298,8 +298,11 @@ export async function put<T>(endpoint: string, data?: any, config?: AxiosRequest
     const response = await api.put<T>(endpoint, data, config);
     console.log("✅ [API] PUT response:", response.status, response.data);
     return response.data;
-  } catch (error) {
-    console.error("❌ [API] PUT error:", error);
+  } catch (error: any) {
+    const data = error?.response?.data;
+    const detail = data?.detail;
+    const msg = typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map((e: any) => e?.msg ?? e).join(", ") : detail ?? error?.message ?? "Error en la petición";
+    console.error("❌ [API] PUT error:", msg, data ?? error);
     throw error;
   }
 }

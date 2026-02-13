@@ -392,7 +392,24 @@ def get_order_detail(db:Session, id_orden: Decimal):
     """
     try:
         query = text("""
-        SELECT * FROM tab_ordenes WHERE id_orden = :id_orden
+        SELECT
+            id_orden,
+            fec_pedido,
+            id_usuario,
+            val_total_productos,
+            val_total_descuentos,
+            val_total_pedido,
+            ind_estado,
+            metodo_pago,
+            id_descuento,
+            detalle_descuentos_aplicados,
+            des_observaciones,
+            usr_insert,
+            fec_insert,
+            usr_update,
+            fec_update
+        FROM tab_ordenes
+        WHERE id_orden = :id_orden
         """)
         result = db.execute(query, {"id_orden": id_orden})
         return result.mappings().first()

@@ -106,8 +106,9 @@ const ProductsPage = () => {
       ...(selectedBrands.length > 0 && { id_marca: selectedBrands.map(Number) }),
       ...(selectedProviders.length > 0 && { id_proveedor: selectedProviders.map(Number) }),
       ...(searchQuery.trim() && { nombre_producto: searchQuery.trim() }),
+      // No enviar precio cuando priceRange es [0,0] (estado sin inicializar - causaba bug de solo 1 producto)
       ...(priceRange[0] > dynamicPriceRange.min && { precio_min: priceRange[0] }),
-      ...(priceRange[1] < dynamicPriceRange.max && { precio_max: priceRange[1] }),
+      ...(priceRange[1] < dynamicPriceRange.max && !(priceRange[0] === 0 && priceRange[1] === 0) && { precio_max: priceRange[1] }),
     }
   }, [
     selectedCategories,
@@ -116,19 +117,24 @@ const ProductsPage = () => {
     selectedBrands,
     selectedProviders,
     searchQuery,
-    priceRange[0],
-    priceRange[1],
-    dynamicPriceRange.min,
-    dynamicPriceRange.max,
-    inStockOnly,
-    sortBy,
-    itemsPerPage,
-    currentPage,
-  ])
+      priceRange[0],
+      priceRange[1],
+      dynamicPriceRange.min,
+      dynamicPriceRange.max,
+      inStockOnly,
+      sortBy,
+      itemsPerPage,
+      currentPage,
+    ])
 
 
   // Solo hacer llamadas si realmente hay filtros activos o es la carga inicial
   const hasActiveFilters = useMemo(() => {
+    const priceRangeInitialized = !(priceRange[0] === 0 && priceRange[1] === 0)
+    const priceFilterActive = priceRangeInitialized && (
+      priceRange[0] > dynamicPriceRange.min ||
+      priceRange[1] < dynamicPriceRange.max
+    )
     return (
       selectedCategories.length > 0 ||
       selectedLines.length > 0 ||
@@ -136,8 +142,7 @@ const ProductsPage = () => {
       selectedBrands.length > 0 ||
       selectedProviders.length > 0 ||
       searchQuery.trim() !== '' ||
-      priceRange[0] > dynamicPriceRange.min ||
-      priceRange[1] < dynamicPriceRange.max ||
+      priceFilterActive ||
       inStockOnly
     )
   }, [
@@ -175,7 +180,7 @@ const ProductsPage = () => {
 
   // Función para limpiar todos los filtros - estabilizada con useCallback
   const clearAllFilters = useCallback(() => {
-    setPriceRange([dynamicPriceRange.min, dynamicPriceRange.max]) // Usar rango dinámico
+    setPriceRange([dynamicPriceRange.min, dynamicPriceRange.max])
     setSelectedCategories([])
     setSelectedLines([])
     setSelectedSublines([])
@@ -204,10 +209,12 @@ const ProductsPage = () => {
   // Los filtros se aplican automáticamente con useMemo - no necesitamos función applyFilters
 
   // Contar filtros activos
+  const priceRangeInitialized = !(priceRange[0] === 0 && priceRange[1] === 0)
+  const priceFilterActive = priceRangeInitialized && (priceRange[0] > dynamicPriceRange.min || priceRange[1] < dynamicPriceRange.max)
   const activeFiltersCount = selectedCategories.length + 
     selectedLines.length + selectedSublines.length + selectedBrands.length +
     selectedProviders.length + (inStockOnly ? 1 : 0) + 
-    (searchQuery ? 1 : 0) + (priceRange[0] > dynamicPriceRange.min || priceRange[1] < dynamicPriceRange.max ? 1 : 0)
+    (searchQuery ? 1 : 0) + (priceFilterActive ? 1 : 0)
 
   // Inicializar el rango de precios cuando se cargan los datos de la DB
   useEffect(() => {

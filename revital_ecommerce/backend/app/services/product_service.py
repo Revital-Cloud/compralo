@@ -901,7 +901,25 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
         
         # Usar función de base de datos
         query = text("""
-            SELECT * FROM fun_filter_products(
+            SELECT
+                id_categoria,
+                id_linea,
+                id_sublinea,
+                id_producto,
+                id_marca,
+                nom_categoria,
+                nom_linea,
+                nom_sublinea,
+                nom_producto,
+                spcf_producto,
+                img_producto,
+                val_precio,
+                num_stock,
+                nom_proveedor,
+                nom_marca,
+                fec_insert,
+                total_registros
+            FROM fun_filter_products(
                 :p_id_categoria,
                 :p_id_linea,
                 :p_id_sublinea,
@@ -1065,6 +1083,7 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
                 val_precio=row['val_precio'],
                 num_stock=row['num_stock'],
                 nom_proveedor=row['nom_proveedor'],
+                id_marca=row.get('id_marca'),
                 nom_marca=row['nom_marca'],
                 fec_insert=row['fec_insert'],
                 total_registros=row['total_registros'],

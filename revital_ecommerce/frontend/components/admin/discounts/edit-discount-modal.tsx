@@ -127,58 +127,58 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
     }
   }, [open])
 
-  // Cargar valores iniciales cuando cambien
+  // Cargar valores iniciales cuando cambien - esperar a que open e initialValues estén listos
   useEffect(() => {
-    if (initialValues && open) {
-      // Convertir valores del backend al formato del formulario
-      const formattedValues: any = {
-        nom_descuento: initialValues.nom_descuento || '',
-        des_descuento: initialValues.des_descuento || '',
-        tipo_descuento: initialValues.tipo_calculo ? 'porcentaje' : 'monto_fijo',
-        val_descuento: initialValues.tipo_calculo 
-          ? (initialValues.val_porce_descuento?.toString() || '')
-          : (initialValues.val_monto_descuento?.toString() || ''),
-        aplica_a: initialValues.aplica_a || 'total_pedido',
-        id_producto_aplica: initialValues.id_producto_aplica?.toString() || '',
-        id_categoria_producto: initialValues.id_categoria?.toString() || '',
-        id_linea_producto: initialValues.id_linea?.toString() || '',
-        id_sublinea_producto: initialValues.id_sublinea?.toString() || '',
-        id_categoria_aplica: initialValues.id_categoria_aplica?.toString() || '',
-        id_marca_aplica: initialValues.id_marca_aplica?.toString() || '',
-        id_categoria_linea: initialValues.id_categoria?.toString() || '',
-        id_linea_aplica: initialValues.id_linea_aplica?.toString() || '',
-        id_categoria_sublinea: initialValues.id_categoria?.toString() || '',
-        id_linea_sublinea: initialValues.id_linea?.toString() || '',
-        id_sublinea_aplica: initialValues.id_sublinea_aplica?.toString() || '',
-        monto_min_compra: initialValues.min_valor_pedido?.toString() || '',
-        val_puntos_requeridos: initialValues.costo_puntos_canje?.toString() || '',
-        cod_cupon: initialValues.codigo_descuento || '',
-        fec_inicio: initialValues.fec_inicio 
-          ? new Date(initialValues.fec_inicio).toISOString().split('T')[0]
-          : '',
-        fec_fin: initialValues.fec_fin 
-          ? new Date(initialValues.fec_fin).toISOString().split('T')[0]
-          : '',
-        max_usos: initialValues.max_usos_total?.toString() || '',
-        max_usos_por_usuario: initialValues.max_usos_por_usuario?.toString() || '',
-        ind_activo: initialValues.ind_activo ?? true,
-        ind_canjeable_puntos: initialValues.ind_canjeable_puntos ?? false,
-        ind_es_para_cumpleanos: initialValues.ind_es_para_cumpleanos ?? false,
-        solo_primera_compra: initialValues.solo_primera_compra ?? false,
-        monto_minimo_producto: initialValues.monto_minimo_producto?.toString() || '',
-        cantidad_minima_producto: initialValues.cantidad_minima_producto?.toString() || '1',
-        requiere_codigo: initialValues.requiere_codigo ?? false,
+    if (!initialValues || !open) return
+    const v = initialValues
+    const toStr = (x: unknown) => (x != null ? String(x) : '')
+    const toDateStr = (x: unknown) => {
+      if (!x) return ''
+      try {
+        const d = new Date(x as string)
+        return isNaN(d.getTime()) ? '' : d.toISOString().split('T')[0]
+      } catch {
+        return ''
       }
-
-      // Determinar costo_envio o compra_minima basado en aplica_a
-      if (initialValues.aplica_a === 'costo_envio') {
-        formattedValues.costo_envio = initialValues.min_valor_pedido?.toString() || ''
-      } else if (initialValues.aplica_a === 'compra_minima') {
-        formattedValues.compra_minima = initialValues.min_valor_pedido?.toString() || ''
-      }
-
-      form.reset(formattedValues)
     }
+    const formattedValues: any = {
+      nom_descuento: toStr(v.nom_descuento),
+      des_descuento: toStr(v.des_descuento),
+      tipo_descuento: v.tipo_calculo === true ? 'porcentaje' : 'monto_fijo',
+      val_descuento: v.tipo_calculo === true ? toStr(v.val_porce_descuento) : toStr(v.val_monto_descuento),
+      aplica_a: toStr(v.aplica_a) || 'total_pedido',
+      id_producto_aplica: toStr(v.id_producto_aplica),
+      id_categoria_producto: toStr(v.id_categoria),
+      id_linea_producto: toStr(v.id_linea),
+      id_sublinea_producto: toStr(v.id_sublinea),
+      id_categoria_aplica: toStr(v.id_categoria_aplica ?? v.id_categoria),
+      id_marca_aplica: toStr(v.id_marca_aplica),
+      id_categoria_linea: toStr(v.id_categoria),
+      id_linea_aplica: toStr(v.id_linea_aplica ?? v.id_linea),
+      id_categoria_sublinea: toStr(v.id_categoria),
+      id_linea_sublinea: toStr(v.id_linea),
+      id_sublinea_aplica: toStr(v.id_sublinea_aplica ?? v.id_sublinea),
+      monto_min_compra: toStr(v.min_valor_pedido),
+      val_puntos_requeridos: toStr(v.costo_puntos_canje),
+      cod_cupon: toStr(v.codigo_descuento),
+      fec_inicio: toDateStr(v.fec_inicio),
+      fec_fin: toDateStr(v.fec_fin),
+      max_usos: toStr(v.max_usos_total),
+      max_usos_por_usuario: toStr(v.max_usos_por_usuario),
+      ind_activo: v.ind_activo ?? true,
+      ind_canjeable_puntos: v.ind_canjeable_puntos ?? false,
+      ind_es_para_cumpleanos: v.ind_es_para_cumpleanos ?? false,
+      solo_primera_compra: v.solo_primera_compra ?? false,
+      monto_minimo_producto: toStr(v.monto_minimo_producto),
+      cantidad_minima_producto: toStr(v.cantidad_minima_producto) || '1',
+      requiere_codigo: v.requiere_codigo ?? false,
+    }
+    if (v.aplica_a === 'costo_envio') {
+      formattedValues.costo_envio = toStr(v.min_valor_pedido)
+    } else if (v.aplica_a === 'compra_minima') {
+      formattedValues.compra_minima = toStr(v.min_valor_pedido)
+    }
+    form.reset(formattedValues)
   }, [initialValues, open, form])
 
   const handleSubmit = form.handleSubmit(async (values) => {
@@ -380,7 +380,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                 >
                   <option value="">Selecciona una línea</option>
                   {lines
-                    .filter(line => line.id_categoria === parseInt(form.watch('id_categoria_linea') || '0'))
+                    .filter(line => Number(line.id_categoria) === Number(form.watch('id_categoria_linea') || 0))
                     .map((line, index) => (
                       <option key={`line-${line.id_categoria}-${line.id_linea}-${index}`} value={line.id_linea}>
                         {line.nom_linea}
@@ -418,7 +418,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                   >
                     <option value="">Selecciona</option>
                     {lines
-                      .filter(line => line.id_categoria === parseInt(form.watch('id_categoria_sublinea') || '0'))
+                      .filter(line => Number(line.id_categoria) === Number(form.watch('id_categoria_sublinea') || 0))
                       .map((line, index) => (
                         <option key={`subline-line-${line.id_categoria}-${line.id_linea}-${index}`} value={line.id_linea}>
                           {line.nom_linea}
@@ -435,9 +435,9 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                   >
                     <option value="">Selecciona</option>
                     {sublines
-                      .filter(sub => 
-                        sub.id_categoria === parseInt(form.watch('id_categoria_sublinea') || '0') &&
-                        sub.id_linea === parseInt(form.watch('id_linea_sublinea') || '0')
+                      .filter(sub =>
+                        Number(sub.id_categoria) === Number(form.watch('id_categoria_sublinea') || 0) &&
+                        Number(sub.id_linea) === Number(form.watch('id_linea_sublinea') || 0)
                       )
                       .map((subline, index) => (
                         <option key={`subline-${subline.id_categoria}-${subline.id_linea}-${subline.id_sublinea}-${index}`} value={subline.id_sublinea}>

@@ -38,6 +38,7 @@
  * FECHA: 2025
  * VERSIÓN: 2.2 - Agregado soporte para arrays de múltiples valores
  */
+
 CREATE OR REPLACE FUNCTION fun_filter_products(
     p_id_categoria tab_categorias.id_categoria%TYPE DEFAULT NULL,
     p_id_linea tab_lineas.id_linea%TYPE DEFAULT NULL,
@@ -65,6 +66,7 @@ RETURNS TABLE (
     id_linea tab_productos.id_linea%TYPE,
     id_sublinea tab_productos.id_sublinea%TYPE,
     id_producto tab_productos.id_producto%TYPE,
+    id_marca tab_productos.id_marca%TYPE,
     nom_categoria tab_categorias.nom_categoria%TYPE,
     nom_linea tab_lineas.nom_linea%TYPE,
     nom_sublinea tab_sublineas.nom_sublinea%TYPE,
@@ -190,6 +192,7 @@ BEGIN
             p.id_linea,
             p.id_sublinea,
             p.id_producto,
+            p.id_marca,
             c.nom_categoria, 
             l.nom_linea, 
             s.nom_sublinea, 
@@ -205,7 +208,7 @@ BEGIN
              FROM tab_productos p2
              LEFT JOIN tab_categorias c2 ON p2.id_categoria = c2.id_categoria
              LEFT JOIN tab_lineas l2 ON p2.id_linea = l2.id_linea AND p2.id_categoria = l2.id_categoria
-             LEFT JOIN tab_sublineas s2 ON p2.id_sublinea = s2.id_sublinea AND p2.id_linea = s2.id_linea
+             LEFT JOIN tab_sublineas s2 ON p2.id_sublinea = s2.id_sublinea AND p2.id_linea = s2.id_linea AND p2.id_categoria = s2.id_categoria
              LEFT JOIN tab_proveedores pr2 ON p2.id_proveedor = pr2.id_proveedor
              LEFT JOIN tab_marcas m2 ON p2.id_marca = m2.id_marca
              WHERE p2.ind_activo = true' || 
@@ -233,7 +236,7 @@ BEGIN
         FROM tab_productos p
         LEFT JOIN tab_categorias c ON p.id_categoria = c.id_categoria
         LEFT JOIN tab_lineas l ON p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria
-        LEFT JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea
+        LEFT JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea AND p.id_categoria = s.id_categoria
         LEFT JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
         LEFT JOIN tab_marcas m ON p.id_marca = m.id_marca
         ' || v_where_conditions || '
