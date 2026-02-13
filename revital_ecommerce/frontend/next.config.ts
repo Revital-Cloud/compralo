@@ -1,9 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   /* config options here */
   serverExternalPackages: ['@node-rs/argon2'],
   // En producción no se muestran console.log/info/debug/warn; solo console.error

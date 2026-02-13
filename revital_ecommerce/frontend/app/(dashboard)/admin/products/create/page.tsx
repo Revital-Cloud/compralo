@@ -1,24 +1,27 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from "sonner";
-import { 
-  ProductCreateHeader, 
-  ProductForm, 
-  ProductImageUpload 
+import {
+  ProductCreateHeader,
+  ProductForm,
+  type ProductFormRef,
+  ProductImageUpload,
 } from "@/components/admin/products";
-import { SuccessModal } from "@/components/ui";
+import { SuccessModal, Button } from "@/components/ui";
 import { useCreateProduct } from "@/hooks/use-products";
 import * as productService from "@/services/product.service";
 import type { ProductCreate } from '@/types';
 
+const FORM_ID = 'product-form';
+
 const ProductCreatePage = () => {
   const router = useRouter();
+  const formRef = useRef<ProductFormRef>(null);
   const [selectedImages, setSelectedImages] = useState<any[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  
-  // Hook para crear productos
+
   const createProductMutation = useCreateProduct();
 
   // Manejar envío del formulario
@@ -87,23 +90,36 @@ const ProductCreatePage = () => {
         {/* Header */}
         <ProductCreateHeader />
 
-        {/* Main Content */}
+        {/* Main Content: formulario e imágenes; botones siempre al final en responsive */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Form Section */}
           <div className="xl:col-span-2">
-            <ProductForm 
+            <ProductForm
+              ref={formRef}
+              formId={FORM_ID}
+              hideActionButtons
               onSubmit={handleFormSubmit}
               isLoading={createProductMutation.isPending}
             />
           </div>
-
-          {/* Image Upload Section */}
           <div className="xl:col-span-1">
-            <ProductImageUpload 
+            <ProductImageUpload
               onImagesChange={handleImagesChange}
               maxImages={10}
               maxFileSize={5}
             />
+          </div>
+          <div className="col-span-1 xl:col-span-3 flex flex-wrap items-center justify-end gap-4 pt-6 border-t">
+            <Button type="button" variant="outline" onClick={() => formRef.current?.reset()}>
+              LIMPIAR
+            </Button>
+            <Button
+              type="submit"
+              form={FORM_ID}
+              disabled={createProductMutation.isPending}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+            >
+              {createProductMutation.isPending ? 'GUARDANDO...' : 'CREAR PRODUCTO'}
+            </Button>
           </div>
         </div>
       </div>

@@ -107,6 +107,8 @@ export interface ProductAdminParams {
 export interface ProductFilters {
   search?: string;
   id_categoria?: number;
+  id_linea?: number;
+  id_sublinea?: number;
   id_marca?: number;
   id_proveedor?: number;
   precio_min?: number;
@@ -181,7 +183,7 @@ export interface ProductFilterStats {
 export interface FilterOptions {
   categorias: Array<{ id_categoria: number; nom_categoria: string }>;
   lineas: Array<{ id_linea: number; nom_linea: string; id_categoria: number }>;
-  sublineas: Array<{ id_sublinea: number; nom_sublinea: string; id_linea: number }>;
+  sublineas: Array<{ id_sublinea: number; nom_sublinea: string; id_linea: number; id_categoria: number }>;
   marcas: Array<{ id_marca: number; nom_marca: string }>;
   proveedores: Array<{ id_proveedor: number; nom_proveedor: string }>;
   precio_rango: {

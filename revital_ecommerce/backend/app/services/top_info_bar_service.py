@@ -36,6 +36,10 @@ def _parse_payload_from_json(des_cms_content: Any) -> dict:
         "color_texto": data.get("color_texto"),
         "fec_inicio": data.get("fec_inicio"),
         "fec_fin": data.get("fec_fin"),
+        "boton_texto": data.get("boton_texto"),
+        "boton_url": data.get("boton_url"),
+        "boton_color_fondo": data.get("boton_color_fondo"),
+        "boton_color_texto": data.get("boton_color_texto"),
     }
 
 
@@ -87,6 +91,10 @@ def get_active_bar(db: Session) -> Optional[dict]:
             "des_mensaje": payload["des_mensaje"],
             "color_fondo": payload.get("color_fondo"),
             "color_texto": payload.get("color_texto"),
+            "boton_texto": payload.get("boton_texto"),
+            "boton_url": payload.get("boton_url"),
+            "boton_color_fondo": payload.get("boton_color_fondo"),
+            "boton_color_texto": payload.get("boton_color_texto"),
         }
         logger.info(f"[TopInfoBar Service] Returning: {result_dict}")
         return result_dict
@@ -134,6 +142,10 @@ def get_bar(db: Session) -> Optional[dict]:
             "color_texto": payload.get("color_texto"),
             "fec_inicio": _parse_optional_date(payload.get("fec_inicio")),
             "fec_fin": _parse_optional_date(payload.get("fec_fin")),
+            "boton_texto": payload.get("boton_texto"),
+            "boton_url": payload.get("boton_url"),
+            "boton_color_fondo": payload.get("boton_color_fondo"),
+            "boton_color_texto": payload.get("boton_color_texto"),
         }
     except Exception:
         db.rollback()
@@ -154,6 +166,10 @@ def upsert_bar(db: Session, data: TopInfoBarPayload, id_usuario: Decimal) -> Non
             "color_texto": data.color_texto,
             "fec_inicio": data.fec_inicio.isoformat() if data.fec_inicio else None,
             "fec_fin": data.fec_fin.isoformat() if data.fec_fin else None,
+            "boton_texto": data.boton_texto,
+            "boton_url": data.boton_url,
+            "boton_color_fondo": data.boton_color_fondo,
+            "boton_color_texto": data.boton_color_texto,
         }
         des_cms_json = json.dumps(des_cms)
 

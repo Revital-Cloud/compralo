@@ -109,7 +109,6 @@ export function useUpdateProduct() {
       toast.success('Producto actualizado exitosamente');
       const slug = `${id_categoria}-${id_linea}-${id_sublinea}-${id_producto}`;
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.detail(slug) });
-      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.detail(id_producto) });
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.admin() });
     },
@@ -192,14 +191,6 @@ export function useActivateProduct() {
   });
 }
 
-export function useCategories() {
-  return useQuery({
-    queryKey: ['categories'],
-    queryFn: () => productService.getCategories(),
-    staleTime: 10 * 60 * 1000, // 10 minutos
-  });
-}
-
 export function useBrands() {
   return useQuery({
     queryKey: ['brands'],
@@ -219,11 +210,11 @@ export function useFilterProducts(filters: ProductFilterParams) {
   return useQuery({
     queryKey: PRODUCT_KEYS.filter(filters),
     queryFn: () => productService.filterProducts(filters),
-    staleTime: 5 * 60 * 1000, // 5 minutos
-    placeholderData: (previousData) => previousData,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
+    staleTime: 5 * 60 * 1000, // 5 minutos - aumentar para evitar llamadas frecuentes
+    placeholderData: (previousData) => previousData, // Mantener datos anteriores durante la carga
+    refetchOnWindowFocus: false, // Evitar refetch innecesario
+    refetchOnMount: false, // Evitar refetch al montar si ya tenemos datos
+    refetchOnReconnect: false, // Evitar refetch al reconectar
   });
 }
 
@@ -233,10 +224,7 @@ export function useFilterProducts(filters: ProductFilterParams) {
 export function useFilterStats(filters: ProductFilterParams) {
   return useQuery({
     queryKey: PRODUCT_KEYS.filterStats(filters),
-    queryFn: () => {
-      console.log('📊 Ejecutando query de estadísticas:', filters)
-      return productService.getFilterStats(filters)
-    },
+    queryFn: () => productService.getFilterStats(filters),
     staleTime: 10 * 60 * 1000, // 10 minutos - estadísticas cambian menos
     refetchOnWindowFocus: false, // Evitar refetch innecesario
     refetchOnMount: false, // Evitar refetch al montar si ya tenemos datos
@@ -300,11 +288,11 @@ export function useProductsAdmin(params: ProductAdminParams = {}) {
 /**
  * Hook para obtener productos por sublínea (compatibilidad)
  */
-export function useProductsBySubline(id_subline: string) {
+export function useProductsBySubline(id_sublinea: string) {
   return useQuery({
-    queryKey: ['products', 'subline', id_subline],
-    queryFn: () => productService.getProducts({ id_subline }),
-    enabled: !!id_subline,
+    queryKey: ['products', 'subline', id_sublinea],
+    queryFn: () => productService.getProducts({ id_sublinea: Number(id_sublinea) }),
+    enabled: !!id_sublinea,
     staleTime: 5 * 60 * 1000,
   });
 } 

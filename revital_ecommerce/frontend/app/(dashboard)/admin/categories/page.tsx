@@ -3,12 +3,11 @@
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { EmptyState } from '@/components/admin/empty-states'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getAllCategories, updateCategory, deactivateActivateCategory } from '@/services/category.service'
+import { getAllCategories, updateCategory } from '@/services/category.service'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
-import { Button } from "@/components/ui"
-import { Badge } from "@/components/ui"
-import { Pencil, Power } from 'lucide-react'
+import { Button, Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui'
+import { Pencil, Power, Eye } from 'lucide-react'
 import { CreateEntityModal } from '@/components/admin/common/create-entity-modal'
 import { EditEntityModal } from '@/components/admin/common/edit-entity-modal'
 import { useMemo, useState } from 'react'
@@ -23,16 +22,10 @@ const CategoriesPage = () => {
     queryFn: getAllCategories,
   })
 
-  // Filtros locales
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<'nombre' | 'fecha'>('nombre')
-  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC')
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
 
-  const clearFilters = () => {
-    setSearch('')
-    setSortBy('nombre')
-    setSortOrder('ASC')
-  }
+  const clearFilters = () => setSearch('')
 
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
@@ -41,20 +34,10 @@ const CategoriesPage = () => {
       const q = search.toLowerCase()
       rows = rows.filter(r => r.nom_categoria?.toLowerCase().includes(q))
     }
-    rows = [...rows].sort((a, b) => {
-      let va: any, vb: any
-      if (sortBy === 'fecha') {
-        va = (a as any).fec_insert || ''
-        vb = (b as any).fec_insert || ''
-      } else {
-        va = (a as any).nom_categoria || ''
-        vb = (b as any).nom_categoria || ''
-      }
-      const cmp = String(va).localeCompare(String(vb))
-      return sortOrder === 'ASC' ? cmp : -cmp
-    })
-    return rows
-  }, [data, search, sortBy, sortOrder])
+    return [...rows].sort((a, b) =>
+      String((a as any).nom_categoria || '').localeCompare(String((b as any).nom_categoria || ''))
+    )
+  }, [data, search])
 
   const deactivateActivateCategoryMutation = useMutation({
     mutationFn: async ({ id_categoria, activar }: { id_categoria: number; activar: boolean }) => {
@@ -68,6 +51,8 @@ const CategoriesPage = () => {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['categories', 'all'] })
+      queryClient.invalidateQueries({ queryKey: ['categories'] })
+      queryClient.invalidateQueries({ queryKey: ['categories', 'raw'] })
       toast.success(variables.activar ? 'Categoría activada exitosamente' : 'Categoría desactivada exitosamente')
     },
     onError: (error: any, variables) => {
@@ -121,6 +106,9 @@ const CategoriesPage = () => {
         
         return (
           <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" aria-label="Ver categoría" onClick={() => setSelectedCategory(row.original)}>
+              <Eye className="w-4 h-4" />
+            </Button>
             <Button variant="outline" size="icon" aria-label="Editar categoría" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
               <Pencil className="w-4 h-4" />
             </Button>
@@ -154,6 +142,7 @@ const CategoriesPage = () => {
         description="Gestiona las categorías para organizar tus productos"
         onCreateClick={() => setOpenCreate(true)}
         createLabel="Agregar Categoría"
+        showImportButton={false}
       />
 
       <CreateEntityModal
@@ -165,6 +154,8 @@ const CategoriesPage = () => {
           const { createCategory } = await import('@/services/category.service')
           await createCategory({ nom_categoria: values.nom_categoria, ind_activo: values.ind_activo })
           queryClient.invalidateQueries({ queryKey: ['categories', 'all'] })
+          queryClient.invalidateQueries({ queryKey: ['categories'] })
+          queryClient.invalidateQueries({ queryKey: ['categories', 'raw'] })
         }}
       />
 
@@ -177,17 +168,14 @@ const CategoriesPage = () => {
         onSubmit={async (values) => {
           await updateCategory((editing as any)?.id_categoria, { nom_categoria: values.nom_categoria, ind_activo: values.ind_activo })
           queryClient.invalidateQueries({ queryKey: ['categories', 'all'] })
+          queryClient.invalidateQueries({ queryKey: ['categories'] })
+          queryClient.invalidateQueries({ queryKey: ['categories', 'raw'] })
         }}
       />
 
-      {/* Filtros */}
       <CategoriesFilters
         search={search}
         onSearchChange={setSearch}
-        sortBy={sortBy}
-        onSortByChange={(v) => setSortBy(v as any)}
-        sortOrder={sortOrder}
-        onSortOrderChange={setSortOrder}
         onClearFilters={clearFilters}
         totalResults={Array.isArray(filteredData) ? filteredData.length : 0}
       />
@@ -206,7 +194,6 @@ const CategoriesPage = () => {
           description="Crea categorías para organizar tus productos por tipo."
           iconPath="M4 6h16M4 10h16M4 14h10"
           primaryAction={<a href="/admin/categories/create" className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">Agregar Categoría</a>}
-          secondaryAction={<button className="inline-flex items-center justify-center px-6 py-3 border-2 border-border text-foreground font-semibold rounded-lg hover:bg-muted/50 transition-all">Importar Excel</button>}
         />
       )}
 
@@ -217,6 +204,63 @@ const CategoriesPage = () => {
           pageSize={10}
         />
       )}
+
+      {/* Drawer ver categoría */}
+      <Sheet open={!!selectedCategory} onOpenChange={(open) => !open && setSelectedCategory(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto px-6 sm:px-8 pt-8 pb-8">
+          <SheetHeader className="px-0 pb-6">
+            <SheetTitle className="pr-8">Detalle de categoría</SheetTitle>
+          </SheetHeader>
+          {selectedCategory && (
+            <div className="space-y-6 pt-2">
+              <div className="space-y-1">
+                <h3 className="font-semibold text-lg">{selectedCategory.nom_categoria}</h3>
+                <p className="text-sm text-muted-foreground">ID: {selectedCategory.id_categoria}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Estado</h4>
+                <span className={selectedCategory.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+                  {selectedCategory.ind_activo ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
+              {selectedCategory.fec_insert && (
+                <p className="text-sm text-muted-foreground">
+                  Fecha de creación: {new Date(selectedCategory.fec_insert).toLocaleDateString('es', { dateStyle: 'medium' })}
+                </p>
+              )}
+              <div className="flex flex-col gap-3 pt-6 mt-2 border-t border-border">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setEditing(selectedCategory);
+                    setSelectedCategory(null);
+                    setOpenEdit(true);
+                  }}
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Editar categoría
+                </Button>
+                <Button
+                  variant={selectedCategory.ind_activo ? 'default' : 'destructive'}
+                  className={selectedCategory.ind_activo ? 'w-full bg-green-600 hover:bg-green-700' : 'w-full'}
+                  onClick={() => {
+                    const id = Number(selectedCategory.id_categoria);
+                    if (!isNaN(id)) {
+                      deactivateActivateCategoryMutation.mutate({ id_categoria: id, activar: !selectedCategory.ind_activo });
+                    }
+                    setSelectedCategory(null);
+                  }}
+                  disabled={deactivateActivateCategoryMutation.isPending}
+                >
+                  <Power className="w-4 h-4 mr-2" />
+                  {selectedCategory.ind_activo ? 'Desactivar' : 'Activar'} categoría
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

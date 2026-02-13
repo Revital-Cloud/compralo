@@ -9,9 +9,9 @@ import { ColumnDef, Row } from '@tanstack/react-table'
 import { useAllLines, type Line } from '@/hooks/use-lines'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { lineService } from '@/services/line.service'
-import { Button } from "@/components/ui"
+import { Button, Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui'
 import { Badge } from "@/components/ui"
-import { Pencil, Power } from 'lucide-react'
+import { Pencil, Power, Eye } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { LinesFilters } from '@/components/admin/lines/lines-filters'
 import { toast } from 'sonner'
@@ -20,16 +20,12 @@ const LinesPage = () => {
   const queryClient = useQueryClient()
   const { data, isLoading, isError } = useAllLines()
 
-  // Filtros locales
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<'nombre' | 'categoria' | 'fecha'>('nombre')
-  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC')
   const [category, setCategory] = useState('')
+  const [selectedLine, setSelectedLine] = useState<Line | null>(null)
 
   const clearFilters = () => {
     setSearch('')
-    setSortBy('nombre')
-    setSortOrder('ASC')
     setCategory('')
   }
 
@@ -46,23 +42,10 @@ const LinesPage = () => {
     if (category) {
       rows = rows.filter(r => String((r as any).id_categoria) === String(category))
     }
-    rows = [...rows].sort((a, b) => {
-      let va: any, vb: any
-      if (sortBy === 'fecha') {
-        va = (a as any).fec_insert || ''
-        vb = (b as any).fec_insert || ''
-      } else if (sortBy === 'categoria') {
-        va = (a as any).nom_categoria || ''
-        vb = (b as any).nom_categoria || ''
-      } else {
-        va = (a as any).nom_linea || ''
-        vb = (b as any).nom_linea || ''
-      }
-      const cmp = String(va).localeCompare(String(vb))
-      return sortOrder === 'ASC' ? cmp : -cmp
-    })
-    return rows
-  }, [data, search, category, sortBy, sortOrder])
+    return [...rows].sort((a, b) =>
+      String((a as any).nom_linea || '').localeCompare(String((b as any).nom_linea || ''))
+    )
+  }, [data, search, category])
 
   // Modal crear línea
   const [openCreate, setOpenCreate] = useState(false)
@@ -138,27 +121,33 @@ const LinesPage = () => {
     {
       id: 'actions',
       header: 'Acciones',
-      cell: ({ row }) => (
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" aria-label="Editar línea" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
-            <Pencil />
-          </Button>
-          <Button
-            variant={row.original.ind_activo ? "default" : "destructive"}
-            size="icon"
-            aria-label={row.original.ind_activo ? "Desactivar línea" : "Activar línea"}
-            onClick={() => {
-              const { id_categoria, id_linea } = row.original as any
-              const isActive = Boolean(row.original.ind_activo)
-              deactivateActivateLineMutation.mutate({ id_categoria, id_linea, activar: !isActive })
-            }}
-            disabled={deactivateActivateLineMutation.isPending}
-            className={row.original.ind_activo ? "bg-green-600 hover:bg-green-700 text-white" : ""}
-          >
-            <Power />
-          </Button>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const isActive = Boolean(row.original.ind_activo)
+        const isPending = deactivateActivateLineMutation.isPending
+        return (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="icon" aria-label="Ver línea" onClick={() => setSelectedLine(row.original)}>
+              <Eye className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="icon" aria-label="Editar línea" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
+              <Pencil className="w-4 h-4" />
+            </Button>
+            <Button
+              variant={row.original.ind_activo ? "default" : "destructive"}
+              size="icon"
+              aria-label={row.original.ind_activo ? "Desactivar línea" : "Activar línea"}
+              onClick={() => {
+                const { id_categoria, id_linea } = row.original as any
+                deactivateActivateLineMutation.mutate({ id_categoria, id_linea, activar: !isActive })
+              }}
+              disabled={isPending}
+              className={row.original.ind_activo ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+            >
+              <Power className="w-4 h-4" />
+            </Button>
+          </div>
+        )
+      },
     },
   ]
 
@@ -169,6 +158,7 @@ const LinesPage = () => {
         description="Define las líneas principales de tu catálogo"
         onCreateClick={() => setOpenCreate(true)}
         createLabel="Agregar Línea"
+        showImportButton={false}
       />
 
       <EditEntityModal
@@ -199,14 +189,9 @@ const LinesPage = () => {
         }}
       />
 
-      {/* Filtros */}
       <LinesFilters
         search={search}
         onSearchChange={setSearch}
-        sortBy={sortBy}
-        onSortByChange={(v) => setSortBy(v as any)}
-        sortOrder={sortOrder}
-        onSortOrderChange={setSortOrder}
         category={category}
         onCategoryChange={setCategory}
         onClearFilters={clearFilters}
@@ -227,7 +212,6 @@ const LinesPage = () => {
           description="Crea líneas para agrupar sublíneas y productos relacionados."
           iconPath="M3 7h18M3 12h18M3 17h18"
           primaryAction={<a href="/admin/lines/create" className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">Agregar Línea</a>}
-          secondaryAction={<button className="inline-flex items-center justify-center px-6 py-3 border-2 border-border text-foreground font-semibold rounded-lg hover:bg-muted/50 transition-all">Importar Excel</button>}
         />
       )}
 
@@ -239,6 +223,70 @@ const LinesPage = () => {
           getRowId={(row: Line) => `${row.id_categoria}-${row.id_linea}`}
         />
       )}
+
+      {/* Drawer ver línea */}
+      <Sheet open={!!selectedLine} onOpenChange={(open) => !open && setSelectedLine(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto px-6 sm:px-8 pt-8 pb-8">
+          <SheetHeader className="px-0 pb-6">
+            <SheetTitle className="pr-8">Detalle de línea</SheetTitle>
+          </SheetHeader>
+          {selectedLine && (
+            <div className="space-y-6 pt-2">
+              <div className="space-y-1">
+                <h3 className="font-semibold text-lg">{(selectedLine as any).nom_linea}</h3>
+                <p className="text-sm text-muted-foreground">ID: {(selectedLine as any).id_categoria}-{(selectedLine as any).id_linea}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Categoría</h4>
+                <p className="text-sm">{(selectedLine as any).nom_categoria ?? '-'}</p>
+              </div>
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Estado</h4>
+                <span className={selectedLine.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+                  {selectedLine.ind_activo ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
+              {(selectedLine as any).fec_insert && (
+                <p className="text-sm text-muted-foreground">
+                  Fecha de creación: {new Date((selectedLine as any).fec_insert).toLocaleDateString('es', { dateStyle: 'medium' })}
+                </p>
+              )}
+              {(selectedLine as any).fec_update && (
+                <p className="text-sm text-muted-foreground">
+                  Fecha de actualización: {new Date((selectedLine as any).fec_update).toLocaleDateString('es', { dateStyle: 'medium' })}
+                </p>
+              )}
+              <div className="flex flex-col gap-3 pt-6 mt-2 border-t border-border">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    setEditing(selectedLine);
+                    setSelectedLine(null);
+                    setOpenEdit(true);
+                  }}
+                >
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Editar línea
+                </Button>
+                <Button
+                  variant={selectedLine.ind_activo ? 'default' : 'destructive'}
+                  className={selectedLine.ind_activo ? 'w-full bg-green-600 hover:bg-green-700' : 'w-full'}
+                  onClick={() => {
+                    const { id_categoria, id_linea } = selectedLine as any;
+                    deactivateActivateLineMutation.mutate({ id_categoria, id_linea, activar: !selectedLine.ind_activo });
+                    setSelectedLine(null);
+                  }}
+                  disabled={deactivateActivateLineMutation.isPending}
+                >
+                  <Power className="w-4 h-4 mr-2" />
+                  {selectedLine.ind_activo ? 'Desactivar' : 'Activar'} línea
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

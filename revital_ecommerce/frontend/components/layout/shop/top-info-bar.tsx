@@ -10,6 +10,10 @@ interface TopInfoBarData {
   des_mensaje: string
   color_fondo: string | null
   color_texto: string | null
+  boton_texto?: string | null
+  boton_url?: string | null
+  boton_color_fondo?: string | null
+  boton_color_texto?: string | null
 }
 
 export function TopInfoBar() {
@@ -47,9 +51,24 @@ export function TopInfoBar() {
       }}
     >
       <div
-        className="flex-1 [&_strong]:font-semibold [&_em]:italic [&_a]:underline"
+        className="flex-1 min-w-0 [&_strong]:font-semibold [&_em]:italic [&_a]:underline"
         dangerouslySetInnerHTML={{ __html: barData.des_mensaje }}
       />
+      {barData.boton_url?.trim() && (
+        <Button asChild size="sm" className="flex-shrink-0 whitespace-nowrap">
+          <a
+            href={barData.boton_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              backgroundColor: barData.boton_color_fondo?.trim() || undefined,
+              color: barData.boton_color_texto?.trim() || undefined,
+            }}
+          >
+            {barData.boton_texto?.trim() || 'Ver más'}
+          </a>
+        </Button>
+      )}
       <Button
         type="button"
         variant="ghost"

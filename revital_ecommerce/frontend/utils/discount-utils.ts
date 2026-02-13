@@ -58,10 +58,10 @@ export const getApplicableDiscount = (
       if (!hasAllRequiredFields) return false
       
       const productMatches = 
-        product.id_producto?.toString() === discount.id_producto_aplica.toString() &&
-        product.id_categoria?.toString() === discount.id_categoria.toString() &&
-        product.id_linea?.toString() === discount.id_linea.toString() &&
-        product.id_sublinea?.toString() === discount.id_sublinea.toString()
+        product.id_producto?.toString() === discount.id_producto_aplica?.toString() &&
+        product.id_categoria?.toString() === discount.id_categoria?.toString() &&
+        product.id_linea?.toString() === discount.id_linea?.toString() &&
+        product.id_sublinea?.toString() === discount.id_sublinea?.toString()
       
       return productMatches
     }

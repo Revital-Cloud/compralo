@@ -15,7 +15,7 @@ export const useDiscountData = () => {
 
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
-    let rows = data as Discount[]
+    let rows = data as unknown as Discount[]
     
     // Búsqueda
     if (search) {

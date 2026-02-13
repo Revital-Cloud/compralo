@@ -9,7 +9,22 @@ import { useProductsAdmin, useDeactivateActivateProduct, useFilterOptionsAdmin }
 import type { Product } from '@/types/product';
 import DataTable from '@/components/tables/table';
 import { ColumnDef } from '@tanstack/react-table';
-import { Button, Badge, Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui";
+import {
+  Button,
+  Badge,
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui";
 import { Pencil, Power, Eye } from 'lucide-react';
 import { formatPrice } from '@/utils/format-price';
 import Image from 'next/image';
@@ -35,6 +50,8 @@ const ProductsPage = () => {
   
   // Producto seleccionado para ver en el drawer
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  // Producto pendiente de confirmar desactivación (para AlertDialog)
+  const [productToDeactivate, setProductToDeactivate] = useState<Product | null>(null);
   
   const category = searchParams.get('category') || '';
   const brand = searchParams.get('brand') || '';
@@ -81,20 +98,31 @@ const ProductsPage = () => {
   };
 
   // Manejar activar/desactivar producto
-  const handleToggleActive = async (row: Product) => {
+  const handleToggleActive = (row: Product) => {
     const isActive = Boolean(row.ind_activo);
+    if (isActive) {
+      setProductToDeactivate(row);
+      return;
+    }
     const params = {
       id_categoria: Number(row.id_categoria),
       id_linea: Number(row.id_linea),
       id_sublinea: Number(row.id_sublinea),
       id_producto: Number(row.id_producto),
     };
-    
-    if (isActive && !confirm('¿Desactivar este producto?')) {
-      return;
-    }
-    
-    deactivateActivateProductMutation.mutate({ params, activar: !isActive });
+    deactivateActivateProductMutation.mutate({ params, activar: true });
+  };
+
+  const handleConfirmDeactivate = () => {
+    if (!productToDeactivate) return;
+    const params = {
+      id_categoria: Number(productToDeactivate.id_categoria),
+      id_linea: Number(productToDeactivate.id_linea),
+      id_sublinea: Number(productToDeactivate.id_sublinea),
+      id_producto: Number(productToDeactivate.id_producto),
+    };
+    deactivateActivateProductMutation.mutate({ params, activar: false });
+    setProductToDeactivate(null);
   };
 
   // Manejar cambios en el input con debounce directo (sin useEffect)
@@ -190,7 +218,10 @@ const ProductsPage = () => {
         if (selectedSubline) {
           params.set('subline', value);
           params.set('line', String(selectedSubline.id_linea));
-          params.set('category', String(selectedSubline.id_categoria));
+          const selectedLine = filterOptions?.lineas?.find((l: any) => l.id_linea === selectedSubline.id_linea);
+          if (selectedLine?.id_categoria != null) {
+            params.set('category', String(selectedLine.id_categoria));
+          }
         } else {
           params.set('subline', value);
         }
@@ -216,8 +247,8 @@ const ProductsPage = () => {
     setSortBy(value as 'nombre' | 'precio' | 'stock' | 'fecha' | 'categoria' | 'marca');
   };
 
-  const handleSortOrderChange = (value: 'ASC' | 'DESC') => {
-    setSortOrder(value);
+  const handleSortOrderChange = (value: string) => {
+    setSortOrder(value as 'ASC' | 'DESC');
   };
 
   const handleClearFilters = () => {
@@ -601,6 +632,29 @@ const ProductsPage = () => {
           )}
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={!!productToDeactivate} onOpenChange={(open) => !open && setProductToDeactivate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desactivar producto</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que quieres desactivar este producto? Dejará de mostrarse en la tienda.
+              {productToDeactivate && (
+                <span className="mt-2 block font-medium text-foreground">{productToDeactivate.nom_producto}</span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeactivate}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Desactivar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Products Table */}
       {isLoading ? (

@@ -28,7 +28,7 @@ export function Navigation({ items = [], onItemClick }: NavigationProps) {
   return (
     <nav className="hidden lg:flex items-center gap-6">
       {items.map((item, index) => {
-        const hasChildren = item.children && item.children.length > 0
+        const hasChildren = item.items && item.items.length > 0
         const itemClasses = cn(
           "flex items-center text-sm font-medium transition-colors",
           "hover:text-primary",
@@ -39,13 +39,13 @@ export function Navigation({ items = [], onItemClick }: NavigationProps) {
           return (
             <DropdownMenu key={index}>
               <DropdownMenuTrigger className={itemClasses}>
-                <span>{item.title}</span>
+                <span>{item.text}</span>
                 <ChevronDown className="h-4 w-4 ml-1" />
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                {item.children!.map((child, childIndex) => (
+                {item.items!.map((child, childIndex) => (
                   <DropdownMenuItem key={childIndex} asChild>
-                    <Link href={child.href} onClick={onItemClick}>{child.title}</Link>
+                    <Link href={child.href} onClick={onItemClick}>{child.text}</Link>
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -56,11 +56,11 @@ export function Navigation({ items = [], onItemClick }: NavigationProps) {
         return (
           <Link
             key={index}
-            href={item.href}
+            href={item.href ?? "#"}
             className={itemClasses}
             onClick={onItemClick}
           >
-            {item.title}
+            {item.text}
           </Link>
         )
       })}

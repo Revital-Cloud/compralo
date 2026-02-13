@@ -9,11 +9,11 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui"
 import { IconSearch, IconCalendar } from '@tabler/icons-react'
 import { es } from 'date-fns/locale'
 import { parseDateSafe, toLocalISOString, isFutureDate } from '@/utils/date-helpers'
-import type { OrderFilters } from '@/types/order'
+import type { OrderFilters as OrderFiltersType } from '@/types/order'
 
 interface OrderFiltersProps {
-  filters: OrderFilters
-  onFiltersChange: (filters: OrderFilters) => void
+  filters: OrderFiltersType
+  onFiltersChange: (filters: OrderFiltersType) => void
   onClear: () => void
 }
 

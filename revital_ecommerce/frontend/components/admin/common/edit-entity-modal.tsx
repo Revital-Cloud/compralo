@@ -2,14 +2,14 @@
 
 import React, { useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui"
-import { Button } from "@/components/ui"
-import { Input } from "@/components/ui"
-import { Label } from "@/components/ui"
+import { Button, Input, Label } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useCategories } from '@/hooks/use-categories'
 import { useLinesByCategory } from '@/hooks/use-lines'
+import { PHONE_COUNTRY_CODES, parsePhoneForEdit } from '@/lib/phone-country-codes'
 import { Checkbox } from "@/components/ui"
 
 type EntityType = 'line' | 'subline' | 'category' | 'brand' | 'provider'
@@ -20,7 +20,8 @@ const schemas: Record<EntityType, z.ZodSchema<any>> = {
   provider: z.object({ 
     nom_proveedor: z.string().min(2).optional(), 
     email: z.string().email('Email inválido').optional().or(z.literal('')),
-    tel_proveedor: z.coerce.number().positive('Teléfono debe ser positivo').optional().or(z.literal('')),
+    tel_country_code: z.string().optional(),
+    tel_numero: z.string().optional(),
     ind_activo: z.boolean().optional().default(true) 
   }),
   line: z.object({ id_categoria: z.coerce.number(), nom_linea: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
@@ -37,16 +38,34 @@ export interface EditEntityModalProps {
 }
 
 export const EditEntityModal: React.FC<EditEntityModalProps> = ({ open, onOpenChange, type, title, initialValues, onSubmit }) => {
-  const form = useForm<any>({ resolver: zodResolver(schemas[type]), defaultValues: initialValues })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const form = useForm<any>({ resolver: zodResolver(schemas[type] as any), defaultValues: initialValues })
 
-  useEffect(() => { form.reset(initialValues) }, [initialValues, form])
+  useEffect(() => {
+    if (type === 'provider' && initialValues?.tel_proveedor != null) {
+      const { code, numero } = parsePhoneForEdit(initialValues.tel_proveedor)
+      form.reset({ ...initialValues, tel_country_code: code, tel_numero: numero })
+    } else {
+      form.reset(initialValues)
+    }
+  }, [initialValues, form, type])
 
   const { data: categories = [], isLoading: loadingCategories } = useCategories()
   const categoryId = form.watch('id_categoria') ? Number(form.watch('id_categoria')) : 0
   const { data: lines = [], isLoading: loadingLines } = useLinesByCategory(categoryId)
 
   const handleSubmit = form.handleSubmit(async (values) => {
-    await onSubmit(values)
+    const payload = { ...values }
+    if (type === 'provider') {
+      const code = payload.tel_country_code
+      const numero = String(payload.tel_numero ?? '').trim()
+      if (code && numero.length > 0) {
+        payload.tel_proveedor = Number(code + numero)
+      }
+      delete payload.tel_country_code
+      delete payload.tel_numero
+    }
+    await onSubmit(payload)
     onOpenChange(false)
   })
 
@@ -61,12 +80,20 @@ export const EditEntityModal: React.FC<EditEntityModalProps> = ({ open, onOpenCh
             <>
               <div className="space-y-2">
                 <Label>Categoría</Label>
-                <select className="w-full border rounded-md h-9 px-3 text-sm bg-white dark:bg-gray-900" {...form.register('id_categoria')}>
-                  <option value="">{loadingCategories ? 'Cargando...' : 'Seleccione'}</option>
-                  {Array.isArray(categories) && categories.map((c: any, idx: number) => (
-                    <option key={`cat-${c.id}-${idx}`} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <Select
+                  value={form.watch('id_categoria') ? String(form.watch('id_categoria')) : ''}
+                  onValueChange={(v) => form.setValue('id_categoria', v ? Number(v) : undefined)}
+                  disabled={loadingCategories}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingCategories ? 'Cargando...' : 'Seleccione'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.isArray(categories) && categories.map((c: any, idx: number) => (
+                      <SelectItem key={`cat-${c.id ?? c.id_categoria}-${idx}`} value={String(c.id ?? c.id_categoria)}>{c.name ?? c.nom_categoria}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Nombre</Label>
@@ -79,21 +106,40 @@ export const EditEntityModal: React.FC<EditEntityModalProps> = ({ open, onOpenCh
             <>
               <div className="space-y-2">
                 <Label>Categoría</Label>
-                <select className="w-full border rounded-md h-9 px-3 text-sm bg-white dark:bg-gray-900" {...form.register('id_categoria')}>
-                  <option value="">{loadingCategories ? 'Cargando...' : 'Seleccione'}</option>
-                  {Array.isArray(categories) && categories.map((c: any, idx: number) => (
-                    <option key={`cat-${c.id}-${idx}`} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <Select
+                  value={form.watch('id_categoria') ? String(form.watch('id_categoria')) : ''}
+                  onValueChange={(v) => {
+                    form.setValue('id_categoria', v ? Number(v) : undefined)
+                    form.setValue('id_linea', '')
+                  }}
+                  disabled={loadingCategories}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingCategories ? 'Cargando...' : 'Seleccione'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.isArray(categories) && categories.map((c: any, idx: number) => (
+                      <SelectItem key={`cat-${c.id ?? c.id_categoria}-${idx}`} value={String(c.id ?? c.id_categoria)}>{c.name ?? c.nom_categoria}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Línea</Label>
-                <select className="w-full border rounded-md h-9 px-3 text-sm bg-white dark:bg-gray-900" {...form.register('id_linea')}>
-                  <option value="">{loadingLines ? 'Cargando...' : 'Seleccione'}</option>
-                  {Array.isArray(lines) && lines.map((l: any, idx: number) => (
-                    <option key={`line-${l.id_categoria}-${l.id_linea}-${idx}`} value={l.id_linea}>{l.nom_linea}</option>
-                  ))}
-                </select>
+                <Select
+                  value={form.watch('id_linea') ? String(form.watch('id_linea')) : ''}
+                  onValueChange={(v) => form.setValue('id_linea', v ? Number(v) : undefined)}
+                  disabled={loadingLines || !categoryId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingLines ? 'Cargando...' : !categoryId ? 'Seleccione categoría primero' : 'Seleccione'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.isArray(lines) && lines.map((l: any, idx: number) => (
+                      <SelectItem key={`line-${l.id_categoria}-${l.id_linea}-${idx}`} value={String(l.id_linea)}>{l.nom_linea}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label>Nombre</Label>
@@ -135,14 +181,30 @@ export const EditEntityModal: React.FC<EditEntityModalProps> = ({ open, onOpenCh
               </div>
               <div className="space-y-2">
                 <Label>Teléfono</Label>
-                <Input 
-                  type="tel" 
-                  {...form.register('tel_proveedor')} 
-                  placeholder="Ej. 3001234567" 
-                />
-                {form.formState.errors.tel_proveedor && (
-                  <p className="text-xs text-red-600">{form.formState.errors.tel_proveedor.message as string}</p>
-                )}
+                <div className="flex gap-2">
+                  <Select
+                    value={form.watch('tel_country_code') || '57'}
+                    onValueChange={(v) => form.setValue('tel_country_code', v)}
+                  >
+                    <SelectTrigger className="w-[180px] shrink-0">
+                      <SelectValue placeholder="País" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PHONE_COUNTRY_CODES.map((c) => (
+                        <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
+                    placeholder="Ej. 3001234567"
+                    className="flex-1"
+                    value={form.watch('tel_numero') ?? ''}
+                    onChange={(e) => form.setValue('tel_numero', e.target.value.replace(/\D/g, ''), { shouldValidate: true })}
+                  />
+                </div>
               </div>
             </>
           )}

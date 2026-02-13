@@ -33,7 +33,6 @@ const COLOR_NAME_TO_HEX: Record<string, string> = {
   pink: '#ec4899',
   purple: '#a855f7',
   brown: '#92400e',
-  beige: '#d4b896',
   gold: '#ca8a04',
   silver: '#94a3b8',
   navy: '#1e3a5f',

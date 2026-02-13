@@ -11,13 +11,15 @@ import { providerService } from '@/services/provider.service'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
-import { Button } from "@/components/ui"
-import { Pencil, Power } from 'lucide-react'
+import { Button, Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui'
+import { Pencil, Power, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Provider {
   id_proveedor: number
   nom_proveedor: string
+  email?: string
+  tel_proveedor?: number
   fec_insert?: string
   fec_update?: string
   ind_activo?: boolean
@@ -91,6 +93,9 @@ const ProvidersPage = () => {
       header: 'Acciones',
       cell: ({ row }) => (
         <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" aria-label="Ver proveedor" onClick={() => setSelectedProvider(row.original)}>
+            <Eye className="w-4 h-4" />
+          </Button>
           <Button variant="outline" size="icon" aria-label="Editar proveedor" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
             <Pencil className="w-4 h-4" />
           </Button>
@@ -112,38 +117,20 @@ const ProvidersPage = () => {
     },
   ]
 
-  // Filtros locales
   const [search, setSearch] = useState('')
-  const [sortBy, setSortBy] = useState<'nombre' | 'fecha'>('nombre')
-  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC')
+  const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null)
 
-  const clearFilters = () => {
-    setSearch('')
-    setSortBy('nombre')
-    setSortOrder('ASC')
-  }
+  const clearFilters = () => setSearch('')
 
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
-    let rows = data
+    let rows = data as Provider[]
     if (search) {
       const q = search.toLowerCase()
-      rows = rows.filter((r: any) => r.nom_proveedor?.toLowerCase().includes(q))
+      rows = rows.filter(r => r.nom_proveedor?.toLowerCase().includes(q))
     }
-    rows = [...rows].sort((a: any, b: any) => {
-      let va: any, vb: any
-      if (sortBy === 'fecha') {
-        va = a.fec_insert || ''
-        vb = b.fec_insert || ''
-      } else {
-        va = a.nom_proveedor || ''
-        vb = b.nom_proveedor || ''
-      }
-      const cmp = String(va).localeCompare(String(vb))
-      return sortOrder === 'ASC' ? cmp : -cmp
-    })
-    return rows
-  }, [data, search, sortBy, sortOrder])
+    return [...rows].sort((a, b) => String(a.nom_proveedor || '').localeCompare(String(b.nom_proveedor || '')))
+  }, [data, search])
 
   const [openCreate, setOpenCreate] = useState(false)
   const [openEdit, setOpenEdit] = useState(false)
@@ -156,6 +143,7 @@ const ProvidersPage = () => {
         description="Agrega y gestiona tus proveedores"
         onCreateClick={() => setOpenCreate(true)}
         createLabel="Agregar Proveedor"
+        showImportButton={false}
       />
 
       <CreateEntityModal
@@ -196,14 +184,9 @@ const ProvidersPage = () => {
         }}
       />
 
-      {/* Filtros */}
       <ProvidersFilters
         search={search}
         onSearchChange={setSearch}
-        sortBy={sortBy}
-        onSortByChange={(v) => setSortBy(v as any)}
-        sortOrder={sortOrder}
-        onSortOrderChange={setSortOrder}
         onClearFilters={clearFilters}
         totalResults={Array.isArray(filteredData) ? filteredData.length : 0}
       />
@@ -222,7 +205,6 @@ const ProvidersPage = () => {
           description="Agrega proveedores para gestionar compras e inventario."
           iconPath="M3 7h18M7 7v10m10-10v10M5 17h14"
           primaryAction={<a href="/admin/providers/create" className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">Agregar Proveedor</a>}
-          secondaryAction={<button className="inline-flex items-center justify-center px-6 py-3 border-2 border-border text-foreground font-semibold rounded-lg hover:bg-muted/50 transition-all">Importar Excel</button>}
         />
       )}
 
@@ -231,8 +213,71 @@ const ProvidersPage = () => {
           columns={[...columns, ...actions]} 
           data={filteredData}
           pageSize={10}
+          getRowId={(row: Provider) => String(row.id_proveedor)}
         />
       )}
+
+      <Sheet open={!!selectedProvider} onOpenChange={(open) => !open && setSelectedProvider(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto px-6 sm:px-8 pt-8 pb-8">
+          <SheetHeader className="px-0 pb-6">
+            <SheetTitle className="pr-8">Detalle de proveedor</SheetTitle>
+          </SheetHeader>
+          {selectedProvider && (
+            <div className="space-y-6 pt-2">
+              <div className="space-y-1">
+                <h3 className="font-semibold text-lg">{selectedProvider.nom_proveedor}</h3>
+                <p className="text-sm text-muted-foreground">ID: {selectedProvider.id_proveedor}</p>
+              </div>
+              {(selectedProvider as any).email && (
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Email</h4>
+                  <p className="text-sm">{(selectedProvider as any).email}</p>
+                </div>
+              )}
+              {(selectedProvider as any).tel_proveedor != null && (selectedProvider as any).tel_proveedor !== '' && (
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-1">Teléfono</h4>
+                  <p className="text-sm">{(selectedProvider as any).tel_proveedor}</p>
+                </div>
+              )}
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-1">Estado</h4>
+                <span className={selectedProvider.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+                  {selectedProvider.ind_activo ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
+              {selectedProvider.fec_insert && (
+                <p className="text-sm text-muted-foreground">
+                  Fecha de creación: {new Date(selectedProvider.fec_insert).toLocaleDateString('es', { dateStyle: 'medium' })}
+                </p>
+              )}
+              {selectedProvider.fec_update && (
+                <p className="text-sm text-muted-foreground">
+                  Fecha de actualización: {new Date(selectedProvider.fec_update).toLocaleDateString('es', { dateStyle: 'medium' })}
+                </p>
+              )}
+              <div className="flex flex-col gap-3 pt-6 mt-2 border-t border-border">
+                <Button variant="outline" className="w-full" onClick={() => { setEditing(selectedProvider); setSelectedProvider(null); setOpenEdit(true) }}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Editar proveedor
+                </Button>
+                <Button
+                  variant={selectedProvider.ind_activo ? 'default' : 'destructive'}
+                  className={selectedProvider.ind_activo ? 'w-full bg-green-600 hover:bg-green-700' : 'w-full'}
+                  onClick={() => {
+                    deactivateActivateProviderMutation.mutate({ id_proveedor: selectedProvider.id_proveedor, activar: !selectedProvider.ind_activo })
+                    setSelectedProvider(null)
+                  }}
+                  disabled={deactivateActivateProviderMutation.isPending}
+                >
+                  <Power className="w-4 h-4 mr-2" />
+                  {selectedProvider.ind_activo ? 'Desactivar' : 'Activar'} proveedor
+                </Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

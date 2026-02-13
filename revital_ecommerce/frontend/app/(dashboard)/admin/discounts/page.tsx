@@ -11,6 +11,7 @@ import { DiscountExchangesModal } from '@/components/admin/discounts/discount-ex
 import { DiscountFilters } from '@/components/admin/discounts/discount-filters'
 import { useDiscountColumns } from '@/components/admin/discounts/discount-columns'
 import { useDiscountData } from '@/components/admin/discounts/use-discount-data'
+import { transformDiscountPayload } from '@/services/discount.service'
 import DataTable from '@/components/tables/table'
 import { toast } from 'sonner'
 
