@@ -39,38 +39,19 @@ const FavoritesPage: React.FC = () => {
     return null
   }
 
-  const handleRemoveFromFavorites = async (
-    id_categoria_producto: number,
-    id_linea_producto: number,
-    id_sublinea_producto: number,
-    id_producto: number
-  ) => {
-    await removeFromFavorites(
-      id_categoria_producto,
-      id_linea_producto,
-      id_sublinea_producto,
-      id_producto
-    )
+  const handleRemoveFromFavorites = async (id_producto: number) => {
+    await removeFromFavorites(id_producto)
   }
 
-  const handleAddToCart = async (product: any) => {
-    // Crear un ID único para este producto
-    const productKey = `${product.id_categoria_producto}-${product.id_linea_producto}-${product.id_sublinea_producto}-${product.id_producto}`
-    
+  const handleAddToCart = async (product: { id_producto: number; nom_producto: string; val_precio: number }) => {
+    const productKey = String(product.id_producto)
     try {
-      // Marcar este producto como cargando
       setLoadingProducts(prev => new Set(prev).add(productKey))
-      
-      const cartProduct = {
-        id_categoria_producto: product.id_categoria_producto,
-        id_linea_producto: product.id_linea_producto,
-        id_sublinea_producto: product.id_sublinea_producto,
+      await addToCart({
         id_producto: product.id_producto,
         cantidad: 1,
         precio_unitario_carrito: product.val_precio,
-      }
-
-      await addToCart(cartProduct)
+      })
       
       toast.success('¡Producto agregado al carrito!', {
         description: `${product.nom_producto} se ha agregado correctamente`,
@@ -189,11 +170,9 @@ const FavoritesPage: React.FC = () => {
         {/* Grid de productos */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {favorites.map((product) => (
-            <Card key={`${product.id_categoria_producto}-${product.id_linea_producto}-${product.id_sublinea_producto}-${product.id_producto}`} className="group hover:shadow-lg transition-all duration-300">
+            <Card key={product.id_producto} className="group hover:shadow-lg transition-all duration-300">
               <div className="relative">
-                <Link
-                  href={`/products/${product.id_categoria_producto}-${product.id_linea_producto}-${product.id_sublinea_producto}-${product.id_producto}`}
-                >
+                <Link href={`/products/${product.id_producto}`}>
                   <div className="relative aspect-square bg-gray-100 dark:bg-gray-800 overflow-hidden rounded-t-lg">
                     <Image
                       src={getProductImageUrl(product.img_producto)}
@@ -210,12 +189,7 @@ const FavoritesPage: React.FC = () => {
                   variant="ghost"
                   size="icon"
                   className="absolute top-2 right-2 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  onClick={() => handleRemoveFromFavorites(
-                    product.id_categoria_producto,
-                    product.id_linea_producto,
-                    product.id_sublinea_producto,
-                    product.id_producto
-                  )}
+                  onClick={() => handleRemoveFromFavorites(product.id_producto)}
                 >
                   <Trash2 className="w-4 h-4 text-red-500" />
                 </Button>
@@ -236,14 +210,14 @@ const FavoritesPage: React.FC = () => {
                   <div className="flex gap-2 pt-2">
                     <Button
                       size="sm"
-                      disabled={loadingProducts.has(`${product.id_categoria_producto}-${product.id_linea_producto}-${product.id_sublinea_producto}-${product.id_producto}`)}
-                      className={cn(
-                        "flex-1 bg-black text-white hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 transition-all duration-300",
-                        loadingProducts.has(`${product.id_categoria_producto}-${product.id_linea_producto}-${product.id_sublinea_producto}-${product.id_producto}`) && "scale-95 bg-green-600 dark:bg-green-600"
-                      )}
-                      onClick={() => handleAddToCart(product)}
-                    >
-                      {loadingProducts.has(`${product.id_categoria_producto}-${product.id_linea_producto}-${product.id_sublinea_producto}-${product.id_producto}`) ? (
+                    disabled={loadingProducts.has(String(product.id_producto))}
+                    className={cn(
+                      "flex-1 bg-black text-white hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 transition-all duration-300",
+                      loadingProducts.has(String(product.id_producto)) && "scale-95 bg-green-600 dark:bg-green-600"
+                    )}
+                    onClick={() => handleAddToCart(product)}
+                  >
+                    {loadingProducts.has(String(product.id_producto)) ? (
                         <motion.div
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
@@ -264,12 +238,7 @@ const FavoritesPage: React.FC = () => {
                       variant="outline"
                       size="sm"
                       className="px-3"
-                      onClick={() => handleRemoveFromFavorites(
-                        product.id_categoria_producto,
-                        product.id_linea_producto,
-                        product.id_sublinea_producto,
-                        product.id_producto
-                      )}
+                      onClick={() => handleRemoveFromFavorites(product.id_producto)}
                     >
                       <Heart className="w-4 h-4 fill-red-500 text-red-500" />
                     </Button>

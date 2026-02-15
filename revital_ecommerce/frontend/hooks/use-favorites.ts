@@ -55,24 +55,8 @@ export const useFavorites = (): UseFavoritesReturn => {
 
   // Mutation para eliminar de favoritos
   const removeFromFavoritesMutation = useMutation({
-    mutationFn: ({ 
-      id_categoria_producto, 
-      id_linea_producto, 
-      id_sublinea_producto, 
-      id_producto 
-    }: {
-      id_categoria_producto: number
-      id_linea_producto: number
-      id_sublinea_producto: number
-      id_producto: number
-    }) => 
-      favoritesService.removeFromFavorites(
-        user!.id_usuario,
-        id_categoria_producto,
-        id_linea_producto,
-        id_sublinea_producto,
-        id_producto
-      ),
+    mutationFn: (id_producto: number) =>
+      favoritesService.removeFromFavorites(user!.id_usuario, id_producto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['favorites', user?.id_usuario] })
       toast.success('Producto eliminado de favoritos')
@@ -106,94 +90,35 @@ export const useFavorites = (): UseFavoritesReturn => {
   }, [user?.id_usuario, addToFavoritesMutation])
 
   // Función para eliminar de favoritos
-  const removeFromFavorites = useCallback(async (
-    id_categoria_producto: number,
-    id_linea_producto: number,
-    id_sublinea_producto: number,
-    id_producto: number
-  ) => {
+  const removeFromFavorites = useCallback(async (id_producto: number) => {
     if (!user?.id_usuario) {
       toast.error('Debes iniciar sesión para gestionar favoritos')
       return
     }
-    
     try {
-      await removeFromFavoritesMutation.mutateAsync({
-        id_categoria_producto,
-        id_linea_producto,
-        id_sublinea_producto,
-        id_producto
-      })
+      await removeFromFavoritesMutation.mutateAsync(id_producto)
     } catch (error) {
       console.error('Error removing from favorites:', error)
     }
   }, [user?.id_usuario, removeFromFavoritesMutation])
 
   // Función para verificar si un producto está en favoritos
-  const isProductFavorite = useCallback((
-    id_categoria_producto: number,
-    id_linea_producto: number,
-    id_sublinea_producto: number,
-    id_producto: number
-  ): boolean => {
-    // Si no hay usuario o no hay favoritos cargados, retornar false
-    if (!user?.id_usuario || !favorites || favorites.length === 0) {
-      return false
-    }
-    
-    // Convertir todos los valores a números para asegurar comparación correcta
-    const catId = Number(id_categoria_producto)
-    const lineId = Number(id_linea_producto)
-    const sublineId = Number(id_sublinea_producto)
+  const isProductFavorite = useCallback((id_producto: number): boolean => {
+    if (!user?.id_usuario || !favorites || favorites.length === 0) return false
     const prodId = Number(id_producto)
-    
-    const isFavorite = favorites.some(
-      (favorite) =>
-        Number(favorite.id_categoria_producto) === catId &&
-        Number(favorite.id_linea_producto) === lineId &&
-        Number(favorite.id_sublinea_producto) === sublineId &&
-        Number(favorite.id_producto) === prodId
-    )
-    
-    return isFavorite
+    return favorites.some((favorite) => Number(favorite.id_producto) === prodId)
   }, [favorites, user?.id_usuario])
 
-  // Función para alternar favorito
-  const toggleFavorite = useCallback(async (
-    id_categoria_producto: number,
-    id_linea_producto: number,
-    id_sublinea_producto: number,
-    id_producto: number,
-    isFavorite: boolean
-  ) => {
+  // Función para alternar favorito (solo id_producto; tab_favoritos usa product_id)
+  const toggleFavorite = useCallback(async (id_producto: number, isFavorite: boolean) => {
     if (!user?.id_usuario) {
       toast.error('Debes iniciar sesión para gestionar favoritos')
       return
     }
-
-    // Debug: Ver qué IDs se están enviando
-    console.log('🔍 Toggle Favorito - IDs enviados:', {
-      id_categoria_producto,
-      id_linea_producto,
-      id_sublinea_producto,
-      id_producto,
-      isFavorite
-    })
-
     if (isFavorite) {
-      await removeFromFavorites(
-        id_categoria_producto,
-        id_linea_producto,
-        id_sublinea_producto,
-        id_producto
-      )
+      await removeFromFavorites(id_producto)
     } else {
-      await addToFavorites({
-        id_categoria_producto,
-        id_linea_producto,
-        id_sublinea_producto,
-        id_producto
-      })
+      await addToFavorites({ id_producto })
     }
   }, [user?.id_usuario, addToFavorites, removeFromFavorites])
 

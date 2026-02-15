@@ -1,13 +1,13 @@
 'use client';
 
 import { createElement } from 'react';
-import { useCategories } from '@/hooks/use-categories';
+import { useRootCategories } from '@/hooks/use-categories';
 import { CategoryCard } from '@/components/cards/CategoryCard';
 import { getIconForCategory } from '@/utils/category-mapper';
 import { Package } from 'lucide-react';
 
 export default function CategoriesPage() {
-  const { data: categories, isLoading } = useCategories();
+  const { data: categories, isLoading } = useRootCategories();
 
   if (isLoading) {
     return (

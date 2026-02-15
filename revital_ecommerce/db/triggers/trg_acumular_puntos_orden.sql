@@ -23,9 +23,11 @@
 CREATE OR REPLACE FUNCTION trg_acumular_puntos_orden()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- EJECUCIÓN: Acumular puntos automáticamente por la compra
-    -- NOTA: El trigger ya filtra con WHEN (OLD.ind_estado != 2 AND NEW.ind_estado = 2)
-    -- Por lo tanto, aquí sabemos que la orden cambió a PAGADA
+    -- En UPDATE, solo acumular si antes no estaba pagada (evitar doble acumulación)
+    IF TG_OP = 'UPDATE' AND OLD.ind_estado = 2 THEN
+        RETURN NEW;
+    END IF;
+    -- INSERT con ind_estado=2 o UPDATE de no-pagada a pagada: acumular puntos
     PERFORM fun_acumular_puntos_compra(
         NEW.id_usuario,                                            -- Usuario de la orden
         NEW.id_orden,                                               -- ID de la orden

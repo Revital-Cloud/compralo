@@ -313,17 +313,17 @@ export const mapCategoriesToDisplay = (categories: Category[]): CategoryDisplay[
     .map((category, index) => {
       // Asignar colores automáticamente basados en la posición
       const colors = getColorsByIndex(index);
-      const icon = getIconByName(category.nom_categoria);
-      const description = generateDescription(category.nom_categoria);
+      const icon = getIconByName(category.name);
+      const description = generateDescription(category.name);
       return {
-        id: String(category.id_categoria),
-        name: category.nom_categoria,
+        id: String((category as { id?: number }).id ?? (category as { id_categoria?: number }).id_categoria ?? ''),
+        name: category.name,
         description,
         icon: (icon as { name?: string }).name || 'ShoppingBag',
         color: colors.color,
         bgGradient: colors.bgGradient,
         iconBg: colors.iconBg,
-        isActive: category.ind_activo,
+        isActive: category.ind_activo ?? true,
         productCount: category.productos_count ?? 0,
       };
     });

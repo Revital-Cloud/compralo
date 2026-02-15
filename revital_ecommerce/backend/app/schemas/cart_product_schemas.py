@@ -39,10 +39,11 @@ class CartProductBase(BaseModel):
     id_carrito: Optional[int] = Field(None, description="Identificador del carrito.")
     id_usuario: Optional[Decimal] = Field(None, description="Identificador del usuario.")
     session_id: Optional[str] = Field(None, description="ID de la sesión para usuarios anónimos (UUID v4).")
-    id_categoria_producto: Decimal = Field(..., description="Identificador de la categoría del producto.")
-    id_linea_producto: Decimal = Field(..., description="Identificador de la línea del producto.")
-    id_sublinea_producto: Decimal = Field(..., description="Identificador de la sublínea del producto.")
-    id_producto: Decimal = Field(..., description="Identificador del producto.")
+    variant_id: Optional[Decimal] = Field(None, description="ID de la variante (tab_product_variants). Preferido al agregar al carrito.")
+    id_categoria_producto: Optional[Decimal] = Field(None, description="Compatibilidad: categoría.")
+    id_linea_producto: Optional[Decimal] = Field(None, description="Compatibilidad: ya no se usa.")
+    id_sublinea_producto: Optional[Decimal] = Field(None, description="Compatibilidad: ya no se usa.")
+    id_producto: Optional[Decimal] = Field(None, description="ID del producto (tab_products.id). Si no hay variant_id, se usa la primera variante activa.")
     cantidad: Decimal = Field(..., description="Cantidad del producto en el carrito.")
     precio_unitario_carrito: Optional[Decimal] = Field(None, description="Precio unitario del producto en el carrito.")
     opciones_elegidas: Optional[Dict[str, Any]] = Field(
@@ -69,9 +70,14 @@ class CartProduct(CartProductBase):
 class CartProductCreate(CartProductBase):
     """
     Esquema para la Creación de Productos en el Carrito.
-    Hereda de `CarProductBase` y se utiliza para validar los datos
-    al crear un nuevo producto en el carrito.
+    Debe incluir variant_id o id_producto (en ese caso se usa la primera variante activa).
     """
+
+    @model_validator(mode="after")
+    def validate_variant_or_product(self):
+        if self.variant_id is None and self.id_producto is None:
+            raise ValueError("Debe proporcionar 'variant_id' o 'id_producto'")
+        return self
 
 
 class CartProductDelete(CartProductBase):

@@ -73,9 +73,7 @@ async def get_testimonials(
             ape = str(r.get("ape_usuario") or "").strip()
             id_c = r.get("id_comentario")
             img = r.get("img_producto")
-            product_slug = None
-            if all(r.get(k) is not None for k in ("id_categoria", "id_linea", "id_sublinea", "id_producto")):
-                product_slug = f"{r['id_categoria']}-{r['id_linea']}-{r['id_sublinea']}-{r['id_producto']}"
+            product_slug = r.get("producto_slug") or (str(r.get("id_producto") or "") if r.get("id_producto") is not None else None)
             data.append({
                 "id_comentario": int(id_c) if id_c is not None else 0,
                 "comentario": str(r.get("comentario") or "").strip(),
@@ -92,29 +90,17 @@ async def get_testimonials(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
-@router.get("/comentaries/product/{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}")
+@router.get("/comentaries/product/{product_id_or_slug}")
 async def get_comentaries_by_product(
-    id_categoria:Decimal,
-    id_linea:Decimal,
-    id_sublinea:Decimal,
-    id_producto:Decimal,
-    db:Session = Depends(get_db)
+    product_id_or_slug: str,
+    db: Session = Depends(get_db)
 ):
     """
-    Obtiene todos los comentarios activos de un producto específico.
-    
-    Args:
-        id_categoria (Decimal): El ID de la categoría.
-        id_linea (Decimal): El ID de la línea.
-        id_sublinea (Decimal): El ID de la sublínea.
-        id_producto (Decimal): El ID del producto.
-        db (Session): La sesión de base de datos SQLAlchemy.
-        
-    Returns:
-        list: Lista de comentarios del producto con información del usuario.
+    Obtiene todos los comentarios activos de un producto.
+    Acepta product_id (numérico) o slug (tab_products.slug).
     """
     try:
-        comentarios = comentary_service.get_comentaries_by_product(db, id_categoria, id_linea, id_sublinea, id_producto)
+        comentarios = comentary_service.get_comentaries_by_product(db, product_id_or_slug)
         return {"success": True, "data": [dict(row) for row in comentarios], "total": len(comentarios)}
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

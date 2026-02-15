@@ -218,11 +218,13 @@ def create_order_from_checkout_reference(
     id_usuario: Optional[int] = None,
 ) -> Optional[int]:
     """
-    Crea la orden desde una referencia revital_cart_* y datos de transacción (webhook o confirm).
-    Crea orden, pago, marca orden como Procesada; el trigger vacía el carrito.
-    - Si id_usuario es None (webhook): se obtiene del carrito.
-    - Si id_usuario se pasa (confirm-checkout): se valida que el carrito pertenezca a ese usuario.
-    Retorna order_id o None si falla.
+    Crea la orden solo cuando Wompi confirma que el pago fue exitoso (APPROVED).
+    - Si el pago NO fue exitoso: no se crea ninguna orden (return None).
+    - Si el pago SÍ fue exitoso: se crea la orden, se registra el pago y se marca la orden
+      como Pagada (ind_estado=2); los triggers limpian el carrito, actualizan stock y puntos.
+    - id_usuario: si es None (webhook) se obtiene del carrito; si se pasa (confirm-checkout)
+      se valida que el carrito pertenezca a ese usuario.
+    Retorna order_id o None si falla / pago no aprobado.
     """
     parsed = parse_checkout_reference(reference)
     if not parsed:
@@ -231,7 +233,9 @@ def create_order_from_checkout_reference(
     cart_id, id_direccion, id_canje = parsed
     logger.info(f"create_order_from_checkout_reference: reference={reference} -> cart_id={cart_id}, id_direccion={id_direccion}, id_canje={id_canje}")
     status_tx = tx.get("status")
+    # Sin pago exitoso en Wompi no se crea ninguna orden
     if status_tx != "APPROVED":
+        logger.info(f"create_order_from_checkout_reference: no se crea orden (status={status_tx}, no APPROVED)")
         return None
     cart_row = db.execute(
         text("SELECT id_usuario FROM tab_carritos WHERE id_carrito = :cid"),
@@ -245,6 +249,34 @@ def create_order_from_checkout_reference(
         logger.warning(f"Carrito no pertenece al usuario: cart_id={cart_id}, id_usuario={id_usuario}")
         return None
     id_usuario = cart_user_id
+
+    # Lock por referencia para evitar órdenes duplicadas (confirm-checkout y webhook pueden ejecutarse a la vez)
+    db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:ref)::bigint)"), {"ref": reference})
+    existing = get_payment_by_reference(db, reference)
+    if existing and existing.get("id_orden") is not None:
+        order_id_existing = int(existing["id_orden"])
+        # Asegurar que la orden quede Pagada (puede haber quedado Pendiente si un intento anterior falló tras crear orden/pago)
+        try:
+            row = db.execute(
+                text("SELECT ind_estado FROM tab_ordenes WHERE id_orden = :oid"),
+                {"oid": order_id_existing},
+            ).fetchone()
+            if row and getattr(row, "ind_estado", None) != 2:
+                pm = tx.get("payment_method", {}) or {}
+                pm_type = pm.get("type") if isinstance(pm, dict) else None
+                metodo_pago = get_payment_method_for_db(pm_type) if pm_type else "transferencia"
+                db.execute(
+                    text("UPDATE tab_ordenes SET ind_estado = 2, metodo_pago = :mp, fec_update = NOW() WHERE id_orden = :oid"),
+                    {"oid": order_id_existing, "mp": metodo_pago},
+                )
+                db.commit()
+                logger.info(f"Orden {order_id_existing} marcada como pagada (estaba Pendiente, referencia ya existía)")
+        except Exception as e:
+            logger.warning(f"Al asegurar orden pagada para referencia existente: {e}")
+            if db.in_transaction():
+                db.rollback()
+        return order_id_existing
+
     try:
         from schemas.order_schema import OrderCreate
         # id_canje como entero para que la BD aplique el descuento por puntos (total 75k en vez de 100k)
@@ -255,7 +287,13 @@ def create_order_from_checkout_reference(
             des_observaciones=None,
             id_canje=Decimal(int(id_canje)) if id_canje is not None else None,
         )
-        result = order_service.create_order(db, order_data, Decimal(id_usuario))
+        pm = tx.get("payment_method", {}) if isinstance(tx.get("payment_method"), dict) else {}
+        pm_type = pm.get("type") if pm else None
+        metodo_pago = get_payment_method_for_db(pm_type) if pm_type else "transferencia"
+        # Crear orden ya como Pagada (ind_estado=2): la función BD lo soporta; el trigger INSERT limpia el carrito
+        result = order_service.create_order(
+            db, order_data, Decimal(id_usuario), ind_estado=2, metodo_pago=metodo_pago
+        )
         if not result or not result.get("success") or not result.get("id_orden"):
             logger.error(f"No se pudo crear la orden desde referencia checkout: {result}")
             return None
@@ -268,22 +306,19 @@ def create_order_from_checkout_reference(
             ).fetchone()
             if order_row and order_row.val_total_pedido is not None:
                 amount_in_cents = int(float(order_row.val_total_pedido) * 100)
-        create_payment(
-            db=db,
-            order_id=order_id,
-            reference=reference,
-            amount_in_cents=amount_in_cents,
-            currency="COP",
-            status="APPROVED",
-            usr_insert=Decimal(id_usuario),
-        )
-        pm = tx.get("payment_method", {}) if isinstance(tx.get("payment_method"), dict) else {}
-        pm_type = pm.get("type") if pm else None
-        metodo_pago = get_payment_method_for_db(pm_type) if pm_type else "transferencia"
-        order_service.update_order_payment_info(
-            db, Decimal(order_id), metodo_pago=metodo_pago, ind_estado=2
-        )
-        logger.info(f"Orden {order_id} creada desde referencia checkout: {reference}")
+        try:
+            create_payment(
+                db=db,
+                order_id=order_id,
+                reference=reference,
+                amount_in_cents=amount_in_cents,
+                currency="COP",
+                status="APPROVED",
+                usr_insert=Decimal(id_usuario),
+            )
+        except Exception as pay_err:
+            logger.warning(f"create_payment falló para orden {order_id} (orden ya creada como pagada): {pay_err}")
+        logger.info(f"Orden {order_id} creada como pagada desde referencia checkout: {reference}")
         return order_id
     except Exception as e:
         logger.error(f"Error creando orden desde referencia checkout: {e}", exc_info=True)

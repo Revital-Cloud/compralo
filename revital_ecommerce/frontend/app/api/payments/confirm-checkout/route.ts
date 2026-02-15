@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+function getBackendUrl(): string {
+  if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (apiUrl) {
+    try {
+      return new URL(apiUrl).origin;
+    } catch {
+      return 'http://localhost:8000';
+    }
+  }
+  return 'http://localhost:8000';
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +22,7 @@ export async function POST(request: NextRequest) {
     const storeId = request.headers.get('x-store-id');
     if (storeId) headers['x-store-id'] = storeId;
 
-    const response = await fetch(`${BACKEND_URL}/api/payments/confirm-checkout`, {
+    const response = await fetch(`${getBackendUrl()}/api/payments/confirm-checkout`, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),

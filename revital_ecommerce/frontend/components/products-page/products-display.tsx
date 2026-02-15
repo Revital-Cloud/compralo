@@ -9,20 +9,16 @@ interface ProductsDisplayProps {
   productsData: any
   productsLoading: boolean
   productsError: any
-  viewMode: 'grid' | 'list'
+  viewMode: "grid" | "list"
   priceRange: number[]
-  selectedCategories: string[]
-  selectedLines: string[]
-  selectedSublines: string[]
+  selectedCategoryId: number | null
   selectedBrands: string[]
+  selectedAttributes: Record<string, string[]>
   inStockOnly: boolean
   onSaleOnly: boolean
   clearAllFilters: () => void
   onRemoveFilter?: (filterType: string, value?: string) => void
-  categoriesData?: any[]
-  linesData?: any[]
-  sublinesData?: any[]
-  brandsData?: any[]
+  filterOptions?: { categorias?: { id: number; name: string }[]; marcas?: { id_marca: number; nom_marca: string }[]; attributes?: { id: number; name: string; values: string[] }[] } | null
 }
 
 export const ProductsDisplay = ({
@@ -31,18 +27,14 @@ export const ProductsDisplay = ({
   productsError,
   viewMode,
   priceRange,
-  selectedCategories,
-  selectedLines,
-  selectedSublines,
+  selectedCategoryId,
   selectedBrands,
+  selectedAttributes,
   inStockOnly,
   onSaleOnly,
   clearAllFilters,
   onRemoveFilter,
-  categoriesData,
-  linesData,
-  sublinesData,
-  brandsData
+  filterOptions,
 }: ProductsDisplayProps) => {
   // Hook del carrito para funcionalidad real
   const { addToCart, isAddingToCart } = useCart()
@@ -63,21 +55,18 @@ export const ProductsDisplay = ({
       
       const allProducts = getProductsToDisplay()
       
-      // Buscar el producto en la lista usando el ID completo (categoria-linea-sublinea-producto)
       let product: any = null
-      
       if (productId.includes('-')) {
-        // Si viene como slug completo
-        const [cat, line, subline, prod] = productId.split('-')
-        product = allProducts.find((p: any) => 
-          p.id_categoria?.toString() === cat &&
-          p.id_linea?.toString() === line &&
-          p.id_sublinea?.toString() === subline &&
-          p.id_producto?.toString() === prod
-        )
-      } else {
-        // Si viene solo como id_producto
-        product = allProducts.find((p: any) => p.id_producto?.toString() === productId)
+        const parts = productId.split('-')
+        const prodId = parts[parts.length - 1]
+        product = allProducts.find((p: any) => p.id?.toString() === prodId)
+        if (!product && parts.length >= 1) {
+          const prodId = parts[parts.length - 1]
+          product = allProducts.find((p: any) => p.id?.toString() === prodId)
+        }
+      }
+      if (!product) {
+        product = allProducts.find((p: any) => p.id?.toString() === productId)
       }
       
       if (!product) {
@@ -91,15 +80,11 @@ export const ProductsDisplay = ({
         return
       }
 
-      // Preparar datos del producto para el carrito
-      const cartProductData = {
-        id_categoria_producto: Number(product.id_categoria) || Number(product.id_categoria_producto) || 1,
-        id_linea_producto: Number(product.id_linea) || Number(product.id_linea_producto) || 1, 
-        id_sublinea_producto: Number(product.id_sublinea) || Number(product.id_sublinea_producto) || 1,
-        id_producto: Number(product.id_producto),
+      const cartProductData: Parameters<typeof addToCart>[0] = {
+        id_producto: Number(product.id),
         cantidad: 1,
-        precio_unitario_carrito: parseFloat(product.val_precio?.toString() || '0'),
-        stock_disponible: product.num_stock || 0 // Pasar stock para validación
+        precio_unitario_carrito: parseFloat(((product as any).price_min?.toString() ?? product.val_precio?.toString()) || "0"),
+        stock_disponible: product.num_stock ?? 0,
       }
 
       console.log('🛒 Agregando producto al carrito desde lista:', cartProductData)
@@ -108,7 +93,7 @@ export const ProductsDisplay = ({
       addToCart(cartProductData)
       
       // Mostrar toast de éxito
-      toast.success(`${product.nom_producto} agregado al carrito`)
+      toast.success(`${product.name} agregado al carrito`)
       
     } catch (error) {
       console.error('❌ Error al agregar producto al carrito:', error)
@@ -130,72 +115,6 @@ export const ProductsDisplay = ({
     }
   }
 
-  // Función para aplicar filtros a los productos
-  const getFilteredProducts = (products: any[]) => {
-    if (!products || !Array.isArray(products)) return []
-    
-    return products.filter(product => {
-      // Filtro por precio - convertir string a número y aplicar filtros solo si están activos
-      const productPrice = parseFloat(product.val_precio) || 0
-      
-      // Solo aplicar filtro de precio mínimo si el usuario lo ha modificado
-      if (priceRange[0] > 0 && productPrice < priceRange[0]) {
-        return false
-      }
-      
-      // Solo aplicar filtro de precio máximo si el usuario lo ha modificado
-      // Nota: Este filtro se aplica en el backend, aquí es solo para mostrar información
-      if (priceRange[1] < 10000000 && productPrice > priceRange[1]) {
-        return false
-      }
-      
-      // Filtro por categoría
-      if (selectedCategories.length > 0) {
-        const productCategory = product.id_categoria?.toString()
-        if (!productCategory || !selectedCategories.includes(productCategory)) {
-          return false
-        }
-      }
-      
-      // Filtro por línea
-      if (selectedLines.length > 0) {
-        const productLine = product.id_linea?.toString()
-        if (!productLine || !selectedLines.includes(productLine)) {
-          return false
-        }
-      }
-      
-      // Filtro por sub-línea
-      if (selectedSublines.length > 0) {
-        const productSubline = product.id_sublinea?.toString()
-        if (!productSubline || !selectedSublines.includes(productSubline)) {
-          return false
-        }
-      }
-      
-      // Filtro por marca
-      if (selectedBrands.length > 0) {
-        const productBrand = product.id_marca?.toString()
-        if (!productBrand || !selectedBrands.includes(productBrand)) {
-          return false
-        }
-      }
-      
-      // Filtro por stock - usar num_stock en lugar de stock_cantidad
-      if (inStockOnly && (product.num_stock || 0) <= 0) {
-        return false
-      }
-      
-      // Filtro por oferta (por ahora deshabilitado ya que no hay campo descuento)
-      // if (onSaleOnly && !product.descuento && product.descuento !== 0) {
-      //   return false
-      // }
-      
-      return true
-    })
-  }
-
-  // Obtener productos filtrados
   const getProductsToDisplay = () => {
     // Los datos del endpoint de filtros vienen como { products: [], total: number, ... }
     if (productsData?.products && Array.isArray(productsData.products)) {
@@ -256,19 +175,15 @@ export const ProductsDisplay = ({
                 <FilterSuggestions
                   activeFilters={{
                     priceRange: priceRange[0] > 0 || priceRange[1] < 10000000 ? [priceRange[0], priceRange[1]] as [number, number] : undefined,
-                    categories: selectedCategories,
-                    lines: selectedLines,
-                    sublines: selectedSublines,
+                    categoryId: selectedCategoryId ?? undefined,
                     brands: selectedBrands,
+                    attributes: selectedAttributes,
                     inStockOnly,
-                    onSaleOnly
+                    onSaleOnly,
                   }}
                   onRemoveFilter={handleRemoveFilter}
                   onClearAll={clearAllFilters}
-                  categoriesData={categoriesData}
-                  linesData={linesData}
-                  sublinesData={sublinesData}
-                  brandsData={brandsData}
+                  filterOptions={filterOptions}
                 />
                 <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
                   Mostrando {filteredProducts.length} productos

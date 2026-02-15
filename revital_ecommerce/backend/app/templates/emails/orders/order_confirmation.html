@@ -24,12 +24,14 @@
 <div class="content-block">
     <h3>Productos</h3>
     <table class="table">
-        <thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th></tr></thead>
+        <thead><tr><th>Producto</th><th>Variante / Opciones</th><th>Cant.</th><th>P. unit.</th><th>Total</th></tr></thead>
         <tbody>
         {% for item in (order['items'] if order is mapping else (order.items or [])) %}
         <tr>
             <td>{{ item.product_name or item.get('product_name', '') }}</td>
+            <td>{{ item.options or item.get('options', '') or '—' }}</td>
             <td>{{ item.quantity or item.get('quantity', '') }}</td>
+            <td>${{ item.unit_price or item.get('unit_price', '') }}</td>
             <td>${{ item.price or item.get('price', '') }}</td>
         </tr>
         {% endfor %}

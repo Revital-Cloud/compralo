@@ -20,23 +20,15 @@ def get_favorites(db:Session, id_usuario: Decimal):
         # SQLAlchemy convierte automáticamente JSONB a dict en Python
         # FastAPI luego lo serializa a JSON en la respuesta
         query = text("""
-        SELECT 
+        SELECT
             f.id_usuario,
-            f.id_categoria_producto,
-            f.id_linea_producto,
-            f.id_sublinea_producto,
-            f.id_producto,
-            p.nom_producto,
-            p.img_producto,
-            p.val_precio,
+            f.product_id AS id_producto,
+            p.name AS nom_producto,
+            (SELECT pi.image_url FROM tab_product_images pi WHERE pi.product_id = p.id AND pi.is_main = TRUE LIMIT 1) AS img_producto,
+            (SELECT MIN(pv.price) FROM tab_product_variants pv WHERE pv.product_id = p.id AND pv.is_active = TRUE) AS val_precio,
             f.fec_insert
         FROM tab_favoritos f
-        INNER JOIN tab_productos p ON (
-            f.id_categoria_producto = p.id_categoria AND
-            f.id_linea_producto = p.id_linea AND
-            f.id_sublinea_producto = p.id_sublinea AND
-            f.id_producto = p.id_producto
-        )
+        INNER JOIN tab_products p ON p.id = f.product_id
         WHERE f.id_usuario = :id_usuario
         ORDER BY f.fec_insert DESC
         """) 
@@ -56,25 +48,14 @@ def create_favorite(db:Session, favorite:FavoritesCreate, usr_insert: Decimal):
         usr_insert (Decimal): ID del usuario que está creando el favorito.
     """
     try:
-        # Usar la función de base de datos fun_insert_favorito
+        # tab_favoritos usa product_id; la API puede seguir enviando id_producto (y opc. id_categoria, id_linea, id_sublinea)
         query = text("""
-        SELECT fun_insert_favorito(
-            :id_usuario,
-            :id_categoria_producto,
-            :id_linea_producto,
-            :id_sublinea_producto,
-            :id_producto,
-            :usr_insert
-        )
+        SELECT fun_insert_favorito(:p_id_usuario, :p_product_id, :p_usr_operacion)
         """)
-        
         result = db.execute(query, {
-            'id_usuario': favorite.id_usuario,
-            'id_categoria_producto': favorite.id_categoria_producto,
-            'id_linea_producto': favorite.id_linea_producto,
-            'id_sublinea_producto': favorite.id_sublinea_producto,
-            'id_producto': favorite.id_producto,
-            'usr_insert': usr_insert
+            "p_id_usuario": favorite.id_usuario,
+            "p_product_id": favorite.id_producto,
+            "p_usr_operacion": usr_insert,
         })
         
         fetched_result = result.fetchone()
@@ -98,36 +79,17 @@ def create_favorite(db:Session, favorite:FavoritesCreate, usr_insert: Decimal):
             raise Exception("El producto ya está en tus favoritos")
         raise Exception(f"Error al crear favorito: {error_msg}")
 
-def delete_favorite(db:Session, id_usuario: Decimal, id_categoria_producto: Decimal, id_linea_producto: Decimal, id_sublinea_producto: Decimal, id_producto: Decimal):
+def delete_favorite(db: Session, id_usuario: Decimal, id_producto: Decimal):
     """
-    Elimina un favorito existente en la base de datos usando la función fun_delete_favorito.
-    
-    Args:
-        db (Session): La sesión de base de datos SQLAlchemy.
-        id_usuario (Decimal): ID del usuario.
-        id_categoria_producto (Decimal): ID de la categoría del producto.
-        id_linea_producto (Decimal): ID de la línea del producto.
-        id_sublinea_producto (Decimal): ID de la sublínea del producto.
-        id_producto (Decimal): ID del producto.
+    Elimina un favorito (tab_favoritos: id_usuario, product_id).
     """
     try:
-        # Usar la función de base de datos fun_delete_favorito
         query = text("""
-        SELECT fun_delete_favorito(
-            :id_usuario,
-            :id_categoria_producto,
-            :id_linea_producto,
-            :id_sublinea_producto,
-            :id_producto
-        )
+        SELECT fun_delete_favorito(:p_id_usuario, :p_product_id)
         """)
-        
         result = db.execute(query, {
-            'id_usuario': id_usuario,
-            'id_categoria_producto': id_categoria_producto,
-            'id_linea_producto': id_linea_producto,
-            'id_sublinea_producto': id_sublinea_producto,
-            'id_producto': id_producto
+            "p_id_usuario": id_usuario,
+            "p_product_id": id_producto,
         })
         
         fetched_result = result.fetchone()

@@ -16,318 +16,521 @@ from sqlalchemy import text
 from fastapi import UploadFile
 from typing import List, Optional
 import json
+import re
 from psycopg2.extras import Json
 
-from schemas.product_schema import ProductCreate, ProductUpdate, ProductFilterParams, ProductFiltered, ProductFilterResponse, ProductFilterStats
+from schemas.product_schema import (
+    ProductCreate,
+    ProductUpdate,
+    ProductFilterParams,
+    ProductFiltered,
+    ProductFilterResponse,
+    ProductFilterStats,
+    ProductCreateComposite,
+)
 from services import cloudinary_service
 # No necesitamos importar el schema Product aquí si solo devolvemos mappings
 # y el router se encarga de la validación con el response_model.
 
-#all products
+MAX_IMAGES_PER_VARIANT = 10
+
+
+def _resolve_attribute_value_id(db: Session, attr_id: int, val) -> tuple:
+    """If val is int and exists in tab_attribute_values for attr_id, return (value_id, value_text); else (None, None)."""
+    try:
+        vint = int(val)
+    except (TypeError, ValueError):
+        return (None, None)
+    r = db.execute(
+        text("SELECT id, value FROM tab_attribute_values WHERE id = :vid AND attribute_id = :aid"),
+        {"vid": vint, "aid": attr_id}
+    ).first()
+    if r:
+        return (vint, r[1])
+    return (None, None)
+
+
+def _get_images_for_product_or_variant(
+    db: Session, product_id: Decimal, variant_id: Optional[Decimal] = None
+) -> List[dict]:
+    """
+    Obtiene imágenes: si variant_id está definido, primero intenta imágenes de la variante;
+    si no hay, fallback a imágenes del producto (variant_id IS NULL).
+    Siempre devuelve lista ordenada por sort_order, id con { image_url, is_main, sort_order }.
+    """
+    if variant_id is not None:
+        rows = db.execute(
+            text("""
+                SELECT image_url, is_main, sort_order
+                FROM tab_product_images
+                WHERE variant_id = :vid
+                ORDER BY sort_order, id
+            """),
+            {"vid": variant_id},
+        ).mappings().all()
+        if rows:
+            return [{"image_url": r["image_url"], "is_main": bool(r.get("is_main")), "sort_order": int(r.get("sort_order") or 0)} for r in rows]
+    rows = db.execute(
+        text("""
+            SELECT image_url, is_main, sort_order
+            FROM tab_product_images
+            WHERE product_id = :pid AND variant_id IS NULL
+            ORDER BY sort_order, id
+        """),
+        {"pid": product_id},
+    ).mappings().all()
+    return [{"image_url": r["image_url"], "is_main": bool(r.get("is_main")), "sort_order": int(r.get("sort_order") or 0)} for r in rows]
+
+
+# Productos para admin (tab_products + tab_product_variants; usa fun_get_all_products_admin)
 def get_products_admin(db: Session, params: dict):
     """
-    Obtiene todos los productos para el panel de administración.
-    
-    Utiliza la función SQL fun_get_all_products_admin para obtener
-    productos con información completa incluyendo estados de activación.
-    
-    Args:
-        db (Session): Sesión de la base de datos SQLAlchemy.
-        params (dict): Parámetros de consulta (ordenar_por, orden, limit, offset)
-        
-    Returns:
-        list: Lista de productos con información completa para admin
+    Obtiene todos los productos para el panel de administración usando
+    fun_get_all_products_admin (tab_products, tab_product_variants, tab_categories, tab_marcas).
+    Filtros por search, category_id, id_marca se aplican en Python (la función DB no los tiene).
     """
     try:
-        # Mapear campo de orden a columna SQL segura
         params = params or {}
-
         ordenar_por = params.get('ordenar_por', 'nombre')
         orden = params.get('orden', 'ASC')
-
-        # Filtros opcionales
+        limit = params.get('limit', 50)
+        offset = params.get('offset', 0)
         search = params.get('search')
-        id_categoria = params.get('id_categoria')
-        id_linea = params.get('id_linea')
-        id_sublinea = params.get('id_sublinea')
+        category_id_param = params.get('category_id') or params.get('id_categoria')
         id_marca = params.get('id_marca')
-        id_proveedor = params.get('id_proveedor')
 
-        order_column_map = {
-            'nombre': 'p.nom_producto',
-            'precio': 'p.val_precio',
-            'stock': 'p.num_stock',
-            'fecha': 'p.fec_insert',
-            'categoria': 'c.nom_categoria',
-            'marca': 'm.nom_marca',
-        }
-        order_column = order_column_map.get(str(ordenar_por).lower(), 'p.nom_producto')
-        order_direction = 'DESC' if str(orden).upper() == 'DESC' else 'ASC'
+        limit_val = min(int(limit), 1000)
+        offset_val = max(0, int(offset))
+        has_filters = (search and search.strip()) or (category_id_param is not None)
+        if has_filters:
+            # Con filtros: traer hasta 1000, filtrar en app y paginar
+            fetch_limit, fetch_offset = 1000, 0
+        else:
+            fetch_limit, fetch_offset = limit_val, offset_val
 
-        # Construir cláusulas WHERE dinámicas según filtros presentes
-        where_clauses = []
-        sql_params = {
-            'limit': params.get('limit'),
-            'offset': params.get('offset'),
-        }
-
-        if id_categoria is not None:
-            where_clauses.append("p.id_categoria = :id_categoria")
-            sql_params['id_categoria'] = id_categoria
-
-        if id_linea is not None:
-            where_clauses.append("p.id_linea = :id_linea")
-            sql_params['id_linea'] = id_linea
-
-        if id_sublinea is not None:
-            where_clauses.append("p.id_sublinea = :id_sublinea")
-            sql_params['id_sublinea'] = id_sublinea
-
-        if id_marca is not None:
-            where_clauses.append("p.id_marca = :id_marca")
-            sql_params['id_marca'] = id_marca
-
-        if id_proveedor is not None:
-            where_clauses.append("p.id_proveedor = :id_proveedor")
-            sql_params['id_proveedor'] = id_proveedor
-
-        if search:
-            where_clauses.append("p.nom_producto ILIKE :search")
-            sql_params['search'] = f"%{search}%"
-
-        where_sql = ""
-        if where_clauses:
-            where_sql = "WHERE " + " AND ".join(where_clauses)
-
-        # Usar CTE + DISTINCT ON y COUNT(*) OVER() para obtener total sin subconsulta costosa
-        # DISTINCT ON requiere que las columnas de DISTINCT estén primero en ORDER BY
-        query = text(f"""
-            WITH base AS (
-                SELECT DISTINCT ON (p.id_categoria, p.id_linea, p.id_sublinea, p.id_producto)
-                    p.id_categoria::text,
-                    p.id_linea::text,
-                    p.id_sublinea::text,
-                    p.id_producto::text,
-                    c.nom_categoria,
-                    l.nom_linea,
-                    s.nom_sublinea,
-                    p.nom_producto,
-                    p.spcf_producto,
-                    p.img_producto,
-                    p.val_precio::text,
-                    p.num_stock,
-                    p.id_proveedor::text,
-                    p.id_marca::text,
-                    pr.nom_proveedor,
-                    m.nom_marca,
-                    p.fec_insert::text,
-                    p.ind_activo as ind_activo_producto,
-                    c.ind_activo as ind_activo_categoria,
-                    l.ind_activo as ind_activo_linea,
-                    s.ind_activo as ind_activo_sublinea,
-                    pr.ind_activo as ind_activo_proveedor,
-                    m.ind_activo as ind_activo_marca
-                FROM tab_productos p
-                INNER JOIN tab_categorias c ON p.id_categoria = c.id_categoria
-                INNER JOIN tab_lineas l ON p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria
-                INNER JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea AND p.id_categoria = s.id_categoria
-                INNER JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
-                INNER JOIN tab_marcas m ON p.id_marca = m.id_marca
-                {where_sql}
-                ORDER BY p.id_categoria, p.id_linea, p.id_sublinea, p.id_producto, {order_column} {order_direction}
+        query = text("""
+            SELECT * FROM fun_get_all_products_admin(
+                :p_ordenar_por, :p_orden, :p_limit, :p_offset
             )
-            SELECT 
-                *,
-                COUNT(*) OVER() AS total_registros
-            FROM base
-            LIMIT :limit OFFSET :offset
         """)
+        result = db.execute(query, {
+            "p_ordenar_por": ordenar_por,
+            "p_orden": orden,
+            "p_limit": fetch_limit,
+            "p_offset": fetch_offset,
+        })
+        rows = result.mappings().all()
 
-        result = db.execute(query, sql_params)
-        return result.mappings().all()
+        if search and search.strip():
+            search_lower = search.strip().lower()
+            rows = [r for r in rows if (r.get("nom_producto") or "").lower().find(search_lower) >= 0]
+        if category_id_param is not None:
+            rows = [r for r in rows if r.get("category_id") is not None and int(r.get("category_id")) == int(category_id_param)]
+
+        total_filtered = len(rows)
+        if has_filters:
+            rows = rows[offset_val : offset_val + limit_val]
+
+        out = []
+        for r in rows:
+            out.append({
+                "category_id": str(r.get("category_id") or ""),
+                "id": str(r.get("product_id") or ""),
+                "category_name": (r.get("nom_categoria") or "") or "",
+                "name": (r.get("nom_producto") or "") or "",
+                "description": r.get("description"),
+                "slug_producto": r.get("slug_producto"),
+                "image_url": r.get("img_principal"),
+                "price_min": str(r.get("precio_min") or "0"),
+                "stock_total": int(r.get("stock_total") or 0),
+                "id_marca": str(r.get("id_marca") or "") if r.get("id_marca") is not None else "",
+                "nom_marca": (r.get("nom_marca") or "") or "",
+                "fec_insert": str(r.get("fec_insert") or ""),
+                "is_active": bool(r.get("ind_activo_producto", True)),
+                "ind_activo_categoria": bool(r.get("ind_activo_categoria", True)),
+                "ind_activo_marca": bool(r.get("ind_activo_marca", True)),
+                "total_registros": total_filtered,
+            })
+        return out
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener productos para admin: {str(e)}")
 
 def get_products(db: Session):
     """
-    Obtiene todos los productos de la base de datos.
-
-    Ejecuta una consulta SQL para seleccionar todos los productos y devuelve
-    los resultados como una lista de diccionarios (RowMappings).
-
-    Args:
-        db (Session): La sesión de base de datos SQLAlchemy.
-
-    Returns:
-        list: Una lista de diccionarios, donde cada diccionario representa un producto.
-              FastAPI utilizará el `response_model` del endpoint para convertir esto
-              en una lista de objetos `Product`.
+    Obtiene todos los productos activos (tab_products + tab_product_variants).
+    Usa fun_get_productos_activos y ratings desde tab_comentarios por product_id.
     """
     try:
-        # Obtener solo productos activos y con categorías/líneas/sublíneas activas
-        products_query = text("""
-        SELECT 
-            p.id_categoria,
-            p.id_linea,
-            p.id_sublinea,
-            p.id_producto,
-            p.nom_producto,
-            p.spcf_producto,
-            p.img_producto,
-            p.val_precio,
-            p.id_proveedor,
-            p.id_marca,
-            p.num_stock,
-            p.ind_activo,
-            p.usr_insert,
-            p.fec_insert,
-            p.usr_update,
-            p.fec_update
-        FROM tab_productos p
-        INNER JOIN tab_categorias c ON p.id_categoria = c.id_categoria
-        INNER JOIN tab_lineas l ON p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria
-        INNER JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea 
-            AND p.id_linea = s.id_linea 
-            AND p.id_categoria = s.id_categoria
-        WHERE p.ind_activo = true
-            AND c.ind_activo = true
-            AND l.ind_activo = true
-            AND s.ind_activo = true
-        """)
+        products_query = text("SELECT * FROM fun_get_productos_activos()")
         products_result = db.execute(products_query)
-        products_data = products_result.mappings().all()
-        
-        # Obtener ratings promedio para todos los productos
-        if products_data:
-            # Obtener todos los ratings en una sola consulta
-            ratings_query = text("""
-                SELECT 
-                    id_categoria,
-                    id_linea,
-                    id_sublinea,
-                    id_producto,
-                    ROUND(AVG(calificacion)::numeric, 1)::float as rating
-                FROM tab_comentarios
-                WHERE ind_activo = TRUE
-                    AND calificacion IS NOT NULL
-                GROUP BY id_categoria, id_linea, id_sublinea, id_producto
-            """)
-            ratings_result = db.execute(ratings_query)
-            ratings_dict = {
-                (r['id_categoria'], r['id_linea'], r['id_sublinea'], r['id_producto']): r['rating']
-                for r in ratings_result.mappings().all()
-            }
-        else:
-            ratings_dict = {}
-        
-        # Combinar productos con sus ratings
-        products_with_ratings = []
-        for product in products_data:
-            product_key = (product['id_categoria'], product['id_linea'], product['id_sublinea'], product['id_producto'])
-            rating = ratings_dict.get(product_key)
-            # Crear un nuevo dict con el rating incluido
-            product_dict = dict(product)
-            product_dict['rating'] = rating
-            products_with_ratings.append(product_dict)
-        
-        return products_with_ratings
+        products_data = list(products_result.mappings().all())
+        if not products_data:
+            return []
+
+        product_ids = list({r["product_id"] for r in products_data})
+        if not product_ids:
+            return []
+        # Parámetros nombrados para IN (PostgreSQL): ANY(:ids::decimal[])
+        ratings_query = text("""
+            SELECT product_id,
+                   ROUND(AVG(calificacion)::numeric, 1)::float AS rating,
+                   COUNT(*)::int AS review_count
+            FROM tab_comentarios
+            WHERE ind_activo = TRUE AND calificacion IS NOT NULL AND product_id = ANY(:ids)
+            GROUP BY product_id
+        """)
+        ratings_result = db.execute(ratings_query, {"ids": product_ids})
+        ratings_by_id = {r["product_id"]: {"rating": float(r["rating"]) if r["rating"] is not None else None, "review_count": r["review_count"]} for r in ratings_result.mappings().all()}
+
+        out = []
+        for r in products_data:
+            pid = r.get("product_id")
+            rating_info = ratings_by_id.get(pid) or {}
+            out.append({
+                "id": pid,
+                "category_id": r.get("category_id"),
+                "name": r.get("nom_producto") or "",
+                "slug": r.get("slug_producto"),
+                "description": r.get("description"),
+                "image_url": r.get("img_principal"),
+                "price_min": r.get("precio_min"),
+                "stock_total": int(r.get("stock_total") or 0),
+                "id_marca": r.get("id_marca"),
+                "is_active": True,
+                "usr_insert": None,
+                "fec_insert": None,
+                "usr_update": None,
+                "fec_update": None,
+                "category_name": r.get("nom_categoria"),
+                "rating": rating_info.get("rating"),
+                "review_count": rating_info.get("review_count", 0),
+            })
+        return out
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener productos: {str(e)}")
 
-#single product
-def get_product(
-    id_categoria: Decimal,
-    id_linea: Decimal,
-    id_sublinea: Decimal,
-    id_producto: Decimal,
-    db: Session
-    ):
+# Un producto por slug o id (tab_products; sin línea/sublínea)
+def get_product_by_slug_or_id(db: Session, slug_or_id: str):
     """
-    Obtiene un producto específico de la base de datos con nombres de categoría, línea, sublínea, marca y proveedor.
+    Obtiene un producto por slug (tab_products.slug) o por id.
+    Acepta: slug (ej. "laptop-gamer"), id numérico ("5"), o formato legacy "5-null-null-5" (usa último número como id).
+    """
+    if not slug_or_id or not str(slug_or_id).strip():
+        return None
+    s = str(slug_or_id).strip()
+    # Solo dígitos -> id
+    if s.isdigit():
+        return get_product_by_id(db, Decimal(s))
+    # Legacy "num-null-null-num" -> usar último número como product_id
+    legacy = re.match(r"^(\d+)-null-null-(\d+)$", s, re.IGNORECASE)
+    if legacy:
+        return get_product_by_id(db, Decimal(legacy.group(2)))
+    # Por slug
+    return get_product_by_slug(db, s)
 
-    Ejecuta una consulta SQL con JOINs para seleccionar un producto por su ID y devuelve
-    el resultado como un diccionario (RowMapping) incluyendo los nombres de las tablas relacionadas.
+
+def get_product(id_categoria: Decimal, id_linea: Decimal, id_sublinea: Decimal, id_producto: Decimal, db: Session):
+    """Compatibilidad: solo usa id_producto."""
+    return get_product_by_id(db, id_producto)
+
+
+def get_product_by_slug(db: Session, slug: str):
     """
+    Obtiene un producto por tab_products.slug (misma forma que get_product_by_id).
+    """
+    if not slug or not slug.strip():
+        return None
     try:
-        query = text(
-            """SELECT 
-                p.id_categoria,
-                p.id_linea,
-                p.id_sublinea,
-                p.id_producto,
-                p.nom_producto,
-                p.spcf_producto,
-                p.img_producto,
-                p.val_precio,
-                p.id_proveedor,
+        query = text("""
+            SELECT
+                p.id AS id_producto,
+                p.category_id AS id_categoria,
+                p.name AS nom_producto,
+                p.slug,
+                p.description,
                 p.id_marca,
-                p.num_stock,
-                p.ind_activo,
+                p.is_active AS ind_activo,
                 p.usr_insert,
                 p.fec_insert,
                 p.usr_update,
                 p.fec_update,
-                c.nom_categoria,
-                l.nom_linea,
-                s.nom_sublinea,
-                m.nom_marca,
-                pr.nom_proveedor
-            FROM tab_productos p
-            LEFT JOIN tab_categorias c ON p.id_categoria = c.id_categoria
-            LEFT JOIN tab_lineas l ON p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria
-            LEFT JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea AND p.id_categoria = s.id_categoria
-            LEFT JOIN tab_marcas m ON p.id_marca = m.id_marca
-            LEFT JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
-            WHERE 
-                p.id_categoria = :id_categoria AND
-                p.id_linea = :id_linea AND 
-                p.id_sublinea = :id_sublinea AND
-                p.id_producto = :id_producto
-                """)
-        result = db.execute(
-            query, 
-            {
-                "id_categoria":id_categoria,
-                "id_linea":id_linea,
-                "id_sublinea":id_sublinea,
-                "id_producto":id_producto
-            }
-            )
-        row = result.mappings().first()
+                c.name AS nom_categoria,
+                (SELECT MIN(pv.price) FROM tab_product_variants pv WHERE pv.product_id = p.id AND pv.is_active = TRUE) AS val_precio,
+                (SELECT COALESCE(SUM(pv.stock), 0) FROM tab_product_variants pv WHERE pv.product_id = p.id AND pv.is_active = TRUE) AS num_stock,
+                (SELECT pi.image_url FROM tab_product_images pi WHERE pi.product_id = p.id AND pi.variant_id IS NULL AND pi.is_main = TRUE LIMIT 1) AS img_principal,
+                m.nom_marca
+            FROM tab_products p
+            JOIN tab_categories c ON c.id = p.category_id
+            LEFT JOIN tab_marcas m ON m.id_marca = p.id_marca
+            WHERE p.slug = :slug AND p.is_active = TRUE
+        """)
+        row = db.execute(query, {"slug": slug.strip()}).mappings().first()
         if row is None:
             return None
-        # Incluir rating y cantidad de reseñas desde tab_comentarios
-        product_dict = dict(row)
-        rating_row = db.execute(
+        product_id = row.get("id_producto")
+        if product_id is not None:
+            return get_product_by_id(db, Decimal(product_id))
+        return _row_to_product_dict(db, row)
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener el producto por slug: {str(e)}")
+
+
+def _row_to_product_dict(db: Session, row) -> dict:
+    """Convierte una fila a dict API: tab_products + price_min, stock_total, image_url (calculados)."""
+    product_dict = dict(row)
+    product_id = product_dict.get("id_producto") or product_dict.get("id")
+    product_dict["id"] = product_id
+    product_dict["name"] = product_dict.get("nom_producto") or product_dict.get("name") or ""
+    product_dict["category_name"] = product_dict.get("nom_categoria") or product_dict.get("category_name") or ""
+    product_dict.setdefault("slug", product_dict.get("slug"))
+    product_dict["price_min"] = product_dict.get("val_precio")
+    product_dict["stock_total"] = int(product_dict.get("num_stock") or 0) if product_dict.get("num_stock") is not None else 0
+    img_main = product_dict.pop("img_principal", None)
+    product_dict["image_url"] = img_main
+    rating_row = db.execute(
+        text("""
+            SELECT ROUND(AVG(calificacion)::numeric, 1)::float AS rating, COUNT(*)::int AS review_count
+            FROM tab_comentarios
+            WHERE product_id = :product_id AND ind_activo = TRUE AND calificacion IS NOT NULL
+        """),
+        {"product_id": product_id},
+    ).mappings().first()
+    if rating_row and (rating_row.get("review_count") or 0) > 0:
+        product_dict["rating"] = float(rating_row["rating"]) if rating_row.get("rating") is not None else None
+        product_dict["review_count"] = int(rating_row["review_count"])
+    else:
+        product_dict["rating"] = None
+        product_dict["review_count"] = 0
+    return product_dict
+
+
+def _build_product_images_dict(rows: List[dict]) -> Optional[dict]:
+    """Convierte filas (image_url, is_main, sort_order) en { main, gallery, thumbnails }."""
+    if not rows:
+        return None
+    sorted_rows = sorted(rows, key=lambda r: (int(r.get("sort_order") or 0), r.get("image_url") or ""))
+    urls = [r["image_url"] for r in sorted_rows if r.get("image_url")]
+    if not urls:
+        return None
+    main_url = None
+    for r in sorted_rows:
+        if r.get("is_main") and r.get("image_url"):
+            main_url = r["image_url"]
+            break
+    if not main_url:
+        main_url = urls[0]
+    gallery = [u for u in urls if u != main_url]
+    return {"main": main_url, "gallery": gallery, "thumbnails": urls}
+
+
+def get_product_by_id(db: Session, product_id: Decimal):
+    """
+    Obtiene un producto por tab_products.id con categoría, precio mínimo, stock, imágenes (producto + por variante), variantes y rating.
+    """
+    try:
+        query = text("""
+            SELECT
+                p.id AS id_producto,
+                p.category_id AS id_categoria,
+                p.name AS nom_producto,
+                p.slug,
+                p.description,
+                p.id_marca,
+                p.is_active AS ind_activo,
+                p.usr_insert,
+                p.fec_insert,
+                p.usr_update,
+                p.fec_update,
+                c.name AS nom_categoria,
+                (SELECT MIN(pv.price) FROM tab_product_variants pv WHERE pv.product_id = p.id AND pv.is_active = TRUE) AS val_precio,
+                (SELECT COALESCE(SUM(pv.stock), 0) FROM tab_product_variants pv WHERE pv.product_id = p.id AND pv.is_active = TRUE) AS num_stock,
+                (SELECT pi.image_url FROM tab_product_images pi WHERE pi.product_id = p.id AND pi.variant_id IS NULL AND pi.is_main = TRUE LIMIT 1) AS img_principal,
+                m.nom_marca
+            FROM tab_products p
+            JOIN tab_categories c ON c.id = p.category_id
+            LEFT JOIN tab_marcas m ON m.id_marca = p.id_marca
+            WHERE p.id = :product_id
+        """)
+        row = db.execute(query, {"product_id": product_id}).mappings().first()
+        if row is None:
+            return None
+        result = _row_to_product_dict(db, row)
+        result["num_stock"] = result.get("stock_total", 0)
+        # Imágenes del producto (variant_id IS NULL)
+        prod_img_rows = db.execute(
             text("""
-                SELECT 
-                    ROUND(AVG(calificacion)::numeric, 1)::float AS rating,
-                    COUNT(*)::int AS review_count
-                FROM tab_comentarios
-                WHERE id_categoria = :id_categoria
-                  AND id_linea = :id_linea
-                  AND id_sublinea = :id_sublinea
-                  AND id_producto = :id_producto
-                  AND ind_activo = TRUE
-                  AND calificacion IS NOT NULL
+                SELECT image_url, is_main, sort_order FROM tab_product_images
+                WHERE product_id = :pid AND variant_id IS NULL
+                ORDER BY sort_order, id
             """),
+            {"pid": product_id},
+        ).mappings().all()
+        img_built = _build_product_images_dict([dict(r) for r in prod_img_rows])
+        result["image_url"] = img_built.get("main") if img_built else result.get("image_url")
+        # Orden: imagen principal primero, luego galería (para thumbnails y flechas en la ficha)
+        main_list = [img_built["main"]] if img_built.get("main") else []
+        gallery_list = img_built.get("gallery") or []
+        img_urls = main_list + gallery_list
+        result["images"] = [{"image_url": u, "is_main": (u == (img_built.get("main") if img_built else None)), "sort_order": i} for i, u in enumerate(img_urls)]
+        if not result["images"] and result.get("image_url"):
+            result["images"] = [{"image_url": result["image_url"], "is_main": True, "sort_order": 0}]
+        # Variantes activas
+        variant_rows = db.execute(
+            text("""
+                SELECT id, sku, price, stock, is_active
+                FROM tab_product_variants WHERE product_id = :pid AND is_active = TRUE
+                ORDER BY id
+            """),
+            {"pid": product_id},
+        ).mappings().all()
+        result["variants"] = [
             {
-                "id_categoria": id_categoria,
-                "id_linea": id_linea,
-                "id_sublinea": id_sublinea,
-                "id_producto": id_producto,
-            },
-        ).mappings().first()
-        if rating_row and rating_row.get("review_count", 0) and rating_row["review_count"] > 0:
-            # Asegurar tipos nativos para JSON (por si vienen Decimal desde la DB)
-            product_dict["rating"] = float(rating_row["rating"]) if rating_row["rating"] is not None else None
-            product_dict["review_count"] = int(rating_row["review_count"])
-        else:
-            product_dict["rating"] = None
-            product_dict["review_count"] = 0
-        return product_dict
+                "id": int(v["id"]),
+                "sku": v.get("sku"),
+                "price": float(v["price"]) if v.get("price") is not None else 0,
+                "stock": int(v.get("stock") or 0),
+                "is_active": bool(v.get("is_active", True)),
+            }
+            for v in variant_rows
+        ]
+        # Imágenes por variante (variant_id IS NOT NULL)
+        var_img_rows = db.execute(
+            text("""
+                SELECT variant_id, image_url, is_main, sort_order FROM tab_product_images
+                WHERE product_id = :pid AND variant_id IS NOT NULL
+                ORDER BY variant_id, sort_order, id
+            """),
+            {"pid": product_id},
+        ).mappings().all()
+        images_by_variant = {}
+        for r in var_img_rows:
+            vid = str(int(r["variant_id"]))
+            if vid not in images_by_variant:
+                images_by_variant[vid] = []
+            images_by_variant[vid].append({
+                "image_url": r["image_url"],
+                "is_main": bool(r.get("is_main")),
+                "sort_order": int(r.get("sort_order") or 0),
+            })
+        result["images_by_variant"] = images_by_variant
+        # Atributos de variantes (tab_product_variant_attributes) para variant_options (colores/tallas)
+        pva_rows = db.execute(
+            text("""
+                SELECT pva.variant_id, pva.attribute_id, a.name AS attribute_name,
+                       pva.value_text, pva.value_number, pva.value_boolean,
+                       pva.attribute_value_id, av.value AS attr_value, av.hex_color
+                FROM tab_product_variant_attributes pva
+                JOIN tab_attributes a ON a.id = pva.attribute_id
+                LEFT JOIN tab_attribute_values av ON av.id = pva.attribute_value_id
+                JOIN tab_product_variants pv ON pv.id = pva.variant_id
+                WHERE pv.product_id = :pid AND pv.is_active = TRUE
+            """),
+            {"pid": product_id},
+        ).mappings().all()
+        colors_seen = {}
+        sizes_set = set()
+        variant_attrs_by_vid = {}
+        variant_color_size = {}  # vid -> { "color": str, "size": str }
+        # Por atributo: attribute_id -> attribute_name -> values: [ (value, hex_color, variant_ids) ]
+        attributes_by_id = {}  # attribute_id -> { "name": str, "values": { (value, hex_color) -> [variant_ids] } }
+        for r in pva_rows:
+            vid = int(r["variant_id"])
+            aid = int(r["attribute_id"])
+            attr_name = (r.get("attribute_name") or "").strip() or f"Atributo {aid}"
+            if vid not in variant_attrs_by_vid:
+                variant_attrs_by_vid[vid] = {}
+            display_val = r.get("attr_value") or r.get("value_text")
+            if display_val is None and r.get("value_number") is not None:
+                display_val = str(r["value_number"])
+            if display_val is None and r.get("value_boolean") is not None:
+                display_val = "Sí" if r["value_boolean"] else "No"
+            hex_color = r.get("hex_color")
+            if vid not in variant_color_size:
+                variant_color_size[vid] = {"color": "", "size": ""}
+            if hex_color:
+                key = (display_val or "", hex_color)
+                if key not in colors_seen:
+                    colors_seen[key] = {"name": display_val or "", "value": display_val or "", "hex_color": hex_color}
+                variant_color_size[vid]["color"] = display_val or ""
+            else:
+                if display_val:
+                    sizes_set.add(display_val)
+                prev = variant_color_size[vid]["size"]
+                variant_color_size[vid]["size"] = (prev + " / " + display_val).strip() if prev else (display_val or "")
+            variant_attrs_by_vid[vid][str(r["attribute_id"])] = {"value": display_val, "hex_color": hex_color}
+            if aid not in attributes_by_id:
+                attributes_by_id[aid] = {"name": attr_name, "values": {}}
+            key_val = (display_val or "", hex_color or "")
+            if key_val not in attributes_by_id[aid]["values"]:
+                attributes_by_id[aid]["values"][key_val] = []
+            attributes_by_id[aid]["values"][key_val].append(vid)
+        # Lista de atributos para el frontend: nombre + valores con variant_ids (para filtrado dependiente)
+        attributes_list = []
+        for aid, data in sorted(attributes_by_id.items()):
+            values_with_ids = []
+            for (val, hc), vids in data["values"].items():
+                values_with_ids.append({
+                    "value": val,
+                    "hex_color": hc if hc else None,
+                    "variant_ids": vids,
+                })
+            attributes_list.append({
+                "attribute_id": aid,
+                "attribute_name": data["name"],
+                "values": values_with_ids,
+            })
+        result["variant_options"] = {
+            "colors": list(colors_seen.values()),
+            "sizes": [{"name": s, "available": True} for s in sorted(sizes_set)] if sizes_set else [],
+            "attributes": attributes_list,
+        }
+        # Enriquecer cada variante con color, size y mapa de atributos (para filtrado dependiente en frontend)
+        for v in result["variants"]:
+            vid = v["id"]
+            cs = variant_color_size.get(vid, {})
+            v["color"] = cs.get("color", "")
+            v["size"] = cs.get("size", "")
+            v["attributes"] = {aid: data["value"] for aid, data in variant_attrs_by_vid.get(vid, {}).items()}
+        # Productos con variantes por atributos (Color, Almacenamiento, etc.): la imagen del producto
+        # debe ser solo la subida como "imagen principal" (variant_id IS NULL), sin usar la primera variante
+        # como fallback, para que en tienda no se muestre un color preseleccionado.
+        has_attribute_variants = bool(attributes_list)
+        if not has_attribute_variants:
+            # Sin atributos: fallback a primera variante si no hay imagen de producto
+            if not result.get("image_url") and images_by_variant:
+                for vid, imgs in images_by_variant.items():
+                    if imgs:
+                        sorted_imgs = sorted(imgs, key=lambda x: (x.get("sort_order") or 0))
+                        main_img = next((i for i in sorted_imgs if i.get("is_main")), sorted_imgs[0])
+                        if main_img.get("image_url"):
+                            result["image_url"] = main_img["image_url"]
+                            break
+            # Galería: si hay pocas imágenes de producto, añadir las de variantes
+            if images_by_variant and len(result.get("images") or []) <= 1:
+                all_urls = [x.get("image_url") for x in (result.get("images") or []) if x.get("image_url")]
+                if result.get("image_url") and result["image_url"] not in all_urls:
+                    all_urls.insert(0, result["image_url"])
+                for vid in sorted(images_by_variant.keys(), key=lambda x: int(x)):
+                    for img in sorted(images_by_variant[vid], key=lambda x: (x.get("sort_order") or 0)):
+                        url = img.get("image_url")
+                        if url and url not in all_urls:
+                            all_urls.append(url)
+                if all_urls:
+                    result["images"] = [{"image_url": u, "is_main": i == 0, "sort_order": i} for i, u in enumerate(all_urls)]
+        # Especificaciones para la sección "Acerca del producto"
+        spcf = {}
+        if result.get("description"):
+            spcf["description"] = result["description"]
+        if result.get("variant_options", {}).get("colors"):
+            spcf["colores"] = ", ".join(c.get("value", c.get("name", "")) for c in result["variant_options"]["colors"])
+        if result.get("variant_options", {}).get("sizes"):
+            spcf["opciones"] = ", ".join(s.get("name", "") for s in result["variant_options"]["sizes"])
+        if spcf:
+            result["spcf_producto"] = spcf
+        return result
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener el producto: {str(e)}")
@@ -340,62 +543,123 @@ def get_product_admin_detail(
     id_producto: Decimal,
 ):
     """
-    Obtiene un producto con información completa (joins) para edición en admin.
+    Obtiene un producto para edición en admin (tab_products). Se usa id_producto; el resto por compatibilidad de URL.
     """
-    try:
-        query = text(
-            """
-            SELECT 
-                p.id_categoria::text,
-                p.id_linea::text,
-                p.id_sublinea::text,
-                p.id_producto::text,
-                c.nom_categoria, 
-                l.nom_linea, 
-                s.nom_sublinea, 
-                p.nom_producto, 
-                p.spcf_producto, 
-                p.img_producto, 
-                p.val_precio::text, 
-                p.num_stock, 
-                p.id_proveedor::text,
-                p.id_marca::text,
-                pr.nom_proveedor, 
-                m.nom_marca,
-                p.usr_insert::text,
-                p.fec_insert::text,
-                p.usr_update::text,
-                p.fec_update::text,
-                p.ind_activo as ind_activo_producto,
-                c.ind_activo as ind_activo_categoria,
-                l.ind_activo as ind_activo_linea,
-                s.ind_activo as ind_activo_sublinea,
-                pr.ind_activo as ind_activo_proveedor,
-                m.ind_activo as ind_activo_marca
-            FROM tab_productos p
-            INNER JOIN tab_categorias c ON p.id_categoria = c.id_categoria
-            INNER JOIN tab_lineas l ON p.id_linea = l.id_linea AND p.id_categoria = l.id_categoria
-            INNER JOIN tab_sublineas s ON p.id_sublinea = s.id_sublinea AND p.id_linea = s.id_linea AND p.id_categoria = s.id_categoria
-            INNER JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
-            INNER JOIN tab_marcas m ON p.id_marca = m.id_marca
-            WHERE p.id_categoria = :id_categoria
-              AND p.id_linea = :id_linea
-              AND p.id_sublinea = :id_sublinea
-              AND p.id_producto = :id_producto
-            LIMIT 1
-            """
-        )
-        params = {
-            'id_categoria': id_categoria,
-            'id_linea': id_linea,
-            'id_sublinea': id_sublinea,
-            'id_producto': id_producto,
-        }
-        result = db.execute(query, params).mappings().first()
-        return result
-    except Exception as e:
-        db.rollback()
-        raise Exception(f"Error al obtener detalle admin del producto: {str(e)}")
+    row = get_product_by_id(db, id_producto)
+    if not row:
+        return None
+    return {
+        "category_id": str(row.get("category_id") or row.get("id_categoria") or ""),
+        "id": str(row.get("id_producto") or row.get("id") or ""),
+        "category_name": row.get("nom_categoria") or row.get("category_name") or "",
+        "name": row.get("nom_producto") or row.get("name") or "",
+        "description": row.get("description"),
+        "image_url": row.get("image_url") or (row.get("img_producto") or {}).get("main") if isinstance(row.get("img_producto"), dict) else None,
+        "price_min": str(row.get("val_precio") or row.get("price_min") or "0"),
+        "stock_total": int(row.get("num_stock") or row.get("stock_total") or 0),
+        "id_proveedor": "",
+        "id_marca": str(row.get("id_marca") or ""),
+        "nom_proveedor": "",
+        "nom_marca": row.get("nom_marca") or "",
+        "usr_insert": str(row.get("usr_insert") or ""),
+        "fec_insert": str(row.get("fec_insert") or ""),
+        "usr_update": str(row.get("usr_update") or "") if row.get("usr_update") else "",
+        "fec_update": str(row.get("fec_update") or "") if row.get("fec_update") else "",
+        "ind_activo_producto": bool(row.get("ind_activo", True)),
+        "ind_activo_categoria": True,
+        "ind_activo_proveedor": True,
+        "ind_activo_marca": True,
+    }
+
+
+def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
+    """
+    Devuelve producto + variantes + atributos + image_urls para el formulario de edición (modelo compuesto).
+    """
+    prod_row = db.execute(text("""
+        SELECT id, category_id, name, description, id_marca, is_active
+        FROM tab_products WHERE id = :pid
+    """), {"pid": product_id}).mappings().first()
+    if not prod_row:
+        return None
+    variants_rows = db.execute(text("""
+        SELECT id, sku, price, stock, is_active
+        FROM tab_product_variants WHERE product_id = :pid ORDER BY id
+    """), {"pid": product_id}).mappings().all()
+    attr_rows = db.execute(text("""
+        SELECT pva.variant_id, pva.attribute_id, a.data_type,
+               pva.value_text, pva.value_number, pva.value_boolean,
+               pva.attribute_value_id,
+               av.value AS attr_value_display, av.hex_color AS attr_hex_color
+        FROM tab_product_variant_attributes pva
+        JOIN tab_attributes a ON a.id = pva.attribute_id
+        LEFT JOIN tab_attribute_values av ON av.id = pva.attribute_value_id
+        JOIN tab_product_variants pv ON pv.id = pva.variant_id
+        WHERE pv.product_id = :pid
+    """), {"pid": product_id}).mappings().all()
+    img_rows = db.execute(text("""
+        SELECT image_url, is_main, sort_order FROM tab_product_images
+        WHERE product_id = :pid AND variant_id IS NULL
+        ORDER BY sort_order, id
+    """), {"pid": product_id}).mappings().all()
+    variant_img_rows = db.execute(text("""
+        SELECT variant_id, image_url, is_main, sort_order FROM tab_product_images
+        WHERE product_id = :pid AND variant_id IS NOT NULL
+        ORDER BY variant_id, sort_order, id
+    """), {"pid": product_id}).mappings().all()
+    images_by_variant = {}
+    for r in variant_img_rows:
+        vid = str(int(r["variant_id"]))
+        if vid not in images_by_variant:
+            images_by_variant[vid] = []
+        images_by_variant[vid].append({
+            "image_url": r["image_url"],
+            "is_main": bool(r.get("is_main")),
+            "sort_order": int(r.get("sort_order") or 0),
+        })
+    attr_by_variant = {}
+    for r in attr_rows:
+        vid = int(r["variant_id"])
+        if vid not in attr_by_variant:
+            attr_by_variant[vid] = {}
+        aid = int(r["attribute_id"])
+        # Predefined value: return attribute_value_id so admin form can preselect
+        if r.get("attribute_value_id") is not None:
+            attr_by_variant[vid][str(aid)] = int(r["attribute_value_id"])
+        else:
+            dtype = (r.get("data_type") or "text").lower()
+            if dtype == "number":
+                val = r.get("value_number")
+            elif dtype == "boolean":
+                val = r.get("value_boolean")
+            else:
+                val = r.get("value_text")
+            attr_by_variant[vid][str(aid)] = val
+    variants = []
+    for v in variants_rows:
+        vid = int(v["id"])
+        attrs = attr_by_variant.get(vid, {})
+        variants.append({
+            "id": vid,
+            "sku": v.get("sku"),
+            "price": v.get("price"),
+            "stock": int(v.get("stock") or 0),
+            "is_active": bool(v.get("is_active", True)),
+            "attributes": attrs if attrs else {},
+        })
+    image_urls = [r["image_url"] for r in img_rows if r.get("image_url")]
+    return {
+        "product": {
+            "name": prod_row["name"],
+            "category_id": prod_row["category_id"],
+            "id_marca": prod_row["id_marca"],
+            "description": prod_row["description"],
+            "is_active": bool(prod_row.get("is_active", True)),
+        },
+        "variants": variants,
+        "image_urls": image_urls,
+        "images_by_variant": images_by_variant,
+    }
 
 #create product
 async def create_product(db: Session, product: ProductCreate, image_files: Optional[List[UploadFile]] = None, usr_insert: Decimal = None):
@@ -417,36 +681,14 @@ async def create_product(db: Session, product: ProductCreate, image_files: Optio
                       SQL no devuelve el resultado esperado.
     """
     try:
-        # Validación de integridad referencial a nivel de aplicación
-        # 1) La línea debe pertenecer a la categoría
-        validate_line = db.execute(text(
-            """
-            SELECT 1
-            FROM tab_lineas l
-            WHERE l.id_linea = :id_linea AND l.id_categoria = :id_categoria
-            """
-        ), {
-            'id_linea': product.id_linea,
-            'id_categoria': product.id_categoria
-        }).first()
-
-        if not validate_line:
-            raise Exception("La línea seleccionada no pertenece a la categoría indicada")
-
-        # 2) La sublínea debe pertenecer a la línea
-        validate_subline = db.execute(text(
-            """
-            SELECT 1
-            FROM tab_sublineas s
-            WHERE s.id_sublinea = :id_sublinea AND s.id_linea = :id_linea
-            """
-        ), {
-            'id_sublinea': product.id_sublinea,
-            'id_linea': product.id_linea
-        }).first()
-
-        if not validate_subline:
-            raise Exception("La sublínea seleccionada no pertenece a la línea indicada")
+        # Validación con tab_categories
+        category_id = product.id_categoria or getattr(product, "category_id", None)
+        if category_id is not None:
+            validate_cat = db.execute(text(
+                "SELECT 1 FROM tab_categories WHERE id = :cid"
+            ), {"cid": category_id}).first()
+            if not validate_cat:
+                raise Exception("La categoría seleccionada no existe")
         print(f"🔍 DEBUG: image_files recibidos en servicio: {image_files}")
         print(f"🔍 DEBUG: Tipo de image_files: {type(image_files)}")
         
@@ -485,52 +727,285 @@ async def create_product(db: Session, product: ProductCreate, image_files: Optio
             print("⚠️ DEBUG: No se recibieron archivos de imagen")
             product.img_producto = '{}'  # Estructura vacía
         
-        # Asume que product.model_dump() tiene todas las claves que fun_insert_producto espera por nombre.
-        params = product.model_dump()
-        params["usr_insert"] = usr_insert
-        
-        # Convertir spcf_producto a Json de psycopg2 para JSONB
-        if 'spcf_producto' in params:
-            if isinstance(params['spcf_producto'], dict):
-                params['spcf_producto'] = Json(params['spcf_producto'])
-            elif isinstance(params['spcf_producto'], str):
-                try:
-                    params['spcf_producto'] = Json(json.loads(params['spcf_producto']))
-                except json.JSONDecodeError:
-                    params['spcf_producto'] = Json({})
-        
-        # Convertir img_producto a Json de psycopg2 para JSONB
-        if 'img_producto' in params:
-            if isinstance(params['img_producto'], dict):
-                params['img_producto'] = Json(params['img_producto'])
-                print(f"🔄 DEBUG: img_producto convertido a Json(dict): {params['img_producto']}")
-            elif isinstance(params['img_producto'], str):
-                try:
-                    params['img_producto'] = Json(json.loads(params['img_producto']))
-                    print(f"🔄 DEBUG: img_producto convertido a Json(dict) desde string")
-                except json.JSONDecodeError:
-                    params['img_producto'] = Json({})
-
-        query = text("""SELECT fun_insert_producto(
-            :id_categoria, 
-            :id_linea, 
-            :id_sublinea,
-            :nom_producto, 
-            :spcf_producto, 
-            :img_producto, 
-            :val_precio, 
-            :id_proveedor, 
-            :id_marca, 
-            :num_stock,
-            :usr_insert
-        )""")
-        result = db.execute(query, params)
-        fetched_result = result.fetchone()
+        category_id = product.id_categoria or getattr(product, "category_id", None)
+        if not category_id:
+            raise Exception("category_id o id_categoria es requerido")
+        description = getattr(product, "description", None) or ((getattr(product, "spcf_producto", None) or {}).get("description") if isinstance(getattr(product, "spcf_producto", None), dict) else None)
+        q1 = text("SELECT fun_insert_producto(:p_category_id, :p_name, :p_description, :p_id_marca, :p_is_active, :p_usr_operacion)")
+        r1 = db.execute(q1, {"p_category_id": category_id, "p_name": getattr(product, "name", None) or getattr(product, "nom_producto", ""), "p_description": description, "p_id_marca": product.id_marca, "p_is_active": getattr(product, "is_active", getattr(product, "ind_activo", True)), "p_usr_operacion": usr_insert})
+        msg = r1.fetchone()[0]
+        if not msg or str(msg).strip().upper().startswith("ERROR"):
+            db.rollback()
+            raise Exception(str(msg) if msg else "Error al insertar producto")
+        product_id = Decimal(str(msg).replace("OK:", "").strip())
         db.commit()
-        return fetched_result[0] if fetched_result else None
+        spcf = getattr(product, "spcf_producto", None) or {}
+        price = getattr(product, "val_precio", None) or getattr(product, "price_min", None) or Decimal("0")
+        stock = int(getattr(product, "num_stock", 0) or getattr(product, "stock_total", 0) or 0)
+        q2 = text("SELECT fun_insert_product_variant(:p_product_id, :p_price, :p_stock, NULL, TRUE, :p_usr_operacion)")
+        r2 = db.execute(q2, {"p_product_id": product_id, "p_price": price, "p_stock": stock, "p_usr_operacion": usr_insert})
+        vmsg = r2.fetchone()[0]
+        if not vmsg or str(vmsg).strip().upper().startswith("ERROR"):
+            db.rollback()
+            raise Exception(str(vmsg) if vmsg else "Error al insertar variante")
+        variant_id = Decimal(str(vmsg).replace("OK:", "").strip())
+        db.commit()
+        if isinstance(spcf, dict) and spcf:
+            next_id = db.execute(text("SELECT COALESCE(MAX(id), 0) + 1 FROM tab_product_variant_attributes")).scalar()
+            for k, v in spcf.items():
+                if k in ("description", "color", "Color", "size", "tamaño", "Tamaño") or v is None or (isinstance(v, str) and not v.strip()):
+                    continue
+                attr_id = r[0] if (r := db.execute(text("SELECT id FROM tab_attributes WHERE name = :n LIMIT 1"), {"n": str(k)}).first()) else (k if isinstance(k, (int, Decimal)) else None)
+                if attr_id is not None:
+                    db.execute(text("INSERT INTO tab_product_variant_attributes (id, variant_id, attribute_id, value_text, usr_insert) VALUES (:id, :vid, :aid, :val, :usr)"), {"id": next_id, "vid": variant_id, "aid": attr_id, "val": str(v), "usr": usr_insert})
+                    next_id += 1
+            db.commit()
+        img_data = getattr(product, "img_producto", None)
+        urls = []
+        if isinstance(img_data, dict):
+            if img_data.get("main"):
+                urls.append(img_data["main"])
+            urls.extend([u for u in (img_data.get("gallery") or []) if u and u not in urls])
+        for i, url in enumerate(urls):
+            db.execute(text("SELECT fun_insert_product_image(:pid, :url, :main, :ord, :usr)"), {"pid": product_id, "url": url, "main": (i == 0), "ord": i, "usr": usr_insert})
+        if urls:
+            db.commit()
+        return f"OK:{product_id}"
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al crear el producto: {str(e)}")
+
+
+def create_product_composite(db: Session, payload: ProductCreateComposite, usr_insert: Decimal):
+    """
+    Crea producto + imágenes + variantes + atributos de variante en una sola transacción.
+    No hace commit intermedio; rollback en cualquier error.
+    """
+    try:
+        p = payload.product
+        # 1) Insertar producto
+        q1 = text(
+            "SELECT fun_insert_producto(:p_category_id, :p_name, :p_description, :p_id_marca, :p_is_active, :p_usr_operacion)"
+        )
+        r1 = db.execute(q1, {
+            "p_category_id": p.category_id,
+            "p_name": p.name,
+            "p_description": p.description,
+            "p_id_marca": p.id_marca,
+            "p_is_active": p.is_active,
+            "p_usr_operacion": usr_insert,
+        })
+        msg = r1.fetchone()[0]
+        if not msg or str(msg).strip().upper().startswith("ERROR"):
+            raise Exception(str(msg) if msg else "Error al insertar producto")
+        product_id = Decimal(str(msg).replace("OK:", "").strip())
+
+        # 2) Imágenes del producto (variant_id NULL)
+        for i, url in enumerate(payload.image_urls or []):
+            if not (url and str(url).strip()):
+                continue
+            db.execute(text(
+                "SELECT fun_insert_product_image(:pid, :url, :main, :ord, :usr, :variant_id)"
+            ), {"pid": product_id, "url": url.strip(), "main": (i == 0), "ord": i, "usr": usr_insert, "variant_id": None})
+
+        # Atributos: obtener data_type por attribute_id
+        all_attr_ids = set()
+        for v in payload.variants:
+            if v.attributes:
+                for k in v.attributes:
+                    try:
+                        all_attr_ids.add(int(k))
+                    except (TypeError, ValueError):
+                        pass
+        attr_types = {}
+        if all_attr_ids:
+            q_attr = text("SELECT id, data_type FROM tab_attributes WHERE id = ANY(:ids)")
+            for row in db.execute(q_attr, {"ids": list(all_attr_ids)}).mappings():
+                attr_types[int(row["id"])] = (row["data_type"] or "text").lower()
+
+        # 3) Variantes + variant_attributes
+        next_pva_id = db.execute(text("SELECT COALESCE(MAX(id), 0) + 1 FROM tab_product_variant_attributes")).scalar() or 1
+        for v in payload.variants:
+            q2 = text(
+                "SELECT fun_insert_product_variant(:p_product_id, :p_price, :p_stock, :p_sku, :p_is_active, :p_usr_operacion)"
+            )
+            r2 = db.execute(q2, {
+                "p_product_id": product_id,
+                "p_price": v.price,
+                "p_stock": v.stock,
+                "p_sku": (v.sku and v.sku.strip()) or None,
+                "p_is_active": v.is_active,
+                "p_usr_operacion": usr_insert,
+            })
+            vmsg = r2.fetchone()[0]
+            if not vmsg or str(vmsg).strip().upper().startswith("ERROR"):
+                raise Exception(str(vmsg) if vmsg else "Error al insertar variante")
+            variant_id = Decimal(str(vmsg).replace("OK:", "").strip())
+
+            # Imágenes de la variante
+            variant_urls = getattr(v, "image_urls", None) or []
+            if len(variant_urls) > MAX_IMAGES_PER_VARIANT:
+                raise Exception(f"Máximo {MAX_IMAGES_PER_VARIANT} imágenes por variante.")
+            main_idx = min(int(getattr(v, "main_index", 0) or 0), max(0, len(variant_urls) - 1))
+            for i, url in enumerate(variant_urls):
+                if not (url and str(url).strip()):
+                    continue
+                db.execute(text(
+                    "SELECT fun_insert_product_image(:pid, :url, :main, :ord, :usr, :variant_id)"
+                ), {"pid": product_id, "url": url.strip(), "main": (i == main_idx), "ord": i, "usr": usr_insert, "variant_id": variant_id})
+
+            if v.attributes:
+                for attr_id_str, val in v.attributes.items():
+                    if val is None:
+                        continue
+                    try:
+                        attr_id = int(attr_id_str)
+                    except (TypeError, ValueError):
+                        continue
+                    av_id, av_text = _resolve_attribute_value_id(db, attr_id, val)
+                    if av_id is not None:
+                        db.execute(text("""
+                            INSERT INTO tab_product_variant_attributes (id, variant_id, attribute_id, attribute_value_id, value_text, usr_insert)
+                            VALUES (:id, :vid, :aid, :avid, :val, :usr)
+                        """), {"id": next_pva_id, "vid": variant_id, "aid": attr_id, "avid": av_id, "val": av_text, "usr": usr_insert})
+                    else:
+                        dtype = attr_types.get(attr_id, "text")
+                        if dtype == "number":
+                            db.execute(text("""
+                                INSERT INTO tab_product_variant_attributes (id, variant_id, attribute_id, value_number, usr_insert)
+                                VALUES (:id, :vid, :aid, :val, :usr)
+                            """), {"id": next_pva_id, "vid": variant_id, "aid": attr_id, "val": Decimal(str(val)) if val != "" else None, "usr": usr_insert})
+                        elif dtype == "boolean":
+                            bool_val = val in (True, "true", "1", 1, "yes", "sí")
+                            db.execute(text("""
+                                INSERT INTO tab_product_variant_attributes (id, variant_id, attribute_id, value_boolean, usr_insert)
+                                VALUES (:id, :vid, :aid, :val, :usr)
+                            """), {"id": next_pva_id, "vid": variant_id, "aid": attr_id, "val": bool_val, "usr": usr_insert})
+                        else:
+                            db.execute(text("""
+                                INSERT INTO tab_product_variant_attributes (id, variant_id, attribute_id, value_text, usr_insert)
+                                VALUES (:id, :vid, :aid, :val, :usr)
+                            """), {"id": next_pva_id, "vid": variant_id, "aid": attr_id, "val": str(val) if val is not None else None, "usr": usr_insert})
+                    next_pva_id += 1
+
+        db.commit()
+        return f"OK:{product_id}"
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al crear producto compuesto: {str(e)}")
+
+
+def update_product_composite(db: Session, product_id: Decimal, payload: ProductCreateComposite, usr_update: Decimal):
+    """
+    Actualiza producto + imágenes + variantes en una transacción.
+    Reemplaza variantes e imágenes por los enviados.
+    """
+    try:
+        p = payload.product
+        q_upd = text("""
+            SELECT fun_update_producto(
+                :p_id, :p_category_id, :p_name, :p_description, :p_id_marca, :p_is_active, :p_usr_operacion
+            )
+        """)
+        r = db.execute(q_upd, {
+            "p_id": product_id,
+            "p_category_id": p.category_id,
+            "p_name": p.name,
+            "p_description": p.description,
+            "p_id_marca": p.id_marca,
+            "p_is_active": p.is_active,
+            "p_usr_operacion": usr_update,
+        })
+        msg = r.fetchone()[0]
+        if msg and str(msg).strip().upper().startswith("ERROR"):
+            raise Exception(str(msg))
+
+        db.execute(text("DELETE FROM tab_product_images WHERE product_id = :pid"), {"pid": product_id})
+        db.execute(text("DELETE FROM tab_product_variant_attributes WHERE variant_id IN (SELECT id FROM tab_product_variants WHERE product_id = :pid)"), {"pid": product_id})
+        db.execute(text("DELETE FROM tab_product_variants WHERE product_id = :pid"), {"pid": product_id})
+
+        for i, url in enumerate(payload.image_urls or []):
+            if url and str(url).strip():
+                db.execute(text("SELECT fun_insert_product_image(:pid, :url, :main, :ord, :usr, :variant_id)"),
+                    {"pid": product_id, "url": url.strip(), "main": (i == 0), "ord": i, "usr": usr_update, "variant_id": None})
+
+        all_attr_ids = set()
+        for v in payload.variants:
+            if v.attributes:
+                for k in v.attributes:
+                    try:
+                        all_attr_ids.add(int(k))
+                    except (TypeError, ValueError):
+                        pass
+        attr_types = {}
+        if all_attr_ids:
+            for row in db.execute(text("SELECT id, data_type FROM tab_attributes WHERE id = ANY(:ids)"), {"ids": list(all_attr_ids)}).mappings():
+                attr_types[int(row["id"])] = (row["data_type"] or "text").lower()
+
+        next_pva_id = db.execute(text("SELECT COALESCE(MAX(id), 0) + 1 FROM tab_product_variant_attributes")).scalar() or 1
+        for v in payload.variants:
+            r2 = db.execute(text(
+                "SELECT fun_insert_product_variant(:p_product_id, :p_price, :p_stock, :p_sku, :p_is_active, :p_usr_operacion)"
+            ), {
+                "p_product_id": product_id,
+                "p_price": v.price,
+                "p_stock": v.stock,
+                "p_sku": (v.sku and v.sku.strip()) or None,
+                "p_is_active": v.is_active,
+                "p_usr_operacion": usr_update,
+            })
+            vmsg = r2.fetchone()[0]
+            if not vmsg or str(vmsg).strip().upper().startswith("ERROR"):
+                raise Exception(str(vmsg) if vmsg else "Error al insertar variante")
+            variant_id = Decimal(str(vmsg).replace("OK:", "").strip())
+            variant_urls = getattr(v, "image_urls", None) or []
+            if len(variant_urls) > MAX_IMAGES_PER_VARIANT:
+                raise Exception(f"Máximo {MAX_IMAGES_PER_VARIANT} imágenes por variante.")
+            main_idx = min(int(getattr(v, "main_index", 0) or 0), max(0, len(variant_urls) - 1))
+            for i, url in enumerate(variant_urls):
+                if not (url and str(url).strip()):
+                    continue
+                db.execute(text(
+                    "SELECT fun_insert_product_image(:pid, :url, :main, :ord, :usr, :variant_id)"
+                ), {"pid": product_id, "url": url.strip(), "main": (i == main_idx), "ord": i, "usr": usr_update, "variant_id": variant_id})
+            if v.attributes:
+                for attr_id_str, val in v.attributes.items():
+                    if val is None:
+                        continue
+                    try:
+                        attr_id = int(attr_id_str)
+                    except (TypeError, ValueError):
+                        continue
+                    av_id, av_text = _resolve_attribute_value_id(db, attr_id, val)
+                    if av_id is not None:
+                        db.execute(text("""
+                            INSERT INTO tab_product_variant_attributes (id, variant_id, attribute_id, attribute_value_id, value_text, usr_insert)
+                            VALUES (:id, :vid, :aid, :avid, :val, :usr)
+                        """), {"id": next_pva_id, "vid": variant_id, "aid": attr_id, "avid": av_id, "val": av_text, "usr": usr_update})
+                    else:
+                        dtype = attr_types.get(attr_id, "text")
+                        if dtype == "number":
+                            db.execute(text("""
+                                INSERT INTO tab_product_variant_attributes (id, variant_id, attribute_id, value_number, usr_insert)
+                                VALUES (:id, :vid, :aid, :val, :usr)
+                            """), {"id": next_pva_id, "vid": variant_id, "aid": attr_id, "val": Decimal(str(val)) if val != "" else None, "usr": usr_update})
+                        elif dtype == "boolean":
+                            bool_val = val in (True, "true", "1", 1, "yes", "sí")
+                            db.execute(text("""
+                                INSERT INTO tab_product_variant_attributes (id, variant_id, attribute_id, value_boolean, usr_insert)
+                                VALUES (:id, :vid, :aid, :val, :usr)
+                            """), {"id": next_pva_id, "vid": variant_id, "aid": attr_id, "val": bool_val, "usr": usr_update})
+                        else:
+                            db.execute(text("""
+                                INSERT INTO tab_product_variant_attributes (id, variant_id, attribute_id, value_text, usr_insert)
+                                VALUES (:id, :vid, :aid, :val, :usr)
+                            """), {"id": next_pva_id, "vid": variant_id, "aid": attr_id, "val": str(val) if val is not None else None, "usr": usr_update})
+                    next_pva_id += 1
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al actualizar producto compuesto: {str(e)}")
+
 
 #update product
 async def update_product(
@@ -605,77 +1080,26 @@ async def update_product(
 
         # Asegurar que TODAS las llaves esperadas por la función SQL existan
         # aunque sea con valor None, para evitar errores de bind parameter faltante
-        expected_keys = [
-            'nom_producto',
-            'spcf_producto',
-            'img_producto',
-            'val_precio',
-            'id_proveedor',
-            'id_marca',
-            'num_stock',
-            'ind_activo',
-        ]
+        expected_keys = ['name', 'description', 'id_marca', 'is_active']
         for key in expected_keys:
             if key not in params:
                 params[key] = None
-        
-        # Convertir spcf_producto a Json de psycopg2 para JSONB
-        if 'spcf_producto' in params and params['spcf_producto'] is not None:
-            if isinstance(params['spcf_producto'], dict):
-                params['spcf_producto'] = Json(params['spcf_producto'])
-            elif isinstance(params['spcf_producto'], str):
-                try:
-                    params['spcf_producto'] = Json(json.loads(params['spcf_producto']))
-                except json.JSONDecodeError:
-                    params['spcf_producto'] = Json({})
-        
-        # Convertir img_producto a Json de psycopg2 para JSONB
-        if 'img_producto' in params:
-            if params['img_producto'] is None:
-                # enviar objeto vacío como Json
-                params['img_producto'] = Json({})
-            elif isinstance(params['img_producto'], dict):
-                params['img_producto'] = Json(params['img_producto'])
-                print(f"🔄 DEBUG UPDATE: img_producto convertido a Json(dict)")
-            elif isinstance(params['img_producto'], str):
-                try:
-                    params['img_producto'] = Json(json.loads(params['img_producto']))
-                    print(f"🔄 DEBUG UPDATE: img_producto convertido a Json(dict) desde string")
-                except json.JSONDecodeError:
-                    params['img_producto'] = Json({})
-            
-        params['id_categoria'] = id_categoria
-        params['id_linea'] = id_linea
-        params['id_sublinea'] = id_sublinea
-        params['id_producto'] = id_producto
-        params['usr_update'] = usr_update
-
-        # La función SQL debe poder manejar que algunos de los otros parámetros no estén presentes
-        # o sean NULL si product.model_dump(exclude_unset=True) los omite.
-        # Asegúrate de que los nombres de los parámetros coincidan con los de tu función SQL.
-        query = text(
-            """
+        # fun_update_producto(p_id, p_category_id, p_name, p_description, p_id_marca, p_is_active, p_usr_operacion)
+        category_id = params.get("category_id") or params.get("id_categoria") or id_categoria
+        query = text("""
             SELECT fun_update_producto(
-            :id_categoria, 
-            :id_linea, 
-            :id_sublinea,
-            :id_producto,     
-            :nom_producto, 
-            :spcf_producto, 
-            :img_producto, 
-            :val_precio, 
-            :id_proveedor, 
-            :id_marca, 
-            :num_stock, 
-            :ind_activo,
-            :usr_update
+                :p_id, :p_category_id, :p_name, :p_description, :p_id_marca, :p_is_active, :p_usr_operacion
             )
-            """
-        )
-        
-        # Es crucial que fun_update_producto esté diseñada para tomar estos 12 parámetros
-        # y que pueda manejar `None` o la ausencia de algunos de ellos (excepto id_producto).
-        result = db.execute(query, params)
+        """)
+        result = db.execute(query, {
+            "p_id": id_producto,
+            "p_category_id": category_id,
+            "p_name": params.get("name") or params.get("nom_producto"),
+            "p_description": params.get("description"),
+            "p_id_marca": params.get("id_marca"),
+            "p_is_active": params.get("is_active"),
+            "p_usr_operacion": usr_update,
+        })
         fetched_result = result.fetchone()
         msg = fetched_result[0] if fetched_result else None
         if msg and str(msg).strip().lower().startswith("error:"):
@@ -688,48 +1112,24 @@ async def update_product(
         raise Exception(f"Error al actualizar el producto: {str(e)}")
 
 def deactivate_activate_product(
-    db: Session, 
+    db: Session,
     category_id: Decimal,
     line_id: Decimal,
     subline_id: Decimal,
     product_id: Decimal,
     usr_update: Decimal,
-    activar: bool
-    ):
-    """
-    Activa o desactiva un producto y todos sus elementos relacionados (cascada).
-    
-    Args:
-        db: Sesión de base de datos
-        category_id: ID de la categoría
-        line_id: ID de la línea
-        subline_id: ID de la sublínea
-        product_id: ID del producto
-        usr_update: Usuario que realiza la operación
-        activar: True para activar, False para desactivar
-    
-    Returns:
-        Mensaje de confirmación con detalles de elementos afectados
-    """
+    activar: bool,
+):
+    """Activa o desactiva producto y sus variantes (fun_deactivate_activate_producto por product_id)."""
     try:
-        params = {
-            'p_id_categoria': category_id,
-            'p_id_linea': line_id,
-            'p_id_sublinea': subline_id,
-            'p_id_producto': product_id,
-            'p_usr_update': usr_update,
-            'p_activar': activar
-        }
         query = text("""
-        SELECT fun_deactivate_activate_producto(
-            :p_id_categoria, 
-            :p_id_linea, 
-            :p_id_sublinea, 
-            :p_id_producto,
-            :p_usr_update,
-            :p_activar
-            )
+        SELECT fun_deactivate_activate_producto(:p_id_producto, :p_activar, :p_usr_operacion)
         """)
+        params = {
+            "p_id_producto": product_id,
+            "p_activar": activar,
+            "p_usr_operacion": usr_update,
+        }
         
         result = db.execute(query, params)
         fetched_result = result.fetchone()
@@ -768,453 +1168,171 @@ def deactivate_product(
 
 def set_product_active(
     db: Session,
-    category_id: Decimal,
-    line_id: Decimal,
-    subline_id: Decimal,
     product_id: Decimal,
     active: bool,
     usr_update: Decimal,
 ):
     """
-    Actualiza únicamente el campo ind_activo de un producto.
-
-    Evita depender de la función fun_update_producto y no requiere otros campos.
+    Actualiza únicamente el campo is_active de un producto y sus variantes.
+    Usa fun_deactivate_activate_producto.
     """
-    try:
-        query = text(
-            """
-            SELECT fun_set_producto_activo(
-              :id_categoria,
-              :id_linea,
-              :id_sublinea,
-              :id_producto,
-              :active,
-              :usr_update
-            )
-            """
-        )
-        params = {
-            'id_categoria': category_id,
-            'id_linea': line_id,
-            'id_sublinea': subline_id,
-            'id_producto': product_id,
-            'active': active,
-            'usr_update': usr_update,
-        }
-        result = db.execute(query, params)
-        fetched = result.fetchone()
-        db.commit()
-        return fetched[0] if fetched else None
-    except Exception as e:
-        db.rollback()
-        raise Exception(f"Error al actualizar estado del producto: {str(e)}")
+    return deactivate_activate_product(
+        db, Decimal(0), Decimal(0), Decimal(0), product_id, usr_update, active
+    )
 
 #filter products
 def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterResponse:
     """
-    Filtra productos utilizando la función de base de datos fun_filter_products.
-    
-    Ejecuta la función SQL fun_filter_products con los parámetros de filtrado
-    proporcionados y devuelve los resultados con información de paginación.
-    
-    Args:
-        db (Session): La sesión de base de datos SQLAlchemy.
-        filters (ProductFilterParams): Parámetros de filtrado validados.
-    
-    Returns:
-        ProductFilterResponse: Respuesta con productos filtrados y metadatos de paginación.
+    Filtra productos con fun_filter_products (tab_products, tab_product_variants).
+    Opcionalmente filtra por atributos (tab_product_variant_attributes) en aplicación.
     """
     try:
-        # Validar rangos de precios
-        if filters.precio_min is not None and filters.precio_max is not None:
-            if filters.precio_min > filters.precio_max:
-                raise ValueError("El precio mínimo no puede ser mayor al precio máximo")
-        
-        # Procesar arrays - ahora siempre son listas
-        def get_single_value(value):
-            if value is None or len(value) == 0:
-                return None
-            elif len(value) == 1:
-                return value[0]
-            else:
-                return None  # Para arrays, usaremos los parámetros de array
-        
-        def get_array_value(value):
-            if value is None or len(value) == 0:
-                return None
-            elif len(value) == 1:
-                return None  # Para valores únicos, usaremos los parámetros únicos
-            else:
-                return value
-        
-        # Preparar parámetros para la función de DB (enteros para línea/sublínea)
-        _single_line = get_single_value(filters.id_linea)
-        _single_subline = get_single_value(filters.id_sublinea)
+        if filters.precio_min is not None and filters.precio_max is not None and filters.precio_min > filters.precio_max:
+            raise ValueError("El precio mínimo no puede ser mayor al precio máximo")
+
         params = {
-            # Parámetros únicos
-            "p_id_categoria": get_single_value(filters.id_categoria),
-            "p_id_linea": int(_single_line) if _single_line is not None else None,
-            "p_id_sublinea": int(_single_subline) if _single_subline is not None else None,
-            "p_id_marca": get_single_value(filters.id_marca),
-            "p_id_proveedor": get_single_value(filters.id_proveedor),
+            "p_category_id": filters.category_id,
+            "p_include_subcategories": filters.include_subcategories,
+            "p_id_marca": filters.id_marca,
             "p_nombre_producto": filters.nombre_producto,
             "p_precio_min": filters.precio_min,
             "p_precio_max": filters.precio_max,
-            "p_stock_min": filters.stock_min,
             "p_solo_con_stock": filters.solo_con_stock,
             "p_ordenar_por": filters.ordenar_por,
             "p_orden": filters.orden,
             "p_limit": filters.limit,
             "p_offset": filters.offset,
-            # Parámetros de arrays
-            "p_id_categorias": get_array_value(filters.id_categoria),
-            "p_id_lineas": get_array_value(filters.id_linea),
-            "p_id_sublineas": get_array_value(filters.id_sublinea),
-            "p_id_marcas": get_array_value(filters.id_marca),
-            "p_id_proveedores": get_array_value(filters.id_proveedor)
         }
-        
-        # Debug: Log de parámetros enviados a la función SQL
-        print(f"🔍 Debug filter_products - Parámetros enviados a fun_filter_products:")
-        print(f"  - p_id_linea: {params['p_id_linea']}")
-        print(f"  - p_id_sublinea: {params['p_id_sublinea']}")
-        print(f"  - p_id_lineas (array): {params['p_id_lineas']}")
-        print(f"  - p_id_sublineas (array): {params['p_id_sublineas']}")
-        print(f"  - filters.id_linea (raw): {filters.id_linea}")
-        print(f"  - filters.id_sublinea (raw): {filters.id_sublinea}")
-        
-        # Validar que si se pasa id_sublinea, también debe validarse que pertenezca a id_linea si está presente
-        if params['p_id_sublinea'] is not None and params['p_id_linea'] is not None:
-            # Verificar que la sublínea pertenece a la línea
-            validation_query = text("""
-                SELECT COUNT(*) as count
-                FROM tab_sublineas
-                WHERE id_sublinea = :subline_id AND id_linea = :line_id
-            """)
-            validation_result = db.execute(validation_query, {
-                'subline_id': params['p_id_sublinea'],
-                'line_id': params['p_id_linea']
-            })
-            validation_count = validation_result.scalar()
-            if validation_count == 0:
-                print(f"⚠️  WARNING: La sublínea {params['p_id_sublinea']} no pertenece a la línea {params['p_id_linea']}")
-        
-        # Usar función de base de datos
         query = text("""
-            SELECT
-                id_categoria,
-                id_linea,
-                id_sublinea,
-                id_producto,
-                id_marca,
-                nom_categoria,
-                nom_linea,
-                nom_sublinea,
-                nom_producto,
-                spcf_producto,
-                img_producto,
-                val_precio,
-                num_stock,
-                nom_proveedor,
-                nom_marca,
-                fec_insert,
-                total_registros
+            SELECT product_id, category_id, nom_categoria, nom_producto, slug_producto, description,
+                   id_marca, precio_min, stock_total, img_principal, total_registros
             FROM fun_filter_products(
-                :p_id_categoria,
-                :p_id_linea,
-                :p_id_sublinea,
-                :p_id_marca,
-                :p_id_proveedor,
-                :p_nombre_producto,
-                :p_precio_min,
-                :p_precio_max,
-                :p_stock_min,
-                :p_solo_con_stock,
-                :p_ordenar_por,
-                :p_orden,
-                :p_limit,
-                :p_offset,
-                :p_id_categorias,
-                :p_id_lineas,
-                :p_id_sublineas,
-                :p_id_marcas,
-                :p_id_proveedores
+                :p_category_id, :p_include_subcategories, :p_id_marca, :p_nombre_producto,
+                :p_precio_min, :p_precio_max, :p_solo_con_stock, :p_ordenar_por, :p_orden,
+                :p_limit, :p_offset
             )
         """)
-        
         result = db.execute(query, params)
-        products_data = result.mappings().all()
-        
-        # Debug: Información de la consulta a la DB
-        print(f"🔍 Debug DB Query:")
-        print(f"  - Registros devueltos por la DB: {len(products_data)}")
-        if products_data:
-            print(f"  - Primer registro total_registros: {products_data[0].get('total_registros', 'N/A')}")
-            print(f"  - IDs únicos en la respuesta: {set(row['id_producto'] for row in products_data)}")
-        
-        # Validación adicional: Asegurar que los productos devueltos cumplan los criterios de filtrado
-        # (esto corrige posibles problemas en la función SQL que use OR en lugar de AND)
-        original_count = len(products_data)
-        
-        if params['p_id_linea'] is not None and params['p_id_sublinea'] is not None:
-            # Si se pasaron ambos, filtrar por ambos
-            products_data = [
-                row for row in products_data
-                if row['id_linea'] == params['p_id_linea'] and row['id_sublinea'] == params['p_id_sublinea']
-            ]
-        elif params['p_id_linea'] is not None:
-            # Si solo se pasó id_linea, filtrar por línea
-            products_data = [
-                row for row in products_data
-                if row['id_linea'] == params['p_id_linea']
-            ]
-        elif params['p_id_sublinea'] is not None:
-            # Si solo se pasó id_sublinea, filtrar por sublínea
-            products_data = [
-                row for row in products_data
-                if row['id_sublinea'] == params['p_id_sublinea']
-            ]
-        
-        filtered_count = len(products_data)
-        if original_count != filtered_count:
-            print(f"⚠️  WARNING: La función SQL devolvió {original_count} productos, pero solo {filtered_count} cumplen los filtros aplicados")
-            if params['p_id_linea'] is not None and params['p_id_sublinea'] is not None:
-                print(f"  - Filtros: línea={params['p_id_linea']}, sublínea={params['p_id_sublinea']}")
-            elif params['p_id_linea'] is not None:
-                print(f"  - Filtro: línea={params['p_id_linea']}")
-            elif params['p_id_sublinea'] is not None:
-                print(f"  - Filtro: sublínea={params['p_id_sublinea']}")
-            print(f"  - Esto indica que la función SQL podría estar usando OR en lugar de AND para estos filtros")
-        
-        # Obtener ratings promedio para los productos filtrados
-        product_ids = set()
-        for row in products_data:
-            product_key = (row['id_categoria'], row['id_linea'], row['id_sublinea'], row['id_producto'])
-            product_ids.add(product_key)
-        
+        rows = list(result.mappings().all())
+
+        # Filtro por atributos: productos que tengan variantes con todos los pares (attribute_id, value) indicados
+        if getattr(filters, "atributos", None) and filters.atributos:
+            product_ids_with_attrs = None
+            for (aid, values) in filters.atributos.items():
+                if not values:
+                    continue
+                q = text("""
+                    SELECT DISTINCT pv.product_id
+                    FROM tab_product_variant_attributes pva
+                    JOIN tab_product_variants pv ON pv.id = pva.variant_id
+                    JOIN tab_products p ON p.id = pv.product_id
+                    WHERE pva.attribute_id = :aid AND pv.is_active = TRUE AND p.is_active = TRUE
+                      AND pva.value_text = ANY(:vals)
+                """)
+                r = db.execute(q, {"aid": int(aid), "vals": list(values)})
+                ids = {x["product_id"] for x in r.mappings().all()}
+                if product_ids_with_attrs is None:
+                    product_ids_with_attrs = ids
+                else:
+                    product_ids_with_attrs &= ids
+            if product_ids_with_attrs is not None and len(product_ids_with_attrs) > 0:
+                rows = [r for r in rows if r.get("product_id") in product_ids_with_attrs]
+
+        product_ids = [r["product_id"] for r in rows]
         ratings_dict = {}
         if product_ids:
-            # Construir la consulta con valores explícitos para evitar problemas con IN y tuplas
-            # Usar VALUES para crear una tabla temporal con los IDs de productos
-            values_list = []
-            params_dict = {}
-            for idx, (cat, line, subline, prod) in enumerate(product_ids):
-                values_list.append(f"(:cat_{idx}, :line_{idx}, :subline_{idx}, :prod_{idx})")
-                params_dict[f'cat_{idx}'] = cat
-                params_dict[f'line_{idx}'] = line
-                params_dict[f'subline_{idx}'] = subline
-                params_dict[f'prod_{idx}'] = prod
-            
-            values_clause = ', '.join(values_list)
-            ratings_query = text(f"""
-                SELECT 
-                    c.id_categoria,
-                    c.id_linea,
-                    c.id_sublinea,
-                    c.id_producto,
-                    CASE 
-                        WHEN COUNT(c.calificacion) > 0 
-                        THEN ROUND(AVG(c.calificacion)::numeric, 1)::float 
-                        ELSE NULL 
-                    END as rating
-                FROM tab_comentarios c
-                INNER JOIN (VALUES {values_clause}) AS p(id_categoria, id_linea, id_sublinea, id_producto)
-                    ON c.id_categoria = p.id_categoria
-                    AND c.id_linea = p.id_linea
-                    AND c.id_sublinea = p.id_sublinea
-                    AND c.id_producto = p.id_producto
-                WHERE c.ind_activo = TRUE
-                    AND c.calificacion IS NOT NULL
-                GROUP BY c.id_categoria, c.id_linea, c.id_sublinea, c.id_producto
+            rq = text("""
+                SELECT product_id, ROUND(AVG(calificacion)::numeric, 1)::float AS rating
+                FROM tab_comentarios
+                WHERE ind_activo = TRUE AND calificacion IS NOT NULL AND product_id = ANY(:ids)
+                GROUP BY product_id
             """)
-            
-            ratings_result = db.execute(ratings_query, params_dict)
-            ratings_dict = {
-                (r['id_categoria'], r['id_linea'], r['id_sublinea'], r['id_producto']): r['rating']
-                for r in ratings_result.mappings().all()
-            }
-        
-        # Convertir a objetos ProductFiltered
+            rres = db.execute(rq, {"ids": product_ids})
+            ratings_dict = {r["product_id"]: r["rating"] for r in rres.mappings().all()}
+
+        total = rows[0]["total_registros"] if rows else 0
         products = []
-        total = 0
-        seen_products = set()  # Para evitar duplicados
-        
-        for row in products_data:
-            # Crear clave única para evitar duplicados
-            product_key = f"{row['id_categoria']}-{row['id_linea']}-{row['id_sublinea']}-{row['id_producto']}"
-            
-            # Saltar si ya hemos procesado este producto
-            if product_key in seen_products:
-                continue
-                
-            seen_products.add(product_key)
-            
-            # Convertir spcf_producto de JSON string a dict si es necesario
-            spcf_producto = row['spcf_producto']
-            if isinstance(spcf_producto, str):
-                try:
-                    spcf_producto = json.loads(spcf_producto)
-                except json.JSONDecodeError:
-                    spcf_producto = {}
-            
-            # Convertir img_producto de JSON string a dict si es necesario
-            img_producto = row['img_producto']
-            if isinstance(img_producto, str):
-                try:
-                    img_producto = json.loads(img_producto)
-                except json.JSONDecodeError:
-                    img_producto = None
-            
-            # Obtener rating para este producto
-            product_key_tuple = (row['id_categoria'], row['id_linea'], row['id_sublinea'], row['id_producto'])
-            product_rating = ratings_dict.get(product_key_tuple)
-            
-            product = ProductFiltered(
-                id_categoria=row['id_categoria'],
-                id_linea=row['id_linea'],
-                id_sublinea=row['id_sublinea'],
-                id_producto=row['id_producto'],
-                nom_categoria=row['nom_categoria'],
-                nom_linea=row['nom_linea'],
-                nom_sublinea=row['nom_sublinea'],
-                nom_producto=row['nom_producto'],
-                spcf_producto=spcf_producto,
-                img_producto=img_producto,
-                val_precio=row['val_precio'],
-                num_stock=row['num_stock'],
-                nom_proveedor=row['nom_proveedor'],
-                id_marca=row.get('id_marca'),
-                nom_marca=row['nom_marca'],
-                fec_insert=row['fec_insert'],
-                total_registros=row['total_registros'],
-                rating=product_rating
-            )
-            products.append(product)
-            
-            # Obtener total de registros del primer resultado
-            if total == 0:
-                total = row['total_registros']
-        
-        # Calcular información de paginación
-        # Usar el número real de productos únicos en lugar del total_registros de la DB
-        actual_total = len(products)
+        for row in rows:
+            products.append(ProductFiltered(
+                category_id=int(row["category_id"]) if row.get("category_id") is not None else 0,
+                id=int(row["product_id"]) if row.get("product_id") is not None else 0,
+                slug=row.get("slug_producto"),
+                category_name=(row.get("nom_categoria") or "") or "",
+                name=(row.get("nom_producto") or "") or "",
+                description=row.get("description"),
+                image_url=row.get("img_principal"),
+                price_min=row.get("precio_min") or Decimal("0"),
+                stock_total=int(row.get("stock_total") or 0),
+                total_registros=int(total),
+                rating=ratings_dict.get(row["product_id"]),
+                id_marca=int(row["id_marca"]) if row.get("id_marca") is not None else None,
+                nom_marca=row.get("nom_marca"),
+                fec_insert=None,
+            ))
+
         page = (filters.offset // filters.limit) + 1
-        total_pages = (actual_total + filters.limit - 1) // filters.limit if actual_total > 0 else 0
-        
-        # Debug: Log para entender la discrepancia
-        duplicates_removed = len(products_data) - actual_total
-        print(f"🔍 Debug filter_products:")
-        print(f"  - Productos únicos devueltos: {actual_total}")
-        print(f"  - Total de la DB (primer registro): {total}")
-        print(f"  - Registros procesados de la DB: {len(products_data)}")
-        print(f"  - Duplicados eliminados: {duplicates_removed}")
-        print(f"  - Filtros aplicados: {filters}")
-        
+        total_pages = (int(total) + filters.limit - 1) // filters.limit if total else 0
         return ProductFilterResponse(
             products=products,
-            total=actual_total,  # Usar el total real de productos únicos
+            total=int(total),
             page=page,
             total_pages=total_pages,
             limit=filters.limit,
-            offset=filters.offset
+            offset=filters.offset,
         )
-        
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al filtrar productos: {str(e)}")
 
 def get_filter_stats(db: Session, filters: ProductFilterParams) -> ProductFilterStats:
     """
-    Obtiene estadísticas de los productos que coinciden con los criterios de filtrado.
-    
-    Ejecuta una consulta agregada para obtener información estadística
-    sobre los productos filtrados.
-    
-    Args:
-        db (Session): La sesión de base de datos SQLAlchemy.
-        filters (ProductFilterParams): Parámetros de filtrado para las estadísticas.
-    
-    Returns:
-        ProductFilterStats: Estadísticas de los productos filtrados.
+    Estadísticas de productos que coinciden con los filtros (tab_products + tab_product_variants).
+    Usa la misma lógica que filter_products pero sin paginación para contar y agregar.
     """
     try:
-        # Construir condiciones WHERE dinámicamente
-        where_conditions = [
-            "c.ind_activo = true",
-            "l.ind_activo = true", 
-            "s.ind_activo = true",
-            "p.ind_activo = true",
-            "pr.ind_activo = true",
-            "m.ind_activo = true"
-        ]
-        
-        params = {}
-        
-        # Agregar filtros según parámetros
-        if filters.id_categoria is not None:
-            where_conditions.append("p.id_categoria = :id_categoria")
-            params["id_categoria"] = filters.id_categoria
-            
-        if filters.id_linea is not None:
-            where_conditions.append("p.id_linea = :id_linea")
-            params["id_linea"] = filters.id_linea
-            
-        if filters.id_sublinea is not None:
-            where_conditions.append("p.id_sublinea = :id_sublinea")
-            params["id_sublinea"] = filters.id_sublinea
-            
-        if filters.id_marca is not None:
-            where_conditions.append("p.id_marca = :id_marca")
-            params["id_marca"] = filters.id_marca
-            
-        if filters.id_proveedor is not None:
-            where_conditions.append("p.id_proveedor = :id_proveedor")
-            params["id_proveedor"] = filters.id_proveedor
-            
-        if filters.nombre_producto is not None and filters.nombre_producto.strip():
-            where_conditions.append("UPPER(p.nom_producto) LIKE UPPER(:nombre_producto)")
-            params["nombre_producto"] = f"%{filters.nombre_producto}%"
-            
-        if filters.precio_min is not None:
-            where_conditions.append("p.val_precio >= :precio_min")
-            params["precio_min"] = filters.precio_min
-            
-        if filters.precio_max is not None:
-            where_conditions.append("p.val_precio <= :precio_max")
-            params["precio_max"] = filters.precio_max
-            
-        if filters.stock_min is not None:
-            where_conditions.append("p.num_stock >= :stock_min")
-            params["stock_min"] = filters.stock_min
-            
-        if filters.solo_con_stock:
-            where_conditions.append("p.num_stock > 0")
-        
-        # Construir query de estadísticas
-        where_clause = " AND ".join(where_conditions)
-        
-        query = text(f"""
-            SELECT 
-                COUNT(*) as total_productos,
-                MIN(p.val_precio) as precio_minimo,
-                MAX(p.val_precio) as precio_maximo,
-                AVG(p.val_precio) as precio_promedio,
-                SUM(p.num_stock) as total_stock,
-                COUNT(DISTINCT p.id_categoria) as categorias_disponibles,
-                COUNT(DISTINCT p.id_marca) as marcas_disponibles
-            FROM tab_lineas l 
-            INNER JOIN tab_categorias c ON l.id_categoria = c.id_categoria
-            INNER JOIN tab_sublineas s ON l.id_linea = s.id_linea
-            INNER JOIN tab_productos p ON s.id_sublinea = p.id_sublinea
-            INNER JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
-            INNER JOIN tab_marcas m ON p.id_marca = m.id_marca
-            WHERE {where_clause}
+        # Usar fun_filter_products con límite alto para obtener total y agregados
+        params = {
+            "p_category_id": filters.category_id,
+            "p_include_subcategories": filters.include_subcategories,
+            "p_id_marca": filters.id_marca,
+            "p_nombre_producto": filters.nombre_producto,
+            "p_precio_min": filters.precio_min,
+            "p_precio_max": filters.precio_max,
+            "p_solo_con_stock": filters.solo_con_stock,
+            "p_ordenar_por": "nombre",
+            "p_orden": "ASC",
+            "p_limit": 10000,
+            "p_offset": 0,
+        }
+        query = text("""
+            SELECT product_id, category_id, nom_categoria, id_marca, precio_min, stock_total, total_registros
+            FROM fun_filter_products(
+                :p_category_id, :p_include_subcategories, :p_id_marca, :p_nombre_producto,
+                :p_precio_min, :p_precio_max, :p_solo_con_stock, :p_ordenar_por, :p_orden,
+                :p_limit, :p_offset
+            )
         """)
-        
         result = db.execute(query, params)
-        stats_data = result.mappings().first()
-        
-        if not stats_data:
+        rows = list(result.mappings().all())
+        if getattr(filters, "atributos", None) and filters.atributos:
+            product_ids_with_attrs = None
+            for (aid, values) in filters.atributos.items():
+                if not values:
+                    continue
+                q = text("""
+                    SELECT DISTINCT pv.product_id FROM tab_product_variant_attributes pva
+                    JOIN tab_product_variants pv ON pv.id = pva.variant_id
+                    JOIN tab_products p ON p.id = pv.product_id
+                    WHERE pva.attribute_id = :aid AND pv.is_active = TRUE AND p.is_active = TRUE
+                      AND pva.value_text = ANY(:vals)
+                """)
+                r = db.execute(q, {"aid": int(aid), "vals": list(values)})
+                ids = {x["product_id"] for x in r.mappings().all()}
+                product_ids_with_attrs = ids if product_ids_with_attrs is None else (product_ids_with_attrs & ids)
+            if product_ids_with_attrs is not None and product_ids_with_attrs:
+                rows = [r for r in rows if r.get("product_id") in product_ids_with_attrs]
+
+        if not rows:
             return ProductFilterStats(
                 total_productos=0,
                 precio_minimo=None,
@@ -1222,176 +1340,163 @@ def get_filter_stats(db: Session, filters: ProductFilterParams) -> ProductFilter
                 precio_promedio=None,
                 total_stock=0,
                 categorias_disponibles=0,
-                marcas_disponibles=0
+                marcas_disponibles=0,
             )
-        
+        precios = [float(r["precio_min"]) for r in rows if r.get("precio_min") is not None]
+        stocks = [int(r.get("stock_total") or 0) for r in rows]
+        categorias = len(set(r["category_id"] for r in rows if r.get("category_id") is not None))
         return ProductFilterStats(
-            total_productos=stats_data['total_productos'] or 0,
-            precio_minimo=stats_data['precio_minimo'],
-            precio_maximo=stats_data['precio_maximo'],
-            precio_promedio=stats_data['precio_promedio'],
-            total_stock=stats_data['total_stock'] or 0,
-            categorias_disponibles=stats_data['categorias_disponibles'] or 0,
-            marcas_disponibles=stats_data['marcas_disponibles'] or 0
+            total_productos=len(rows),
+            precio_minimo=Decimal(min(precios)) if precios else None,
+            precio_maximo=Decimal(max(precios)) if precios else None,
+            precio_promedio=Decimal(sum(precios) / len(precios)) if precios else None,
+            total_stock=sum(stocks),
+            categorias_disponibles=categorias,
+            marcas_disponibles=len(set(r.get("id_marca") for r in rows if r.get("id_marca") is not None)),
         )
-        
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener estadísticas de filtros: {str(e)}")
 
 def get_filter_options(db: Session) -> dict:
     """
-    Obtiene las opciones disponibles para los filtros de productos.
-    
-    Devuelve listas de categorías, líneas, sublíneas, marcas y proveedores
-    activos para poblar los selectores del frontend.
-    
-    Args:
-        db (Session): La sesión de base de datos SQLAlchemy.
-    
-    Returns:
-        dict: Diccionario con las opciones de filtro disponibles.
+    Opciones de filtro para tienda: árbol de categorías (tab_categories), precio (variantes),
+    atributos dinámicos (tab_attributes + tab_category_attributes is_filterable + valores desde tab_product_variant_attributes).
+    Estructura: categories_tree, price_range, attributes (id, name, values), marcas.
     """
     try:
-        # Obtener categorías activas
-        categorias_query = text("""
-            SELECT id_categoria, nom_categoria 
-            FROM tab_categorias 
-            WHERE ind_activo = true 
-            ORDER BY nom_categoria
-        """)
-        categorias = db.execute(categorias_query).mappings().all()
-        
-        # Obtener líneas activas. La clave real es (id_categoria, id_linea): id_linea se repite por categoría.
-        lineas_query = text("""
-            SELECT id_linea, nom_linea, id_categoria
-            FROM tab_lineas 
-            WHERE ind_activo = true 
-            ORDER BY id_categoria, nom_linea
-        """)
-        lineas = db.execute(lineas_query).mappings().all()
-        
-        # Obtener sublíneas activas (incluyendo id_categoria para poder relacionar correctamente)
-        sublineas_query = text("""
-            SELECT id_sublinea, nom_sublinea, id_linea, id_categoria
-            FROM tab_sublineas 
-            WHERE ind_activo = true 
-            ORDER BY nom_sublinea
-        """)
-        sublineas = db.execute(sublineas_query).mappings().all()
-        
-        # Obtener marcas activas
-        marcas_query = text("""
-            SELECT id_marca, nom_marca 
-            FROM tab_marcas 
-            WHERE ind_activo = true 
-            ORDER BY nom_marca
-        """)
-        marcas = db.execute(marcas_query).mappings().all()
-        
-        # Obtener proveedores activos
-        proveedores_query = text("""
-            SELECT id_proveedor, nom_proveedor 
-            FROM tab_proveedores 
-            WHERE ind_activo = true 
-            ORDER BY nom_proveedor
-        """)
-        proveedores = db.execute(proveedores_query).mappings().all()
-        
-        # Obtener rango de precios
+        # Árbol de categorías (solo activas): lista con id, name, slug, parent_id, level, children opcional
+        tree_query = text("SELECT * FROM fun_get_categories_tree(NULL, TRUE)")
+        tree_rows = db.execute(tree_query).mappings().all()
+        # Construir árbol: raíz (level=0) -> hijos (level=1) -> nietos (level=2)
+        by_id = {r["id"]: dict(r) for r in tree_rows}
+        for r in tree_rows:
+            r = by_id[r["id"]]
+            r["children"] = []
+        roots = []
+        for r in tree_rows:
+            row = by_id[r["id"]]
+            if row["parent_id"] is None:
+                roots.append(row)
+            else:
+                parent = by_id.get(row["parent_id"])
+                if parent:
+                    parent.setdefault("children", []).append(row)
+        categories_tree = _serialize_tree(roots)
+
+        # Rango de precios desde variantes activas
         precios_query = text("""
-            SELECT 
-                MIN(val_precio) as precio_minimo,
-                MAX(val_precio) as precio_maximo
-            FROM tab_productos 
-            WHERE ind_activo = true
+            SELECT MIN(price) AS precio_minimo, MAX(price) AS precio_maximo
+            FROM tab_product_variants pv
+            JOIN tab_products p ON p.id = pv.product_id
+            WHERE pv.is_active = TRUE AND p.is_active = TRUE
         """)
         precios = db.execute(precios_query).mappings().first()
-        
+        price_range = {
+            "minimo": float(precios["precio_minimo"]) if precios and precios["precio_minimo"] is not None else 0,
+            "maximo": float(precios["precio_maximo"]) if precios and precios["precio_maximo"] is not None else 0,
+        } if precios else {"minimo": 0, "maximo": 0}
+
+        # Atributos filtrables: tab_category_attributes.is_filterable + distinct value_text
+        attrs_query = text("""
+            SELECT a.id AS attribute_id, a.name AS attribute_name
+            FROM tab_attributes a
+            JOIN tab_category_attributes ca ON ca.attribute_id = a.id
+            WHERE ca.is_filterable = TRUE
+            GROUP BY a.id, a.name
+            ORDER BY a.name
+        """)
+        attrs = db.execute(attrs_query).mappings().all()
+        attributes = []
+        for a in attrs:
+            values_query = text("""
+                SELECT DISTINCT pva.value_text
+                FROM tab_product_variant_attributes pva
+                JOIN tab_product_variants pv ON pv.id = pva.variant_id
+                JOIN tab_products p ON p.id = pv.product_id
+                WHERE pva.attribute_id = :aid AND pva.value_text IS NOT NULL AND trim(pva.value_text) != ''
+                  AND pv.is_active = TRUE AND p.is_active = TRUE
+                ORDER BY pva.value_text
+            """)
+            values = [r["value_text"] for r in db.execute(values_query, {"aid": a["attribute_id"]}).mappings().all()]
+            attributes.append({
+                "id": int(a["attribute_id"]),
+                "name": a["attribute_name"],
+                "values": values,
+            })
+
+        marcas_query = text("SELECT id_marca, nom_marca FROM tab_marcas WHERE ind_activo = TRUE ORDER BY nom_marca")
+        marcas = [dict(m) for m in db.execute(marcas_query).mappings().all()]
+
+        # Lista plana de categorías (compatibilidad con frontend que usa categorias[])
+        def flatten_tree(nodes, out):
+            for n in nodes:
+                out.append({"id": n["id"], "name": n["name"]})
+                if n.get("children"):
+                    flatten_tree(n["children"], out)
+        categorias_flat = []
+        flatten_tree(categories_tree, categorias_flat)
+
         return {
-            "categorias": [dict(cat) for cat in categorias],
-            "lineas": [dict(linea) for linea in lineas],
-            "sublineas": [dict(sublinea) for sublinea in sublineas],
-            "marcas": [dict(marca) for marca in marcas],
-            "proveedores": [dict(proveedor) for proveedor in proveedores],
-            "precio_rango": {
-                "minimo": float(precios['precio_minimo']) if precios['precio_minimo'] else 0,
-                "maximo": float(precios['precio_maximo']) if precios['precio_maximo'] else 0
-            } if precios else {"minimo": 0, "maximo": 0}
+            "categories_tree": categories_tree,
+            "price_range": price_range,
+            "precio_rango": price_range,
+            "attributes": attributes,
+            "marcas": marcas,
+            "categorias": categorias_flat,
         }
-        
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener opciones de filtro: {str(e)}")
 
 
+def _serialize_tree(nodes):
+    """Convierte nodos del árbol a dicts serializables (id, name, slug, parent_id, children)."""
+    out = []
+    for n in nodes:
+        node = {"id": n.get("id"), "name": n.get("name"), "slug": n.get("slug"), "parent_id": n.get("parent_id")}
+        if n.get("children"):
+            node["children"] = _serialize_tree(n["children"])
+        else:
+            node["children"] = []
+        out.append(node)
+    return out
+
+
 def get_filter_options_admin(db: Session) -> dict:
     """
-    Obtiene las opciones de filtro para el panel de administración.
-
-    Igual estructura que get_filter_options pero incluye TODOS los registros
-    (activos e inactivos), para que el admin pueda filtrar y ver todos los productos.
-    La tienda sigue usando get_filter_options (solo activos).
-
-    Returns:
-        dict: categorias, lineas, sublineas, marcas, proveedores, precio_rango.
+    Opciones de filtro para admin (tab_categories, tab_marcas, tab_proveedores, precios desde tab_product_variants).
     """
     try:
         categorias_query = text("""
-            SELECT id_categoria, nom_categoria
-            FROM tab_categorias
-            ORDER BY nom_categoria
+            SELECT id, name AS nom_categoria FROM tab_categories ORDER BY name
         """)
         categorias = db.execute(categorias_query).mappings().all()
 
-        lineas_query = text("""
-            SELECT id_linea, nom_linea, id_categoria
-            FROM tab_lineas
-            ORDER BY id_categoria, nom_linea
-        """)
-        lineas = db.execute(lineas_query).mappings().all()
-
-        sublineas_query = text("""
-            SELECT id_sublinea, nom_sublinea, id_linea, id_categoria
-            FROM tab_sublineas
-            ORDER BY id_categoria, id_linea, nom_sublinea
-        """)
-        sublineas = db.execute(sublineas_query).mappings().all()
-
         marcas_query = text("""
-            SELECT id_marca, nom_marca
-            FROM tab_marcas
-            ORDER BY nom_marca
+            SELECT id_marca, nom_marca FROM tab_marcas ORDER BY nom_marca
         """)
         marcas = db.execute(marcas_query).mappings().all()
 
         proveedores_query = text("""
-            SELECT id_proveedor, nom_proveedor
-            FROM tab_proveedores
-            ORDER BY nom_proveedor
+            SELECT id_proveedor, nom_proveedor FROM tab_proveedores ORDER BY nom_proveedor
         """)
         proveedores = db.execute(proveedores_query).mappings().all()
 
         precios_query = text("""
-            SELECT
-                MIN(val_precio) AS precio_minimo,
-                MAX(val_precio) AS precio_maximo
-            FROM tab_productos
+            SELECT MIN(price) AS precio_minimo, MAX(price) AS precio_maximo
+            FROM tab_product_variants WHERE is_active = TRUE
         """)
         precios = db.execute(precios_query).mappings().first()
 
         return {
             "categorias": [dict(c) for c in categorias],
-            "lineas": [dict(l) for l in lineas],
-            "sublineas": [dict(s) for s in sublineas],
             "marcas": [dict(m) for m in marcas],
             "proveedores": [dict(p) for p in proveedores],
             "precio_rango": {
                 "minimo": float(precios["precio_minimo"]) if precios and precios["precio_minimo"] is not None else 0,
                 "maximo": float(precios["precio_maximo"]) if precios and precios["precio_maximo"] is not None else 0,
-            }
-            if precios
-            else {"minimo": 0, "maximo": 0},
+            } if precios else {"minimo": 0, "maximo": 0},
         }
     except Exception as e:
         db.rollback()

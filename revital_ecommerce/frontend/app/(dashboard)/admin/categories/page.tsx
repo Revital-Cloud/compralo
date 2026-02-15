@@ -3,13 +3,12 @@
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { EmptyState } from '@/components/admin/empty-states'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getAllCategories, updateCategory } from '@/services/category.service'
+import { getAllCategories, deactivateActivateCategory } from '@/services/category.service'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Button, Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui'
 import { Pencil, Power, Eye } from 'lucide-react'
-import { CreateEntityModal } from '@/components/admin/common/create-entity-modal'
-import { EditEntityModal } from '@/components/admin/common/edit-entity-modal'
+import { CategoryModal } from '@/components/admin/categories/category-modal'
 import { useMemo, useState } from 'react'
 import { CategoriesFilters } from '@/components/admin/categories/categories-filters'
 import type { Category } from '@/types/category'
@@ -32,17 +31,17 @@ const CategoriesPage = () => {
     let rows = data as unknown as Category[]
     if (search) {
       const q = search.toLowerCase()
-      rows = rows.filter(r => r.nom_categoria?.toLowerCase().includes(q))
+      rows = rows.filter(r => r.name?.toLowerCase().includes(q))
     }
     return [...rows].sort((a, b) =>
-      String((a as any).nom_categoria || '').localeCompare(String((b as any).nom_categoria || ''))
+      String((a as any).name || '').localeCompare(String((b as any).name || ''))
     )
   }, [data, search])
 
   const deactivateActivateCategoryMutation = useMutation({
-    mutationFn: async ({ id_categoria, activar }: { id_categoria: number; activar: boolean }) => {
+    mutationFn: async ({ id, activar }: { id: number; activar: boolean }) => {
       const { deactivateActivateCategory } = await import('@/services/category.service')
-      const result = await deactivateActivateCategory(id_categoria, activar)
+      const result = await deactivateActivateCategory(id, activar)
       // Verificar que realmente se cambió el estado
       if (!result || (result as any).message === undefined) {
         throw new Error('No se recibió confirmación del servidor')
@@ -66,16 +65,28 @@ const CategoriesPage = () => {
   const [openEdit, setOpenEdit] = useState(false)
   const [editing, setEditing] = useState<any | null>(null)
 
+  const categoriesList = Array.isArray(data) ? (data as Category[]) : []
+  const parentName = (id: number) => categoriesList.find((c) => Number(c.id) === id)?.name ?? '—'
+
   const columns: ColumnDef<Category>[] = [
     {
-      accessorKey: 'id_categoria',
+      accessorKey: 'id',
       header: 'ID',
-      cell: ({ row }) => <span className="text-muted-foreground">{row.original.id_categoria}</span>,
+      cell: ({ row }) => <span className="text-muted-foreground">{row.original.id}</span>,
     },
     {
-      accessorKey: 'nom_categoria',
+      accessorKey: 'name',
       header: 'Nombre',
-      cell: ({ row }) => <span className="font-medium">{row.original.nom_categoria}</span>,
+      cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+    },
+    {
+      accessorKey: 'parent_id',
+      header: 'Padre',
+      cell: ({ row }) => (
+        <span className="text-muted-foreground">
+          {row.original.parent_id != null ? parentName(Number(row.original.parent_id)) : '—'}
+        </span>
+      ),
     },
     {
       accessorKey: 'fec_insert',
@@ -117,12 +128,12 @@ const CategoriesPage = () => {
               size="icon"
               aria-label={isActive ? "Desactivar" : "Activar"}
               onClick={() => {
-                const id = Number(row.original.id_categoria)
+                const id = Number(row.original.id)
                 if (isNaN(id)) {
                   toast.error('ID de categoría inválido')
                   return
                 }
-                deactivateActivateCategoryMutation.mutate({ id_categoria: id, activar: !isActive })
+                deactivateActivateCategoryMutation.mutate({ id: id, activar: !isActive })
               }}
               disabled={isPending}
               className={isActive ? "bg-green-600 hover:bg-green-700 text-white" : ""}
@@ -145,31 +156,33 @@ const CategoriesPage = () => {
         showImportButton={false}
       />
 
-      <CreateEntityModal
+      <CategoryModal
         open={openCreate}
         onOpenChange={setOpenCreate}
-        type="category"
-        title="Nueva Categoría"
-        onSubmit={async (values) => {
-          const { createCategory } = await import('@/services/category.service')
-          await createCategory({ nom_categoria: values.nom_categoria, ind_activo: values.ind_activo })
+        mode="create"
+        categories={categoriesList}
+        onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['categories', 'all'] })
           queryClient.invalidateQueries({ queryKey: ['categories'] })
           queryClient.invalidateQueries({ queryKey: ['categories', 'raw'] })
+          toast.success('Categoría creada correctamente')
         }}
       />
 
-      <EditEntityModal
+      <CategoryModal
         open={openEdit}
-        onOpenChange={setOpenEdit}
-        type="category"
-        title="Editar Categoría"
-        initialValues={{ nom_categoria: (editing as any)?.nom_categoria, ind_activo: (editing as any)?.ind_activo ?? true }}
-        onSubmit={async (values) => {
-          await updateCategory((editing as any)?.id_categoria, { nom_categoria: values.nom_categoria, ind_activo: values.ind_activo })
+        onOpenChange={(open) => {
+          if (!open) setEditing(null)
+          setOpenEdit(open)
+        }}
+        mode="edit"
+        categories={categoriesList}
+        editingCategory={editing}
+        onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['categories', 'all'] })
           queryClient.invalidateQueries({ queryKey: ['categories'] })
           queryClient.invalidateQueries({ queryKey: ['categories', 'raw'] })
+          toast.success('Categoría actualizada correctamente')
         }}
       />
 
@@ -214,8 +227,8 @@ const CategoriesPage = () => {
           {selectedCategory && (
             <div className="space-y-6 pt-2">
               <div className="space-y-1">
-                <h3 className="font-semibold text-lg">{selectedCategory.nom_categoria}</h3>
-                <p className="text-sm text-muted-foreground">ID: {selectedCategory.id_categoria}</p>
+                <h3 className="font-semibold text-lg">{selectedCategory.name}</h3>
+                <p className="text-sm text-muted-foreground">ID: {selectedCategory.id}</p>
               </div>
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-1">Estado</h4>
@@ -245,9 +258,9 @@ const CategoriesPage = () => {
                   variant={selectedCategory.ind_activo ? 'default' : 'destructive'}
                   className={selectedCategory.ind_activo ? 'w-full bg-green-600 hover:bg-green-700' : 'w-full'}
                   onClick={() => {
-                    const id = Number(selectedCategory.id_categoria);
+                    const id = Number(selectedCategory.id);
                     if (!isNaN(id)) {
-                      deactivateActivateCategoryMutation.mutate({ id_categoria: id, activar: !selectedCategory.ind_activo });
+                      deactivateActivateCategoryMutation.mutate({ id: id, activar: !selectedCategory.ind_activo });
                     }
                     setSelectedCategory(null);
                   }}

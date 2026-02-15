@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+function getBackendUrl(): string {
+  if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (apiUrl) {
+    try {
+      return new URL(apiUrl).origin;
+    } catch {
+      return 'http://localhost:8000';
+    }
+  }
+  return 'http://localhost:8000';
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -40,7 +51,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Forwardear al backend FastAPI
-    const response = await fetch(`${BACKEND_URL}/api/payments/poll?reference=${reference}`, {
+    const response = await fetch(`${getBackendUrl()}/api/payments/poll?reference=${reference}`, {
       method: 'GET',
       headers,
     });

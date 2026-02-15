@@ -105,17 +105,18 @@ const CartPage = () => {
   const cartCategoryIds = useMemo(() => {
     if (!Array.isArray(items) || items.length === 0) return [];
     const ids = items
-      .map((item) => Number((item as { id_categoria_producto?: number }).id_categoria_producto))
+      .map((item) => Number((item as { category_id?: number }).category_id))
       .filter((id) => !Number.isNaN(id) && id > 0);
     return [...new Set(ids)];
   }, [items]);
 
-  // Productos recomendados: mismos categorías que el carrito, excluyendo los que ya están
+  // Productos recomendados: primera categoría del carrito (con subcategorías)
   const { data: relatedResponse } = useQuery({
     queryKey: ["cartRelatedProducts", cartCategoryIds],
     queryFn: () =>
       productService.filterProducts({
-        id_categoria: cartCategoryIds,
+        category_id: cartCategoryIds[0],
+        include_subcategories: true,
         limit: 20,
         offset: 0,
         ordenar_por: "nombre",
@@ -125,43 +126,23 @@ const CartPage = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  const cartProductSlugs = useMemo(() => {
-    if (!Array.isArray(items)) return new Set<string>();
-    return new Set(
-      items
-        .filter((item) =>
-          [item.id_categoria_producto, item.id_linea_producto, item.id_sublinea_producto, item.id_producto].every(
-            (v) => typeof v === "number" && !Number.isNaN(v)
-          )
-        )
-        .map(
-          (item) =>
-            `${item.id_categoria_producto}-${item.id_linea_producto}-${item.id_sublinea_producto}-${item.id_producto}`
-        )
-    );
-  }, [items]);
-
   const relatedProducts = useMemo(() => {
     if (!relatedResponse?.products) return [];
+    const cartIds = new Set((items ?? []).map((i) => i.id_producto));
     return relatedResponse.products
-      .filter(
-        (p) =>
-          !cartProductSlugs.has(
-            `${p.id_categoria}-${p.id_linea}-${p.id_sublinea}-${p.id_producto}`
-          )
-      )
+      .filter((p) => !cartIds.has(p.id))
       .slice(0, 8)
       .map((p) => ({
-        id: p.id_producto,
-        name: p.nom_producto,
+        id: p.id,
+        name: p.name,
         price:
-          typeof p.val_precio === "number"
-            ? p.val_precio
-            : parseFloat(String(p.val_precio)),
-        image: getProductImageUrl(p.img_producto),
-        slug: `${p.id_categoria}-${p.id_linea}-${p.id_sublinea}-${p.id_producto}`,
+          typeof p.price_min === "number"
+            ? p.price_min
+            : parseFloat(String((p as any).price_min ?? (p as any).val_precio ?? 0)),
+        image: getProductImageUrl(p.image_url ?? (p as any).img_producto),
+        slug: p.slug ?? String(p.id),
       }));
-  }, [relatedResponse, cartProductSlugs]);
+  }, [relatedResponse, items]);
 
   // Canjes disponibles del usuario (para selector)
   const { data: availableCanjes = [] } = useQuery({
@@ -513,14 +494,7 @@ const CartPage = () => {
                 {hasItems() && Array.isArray(items) ? (
                   <div className="divide-y divide-gray-200 dark:divide-gray-700">
                     {items.map((item) => {
-                      const slug = [
-                        item.id_categoria_producto,
-                        item.id_linea_producto,
-                        item.id_sublinea_producto,
-                        item.id_producto,
-                      ].every((v) => typeof v === 'number' && !Number.isNaN(v as number))
-                        ? `${item.id_categoria_producto}-${item.id_linea_producto}-${item.id_sublinea_producto}-${item.id_producto}`
-                        : undefined;
+                      const productSlug = (item as { product_slug?: string }).product_slug ?? String(item.id_producto);
                       const { unitPrice, originalUnitPrice, discountPercentage } = getItemPriceWithCanjeDiscount({
                         precio_unitario: item.precio_unitario,
                         cantidad: item.cantidad,
@@ -531,7 +505,7 @@ const CartPage = () => {
                           key={item.id_carrito_producto}
                           id={item.id_carrito_producto.toString()}
                           productId={item.id_producto}
-                          productSlug={slug}
+                          productSlug={productSlug}
                           name={item.nombre_producto}
                           brand={item.marca || ""}
                           opciones_elegidas={(item as { opciones_elegidas?: Record<string, string> }).opciones_elegidas}
@@ -595,8 +569,7 @@ const CartPage = () => {
                             </p>
                             <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                               {item.marca && `${item.marca} • `}{texts.size}{" "}
-                              {item.sublinea || "Único"} • {texts.quantity}{" "}
-                              {item.cantidad}
+                              {texts.quantity}{" "}{item.cantidad}
                             </p>
                           </div>
                           <div className="shrink-0">
@@ -661,9 +634,9 @@ const CartPage = () => {
                         {formatPrice(finalTotal)}
                       </span>
                     </div>
-                    {totals?.puntos_a_ganar && totals.puntos_a_ganar > 0 && (
+                    {(totals?.puntos_a_ganar ?? 0) > 0 && (
                       <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
-                        🎉 Ganarás {totals.puntos_a_ganar} puntos con esta
+                        🎉 Ganarás {totals?.puntos_a_ganar ?? 0} puntos con esta
                         compra
                       </p>
                     )}
@@ -905,9 +878,9 @@ const CartPage = () => {
                       {formatPrice(finalTotal)}
                     </span>
                   </div>
-                  {totals?.puntos_a_ganar && totals.puntos_a_ganar > 0 && (
+                  {(totals?.puntos_a_ganar ?? 0) > 0 && (
                     <p className="text-sm text-blue-600 dark:text-blue-400 mt-2">
-                      🎉 Ganarás {totals.puntos_a_ganar} puntos con esta compra
+                      🎉 Ganarás {totals?.puntos_a_ganar ?? 0} puntos con esta compra
                     </p>
                   )}
                 </div>

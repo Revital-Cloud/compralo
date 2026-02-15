@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from "sonner";
 import { ProductsHeader } from "@/components/admin/products";
 import { ProductsFilters } from "@/components/admin/products/products-filters";
-import { useProductsAdmin, useDeactivateActivateProduct, useFilterOptionsAdmin } from "@/hooks/use-products";
+import { useProductsAdmin, useDeactivateActivateProductById, useFilterOptionsAdmin } from "@/hooks/use-products";
 import type { Product } from '@/types/product';
 import DataTable from '@/components/tables/table';
 import { ColumnDef } from '@tanstack/react-table';
@@ -55,23 +55,17 @@ const ProductsPage = () => {
   
   const category = searchParams.get('category') || '';
   const brand = searchParams.get('brand') || '';
-  const line = searchParams.get('line') || '';
-  const subline = searchParams.get('subline') || '';
   const provider = searchParams.get('provider') || '';
 
-  // Opciones de filtro para admin (incluye activos e inactivos; así aparecen todas las sublíneas)
   const { data: filterOptions, isLoading: optionsLoading } = useFilterOptionsAdmin();
-  
-  // Filtros para la API
+
   const filters = {
     ordenar_por: sortBy,
     orden: sortOrder,
     limit: itemsPerPage,
     offset: (currentPage - 1) * itemsPerPage,
     search: search || undefined,
-    id_categoria: category ? Number(category) : undefined,
-    id_linea: line ? Number(line) : undefined,
-    id_sublinea: subline ? Number(subline) : undefined,
+    category_id: category ? Number(category) : undefined,
     id_marca: brand ? Number(brand) : undefined,
     id_proveedor: provider ? Number(provider) : undefined,
   };
@@ -85,8 +79,7 @@ const ProductsPage = () => {
     ...filters,
   });
 
-  // Mutation activar/desactivar producto
-  const deactivateActivateProductMutation = useDeactivateActivateProduct();
+  const deactivateActivateProductMutation = useDeactivateActivateProductById();
 
   // Manejar cambio de página
   const handlePageChange = (page: number) => {
@@ -97,31 +90,22 @@ const ProductsPage = () => {
     router.push(`/admin/products?${params.toString()}`);
   };
 
-  // Manejar activar/desactivar producto
   const handleToggleActive = (row: Product) => {
-    const isActive = Boolean(row.ind_activo);
+    const isActive = Boolean((row as { ind_activo?: boolean; is_active?: boolean }).ind_activo ?? (row as { is_active?: boolean }).is_active ?? true);
     if (isActive) {
       setProductToDeactivate(row);
       return;
     }
-    const params = {
-      id_categoria: Number(row.id_categoria),
-      id_linea: Number(row.id_linea),
-      id_sublinea: Number(row.id_sublinea),
-      id_producto: Number(row.id_producto),
-    };
-    deactivateActivateProductMutation.mutate({ params, activar: true });
+    const productId = Number(row.id);
+    if (!productId) return;
+    deactivateActivateProductMutation.mutate({ productId, activar: true });
   };
 
   const handleConfirmDeactivate = () => {
     if (!productToDeactivate) return;
-    const params = {
-      id_categoria: Number(productToDeactivate.id_categoria),
-      id_linea: Number(productToDeactivate.id_linea),
-      id_sublinea: Number(productToDeactivate.id_sublinea),
-      id_producto: Number(productToDeactivate.id_producto),
-    };
-    deactivateActivateProductMutation.mutate({ params, activar: false });
+    const productId = Number(productToDeactivate.id);
+    if (!productId) return;
+    deactivateActivateProductMutation.mutate({ productId, activar: false });
     setProductToDeactivate(null);
   };
 
@@ -174,65 +158,6 @@ const ProductsPage = () => {
     router.push(`?${params.toString()}`);
   };
 
-  const handleLineChange = (value: string) => {
-    const params = new URLSearchParams(searchParams);
-    
-    if (value) {
-      // Valor compuesto "id_categoria-id_linea" desde el select de línea (evita línea equivocada entre categorías)
-      if (value.includes('-')) {
-        const [categoryVal, lineVal] = value.split('-');
-        params.set('category', categoryVal);
-        params.set('line', lineVal);
-      } else {
-        const selectedLine = filterOptions?.lineas?.find((l: any) => 
-          String(l.id_linea) === value
-        );
-        if (selectedLine) {
-          params.set('line', value);
-          params.set('category', String(selectedLine.id_categoria));
-        } else {
-          params.set('line', value);
-        }
-      }
-    } else {
-      params.delete('line');
-    }
-    
-    router.push(`?${params.toString()}`);
-  };
-
-  const handleSublineChange = (value: string) => {
-    const params = new URLSearchParams(searchParams);
-
-    if (value) {
-      // Valor compuesto "id_categoria-id_linea-id_sublinea" desde el select de sublínea
-      const parts = value.split('-');
-      if (parts.length >= 3) {
-        params.set('category', parts[0]);
-        params.set('line', parts[1]);
-        params.set('subline', parts[2]);
-      } else {
-        const selectedSubline = filterOptions?.sublineas?.find((s: any) =>
-          String(s.id_sublinea) === value
-        );
-        if (selectedSubline) {
-          params.set('subline', value);
-          params.set('line', String(selectedSubline.id_linea));
-          const selectedLine = filterOptions?.lineas?.find((l: any) => l.id_linea === selectedSubline.id_linea);
-          if (selectedLine?.id_categoria != null) {
-            params.set('category', String(selectedLine.id_categoria));
-          }
-        } else {
-          params.set('subline', value);
-        }
-      }
-    } else {
-      params.delete('subline');
-    }
-
-    router.push(`?${params.toString()}`);
-  };
-
   const handleProviderChange = (value: string) => {
     const params = new URLSearchParams(searchParams);
     if (value) {
@@ -270,48 +195,47 @@ const ProductsPage = () => {
   const totalItems = adminProducts.length > 0 ? adminProducts[0].total_registros : 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  // Adaptar ProductAdmin a Product para el componente DataTable
-  const products: Product[] = adminProducts.map(adminProduct => ({
-    id_producto: adminProduct.id_producto,
-    nom_producto: adminProduct.nom_producto,
-    spcf_producto: adminProduct.spcf_producto,
-    img_producto: adminProduct.img_producto,
-    val_precio: adminProduct.val_precio,
-    id_proveedor: adminProduct.id_proveedor,
-    id_marca: adminProduct.id_marca,
-    id_sublinea: adminProduct.id_sublinea,
-    id_linea: adminProduct.id_linea,
-    id_categoria: adminProduct.id_categoria,
-    num_stock: adminProduct.num_stock,
-    usr_insert: "0",
-    fec_insert: adminProduct.fec_insert,
-    usr_update: null,
-    fec_update: null,
-    ind_activo: adminProduct.ind_activo_producto,
-    images: null,
-    nom_categoria: adminProduct.nom_categoria,
-    nom_linea: adminProduct.nom_linea,
-    nom_sublinea: adminProduct.nom_sublinea,
-    nom_proveedor: adminProduct.nom_proveedor,
-    nom_marca: adminProduct.nom_marca
-  }));
+  const products: Product[] = adminProducts.map((adminProduct) => {
+    const stock = adminProduct.stock_total ?? 0;
+    const isActive = adminProduct.is_active ?? true;
+    return {
+      id: adminProduct.id,
+      name: adminProduct.name,
+      description: adminProduct.description,
+      image_url: adminProduct.image_url,
+      price_min: adminProduct.price_min,
+      id_proveedor: (adminProduct as { id_proveedor?: string }).id_proveedor,
+      id_marca: adminProduct.id_marca,
+      category_id: adminProduct.category_id,
+      num_stock: stock,
+      stock_total: stock,
+      usr_insert: '0',
+      fec_insert: adminProduct.fec_insert,
+      usr_update: null,
+      fec_update: null,
+      is_active: isActive,
+      ind_activo: isActive,
+      images: undefined,
+      category_name: adminProduct.category_name,
+      nom_proveedor: (adminProduct as { nom_proveedor?: string }).nom_proveedor,
+      nom_marca: adminProduct.nom_marca,
+    };
+  });
 
   // Definir columnas de la tabla
   const columns: ColumnDef<Product>[] = [
     {
-      accessorKey: 'img_producto',
+      accessorKey: 'image_url',
       header: 'Imagen',
       cell: ({ row }) => {
-        const imgUrl = typeof row.original.img_producto === 'string' 
-          ? row.original.img_producto 
-          : row.original.img_producto?.main || '';
-        
+        const o = row.original as any;
+        const imgUrl = o.image_url ?? (typeof o.img_producto === 'string' ? o.img_producto : o.img_producto?.main) ?? '';
         return (
           <div className="w-12 h-12 relative rounded-md overflow-hidden bg-gray-100">
             {imgUrl ? (
               <Image
                 src={imgUrl}
-                alt={row.original.nom_producto}
+                alt={row.original.name}
                 fill
                 sizes="48px"
                 className="object-cover"
@@ -326,34 +250,20 @@ const ProductsPage = () => {
       },
     },
     {
-      accessorKey: 'nom_producto',
+      accessorKey: 'name',
       header: 'Producto',
       cell: ({ row }) => (
         <div className="max-w-xs">
-          <div className="font-medium truncate">{row.original.nom_producto}</div>
-          <div className="text-xs text-muted-foreground">ID: {row.original.id_producto}</div>
+          <div className="font-medium truncate">{row.original.name}</div>
+          <div className="text-xs text-muted-foreground">ID: {row.original.id}</div>
         </div>
       ),
     },
     {
-      accessorKey: 'nom_categoria',
+      accessorKey: 'category_name',
       header: 'Categoría',
       cell: ({ row }) => (
-        <span className="text-sm">{row.original.nom_categoria || '-'}</span>
-      ),
-    },
-    {
-      accessorKey: 'nom_linea',
-      header: 'Linea',
-      cell: ({ row }) => (
-        <span className="text-sm">{row.original.nom_linea || '-'}</span>
-      ),
-    },
-    {
-      accessorKey: 'nom_sublinea',
-      header: 'SubLinea',
-      cell: ({ row }) => (
-        <span className="text-sm">{row.original.nom_sublinea || '-'}</span>
+        <span className="text-sm">{row.original.category_name || '-'}</span>
       ),
     },
     {
@@ -364,17 +274,17 @@ const ProductsPage = () => {
       ),
     },
     {
-      accessorKey: 'val_precio',
+      accessorKey: 'price_min',
       header: 'Precio',
       cell: ({ row }) => (
-        <span className="font-semibold">{formatPrice(row.original.val_precio)}</span>
+        <span className="font-semibold">{formatPrice((row.original as any).price_min ?? (row.original as any).val_precio)}</span>
       ),
     },
     {
-      accessorKey: 'num_stock',
+      accessorKey: 'stock_total',
       header: 'Stock',
       cell: ({ row }) => {
-        const stock = row.original.num_stock || 0;
+        const stock = (row.original as any).stock_total ?? (row.original as any).num_stock ?? 0;
         return (
           <Badge 
             variant={stock === 0 ? 'destructive' : stock <= 10 ? 'default' : 'secondary'}
@@ -392,10 +302,10 @@ const ProductsPage = () => {
       },
     },
     {
-      accessorKey: 'ind_activo',
+      accessorKey: 'is_active',
       header: 'Estado',
       cell: ({ row }) => {
-        const isActive = !!row.original.ind_activo;
+        const isActive = Boolean((row.original as any).is_active ?? (row.original as any).ind_activo_producto);
         return (
           <span className={isActive ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
             {isActive ? 'Activo' : 'Inactivo'}
@@ -423,17 +333,17 @@ const ProductsPage = () => {
             variant="outline"
             size="icon"
             aria-label="Editar producto"
-            onClick={() => router.push(`/admin/products/${row.original.id_categoria}-${row.original.id_linea}-${row.original.id_sublinea}-${row.original.id_producto}/edit`)}
+            onClick={() => router.push(`/admin/products/${row.original.id}/edit`)}
           >
             <Pencil className="w-4 h-4" />
           </Button>
           <Button
-            variant={row.original.ind_activo ? "default" : "destructive"}
+            variant={row.original.is_active ? "default" : "destructive"}
             size="icon"
-            aria-label={row.original.ind_activo ? "Desactivar producto" : "Activar producto"}
+            aria-label={row.original.is_active ? "Desactivar producto" : "Activar producto"}
             onClick={() => handleToggleActive(row.original)}
             disabled={deactivateActivateProductMutation.isPending}
-            className={row.original.ind_activo ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+            className={row.original.is_active ? "bg-green-600 hover:bg-green-700 text-white" : ""}
           >
             <Power className="w-4 h-4" />
           </Button>
@@ -485,10 +395,6 @@ const ProductsPage = () => {
         onCategoryChange={handleCategoryChange}
         brand={brand}
         onBrandChange={handleBrandChange}
-        line={line}
-        onLineChange={handleLineChange}
-        subline={subline}
-        onSublineChange={handleSublineChange}
         provider={provider}
         onProviderChange={handleProviderChange}
         onClearFilters={handleClearFilters}
@@ -508,10 +414,10 @@ const ProductsPage = () => {
             <div className="space-y-8 py-2 px-1">
               {/* Imagen */}
               <div className="aspect-square max-h-48 w-full relative rounded-lg overflow-hidden bg-muted">
-                {selectedProduct.img_producto ? (
+                {(selectedProduct as any).image_url || (selectedProduct as any).img_producto ? (
                   <Image
-                    src={typeof selectedProduct.img_producto === 'string' ? selectedProduct.img_producto : (selectedProduct.img_producto as any)?.main || ''}
-                    alt={selectedProduct.nom_producto}
+                    src={(selectedProduct as any).image_url ?? (typeof (selectedProduct as any).img_producto === 'string' ? (selectedProduct as any).img_producto : (selectedProduct as any).img_producto?.main) ?? ''}
+                    alt={selectedProduct.name}
                     fill
                     sizes="(max-width: 384px) 100vw, 24rem"
                     className="object-contain"
@@ -525,8 +431,8 @@ const ProductsPage = () => {
 
               {/* Nombre e ID */}
               <div className="space-y-1">
-                <h3 className="font-semibold text-lg">{selectedProduct.nom_producto}</h3>
-                <p className="text-sm text-muted-foreground">ID: {selectedProduct.id_producto}</p>
+                <h3 className="font-semibold text-lg">{selectedProduct.name}</h3>
+                <p className="text-sm text-muted-foreground">ID: {selectedProduct.id}</p>
               </div>
 
               {/* Clasificación */}
@@ -534,11 +440,7 @@ const ProductsPage = () => {
                 <h4 className="text-sm font-medium text-muted-foreground">Clasificación</h4>
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                   <dt className="text-muted-foreground">Categoría</dt>
-                  <dd>{selectedProduct.nom_categoria || '-'}</dd>
-                  <dt className="text-muted-foreground">Línea</dt>
-                  <dd>{selectedProduct.nom_linea || '-'}</dd>
-                  <dt className="text-muted-foreground">Sublínea</dt>
-                  <dd>{selectedProduct.nom_sublinea || '-'}</dd>
+                  <dd>{selectedProduct.category_name || '-'}</dd>
                   <dt className="text-muted-foreground">Marca</dt>
                   <dd>{selectedProduct.nom_marca || '-'}</dd>
                   <dt className="text-muted-foreground">Proveedor</dt>
@@ -551,21 +453,26 @@ const ProductsPage = () => {
                 <h4 className="text-sm font-medium text-muted-foreground">Precio y stock</h4>
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                   <dt className="text-muted-foreground">Precio</dt>
-                  <dd className="font-semibold">{formatPrice(selectedProduct.val_precio)}</dd>
+                  <dd className="font-semibold">{formatPrice((selectedProduct as any).price_min ?? (selectedProduct as any).val_precio)}</dd>
                   <dt className="text-muted-foreground">Stock</dt>
                   <dd>
-                    <Badge
-                      variant={selectedProduct.num_stock === 0 ? 'destructive' : selectedProduct.num_stock <= 10 ? 'default' : 'secondary'}
-                      className={
-                        selectedProduct.num_stock === 0
-                          ? 'bg-red-100 text-red-800'
-                          : selectedProduct.num_stock <= 10
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
-                      }
-                    >
-                      {selectedProduct.num_stock}
-                    </Badge>
+                    {(() => {
+                      const stock = selectedProduct.num_stock ?? selectedProduct.stock_total ?? 0;
+                      return (
+                        <Badge
+                          variant={stock === 0 ? 'destructive' : stock <= 10 ? 'default' : 'secondary'}
+                          className={
+                            stock === 0
+                              ? 'bg-red-100 text-red-800'
+                              : stock <= 10
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-green-100 text-green-800'
+                          }
+                        >
+                          {stock}
+                        </Badge>
+                      );
+                    })()}
                   </dd>
                 </dl>
               </div>
@@ -574,18 +481,19 @@ const ProductsPage = () => {
               <div className="grid gap-4">
                 <h4 className="text-sm font-medium text-muted-foreground">Estado</h4>
                 <p>
-                  <span className={selectedProduct.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
-                    {selectedProduct.ind_activo ? 'Activo' : 'Inactivo'}
+                  <span className={selectedProduct.is_active ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+                    {selectedProduct.is_active ? 'Activo' : 'Inactivo'}
                   </span>
                 </p>
               </div>
 
               {/* Especificaciones */}
-              {selectedProduct.spcf_producto && Object.keys(selectedProduct.spcf_producto).length > 0 && (
+              {((selectedProduct as any).spcf_producto && Object.keys((selectedProduct as any).spcf_producto).length > 0) || ((selectedProduct as any).description) ? (
                 <div className="grid gap-4">
                   <h4 className="text-sm font-medium text-muted-foreground">Especificaciones</h4>
                   <dl className="grid gap-3 text-sm">
-                    {Object.entries(selectedProduct.spcf_producto).map(([key, value]) => (
+                    {selectedProduct.description ? <p className="text-sm text-muted-foreground">{selectedProduct.description}</p> : null}
+                    {Object.entries((selectedProduct as any).spcf_producto || {}).map(([key, value]) => (
                       <div key={key} className="flex justify-between gap-4 border-b border-border pb-3">
                         <dt className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</dt>
                         <dd className="text-right">{String(value ?? '-')}</dd>
@@ -593,7 +501,7 @@ const ProductsPage = () => {
                     ))}
                   </dl>
                 </div>
-              )}
+              ) : null}
 
               {/* Fecha de alta */}
               {selectedProduct.fec_insert && (
@@ -608,7 +516,7 @@ const ProductsPage = () => {
                   variant="outline"
                   className="w-full"
                   onClick={() => {
-                    router.push(`/admin/products/${selectedProduct.id_categoria}-${selectedProduct.id_linea}-${selectedProduct.id_sublinea}-${selectedProduct.id_producto}/edit`);
+                    router.push(`/admin/products/${selectedProduct.id}/edit`);
                     setSelectedProduct(null);
                   }}
                 >
@@ -616,8 +524,8 @@ const ProductsPage = () => {
                   Editar producto
                 </Button>
                 <Button
-                  variant={selectedProduct.ind_activo ? "default" : "destructive"}
-                  className={selectedProduct.ind_activo ? "w-full bg-green-600 hover:bg-green-700" : "w-full"}
+                  variant={selectedProduct.is_active ? "default" : "destructive"}
+                  className={selectedProduct.is_active ? "w-full bg-green-600 hover:bg-green-700" : "w-full"}
                   onClick={() => {
                     handleToggleActive(selectedProduct);
                     setSelectedProduct(null);
@@ -625,7 +533,7 @@ const ProductsPage = () => {
                   disabled={deactivateActivateProductMutation.isPending}
                 >
                   <Power className="w-4 h-4 mr-2" />
-                  {selectedProduct.ind_activo ? 'Desactivar' : 'Activar'} producto
+                  {selectedProduct.is_active ? 'Desactivar' : 'Activar'} producto
                 </Button>
               </div>
             </div>
@@ -640,7 +548,7 @@ const ProductsPage = () => {
             <AlertDialogDescription>
               ¿Estás seguro de que quieres desactivar este producto? Dejará de mostrarse en la tienda.
               {productToDeactivate && (
-                <span className="mt-2 block font-medium text-foreground">{productToDeactivate.nom_producto}</span>
+                <span className="mt-2 block font-medium text-foreground">{productToDeactivate.name}</span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>

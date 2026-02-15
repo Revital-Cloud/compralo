@@ -34,26 +34,10 @@ const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }
           {/* About Us */}
           <AboutSection />
 
-          {/* Categorías */}
+          {/* Categorías (nombres en footer) */}
           <CategoriesSection
             title="Categorías"
             categories={footerCategories?.categories || []}
-            isLoading={isLoading}
-            error={error}
-          />
-
-          {/* Líneas */}
-          <CategoriesSection
-            title="Líneas"
-            categories={footerCategories?.lineas || []}
-            isLoading={isLoading}
-            error={error}
-          />
-
-          {/* Sublíneas */}
-          <CategoriesSection
-            title="Sublíneas"
-            categories={footerCategories?.sublineas || []}
             isLoading={isLoading}
             error={error}
           />

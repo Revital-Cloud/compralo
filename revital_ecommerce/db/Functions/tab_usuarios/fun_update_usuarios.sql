@@ -111,7 +111,3 @@ $$
     END;
 $$
 LANGUAGE plpgsql;
-
--- Ejemplo de uso corregido (ahora con ID numérico)
-SELECT fun_update_usuarios(1099735379, 'Natali', 'Perez', 'nata.perez@gmail.com', '1234566', 'Av. Siempre Viva 123', FALSE, '1234567890', '1990-03-02', 1234567890);
-

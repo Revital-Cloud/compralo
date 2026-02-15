@@ -8,14 +8,13 @@ import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useCategories } from '@/hooks/use-categories'
-import { useLinesByCategory } from '@/hooks/use-lines'
 import { PHONE_COUNTRY_CODES, parsePhoneForEdit } from '@/lib/phone-country-codes'
 import { Checkbox } from "@/components/ui"
 
-type EntityType = 'line' | 'subline' | 'category' | 'brand' | 'provider'
+type EntityType = 'category' | 'brand' | 'provider'
 
 const schemas: Record<EntityType, z.ZodSchema<any>> = {
-  category: z.object({ nom_categoria: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
+  category: z.object({ name: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
   brand: z.object({ nom_marca: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
   provider: z.object({ 
     nom_proveedor: z.string().min(2).optional(), 
@@ -24,8 +23,6 @@ const schemas: Record<EntityType, z.ZodSchema<any>> = {
     tel_numero: z.string().optional(),
     ind_activo: z.boolean().optional().default(true) 
   }),
-  line: z.object({ id_categoria: z.coerce.number(), nom_linea: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
-  subline: z.object({ id_categoria: z.coerce.number(), id_linea: z.coerce.number(), nom_sublinea: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
 }
 
 export interface EditEntityModalProps {
@@ -51,9 +48,6 @@ export const EditEntityModal: React.FC<EditEntityModalProps> = ({ open, onOpenCh
   }, [initialValues, form, type])
 
   const { data: categories = [], isLoading: loadingCategories } = useCategories()
-  const categoryId = form.watch('id_categoria') ? Number(form.watch('id_categoria')) : 0
-  const { data: lines = [], isLoading: loadingLines } = useLinesByCategory(categoryId)
-
   const handleSubmit = form.handleSubmit(async (values) => {
     const payload = { ...values }
     if (type === 'provider') {
@@ -76,82 +70,10 @@ export const EditEntityModal: React.FC<EditEntityModalProps> = ({ open, onOpenCh
           <DialogTitle>{title || `Editar ${type}`}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {type === 'line' && (
-            <>
-              <div className="space-y-2">
-                <Label>Categoría</Label>
-                <Select
-                  value={form.watch('id_categoria') ? String(form.watch('id_categoria')) : ''}
-                  onValueChange={(v) => form.setValue('id_categoria', v ? Number(v) : undefined)}
-                  disabled={loadingCategories}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={loadingCategories ? 'Cargando...' : 'Seleccione'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.isArray(categories) && categories.map((c: any, idx: number) => (
-                      <SelectItem key={`cat-${c.id ?? c.id_categoria}-${idx}`} value={String(c.id ?? c.id_categoria)}>{c.name ?? c.nom_categoria}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Nombre</Label>
-                <Input {...form.register('nom_linea')} />
-              </div>
-            </>
-          )}
-
-          {type === 'subline' && (
-            <>
-              <div className="space-y-2">
-                <Label>Categoría</Label>
-                <Select
-                  value={form.watch('id_categoria') ? String(form.watch('id_categoria')) : ''}
-                  onValueChange={(v) => {
-                    form.setValue('id_categoria', v ? Number(v) : undefined)
-                    form.setValue('id_linea', '')
-                  }}
-                  disabled={loadingCategories}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={loadingCategories ? 'Cargando...' : 'Seleccione'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.isArray(categories) && categories.map((c: any, idx: number) => (
-                      <SelectItem key={`cat-${c.id ?? c.id_categoria}-${idx}`} value={String(c.id ?? c.id_categoria)}>{c.name ?? c.nom_categoria}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Línea</Label>
-                <Select
-                  value={form.watch('id_linea') ? String(form.watch('id_linea')) : ''}
-                  onValueChange={(v) => form.setValue('id_linea', v ? Number(v) : undefined)}
-                  disabled={loadingLines || !categoryId}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={loadingLines ? 'Cargando...' : !categoryId ? 'Seleccione categoría primero' : 'Seleccione'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Array.isArray(lines) && lines.map((l: any, idx: number) => (
-                      <SelectItem key={`line-${l.id_categoria}-${l.id_linea}-${idx}`} value={String(l.id_linea)}>{l.nom_linea}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Nombre</Label>
-                <Input {...form.register('nom_sublinea')} />
-              </div>
-            </>
-          )}
-
           {type === 'category' && (
             <div className="space-y-2">
               <Label>Nombre</Label>
-              <Input {...form.register('nom_categoria')} />
+              <Input {...form.register('name')} />
             </div>
           )}
 

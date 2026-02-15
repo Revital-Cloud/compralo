@@ -20,13 +20,29 @@ $$
 LANGUAGE PLPGSQL;
 
 
-CREATE OR REPLACE TRIGGER tri_audit_categorias BEFORE INSERT OR UPDATE OR DELETE ON tab_categorias
+-- Catálogo nuevo (tab_categories, tab_products, tab_product_variants, etc.)
+CREATE OR REPLACE TRIGGER tri_audit_tab_categories BEFORE INSERT OR UPDATE OR DELETE ON tab_categories
 FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
 
-CREATE OR REPLACE TRIGGER tri_audit_lineas BEFORE INSERT OR UPDATE OR DELETE ON tab_lineas
+CREATE OR REPLACE TRIGGER tri_audit_tab_attributes BEFORE INSERT OR UPDATE OR DELETE ON tab_attributes
 FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
 
-CREATE OR REPLACE TRIGGER tri_audit_sublineas BEFORE INSERT OR UPDATE OR DELETE ON tab_sublineas
+CREATE OR REPLACE TRIGGER tri_audit_tab_attribute_values BEFORE INSERT OR UPDATE OR DELETE ON tab_attribute_values
+FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
+
+CREATE OR REPLACE TRIGGER tri_audit_tab_category_attributes BEFORE INSERT OR UPDATE OR DELETE ON tab_category_attributes
+FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
+
+CREATE OR REPLACE TRIGGER tri_audit_tab_products BEFORE INSERT OR UPDATE OR DELETE ON tab_products
+FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
+
+CREATE OR REPLACE TRIGGER tri_audit_tab_product_variants BEFORE INSERT OR UPDATE OR DELETE ON tab_product_variants
+FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
+
+CREATE OR REPLACE TRIGGER tri_audit_tab_product_images BEFORE INSERT OR UPDATE OR DELETE ON tab_product_images
+FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
+
+CREATE OR REPLACE TRIGGER tri_audit_tab_product_variant_attributes BEFORE INSERT OR UPDATE OR DELETE ON tab_product_variant_attributes
 FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
 
 CREATE OR REPLACE TRIGGER tri_audit_roles BEFORE INSERT OR UPDATE OR DELETE ON tab_roles
@@ -48,9 +64,6 @@ CREATE OR REPLACE TRIGGER tri_audit_marcas BEFORE INSERT OR UPDATE OR DELETE ON 
 FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
 
 CREATE OR REPLACE TRIGGER tri_audit_comentarios BEFORE INSERT OR UPDATE OR DELETE ON tab_comentarios
-FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
-
-CREATE OR REPLACE TRIGGER tri_audit_productos BEFORE INSERT OR UPDATE OR DELETE ON tab_productos
 FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
 
 CREATE OR REPLACE TRIGGER tri_audit_descuentos BEFORE INSERT OR UPDATE OR DELETE ON tab_descuentos

@@ -21,38 +21,21 @@ class FavoritesBase(BaseModel):
     
     Atributos:
         id_usuario (DECIMAL(10)): Identificador del usuario que tiene el favorito.
-        id_categoria_producto (DECIMAL(10)): Identificador del producto favorito.
-        id_linea_producto (DECIMAL(10)): Identificador de la linea del producto favorito.
-        id_sublinea_producto (DECIMAL(10)): Identificador de la sublinea del producto favorito.
-        id_producto (DECIMAL(10)): Identificador del producto favorito.
+        id_producto (DECIMAL(10)): Identificador del producto (tab_products.id).
     """
-    
     id_usuario: Decimal = Field(..., description="Identificador del usuario que tiene el favorito")
-    id_categoria_producto: Decimal = Field(..., description="Identificador del producto favorito")
-    id_linea_producto: Decimal = Field(..., description="Identificador de la linea del producto favorito")
-    id_sublinea_producto: Decimal = Field(..., description="Identificador de la sublinea del producto favorito")
-    id_producto: Decimal = Field(..., description="Identificador del producto favorito")
+    id_producto: Decimal = Field(..., description="Identificador del producto (tab_products.id)")
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
     fec_insert: Optional[datetime] = Field(None, description="Fecha de inserción del registro.")
 
 class FavoritesPostBody(BaseModel):
-    """Esquema para el cuerpo de la solicitud de creación de favoritos."""
-    id_categoria_producto: Decimal = Field(..., description="Identificador del producto favorito")
-    id_linea_producto: Decimal = Field(..., description="Identificador de la linea del producto favorito")
-    id_sublinea_producto: Decimal = Field(..., description="Identificador de la sublinea del producto favorito")
-    id_producto: Decimal = Field(..., description="Identificador del producto favorito")
+    """Esquema para el cuerpo de la solicitud de creación de favoritos (tab_favoritos usa product_id)."""
+    id_producto: Decimal = Field(..., description="Identificador del producto (tab_products.id)")
 
 class FavoritesCreate(BaseModel):
-    """
-    Esquema para crear un nuevo favorito
-    
-    Se utiliza para validar los datos antes de crear un nuevo favorito.
-    """
+    """Esquema para crear un nuevo favorito (tab_favoritos: id_usuario, product_id)."""
     id_usuario: Decimal = Field(..., description="Identificador del usuario que tiene el favorito")
-    id_categoria_producto: Decimal = Field(..., description="Identificador del producto favorito")
-    id_linea_producto: Decimal = Field(..., description="Identificador de la linea del producto favorito")
-    id_sublinea_producto: Decimal = Field(..., description="Identificador de la sublinea del producto favorito")
-    id_producto: Decimal = Field(..., description="Identificador del producto favorito")
+    id_producto: Decimal = Field(..., description="Identificador del producto (tab_products.id)")
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
 
 

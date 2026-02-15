@@ -43,13 +43,8 @@
  */
 CREATE OR REPLACE FUNCTION fun_update_orden_compra_proveedor(
     p_id_orden_compra tab_orden_compra_proveedor.id_orden_compra%TYPE,
-    p_id_proveedor tab_orden_compra_proveedor.id_proveedor%TYPE,
     p_fec_esperada_entrega tab_orden_compra_proveedor.fec_esperada_entrega%TYPE,
     p_observaciones_orden tab_orden_compra_proveedor.observaciones_orden%TYPE,
-    p_id_categoria tab_orden_compra_proveedor.id_categoria%TYPE,
-    p_id_linea tab_orden_compra_proveedor.id_linea%TYPE,
-    p_id_sublinea tab_orden_compra_proveedor.id_sublinea%TYPE,
-    p_id_producto tab_orden_compra_proveedor.id_producto%TYPE,
     p_cantidad_solicitada tab_orden_compra_proveedor.cantidad_solicitada%TYPE,
     p_cantidad_recibida tab_orden_compra_proveedor.cantidad_recibida%TYPE,
     p_costo_unitario tab_orden_compra_proveedor.costo_unitario%TYPE,
@@ -79,7 +74,7 @@ BEGIN
     SELECT 
         id_orden_compra, id_proveedor,
         fec_orden_compra, fec_esperada_entrega, observaciones_orden,
-        id_categoria, id_linea, id_sublinea, id_producto,
+        product_id, variant_id,
         cantidad_solicitada, cantidad_recibida, costo_unitario,
         ind_estado_producto, fec_recepcion_completa, observaciones_producto
     INTO v_registro_actual

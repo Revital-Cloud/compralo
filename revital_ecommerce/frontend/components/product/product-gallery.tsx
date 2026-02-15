@@ -61,7 +61,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
           className="w-full h-full object-cover"
         />
         
-        {/* Navigation arrows: solo cambian imagen, no propagan clic */}
+        {/* Navigation arrows: solo cuando hay más de una imagen */}
         {images.length > 1 && (
           <>
             <Button
@@ -92,8 +92,8 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
         )}
       </div>
 
-      {/* Thumbnails: solo cambian la imagen grande, no navegan */}
-      {images.length > 1 && (
+      {/* Thumbnails: todas las imágenes del producto (siempre que haya al menos una) */}
+      {images.length >= 1 && (
         <div className="grid grid-cols-4 gap-2">
           {images.map((image, index) => (
             <button
