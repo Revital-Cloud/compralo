@@ -1,7 +1,11 @@
 export interface Category {
-  id_categoria: number;
-  nom_categoria: string;
-  ind_activo: boolean;
+  id: number;
+  name: string; // tab_categories.name
+  description?: string; // descripción para UI (tab_categories.description si existe)
+  is_active?: boolean; // tab_categories.is_active
+  ind_activo?: boolean; // legacy alias
+  /** ID de la categoría padre (null = raíz). Usado para árbol categorías → líneas → sublíneas. */
+  parent_id?: number | null;
   productos_count?: number;
   usr_insert?: string;
   fec_insert?: string;

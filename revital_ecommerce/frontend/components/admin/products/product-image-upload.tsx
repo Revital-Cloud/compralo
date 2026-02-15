@@ -38,20 +38,20 @@ export const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
 
   // Procesar imágenes existentes al cargar el componente
   React.useEffect(() => {
-    if (existingImages) {
-      const urls: string[] = [];
-      
-      if (typeof existingImages === 'string') {
-        urls.push(existingImages);
-      } else if (existingImages.main) {
-        urls.push(existingImages.main);
-        if (existingImages.gallery && Array.isArray(existingImages.gallery)) {
-          urls.push(...existingImages.gallery);
-        }
-      }
-      
-      setExistingImageUrls(urls);
+    if (!existingImages) {
+      setExistingImageUrls([]);
+      return;
     }
+    const urls: string[] = [];
+    if (typeof existingImages === 'string') {
+      urls.push(existingImages);
+    } else if (existingImages.main) {
+      urls.push(existingImages.main);
+      if (existingImages.gallery && Array.isArray(existingImages.gallery)) {
+        urls.push(...existingImages.gallery);
+      }
+    }
+    setExistingImageUrls(urls);
   }, [existingImages]);
 
   // Limpiar URLs de preview al desmontar el componente
@@ -160,7 +160,9 @@ export const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
       <Card>
         <CardHeader>
           <CardTitle>Imagen Principal</CardTitle>
-          <CardDescription>Imagen destacada del producto</CardDescription>
+          <CardDescription>
+            Imagen que se muestra primero en la ficha del producto. Si el producto tiene variantes (color, almacenamiento, etc.), esta imagen se verá cuando el cliente aún no haya elegido opciones; así no se preselecciona un color.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="w-full h-64 bg-gray-100 rounded-lg flex items-center justify-center mb-4">
@@ -191,7 +193,7 @@ export const ProductImageUpload: React.FC<ProductImageUploadProps> = ({
         <CardHeader>
           <CardTitle>Galería del Producto</CardTitle>
           <CardDescription>
-            Sube hasta {maxImages} imágenes (JPEG, PNG, WebP, máximo {maxFileSize}MB cada una)
+            Imágenes por defecto del producto (se muestran cuando no hay variante elegida). Sube hasta {maxImages} imágenes (JPEG, PNG, WebP, máximo {maxFileSize}MB cada una).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

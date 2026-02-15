@@ -35,6 +35,24 @@ export function useCategoriesRaw() {
 }
 
 /**
+ * Hook para obtener solo categorías raíz (parent_id === null) para la página "Todas las Categorías"
+ */
+export function useRootCategories() {
+  return useQuery({
+    queryKey: ['categories', 'roots'],
+    queryFn: async () => {
+      const apiCategories = await getCategories()
+      const roots = apiCategories.filter((c) => c.parent_id == null)
+      return mapCategoriesToDisplay(roots)
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  })
+}
+
+/**
  * Hook específico para categorías destacadas (limitadas a 6)
  */
 export function useFeaturedCategories() {
@@ -42,7 +60,8 @@ export function useFeaturedCategories() {
     queryKey: ['categories', 'featured'],
     queryFn: async () => {
       const apiCategories = await getCategories()
-      const displayCategories = mapCategoriesToDisplay(apiCategories)
+      const roots = apiCategories.filter((c) => c.parent_id == null)
+      const displayCategories = mapCategoriesToDisplay(roots)
       return displayCategories.slice(0, 6) // Limitar a 6 categorías
     },
     staleTime: 5 * 60 * 1000, // 5 minutos

@@ -16,19 +16,12 @@ class ComentaryBase(BaseModel):
     Contiene los campos comunes para la creación y visualización de comentarios.
     Utilizado como base para otros esquemas de comentarios más específicos.
     Atributos:
-        id_categoria (Decimal): Identificador de la categoría.
-        id_linea (Decimal): Identificador de la linea.
-        id_sublinea(Decimal): Identificador de la sublinea.
-        id_producto (Decimal): Identificador del producto.
+        id_producto (Decimal): Identificador del producto (tab_comentarios.product_id).
         id_usuario (Decimal): Identificador del usuario.
         comentario (str): Comentario del usuario.
         calificacion (int): Calificación del producto (1-5 estrellas).
-        usr_insert (Optional[Decimal]): Usuario que insertó el registro.
     """
-    id_categoria: Decimal = Field(..., description="Identificador de la categoría.")
-    id_linea: Decimal = Field(..., description="Identificador de la linea.")
-    id_sublinea: Decimal = Field(..., description="Identificador de la sublinea.")
-    id_producto: Decimal = Field(..., description="Identificador del producto.")
+    id_producto: Decimal = Field(..., description="Identificador del producto (tab_products.id).")
     id_usuario: Decimal = Field(..., description="Identificador del usuario.")
     comentario: str = Field(..., description="Comentario del usuario.")
     calificacion: int = Field(..., ge=1, le=5, description="Calificación del producto (1-5 estrellas).")
@@ -48,15 +41,10 @@ class Comentary(ComentaryBase):
     id_comentario: Decimal
 class ComentaryCreate(BaseModel):
     """
-    Esquema para la Creación de Comentarios.
-    
-    Solo incluye los campos que el cliente debe enviar para crear un comentario.
-    El id_usuario se toma automáticamente del token de autenticación.
+    Esquema para la Creación de Comentarios (tab_comentarios usa product_id).
+    El id_usuario se toma del token de autenticación.
     """
-    id_categoria: Decimal = Field(..., description="Identificador de la categoría.")
-    id_linea: Decimal = Field(..., description="Identificador de la linea.")
-    id_sublinea: Decimal = Field(..., description="Identificador de la sublinea.")
-    id_producto: Decimal = Field(..., description="Identificador del producto.")
+    id_producto: Decimal = Field(..., description="Identificador del producto (tab_products.id).")
     id_orden: Decimal = Field(..., description="ID de la orden asociada al comentario.")
     comentario: str = Field(..., description="Comentario del usuario.")
     calificacion: int = Field(..., ge=1, le=5, description="Calificación del producto (1-5 estrellas).")

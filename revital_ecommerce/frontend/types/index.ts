@@ -29,8 +29,6 @@ export type {
   Category as CategoryFromProduct,
   Brand,
   Provider,
-  ProductLine,
-  ProductSubline,
   StockUpdate,
   StockMovement,
   CartItem,
@@ -40,10 +38,8 @@ export type {
 
 // Re-export de tipos de datos (Excel/CSV)
 export * from './data';
-// Re-export de tipos jerárquicos (categorías, líneas, sublíneas)
+// Re-export de tipos jerárquicos (categorías)
 export type { Category } from './hierarchical';
-export type { Line } from './hierarchical';
-export type { Subline } from './hierarchical';
 // Re-export de tipos de filtros
 export * from './filters';
 
@@ -181,20 +177,18 @@ export interface User extends UserBase {
 }
 
 // =============================================================================
-// TIPOS DE PRODUCTO
+// TIPOS DE PRODUCTO (tienda: tab_products sin línea/sublínea)
 // =============================================================================
 
 export interface ProductBase {
-  id_producto: number;
-  nom_producto: string;
-  spcf_producto: Record<string, any>; // Equivalente a Dict[str, Any] de Python
+  id: number;
+  name: string;
+  spcf_producto: Record<string, any>;
   img_producto?: ProductImages;
-  val_precio: number; // Convertimos Decimal a number para TS
+  val_precio: number;
   id_proveedor: number;
   id_marca: number;
-  id_sublinea: number;
-  id_linea: number;
-  id_categoria: number;
+  category_id: number;
   num_stock: number;
 }
 
@@ -207,24 +201,25 @@ export interface ProductImages {
 export interface ProductCreate extends ProductBase {}
 
 export interface ProductUpdate {
-  nom_producto?: string;
+  name?: string;
   spcf_producto?: Record<string, any>;
   img_producto?: ProductImages;
   val_precio?: number;
   id_proveedor?: number;
   id_marca?: number;
-  id_sublinea?: number;
-  id_linea?: number;
-  id_categoria?: number;
+  category_id?: number;
   num_stock?: number;
 }
 
 export interface Product extends ProductBase {
-  id_producto: number;
+  id: number;
+  slug?: string | null;
   usr_insert: string;
-  fec_insert: string; // Fecha como string, ya que viene del JSON
+  fec_insert: string;
   usr_update?: string;
   fec_update?: string;
-  rating?: number; // Promedio de calificaciones del producto (1-5 estrellas)
-  review_count?: number; // Cantidad de reseñas con calificación
+  category_name?: string;
+  nom_marca?: string;
+  rating?: number;
+  review_count?: number;
 }

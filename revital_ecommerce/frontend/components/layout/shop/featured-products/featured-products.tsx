@@ -22,10 +22,10 @@ const FeaturedProducts = () => {
     isError 
   } = useProductsHomePage()
 
-  // Función para navegar a detalles del producto usando ID compuesto
+  // Función para navegar a detalles del producto por slug o id
   const handleViewDetails = (product: Product) => {
-    const productSlug = `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`
-    router.push(`/products/${productSlug}`)
+    const path = product.slug ?? product.id
+    router.push(`/products/${path}`)
   }
 
   // Función para manejar el botón "Ver Todos los Productos"
@@ -243,11 +243,11 @@ const FeaturedProducts = () => {
           viewport={{ once: true }}
         >
           {products
-            ?.filter((product: Product) => product.ind_activo !== false)
+            ?.filter((product: Product) => (product as { ind_activo?: boolean }).ind_activo !== false)
             ?.slice(0, 4)
             ?.map((product: Product) => (
             <motion.div
-              key={`${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
+              key={product.slug ?? String(product.id)}
               variants={cardVariants}
               whileHover={{ 
                 y: -8,
@@ -266,8 +266,8 @@ const FeaturedProducts = () => {
                     onClick={() => handleViewDetails(product)}
                   >
                     <Image 
-                      src={getProductImageUrl(product.img_producto)}
-                      alt={product.nom_producto}
+                      src={getProductImageUrl((product as any).image_url ?? product.img_producto)}
+                      alt={product.name}
                       className="w-full h-full object-cover"
                       width={300}
                       height={300}
@@ -288,10 +288,10 @@ const FeaturedProducts = () => {
                 <div className="p-6 flex flex-col flex-grow">
                   <div className="mb-4 flex-grow">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-[#ec2538] dark:group-hover:text-red-400 transition-colors duration-300">
-                      {product.nom_producto}
+                      {product.name}
                     </h3>
                     <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2 transition-colors duration-300">
-                      {getProductDescription(product.spcf_producto)}
+                      {getProductDescription((product as any).description ?? product.spcf_producto)}
                     </p>
                   </div>
 
@@ -299,7 +299,7 @@ const FeaturedProducts = () => {
                   <div className="flex items-center justify-between mb-4 flex-shrink-0">
                     <div className="flex items-center space-x-2">
                       <span className="text-2xl font-bold text-[#ec2538] dark:text-red-400">
-                        {formatPrice(product.val_precio)}
+                        {formatPrice((product as any).price_min ?? product.val_precio)}
                       </span>
                     </div>
                     

@@ -21,10 +21,8 @@ from routers.provider_router import router as provider_router
 from core.config import settings, is_production
 from routers.product_router import router as product_router
 from routers.user_router import router as user_router
-from routers.subline_router import router as subline_router
 from routers.brand_router import router as brand_router
 from routers.category_router import router as category_router
-from routers.lines_routers import router as lines_routers
 from routers.favorites_router import router as favorites_router
 from routers.comentary_router import router as comentary_router
 from routers.points_router import router as points_router
@@ -43,6 +41,7 @@ from routers.order_buy_provider_router import router as order_buy_provider_route
 from routers.movements_inventory_router import router as movements_inventory_router
 from routers.dashboard_router import router as dashboard_router
 from routers.analytics_router import router as analytics_router
+from routers.attribute_router import router as attribute_router
 from routers.top_info_bar_router import router as top_info_bar_router
 from core.rate_limiter import limiter
 
@@ -120,8 +119,6 @@ app.add_middleware(
         "/api/products",      # GET público, POST/PUT/DELETE admin
         "/api/categories",    # GET público, POST/PUT/DELETE admin
         "/api/brands",        # GET público, POST/PUT/DELETE admin
-        "/api/lines",         # GET público, POST/PUT/DELETE admin
-        "/api/sublines",      # GET público, POST/PUT/DELETE admin
         "/api/providers",     # GET público, POST/PUT/DELETE admin
         "/api/cms",          # GET público, POST/PUT/DELETE admin
         "/api/users",        # POST público (registro), resto admin-only
@@ -129,7 +126,8 @@ app.add_middleware(
         "/api/email",        # Todo requiere admin
         "/api/points",       # Todo requiere admin
         "/api/discounts",     # Todo requiere admin
-        "/api/top-info-bar"   # GET/PUT requieren admin; GET /top-info-bar/active es público (protegido en router)
+        "/api/top-info-bar",  # GET/PUT requieren admin; GET /top-info-bar/active es público (protegido en router)
+        "/api/attributes",   # CRUD admin
     ]
 )
 
@@ -167,12 +165,8 @@ app.include_router(provider_router, prefix=settings.API_STR)
 app.include_router(user_router, prefix=settings.API_STR)
 # Incluye el router de marcas con un prefijo de API.
 app.include_router(brand_router, prefix=settings.API_STR)
-# Incluye el router de sublineas con un prefijo de API.
-app.include_router(subline_router, prefix=settings.API_STR)
-
 app.include_router(category_router, prefix=settings.API_STR)
-
-app.include_router(lines_routers, prefix=settings.API_STR)
+app.include_router(attribute_router, prefix=settings.API_STR)
 
 app.include_router(cms_router, prefix=settings.API_STR)
 

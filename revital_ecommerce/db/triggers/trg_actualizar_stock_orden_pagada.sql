@@ -8,7 +8,7 @@
 DROP TRIGGER IF EXISTS trg_actualizar_stock_orden_pagada ON tab_ordenes;
 
 CREATE TRIGGER trg_actualizar_stock_orden_pagada
-    AFTER UPDATE ON tab_ordenes
+    AFTER INSERT OR UPDATE ON tab_ordenes
     FOR EACH ROW
-    WHEN (OLD.ind_estado != 2 AND NEW.ind_estado = 2)  -- Solo cuando cambia a PAGADA
+    WHEN (NEW.ind_estado = 2)
     EXECUTE FUNCTION fun_actualizar_stock_automatico();

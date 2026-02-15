@@ -209,17 +209,35 @@ async def confirm_checkout(
     current_user: UserInToken = Depends(get_current_user),
 ):
     """
-    Respaldo cuando el webhook no llega: el frontend llama con reference + transaction_id.
-    El backend consulta Wompi, si la transacción está APPROVED crea la orden y el pago.
+    Confirmar checkout tras pago en Wompi.
+    - Si Wompi no procesó el pago (no APPROVED): no se crea ninguna orden.
+    - Si Wompi confirma pago exitoso (APPROVED): se crea la orden y se marca como Pagada.
+    El frontend llama con reference + transaction_id; el backend consulta Wompi y solo
+    crea la orden cuando la transacción está APPROVED.
     """
     reference = payload.reference.strip()
     transaction_id = payload.transaction_id.strip()
     if not reference.startswith("revital_cart_"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Referencia no es de checkout")
-    # Si ya existe pago con esta referencia, devolver order_id
+    # Si ya existe pago con esta referencia, asegurar que la orden esté Pagada y devolver order_id
     existing = get_payment_by_reference(db, reference)
     if existing and existing.get("id_orden") is not None:
-        return {"order_id": int(existing["id_orden"])}
+        order_id = int(existing["id_orden"])
+        try:
+            r = db.execute(
+                text("UPDATE tab_ordenes SET ind_estado = 2, fec_update = NOW() WHERE id_orden = :oid AND ind_estado != 2"),
+                {"oid": order_id},
+            )
+            if r.rowcount:
+                db.commit()
+                logger.info(f"Orden {order_id} marcada como pagada (confirm-checkout con referencia ya existente)")
+        except Exception as e:
+            logger.warning(f"Al marcar orden existente como pagada: {e}")
+            try:
+                db.rollback()
+            except Exception:
+                pass
+        return {"order_id": order_id}
     wompi_config = get_store_from_request(request, db)
     tx = await fetch_transaction_by_id(transaction_id, wompi_config)
     if not tx:
@@ -233,6 +251,7 @@ async def confirm_checkout(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="La referencia de la transacción no coincide",
         )
+    # Solo crear orden cuando Wompi confirma pago exitoso
     if tx.get("status") != "APPROVED":
         return {"order_id": None, "message": "La transacción no está aprobada"}
     id_usuario = int(current_user.id_usuario)

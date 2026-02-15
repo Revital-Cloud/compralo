@@ -37,7 +37,7 @@ interface ProductCardProps {
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete }) => {
   const handleDelete = () => {
     if (onDelete && confirm('¿Estás seguro de que quieres eliminar este producto?')) {
-      onDelete(parseInt(product.id_producto));
+      onDelete(Number(product.id));
     }
   };
 
@@ -74,16 +74,16 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete }) =
     }
   };
 
-  const stockStatus = getStockStatus(product.num_stock);
+  const stockStatus = getStockStatus(product.num_stock ?? product.stock_total ?? 0);
 
   return (
     <Card className="relative hover:shadow-lg transition-all duration-200 border-border/50 bg-card">
       <CardHeader className="pb-1">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-base font-semibold truncate">{product.nom_producto}</CardTitle>
+            <CardTitle className="text-base font-semibold truncate">{product.name ?? (product as any).nom_producto}</CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
-              ID: {product.id_producto}
+              ID: {product.id}
             </CardDescription>
           </div>
           
@@ -95,13 +95,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete }) =
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link href={`/admin/products/${product.id_producto}/view`}>
+                <Link href={`/admin/products/${product.id}/view`}>
                   <IconEye className="h-4 w-4 mr-2" />
                   Ver detalles
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href={`/admin/products/${product.id_producto}/edit`}>
+                <Link href={`/admin/products/${product.id}/edit`}>
                   <IconEdit className="h-4 w-4 mr-2" />
                   Editar
                 </Link>
@@ -118,11 +118,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete }) =
       <CardContent className="space-y-2 p-3 pt-2">
         {/* Imagen del producto */}
         <div className="w-full h-36 bg-gradient-to-br from-muted/50 to-muted/30 rounded-lg flex items-center justify-center overflow-hidden relative group">
-          {product.img_producto?.main ? (
+          {((product as any).image_url ?? product.img_producto?.main) ? (
             <div className="relative w-full h-full">
               <Image 
-                src={product.img_producto.main} 
-                alt={product.nom_producto}
+                src={(product as any).image_url ?? product.img_producto?.main ?? ''}
+                alt={product.name ?? (product as any).nom_producto ?? ''}
                 className="w-full h-full fit-cover p-2 transition-transform duration-300 group-hover:scale-105"
                 width={300}
                 height={300}
@@ -150,7 +150,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete }) =
         {/* Precio */}
         <div className="text-center">
           <div className="text-base font-bold text-primary">
-            $ {parseFloat(product.val_precio).toLocaleString()}
+            $ {parseFloat(String((product as any).price_min ?? product.val_precio)).toLocaleString()}
           </div>
         </div>
 
@@ -158,20 +158,20 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete }) =
         <div className="space-y-1">
           {/* Categoría */}
           <div className="flex items-center space-x-1">
-            {getCategoryIcon(product.id_categoria)}
-            <span className="text-xs font-medium">{product.nom_categoria || getCategoryName(product.id_categoria)}</span>
+            {getCategoryIcon(product.category_id)}
+            <span className="text-xs font-medium">{product.category_name || getCategoryName(product.category_id)}</span>
           </div>
 
           {/* Línea */}
           <div className="flex items-center space-x-1">
             <IconLayersOff className="h-3 w-3 text-green-500" />
-            <span className="text-xs font-medium">{product.nom_linea || product.id_linea}</span>
+            <span className="text-xs font-medium">{(product as { category_name?: string }).category_name || '—'}</span>
           </div>
 
           {/* Proveedor */}
           <div className="flex items-center space-x-1">
             <IconTruck className="h-3 w-3 text-orange-500" />
-            <span className="text-xs font-medium">{product.nom_proveedor || product.id_proveedor}</span>
+            <span className="text-xs font-medium">{product.nom_proveedor ?? '—'}</span>
           </div>
 
           {/* Marca */}
@@ -188,7 +188,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete }) =
             <span className="text-xs font-medium">Especificaciones</span>
           </div>
           <p className="text-xs text-muted-foreground line-clamp-2">
-            {Object.entries(product.spcf_producto).slice(0, 2).map(([key, value]) => 
+            {Object.entries((product as any).spcf_producto ?? {}).slice(0, 2).map(([key, value]) => 
               `${key}: ${Array.isArray(value) ? value.join(', ') : value}`
             ).join(' • ')}
           </p>
@@ -212,7 +212,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete }) =
               <span className="text-xs font-medium">Creado</span>
             </div>
             <div className="text-xs text-muted-foreground">
-              {new Date(product.fec_insert).toLocaleDateString()}
+              {product.fec_insert ? new Date(product.fec_insert).toLocaleDateString() : '—'}
             </div>
           </div>
         </div>
@@ -222,7 +222,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onDelete }) =
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium">Código</span>
             <Badge variant="outline" className="text-xs">
-              {product.id_producto}
+              {product.id}
             </Badge>
           </div>
           <div className="mt-1">

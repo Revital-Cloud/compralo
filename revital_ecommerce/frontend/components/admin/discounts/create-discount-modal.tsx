@@ -15,8 +15,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { getCategories } from '@/services/category.service'
 import { brandService } from '@/services/brand.service'
 import { getProducts } from '@/services/product.service'
-import { lineService } from '@/services/line.service'
-import { sublineService } from '@/services/subline.service'
 import { parseDateSafe, toLocalISOString, isPastDate } from '@/utils/date-helpers'
 
 const discountSchema = z.object({
@@ -75,8 +73,6 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
   const [categories, setCategories] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [brands, setBrands] = useState<any[]>([])
-  const [lines, setLines] = useState<any[]>([])
-  const [sublines, setSublines] = useState<any[]>([])
   
   // Estados para controlar los Popovers de fechas
   const [openStartDate, setOpenStartDate] = useState(false)
@@ -103,19 +99,14 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [catsData, productsData, brandsData, linesData, sublinesData] = await Promise.all([
+        const [catsData, productsData, brandsData] = await Promise.all([
           getCategories(),
           getProducts(),
           brandService.getAllBrands(),
-          lineService.getAllLines(),
-          sublineService.getAllSublines()
         ])
-        
         setCategories(catsData)
         setProducts(productsData as any)
         setBrands(brandsData)
-        setLines(linesData)
-        setSublines(sublinesData)
       } catch (error) {
         console.error('Error loading data:', error)
       }
@@ -125,21 +116,6 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
       loadData()
     }
   }, [open])
-
-  // Resetear Línea y Sublínea cuando cambia la Categoría (sublinea_especifica)
-  const idCategoriaSublinea = form.watch('id_categoria_sublinea')
-  const idLineaSublinea = form.watch('id_linea_sublinea')
-  useEffect(() => {
-    if (aplicaA === 'sublinea_especifica') {
-      form.setValue('id_linea_sublinea', '')
-      form.setValue('id_sublinea_aplica', '')
-    }
-  }, [aplicaA, idCategoriaSublinea])
-  useEffect(() => {
-    if (aplicaA === 'sublinea_especifica') {
-      form.setValue('id_sublinea_aplica', '')
-    }
-  }, [aplicaA, idLineaSublinea])
 
   const handleSubmit = form.handleSubmit(async (values) => {
     await onSubmit(values)
@@ -251,8 +227,6 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
               <option value="producto_especifico">Producto Específico</option>
               <option value="categoria_especifica">Categoría Específica</option>
               <option value="marca_especifica">Marca Específica</option>
-              <option value="linea_especifica">Línea Específica</option>
-              <option value="sublinea_especifica">Sublínea Específica</option>
               <option value="costo_envio">Costo de Envío</option>
               <option value="envio_gratis">Envío Gratis</option>
               <option value="segunda_unidad">Segunda Unidad</option>
@@ -273,15 +247,11 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                     const selectedProduct = products.find(p => p.id_producto.toString() === selectedProductId)
                     if (selectedProduct) {
                       form.setValue('id_producto_aplica', selectedProductId)
-                      form.setValue('id_categoria_producto', selectedProduct.id_categoria?.toString() || '')
-                      form.setValue('id_linea_producto', selectedProduct.id_linea?.toString() || '')
-                      form.setValue('id_sublinea_producto', selectedProduct.id_sublinea?.toString() || '')
+                      form.setValue('id_categoria_producto', (selectedProduct.category_id ?? selectedProduct.id_categoria)?.toString() || '')
                     }
                   } else {
                     form.setValue('id_producto_aplica', '')
                     form.setValue('id_categoria_producto', '')
-                    form.setValue('id_linea_producto', '')
-                    form.setValue('id_sublinea_producto', '')
                   }
                 }}
                 className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
@@ -307,7 +277,7 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                 <option value="">Selecciona una categoría</option>
                 {categories.map((category, index) => (
                   <option key={`category-${category.id_categoria}-${index}`} value={category.id_categoria}>
-                    {category.nom_categoria}
+                    {category.name}
                   </option>
                 ))}
               </select>
@@ -329,102 +299,6 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                   </option>
                 ))}
               </select>
-            </div>
-          )}
-
-          {aplicaA === 'linea_especifica' && (
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="id_categoria_linea">Categoría *</Label>
-                <select
-                  id="id_categoria_linea"
-                  {...form.register('id_categoria_linea')}
-                  className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
-                >
-                  <option value="">Selecciona una categoría</option>
-                  {categories.map((category, index) => (
-                    <option key={`category-line-${category.id_categoria}-${index}`} value={category.id_categoria}>
-                      {category.nom_categoria}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="id_linea_aplica">Línea *</Label>
-                <select
-                  id="id_linea_aplica"
-                  {...form.register('id_linea_aplica')}
-                  className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
-                >
-                  <option value="">Selecciona una línea</option>
-                  {lines
-                    .filter(line => Number(line.id_categoria) === Number(form.watch('id_categoria_linea') || 0))
-                    .map((line, index) => (
-                      <option key={`line-${line.id_categoria}-${line.id_linea}-${index}`} value={line.id_linea}>
-                        {line.nom_linea}
-                      </option>
-                    ))}
-                </select>
-              </div>
-            </div>
-          )}
-
-          {aplicaA === 'sublinea_especifica' && (
-            <div className="space-y-2">
-              <div className="grid grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="id_categoria_sublinea">Categoría *</Label>
-                  <select
-                    id="id_categoria_sublinea"
-                    {...form.register('id_categoria_sublinea')}
-                    className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
-                  >
-                    <option value="">Selecciona</option>
-                    {categories.map((category, index) => (
-                      <option key={`category-subline-${category.id_categoria}-${index}`} value={category.id_categoria}>
-                        {category.nom_categoria}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="id_linea_sublinea">Línea *</Label>
-                <select
-                  id="id_linea_sublinea"
-                  {...form.register('id_linea_sublinea')}
-                  className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
-                >
-                  <option value="">Selecciona</option>
-                  {lines
-                    .filter(line => Number(line.id_categoria) === Number(form.watch('id_categoria_sublinea') || 0))
-                    .map((line, index) => (
-                        <option key={`subline-line-${line.id_categoria}-${line.id_linea}-${index}`} value={line.id_linea}>
-                          {line.nom_linea}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="id_sublinea_aplica">Sublínea *</Label>
-                  <select
-                    id="id_sublinea_aplica"
-                    {...form.register('id_sublinea_aplica')}
-                    className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
-                  >
-                    <option value="">Selecciona</option>
-                    {sublines
-                      .filter(sub =>
-                        Number(sub.id_categoria) === Number(form.watch('id_categoria_sublinea') || 0) &&
-                        Number(sub.id_linea) === Number(form.watch('id_linea_sublinea') || 0)
-                      )
-                      .map((subline, index) => (
-                        <option key={`subline-${subline.id_categoria}-${subline.id_linea}-${subline.id_sublinea}-${index}`} value={subline.id_sublinea}>
-                          {subline.nom_sublinea}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-              </div>
             </div>
           )}
 

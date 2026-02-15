@@ -11,25 +11,26 @@ import { StarRating } from "@/components/ui";
 import { toast } from "sonner";
 
 interface ReviewsSectionProps {
-  productId: string; // Formato: "id_categoria-id_linea-id_sublinea-id_producto"
+  /** Slug o id del producto (para GET comentarios) */
+  productId: string;
+  /** id_producto numérico (tab_products.id) para crear comentario */
+  idProducto: number;
   productName: string;
   onReviewSubmit?: (rating: number, comment: string) => void;
 }
 
-export function ReviewsSection({ 
-  productId, 
-  productName, 
-  onReviewSubmit 
+export function ReviewsSection({
+  productId,
+  idProducto,
+  productName,
+  onReviewSubmit
 }: ReviewsSectionProps) {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Parsear el productId
-  const [id_categoria, id_linea, id_sublinea, id_producto] = productId.split('-').map(Number);
-
   const { data: commentsResponse, isLoading, refetch } = useQuery({
     queryKey: ["comments", productId],
-    queryFn: () => getProductComments(id_categoria, id_linea, id_sublinea, id_producto),
+    queryFn: () => getProductComments(productId),
     enabled: !!productId,
   });
 
@@ -39,11 +40,8 @@ export function ReviewsSection({
     setIsSubmitting(true);
     try {
       await createComment({
-        id_categoria,
-        id_linea,
-        id_sublinea,
-        id_producto,
-        id_orden: 0, // Valor por defecto para comentarios sin orden específica
+        id_producto: idProducto,
+        id_orden: 0,
         comentario: comment,
         calificacion: rating
       });

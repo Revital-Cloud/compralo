@@ -335,7 +335,23 @@ async def send_order_confirmation_for_order_id(order_id: int) -> None:
             except (TypeError, ValueError):
                 price_val = 0
             price_fmt = f"{int(price_val):,}".replace(",", ".")
-            items.append({"product_name": name, "quantity": qty, "price": price_fmt})
+            unit_val = it.get("unit_price")
+            try:
+                unit_val = float(unit_val) if unit_val is not None else 0
+            except (TypeError, ValueError):
+                unit_val = 0
+            unit_fmt = f"{int(unit_val):,}".replace(",", ".")
+            opciones = it.get("opciones_elegidas") or {}
+            if not isinstance(opciones, dict):
+                opciones = {}
+            options_str = ", ".join(f"{k}: {v}" for k, v in opciones.items() if v)
+            items.append({
+                "product_name": name,
+                "quantity": qty,
+                "unit_price": unit_fmt,
+                "price": price_fmt,
+                "options": options_str,
+            })
 
         order_dict = {
             "id": order_id,

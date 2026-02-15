@@ -25,6 +25,19 @@ export type ProductColorOption = {
   displayHex?: string
 }
 
+export type ProductAttributeValue = {
+  value: string
+  hex_color?: string | null
+  variant_ids: number[]
+  available: boolean
+}
+
+export type ProductAttribute = {
+  attribute_id: number
+  attribute_name: string
+  values: ProductAttributeValue[]
+}
+
 interface ProductInfoProps {
   product: Product
   name: string
@@ -37,10 +50,20 @@ interface ProductInfoProps {
   isNew?: boolean
   onAddToCart?: (selectedColor?: string, selectedSize?: string) => void
   onAddToWishlist?: () => void
-  /** Se llama al seleccionar un color; index coincide con la posición en colors (para sincronizar galería). */
   onColorChange?: (value: string, index: number) => void
-  /** Color seleccionado desde el padre (para sincronizar con la galería). */
   selectedColor?: string
+  /** Atributos por nombre (Color, Almacenamiento, RAM…) con valores y disponibilidad según variantes. */
+  attributes?: ProductAttribute[]
+  selectedAttributes?: Record<string, string>
+  onAttributeChange?: (attributeId: string, value: string) => void
+  /** Descripción del producto para "Acerca del producto". */
+  description?: string | null
+  /** Si se pasa, se usa en lugar de la lógica interna para habilitar "Agregar al carrito". */
+  canAddToCartOverride?: boolean
+  /** Texto del botón cuando está deshabilitado (ej. "Selecciona todas las opciones"). */
+  addToCartDisabledLabel?: string
+  /** Slot para opciones (ej. ProductVariantSelector) que se muestra debajo de nombre/precio/stock. */
+  optionsSlot?: React.ReactNode
 }
 
 const ProductInfo: React.FC<ProductInfoProps> = ({
@@ -56,7 +79,14 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   onAddToCart,
   onAddToWishlist,
   onColorChange,
-  selectedColor: controlledColor
+  selectedColor: controlledColor,
+  attributes = [],
+  selectedAttributes = {},
+  onAttributeChange,
+  description,
+  canAddToCartOverride,
+  addToCartDisabledLabel,
+  optionsSlot,
 }) => {
   const [internalColor, setInternalColor] = useState<string>("")
   const selectedColor = controlledColor !== undefined ? controlledColor : internalColor
@@ -65,14 +95,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   }
   const [selectedSize, setSelectedSize] = useState<string>("")
   const [isAdding, setIsAdding] = useState(false)
-  
-  // Hook de favoritos
+
   const { toggleFavorite, isProductFavorite } = useFavorites()
-  
-  // Obtener descuentos activos
   const { data: discounts } = useActiveDiscounts()
-  
-  // Verificar si hay descuento aplicable
   const applicableDiscount = discounts ? getApplicableDiscount(product, discounts) : null
   const originalPriceValue = parseFloat(price.toString())
   const discountedPrice = applicableDiscount 
@@ -83,11 +108,12 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
     ? calculateDiscountPercentage(originalPriceValue, discountedPrice)
     : 0
 
-  const requiresColor = colors.length > 0
-  const requiresSize = sizes.length > 0
+  const useAttributes = attributes.length > 0
+  const requiresColor = !useAttributes && colors.length > 0
+  const requiresSize = !useAttributes && sizes.length > 0
   const missingColor = requiresColor && !selectedColor.trim()
   const missingSize = requiresSize && !selectedSize.trim()
-  const canAddToCart = !missingColor && !missingSize
+  const canAddToCart = canAddToCartOverride !== undefined ? canAddToCartOverride : !missingColor && !missingSize
 
   const handleAddToCart = async () => {
     if (missingColor) {
@@ -107,15 +133,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
 
   const handleToggleFavorite = async () => {
     if (!product) return
-    
-    const id_categoria = Number(product.id_categoria)
-    const id_linea = Number(product.id_linea)
-    const id_sublinea = Number(product.id_sublinea)
-    const id_producto = Number(product.id_producto)
-    
-    const isFavorite = isProductFavorite(id_categoria, id_linea, id_sublinea, id_producto)
-    
-    await toggleFavorite(id_categoria, id_linea, id_sublinea, id_producto, isFavorite)
+    const id_producto = Number(product.id)
+    const isFavorite = isProductFavorite(id_producto)
+    await toggleFavorite(id_producto, isFavorite)
   }
 
   return (
@@ -187,16 +207,99 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         </span>
       </div>
 
-      {/* Colors */}
-      {colors.length > 0 && (
+      {/* Opciones (selector de variantes) cuando se pasa optionsSlot; si no, atributos/color/talla debajo */}
+      {optionsSlot != null ? optionsSlot : null}
+
+      {/* Atributos por nombre (Color, Almacenamiento, RAM, etc.) cuando no hay optionsSlot */}
+      {optionsSlot == null && useAttributes && attributes.map((attr) => (
+        <div key={attr.attribute_id} className="space-y-3">
+          <h3 className="font-semibold text-gray-900 dark:text-white">
+            {attr.attribute_name.toUpperCase()}
+          </h3>
+          <div className={attr.values.some((v) => v.hex_color) ? "flex gap-2 flex-wrap" : "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2"}>
+            {attr.values.map((val) => {
+              const selected = (selectedAttributes[String(attr.attribute_id)] ?? "").trim() === (val.value ?? "").trim()
+              const isColor = !!val.hex_color
+              if (isColor) {
+                const isLight = val.hex_color
+                  ? (() => {
+                      const h = (val.hex_color ?? "").replace("#", "")
+                      if (h.length < 6) return false
+                      const r = parseInt(h.slice(0, 2), 16)
+                      const g = parseInt(h.slice(2, 4), 16)
+                      const b = parseInt(h.slice(4, 6), 16)
+                      return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.7
+                    })()
+                  : false
+                return (
+                  <button
+                    key={val.value}
+                    type="button"
+                    onClick={() => {
+                      if (selected) onAttributeChange?.(String(attr.attribute_id), "")
+                      else if (val.available) onAttributeChange?.(String(attr.attribute_id), val.value)
+                    }}
+                    disabled={!val.available && !selected}
+                    title={val.value}
+                    className={cn(
+                      "w-8 h-8 rounded-full border-2 transition-all shrink-0",
+                      selected ? "scale-110" : "",
+                      selected && isLight && "border-gray-900 dark:border-white",
+                      selected && !isLight && "border-white dark:border-gray-200",
+                      !val.available && !selected && "opacity-50 cursor-not-allowed"
+                    )}
+                    style={{ backgroundColor: val.hex_color ?? "transparent" }}
+                  />
+                )
+              }
+              return (
+                <button
+                  key={val.value}
+                  type="button"
+                  onClick={() => {
+                    if (selected) onAttributeChange?.(String(attr.attribute_id), "")
+                    else if (val.available) onAttributeChange?.(String(attr.attribute_id), val.value)
+                  }}
+                  disabled={!val.available && !selected}
+                  className={cn(
+                    "py-2 px-2 sm:px-3 border rounded-md text-xs sm:text-sm font-medium transition-colors",
+                    selected
+                      ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-black"
+                      : "border-gray-300 hover:border-gray-400",
+                    !val.available && !selected && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  {val.value}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ))}
+
+      {/* Colors (fallback cuando no hay variant_options.attributes ni optionsSlot) */}
+      {optionsSlot == null && !useAttributes && colors.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-gray-900 dark:text-white">COLOR</h3>
-            {selectedColor && (
-              <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">
-                {colors.find(c => c.value === selectedColor)?.name}
-              </span>
-            )}
+            {selectedColor && (() => {
+              const selected = colors.find(c => c.value === selectedColor)
+              if (!selected) return null
+              if (selected.displayHex) {
+                return (
+                  <span
+                    className="inline-block w-6 h-6 rounded-full border-2 border-gray-300 dark:border-gray-600 shrink-0"
+                    style={{ backgroundColor: selected.displayHex }}
+                    title={selected.name}
+                  />
+                )
+              }
+              return (
+                <span className="text-sm text-gray-600 dark:text-gray-400 capitalize">
+                  {selected.name}
+                </span>
+              )
+            })()}
           </div>
           <div className="flex gap-2">
             {colors.map((color, index) => {
@@ -215,11 +318,15 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
                 <button
                   key={`${color.value}-${index}`}
                   onClick={() => {
-                    if (!color.available) return
-                    if (controlledColor === undefined) setInternalColor(color.value)
-                    onColorChange?.(color.value, index)
+                    if (selectedColor === color.value) {
+                      if (controlledColor === undefined) setInternalColor("")
+                      onColorChange?.("", -1)
+                    } else if (color.available) {
+                      if (controlledColor === undefined) setInternalColor(color.value)
+                      onColorChange?.(color.value, index)
+                    }
                   }}
-                  disabled={!color.available}
+                  disabled={!color.available && selectedColor !== color.value}
                   className={cn(
                     "w-8 h-8 rounded-full border-2 transition-all shrink-0",
                     selectedColor === color.value
@@ -227,7 +334,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
                       : "border-gray-300 dark:border-gray-600",
                     selectedColor === color.value && isLight && "border-gray-900 dark:border-white",
                     selectedColor === color.value && !isLight && "border-white dark:border-gray-200",
-                    !color.available && "opacity-50 cursor-not-allowed"
+                    !color.available && selectedColor !== color.value && "opacity-50 cursor-not-allowed"
                   )}
                   style={{ backgroundColor: bgColor }}
                   title={color.name}
@@ -238,22 +345,25 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         </div>
       )}
 
-      {/* Sizes */}
-      {sizes.length > 0 && (
+      {/* Sizes (fallback cuando no hay variant_options.attributes ni optionsSlot) */}
+      {optionsSlot == null && !useAttributes && sizes.length > 0 && (
         <div className="space-y-3">
           <h3 className="font-semibold text-gray-900 dark:text-white">OPCIONES</h3>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
             {sizes.map((size) => (
               <button
                 key={size.name}
-                onClick={() => size.available && setSelectedSize(size.name)}
-                disabled={!size.available}
+                onClick={() => {
+                  if (selectedSize === size.name) setSelectedSize("")
+                  else if (size.available) setSelectedSize(size.name)
+                }}
+                disabled={!size.available && selectedSize !== size.name}
                 className={cn(
                   "py-2 px-2 sm:px-3 border rounded-md text-xs sm:text-sm font-medium transition-colors",
                   selectedSize === size.name
                     ? "border-gray-900 bg-gray-900 text-white dark:border-white dark:bg-white dark:text-black"
                     : "border-gray-300 hover:border-gray-400",
-                  !size.available && "opacity-50 cursor-not-allowed line-through"
+                  !size.available && selectedSize !== size.name && "opacity-50 cursor-not-allowed line-through"
                 )}
               >
                 {size.name}
@@ -284,6 +394,8 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
                 <Check className="w-4 h-4" />
                 ¡Agregado!
               </motion.div>
+            ) : !canAddToCart && addToCartDisabledLabel ? (
+              addToCartDisabledLabel
             ) : (
               "AGREGAR AL CARRITO"
             )}
@@ -294,13 +406,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
             onClick={handleToggleFavorite}
             className={cn(
               "flex-shrink-0 w-12 h-12 border-gray-300 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700 rounded-lg transition-all",
-              isProductFavorite(Number(product.id_categoria), Number(product.id_linea), Number(product.id_sublinea), Number(product.id_producto)) && "border-red-500 bg-red-50 dark:bg-red-900/20"
+              isProductFavorite(Number(product.id)) && "border-red-500 bg-red-50 dark:bg-red-900/20"
             )}
           >
             <Heart 
               className={cn(
                 "h-5 w-5 transition-all",
-                isProductFavorite(Number(product.id_categoria), Number(product.id_linea), Number(product.id_sublinea), Number(product.id_producto)) 
+                isProductFavorite(Number(product.id)) 
                   ? "fill-red-500 text-red-500" 
                   : "text-gray-600 dark:text-gray-400 hover:text-red-500"
               )}
@@ -315,7 +427,8 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
           ACERCA DEL PRODUCTO
         </h3>
         <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-          {product.spcf_producto && typeof product.spcf_producto === 'object' ? (
+          {description && <p className="mb-2">{description}</p>}
+          {product.spcf_producto && typeof product.spcf_producto === 'object' && Object.keys(product.spcf_producto).length > 0 ? (
             <div className="space-y-2">
               {Object.entries(product.spcf_producto).map(([key, value]) => (
                 <div key={key} className="flex justify-between">
@@ -324,9 +437,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
                 </div>
               ))}
             </div>
-          ) : (
-            <p>{product.spcf_producto || 'Sin especificaciones disponibles'}</p>
-          )}
+          ) : !description ? (
+            <p>Sin especificaciones disponibles</p>
+          ) : null}
         </div>
       </div>
     </div>

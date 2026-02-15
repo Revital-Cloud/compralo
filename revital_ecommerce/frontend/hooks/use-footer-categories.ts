@@ -1,9 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { getCategories } from '@/services/category.service'
-import { mapCategoriesToDisplay } from '@/utils/category-mapper'
-import type { CategoryDisplay } from '@/types/category'
-import { lineService } from '@/services/line.service'
-import { sublineService } from '@/services/subline.service'
+import type { Category } from '@/types/category'
 
 export interface FooterCategoryItem {
   label: string
@@ -12,53 +9,31 @@ export interface FooterCategoryItem {
 
 export interface FooterCategories {
   categories: FooterCategoryItem[]
-  lineas: FooterCategoryItem[]
-  sublineas: FooterCategoryItem[]
+}
+
+/** Normaliza id que puede venir como number o string desde la API */
+function idNum(c: Category, key: 'id' | 'parent_id'): number | null {
+  const v = key === 'id' ? c.id : c.parent_id
+  if (v == null) return null
+  return typeof v === 'number' ? v : Number(v)
 }
 
 /**
- * Hook para obtener categorías, líneas y sublíneas del footer (tres columnas)
+ * Hook para obtener categorías del footer (tab_categories). Solo nombres y enlaces a /categories/[id].
  */
 export function useFooterCategories() {
   return useQuery({
-    queryKey: ['categories', 'lines', 'sublines', 'footer'],
+    queryKey: ['categories', 'footer'],
     queryFn: async (): Promise<FooterCategories> => {
-      try {
-        const [apiCategories, apiLines, apiSublines] = await Promise.all([
-          getCategories(),
-          lineService.getAllLines(),
-          sublineService.getAllSublines(),
-        ])
-
-        const displayCategories = mapCategoriesToDisplay(apiCategories)
-        const categories: FooterCategoryItem[] = displayCategories.map((c: CategoryDisplay) => ({
-          label: c.name,
-          href: `/categories/${c.id}`,
-        }))
-
-        const lineas: FooterCategoryItem[] = (apiLines || [])
-          .filter((l: { ind_activo?: boolean }) => l.ind_activo !== false)
-          .map((l: { id_categoria: number; id_linea: number; nom_linea: string }) => ({
-            label: l.nom_linea,
-            href: `/categories/${l.id_categoria}/lines/${l.id_linea}`,
-          }))
-
-        const sublineas: FooterCategoryItem[] = (apiSublines || [])
-          .filter((s: { ind_activo?: boolean }) => s.ind_activo !== false)
-          .map((s: { id_categoria: number; id_linea: number; id_sublinea: number; nom_sublinea: string }) => ({
-            label: s.nom_sublinea,
-            href: `/categories/${s.id_categoria}/lines/${s.id_linea}/sublines/${s.id_sublinea}/products`,
-          }))
-        
-        // Limitar a 5 ítems por columna en el footer
-        return { 
-          categories: categories.slice(0, 5), 
-          lineas: lineas.slice(0, 5), 
-          sublineas: sublineas.slice(0, 5) 
-        }
-      } catch (error) {
-        console.error('Error fetching footer data:', error)
-        throw error
+      const list = await getCategories()
+      const items: FooterCategoryItem[] = []
+      for (const c of list) {
+        if (c.ind_activo === false) continue
+        const id = idNum(c, 'id')
+        items.push({ label: c.name, href: `/categories/${id}` })
+      }
+      return {
+        categories: items.slice(0, 12),
       }
     },
     staleTime: 10 * 60 * 1000,

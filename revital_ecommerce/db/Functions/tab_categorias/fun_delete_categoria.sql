@@ -1,49 +1,44 @@
-CREATE OR REPLACE FUNCTION fun_delete_categoria(p_id_categoria INTEGER)
+/*
+ * Elimina una categoría de la tabla tab_categories.
+ * No permite eliminar si tiene hijas o productos asociados.
+ */
+CREATE OR REPLACE FUNCTION fun_delete_categoria(p_id DECIMAL)
 RETURNS JSON AS $$
 DECLARE
-    v_count_lineas INTEGER;
-    v_result JSON;
-    v_id_categoria INTEGER := p_id_categoria;
+    v_children INT;
+    v_products INT;
 BEGIN
-    -- Verificar si la categoría existe
-    IF NOT EXISTS (SELECT 1 FROM tab_categorias WHERE id_categoria = p_id_categoria) THEN
+    IF p_id IS NULL OR NOT EXISTS (SELECT 1 FROM tab_categories WHERE id = p_id) THEN
+        RETURN json_build_object('success', false, 'message', 'La categoría no existe', 'id_categoria', p_id);
+    END IF;
+
+    SELECT COUNT(*) INTO v_children FROM tab_categories WHERE parent_id = p_id;
+    IF v_children > 0 THEN
         RETURN json_build_object(
             'success', false,
-            'message', 'La categoría no existe',
-            'id_categoria', p_id_categoria
+            'message', 'No se puede eliminar: tiene subcategorías asociadas',
+            'id_categoria', p_id,
+            'hijas', v_children
         );
     END IF;
 
-    -- Verificar si la categoría tiene líneas asociadas
-    SELECT COUNT(*) INTO v_count_lineas 
-    FROM tab_lineas 
-    WHERE id_categoria = v_id_categoria AND ind_activo = true;
-
-    IF v_count_lineas > 0 THEN
+    SELECT COUNT(*) INTO v_products FROM tab_products WHERE category_id = p_id;
+    IF v_products > 0 THEN
         RETURN json_build_object(
             'success', false,
-            'message', 'No se puede eliminar la categoría porque tiene líneas asociadas',
-            'lineas_asociadas', v_count_lineas,
-            'id_categoria', p_id_categoria
+            'message', 'No se puede eliminar: tiene productos asociados',
+            'id_categoria', p_id,
+            'productos', v_products
         );
     END IF;
 
-    -- Eliminar la categoría completamente
-    DELETE FROM tab_categorias 
-    WHERE id_categoria = v_id_categoria;
+    DELETE FROM tab_estadisticas_categorias WHERE category_id = p_id;
+    DELETE FROM tab_category_attributes WHERE category_id = p_id;
+    DELETE FROM tab_categories WHERE id = p_id;
 
-    RETURN json_build_object(
-        'success', true,
-        'message', 'Categoría eliminada exitosamente',
-        'id_categoria', p_id_categoria
-    );
-
+    RETURN json_build_object('success', true, 'message', 'Categoría eliminada', 'id_categoria', p_id);
 EXCEPTION
     WHEN OTHERS THEN
-        RETURN json_build_object(
-            'success', false,
-            'message', 'Error al eliminar la categoría: ' || SQLERRM,
-            'id_categoria', p_id_categoria
-        );
+        RETURN json_build_object('success', false, 'message', 'Error: ' || SQLERRM, 'id_categoria', p_id);
 END;
 $$ LANGUAGE plpgsql;

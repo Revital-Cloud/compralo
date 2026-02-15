@@ -75,7 +75,7 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
   }, [])
 
   const handleProductClick = (product: ProductFiltered) => {
-    const productPath = `/products/${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`
+    const productPath = `/products/${product.slug ?? product.id}`
     router.push(productPath)
     setQuery("")
     setSuggestions([])
@@ -176,10 +176,10 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
               </p>
             ) : (
               suggestions.map((product, index) => {
-              const imageUrl = getProductImageUrl(product.img_producto)
+              const imageUrl = getProductImageUrl(product.image_url)
               return (
                 <button
-                  key={`${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
+                  key={product.slug ?? String(product.id)}
                   type="button"
                   onClick={() => handleProductClick(product)}
                   onMouseEnter={() => setSelectedIndex(index)}
@@ -190,7 +190,7 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
                   <div className="relative w-12 h-12 shrink-0 rounded overflow-hidden bg-gray-100 dark:bg-gray-700">
                     <Image
                       src={imageUrl}
-                      alt={product.nom_producto}
+                      alt={product.name}
                       fill
                       className="object-cover"
                       sizes="48px"
@@ -198,16 +198,16 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {product.nom_producto}
+                      {product.name}
                     </p>
                     {product.nom_marca && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                         {product.nom_marca}
                       </p>
                     )}
-                    {product.val_precio && (
+                    {product.price_min != null && (
                       <p className="text-sm font-semibold text-primary mt-0.5">
-                        ${Number(product.val_precio).toLocaleString("es-CO")}
+                        ${Number(product.price_min).toLocaleString("es-CO")}
                       </p>
                     )}
                   </div>

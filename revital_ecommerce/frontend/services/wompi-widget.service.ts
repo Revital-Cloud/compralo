@@ -1413,8 +1413,12 @@ export const initializeWompiPayment = async (
           headers,
           body: JSON.stringify(checkoutData),
         });
-        if (!response.ok) throw new Error(`Error del servidor: ${response.status}`);
-        const backendResponse = await response.json();
+        const responseData = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const message = responseData?.error ?? responseData?.detail ?? (typeof responseData === 'string' ? responseData : null);
+          throw new Error(message || `Error del servidor: ${response.status}`);
+        }
+        const backendResponse = responseData;
         if (!backendResponse.reference || !backendResponse.amount_in_cents || !backendResponse.currency || !backendResponse.public_key || !backendResponse.integrity_signature) {
           throw new Error('La respuesta del backend está incompleta.');
         }

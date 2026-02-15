@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+function getBackendUrl(): string {
+  if (process.env.NEXT_PUBLIC_BACKEND_URL) return process.env.NEXT_PUBLIC_BACKEND_URL;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (apiUrl) {
+    try {
+      return new URL(apiUrl).origin;
+    } catch {
+      return 'http://localhost:8000';
+    }
+  }
+  return 'http://localhost:8000';
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +26,7 @@ export async function GET(request: NextRequest) {
     if (storeId) headers['x-store-id'] = storeId;
 
     const response = await fetch(
-      `${BACKEND_URL}/api/payments/order-by-reference?reference=${encodeURIComponent(reference)}`,
+      `${getBackendUrl()}/api/payments/order-by-reference?reference=${encodeURIComponent(reference)}`,
       { method: 'GET', headers }
     );
     const data = await response.json();

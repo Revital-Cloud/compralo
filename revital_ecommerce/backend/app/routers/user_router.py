@@ -132,11 +132,17 @@ async def create_users(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Error de clave foránea. Verifique los datos de entrada."
             )
-        # Para otros errores, mostrar un mensaje genérico
+        # Función de BD no encontrada: indicar que debe ejecutar el script SQL
+        elif "function" in error_msg.lower() and "does not exist" in error_msg.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La función fun_insert_usuarios no existe en la base de datos. Ejecute el script: revital_ecommerce/db/Functions/tab_usuarios/fun_insert_usuarios.sql"
+            )
+        # Para otros errores, devolver el mensaje real para depuración
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Error al crear el usuario. Verifique los datos e inténtelo de nuevo."
+                detail=error_msg or "Error al crear el usuario. Verifique los datos e inténtelo de nuevo."
             )
     
 @router.put("/users/me", response_model=UserPublic, status_code=status.HTTP_200_OK)

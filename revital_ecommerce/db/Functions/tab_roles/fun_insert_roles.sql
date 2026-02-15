@@ -70,8 +70,3 @@ EXCEPTION
 END;
 $$
 LANGUAGE plpgsql;
-
-SELECT * FROM tab_roles;
-
-SELECT fun_insert_roles('Administrador', 'Administrador del sistema', 1234567890);
-SELECT fun_insert_roles('Cliente', 'Cliente del sistema', 1234567890);

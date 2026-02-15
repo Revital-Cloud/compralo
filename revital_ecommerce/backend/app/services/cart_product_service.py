@@ -101,19 +101,16 @@ def get_cart(db:Session):
         db.rollback()
         raise Exception(f"Error al obtener carritos: {str(e)}")
 
-def get_cart_products(db:Session):
+def get_cart_products(db: Session):
     """
-    Obtiene todos los productos en el carrito.
+    Obtiene todos los ítems del carrito (tab_carrito_productos usa variant_id).
     """
     try:
         query = text("""
         SELECT
             id_carrito_producto,
             id_carrito,
-            id_categoria_producto,
-            id_linea_producto,
-            id_sublinea_producto,
-            id_producto,
+            variant_id,
             cantidad,
             precio_unitario_carrito,
             usr_insert,
@@ -131,47 +128,47 @@ def get_cart_products(db:Session):
     
 def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert: Optional[Decimal]):
     """
-    Crea un nuevo producto en el carrito.
-    Utiliza la función de base de datos `fun_agregar_producto_carrito` para insertar
-    un nuevo producto en el carrito.
-    
-    Args:
-        db (Session): La sesión de base de datos SQLAlchemy.
-        cart_product (CartProductCreate): Un objeto Pydantic `CartProductCreate` con los datos a insertar.
-        Debe contener id_usuario (para usuarios autenticados) O session_id (para usuarios anónimos).
-        usr_insert (Optional[Decimal]): El usuario que insertó el registro.
-    
-    Raises:
-        Exception: Si no se proporciona ni id_usuario ni session_id en cart_product.
+    Agrega una variante al carrito usando fun_agregar_producto_carrito(id_usuario, session_id, variant_id, cantidad, usr).
+    Si se envía variant_id se usa; si solo id_producto, se toma la primera variante activa del producto.
     """
     try:
-        params = cart_product.model_dump()
-        params["usr_insert"] = usr_insert
-        opts = params.get("opciones_elegidas") or {}
-        params["opciones_elegidas"] = Json(opts) if isinstance(opts, dict) else Json({})
+        data = cart_product.model_dump()
+        variant_id = data.get("variant_id")
+        id_producto = data.get("id_producto")
+        if variant_id is None and id_producto is not None:
+            r = db.execute(
+                text("SELECT id FROM tab_product_variants WHERE product_id = :pid AND is_active = TRUE ORDER BY id LIMIT 1"),
+                {"pid": id_producto},
+            ).first()
+            if not r:
+                raise Exception(f"No hay variante activa para el producto id {id_producto}")
+            variant_id = r[0]
+        if variant_id is None:
+            raise Exception("Se requiere variant_id o id_producto para agregar al carrito")
 
-        print(f"🛒 [BACKEND] Agregando producto al carrito con parámetros: {params}")
+        usr = usr_insert or data.get("id_usuario") or 0
+        params = {
+            "id_usuario": data.get("id_usuario"),
+            "session_id": data.get("session_id") or "",
+            "variant_id": variant_id,
+            "cantidad": int(cart_product.cantidad),
+            "usr_insert": usr,
+        }
+        print(f"🛒 [BACKEND] Agregando producto al carrito: variant_id={variant_id}, cantidad={params['cantidad']}")
 
-        # Casts para que coincidan con la firma en BD (cantidad es INTEGER por %TYPE en tab_carrito_productos).
         query = text("""
         SELECT fun_agregar_producto_carrito(
             CAST(:id_usuario AS NUMERIC),
             CAST(:session_id AS VARCHAR),
-            CAST(:id_categoria_producto AS NUMERIC),
-            CAST(:id_linea_producto AS NUMERIC),
-            CAST(:id_sublinea_producto AS NUMERIC),
-            CAST(:id_producto AS NUMERIC),
+            CAST(:variant_id AS NUMERIC),
             CAST(:cantidad AS INTEGER),
-            CAST(:usr_insert AS NUMERIC),
-            CAST(:opciones_elegidas AS JSONB)
+            CAST(:usr_insert AS NUMERIC)
         )
         """)
         result = db.execute(query, params)
         fetched_result = result.fetchone()
         db.commit()
-        
-        print(f"✅ [BACKEND] Producto agregado exitosamente. Resultado: {fetched_result[0] if fetched_result else None}")
-        
+        print(f"✅ [BACKEND] Producto agregado. Resultado: {fetched_result[0] if fetched_result else None}")
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
@@ -190,25 +187,19 @@ def update_cart_product_quantity(db: Session, id_carrito_producto: int, nueva_ca
         usr_update (Optional[int]): Usuario que actualiza el registro.
     """
     try:
-        # Primero, obtener información del producto para validar stock
+        # Obtener stock de la variante para validar
         stock_query = text("""
-        SELECT p.num_stock, cp.id_producto, cp.cantidad as cantidad_actual
+        SELECT pv.stock, cp.cantidad AS cantidad_actual
         FROM tab_carrito_productos cp
-        JOIN tab_productos p ON cp.id_categoria_producto = p.id_categoria
-            AND cp.id_linea_producto = p.id_linea
-            AND cp.id_sublinea_producto = p.id_sublinea
-            AND cp.id_producto = p.id_producto
+        JOIN tab_product_variants pv ON pv.id = cp.variant_id AND pv.is_active = TRUE
         WHERE cp.id_carrito_producto = :id_carrito_producto
         """)
         stock_result = db.execute(stock_query, {"id_carrito_producto": id_carrito_producto})
         stock_info = stock_result.fetchone()
-        
         if not stock_info:
             raise Exception("Producto no encontrado en el carrito")
-        
         stock_disponible = stock_info[0]
-        id_producto = stock_info[1]
-        cantidad_actual = stock_info[2]
+        cantidad_actual = stock_info[1]
         
         # Validar que la nueva cantidad no exceda el stock disponible
         if nueva_cantidad > stock_disponible:
@@ -267,46 +258,44 @@ def delete_cart_product_by_id(db: Session, id_carrito_producto: int) -> bool:
 
 def delete_cart_product(db: Session, id_usuario: Optional[Decimal], session_id: Optional[str], id_categoria_producto: Decimal, id_linea_producto: Decimal, id_sublinea_producto: Decimal, id_producto: Decimal, cantidad: Decimal, usr_update: Decimal):
     """
-    Elimina un producto en el carrito.
-    Utiliza la función de base de datos `fun_eliminar_producto_carrito` para eliminar
-    un producto en el carrito.
-    
-    Args:
-        db (Session): La sesión de base de datos SQLAlchemy.
-        id_usuario (Optional[Decimal]): ID del usuario (para usuarios autenticados).
-        session_id (Optional[str]): ID de la sesión (para usuarios anónimos, UUID v4).
-        id_categoria_producto (Decimal): ID de la categoría del producto.
-        id_linea_producto (Decimal): ID de la línea del producto.
-        id_sublinea_producto (Decimal): ID de la sublínea del producto.
-        id_producto (Decimal): ID del producto.
-        cantidad (Decimal): Cantidad del producto.
-        usr_update (Decimal): El usuario que actualizó el registro.
-    
-    Raises:
-        Exception: Si no se proporciona ni id_usuario ni session_id.
+    Elimina (o reduce cantidad de) un producto en el carrito.
+    La BD usa variant_id; se resuelve variant_id desde el carrito del usuario por product_id.
     """
     try:
+        id_carrito_row = db.execute(
+            text("SELECT fun_obtener_carrito_usuario(:id_usuario, :session_id)"),
+            {"id_usuario": id_usuario, "session_id": session_id or ""},
+        ).first()
+        if not id_carrito_row:
+            raise Exception("No se pudo obtener el carrito")
+        id_carrito = id_carrito_row[0]
+        variant_row = db.execute(
+            text("""
+                SELECT cp.variant_id FROM tab_carrito_productos cp
+                JOIN tab_product_variants pv ON pv.id = cp.variant_id
+                WHERE cp.id_carrito = :id_carrito AND pv.product_id = :id_producto
+                LIMIT 1
+            """),
+            {"id_carrito": id_carrito, "id_producto": id_producto},
+        ).first()
+        if not variant_row:
+            raise Exception("El producto no está en el carrito")
+        variant_id = variant_row[0]
         query = text("""
         SELECT fun_eliminar_producto_carrito(
-            :id_usuario,
-            :session_id,
-            :id_categoria_producto,
-            :id_linea_producto,
-            :id_sublinea_producto,
-            :id_producto,
-            :cantidad,
-            :usr_update
+            CAST(:id_usuario AS NUMERIC),
+            CAST(:session_id AS VARCHAR),
+            CAST(:variant_id AS NUMERIC),
+            CAST(:cantidad AS INTEGER),
+            CAST(:usr_update AS NUMERIC)
         )
         """)
         result = db.execute(query, {
-            'id_usuario': id_usuario,
-            'session_id': session_id,
-            'id_categoria_producto': id_categoria_producto,
-            'id_linea_producto': id_linea_producto,
-            'id_sublinea_producto': id_sublinea_producto,
-            'id_producto': id_producto,
-            'cantidad': cantidad,
-            'usr_update': usr_update
+            "id_usuario": id_usuario,
+            "session_id": session_id or "",
+            "variant_id": variant_id,
+            "cantidad": cantidad,
+            "usr_update": usr_update,
         })
         fetched_result = result.fetchone()
         db.commit()
@@ -392,101 +381,77 @@ def get_cart_user(db:Session, get_cart_user:GetCartUser):
         print(f"❌ [BACKEND] Error al obtener carrito de usuario: {str(e)}")
         raise Exception(f"Error al obtener carrito de usuario: {str(e)}")
     
-def get_cart_detail(db:Session, get_cart_detail:GetCartDetail):
+def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
     """
-    Obtiene a detalle el carrito de un usuario con JOIN a marcas y sublineas.
-    Args:
-        db (Session): Sesión de base de datos.
-        get_cart_detail (GetCartDetail): Datos del usuario (id_usuario o session_id).
-    Returns:
-        list[CartProduct]: Lista de productos en el carrito con stock disponible.
+    Obtiene el detalle del carrito usando tab_products, tab_product_variants y variant_id.
+    Devuelve la misma estructura esperada por el frontend (id_categoria_producto = category_id, etc.).
     """
     try:
         params = get_cart_detail.model_dump()
         print(f"🔍 [BACKEND] Obteniendo detalle del carrito con parámetros: {params}")
-        
-        # Query directo con JOIN a marcas y sublineas
+
         query = text("""
-        SELECT 
+        SELECT
             cp.id_carrito_producto,
-            cp.id_categoria_producto,
-            cp.id_linea_producto,
-            cp.id_sublinea_producto,
-            cp.id_producto,
-            p.nom_producto,
+            p.category_id,
+            p.id AS id_producto,
+            p.name AS nom_producto,
             cp.cantidad,
             cp.precio_unitario_carrito,
-            (cp.cantidad * cp.precio_unitario_carrito) as subtotal,
-            p.num_stock,
-            p.img_producto,
+            (cp.cantidad * cp.precio_unitario_carrito) AS subtotal,
+            pv.stock AS num_stock,
+            COALESCE(
+                (SELECT pi.image_url FROM tab_product_images pi
+                 WHERE pi.product_id = p.id AND pi.variant_id = cp.variant_id
+                 ORDER BY pi.is_main DESC NULLS LAST, pi.sort_order NULLS LAST, pi.id LIMIT 1),
+                (SELECT pi.image_url FROM tab_product_images pi
+                 WHERE pi.product_id = p.id AND pi.variant_id IS NULL AND pi.is_main = TRUE LIMIT 1)
+            ) AS img_principal,
             m.nom_marca,
-            sl.nom_sublinea,
-            cat.nom_categoria,
-            COALESCE(cp.opciones_elegidas, '{}'::JSONB) as opciones_elegidas,
-            p.spcf_producto
+            cat.name AS nom_categoria
         FROM tab_carrito_productos cp
         JOIN tab_carritos c ON cp.id_carrito = c.id_carrito
-        JOIN tab_productos p ON (
-            cp.id_categoria_producto = p.id_categoria AND
-            cp.id_linea_producto = p.id_linea AND
-            cp.id_sublinea_producto = p.id_sublinea AND
-            cp.id_producto = p.id_producto
-            AND p.ind_activo = TRUE
-        )
+        JOIN tab_product_variants pv ON pv.id = cp.variant_id AND pv.is_active = TRUE
+        JOIN tab_products p ON p.id = pv.product_id AND p.is_active = TRUE
         LEFT JOIN tab_marcas m ON p.id_marca = m.id_marca
-        LEFT JOIN tab_sublineas sl ON (
-            p.id_categoria = sl.id_categoria AND
-            p.id_linea = sl.id_linea AND
-            p.id_sublinea = sl.id_sublinea
-        )
-        LEFT JOIN tab_categorias cat ON p.id_categoria = cat.id_categoria
+        LEFT JOIN tab_categories cat ON p.category_id = cat.id
         WHERE (c.id_usuario = :id_usuario OR c.session_id = :session_id)
         AND (c.id_usuario IS NOT NULL OR c.session_id IS NOT NULL)
         ORDER BY cp.fec_insert DESC
         """)
-        
+
         result = db.execute(query, params)
-        cart_items = result.fetchall()
-        
+        cart_items = result.mappings().all()
+
         print(f"🔍 [BACKEND] Resultado de la consulta: {len(cart_items)} items")
-        
+
         if not cart_items:
             print("🔍 [BACKEND] No se encontraron productos en el carrito")
             return []
-        
-        # Convertir productos a la estructura esperada por el frontend
+
         products_list = []
-        for item in cart_items:
-            opciones = _opciones_elegidas_to_dict(item[14]) if len(item) > 14 else {}
-            # Imagen según color elegido (opciones_elegidas.color) o main por defecto
-            imagen_url = _imagen_url_por_color(
-                item[10],  # img_producto
-                item[15] if len(item) > 15 else None,  # spcf_producto
-                opciones,
-            )
-            
+        for row in cart_items:
+            img_url = row.get("img_principal")
             product_dict = {
-                'id_carrito_producto': item[0],
-                'id_categoria_producto': item[1],
-                'id_linea_producto': item[2],
-                'id_sublinea_producto': item[3],
-                'id_producto': item[4],
-                'nombre_producto': item[5],
-                'cantidad': int(item[6]),
-                'precio_unitario': float(item[7]),
-                'subtotal': float(item[8]),
-                'stock_disponible': int(item[9]),
-                'imagen_url': imagen_url,
-                'marca': item[11],
-                'sublinea': item[12],
-                'categoria': item[13],
-                'opciones_elegidas': opciones,
+                "id_carrito_producto": row["id_carrito_producto"],
+                "id_categoria_producto": int(row["category_id"]) if row["category_id"] is not None else 0,
+                "id_linea_producto": 0,
+                "id_sublinea_producto": 0,
+                "id_producto": int(row["id_producto"]) if row["id_producto"] is not None else 0,
+                "nombre_producto": row["nom_producto"] or "",
+                "cantidad": int(row["cantidad"]),
+                "precio_unitario": float(row["precio_unitario_carrito"]),
+                "subtotal": float(row["subtotal"]),
+                "stock_disponible": int(row["num_stock"] or 0),
+                "imagen_url": img_url,
+                "marca": row["nom_marca"] or "",
+                "sublinea": None,
+                "categoria": row["nom_categoria"] or "",
+                "opciones_elegidas": {},
             }
-            
             products_list.append(product_dict)
-        
-        print(f"📦 [BACKEND] Lista de productos procesada: {products_list}")
-        
+
+        print(f"📦 [BACKEND] Lista de productos procesada: {len(products_list)} items")
         db.commit()
         return products_list
     except Exception as e:
@@ -583,104 +548,82 @@ def calculate_total_cart(db:Session, calculate_total_cart:CalculateTotalCart):
 
 def get_cart_with_basic_info(db: Session, get_cart_detail: GetCartDetail):
     """
-    Obtiene el carrito con información básica (marca y color) de los productos.
-    
-    Args:
-        db (Session): Sesión de base de datos.
-        get_cart_detail (GetCartDetail): Datos del usuario (id_usuario o session_id).
-    
-    Returns:
-        list[CartItemWithBasicInfo]: Lista de productos en el carrito con información básica.
+    Obtiene el carrito con información básica (marca, color desde variante) usando tab_products/tab_product_variants.
     """
     try:
         params = get_cart_detail.model_dump()
-        
-        # Query simple para obtener marca y color
+
         query = text("""
-        SELECT 
+        SELECT
             cp.id_carrito_producto,
             cp.id_carrito,
             cp.cantidad,
             cp.precio_unitario_carrito,
-            (cp.cantidad * cp.precio_unitario_carrito) as subtotal,
-            p.nom_producto,
-            p.img_producto,
-            p.num_stock,
+            (cp.cantidad * cp.precio_unitario_carrito) AS subtotal,
+            p.name AS nom_producto,
+            COALESCE(
+                (SELECT pi.image_url FROM tab_product_images pi
+                 WHERE pi.product_id = p.id AND pi.variant_id = cp.variant_id
+                 ORDER BY pi.is_main DESC NULLS LAST, pi.sort_order NULLS LAST, pi.id LIMIT 1),
+                (SELECT pi.image_url FROM tab_product_images pi
+                 WHERE pi.product_id = p.id AND pi.variant_id IS NULL AND pi.is_main = TRUE LIMIT 1)
+            ) AS imagen_url,
+            pv.stock AS num_stock,
             m.nom_marca,
-            p.spcf_producto
+            cp.variant_id
         FROM tab_carrito_productos cp
         JOIN tab_carritos c ON cp.id_carrito = c.id_carrito
-        JOIN tab_productos p ON (
-            cp.id_categoria_producto = p.id_categoria AND
-            cp.id_linea_producto = p.id_linea AND
-            cp.id_sublinea_producto = p.id_sublinea AND
-            cp.id_producto = p.id_producto
-        )
+        JOIN tab_product_variants pv ON pv.id = cp.variant_id AND pv.is_active = TRUE
+        JOIN tab_products p ON p.id = pv.product_id AND p.is_active = TRUE
         LEFT JOIN tab_marcas m ON p.id_marca = m.id_marca
         WHERE (c.id_usuario = :id_usuario OR c.session_id = :session_id)
         AND (c.id_usuario IS NOT NULL OR c.session_id IS NOT NULL)
+        ORDER BY cp.fec_insert DESC
         """)
-        
+
         result = db.execute(query, params)
-        cart_items = result.fetchall()
-        
-        if not cart_items:
+        rows = result.mappings().all()
+
+        if not rows:
             return []
-        
+
         cart_with_basic_info = []
-        for item in cart_items:
-            # Extraer marca
-            marca = item[8] if item[8] else "Sin marca"
-            
-            # Extraer color del JSONB
-            spcf_data = item[9] if item[9] else {}
-            color = None
-            
-            if spcf_data:
-                if isinstance(spcf_data, str):
-                    try:
-                        import json
-                        spcf_data = json.loads(spcf_data)
-                    except:
-                        spcf_data = {}
-                
-                color = spcf_data.get('color') if spcf_data else None
-            
-            # Extraer imagen principal
-            img_data = item[6] if item[6] else {}
-            imagen_url = None
-            if img_data:
-                try:
-                    if isinstance(img_data, dict) and 'main' in img_data:
-                        imagen_url = img_data['main']
-                    elif isinstance(img_data, dict) and 'url' in img_data:
-                        imagen_url = img_data['url']
-                except:
-                    pass
-            
-            # Crear información básica
-            basic_info = ProductBasicInfo(
-                marca=marca,
-                color=color
-            )
-            
-            # Crear item del carrito con información básica
+        variant_ids = [row["variant_id"] for row in rows]
+        color_by_variant = {}
+        if variant_ids:
+            color_rows = db.execute(
+                text("""
+                    SELECT DISTINCT ON (pva.variant_id) pva.variant_id, av.value AS color
+                    FROM tab_product_variant_attributes pva
+                    JOIN tab_attribute_values av ON av.id = pva.attribute_value_id AND av.hex_color IS NOT NULL
+                    WHERE pva.variant_id = ANY(:vids)
+                    ORDER BY pva.variant_id, pva.id
+                """),
+                {"vids": variant_ids},
+            ).mappings().all()
+            for r in color_rows:
+                color_by_variant[r["variant_id"]] = r.get("color")
+
+        for row in rows:
+            marca = row["nom_marca"] or "Sin marca"
+            color = color_by_variant.get(row["variant_id"]) if row.get("variant_id") else None
+
+            basic_info = ProductBasicInfo(marca=marca, color=color)
             cart_item = CartItemWithBasicInfo(
-                id_carrito_producto=item[0],
-                id_carrito=item[1],
-                cantidad=item[2],
-                precio_unitario_carrito=item[3],
-                subtotal=item[4],
-                nombre_producto=item[5],
-                imagen_url=imagen_url,
-                stock_disponible=item[7],
-                basic_info=basic_info
+                id_carrito_producto=row["id_carrito_producto"],
+                id_carrito=row["id_carrito"],
+                cantidad=int(row["cantidad"]),
+                precio_unitario_carrito=float(row["precio_unitario_carrito"]),
+                subtotal=float(row["subtotal"]),
+                nombre_producto=row["nom_producto"] or "",
+                imagen_url=row["imagen_url"],
+                stock_disponible=int(row["num_stock"] or 0),
+                basic_info=basic_info,
             )
-            
             cart_with_basic_info.append(cart_item)
-        
+
         return cart_with_basic_info
-        
+
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener carrito con información básica: {str(e)}")

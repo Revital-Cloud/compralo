@@ -18,8 +18,6 @@ import { ColorPicker } from "@/components/admin/color-picker";
 import { IconX, IconPlus, IconSettings, IconInfoCircle, IconChevronDown } from "@tabler/icons-react";
 import { useCategoriesRaw } from "@/hooks/use-categories";
 import { useBrands } from "@/hooks/use-products";
-import { useAllLines } from "@/hooks/use-lines";
-import { useAllSublines } from "@/hooks/use-sublines";
 import { useAllProviders } from "@/hooks/use-providers";
 import { useFormXSSValidation } from "@/hooks/use-xss-validation";
 import { cn } from "@/lib/utils";
@@ -191,8 +189,6 @@ const productSchema = z.object({
   ),
   id_categoria: z.string().min(1, 'La categoría es requerida'),
   id_marca: z.string().min(1, 'La marca es requerida'),
-  id_linea: z.string().min(1, 'La línea es requerida'),
-  id_sublinea: z.string().min(1, 'La sublínea es requerida'),
   id_proveedor: z.string().min(1, 'El proveedor es requerido'),
   tags: z.array(z.string()).default([]),
   spcf_producto: z.record(z.string(), z.unknown()).default({}),
@@ -233,8 +229,6 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
   const { data: categories = [] } = useCategoriesRaw();
   const { data: brands = [] } = useBrands();
   const { data: providers = [] } = useAllProviders();
-  const { data: allLines = [] } = useAllLines();
-  const { data: allSublines = [] } = useAllSublines();
   
   // Hook de validación XSS
   const { validateForm } = useFormXSSValidation('product-form');
@@ -249,10 +243,8 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
     des_producto: initialData?.des_producto ?? '',
     val_precio: initialData?.val_precio ?? '',
     num_stock: initialData?.num_stock ?? '',
-    id_categoria: initialData?.id_categoria ?? '',
+    id_categoria: initialData?.id_categoria ?? (initialData as { category_id?: string })?.category_id ?? '',
     id_marca: initialData?.id_marca ?? '',
-    id_linea: initialData?.id_linea ?? '',
-    id_sublinea: initialData?.id_sublinea ?? '',
     id_proveedor: initialData?.id_proveedor ?? '',
     tags: initialData?.tags ?? [],
     spcf_producto: (initialData?.spcf_producto ?? {}) as Record<string, unknown>,
@@ -281,10 +273,8 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
         des_producto: descripcionCorta,
         val_precio: initialData.val_precio ?? '',
         num_stock: initialData.num_stock ?? '',
-        id_categoria: initialData.id_categoria ?? '',
+        id_categoria: initialData.id_categoria ?? (initialData as { category_id?: string }).category_id ?? '',
         id_marca: initialData.id_marca ?? '',
-        id_linea: initialData.id_linea ?? '',
-        id_sublinea: initialData.id_sublinea ?? '',
         id_proveedor: initialData.id_proveedor ?? '',
         tags: initialData.tags ?? [],
         spcf_producto: (initialData.spcf_producto ?? {}) as Record<string, unknown>,
@@ -299,8 +289,6 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
 
   const watchedTags = watch('tags');
   const watchedCategory = watch('id_categoria');
-  const watchedLine = watch('id_linea');
-  const watchedSubline = watch('id_sublinea');
   const [newTag, setNewTag] = React.useState('');
   const [customSpecs, setCustomSpecs] = React.useState<Array<{key: string, value: string}>>([]);
   const [newCustomKey, setNewCustomKey] = React.useState('');
@@ -414,7 +402,7 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
 
   // Evitar fallos si categories aún no está cargado o si no hay categoría seleccionada
   // Esto previene accesos a propiedades de undefined durante el render inicial
-  const safeCategories = Array.isArray(categories) ? categories.filter(cat => cat?.id_categoria != null) : [];
+  const safeCategories = Array.isArray(categories) ? categories.filter(cat => (cat as { id?: number; id_categoria?: number }).id_categoria != null || (cat as { id?: number }).id != null) : [];
   const safeBrands = Array.isArray(brands) ? brands.filter(brand => brand?.id_marca != null) : [];
   const safeProviders = Array.isArray(providers) ? providers.filter(provider => provider?.id_proveedor != null) : [];
 
@@ -424,7 +412,7 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
     const watched = watchedCategory != null ? String(watchedCategory) : '';
     return catId === watched && watched !== '';
   });
-  const currentPreset = selectedCategory ? getPresetByCategory(selectedCategory.nom_categoria) : null;
+  const currentPreset = selectedCategory ? getPresetByCategory(selectedCategory.name) : null;
   const presetFields = currentPreset ? SPEC_PRESETS[currentPreset]?.fields || [] : [];
   
   // Campos dinámicos del preset
@@ -447,58 +435,6 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
     presetSpecsRef.current = newPresetSpecs;
     setPresetSpecs(newPresetSpecs);
   }, [currentPreset, initialData?.spcf_producto, presetFields.length]);
-
-  // Índices compuestos: cada línea se identifica por id_categoria-id_linea; cada sublínea por id_categoria-id_linea-id_sublinea.
-  // Así se puede elegir línea o sublínea directamente y rellenar categoría (y línea) automáticamente.
-  const lineOptionsComposite = React.useMemo(() => {
-    return (allLines || []).filter((l: any) => l?.id_categoria != null && l?.id_linea != null).map((l: any) => ({
-      value: `${l.id_categoria}-${l.id_linea}`,
-      label: l.nom_linea || '',
-      id_categoria: l.id_categoria,
-      id_linea: l.id_linea,
-    }));
-  }, [allLines]);
-
-  const sublineOptionsComposite = React.useMemo(() => {
-    return (allSublines || []).filter((s: any) => s?.id_categoria != null && s?.id_linea != null && s?.id_sublinea != null).map((s: any) => ({
-      value: `${s.id_categoria}-${s.id_linea}-${s.id_sublinea}`,
-      label: s.nom_sublinea || '',
-      id_categoria: s.id_categoria,
-      id_linea: s.id_linea,
-      id_sublinea: s.id_sublinea,
-    }));
-  }, [allSublines]);
-
-  // Valor mostrado en el select de línea (compuesto para que coincida la opción correcta)
-  const lineSelectValue = React.useMemo(() => {
-    if (watchedCategory && watchedLine) return `${watchedCategory}-${watchedLine}`;
-    if (watchedLine) {
-      const found = lineOptionsComposite.find((l: any) => String(l.id_linea) === String(watchedLine));
-      return found ? found.value : SELECT_EMPTY_VALUE;
-    }
-    return SELECT_EMPTY_VALUE;
-  }, [watchedCategory, watchedLine, lineOptionsComposite]);
-  // Valor mostrado en el select de sublínea (compuesto)
-  const sublineSelectValue = React.useMemo(() => {
-    if (watchedCategory && watchedLine && watchedSubline) return `${watchedCategory}-${watchedLine}-${watchedSubline}`;
-    if (watchedSubline) {
-      const found = sublineOptionsComposite.find((s: any) => String(s.id_sublinea) === String(watchedSubline));
-      return found ? found.value : SELECT_EMPTY_VALUE;
-    }
-    return SELECT_EMPTY_VALUE;
-  }, [watchedCategory, watchedLine, watchedSubline, sublineOptionsComposite]);
-
-  // Para validación en submit: comprobar que la sublínea pertenece a la línea/categoría (por si hubiera desincronización)
-  const uniqueSublines = React.useMemo(() => {
-    const cat = watchedCategory ? Number(watchedCategory) : null;
-    const lin = watchedLine ? Number(watchedLine) : null;
-    if (cat == null && lin == null) return sublineOptionsComposite;
-    return sublineOptionsComposite.filter((s: any) => {
-      if (cat != null && s.id_categoria !== cat) return false;
-      if (lin != null && s.id_linea !== lin) return false;
-      return true;
-    });
-  }, [watchedCategory, watchedLine, sublineOptionsComposite]);
 
   const addTag = () => {
     if (newTag.trim() && !watchedTags.includes(newTag.trim())) {
@@ -531,17 +467,6 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
     console.log('Errors:', errors);
     console.log('Is valid:', isValid);
     
-    // Validar que la sublínea pertenezca a la categoría/línea seleccionadas (solo en creación: en edición no se pueden cambiar y ya vienen válidos del servidor)
-    if (!isEditing && watchedLine && watchedSubline) {
-      const exists = uniqueSublines.some(
-        (s: any) => String(s.id_sublinea) === String(watchedSubline)
-      );
-      if (!exists) {
-        toast.error('La sublínea seleccionada no pertenece a la categoría/línea elegidas');
-        return;
-      }
-    }
-
     // Validar campos requeridos del preset (usar ref para valor actual)
     const currentPresetSpecs = presetSpecsRef.current;
     const requiredFields = presetFields.filter(field => field.required);
@@ -605,8 +530,6 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
       num_stock: parseInt(data.num_stock),
       id_categoria: parseInt(data.id_categoria),
       id_marca: parseInt(data.id_marca),
-      id_linea: parseInt(data.id_linea),
-      id_sublinea: parseInt(data.id_sublinea),
       id_proveedor: parseInt(data.id_proveedor),
     };
     
@@ -642,12 +565,7 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
               <Label htmlFor="id_categoria">Categoría *</Label>
               <Select
                 value={watch('id_categoria') || SELECT_EMPTY_VALUE}
-                onValueChange={(value) => {
-                  const v = value === SELECT_EMPTY_VALUE ? '' : value;
-                  setValue('id_categoria', v);
-                  setValue('id_linea', '');
-                  setValue('id_sublinea', '');
-                }}
+                onValueChange={(value) => setValue('id_categoria', value === SELECT_EMPTY_VALUE ? '' : value)}
                 disabled={isEditing}
               >
                 <SelectTrigger className={cn('w-full', errors.id_categoria && 'border-red-500')}>
@@ -656,11 +574,11 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
                 <SelectContent>
                   <SelectItem value={SELECT_EMPTY_VALUE}>Selecciona una categoría</SelectItem>
                   {safeCategories.map((category) => {
-                    const categoryId = category?.id_categoria;
-                    if (!categoryId) return null;
+                    const categoryId = (category as { id?: number; id_categoria?: number }).id ?? (category as { id_categoria?: number }).id_categoria;
+                    if (categoryId == null) return null;
                     return (
                       <SelectItem key={`cat-${categoryId}`} value={String(categoryId)}>
-                        {category.nom_categoria || ''}
+                        {category.name || ''}
                       </SelectItem>
                     );
                   })}
@@ -695,88 +613,6 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
               </Select>
               {errors.id_marca && (
                 <p className="text-sm text-red-600">{errors.id_marca.message}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Línea y Sublínea (selección directa con índices compuestos: al elegir línea se rellena categoría; al elegir sublínea, línea y categoría) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="id_linea">Línea *</Label>
-              <Select
-                value={lineSelectValue}
-                onValueChange={(value) => {
-                  if (value === SELECT_EMPTY_VALUE) {
-                    setValue('id_linea', '');
-                    setValue('id_sublinea', '');
-                    return;
-                  }
-                  if (value.includes('-')) {
-                    const [cat, lineId] = value.split('-');
-                    setValue('id_categoria', cat);
-                    setValue('id_linea', lineId);
-                    setValue('id_sublinea', '');
-                  } else {
-                    setValue('id_linea', value);
-                    setValue('id_sublinea', '');
-                  }
-                }}
-                disabled={isEditing}
-              >
-                <SelectTrigger className={cn('w-full', errors.id_linea && 'border-red-500')}>
-                  <SelectValue placeholder="Selecciona una línea" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={SELECT_EMPTY_VALUE}>Selecciona una línea</SelectItem>
-                  {lineOptionsComposite.map((line: any) => (
-                    <SelectItem key={`line-${line.value}`} value={line.value}>
-                      {line.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.id_linea && (
-                <p className="text-sm text-red-600">{errors.id_linea.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="id_sublinea">Sublínea *</Label>
-              <Select
-                value={sublineSelectValue}
-                onValueChange={(value) => {
-                  if (value === SELECT_EMPTY_VALUE) {
-                    setValue('id_sublinea', '');
-                    return;
-                  }
-                  const parts = value.split('-');
-                  if (parts.length >= 3) {
-                    setValue('id_categoria', parts[0]);
-                    setValue('id_linea', parts[1]);
-                    setValue('id_sublinea', parts[2]);
-                  } else {
-                    setValue('id_sublinea', value);
-                  }
-                }}
-                disabled={isEditing}
-              >
-                <SelectTrigger className={cn('w-full', errors.id_sublinea && 'border-red-500')}>
-                  <SelectValue placeholder="Selecciona una sublínea" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={SELECT_EMPTY_VALUE}>Selecciona una sublínea</SelectItem>
-                  {sublineOptionsComposite.map((subline: any) => (
-                    <SelectItem key={`subline-${subline.value}`} value={subline.value}>
-                      {subline.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.id_sublinea && (
-                <p className="text-sm text-red-600">{errors.id_sublinea.message}</p>
-              )}
-              {isEditing && (
-                <p className="text-sm text-muted-foreground">La sublínea no se puede cambiar al editar</p>
               )}
             </div>
           </div>

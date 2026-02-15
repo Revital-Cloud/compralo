@@ -4,15 +4,12 @@
 
 export interface Review {
   id_comentario: number;
-  id_categoria: number;
-  id_linea: number;
-  id_sublinea: number;
   id_producto: number;
   id_usuario: number;
   comentario: string;
+  calificacion?: number;
   ind_activo: boolean;
   fec_insert: string;
-  // Campos adicionales que se pueden obtener con JOINs
   nombre_usuario?: string;
   email_usuario?: string;
   avatar_usuario?: string;
@@ -25,11 +22,9 @@ export interface ReviewWithUser extends Review {
 }
 
 export interface CreateReviewRequest {
-  id_categoria: number;
-  id_linea: number;
-  id_sublinea: number;
   id_producto: number;
   comentario: string;
+  calificacion?: number;
 }
 
 export interface ReviewResponse {

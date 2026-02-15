@@ -86,6 +86,3 @@ $$
     END;
 $$
 LANGUAGE plpgsql;
-
--- Ejemplo de uso corregido (ahora con ID numérico)
-SELECT fun_insert_proveedores('Shein','shein@shein.com',2121255,true,1234567890);

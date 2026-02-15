@@ -148,74 +148,42 @@ BEGIN
                             -- Descuento fijo: aplica monto fijo pero no puede ser mayor al total
                             LEAST(d.val_monto_descuento, v_total_productos)
                         END
-                    -- TIPO 2: Descuento por producto específico
-                    -- Se aplica solo a un producto exacto definido en la configuración
                     WHEN d.aplica_a = 'producto_especifico' THEN
                         (SELECT COALESCE(SUM(
-                            CASE WHEN d.tipo_calculo THEN 
-                               -- Porcentual: aplica % al valor total del producto
-                               (cp.cantidad * cp.precio_unitario_carrito * d.val_porce_descuento / 100)
-                            ELSE 
-                               -- Fijo: aplica descuento por producto (máximo 1 vez)
-                               LEAST(cp.cantidad, 1) * d.val_monto_descuento
-                            END
+                            CASE WHEN d.tipo_calculo THEN (cp.cantidad * cp.precio_unitario_carrito * d.val_porce_descuento / 100)
+                            ELSE LEAST(cp.cantidad, 1) * d.val_monto_descuento END
                         ), 0)
                         FROM tab_carrito_productos cp
+                        JOIN tab_product_variants pv ON pv.id = cp.variant_id
+                        JOIN tab_products p ON p.id = pv.product_id
                         WHERE cp.id_carrito = v_id_carrito
-                            -- Debe coincidir exactamente con el producto configurado
-                            AND cp.id_categoria_producto = d.id_categoria
-                            AND cp.id_linea_producto = d.id_linea
-                            AND cp.id_sublinea_producto = d.id_sublinea
-                            AND cp.id_producto = d.id_producto_aplica
-                            -- Debe cumplir cantidad mínima requerida
+                            AND p.id = d.product_id_aplica
                             AND cp.cantidad >= d.cantidad_minima_producto
-                            -- Debe cumplir monto mínimo requerido (cantidad × precio)
-                         AND (cp.cantidad * cp.precio_unitario_carrito) >= d.monto_minimo_producto)
-                    -- TIPO 3: Descuento por categoría específica
-                    -- Se aplica a todos los productos de una categoría determinada
+                            AND (cp.cantidad * cp.precio_unitario_carrito) >= d.monto_minimo_producto)
                     WHEN d.aplica_a = 'categoria_especifica' THEN
                         (SELECT COALESCE(SUM(
-                            CASE WHEN d.tipo_calculo THEN 
-                               -- Porcentual: aplica % al valor de cada producto de la categoría
-                               (cp.cantidad * cp.precio_unitario_carrito * d.val_porce_descuento / 100)
-                            ELSE 
-                               -- Fijo: aplica descuento fijo por cantidad de productos
-                               cp.cantidad * d.val_monto_descuento
-                            END
+                            CASE WHEN d.tipo_calculo THEN (cp.cantidad * cp.precio_unitario_carrito * d.val_porce_descuento / 100)
+                            ELSE cp.cantidad * d.val_monto_descuento END
                         ), 0)
                         FROM tab_carrito_productos cp
+                        JOIN tab_product_variants pv ON pv.id = cp.variant_id
+                        JOIN tab_products p ON p.id = pv.product_id
                         WHERE cp.id_carrito = v_id_carrito
-                            -- Solo productos de la categoría especificada
-                            AND cp.id_categoria_producto = d.id_categoria_aplica
-                            -- Validaciones de cantidad y monto mínimos
+                            AND p.category_id = d.category_id_aplica
                             AND cp.cantidad >= d.cantidad_minima_producto
-                         AND (cp.cantidad * cp.precio_unitario_carrito) >= d.monto_minimo_producto)
-                    -- TIPO 4: Descuento por marca específica
-                    -- Se aplica a todos los productos de una marca determinada
+                            AND (cp.cantidad * cp.precio_unitario_carrito) >= d.monto_minimo_producto)
                     WHEN d.aplica_a = 'marca_especifica' THEN
                         (SELECT COALESCE(SUM(
-                            CASE WHEN d.tipo_calculo THEN 
-                               -- Porcentual: aplica % al valor de cada producto de la marca
-                               (cp.cantidad * cp.precio_unitario_carrito * d.val_porce_descuento / 100)
-                            ELSE 
-                               -- Fijo: aplica descuento fijo por cantidad de productos
-                               cp.cantidad * d.val_monto_descuento
-                            END
+                            CASE WHEN d.tipo_calculo THEN (cp.cantidad * cp.precio_unitario_carrito * d.val_porce_descuento / 100)
+                            ELSE cp.cantidad * d.val_monto_descuento END
                         ), 0)
                         FROM tab_carrito_productos cp
-                        -- JOIN necesario para obtener la marca del producto
-                        JOIN tab_productos p ON (cp.id_categoria_producto = p.id_categoria AND 
-                                                cp.id_linea_producto = p.id_linea AND 
-                                                cp.id_sublinea_producto = p.id_sublinea AND 
-                                                cp.id_producto = p.id_producto
-                                                -- Solo productos activos
-                                                AND p.ind_activo = TRUE)
+                        JOIN tab_product_variants pv ON pv.id = cp.variant_id
+                        JOIN tab_products p ON p.id = pv.product_id AND p.is_active = TRUE
                         WHERE cp.id_carrito = v_id_carrito
-                            -- Solo productos de la marca especificada
                             AND p.id_marca = d.id_marca_aplica
-                            -- Validaciones de cantidad y monto mínimos
                             AND cp.cantidad >= d.cantidad_minima_producto
-                         AND (cp.cantidad * cp.precio_unitario_carrito) >= d.monto_minimo_producto)
+                            AND (cp.cantidad * cp.precio_unitario_carrito) >= d.monto_minimo_producto)
                     -- Si no aplica ningún tipo, descuento = 0
                     ELSE 0
                 END AS descuento_calculado
@@ -273,9 +241,7 @@ BEGIN
             d.nom_descuento, d.des_descuento, d.tipo_calculo,
             d.val_porce_descuento, d.val_monto_descuento, d.aplica_a,
             d.min_valor_pedido, d.cantidad_minima_producto, d.monto_minimo_producto,
-            d.id_categoria, d.id_linea, d.id_sublinea, d.id_producto_aplica,
-            d.id_categoria_aplica, d.id_marca_aplica,
-            d.id_linea_aplica, d.id_sublinea_aplica
+            d.category_id_aplica, d.product_id_aplica, d.id_marca_aplica
         INTO v_canje_info
         FROM tab_canjes_puntos_descuentos c
         JOIN tab_descuentos d ON c.id_descuento = d.id_descuento
@@ -303,101 +269,43 @@ BEGIN
                             -- Fijo: no puede exceder el total del carrito
                             LEAST(v_canje_info.val_monto_descuento, v_total_productos)
                         END
-                    -- TIPO 2: Descuento por producto específico
                     WHEN v_canje_info.aplica_a = 'producto_especifico' THEN
                         (SELECT COALESCE(SUM(
-                            CASE WHEN v_canje_info.tipo_calculo THEN 
-                               -- Porcentual sobre el valor del producto específico
-                               (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
-                            ELSE 
-                               -- Fijo: una sola aplicación por producto
-                               LEAST(cp.cantidad, 1) * v_canje_info.val_monto_descuento
-                            END
+                            CASE WHEN v_canje_info.tipo_calculo THEN (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
+                            ELSE LEAST(cp.cantidad, 1) * v_canje_info.val_monto_descuento END
                         ), 0)
                         FROM tab_carrito_productos cp
+                        JOIN tab_product_variants pv ON pv.id = cp.variant_id
+                        JOIN tab_products p ON p.id = pv.product_id
                         WHERE cp.id_carrito = v_id_carrito
-                            -- Validaciones exactas del producto objetivo
-                            AND cp.id_categoria_producto = v_canje_info.id_categoria
-                            AND cp.id_linea_producto = v_canje_info.id_linea
-                            AND cp.id_sublinea_producto = v_canje_info.id_sublinea
-                            AND cp.id_producto = v_canje_info.id_producto_aplica
-                            -- Validaciones de cantidad y monto mínimos
+                            AND p.id = v_canje_info.product_id_aplica
                             AND cp.cantidad >= v_canje_info.cantidad_minima_producto
-                         AND (cp.cantidad * cp.precio_unitario_carrito) >= v_canje_info.monto_minimo_producto)
-                    -- TIPO 3: Descuento por categoría específica
+                            AND (cp.cantidad * cp.precio_unitario_carrito) >= v_canje_info.monto_minimo_producto)
                     WHEN v_canje_info.aplica_a = 'categoria_especifica' THEN
                         (SELECT COALESCE(SUM(
-                            CASE WHEN v_canje_info.tipo_calculo THEN 
-                               -- Porcentual sobre todos los productos de la categoría
-                               (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
-                            ELSE 
-                               -- Fijo: por cada producto de la categoría
-                               cp.cantidad * v_canje_info.val_monto_descuento
-                            END
+                            CASE WHEN v_canje_info.tipo_calculo THEN (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
+                            ELSE cp.cantidad * v_canje_info.val_monto_descuento END
                         ), 0)
                         FROM tab_carrito_productos cp
+                        JOIN tab_product_variants pv ON pv.id = cp.variant_id
+                        JOIN tab_products p ON p.id = pv.product_id
                         WHERE cp.id_carrito = v_id_carrito
-                            -- Solo productos de la categoría especificada
-                            AND cp.id_categoria_producto = v_canje_info.id_categoria_aplica
-                            -- Validaciones de cantidad y monto mínimos
+                            AND p.category_id = v_canje_info.category_id_aplica
                             AND cp.cantidad >= v_canje_info.cantidad_minima_producto
-                         AND (cp.cantidad * cp.precio_unitario_carrito) >= v_canje_info.monto_minimo_producto)
-                    -- TIPO 4: Descuento por marca específica
+                            AND (cp.cantidad * cp.precio_unitario_carrito) >= v_canje_info.monto_minimo_producto)
                     WHEN v_canje_info.aplica_a = 'marca_especifica' THEN
                         (SELECT COALESCE(SUM(
-                            CASE WHEN v_canje_info.tipo_calculo THEN 
-                               -- Porcentual sobre todos los productos de la marca
-                               (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
-                            ELSE 
-                               -- Fijo: por cada producto de la marca
-                               cp.cantidad * v_canje_info.val_monto_descuento
-                            END
+                            CASE WHEN v_canje_info.tipo_calculo THEN (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
+                            ELSE cp.cantidad * v_canje_info.val_monto_descuento END
                         ), 0)
                         FROM tab_carrito_productos cp
-                        -- JOIN para obtener información de marca del producto
-                        JOIN tab_productos p ON (cp.id_categoria_producto = p.id_categoria AND 
-                                                cp.id_linea_producto = p.id_linea AND 
-                                                cp.id_sublinea_producto = p.id_sublinea AND 
-                                                cp.id_producto = p.id_producto
-                                                AND p.ind_activo = TRUE)
+                        JOIN tab_product_variants pv ON pv.id = cp.variant_id
+                        JOIN tab_products p ON p.id = pv.product_id AND p.is_active = TRUE
                         WHERE cp.id_carrito = v_id_carrito
-                            -- Solo productos de la marca especificada
                             AND p.id_marca = v_canje_info.id_marca_aplica
-                            -- Validaciones de cantidad y monto mínimos
-                            AND cp.cantidad >= v_canje_info.cantidad_minima_producto
-                         AND (cp.cantidad * cp.precio_unitario_carrito) >= v_canje_info.monto_minimo_producto)
-                    -- TIPO 5: Descuento por línea específica
-                    WHEN v_canje_info.aplica_a = 'linea_especifica' THEN
-                        (SELECT COALESCE(SUM(
-                            CASE WHEN v_canje_info.tipo_calculo THEN 
-                               (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
-                            ELSE 
-                               cp.cantidad * v_canje_info.val_monto_descuento
-                            END
-                        ), 0)
-                        FROM tab_carrito_productos cp
-                        WHERE cp.id_carrito = v_id_carrito
-                            AND cp.id_categoria_producto = v_canje_info.id_categoria
-                            AND cp.id_linea_producto = v_canje_info.id_linea_aplica
                             AND cp.cantidad >= v_canje_info.cantidad_minima_producto
                             AND (cp.cantidad * cp.precio_unitario_carrito) >= v_canje_info.monto_minimo_producto)
-                    -- TIPO 6: Descuento por sublínea específica
-                    WHEN v_canje_info.aplica_a = 'sublinea_especifica' THEN
-                        (SELECT COALESCE(SUM(
-                            CASE WHEN v_canje_info.tipo_calculo THEN 
-                               (cp.cantidad * cp.precio_unitario_carrito * v_canje_info.val_porce_descuento / 100)
-                            ELSE 
-                               cp.cantidad * v_canje_info.val_monto_descuento
-                            END
-                        ), 0)
-                        FROM tab_carrito_productos cp
-                        WHERE cp.id_carrito = v_id_carrito
-                            AND cp.id_categoria_producto = v_canje_info.id_categoria
-                            AND cp.id_linea_producto = v_canje_info.id_linea
-                            AND cp.id_sublinea_producto = v_canje_info.id_sublinea_aplica
-                            AND cp.cantidad >= v_canje_info.cantidad_minima_producto
-                            AND (cp.cantidad * cp.precio_unitario_carrito) >= v_canje_info.monto_minimo_producto)
-                    -- Si no aplica ningún tipo, descuento = 0
+                    WHEN v_canje_info.aplica_a IN ('linea_especifica', 'sublinea_especifica') THEN 0
                     ELSE 0
                 END INTO v_total_desc_canjeado;
 
