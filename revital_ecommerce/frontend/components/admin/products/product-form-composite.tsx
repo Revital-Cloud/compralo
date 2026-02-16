@@ -164,19 +164,24 @@ export function ProductFormComposite({
     }
   }, [initialData, form])
 
-  // Pre-llenar cascada (categoría → línea → sublínea) en edición: cuando haya initialData y categorías cargadas
+  const categoryIdFromForm = form.watch('category_id')
+
+  // Pre-llenar cascada (categoría → línea → sublínea) en edición: cuando haya categoría (API o formulario) y categorías cargadas
   useEffect(() => {
-    if (!initialData?.product || list.length === 0) return
-    const product = initialData.product as { category_id?: number | string }
-    const rawCat = product.category_id
-    const leafId = rawCat != null && rawCat !== '' && !Number.isNaN(Number(rawCat)) ? Number(rawCat) : null
+    if (list.length === 0) return
+    const product = initialData?.product as { category_id?: number | string } | undefined
+    const fromProduct = product?.category_id != null && product.category_id !== '' && !Number.isNaN(Number(product.category_id))
+      ? Number(product.category_id)
+      : 0
+    const fromForm = typeof categoryIdFromForm === 'number' && !Number.isNaN(categoryIdFromForm) ? categoryIdFromForm : 0
+    const leafId = fromProduct > 0 ? fromProduct : fromForm > 0 ? fromForm : null
     if (leafId == null || leafId <= 0) return
     const byId = new Map<number, Category>()
     list.forEach((c) => {
       const n = idNum(c)
-      byId.set(n, c)
+      if (!Number.isNaN(n)) byId.set(n, c)
       const alt = (c as { id_categoria?: number }).id_categoria
-      if (alt != null && Number(alt) !== n) byId.set(Number(alt), c)
+      if (alt != null && !Number.isNaN(Number(alt))) byId.set(Number(alt), c)
     })
     const cat = byId.get(leafId)
     if (!cat) return
@@ -193,7 +198,7 @@ export function ProductFormComposite({
     setSelectedParentId(rootId)
     setSelectedLineId(lineId ?? null)
     setSelectedSublineId(sublineId ?? null)
-  }, [initialData?.product, initialData?.product?.category_id, list])
+  }, [initialData?.product, list, categoryIdFromForm])
 
   // Sync form.category_id with leaf selection (categoría/línea/sublínea)
   // lineOptions deriva de selectedParentId, no hace falta en deps; mismo render ya está actualizado
@@ -230,7 +235,7 @@ export function ProductFormComposite({
     )
   }, [])
 
-  const updateVariantAttribute = useCallback((variantIndex: number, attributeId: number, value: string | number | boolean) => {
+  const updateVariantAttribute = useCallback((variantIndex: number, attributeId: number | string, value: string | number | boolean) => {
     setVariants((prev) =>
       prev.map((v, i) => {
         if (i !== variantIndex) return v
@@ -309,6 +314,7 @@ export function ProductFormComposite({
 
   const onLineChange = (value: string) => {
     const id = value ? Number(value) : null
+    if (id === selectedLineId) return
     setSelectedLineId(id)
     setSelectedSublineId(null)
     const hasChildren = id != null && list.some((c) => parentIdNum(c) === id && isCategoryActive(c))
@@ -317,6 +323,7 @@ export function ProductFormComposite({
 
   const onSublineChange = (value: string) => {
     const id = value ? Number(value) : null
+    if (id === selectedSublineId) return
     setSelectedSublineId(id)
     form.setValue('category_id', id ?? 0)
   }
@@ -519,14 +526,24 @@ export function ProductFormComposite({
                           name={attr.attribute_name ?? `Atributo ${attr.attribute_id}`}
                           values={attr.values}
                           value={(() => {
-                            const raw = variant.attributes?.[String(attr.attribute_id)]
+                            const isColorAttr = attr.attribute_name?.toLowerCase() === 'color' || String(attr.attribute_id) === 'dominant'
+                            const raw = isColorAttr
+                              ? (variant.attributes?.['dominant'] ?? variant.attributes?.[String(attr.attribute_id)])
+                              : variant.attributes?.[String(attr.attribute_id)]
                             if (raw === undefined || raw === null) return undefined
                             const n = Number(raw)
-                            return Number.isNaN(n) ? undefined : n
+                            if (!Number.isNaN(n)) return n
+                            const str = String(raw).trim()
+                            if (!str) return undefined
+                            const byValue = (attr.values ?? []).find((v) => (v.value ?? '').trim().toLowerCase() === str.toLowerCase())
+                            return byValue?.id != null ? Number(byValue.id) : undefined
                           })()}
-                          onChange={(attributeValueId) =>
+                          onChange={(attributeValueId) => {
                             updateVariantAttribute(index, attr.attribute_id, attributeValueId)
-                          }
+                            if (attr.attribute_name?.toLowerCase() === 'color' || String(attr.attribute_id) === 'dominant') {
+                              updateVariantAttribute(index, 'dominant', attributeValueId)
+                            }
+                          }}
                           required={attr.is_required}
                         />
                       ) : (

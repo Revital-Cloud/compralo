@@ -773,8 +773,15 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
             "price": float(c["price"]) if c.get("price") is not None else 0,
             "stock": int(c.get("stock") or 0),
             "is_active": bool(c.get("is_active", True)),
-            "attributes": attrs,
+            "attributes": dict(attrs),
         })
+    group_id_to_dominant_value = {int(g["id"]): (g.get("dominant_value") or "") for g in group_rows}
+    for v in variants_flat:
+        gid = int(v["group_id"])
+        dom_val = group_id_to_dominant_value.get(gid)
+        if dom_val is not None and str(dom_val).strip() and str(dom_val).strip().lower() != "sin color":
+            v["attributes"] = dict(v.get("attributes") or {})
+            v["attributes"]["dominant"] = dom_val
     variant_groups = []
     for g in group_rows:
         gid = int(g["id"])
