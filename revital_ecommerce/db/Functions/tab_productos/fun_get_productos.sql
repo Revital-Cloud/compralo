@@ -1,6 +1,6 @@
 /*
  * Lista productos con categoría, precio mínimo, stock total e imagen principal.
- * Usa products, product_variants, product_images, categories.
+ * Usa tab_products, variant_combinations/groups, variant_images, tab_categories.
  */
 CREATE OR REPLACE FUNCTION fun_get_productos()
 RETURNS TABLE (
@@ -27,9 +27,9 @@ BEGIN
         p.description,
         p.id_marca,
         p.is_active,
-        (SELECT MIN(pv.price) FROM tab_product_variants pv WHERE pv.product_id = p.id AND pv.is_active = TRUE) AS precio_min,
-        (SELECT COALESCE(SUM(pv.stock), 0) FROM tab_product_variants pv WHERE pv.product_id = p.id AND pv.is_active = TRUE) AS stock_total,
-        (SELECT pi.image_url FROM tab_product_images pi WHERE pi.product_id = p.id AND pi.is_main = TRUE LIMIT 1) AS img_principal
+        (SELECT MIN(c.price) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS precio_min,
+        (SELECT COALESCE(SUM(c.stock), 0) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS stock_total,
+        (SELECT pvi.image_url FROM tab_product_variant_images pvi JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id WHERE g.product_id = p.id ORDER BY g.id, pvi.sort_order, pvi.id LIMIT 1) AS img_principal
     FROM tab_products p
     JOIN tab_categories c ON c.id = p.category_id
     ORDER BY p.id;

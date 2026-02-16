@@ -8,7 +8,8 @@ CREATE OR REPLACE FUNCTION fun_update_producto(
     p_description TEXT DEFAULT NULL,
     p_id_marca DECIMAL DEFAULT NULL,
     p_is_active BOOLEAN DEFAULT NULL,
-    p_usr_operacion DECIMAL(10) DEFAULT NULL
+    p_usr_operacion DECIMAL(10) DEFAULT NULL,
+    p_id_proveedor DECIMAL DEFAULT NULL
 ) RETURNS VARCHAR AS $$
 DECLARE
     v_slug VARCHAR;
@@ -21,6 +22,9 @@ BEGIN
     END IF;
     IF p_id_marca IS NOT NULL AND NOT EXISTS (SELECT 1 FROM tab_marcas WHERE id_marca = p_id_marca) THEN
         RETURN 'Error: id_marca no existe.';
+    END IF;
+    IF p_id_proveedor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM tab_proveedores WHERE id_proveedor = p_id_proveedor) THEN
+        RETURN 'Error: id_proveedor no existe.';
     END IF;
     IF p_name IS NOT NULL AND length(trim(p_name)) < 2 THEN
         RETURN 'Error: Nombre debe tener al menos 2 caracteres.';
@@ -40,7 +44,8 @@ BEGIN
         id_marca = CASE WHEN p_id_marca IS NOT NULL THEN p_id_marca ELSE id_marca END,
         is_active = COALESCE(p_is_active, is_active),
         usr_update = p_usr_operacion,
-        fec_update = CURRENT_TIMESTAMP
+        fec_update = CURRENT_TIMESTAMP,
+        id_proveedor = p_id_proveedor
     WHERE id = p_id;
 
     IF FOUND THEN RETURN 'Producto actualizado correctamente'; ELSE RETURN 'Error al actualizar'; END IF;

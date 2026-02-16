@@ -166,7 +166,7 @@ export function CategoryModal({
       if (mode === 'create') {
         const res = await createCategory({
           name: values.name,
-          ind_activo: values.ind_activo,
+          is_active: values.ind_activo ?? true,
           parent_id,
         })
         const id = (res as { id?: number }).id
@@ -181,7 +181,7 @@ export function CategoryModal({
         }
         await updateCategory(id, {
           name: values.name,
-          ind_activo: values.ind_activo,
+          is_active: values.ind_activo,
           parent_id,
         })
         await updateCategoryAttributes(id, attributeRows)

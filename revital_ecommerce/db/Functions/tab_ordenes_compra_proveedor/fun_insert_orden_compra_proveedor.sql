@@ -143,10 +143,11 @@ BEGIN
     -- Si se indicó variante, validar que exista y pertenezca al producto
     IF p_variant_id IS NOT NULL AND p_variant_id > 0 THEN
         SELECT EXISTS(
-            SELECT 1 FROM tab_product_variants pv
-            WHERE pv.id = p_variant_id
-              AND pv.product_id = p_product_id
-              AND pv.is_active = TRUE
+            SELECT 1 FROM tab_product_variant_combinations c
+            JOIN tab_product_variant_groups g ON g.id = c.group_id
+            WHERE c.id = p_variant_id
+              AND g.product_id = p_product_id
+              AND c.is_active = TRUE
         ) INTO v_variant_valida;
         IF NOT v_variant_valida THEN
             RETURN json_build_object(

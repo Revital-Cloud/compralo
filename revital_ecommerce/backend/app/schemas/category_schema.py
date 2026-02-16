@@ -24,16 +24,16 @@ class CategoryBase(BaseModel):
     class Config:
         from_attributes = True
       
-# Esquema para la Creación de Categorías
+# Esquema para la Creación de Categorías (acepta ind_activo del frontend)
 class CategoryCreate(CategoryBase):
     """
     Esquema para la Creación de Categorías.
     Hereda de `CategoryBase` y se utiliza para validar los datos
-    al crear una nueva categoría.
-    """ 
-    pass
+    al crear una nueva categoría. Acepta ind_activo como alias de is_active.
+    """
+    ind_activo: Optional[bool] = Field(None, description="Alias de is_active (frontend).")
 
-# Esquema para la Actualización de Categorías
+# Esquema para la Actualización de Categorías (acepta ind_activo del frontend)
 class CategoryUpdate(BaseModel):
     """
     Esquema para la Actualización de Categorías.
@@ -41,6 +41,7 @@ class CategoryUpdate(BaseModel):
     """
     name: Optional[str] = Field(None, description="Nombre de la categoría.")
     is_active: Optional[bool] = Field(None, description="tab_categories.is_active.")
+    ind_activo: Optional[bool] = Field(None, description="Alias de is_active (frontend).")
     parent_id: Optional[Decimal] = Field(None, description="ID de la categoría padre.")
     usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
 
@@ -48,9 +49,10 @@ class CategoryUpdate(BaseModel):
 class Category(CategoryBase):
     """
     Esquema para la respuesta de una categoría (tab_categories).
-    id = tab_categories.id.
+    id = tab_categories.id. ind_activo = mismo valor que is_active para compatibilidad con el frontend.
     """
     id: Decimal = Field(..., description="Identificador único para la categoría (tab_categories.id).")
+    ind_activo: Optional[bool] = Field(None, description="Alias de is_active para el frontend.")
     productos_count: Optional[int] = Field(None, description="Cantidad de productos activos en la categoría.")
         
 # Esquema para toggle (activar/desactivar)

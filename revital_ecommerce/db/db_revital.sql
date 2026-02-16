@@ -36,32 +36,32 @@ DROP TABLE IF EXISTS tab_ordenes; --depende de usuarios y descuentos
 DROP TABLE IF EXISTS tab_descuentos; --depende de categorias, marcas, productos
 
 -- Nivel 2: Tablas intermedias
-DROP TABLE IF EXISTS tab_productos; --depende de sublineas, proveedores, marcas (ya no existe; por si acaso)
 DROP TABLE IF EXISTS tab_carritos; --depende de usuarios
 DROP TABLE IF EXISTS tab_direcciones_usuario; --depende de usuarios
--- Tablas KPIs/dashboards (dependen de tab_usuarios; deben dropearse antes que tab_usuarios)
+-- Tablas KPIs/dashboards (dependen de tab_usuarios; dropear antes que tab_usuarios)
 DROP TABLE IF EXISTS tab_alertas_kpi;
 DROP TABLE IF EXISTS tab_compartir_dashboards;
 DROP TABLE IF EXISTS tab_widgets_dashboard;
 DROP TABLE IF EXISTS tab_dashboards_usuarios;
-DROP TABLE IF EXISTS tab_valores_kpi_cache; -- depende de tab_kpis_maestros
+DROP TABLE IF EXISTS tab_valores_kpi_cache;
 DROP TABLE IF EXISTS tab_kpis_maestros;
-DROP TABLE IF EXISTS tab_sublineas; --depende de lineas
-DROP TABLE IF EXISTS tab_lineas; --depende de categorias
 DROP TABLE IF EXISTS tab_usuarios; --depende de roles
 
 
 -- Nivel 1: Tablas base (no dependen de otras)
 -- Nuevo catálogo (eliminar antes de recrear para script idempotente)
 -- Nombres antiguos (por si la DB viene de antes del prefijo tab_)
-DROP TABLE IF EXISTS product_variant_attributes;
-DROP TABLE IF EXISTS category_attributes;
-DROP TABLE IF EXISTS product_images;
-DROP TABLE IF EXISTS product_variants;
-DROP TABLE IF EXISTS attributes;
-DROP TABLE IF EXISTS products;
-DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS tab_product_variant_attributes;
+DROP TABLE IF EXISTS tab_category_attributes;
+DROP TABLE IF EXISTS tab_product_images;
+DROP TABLE IF EXISTS tab_product_variants;
+DROP TABLE IF EXISTS tab_attributes;
+DROP TABLE IF EXISTS tab_products;
+DROP TABLE IF EXISTS tab_categories;
 -- Nombres con prefijo tab_
+DROP TABLE IF EXISTS tab_product_variant_images;
+DROP TABLE IF EXISTS tab_product_variant_combinations;
+DROP TABLE IF EXISTS tab_product_variant_groups;
 DROP TABLE IF EXISTS tab_product_variant_attributes;
 DROP TABLE IF EXISTS tab_category_attributes;
 DROP TABLE IF EXISTS tab_product_images;
@@ -71,9 +71,6 @@ DROP TABLE IF EXISTS tab_attributes;
 DROP TABLE IF EXISTS tab_products;
 DROP TABLE IF EXISTS tab_categories;
 
-DROP TABLE IF EXISTS tab_categorias;
-DROP TABLE IF EXISTS tab_lineas;
-DROP TABLE IF EXISTS tab_sublineas;
 DROP TABLE IF EXISTS tab_marcas;
 DROP TABLE IF EXISTS tab_proveedores;
 DROP TABLE IF EXISTS tab_roles;
@@ -163,6 +160,7 @@ CREATE TABLE IF NOT EXISTS tab_products (
     slug            VARCHAR                     NOT NULL UNIQUE,
     description     TEXT                        NULL,
     id_marca        DECIMAL(10)                 NULL,
+    id_proveedor    DECIMAL(10)                 NULL,
     is_active       BOOLEAN                     DEFAULT TRUE,
     usr_insert      DECIMAL(10)                 NOT NULL,
     fec_insert      TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
@@ -172,56 +170,52 @@ CREATE TABLE IF NOT EXISTS tab_products (
 CREATE INDEX IF NOT EXISTS idx_tab_products_category_id ON tab_products(category_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_tab_products_slug ON tab_products(slug);
 
--- Tabla tab_product_variants (precio y stock por variante; color/size van por atributos)
-CREATE TABLE IF NOT EXISTS tab_product_variants (
-    id              DECIMAL(10)                 PRIMARY KEY,
-    product_id      DECIMAL(10)                 NOT NULL REFERENCES tab_products(id),
-    sku             VARCHAR                     NOT NULL UNIQUE,
-    price           DECIMAL(12,2)               NOT NULL CHECK (price >= 0),
-    stock           INT                         NOT NULL DEFAULT 0 CHECK (stock >= 0),
-    is_active       BOOLEAN                     DEFAULT TRUE,
-    usr_insert      DECIMAL(10)                 NOT NULL,
-    fec_insert      TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-    usr_update      DECIMAL(10),
-    fec_update      TIMESTAMP WITHOUT TIME ZONE NULL
-);
-CREATE INDEX IF NOT EXISTS idx_tab_product_variants_product_id ON tab_product_variants(product_id);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_tab_product_variants_sku ON tab_product_variants(sku);
-
--- Tabla tab_product_images (imágenes por producto o por variante)
-CREATE TABLE IF NOT EXISTS tab_product_images (
-    id              DECIMAL(10)                 PRIMARY KEY,
-    product_id      DECIMAL(10)                 NOT NULL REFERENCES tab_products(id),
-    variant_id      DECIMAL(10)                 NULL REFERENCES tab_product_variants(id),
-    image_url       VARCHAR                     NOT NULL,
-    is_main         BOOLEAN                     NOT NULL DEFAULT FALSE,
-    sort_order      INT                         NOT NULL DEFAULT 0,
-    usr_insert      DECIMAL(10)                 NOT NULL,
-    fec_insert      TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-    usr_update      DECIMAL(10),
-    fec_update      TIMESTAMP WITHOUT TIME ZONE NULL
-);
-CREATE INDEX IF NOT EXISTS idx_tab_product_images_product_id ON tab_product_images(product_id);
-CREATE INDEX IF NOT EXISTS idx_tab_product_images_variant_id ON tab_product_images(variant_id) WHERE variant_id IS NOT NULL;
-
--- Tabla tab_product_variant_attributes (valores por variante; attribute_value_id para valores predefinidos)
-CREATE TABLE IF NOT EXISTS tab_product_variant_attributes (
-    id                  DECIMAL(10)                 PRIMARY KEY,
-    variant_id          DECIMAL(10)                 NOT NULL REFERENCES tab_product_variants(id),
-    attribute_id        DECIMAL(10)                 NOT NULL REFERENCES tab_attributes(id),
-    attribute_value_id  DECIMAL(10)                 NULL REFERENCES tab_attribute_values(id),
-    value_text         TEXT                        NULL,
-    value_number       DECIMAL(20,6)               NULL,
-    value_boolean      BOOLEAN                     NULL,
-    usr_insert         DECIMAL(10)                 NOT NULL,
+-- Tablas modelo variant_groups (atributo dominante: un grupo = una galería; combinaciones = stock/SKU)
+CREATE TABLE IF NOT EXISTS tab_product_variant_groups (
+    id                  BIGSERIAL PRIMARY KEY,
+    product_id          DECIMAL(10) NOT NULL REFERENCES tab_products(id) ON DELETE CASCADE,
+    dominant_attribute  VARCHAR(100) NOT NULL,
+    dominant_value     VARCHAR(255) NOT NULL,
+    is_active          BOOLEAN NOT NULL DEFAULT TRUE,
+    usr_insert         DECIMAL(10) NOT NULL DEFAULT 0,
     fec_insert         TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
     usr_update         DECIMAL(10),
-    fec_update         TIMESTAMP WITHOUT TIME ZONE NULL
+    fec_update         TIMESTAMP WITHOUT TIME ZONE,
+    UNIQUE (product_id, dominant_value)
 );
-CREATE INDEX IF NOT EXISTS idx_tab_product_variant_attributes_variant_id ON tab_product_variant_attributes(variant_id);
-CREATE INDEX IF NOT EXISTS idx_tab_product_variant_attributes_attribute_id ON tab_product_variant_attributes(attribute_id);
-CREATE INDEX IF NOT EXISTS idx_tab_product_variant_attributes_value_text ON tab_product_variant_attributes(value_text);
-CREATE INDEX IF NOT EXISTS idx_tab_product_variant_attributes_attribute_value_id ON tab_product_variant_attributes(attribute_value_id) WHERE attribute_value_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_tab_product_variant_groups_product_id ON tab_product_variant_groups(product_id);
+CREATE INDEX IF NOT EXISTS idx_tab_product_variant_groups_product_active ON tab_product_variant_groups(product_id, is_active);
+
+CREATE TABLE IF NOT EXISTS tab_product_variant_combinations (
+    id              DECIMAL(10) PRIMARY KEY,
+    group_id        BIGINT NOT NULL REFERENCES tab_product_variant_groups(id) ON DELETE CASCADE,
+    sku             VARCHAR(120) NOT NULL UNIQUE,
+    price           DECIMAL(12,2) NOT NULL CHECK (price >= 0),
+    stock           INT NOT NULL DEFAULT 0 CHECK (stock >= 0),
+    attributes      JSONB NOT NULL DEFAULT '{}',
+    is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+    usr_insert      DECIMAL(10) NOT NULL DEFAULT 0,
+    fec_insert      TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    usr_update      DECIMAL(10),
+    fec_update      TIMESTAMP WITHOUT TIME ZONE
+);
+CREATE INDEX IF NOT EXISTS idx_tab_product_variant_combinations_group_id ON tab_product_variant_combinations(group_id);
+CREATE INDEX IF NOT EXISTS idx_tab_product_variant_combinations_group_active ON tab_product_variant_combinations(group_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_tab_product_variant_combinations_attributes_gin ON tab_product_variant_combinations USING GIN (attributes);
+
+CREATE TABLE IF NOT EXISTS tab_product_variant_images (
+    id               BIGSERIAL PRIMARY KEY,
+    variant_group_id BIGINT NOT NULL REFERENCES tab_product_variant_groups(id) ON DELETE CASCADE,
+    image_url        VARCHAR NOT NULL,
+    is_primary       BOOLEAN NOT NULL DEFAULT FALSE,
+    sort_order       INT NOT NULL DEFAULT 0,
+    usr_insert      DECIMAL(10) NOT NULL DEFAULT 0,
+    fec_insert      TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    usr_update      DECIMAL(10),
+    fec_update      TIMESTAMP WITHOUT TIME ZONE
+);
+CREATE INDEX IF NOT EXISTS idx_tab_product_variant_images_variant_group_id ON tab_product_variant_images(variant_group_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tab_product_variant_images_group_url ON tab_product_variant_images(variant_group_id, image_url);
 
 -- =============================================================
 -- Estadísticas por categoría (referencia a tab_categories)
@@ -429,6 +423,8 @@ CREATE TABLE IF NOT EXISTS tab_marcas (
 
 ALTER TABLE tab_products
     ADD CONSTRAINT fk_tab_products_marca FOREIGN KEY (id_marca) REFERENCES tab_marcas(id_marca);
+ALTER TABLE tab_products
+    ADD CONSTRAINT fk_tab_products_proveedor FOREIGN KEY (id_proveedor) REFERENCES tab_proveedores(id_proveedor);
 
 -- Tabla de Órdenes de Compra a Proveedores (referencia a product_id y variant_id)
 CREATE TABLE IF NOT EXISTS tab_orden_compra_proveedor (
@@ -438,7 +434,7 @@ CREATE TABLE IF NOT EXISTS tab_orden_compra_proveedor (
     fec_esperada_entrega        DATE NOT NULL,                         -- Fecha esperada de entrega
     observaciones_orden         VARCHAR,                               -- Observaciones generales
     product_id                  DECIMAL(10) NOT NULL REFERENCES tab_products(id),       -- Producto
-    variant_id                  DECIMAL(10) NULL REFERENCES tab_product_variants(id),  -- Variante (opcional)
+    variant_id                  DECIMAL(10) NULL REFERENCES tab_product_variant_combinations(id),  -- Combinación (opcional)
     cantidad_solicitada          INT NOT NULL CHECK (cantidad_solicitada > 0),     -- Cantidad pedida
     cantidad_recibida            INT NOT NULL DEFAULT 0 CHECK (cantidad_recibida >= 0), -- Cantidad recibida
     costo_unitario              DECIMAL(10,2) NOT NULL CHECK (costo_unitario >= 0),    -- Costo por unidad
@@ -734,14 +730,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_pagos_provider_transaction_unique
     WHERE provider_transaction_id IS NOT NULL;
 
 
--- Tabla de productos de la orden (referencia a variant_id)
+-- Tabla de productos de la orden (referencia a combination id)
 CREATE TABLE IF NOT EXISTS tab_orden_productos (
     id_orden_producto           DECIMAL(10),
     id_orden                    DECIMAL(10) 	NOT NULL REFERENCES tab_ordenes(id_orden),
-    variant_id                  DECIMAL(10) 	NOT NULL REFERENCES tab_product_variants(id),
+    variant_id                  DECIMAL(10) 	NOT NULL REFERENCES tab_product_variant_combinations(id),
     cant_producto               INT 			NOT NULL CHECK (cant_producto > 0),
     precio_unitario_orden       DECIMAL(10,0) 	NOT NULL CHECK (precio_unitario_orden >= 0),
     subtotal                    DECIMAL(10,0) 	NOT NULL CHECK (subtotal >= 0),
+    opciones_elegidas           JSONB 			NOT NULL DEFAULT '{}'::JSONB,
     usr_insert                  DECIMAL(10) 	NOT NULL,
     fec_insert                  TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     usr_update                  DECIMAL(10),
@@ -753,13 +750,14 @@ CREATE TABLE IF NOT EXISTS tab_orden_productos (
 CREATE INDEX IF NOT EXISTS idx_orden_productos_orden ON tab_orden_productos(id_orden);
 CREATE INDEX IF NOT EXISTS idx_orden_productos_variant_id ON tab_orden_productos(variant_id);
 
--- Tabla Carrito Productos (referencia a variant_id)
+-- Tabla Carrito Productos (referencia a combination id)
 CREATE TABLE IF NOT EXISTS tab_carrito_productos (
     id_carrito_producto         SERIAL,
     id_carrito                  INT 			NOT NULL REFERENCES tab_carritos(id_carrito),
-    variant_id                  DECIMAL(10) 	NOT NULL REFERENCES tab_product_variants(id),
+    variant_id                  DECIMAL(10) 	NOT NULL REFERENCES tab_product_variant_combinations(id),
     cantidad                    INT 			NOT NULL DEFAULT 1 CHECK (cantidad > 0),
     precio_unitario_carrito     DECIMAL(7,0) 	NOT NULL CHECK (precio_unitario_carrito >= 0),
+    opciones_elegidas           JSONB 			NOT NULL DEFAULT '{}'::JSONB,
     usr_insert                  DECIMAL(10) 	NOT NULL,
     fec_insert                  TIMESTAMP 		WITHOUT TIME ZONE NOT NULL,
     usr_update                  DECIMAL(10),
@@ -770,10 +768,10 @@ CREATE TABLE IF NOT EXISTS tab_carrito_productos (
 CREATE INDEX IF NOT EXISTS idx_carrito_productos_carrito ON tab_carrito_productos(id_carrito);
 CREATE INDEX IF NOT EXISTS idx_carrito_productos_variant_id ON tab_carrito_productos(variant_id);
 
--- Tabla Movimientos de Inventario (referencia a variant_id)
+-- Tabla Movimientos de Inventario (referencia a combination id)
 CREATE TABLE IF NOT EXISTS tab_movimientos_inventario (
     id_movimiento               SERIAL,
-    variant_id                  DECIMAL(10) 	NOT NULL REFERENCES tab_product_variants(id),
+    variant_id                  DECIMAL(10) 	NOT NULL REFERENCES tab_product_variant_combinations(id),
     tipo_movimiento             VARCHAR(25) 	NOT NULL CHECK (tipo_movimiento IN ('entrada_compra', 'salida_venta', 'ajuste_incremento', 'ajuste_decremento', 'devolucion_usuario', 'devolucion_proveedor', 'inventario_inicial')),
     cantidad                    INT 			NOT NULL CHECK (cantidad >= 0),
     costo_unitario_movimiento   DECIMAL(10,2) 	DEFAULT NULL,

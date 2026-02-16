@@ -8,7 +8,8 @@ CREATE OR REPLACE FUNCTION fun_insert_producto(
     p_description TEXT DEFAULT NULL,
     p_id_marca DECIMAL DEFAULT NULL,
     p_is_active BOOLEAN DEFAULT TRUE,
-    p_usr_operacion DECIMAL(10) DEFAULT NULL
+    p_usr_operacion DECIMAL(10) DEFAULT NULL,
+    p_id_proveedor DECIMAL DEFAULT NULL
 ) RETURNS VARCHAR AS $$
 DECLARE
     v_id DECIMAL(10);
@@ -25,12 +26,15 @@ BEGIN
     IF p_id_marca IS NOT NULL AND NOT EXISTS (SELECT 1 FROM tab_marcas WHERE id_marca = p_id_marca) THEN
         RETURN 'Error: id_marca no existe.';
     END IF;
+    IF p_id_proveedor IS NOT NULL AND NOT EXISTS (SELECT 1 FROM tab_proveedores WHERE id_proveedor = p_id_proveedor) THEN
+        RETURN 'Error: id_proveedor no existe.';
+    END IF;
 
     v_id := (SELECT COALESCE(MAX(id), 0) + 1 FROM tab_products);
     v_slug := fun_generate_unique_slug(p_name, 'tab_products', NULL);
 
-    INSERT INTO tab_products (id, category_id, name, slug, description, id_marca, is_active, usr_insert)
-    VALUES (v_id, p_category_id, trim(p_name), v_slug, p_description, p_id_marca, COALESCE(p_is_active, TRUE), v_usr);
+    INSERT INTO tab_products (id, category_id, name, slug, description, id_marca, is_active, usr_insert, id_proveedor)
+    VALUES (v_id, p_category_id, trim(p_name), v_slug, p_description, p_id_marca, COALESCE(p_is_active, TRUE), v_usr, p_id_proveedor);
 
     RETURN 'OK:' || v_id;
 EXCEPTION

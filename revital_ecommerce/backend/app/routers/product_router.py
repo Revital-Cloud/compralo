@@ -255,7 +255,9 @@ async def update_product_composite_route(
                     urls.append(main_url)
                 if gallery:
                     urls.extend(gallery)
-                payload.image_urls = (payload.image_urls or []) + urls
+                existing = set((payload.image_urls or []) or [])
+                new_urls = [u for u in urls if (u or "").strip() and (u or "").strip() not in existing]
+                payload.image_urls = (payload.image_urls or []) + new_urls
         else:
             body = await request.json()
             payload = ProductCreateComposite.model_validate(body)

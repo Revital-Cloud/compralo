@@ -4,6 +4,8 @@ export { ProductsGrid } from './products-grid';
 export { Pagination } from './pagination';
 export { ProductFormComposite } from './product-form-composite';
 export { ProductImageUpload } from './product-image-upload';
+export { UnifiedProductImagesPanel } from './unified-product-images-panel';
 export { ProductCreateHeader } from './product-create-header';
 export { VariantImagesCarousel } from './variant-images-carousel';
+export { AllVariantImagesList } from './all-variant-images-list';
 export { VariantImageUpload } from './variant-image-upload';

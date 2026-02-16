@@ -90,7 +90,7 @@ export interface CategoryAttributeItem {
  */
 export async function createCategory(categoryData: {
   name: string;
-  ind_activo?: boolean;
+  is_active?: boolean;
   parent_id?: number | null;
 }): Promise<ApiResponse & { id?: number }> {
   return await post<ApiResponse & { id?: number }>('/categories', categoryData);
@@ -103,7 +103,7 @@ export async function updateCategory(
   id: string | number, 
   categoryData: {
     name?: string;
-    ind_activo?: boolean;
+    is_active?: boolean;
     parent_id?: number | null;
   }
 ): Promise<ApiResponse> {

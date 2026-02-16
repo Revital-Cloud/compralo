@@ -5,7 +5,7 @@
 CREATE OR REPLACE FUNCTION fun_eliminar_producto_carrito(
     p_id_usuario tab_usuarios.id_usuario%TYPE,
     p_session_id tab_carritos.session_id%TYPE,
-    p_variant_id tab_product_variants.id%TYPE,
+    p_variant_id tab_product_variant_combinations.id%TYPE,
     p_cantidad tab_carrito_productos.cantidad%TYPE,
     p_usr_operacion tab_carrito_productos.usr_update%TYPE
 ) RETURNS JSON AS $$

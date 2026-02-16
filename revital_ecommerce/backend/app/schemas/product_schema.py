@@ -30,7 +30,7 @@ class ProductImages(BaseModel):
 class ProductBase(BaseModel):
     """
     Esquema base alineado con tab_products: id, category_id, name, slug, description, id_marca, is_active.
-    Precio y stock están en tab_product_variants; imágenes en tab_product_images.
+    Precio y stock en tab_product_variant_combinations; imágenes en tab_product_variant_images.
     """
     name: str = Field(..., description="tab_products.name.")
     category_id: Optional[Decimal] = Field(None, description="tab_products.category_id.")
@@ -226,6 +226,7 @@ class ProductCreateBase(BaseModel):
     name: str = Field(..., min_length=2, description="Nombre del producto.")
     category_id: Decimal = Field(..., description="ID de categoría (tab_categories).")
     id_marca: Optional[Decimal] = Field(None, description="ID de marca.")
+    id_proveedor: Optional[Decimal] = Field(None, description="ID de proveedor (tab_proveedores).")
     description: Optional[str] = Field(None, description="Descripción del producto.")
     is_active: bool = Field(True, description="Producto activo.")
 

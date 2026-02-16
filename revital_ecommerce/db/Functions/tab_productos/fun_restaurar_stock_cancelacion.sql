@@ -1,6 +1,6 @@
 /*
  * Restaura stock de variantes cuando una orden pasa a estado cancelado (ind_estado = 4).
- * Usa tab_orden_productos.variant_id y product_variants.
+ * Usa tab_orden_productos.variant_id (combination id) y tab_product_variant_combinations.
  */
 CREATE OR REPLACE FUNCTION fun_restaurar_stock_cancelacion()
 RETURNS TRIGGER AS $$
@@ -17,18 +17,19 @@ BEGIN
     FOR v_record IN
         SELECT op.id_orden_producto, op.variant_id, op.cant_producto, p.name AS nom_producto
         FROM tab_orden_productos op
-        JOIN tab_product_variants pv ON pv.id = op.variant_id
-        JOIN tab_products p ON p.id = pv.product_id
+        JOIN tab_product_variant_combinations pv ON pv.id = op.variant_id
+        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+        JOIN tab_products p ON p.id = g.product_id
         WHERE op.id_orden = NEW.id_orden
     LOOP
         SELECT stock INTO v_stock_actual
-        FROM tab_product_variants
+        FROM tab_product_variant_combinations
         WHERE id = v_record.variant_id;
 
         v_stock_nuevo := v_stock_actual + v_record.cant_producto;
 
-        UPDATE tab_product_variants
-        SET stock = v_stock_nuevo, updated_at = NOW()
+        UPDATE tab_product_variant_combinations
+        SET stock = v_stock_nuevo, usr_update = COALESCE(NEW.usr_update, 1000000000), fec_update = NOW()
         WHERE id = v_record.variant_id;
 
         INSERT INTO tab_movimientos_inventario (

@@ -201,8 +201,7 @@ def get_order_detail_admin(db: Session, id_orden: int):
             d = dict(row)
             return {k: _to_jsonable(v) for k, v in d.items()}
             
-        # Productos de la orden (tab_orden_productos usa variant_id → tab_product_variants, tab_products)
-        # opciones_elegidas: migración add_opciones_elegidas; si viene vacío se rellena desde atributos de la variante
+        # Productos de la orden (variant_id = tab_product_variant_combinations.id; producto vía group)
         products_query = text("""
         SELECT 
             op.variant_id,
@@ -211,18 +210,14 @@ def get_order_detail_admin(db: Session, id_orden: int):
             op.cant_producto AS cantidad,
             op.precio_unitario_orden AS val_precio_unitario,
             op.subtotal AS val_subtotal,
-            COALESCE(op.opciones_elegidas, '{}'::JSONB) AS opciones_elegidas,
-            img.image_url AS imagen_url
+            COALESCE(op.opciones_elegidas, pv.attributes, '{}'::JSONB) AS opciones_elegidas,
+            (SELECT pvi.image_url FROM tab_product_variant_images pvi
+             WHERE pvi.variant_group_id = pv.group_id
+             ORDER BY pvi.is_primary DESC, pvi.sort_order, pvi.id LIMIT 1) AS imagen_url
         FROM tab_orden_productos op
-        JOIN tab_product_variants pv ON pv.id = op.variant_id
-        JOIN tab_products p ON p.id = pv.product_id
-        LEFT JOIN LATERAL (
-            SELECT pi.image_url
-            FROM tab_product_images pi
-            WHERE pi.variant_id = op.variant_id OR (pi.variant_id IS NULL AND pi.product_id = p.id)
-            ORDER BY (pi.variant_id IS NOT NULL) DESC, pi.is_main DESC, pi.sort_order
-            LIMIT 1
-        ) img ON true
+        JOIN tab_product_variant_combinations pv ON pv.id = op.variant_id
+        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+        JOIN tab_products p ON p.id = g.product_id
         WHERE op.id_orden = :id_orden
         """)
         products_result = db.execute(products_query, {"id_orden": id_orden})
@@ -542,7 +537,7 @@ def get_order_with_items(db: Session, id_orden: Decimal):
     """
     Devuelve la orden y un arreglo `items` con el snapshot de productos comprados
     (nombre, cantidad, precio unitario, total, variante y atributos). Usa variant_id
-    en tab_orden_productos y JOIN a tab_product_variants + tab_products.
+    en tab_orden_productos y JOIN a tab_product_variant_combinations + tab_products.
     """
     # 1) Obtener la orden base
     id_orden_val = int(id_orden) if id_orden is not None else None
@@ -575,28 +570,14 @@ def get_order_with_items(db: Session, id_orden: Decimal):
                 op.cant_producto AS quantity,
                 op.precio_unitario_orden AS unit_price,
                 op.subtotal AS total_price,
-                COALESCE(
-                    (SELECT pi.image_url FROM tab_product_images pi
-                     WHERE pi.product_id = COALESCE(p.id, pv.product_id) AND pi.variant_id = op.variant_id
-                     ORDER BY pi.is_main DESC NULLS LAST, pi.sort_order NULLS LAST, pi.id
-                     LIMIT 1),
-                    (SELECT pi.image_url FROM tab_product_images pi
-                     WHERE pi.product_id = COALESCE(p.id, pv.product_id) AND pi.variant_id IS NULL AND pi.is_main = TRUE
-                     LIMIT 1)
-                ) AS product_image,
-                COALESCE(
-                    (
-                        SELECT jsonb_object_agg(a.name, COALESCE(pva.value_text, av.value))
-                        FROM tab_product_variant_attributes pva
-                        JOIN tab_attributes a ON a.id = pva.attribute_id
-                        LEFT JOIN tab_attribute_values av ON av.id = pva.attribute_value_id
-                        WHERE pva.variant_id = op.variant_id
-                    ),
-                    '{}'::jsonb
-                ) AS opciones_elegidas
+                (SELECT pvi.image_url FROM tab_product_variant_images pvi
+                 WHERE pvi.variant_group_id = pv.group_id
+                 ORDER BY pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id LIMIT 1) AS product_image,
+                COALESCE(op.opciones_elegidas, pv.attributes, '{}'::jsonb) AS opciones_elegidas
             FROM tab_orden_productos op
-            LEFT JOIN tab_product_variants pv ON pv.id = op.variant_id
-            LEFT JOIN tab_products p ON p.id = pv.product_id
+            LEFT JOIN tab_product_variant_combinations pv ON pv.id = op.variant_id
+            LEFT JOIN tab_product_variant_groups g ON g.id = pv.group_id
+            LEFT JOIN tab_products p ON p.id = g.product_id
             WHERE op.id_orden = :id_orden
             ORDER BY op.id_orden_producto ASC
             """

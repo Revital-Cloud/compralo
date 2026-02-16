@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 import { Input, Label, Button, Textarea, Checkbox } from '@/components/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui'
 import { useAllCategories } from '@/hooks/use-categories'
+import { useAllProviders } from '@/hooks/use-providers'
 import { useBrands } from '@/hooks/use-products'
 import { getCategoryAttributesWithValues } from '@/services/category.service'
 import { useQuery } from '@tanstack/react-query'
@@ -18,16 +19,32 @@ import type { ProductAdminDetailComposite } from '@/services/product.service'
 import { IconPlus, IconTrash } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 import { VariantImageUpload } from './variant-image-upload'
+import type { Category } from '@/types/category'
 
 const schema = z.object({
   name: z.string().min(2, 'Mínimo 2 caracteres'),
-  category_id: z.coerce.number().positive('Seleccione una categoría'),
+  category_id: z.coerce.number().min(1, 'Seleccione al menos Línea (o Línea y Sublínea)'),
   id_marca: z.union([z.coerce.number(), z.null()]).optional(),
+  id_proveedor: z.union([z.coerce.number(), z.null()]).optional(),
   description: z.string().optional(),
   is_active: z.boolean().optional().default(true),
 })
 
 type ProductFields = z.output<typeof schema>
+
+function isCategoryActive(c: Category): boolean {
+  return (c.ind_activo ?? c.is_active) !== false
+}
+
+function idNum(c: Category & { id_categoria?: number }): number {
+  const raw = c.id ?? (c as { id_categoria?: number }).id_categoria
+  return typeof raw === 'number' ? raw : Number(raw)
+}
+
+function parentIdNum(c: Category): number | null {
+  if (c.parent_id == null) return null
+  return typeof c.parent_id === 'number' ? c.parent_id : Number(c.parent_id)
+}
 
 const defaultVariant = (): VariantCreateItem => ({
   price: 0,
@@ -58,12 +75,37 @@ export function ProductFormComposite({
 }: ProductFormCompositeProps) {
   const isEdit = !!initialData
   const [variants, setVariants] = useState<VariantCreateItem[]>([defaultVariant()])
+  const [selectedParentId, setSelectedParentId] = useState<number | null>(null)
+  const [selectedLineId, setSelectedLineId] = useState<number | null>(null)
+  const [selectedSublineId, setSelectedSublineId] = useState<number | null>(null)
 
   useEffect(() => {
     onVariantsChange?.(variants)
   }, [variants, onVariantsChange])
   const { data: categories = [] } = useAllCategories()
   const { data: brands = [] } = useBrands()
+  const { data: providers = [] } = useAllProviders()
+
+  const list = Array.isArray(categories) ? (categories as Category[]) : []
+  const rootOptions = useMemo(
+    () => list.filter((c) => parentIdNum(c) == null && isCategoryActive(c)),
+    [list]
+  )
+  const lineOptions = useMemo(
+    () =>
+      selectedParentId == null
+        ? []
+        : list.filter((c) => parentIdNum(c) === selectedParentId && isCategoryActive(c)),
+    [list, selectedParentId]
+  )
+  const sublineOptions = useMemo(
+    () =>
+      selectedLineId == null
+        ? []
+        : list.filter((c) => parentIdNum(c) === selectedLineId && isCategoryActive(c)),
+    [list, selectedLineId]
+  )
+  const lineHasChildren = sublineOptions.length > 0
 
   const form = useForm<ProductFields>({
     resolver: zodResolver(schema) as Resolver<ProductFields>,
@@ -71,6 +113,7 @@ export function ProductFormComposite({
       name: '',
       category_id: 0,
       id_marca: undefined,
+      id_proveedor: undefined,
       description: '',
       is_active: true,
     },
@@ -78,15 +121,18 @@ export function ProductFormComposite({
 
   useEffect(() => {
     if (initialData) {
-      const product = initialData.product as { category_id?: number | string; id_marca?: number | string | null; name?: string; description?: string | null; is_active?: boolean }
+      const product = initialData.product as { category_id?: number | string; id_marca?: number | string | null; id_proveedor?: number | string | null; name?: string; description?: string | null; is_active?: boolean }
       const catId = product.category_id
       const marcaId = product.id_marca
+      const proveedorId = product.id_proveedor
       const categoryIdNum = catId != null && catId !== '' && !Number.isNaN(Number(catId)) ? Number(catId) : 0
       const marcaIdNum = marcaId != null && marcaId !== '' && !Number.isNaN(Number(marcaId)) ? Number(marcaId) : undefined
+      const proveedorIdNum = proveedorId != null && proveedorId !== '' && !Number.isNaN(Number(proveedorId)) ? Number(proveedorId) : undefined
       form.reset({
         name: initialData.product.name,
         category_id: categoryIdNum,
         id_marca: marcaIdNum,
+        id_proveedor: proveedorIdNum,
         description: initialData.product.description ?? '',
         is_active: initialData.product.is_active ?? true,
       })
@@ -117,6 +163,53 @@ export function ProductFormComposite({
       )
     }
   }, [initialData, form])
+
+  // Pre-fill cascade in edit mode from leaf category_id (categoría → línea → sublínea)
+  useEffect(() => {
+    if (!initialData?.product) return
+    const product = initialData.product as { category_id?: number | string }
+    const leafId = product.category_id != null && product.category_id !== '' ? Number(product.category_id) : null
+    if (leafId == null || Number.isNaN(leafId) || leafId <= 0) return
+    if (list.length === 0) return
+    const byId = new Map<number, Category>()
+    list.forEach((c) => {
+      const n = idNum(c)
+      byId.set(n, c)
+      const alt = (c as { id_categoria?: number }).id_categoria
+      if (alt != null && Number(alt) !== n) byId.set(Number(alt), c)
+    })
+    const cat = byId.get(leafId)
+    if (!cat) return
+    const path: number[] = [leafId]
+    let current = cat
+    while (parentIdNum(current) != null) {
+      const pid = parentIdNum(current)!
+      path.push(pid)
+      const parent = byId.get(pid)
+      if (!parent) break
+      current = parent
+    }
+    const rootId = path[path.length - 1]
+    const lineId = path.length >= 2 ? path[path.length - 2] : null
+    const sublineId = path.length >= 3 ? path[0] : null
+    setSelectedParentId(rootId)
+    setSelectedLineId(lineId ?? null)
+    setSelectedSublineId(sublineId)
+  }, [initialData?.product, initialData?.product?.category_id, list, list.length])
+
+  // Sync form.category_id with leaf selection (categoría/línea/sublínea)
+  // lineOptions deriva de selectedParentId, no hace falta en deps; mismo render ya está actualizado
+  useEffect(() => {
+    if (selectedSublineId != null) {
+      form.setValue('category_id', selectedSublineId)
+    } else if (selectedLineId != null && !lineHasChildren) {
+      form.setValue('category_id', selectedLineId)
+    } else if (selectedParentId != null && selectedLineId == null) {
+      form.setValue('category_id', lineOptions.length === 0 ? selectedParentId : 0)
+    } else if (selectedLineId != null && lineHasChildren) {
+      form.setValue('category_id', 0)
+    }
+  }, [selectedParentId, selectedLineId, selectedSublineId, lineHasChildren, form])
 
   const categoryId = form.watch('category_id')
   const { data: categoryAttributes = [] } = useQuery({
@@ -189,6 +282,7 @@ export function ProductFormComposite({
         name: productFields.name,
         category_id: productFields.category_id,
         id_marca: productFields.id_marca ?? undefined,
+        id_proveedor: productFields.id_proveedor ?? undefined,
         description: productFields.description || undefined,
         is_active: productFields.is_active ?? true,
       },
@@ -206,7 +300,28 @@ export function ProductFormComposite({
   })
 
   const brandOptions = Array.isArray(brands) ? brands : []
-  const categoryOptions = Array.isArray(categories) ? categories : []
+
+  const onParentChange = (value: string) => {
+    const id = value ? Number(value) : null
+    setSelectedParentId(id)
+    setSelectedLineId(null)
+    setSelectedSublineId(null)
+    form.setValue('category_id', 0)
+  }
+
+  const onLineChange = (value: string) => {
+    const id = value ? Number(value) : null
+    setSelectedLineId(id)
+    setSelectedSublineId(null)
+    const hasChildren = id != null && list.some((c) => parentIdNum(c) === id && isCategoryActive(c))
+    form.setValue('category_id', hasChildren ? 0 : id ?? 0)
+  }
+
+  const onSublineChange = (value: string) => {
+    const id = value ? Number(value) : null
+    setSelectedSublineId(id)
+    form.setValue('category_id', id ?? 0)
+  }
 
   return (
     <form id={formId} onSubmit={handleSubmit} className="space-y-6">
@@ -224,45 +339,105 @@ export function ProductFormComposite({
                 <p className="text-sm text-red-600">{form.formState.errors.name.message}</p>
               )}
             </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label>Categoría *</Label>
               <Select
-                key={`category-${form.watch('category_id')}-${categoryOptions.length}`}
-                value={form.watch('category_id') && Number(form.watch('category_id')) > 0 ? String(form.watch('category_id')) : ''}
-                onValueChange={(v) => form.setValue('category_id', v ? Number(v) : 0)}
+                value={selectedParentId != null ? String(selectedParentId) : ''}
+                onValueChange={onParentChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione categoría" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categoryOptions.map((c) => (
-                    <SelectItem key={c.id} value={String(c.id)}>
+                  {rootOptions.map((c) => (
+                    <SelectItem key={idNum(c)} value={String(idNum(c))}>
                       {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {form.formState.errors.category_id && (
-                <p className="text-sm text-red-600">{form.formState.errors.category_id.message}</p>
-              )}
             </div>
+            <div className="space-y-2">
+              <Label>Línea *</Label>
+              <Select
+                value={selectedLineId != null ? String(selectedLineId) : ''}
+                onValueChange={onLineChange}
+                disabled={selectedParentId == null}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione línea" />
+                </SelectTrigger>
+                <SelectContent>
+                  {lineOptions.map((c) => (
+                    <SelectItem key={idNum(c)} value={String(idNum(c))}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {lineHasChildren ? (
+              <div className="space-y-2">
+                <Label>Sublínea *</Label>
+                <Select
+                  value={selectedSublineId != null ? String(selectedSublineId) : ''}
+                  onValueChange={onSublineChange}
+                  disabled={selectedLineId == null}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccione sublínea" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sublineOptions.map((c) => (
+                      <SelectItem key={idNum(c)} value={String(idNum(c))}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
           </div>
-          <div className="space-y-2">
-            <Label>Marca</Label>
-            <Select
-              key={`marca-${form.watch('id_marca') ?? 'none'}-${brandOptions.length}`}
-              value={form.watch('id_marca') != null ? String(form.watch('id_marca')) : ''}
-              onValueChange={(v) => form.setValue('id_marca', v ? Number(v) : null)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Seleccione marca (opcional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {brandOptions.map((b: { id_marca: number; nom_marca: string }) => (
-                  <SelectItem key={b.id_marca} value={String(b.id_marca)}>{b.nom_marca}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {form.formState.errors.category_id && (
+            <p className="text-sm text-red-600">{form.formState.errors.category_id.message}</p>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Marca</Label>
+              <Select
+                key={`marca-${form.watch('id_marca') ?? 'none'}-${brandOptions.length}`}
+                value={form.watch('id_marca') != null ? String(form.watch('id_marca')) : ''}
+                onValueChange={(v) => form.setValue('id_marca', v ? Number(v) : null)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione marca (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {brandOptions.map((b: { id_marca: number; nom_marca: string }) => (
+                    <SelectItem key={b.id_marca} value={String(b.id_marca)}>{b.nom_marca}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Proveedor</Label>
+              <Select
+                key={`proveedor-${form.watch('id_proveedor') ?? 'none'}-${(providers as { id_proveedor: number }[]).length}`}
+                value={form.watch('id_proveedor') != null ? String(form.watch('id_proveedor')) : ''}
+                onValueChange={(v) => form.setValue('id_proveedor', v ? Number(v) : null)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione proveedor (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(providers as { id_proveedor: number; nom_proveedor: string }[]).map((p) => (
+                    <SelectItem key={p.id_proveedor} value={String(p.id_proveedor)}>{p.nom_proveedor}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Descripción</Label>

@@ -99,11 +99,14 @@ const CategoriesPage = () => {
     {
       accessorKey: 'ind_activo',
       header: 'Estado',
-      cell: ({ row }) => (
-        <span className={row.original.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
-          {row.original.ind_activo ? 'Activo' : 'Inactivo'}
-        </span>
-      ),
+      cell: ({ row }) => {
+        const active = (row.original.ind_activo ?? (row.original as { is_active?: boolean }).is_active) !== false
+        return (
+          <span className={active ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+            {active ? 'Activo' : 'Inactivo'}
+          </span>
+        )
+      },
     },
   ]
 
@@ -112,7 +115,7 @@ const CategoriesPage = () => {
       id: 'actions',
       header: 'Acciones',
       cell: ({ row }) => {
-        const isActive = Boolean(row.original.ind_activo)
+        const isActive = (row.original.ind_activo ?? (row.original as { is_active?: boolean }).is_active) !== false
         const isPending = deactivateActivateCategoryMutation.isPending
         
         return (
@@ -232,8 +235,8 @@ const CategoriesPage = () => {
               </div>
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-1">Estado</h4>
-                <span className={selectedCategory.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
-                  {selectedCategory.ind_activo ? 'Activo' : 'Inactivo'}
+                <span className={(selectedCategory.ind_activo ?? (selectedCategory as { is_active?: boolean }).is_active) !== false ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+                  {(selectedCategory.ind_activo ?? (selectedCategory as { is_active?: boolean }).is_active) !== false ? 'Activo' : 'Inactivo'}
                 </span>
               </div>
               {selectedCategory.fec_insert && (
@@ -255,19 +258,20 @@ const CategoriesPage = () => {
                   Editar categoría
                 </Button>
                 <Button
-                  variant={selectedCategory.ind_activo ? 'default' : 'destructive'}
-                  className={selectedCategory.ind_activo ? 'w-full bg-green-600 hover:bg-green-700' : 'w-full'}
+                  variant={(selectedCategory.ind_activo ?? (selectedCategory as { is_active?: boolean }).is_active) !== false ? 'default' : 'destructive'}
+                  className={(selectedCategory.ind_activo ?? (selectedCategory as { is_active?: boolean }).is_active) !== false ? 'w-full bg-green-600 hover:bg-green-700' : 'w-full'}
                   onClick={() => {
                     const id = Number(selectedCategory.id);
+                    const currentlyActive = (selectedCategory.ind_activo ?? (selectedCategory as { is_active?: boolean }).is_active) !== false
                     if (!isNaN(id)) {
-                      deactivateActivateCategoryMutation.mutate({ id: id, activar: !selectedCategory.ind_activo });
+                      deactivateActivateCategoryMutation.mutate({ id: id, activar: !currentlyActive });
                     }
                     setSelectedCategory(null);
                   }}
                   disabled={deactivateActivateCategoryMutation.isPending}
                 >
                   <Power className="w-4 h-4 mr-2" />
-                  {selectedCategory.ind_activo ? 'Desactivar' : 'Activar'} categoría
+                  {(selectedCategory.ind_activo ?? (selectedCategory as { is_active?: boolean }).is_active) !== false ? 'Desactivar' : 'Activar'} categoría
                 </Button>
               </div>
             </div>

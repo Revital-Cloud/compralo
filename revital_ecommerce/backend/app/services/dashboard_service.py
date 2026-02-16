@@ -214,17 +214,17 @@ def _get_sales_data(db: Session, start_date: datetime, end_date: datetime,
 
 
 def _get_best_sellers(db: Session, limit: int = 10) -> List[Dict[str, Any]]:
-    """Obtiene los productos más vendidos (esquema tab_products + tab_orden_productos por variant_id)."""
+    """Obtiene los productos más vendidos (tab_products + tab_orden_productos por variant_id = combination id)."""
     query = text("""
         SELECT 
             p.id AS product_id,
             p.name AS nom_producto,
-            (SELECT pi.image_url FROM tab_product_images pi
-             WHERE pi.product_id = p.id AND pi.is_main = TRUE LIMIT 1) AS image_url,
+            (SELECT pvi.image_url FROM tab_product_variant_images pvi JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id WHERE g.product_id = p.id ORDER BY g.id, pvi.sort_order, pvi.id LIMIT 1) AS image_url,
             COALESCE(SUM(op.cant_producto), 0) AS total_sold,
             COALESCE(SUM(op.subtotal), 0) AS total_revenue
         FROM tab_products p
-        LEFT JOIN tab_product_variants pv ON pv.product_id = p.id
+        LEFT JOIN tab_product_variant_groups g ON g.product_id = p.id
+        LEFT JOIN tab_product_variant_combinations pv ON pv.group_id = g.id
         LEFT JOIN tab_orden_productos op ON op.variant_id = pv.id
         LEFT JOIN tab_ordenes o ON op.id_orden = o.id_orden AND o.ind_estado = 2
         WHERE p.is_active = TRUE

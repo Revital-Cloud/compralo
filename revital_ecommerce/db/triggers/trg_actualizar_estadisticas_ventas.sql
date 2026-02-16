@@ -65,8 +65,9 @@ BEGIN
         FOR v_categoria_record IN 
             SELECT DISTINCT p.category_id AS id_categoria
             FROM tab_orden_productos op
-            JOIN tab_product_variants pv ON pv.id = op.variant_id
-            JOIN tab_products p ON p.id = pv.product_id
+            JOIN tab_product_variant_combinations pv ON pv.id = op.variant_id
+            JOIN tab_product_variant_groups g ON g.id = pv.group_id
+            JOIN tab_products p ON p.id = g.product_id
             WHERE op.id_orden = NEW.id_orden
         LOOP
             -- ACTUALIZAR: Estadísticas de productos de la categoría
@@ -145,10 +146,10 @@ DECLARE
 BEGIN
     IF TG_OP = 'DELETE' THEN
         SELECT (o.ind_estado IN (2, 3)) INTO v_orden_pagada FROM tab_ordenes o WHERE o.id_orden = OLD.id_orden;
-        SELECT p.category_id INTO v_category_id FROM tab_product_variants pv JOIN tab_products p ON p.id = pv.product_id WHERE pv.id = OLD.variant_id;
+        SELECT p.category_id INTO v_category_id FROM tab_product_variant_combinations pv JOIN tab_product_variant_groups g ON g.id = pv.group_id JOIN tab_products p ON p.id = g.product_id WHERE pv.id = OLD.variant_id;
     ELSE
         SELECT (o.ind_estado IN (2, 3)) INTO v_orden_pagada FROM tab_ordenes o WHERE o.id_orden = NEW.id_orden;
-        SELECT p.category_id INTO v_category_id FROM tab_product_variants pv JOIN tab_products p ON p.id = pv.product_id WHERE pv.id = NEW.variant_id;
+        SELECT p.category_id INTO v_category_id FROM tab_product_variant_combinations pv JOIN tab_product_variant_groups g ON g.id = pv.group_id JOIN tab_products p ON p.id = g.product_id WHERE pv.id = NEW.variant_id;
     END IF;
 
     IF v_orden_pagada AND v_category_id IS NOT NULL THEN

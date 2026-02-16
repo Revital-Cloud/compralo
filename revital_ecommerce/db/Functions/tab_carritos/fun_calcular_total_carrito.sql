@@ -154,8 +154,9 @@ BEGIN
                             ELSE LEAST(cp.cantidad, 1) * d.val_monto_descuento END
                         ), 0)
                         FROM tab_carrito_productos cp
-                        JOIN tab_product_variants pv ON pv.id = cp.variant_id
-                        JOIN tab_products p ON p.id = pv.product_id
+                        JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id
+                        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+                        JOIN tab_products p ON p.id = g.product_id
                         WHERE cp.id_carrito = v_id_carrito
                             AND p.id = d.product_id_aplica
                             AND cp.cantidad >= d.cantidad_minima_producto
@@ -166,8 +167,9 @@ BEGIN
                             ELSE cp.cantidad * d.val_monto_descuento END
                         ), 0)
                         FROM tab_carrito_productos cp
-                        JOIN tab_product_variants pv ON pv.id = cp.variant_id
-                        JOIN tab_products p ON p.id = pv.product_id
+                        JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id
+                        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+                        JOIN tab_products p ON p.id = g.product_id
                         WHERE cp.id_carrito = v_id_carrito
                             AND p.category_id = d.category_id_aplica
                             AND cp.cantidad >= d.cantidad_minima_producto
@@ -178,8 +180,9 @@ BEGIN
                             ELSE cp.cantidad * d.val_monto_descuento END
                         ), 0)
                         FROM tab_carrito_productos cp
-                        JOIN tab_product_variants pv ON pv.id = cp.variant_id
-                        JOIN tab_products p ON p.id = pv.product_id AND p.is_active = TRUE
+                        JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id
+                        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+                        JOIN tab_products p ON p.id = g.product_id AND p.is_active = TRUE
                         WHERE cp.id_carrito = v_id_carrito
                             AND p.id_marca = d.id_marca_aplica
                             AND cp.cantidad >= d.cantidad_minima_producto
@@ -275,8 +278,9 @@ BEGIN
                             ELSE LEAST(cp.cantidad, 1) * v_canje_info.val_monto_descuento END
                         ), 0)
                         FROM tab_carrito_productos cp
-                        JOIN tab_product_variants pv ON pv.id = cp.variant_id
-                        JOIN tab_products p ON p.id = pv.product_id
+                        JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id
+                        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+                        JOIN tab_products p ON p.id = g.product_id
                         WHERE cp.id_carrito = v_id_carrito
                             AND p.id = v_canje_info.product_id_aplica
                             AND cp.cantidad >= v_canje_info.cantidad_minima_producto
@@ -287,8 +291,9 @@ BEGIN
                             ELSE cp.cantidad * v_canje_info.val_monto_descuento END
                         ), 0)
                         FROM tab_carrito_productos cp
-                        JOIN tab_product_variants pv ON pv.id = cp.variant_id
-                        JOIN tab_products p ON p.id = pv.product_id
+                        JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id
+                        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+                        JOIN tab_products p ON p.id = g.product_id
                         WHERE cp.id_carrito = v_id_carrito
                             AND p.category_id = v_canje_info.category_id_aplica
                             AND cp.cantidad >= v_canje_info.cantidad_minima_producto
@@ -299,8 +304,9 @@ BEGIN
                             ELSE cp.cantidad * v_canje_info.val_monto_descuento END
                         ), 0)
                         FROM tab_carrito_productos cp
-                        JOIN tab_product_variants pv ON pv.id = cp.variant_id
-                        JOIN tab_products p ON p.id = pv.product_id AND p.is_active = TRUE
+                        JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id
+                        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+                        JOIN tab_products p ON p.id = g.product_id AND p.is_active = TRUE
                         WHERE cp.id_carrito = v_id_carrito
                             AND p.id_marca = v_canje_info.id_marca_aplica
                             AND cp.cantidad >= v_canje_info.cantidad_minima_producto
