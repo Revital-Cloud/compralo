@@ -1,13 +1,38 @@
 'use client';
 
-import { createElement } from 'react';
-import { useRootCategories } from '@/hooks/use-categories';
+import { createElement, useMemo } from 'react';
+import { useRootCategories, useCategoriesRaw } from '@/hooks/use-categories';
 import { CategoryCard } from '@/components/cards/CategoryCard';
 import { getIconForCategory } from '@/utils/category-mapper';
 import { Package } from 'lucide-react';
+import type { Category } from '@/types/category';
+
+/** Conteo recursivo: productos en esta categoría + todos los descendientes */
+function useRecursiveProductCounts(categories: Category[]): Map<number, number> {
+  return useMemo(() => {
+    const map = new Map<number, number>();
+    const list = categories ?? [];
+    const direct = new Map<number, number>();
+    list.forEach((c) => direct.set(Number(c.id), c.productos_count ?? 0));
+
+    function getTotal(id: number): number {
+      if (map.has(id)) return map.get(id)!;
+      const directCount = direct.get(id) ?? 0;
+      const children = list.filter((c) => Number(c.parent_id) === id);
+      const childrenTotal = children.reduce((sum, ch) => sum + getTotal(Number(ch.id)), 0);
+      const total = directCount + childrenTotal;
+      map.set(id, total);
+      return total;
+    }
+    list.forEach((c) => getTotal(Number(c.id)));
+    return map;
+  }, [categories]);
+}
 
 export default function CategoriesPage() {
   const { data: categories, isLoading } = useRootCategories();
+  const { data: allCategoriesRaw } = useCategoriesRaw();
+  const recursiveCounts = useRecursiveProductCounts(allCategoriesRaw ?? []);
 
   if (isLoading) {
     return (
@@ -27,22 +52,23 @@ export default function CategoriesPage() {
           Todas las Categorías
         </h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Explora todas nuestras categorías de productos y encuentra lo que buscas
+          Explora todas nuestras categorías de productos y encuentra lo que buscas. Desde aquí puedes entrar a cada categoría y ver sus líneas y sublíneas.
         </p>
       </div>
 
-      {/* Grid de Categorías */}
+      {/* Grid de Categorías (raíz); al entrar verás Líneas y luego Sublíneas */}
       {categories && categories.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {categories.map((category) => {
             const IconComponent = getIconForCategory(category.name);
+            const totalProducts = recursiveCounts.get(Number(category.id)) ?? category.productCount ?? 0;
             return (
               <CategoryCard
                 key={category.id}
                 title={category.name}
                 description={category.description}
                 icon={createElement(IconComponent, { className: 'w-6 h-6' })}
-                count={category.productCount ?? 0}
+                count={totalProducts}
                 countLabel="productos"
                 variant="default"
                 categoryId={category.id}

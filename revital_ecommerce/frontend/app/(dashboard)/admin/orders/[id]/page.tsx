@@ -210,16 +210,21 @@ const OrderDetailPage = () => {
                 </div>
 
                 {/* Rows */}
-                {productos.map((producto) => {
+                {productos.map((producto, index) => {
                   const imgUrl = (producto as { imagen_url?: string }).imagen_url || getProductImageUrl(producto.img_producto)
-                  const opts = (producto as { opciones_elegidas?: Record<string, string> }).opciones_elegidas
-                  const optsText = opts && Object.keys(opts).length > 0
-                    ? Object.entries(opts)
+                  let opts = (producto as { opciones_elegidas?: Record<string, string> | string }).opciones_elegidas
+                  if (typeof opts === 'string') {
+                    try { opts = opts ? JSON.parse(opts) : {} } catch { opts = {} }
+                  }
+                  const optsObj = opts && typeof opts === 'object' ? opts : {}
+                  const optsText = Object.keys(optsObj).length > 0
+                    ? Object.entries(optsObj)
+                        .filter(([, v]) => v != null && String(v).trim() !== '')
                         .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
                         .join(', ')
                     : '—'
                   return (
-                    <div key={producto.id_producto} className="grid grid-cols-7 gap-4 py-2 border-b items-center">
+                    <div key={`order-item-${index}-${producto.id_producto}`} className="grid grid-cols-7 gap-4 py-2 border-b items-center">
                       <div className="font-medium">{producto.nom_producto}</div>
                       <div className="text-left">
                         <Badge variant="outline">{producto.cantidad}</Badge>
@@ -249,16 +254,21 @@ const OrderDetailPage = () => {
 
             {/* Mobile Card View */}
             <div className="lg:hidden space-y-3">
-              {productos.map((producto) => {
+              {productos.map((producto, index) => {
                 const imgUrl = (producto as { imagen_url?: string }).imagen_url || getProductImageUrl(producto.img_producto)
-                const opts = (producto as { opciones_elegidas?: Record<string, string> }).opciones_elegidas
-                const optsText = opts && Object.keys(opts).length > 0
-                  ? Object.entries(opts)
+                let opts = (producto as { opciones_elegidas?: Record<string, string> | string }).opciones_elegidas
+                if (typeof opts === 'string') {
+                  try { opts = opts ? JSON.parse(opts) : {} } catch { opts = {} }
+                }
+                const optsObj = opts && typeof opts === 'object' ? opts : {}
+                const optsText = Object.keys(optsObj).length > 0
+                  ? Object.entries(optsObj)
+                      .filter(([, v]) => v != null && String(v).trim() !== '')
                       .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
                       .join(', ')
                   : null
                 return (
-                <div key={producto.id_producto} className="border rounded-lg p-4 space-y-3">
+                <div key={`order-item-mobile-${index}-${producto.id_producto}`} className="border rounded-lg p-4 space-y-3">
                   <div className="flex items-start gap-3">
                     {imgUrl ? (
                       <img 

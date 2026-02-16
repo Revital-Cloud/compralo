@@ -5,8 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   ProductCreateHeader,
   ProductFormComposite,
-  ProductImageUpload,
-  VariantImagesCarousel,
+  UnifiedProductImagesPanel,
 } from '@/components/admin/products';
 import { SuccessModal, Button } from '@/components/ui';
 import { useCreateProductComposite } from '@/hooks/use-products';
@@ -19,12 +18,10 @@ const ProductCreatePage = () => {
   const [selectedImageFiles, setSelectedImageFiles] = useState<File[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [variantsForPreview, setVariantsForPreview] = useState<VariantCreateItem[]>([]);
-  const [selectedVariantPreviewIndex, setSelectedVariantPreviewIndex] = useState(0);
 
   const createMutation = useCreateProductComposite();
   const handleVariantsChange = useCallback((variants: VariantCreateItem[]) => {
     setVariantsForPreview(variants);
-    setSelectedVariantPreviewIndex((i) => (i >= variants.length ? Math.max(0, variants.length - 1) : i));
   }, []);
 
   const handleSubmit = async (payload: ProductCreateComposite) => {
@@ -64,19 +61,14 @@ const ProductCreatePage = () => {
               onVariantsChange={handleVariantsChange}
             />
           </div>
-          <div className="xl:col-span-1 space-y-6">
-            <ProductImageUpload
+          <div className="xl:col-span-1">
+            <UnifiedProductImagesPanel
               onImagesChange={(images) => {
                 const files = images.map((img) => img.file).filter(Boolean);
                 setSelectedImageFiles(files);
               }}
               maxImages={10}
               maxFileSize={5}
-            />
-            <VariantImagesCarousel
-              variants={variantsForPreview}
-              selectedVariantIndex={selectedVariantPreviewIndex}
-              onSelectVariantIndex={setSelectedVariantPreviewIndex}
             />
           </div>
         </div>

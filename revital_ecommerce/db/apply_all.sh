@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 #
-# Script para crear toda la base de datos Revital e-commerce: schema, funciones, triggers y vistas.
+# Script para crear toda la base de datos Revital e-commerce desde cero (idempotente).
+# Aplica en orden: 1) schema (db_revital.sql: DROP + CREATE tablas), 2) funciones,
+# 3) triggers, 4) vistas, 5) opcional KPIs.
 # Ejecutar desde la raíz del repo o desde revital_ecommerce/db.
 #
 # Uso:
@@ -11,6 +13,11 @@
 # Si no se pasan argumentos, intenta usar variables de entorno (ej. desde backend/.env):
 #   PGHOST, PGPORT, PGUSER, PGDATABASE
 #   o DATABASE_URL (postgresql://user:pass@host:port/dbname)
+#
+# IMPORTANTE: Para aplicar o actualizar funciones, PGUSER debe ser el dueño de la base
+# (p. ej. postgres o revital_admin). Si usas el usuario de la app (revital_ecommerce_user)
+# y las funciones ya existen creadas por otro usuario, fallará "must be owner of function".
+# Ejemplo: ./apply_all.sh postgres 46.225.94.64 revital_ecommerce 5432
 #
 set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -59,7 +66,21 @@ echo "[1/5] Aplicando schema (db_revital.sql)..."
 run_psql "$SCRIPT_DIR/db_revital.sql"
 echo ""
 
+# --- 1.5. Migraciones idempotentes (ADD COLUMN IF NOT EXISTS, etc.) ---
+# Útil si la DB existía con un schema anterior sin estas columnas.
+if [[ -f "$SCRIPT_DIR/migrations/add_opciones_elegidas_orden_productos.sql" ]]; then
+    echo "[1.5/5] Aplicando migración opciones_elegidas (carrito/orden)..."
+    run_psql "$SCRIPT_DIR/migrations/add_opciones_elegidas_orden_productos.sql" || true
+    echo ""
+fi
+if [[ -f "$SCRIPT_DIR/migrations/add_id_proveedor_tab_products.sql" ]]; then
+    echo "[1.5/5] Aplicando migración id_proveedor en tab_products..."
+    run_psql "$SCRIPT_DIR/migrations/add_id_proveedor_tab_products.sql" || true
+    echo ""
+fi
+
 # --- 2. Funciones (orden por dependencias) ---
+# Debe ejecutarse con el usuario dueño de la DB (postgres/revital_admin) para poder crear/reemplazar funciones.
 echo "[2/5] Aplicando funciones..."
 
 # 2.1 Utilidades (slug, sku) – deben ir primero
@@ -89,7 +110,8 @@ if [[ -f "$SCRIPT_DIR/Functions/tab_productos/indexes_filter_products.sql" ]]; t
 fi
 
 # 2.4 Resto de funciones por directorio (orden alfabético)
-# tab_lineas y tab_sublineas se omiten: sus tablas ya no existen en el schema nuevo (categories).
+# Se omiten: tab_categorias y tab_productos (ya aplicados arriba), tab_lineas/tab_sublineas
+# (tablas obsoletas, reemplazadas por tab_categories), tab_kpis_dashboards (opcional al final).
 for dir in "$SCRIPT_DIR/Functions"/tab_*; do
     [[ -d "$dir" ]] || continue
     case "$(basename "$dir")" in

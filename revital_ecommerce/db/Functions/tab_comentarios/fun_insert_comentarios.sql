@@ -41,8 +41,9 @@ BEGIN
 
     IF NOT EXISTS (
         SELECT 1 FROM tab_orden_productos op
-        JOIN tab_product_variants pv ON op.variant_id = pv.id
-        WHERE op.id_orden = wid_orden AND pv.product_id = wid_producto
+        JOIN tab_product_variant_combinations pv ON pv.id = op.variant_id
+        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+        WHERE op.id_orden = wid_orden AND g.product_id = wid_producto
     ) THEN
         RETURN 'Error: El producto no está incluido en esta orden';
     END IF;

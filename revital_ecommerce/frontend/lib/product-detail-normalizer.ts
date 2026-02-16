@@ -17,9 +17,9 @@ interface ApiVariant {
   attributes?: Record<string, string>
 }
 
-/** API variant_options.attributes item. */
+/** API variant_options.attributes item (attribute_id puede ser number o string, ej. "dominant"). */
 interface ApiAttributeItem {
-  attribute_id: number
+  attribute_id: number | string
   attribute_name: string
   values: Array<{ value: string; hex_color?: string | null; variant_ids?: number[] }>
 }
@@ -75,15 +75,33 @@ function buildAttrIdToNameMap(apiAttributes: ApiAttributeItem[] | undefined): Re
   const map: Record<string, string> = {}
   if (!apiAttributes) return map
   for (const a of apiAttributes) {
-    const name = (a.attribute_name ?? "").trim() || `Atributo ${a.attribute_id}`
+    const name = (a.attribute_name ?? "").trim() || `Atributo ${String(a.attribute_id)}`
     map[String(a.attribute_id)] = name
   }
   return map
 }
 
 /**
+ * Resolves variant attribute value (value_id or raw) to display value using variant_options.
+ * For each attribute, finds the value whose variant_ids contains this variantId.
+ */
+function resolveDisplayValue(
+  apiAttributes: ApiAttributeItem[] | undefined,
+  attrId: string,
+  rawValue: string,
+  variantId: number
+): string {
+  if (!apiAttributes) return rawValue
+  const attr = apiAttributes.find((a) => String(a.attribute_id) === String(attrId))
+  if (!attr?.values?.length) return rawValue
+  const val = attr.values.find((v) => (v.variant_ids ?? []).includes(variantId))
+  if (val?.value != null && String(val.value).trim()) return String(val.value).trim()
+  return rawValue
+}
+
+/**
  * Converts API product response to ProductDetailForSelector.
- * Variants get attributes keyed by attribute name and image from images_by_variant.
+ * Variants get attributes keyed by attribute name with display values (no value_ids).
  */
 export function normalizeProductDetail(apiProduct: ApiProductResponse | null | undefined): ProductDetailForSelector | null {
   if (!apiProduct?.variants?.length) return null
@@ -96,17 +114,19 @@ export function normalizeProductDetail(apiProduct: ApiProductResponse | null | u
   const variants: Variant[] = apiProduct.variants.map((v) => {
     const attrsByKey = v.attributes ?? {}
     const attributesByName: Record<string, string> = {}
-    for (const [attrId, value] of Object.entries(attrsByKey)) {
+    const variantId = Number(v.id)
+    for (const [attrId, rawValue] of Object.entries(attrsByKey)) {
       const name = attrIdToName[attrId] ?? attrId
-      if (value != null && value !== "") {
-        attributesByName[name] = String(value)
+      if (rawValue != null && rawValue !== "") {
+        const displayValue = resolveDisplayValue(apiAttributes, attrId, String(rawValue), variantId)
+        attributesByName[name] = displayValue
       }
     }
     return {
-      id: Number(v.id),
+      id: variantId,
       price: Number(v.price ?? 0),
       stock: Number(v.stock ?? 0),
-      image: getFirstVariantImage(imagesByVariant, Number(v.id)),
+      image: getFirstVariantImage(imagesByVariant, variantId),
       attributes: attributesByName,
     }
   })

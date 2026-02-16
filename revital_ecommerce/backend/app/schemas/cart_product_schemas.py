@@ -39,7 +39,7 @@ class CartProductBase(BaseModel):
     id_carrito: Optional[int] = Field(None, description="Identificador del carrito.")
     id_usuario: Optional[Decimal] = Field(None, description="Identificador del usuario.")
     session_id: Optional[str] = Field(None, description="ID de la sesión para usuarios anónimos (UUID v4).")
-    variant_id: Optional[Decimal] = Field(None, description="ID de la variante (tab_product_variants). Preferido al agregar al carrito.")
+    variant_id: Optional[Decimal] = Field(None, description="ID de la combinación (tab_product_variant_combinations). Preferido al agregar al carrito.")
     id_categoria_producto: Optional[Decimal] = Field(None, description="Compatibilidad: categoría.")
     id_linea_producto: Optional[Decimal] = Field(None, description="Compatibilidad: ya no se usa.")
     id_sublinea_producto: Optional[Decimal] = Field(None, description="Compatibilidad: ya no se usa.")

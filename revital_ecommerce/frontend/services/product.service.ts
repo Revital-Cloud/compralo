@@ -68,7 +68,7 @@ export async function uploadProductImage(file: File): Promise<{ url: string }> {
 
 /** Detalle para edición: producto + variantes + image_urls (solo product_id) */
 export interface ProductAdminDetailComposite {
-  product: { name: string; category_id: number; id_marca?: number | null; description?: string | null; is_active: boolean }
+  product: { name: string; category_id: number; id_marca?: number | null; id_proveedor?: number | null; description?: string | null; is_active: boolean }
   variants: Array<{
     id?: number
     sku?: string | null

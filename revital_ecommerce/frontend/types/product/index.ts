@@ -107,6 +107,7 @@ export interface ProductCreateComposite {
     name: string;
     category_id: number;
     id_marca?: number | null;
+    id_proveedor?: number | null;
     description?: string | null;
     is_active: boolean;
   };

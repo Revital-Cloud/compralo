@@ -30,14 +30,30 @@ const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }
 
       {/* Main Footer Content */}
       <div className="container mx-auto px-4 py-8 sm:py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[1.4fr_0.85fr_0.85fr_0.85fr_1fr_1.3fr] gap-6 lg:gap-6 xl:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[1.2fr_0.7fr_0.7fr_0.7fr_0.85fr_1.2fr] gap-6 lg:gap-6 xl:gap-4">
           {/* About Us */}
           <AboutSection />
 
-          {/* Categorías (nombres en footer) */}
+          {/* Categorías (raíz) */}
           <CategoriesSection
             title="Categorías"
             categories={footerCategories?.categories || []}
+            isLoading={isLoading}
+            error={error}
+          />
+
+          {/* Líneas (hijas de categorías) */}
+          <CategoriesSection
+            title="Líneas"
+            categories={footerCategories?.lineas || []}
+            isLoading={isLoading}
+            error={error}
+          />
+
+          {/* Sublíneas (nietas) */}
+          <CategoriesSection
+            title="Sublíneas"
+            categories={footerCategories?.sublineas || []}
             isLoading={isLoading}
             error={error}
           />

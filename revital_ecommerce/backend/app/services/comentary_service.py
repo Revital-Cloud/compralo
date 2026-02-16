@@ -134,7 +134,7 @@ def get_testimonials_5_star(db: Session, limit: int = 3):
                 u.ape_usuario,
                 p.name AS nom_producto,
                 p.slug AS producto_slug,
-                (SELECT pi.image_url FROM tab_product_images pi WHERE pi.product_id = p.id AND pi.is_main = TRUE LIMIT 1) AS img_producto
+                (SELECT pvi.image_url FROM tab_product_variant_images pvi JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id WHERE g.product_id = p.id ORDER BY g.id, pvi.sort_order, pvi.id LIMIT 1) AS img_producto
             FROM tab_comentarios c
             INNER JOIN tab_usuarios u ON c.id_usuario = u.id_usuario
             LEFT JOIN tab_products p ON p.id = c.product_id

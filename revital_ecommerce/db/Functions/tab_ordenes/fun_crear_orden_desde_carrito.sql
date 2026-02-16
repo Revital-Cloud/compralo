@@ -131,8 +131,9 @@ BEGIN
     FOR v_producto_record IN 
         SELECT cp.variant_id, cp.cantidad, cp.precio_unitario_carrito, pv.stock, p.name AS nom_producto
         FROM tab_carrito_productos cp
-        JOIN tab_product_variants pv ON pv.id = cp.variant_id AND pv.is_active = TRUE
-        JOIN tab_products p ON p.id = pv.product_id AND p.is_active = TRUE
+        JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id AND pv.is_active = TRUE
+        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+        JOIN tab_products p ON p.id = g.product_id AND p.is_active = TRUE
         WHERE cp.id_carrito = p_id_carrito
     LOOP
         IF v_producto_record.cantidad > v_producto_record.stock THEN
@@ -172,8 +173,9 @@ BEGIN
                             END
                         ), 0)
                         FROM tab_carrito_productos cp
-                        JOIN tab_product_variants pv ON pv.id = cp.variant_id
-                        JOIN tab_products p ON p.id = pv.product_id
+                        JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id
+                        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+                        JOIN tab_products p ON p.id = g.product_id
                         WHERE cp.id_carrito = p_id_carrito
                             AND p.category_id = d.category_id_aplica
                             AND cp.cantidad >= d.cantidad_minima_producto
@@ -323,8 +325,9 @@ BEGIN
                                 END
                             ), 0)
                             FROM tab_carrito_productos cp
-                            JOIN tab_product_variants pv ON pv.id = cp.variant_id
-                            JOIN tab_products p ON p.id = pv.product_id
+                            JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id
+                            JOIN tab_product_variant_groups g ON g.id = pv.group_id
+                            JOIN tab_products p ON p.id = g.product_id
                             WHERE cp.id_carrito = p_id_carrito
                                 AND p.id = v_canje_info.product_id_aplica
                                 AND cp.cantidad >= COALESCE(v_canje_info.cantidad_minima_producto, 0)
@@ -338,8 +341,9 @@ BEGIN
                                 END
                             ), 0)
                             FROM tab_carrito_productos cp
-                            JOIN tab_product_variants pv ON pv.id = cp.variant_id
-                            JOIN tab_products p ON p.id = pv.product_id
+                            JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id
+                            JOIN tab_product_variant_groups g ON g.id = pv.group_id
+                            JOIN tab_products p ON p.id = g.product_id
                             WHERE cp.id_carrito = p_id_carrito
                                 AND p.category_id = v_canje_info.category_id_aplica
                                 AND cp.cantidad >= COALESCE(v_canje_info.cantidad_minima_producto, 0)
@@ -353,8 +357,9 @@ BEGIN
                                 END
                             ), 0)
                             FROM tab_carrito_productos cp
-                            JOIN tab_product_variants pv ON pv.id = cp.variant_id
-                            JOIN tab_products p ON p.id = pv.product_id AND p.is_active = TRUE
+                            JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id
+                            JOIN tab_product_variant_groups g ON g.id = pv.group_id
+                            JOIN tab_products p ON p.id = g.product_id AND p.is_active = TRUE
                             WHERE cp.id_carrito = p_id_carrito
                                 AND p.id_marca = v_canje_info.id_marca_aplica
                                 AND cp.cantidad >= COALESCE(v_canje_info.cantidad_minima_producto, 0)
@@ -436,9 +441,10 @@ BEGIN
             p_usr_operacion
         );
         
-    -- PASO 12: Transferir productos del carrito a la orden (variant_id)
+    -- PASO 12: Transferir productos del carrito a la orden (variant_id + opciones_elegidas)
         FOR v_producto_record IN 
-            SELECT id_carrito_producto, variant_id, cantidad, precio_unitario_carrito
+            SELECT id_carrito_producto, variant_id, cantidad, precio_unitario_carrito,
+                   COALESCE(opciones_elegidas, '{}'::JSONB) AS opciones_elegidas
             FROM tab_carrito_productos WHERE id_carrito = p_id_carrito
         LOOP
             INSERT INTO tab_orden_productos (
@@ -448,6 +454,7 @@ BEGIN
                 cant_producto,
                 precio_unitario_orden,
                 subtotal,
+                opciones_elegidas,
                 usr_insert,
                 fec_insert
             ) VALUES (
@@ -457,6 +464,7 @@ BEGIN
                 v_producto_record.cantidad,
                 v_producto_record.precio_unitario_carrito,
                 (v_producto_record.cantidad * v_producto_record.precio_unitario_carrito),
+                v_producto_record.opciones_elegidas,
                 p_usr_operacion,
                 NOW()
             );

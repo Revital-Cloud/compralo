@@ -18,9 +18,11 @@ BEGIN
         RETURN FORMAT('Error: El producto ya está %s', CASE WHEN p_activar THEN 'activo' ELSE 'inactivo' END);
     END IF;
     UPDATE tab_products SET is_active = p_activar, usr_update = p_usr_operacion, fec_update = CURRENT_TIMESTAMP WHERE id = p_id_producto;
-    UPDATE tab_product_variants SET is_active = p_activar, usr_update = p_usr_operacion, fec_update = CURRENT_TIMESTAMP WHERE product_id = p_id_producto;
+    UPDATE tab_product_variant_groups SET is_active = p_activar, usr_update = p_usr_operacion, fec_update = CURRENT_TIMESTAMP WHERE product_id = p_id_producto;
+    UPDATE tab_product_variant_combinations c SET is_active = p_activar, usr_update = p_usr_operacion, fec_update = CURRENT_TIMESTAMP
+    WHERE c.group_id IN (SELECT id FROM tab_product_variant_groups WHERE product_id = p_id_producto);
     GET DIAGNOSTICS v_var = ROW_COUNT;
-    RETURN FORMAT('Producto %s. Variantes actualizadas: %s.', CASE WHEN p_activar THEN 'activado' ELSE 'desactivado' END, v_var);
+    RETURN FORMAT('Producto %s. Combinaciones actualizadas: %s.', CASE WHEN p_activar THEN 'activado' ELSE 'desactivado' END, v_var);
 EXCEPTION
     WHEN OTHERS THEN RETURN 'Error: ' || SQLERRM;
 END;

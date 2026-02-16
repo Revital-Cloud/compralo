@@ -308,8 +308,9 @@ const getColorsForCategory = (categoryName: string) => {
 export const mapCategoriesToDisplay = (categories: Category[]): CategoryDisplay[] => {
   if (!categories || !Array.isArray(categories)) return [];
 
+  const isActive = (c: Category) => (c.ind_activo ?? c.is_active) !== false
   return categories
-    .filter((category) => category && category.ind_activo)
+    .filter((category) => category && isActive(category))
     .map((category, index) => {
       // Asignar colores automáticamente basados en la posición
       const colors = getColorsByIndex(index);
@@ -323,7 +324,7 @@ export const mapCategoriesToDisplay = (categories: Category[]): CategoryDisplay[
         color: colors.color,
         bgGradient: colors.bgGradient,
         iconBg: colors.iconBg,
-        isActive: category.ind_activo ?? true,
+        isActive: (category.ind_activo ?? category.is_active) !== false,
         productCount: category.productos_count ?? 0,
       };
     });

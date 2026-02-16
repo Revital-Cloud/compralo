@@ -137,7 +137,11 @@ def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert
         id_producto = data.get("id_producto")
         if variant_id is None and id_producto is not None:
             r = db.execute(
-                text("SELECT id FROM tab_product_variants WHERE product_id = :pid AND is_active = TRUE ORDER BY id LIMIT 1"),
+                text("""
+                    SELECT c.id FROM tab_product_variant_combinations c
+                    JOIN tab_product_variant_groups g ON g.id = c.group_id
+                    WHERE g.product_id = :pid AND c.is_active = TRUE ORDER BY c.id LIMIT 1
+                """),
                 {"pid": id_producto},
             ).first()
             if not r:
@@ -146,13 +150,20 @@ def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert
         if variant_id is None:
             raise Exception("Se requiere variant_id o id_producto para agregar al carrito")
 
+        opciones = data.get("opciones_elegidas")
+        if opciones is not None and not isinstance(opciones, dict):
+            opciones = {}
+        opciones_json = json.dumps(opciones) if opciones else "{}"
         usr = usr_insert or data.get("id_usuario") or 0
+
         params = {
             "id_usuario": data.get("id_usuario"),
             "session_id": data.get("session_id") or "",
             "variant_id": variant_id,
             "cantidad": int(cart_product.cantidad),
+            "opciones_elegidas": opciones_json,
             "usr_insert": usr,
+
         }
         print(f"🛒 [BACKEND] Agregando producto al carrito: variant_id={variant_id}, cantidad={params['cantidad']}")
 
@@ -162,6 +173,7 @@ def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert
             CAST(:session_id AS VARCHAR),
             CAST(:variant_id AS NUMERIC),
             CAST(:cantidad AS INTEGER),
+            CAST(:opciones_elegidas AS JSONB),
             CAST(:usr_insert AS NUMERIC)
         )
         """)
@@ -191,7 +203,7 @@ def update_cart_product_quantity(db: Session, id_carrito_producto: int, nueva_ca
         stock_query = text("""
         SELECT pv.stock, cp.cantidad AS cantidad_actual
         FROM tab_carrito_productos cp
-        JOIN tab_product_variants pv ON pv.id = cp.variant_id AND pv.is_active = TRUE
+        JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id AND pv.is_active = TRUE
         WHERE cp.id_carrito_producto = :id_carrito_producto
         """)
         stock_result = db.execute(stock_query, {"id_carrito_producto": id_carrito_producto})
@@ -272,8 +284,9 @@ def delete_cart_product(db: Session, id_usuario: Optional[Decimal], session_id: 
         variant_row = db.execute(
             text("""
                 SELECT cp.variant_id FROM tab_carrito_productos cp
-                JOIN tab_product_variants pv ON pv.id = cp.variant_id
-                WHERE cp.id_carrito = :id_carrito AND pv.product_id = :id_producto
+                JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id
+                JOIN tab_product_variant_groups g ON g.id = pv.group_id
+                WHERE cp.id_carrito = :id_carrito AND g.product_id = :id_producto
                 LIMIT 1
             """),
             {"id_carrito": id_carrito, "id_producto": id_producto},
@@ -383,7 +396,7 @@ def get_cart_user(db:Session, get_cart_user:GetCartUser):
     
 def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
     """
-    Obtiene el detalle del carrito usando tab_products, tab_product_variants y variant_id.
+    Obtiene el detalle del carrito usando tab_products, tab_product_variant_combinations y variant_id.
     Devuelve la misma estructura esperada por el frontend (id_categoria_producto = category_id, etc.).
     """
     try:
@@ -400,19 +413,17 @@ def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
             cp.precio_unitario_carrito,
             (cp.cantidad * cp.precio_unitario_carrito) AS subtotal,
             pv.stock AS num_stock,
-            COALESCE(
-                (SELECT pi.image_url FROM tab_product_images pi
-                 WHERE pi.product_id = p.id AND pi.variant_id = cp.variant_id
-                 ORDER BY pi.is_main DESC NULLS LAST, pi.sort_order NULLS LAST, pi.id LIMIT 1),
-                (SELECT pi.image_url FROM tab_product_images pi
-                 WHERE pi.product_id = p.id AND pi.variant_id IS NULL AND pi.is_main = TRUE LIMIT 1)
-            ) AS img_principal,
+            COALESCE(cp.opciones_elegidas, '{}'::JSONB) AS opciones_elegidas,
+            (SELECT pvi.image_url FROM tab_product_variant_images pvi
+             WHERE pvi.variant_group_id = pv.group_id
+             ORDER BY pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id LIMIT 1) AS img_principal,
             m.nom_marca,
             cat.name AS nom_categoria
         FROM tab_carrito_productos cp
         JOIN tab_carritos c ON cp.id_carrito = c.id_carrito
-        JOIN tab_product_variants pv ON pv.id = cp.variant_id AND pv.is_active = TRUE
-        JOIN tab_products p ON p.id = pv.product_id AND p.is_active = TRUE
+        JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id AND pv.is_active = TRUE
+        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+        JOIN tab_products p ON p.id = g.product_id AND p.is_active = TRUE
         LEFT JOIN tab_marcas m ON p.id_marca = m.id_marca
         LEFT JOIN tab_categories cat ON p.category_id = cat.id
         WHERE (c.id_usuario = :id_usuario OR c.session_id = :session_id)
@@ -432,6 +443,15 @@ def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
         products_list = []
         for row in cart_items:
             img_url = row.get("img_principal")
+            opts = row.get("opciones_elegidas")
+            if opts is None or (isinstance(opts, str) and not opts):
+                opts = {}
+            elif isinstance(opts, str):
+                try:
+                    import json
+                    opts = json.loads(opts) if opts else {}
+                except Exception:
+                    opts = {}
             product_dict = {
                 "id_carrito_producto": row["id_carrito_producto"],
                 "id_categoria_producto": int(row["category_id"]) if row["category_id"] is not None else 0,
@@ -447,7 +467,7 @@ def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
                 "marca": row["nom_marca"] or "",
                 "sublinea": None,
                 "categoria": row["nom_categoria"] or "",
-                "opciones_elegidas": {},
+                "opciones_elegidas": opts if isinstance(opts, dict) else {},
             }
             products_list.append(product_dict)
 
@@ -548,7 +568,7 @@ def calculate_total_cart(db:Session, calculate_total_cart:CalculateTotalCart):
 
 def get_cart_with_basic_info(db: Session, get_cart_detail: GetCartDetail):
     """
-    Obtiene el carrito con información básica (marca, color desde variante) usando tab_products/tab_product_variants.
+    Obtiene el carrito con información básica (marca, color desde combinación/grupo) usando tab_products/tab_product_variant_combinations.
     """
     try:
         params = get_cart_detail.model_dump()
@@ -561,20 +581,17 @@ def get_cart_with_basic_info(db: Session, get_cart_detail: GetCartDetail):
             cp.precio_unitario_carrito,
             (cp.cantidad * cp.precio_unitario_carrito) AS subtotal,
             p.name AS nom_producto,
-            COALESCE(
-                (SELECT pi.image_url FROM tab_product_images pi
-                 WHERE pi.product_id = p.id AND pi.variant_id = cp.variant_id
-                 ORDER BY pi.is_main DESC NULLS LAST, pi.sort_order NULLS LAST, pi.id LIMIT 1),
-                (SELECT pi.image_url FROM tab_product_images pi
-                 WHERE pi.product_id = p.id AND pi.variant_id IS NULL AND pi.is_main = TRUE LIMIT 1)
-            ) AS imagen_url,
+            (SELECT pvi.image_url FROM tab_product_variant_images pvi
+             WHERE pvi.variant_group_id = pv.group_id
+             ORDER BY pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id LIMIT 1) AS imagen_url,
             pv.stock AS num_stock,
             m.nom_marca,
             cp.variant_id
         FROM tab_carrito_productos cp
         JOIN tab_carritos c ON cp.id_carrito = c.id_carrito
-        JOIN tab_product_variants pv ON pv.id = cp.variant_id AND pv.is_active = TRUE
-        JOIN tab_products p ON p.id = pv.product_id AND p.is_active = TRUE
+        JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id AND pv.is_active = TRUE
+        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+        JOIN tab_products p ON p.id = g.product_id AND p.is_active = TRUE
         LEFT JOIN tab_marcas m ON p.id_marca = m.id_marca
         WHERE (c.id_usuario = :id_usuario OR c.session_id = :session_id)
         AND (c.id_usuario IS NOT NULL OR c.session_id IS NOT NULL)
@@ -593,11 +610,10 @@ def get_cart_with_basic_info(db: Session, get_cart_detail: GetCartDetail):
         if variant_ids:
             color_rows = db.execute(
                 text("""
-                    SELECT DISTINCT ON (pva.variant_id) pva.variant_id, av.value AS color
-                    FROM tab_product_variant_attributes pva
-                    JOIN tab_attribute_values av ON av.id = pva.attribute_value_id AND av.hex_color IS NOT NULL
-                    WHERE pva.variant_id = ANY(:vids)
-                    ORDER BY pva.variant_id, pva.id
+                    SELECT c.id AS variant_id, g.dominant_value AS color
+                    FROM tab_product_variant_combinations c
+                    JOIN tab_product_variant_groups g ON g.id = c.group_id
+                    WHERE c.id = ANY(:vids)
                 """),
                 {"vids": variant_ids},
             ).mappings().all()

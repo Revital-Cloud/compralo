@@ -1,18 +1,20 @@
 /*
  * Agrega una variante al carrito o actualiza cantidad si ya existe.
- * Parámetros: variant_id, cantidad; precio y stock desde product_variants.
+ * Parámetros: variant_id, cantidad, opciones_elegidas (opcional); precio y stock desde product_variants.
+ * Requiere: migración add_opciones_elegidas_orden_productos.sql (columna opciones_elegidas en tab_carrito_productos).
  */
 CREATE OR REPLACE FUNCTION fun_agregar_producto_carrito(
     p_id_usuario tab_usuarios.id_usuario%TYPE,
     p_session_id tab_carritos.session_id%TYPE,
-    p_variant_id tab_product_variants.id%TYPE,
+    p_variant_id tab_product_variant_combinations.id%TYPE,
     p_cantidad tab_carrito_productos.cantidad%TYPE,
-    p_usr_operacion tab_carrito_productos.usr_insert%TYPE
+    p_opciones_elegidas JSONB DEFAULT '{}'::JSONB,
+    p_usr_operacion tab_carrito_productos.usr_insert%TYPE DEFAULT NULL
 ) RETURNS JSON AS $$
 DECLARE
     v_id_carrito tab_carritos.id_carrito%TYPE;
-    v_precio tab_product_variants.price%TYPE;
-    v_stock tab_product_variants.stock%TYPE;
+    v_precio tab_product_variant_combinations.price%TYPE;
+    v_stock tab_product_variant_combinations.stock%TYPE;
     v_cantidad_actual tab_carrito_productos.cantidad%TYPE;
     v_usr_final tab_carrito_productos.usr_insert%TYPE;
 BEGIN
@@ -23,7 +25,7 @@ BEGIN
     v_usr_final := COALESCE(p_usr_operacion, p_id_usuario, ABS(hashtext(p_session_id))::DECIMAL(10));
 
     SELECT price, stock INTO v_precio, v_stock
-    FROM tab_product_variants
+    FROM tab_product_variant_combinations
     WHERE id = p_variant_id AND is_active = TRUE;
 
     IF v_precio IS NULL THEN
@@ -41,14 +43,15 @@ BEGIN
     END IF;
 
     INSERT INTO tab_carrito_productos (
-        id_carrito, variant_id, cantidad, precio_unitario_carrito, usr_insert
+        id_carrito, variant_id, cantidad, precio_unitario_carrito, opciones_elegidas, usr_insert
     ) VALUES (
-        v_id_carrito, p_variant_id, p_cantidad, v_precio, v_usr_final
+        v_id_carrito, p_variant_id, p_cantidad, v_precio, COALESCE(p_opciones_elegidas, '{}'::JSONB), v_usr_final
     )
     ON CONFLICT (id_carrito, variant_id)
     DO UPDATE SET
         cantidad = tab_carrito_productos.cantidad + p_cantidad,
         precio_unitario_carrito = v_precio,
+        opciones_elegidas = COALESCE(EXCLUDED.opciones_elegidas, tab_carrito_productos.opciones_elegidas, '{}'::JSONB),
         usr_update = v_usr_final,
         fec_update = NOW();
 

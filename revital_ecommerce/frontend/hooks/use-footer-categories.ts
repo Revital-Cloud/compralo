@@ -9,6 +9,8 @@ export interface FooterCategoryItem {
 
 export interface FooterCategories {
   categories: FooterCategoryItem[]
+  lineas: FooterCategoryItem[]
+  sublineas: FooterCategoryItem[]
 }
 
 /** Normaliza id que puede venir como number o string desde la API */
@@ -18,22 +20,38 @@ function idNum(c: Category, key: 'id' | 'parent_id'): number | null {
   return typeof v === 'number' ? v : Number(v)
 }
 
+function toItem(c: Category): FooterCategoryItem {
+  const id = idNum(c, 'id')
+  return { label: c.name, href: `/categories/${id}` }
+}
+
 /**
- * Hook para obtener categorías del footer (tab_categories). Solo nombres y enlaces a /categories/[id].
+ * Hook para obtener categorías del footer (tab_categories).
+ * Devuelve tres niveles: categorías (raíz), líneas (hijas de categorías), sublíneas (nietas).
  */
 export function useFooterCategories() {
   return useQuery({
     queryKey: ['categories', 'footer'],
     queryFn: async (): Promise<FooterCategories> => {
       const list = await getCategories()
-      const items: FooterCategoryItem[] = []
-      for (const c of list) {
-        if (c.ind_activo === false) continue
-        const id = idNum(c, 'id')
-        items.push({ label: c.name, href: `/categories/${id}` })
-      }
+      const active = list.filter((c) => (c.ind_activo ?? c.is_active) !== false)
+
+      const categorias = active.filter((c) => idNum(c, 'parent_id') == null).map(toItem)
+      const idsCategorias = new Set(active.filter((c) => idNum(c, 'parent_id') == null).map((c) => idNum(c, 'id')))
+      const lineas = active
+        .filter((c) => idsCategorias.has(idNum(c, 'parent_id')))
+        .map(toItem)
+      const idsLineas = new Set(
+        active.filter((c) => idsCategorias.has(idNum(c, 'parent_id'))).map((c) => idNum(c, 'id'))
+      )
+      const sublineas = active
+        .filter((c) => idsLineas.has(idNum(c, 'parent_id')))
+        .map(toItem)
+
       return {
-        categories: items.slice(0, 12),
+        categories: categorias.slice(0, 10),
+        lineas: lineas.slice(0, 10),
+        sublineas: sublineas.slice(0, 10),
       }
     },
     staleTime: 10 * 60 * 1000,

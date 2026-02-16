@@ -6,8 +6,7 @@ import { toast } from 'sonner'
 import {
   ProductCreateHeader,
   ProductFormComposite,
-  ProductImageUpload,
-  VariantImagesCarousel,
+  UnifiedProductImagesPanel,
 } from '@/components/admin/products'
 import {
   getProductAdminDetailById,
@@ -27,7 +26,21 @@ export default function ProductEditPage() {
   const productImageFilesRef = useRef<File[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [variantsForPreview, setVariantsForPreview] = useState<VariantCreateItem[]>([])
-  const [selectedVariantPreviewIndex, setSelectedVariantPreviewIndex] = useState(0)
+  const [productImageUrls, setProductImageUrls] = useState<string[]>([])
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['product-admin-detail', productId],
+    queryFn: () => getProductAdminDetailById(productId),
+    enabled: !!productId && /^\d+$/.test(productId),
+  })
+
+  useEffect(() => {
+    if (data?.image_urls && Array.isArray(data.image_urls)) {
+      setProductImageUrls(data.image_urls)
+    } else {
+      setProductImageUrls([])
+    }
+  }, [data?.image_urls])
 
   useEffect(() => {
     const files = selectedImages.map((img) => img?.file).filter((f): f is File => !!f)
@@ -36,24 +49,16 @@ export default function ProductEditPage() {
 
   const handleVariantsChange = useCallback((variants: VariantCreateItem[]) => {
     setVariantsForPreview(variants)
-    setSelectedVariantPreviewIndex((i) => (i >= variants.length ? Math.max(0, variants.length - 1) : i))
   }, [])
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['product-admin-detail', productId],
-    queryFn: () => getProductAdminDetailById(productId),
-    enabled: !!productId && /^\d+$/.test(productId),
-  })
 
   const handleSubmit = async (payload: ProductCreateComposite) => {
     if (!productId) return
     try {
       setIsSubmitting(true)
       const imageFiles = productImageFilesRef.current.length > 0 ? productImageFilesRef.current : selectedImages.map((img) => img?.file).filter((f): f is File => !!f)
-      const existingProductUrls = data?.image_urls ?? []
       const payloadWithExistingImages: ProductCreateComposite = {
         ...payload,
-        image_urls: existingProductUrls.length > 0 ? [...existingProductUrls] : (payload.image_urls ?? []),
+        image_urls: productImageUrls.length > 0 ? [...productImageUrls] : (payload.image_urls ?? []),
       }
       await updateProductComposite(productId, payloadWithExistingImages, imageFiles)
       toast.success('Producto actualizado correctamente')
@@ -71,11 +76,15 @@ export default function ProductEditPage() {
   }
 
   const existingImagesForUpload =
-    data?.image_urls?.length !== undefined && data.image_urls.length > 0
-      ? data.image_urls.length === 1
-        ? { main: data.image_urls[0], gallery: [] as string[] }
-        : { main: data.image_urls[0], gallery: data.image_urls.slice(1) }
+    productImageUrls.length > 0
+      ? productImageUrls.length === 1
+        ? { main: productImageUrls[0], gallery: [] as string[] }
+        : { main: productImageUrls[0], gallery: productImageUrls.slice(1) }
       : undefined
+
+  const handleRemoveProductImage = useCallback((url: string) => {
+    setProductImageUrls((prev) => prev.filter((u) => u !== url))
+  }, [])
 
   if (error) {
     return (
@@ -109,17 +118,13 @@ export default function ProductEditPage() {
             />
           )}
         </div>
-        <div className="xl:col-span-1 space-y-6">
-          <ProductImageUpload
+        <div className="xl:col-span-1">
+          <UnifiedProductImagesPanel
             onImagesChange={setSelectedImages}
             maxImages={10}
             maxFileSize={5}
             existingImages={existingImagesForUpload}
-          />
-          <VariantImagesCarousel
-            variants={variantsForPreview}
-            selectedVariantIndex={selectedVariantPreviewIndex}
-            onSelectVariantIndex={setSelectedVariantPreviewIndex}
+            onRemoveExistingImage={handleRemoveProductImage}
           />
         </div>
       </div>

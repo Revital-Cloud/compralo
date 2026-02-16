@@ -1,6 +1,6 @@
 /*
  * Lista todos los productos (activos e inactivos) para el panel de administración.
- * Usa products, product_variants, categories, tab_marcas, product_images.
+ * Usa tab_products, variant_combinations/groups, variant_images, tab_categories, tab_marcas.
  */
 CREATE OR REPLACE FUNCTION fun_get_all_products_admin(
     p_ordenar_por VARCHAR(20) DEFAULT 'nombre',
@@ -42,9 +42,9 @@ BEGIN
             p.name AS nom_producto,
             p.slug AS slug_producto,
             p.description,
-            (SELECT pi.image_url FROM tab_product_images pi WHERE pi.product_id = p.id AND pi.is_main = TRUE LIMIT 1) AS img_principal,
-            (SELECT MIN(pv.price) FROM tab_product_variants pv WHERE pv.product_id = p.id AND pv.is_active = TRUE) AS precio_min,
-            (SELECT COALESCE(SUM(pv.stock), 0) FROM tab_product_variants pv WHERE pv.product_id = p.id AND pv.is_active = TRUE) AS stock_total,
+            (SELECT pvi.image_url FROM tab_product_variant_images pvi JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id WHERE g.product_id = p.id ORDER BY g.id, pvi.sort_order, pvi.id LIMIT 1) AS img_principal,
+            (SELECT MIN(c.price) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS precio_min,
+            (SELECT COALESCE(SUM(c.stock), 0) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS stock_total,
             m.nom_marca,
             p.fec_insert,
             p.is_active AS ind_activo_producto,

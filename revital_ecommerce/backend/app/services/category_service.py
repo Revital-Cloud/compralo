@@ -25,6 +25,7 @@ def get_categories(db: Session):
             c.slug,
             c.parent_id,
             c.is_active,
+            c.is_active AS ind_activo,
             c.usr_insert,
             c.fec_insert,
             c.usr_update,
@@ -49,6 +50,7 @@ def get_category(db: Session, category_id: Decimal):
             c.slug,
             c.parent_id,
             c.is_active,
+            c.is_active AS ind_activo,
             c.usr_insert,
             c.fec_insert,
             c.usr_update,
@@ -77,10 +79,12 @@ def create_category(db: Session, category: CategoryCreate, usr_insert: Decimal):
             :p_usr_operacion
         )
         """)
+        # Aceptar is_active o ind_activo del frontend; por defecto True al crear
+        is_active = payload.get("is_active") if payload.get("is_active") is not None else payload.get("ind_activo", True)
         result = db.execute(query, {
             "p_name": payload.get("name"),
             "p_parent_id": payload.get("parent_id"),
-            "p_is_active": payload.get("is_active", True),
+            "p_is_active": is_active,
             "p_usr_operacion": usr_insert,
         })
         fetched_result = result.fetchone()
@@ -119,11 +123,14 @@ def update_category(db: Session, category_id: Decimal, category: CategoryUpdate,
             :p_usr_operacion
         )
         """)
+        is_active = payload.get("is_active") if payload.get("is_active") is not None else payload.get("ind_activo")
+        if is_active is None:
+            is_active = current.get("is_active", True)
         result = db.execute(query, {
             "p_id": category_id,
             "p_name": name,
             "p_parent_id": payload.get("parent_id"),
-            "p_is_active": payload.get("is_active"),
+            "p_is_active": is_active,
             "p_usr_operacion": usr_update,
         })
         fetched_result = result.fetchone()

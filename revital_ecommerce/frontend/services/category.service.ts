@@ -21,7 +21,8 @@ export async function getCategories(): Promise<Category[]> {
     const categories = await get<Category[]>('/categories');
     console.log('Category service: Raw response:', categories);
     
-    const activeCategories = categories.filter(category => category.ind_activo);
+    const isActive = (c: Category) => (c.ind_activo ?? c.is_active) !== false
+    const activeCategories = categories.filter(isActive);
     console.log('Category service: Active categories:', activeCategories);
     
     return activeCategories;
@@ -89,7 +90,7 @@ export interface CategoryAttributeItem {
  */
 export async function createCategory(categoryData: {
   name: string;
-  ind_activo?: boolean;
+  is_active?: boolean;
   parent_id?: number | null;
 }): Promise<ApiResponse & { id?: number }> {
   return await post<ApiResponse & { id?: number }>('/categories', categoryData);
@@ -102,7 +103,7 @@ export async function updateCategory(
   id: string | number, 
   categoryData: {
     name?: string;
-    ind_activo?: boolean;
+    is_active?: boolean;
     parent_id?: number | null;
   }
 ): Promise<ApiResponse> {

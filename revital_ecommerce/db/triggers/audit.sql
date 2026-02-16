@@ -7,7 +7,10 @@ BEGIN
     END IF;
     
     IF TG_OP = 'UPDATE' THEN
-        NEW.fec_update = CURRENT_TIMESTAMP;
+        -- tab_movimientos_puntos es solo de inserción (historial), no se actualiza
+        IF TG_TABLE_NAME != 'tab_movimientos_puntos' THEN
+            NEW.fec_update = CURRENT_TIMESTAMP;
+        END IF;
         RETURN NEW;
     END IF;
     IF TG_OP = 'DELETE' THEN
@@ -20,7 +23,7 @@ $$
 LANGUAGE PLPGSQL;
 
 
--- Catálogo nuevo (tab_categories, tab_products, tab_product_variants, etc.)
+-- Catálogo (tab_categories, tab_products, variant_groups/combinations/images)
 CREATE OR REPLACE TRIGGER tri_audit_tab_categories BEFORE INSERT OR UPDATE OR DELETE ON tab_categories
 FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
 
@@ -36,13 +39,13 @@ FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
 CREATE OR REPLACE TRIGGER tri_audit_tab_products BEFORE INSERT OR UPDATE OR DELETE ON tab_products
 FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
 
-CREATE OR REPLACE TRIGGER tri_audit_tab_product_variants BEFORE INSERT OR UPDATE OR DELETE ON tab_product_variants
+CREATE OR REPLACE TRIGGER tri_audit_tab_product_variant_groups BEFORE INSERT OR UPDATE OR DELETE ON tab_product_variant_groups
 FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
 
-CREATE OR REPLACE TRIGGER tri_audit_tab_product_images BEFORE INSERT OR UPDATE OR DELETE ON tab_product_images
+CREATE OR REPLACE TRIGGER tri_audit_tab_product_variant_combinations BEFORE INSERT OR UPDATE OR DELETE ON tab_product_variant_combinations
 FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
 
-CREATE OR REPLACE TRIGGER tri_audit_tab_product_variant_attributes BEFORE INSERT OR UPDATE OR DELETE ON tab_product_variant_attributes
+CREATE OR REPLACE TRIGGER tri_audit_tab_product_variant_images BEFORE INSERT OR UPDATE OR DELETE ON tab_product_variant_images
 FOR EACH ROW EXECUTE PROCEDURE fun_audit_tablas();
 
 CREATE OR REPLACE TRIGGER tri_audit_roles BEFORE INSERT OR UPDATE OR DELETE ON tab_roles

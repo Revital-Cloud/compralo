@@ -19,8 +19,9 @@ BEGIN
     FOR v_rec IN
         SELECT DISTINCT p.id AS product_id
         FROM tab_orden_productos op
-        JOIN tab_product_variants pv ON pv.id = op.variant_id
-        JOIN tab_products p ON p.id = pv.product_id
+        JOIN tab_product_variant_combinations pv ON pv.id = op.variant_id
+        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+        JOIN tab_products p ON p.id = g.product_id
         JOIN tab_ordenes o ON op.id_orden = o.id_orden
         WHERE o.ind_estado IN (2, 3)
           AND (p_recalcular_todo OR (p_id_categoria IS NULL OR p.category_id = p_id_categoria)
@@ -28,8 +29,8 @@ BEGIN
     LOOP
         SELECT
             p.name,
-            (SELECT MIN(pv2.price) FROM tab_product_variants pv2 WHERE pv2.product_id = p.id AND pv2.is_active),
-            (SELECT COALESCE(SUM(pv2.stock), 0) FROM tab_product_variants pv2 WHERE pv2.product_id = p.id AND pv2.is_active),
+            (SELECT MIN(c.price) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active),
+            (SELECT COALESCE(SUM(c.stock), 0) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active),
             p.is_active,
             COUNT(DISTINCT o.id_orden),
             COALESCE(SUM(op.cant_producto), 0),
@@ -49,7 +50,8 @@ BEGIN
              v_rec.fecha_primera_venta, v_rec.fecha_ultima_venta, v_rec.precio_promedio_venta,
              v_rec.promedio_venta_mensual, v_rec.promedio_ingreso_mensual
         FROM tab_products p
-        LEFT JOIN tab_product_variants pv ON pv.product_id = p.id
+        LEFT JOIN tab_product_variant_groups g ON g.product_id = p.id
+        LEFT JOIN tab_product_variant_combinations pv ON pv.group_id = g.id
         LEFT JOIN tab_orden_productos op ON op.variant_id = pv.id
         LEFT JOIN tab_ordenes o ON op.id_orden = o.id_orden AND o.ind_estado IN (2, 3)
         WHERE p.id = v_rec.product_id

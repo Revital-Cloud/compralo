@@ -139,8 +139,9 @@ BEGIN
             -- Mejor mes de ventas de la categoría (vía variant -> product -> category_id)
             SELECT TO_CHAR(o.fec_pedido, 'YYYY-MM') INTO v_mejor_mes_ventas
             FROM tab_orden_productos op
-            JOIN tab_product_variants pv ON pv.id = op.variant_id
-            JOIN tab_products p ON p.id = pv.product_id AND p.category_id = v_categoria_record.id_categoria
+            JOIN tab_product_variant_combinations pv ON pv.id = op.variant_id
+            JOIN tab_product_variant_groups g ON g.id = pv.group_id
+            JOIN tab_products p ON p.id = g.product_id AND p.category_id = v_categoria_record.id_categoria
             JOIN tab_ordenes o ON op.id_orden = o.id_orden
             WHERE o.ind_estado IN (2, 3)
             GROUP BY TO_CHAR(o.fec_pedido, 'YYYY-MM')
