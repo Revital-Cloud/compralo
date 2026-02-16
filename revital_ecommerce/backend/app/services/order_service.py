@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text, bindparam, Integer
 
 from schemas.order_schema import OrderCreate
-from services.cart_product_service import _imagen_url_por_color
 
 logger = logging.getLogger(__name__)
 
@@ -202,22 +201,28 @@ def get_order_detail_admin(db: Session, id_orden: int):
             d = dict(row)
             return {k: _to_jsonable(v) for k, v in d.items()}
             
-        # Productos de la orden (tab_orden_productos usa FK compuesta a tab_productos)
+        # Productos de la orden (tab_orden_productos usa variant_id → tab_product_variants, tab_products)
+        # opciones_elegidas: migración add_opciones_elegidas; si viene vacío se rellena desde atributos de la variante
         products_query = text("""
         SELECT 
-            op.id_producto,
-            p.nom_producto,
-            p.img_producto,
-            p.spcf_producto,
+            op.variant_id,
+            p.id AS id_producto,
+            p.name AS nom_producto,
             op.cant_producto AS cantidad,
             op.precio_unitario_orden AS val_precio_unitario,
             op.subtotal AS val_subtotal,
-            COALESCE(op.opciones_elegidas, '{}'::JSONB) AS opciones_elegidas
+            COALESCE(op.opciones_elegidas, '{}'::JSONB) AS opciones_elegidas,
+            img.image_url AS imagen_url
         FROM tab_orden_productos op
-        JOIN tab_productos p ON op.id_categoria_producto = p.id_categoria
-            AND op.id_linea_producto = p.id_linea
-            AND op.id_sublinea_producto = p.id_sublinea
-            AND op.id_producto = p.id_producto
+        JOIN tab_product_variants pv ON pv.id = op.variant_id
+        JOIN tab_products p ON p.id = pv.product_id
+        LEFT JOIN LATERAL (
+            SELECT pi.image_url
+            FROM tab_product_images pi
+            WHERE pi.variant_id = op.variant_id OR (pi.variant_id IS NULL AND pi.product_id = p.id)
+            ORDER BY (pi.variant_id IS NOT NULL) DESC, pi.is_main DESC, pi.sort_order
+            LIMIT 1
+        ) img ON true
         WHERE op.id_orden = :id_orden
         """)
         products_result = db.execute(products_query, {"id_orden": id_orden})
@@ -259,22 +264,31 @@ def get_order_detail_admin(db: Session, id_orden: int):
         orden_dict = _row_to_dict(order_data)
         descuentos = order_data.get("detalle_descuentos_aplicados") if hasattr(order_data, "get") else orden_dict.get("detalle_descuentos_aplicados")
 
-        # Productos con imagen según color elegido (opciones_elegidas)
+        # Atributos de variante para rellenar opciones cuando opciones_elegidas viene vacío (órdenes antiguas)
+        variant_attrs_query = text("""
+        SELECT a.name, COALESCE(av.value, pva.value_text::VARCHAR, pva.value_number::VARCHAR, '') AS val
+        FROM tab_product_variant_attributes pva
+        JOIN tab_attributes a ON a.id = pva.attribute_id
+        LEFT JOIN tab_attribute_values av ON av.id = pva.attribute_value_id
+        WHERE pva.variant_id = :variant_id
+        """)
         productos_list = []
         for p in products_data:
             d = _row_to_dict(p)
-            opts = d.get("opciones_elegidas") or {}
-            if isinstance(opts, str):
-                try:
-                    import json
-                    opts = json.loads(opts) if opts else {}
-                except Exception:
-                    opts = {}
-            img_url = _imagen_url_por_color(d.get("img_producto"), d.get("spcf_producto"), opts)
-            if img_url:
-                d["imagen_url"] = img_url
-            # No exponer spcf_producto al frontend
-            d.pop("spcf_producto", None)
+            if not d.get("imagen_url"):
+                d.pop("imagen_url", None)
+            opts = d.get("opciones_elegidas")
+            if opts is None or (isinstance(opts, dict) and not opts) or opts == {}:
+                variant_id = d.get("variant_id")
+                if variant_id is not None:
+                    try:
+                        attrs_result = db.execute(variant_attrs_query, {"variant_id": variant_id})
+                        attrs_rows = attrs_result.mappings().all()
+                        if attrs_rows:
+                            d["opciones_elegidas"] = {str(row["name"]): str(row["val"] or "") for row in attrs_rows}
+                    except Exception:
+                        pass
+            d.pop("variant_id", None)
             productos_list.append(d)
         
         return {

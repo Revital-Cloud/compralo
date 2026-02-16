@@ -436,9 +436,10 @@ BEGIN
             p_usr_operacion
         );
         
-    -- PASO 12: Transferir productos del carrito a la orden (variant_id)
+    -- PASO 12: Transferir productos del carrito a la orden (variant_id + opciones_elegidas)
         FOR v_producto_record IN 
-            SELECT id_carrito_producto, variant_id, cantidad, precio_unitario_carrito
+            SELECT id_carrito_producto, variant_id, cantidad, precio_unitario_carrito,
+                   COALESCE(opciones_elegidas, '{}'::JSONB) AS opciones_elegidas
             FROM tab_carrito_productos WHERE id_carrito = p_id_carrito
         LOOP
             INSERT INTO tab_orden_productos (
@@ -448,6 +449,7 @@ BEGIN
                 cant_producto,
                 precio_unitario_orden,
                 subtotal,
+                opciones_elegidas,
                 usr_insert,
                 fec_insert
             ) VALUES (
@@ -457,6 +459,7 @@ BEGIN
                 v_producto_record.cantidad,
                 v_producto_record.precio_unitario_carrito,
                 (v_producto_record.cantidad * v_producto_record.precio_unitario_carrito),
+                v_producto_record.opciones_elegidas,
                 p_usr_operacion,
                 NOW()
             );

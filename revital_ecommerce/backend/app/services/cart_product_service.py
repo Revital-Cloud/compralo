@@ -146,13 +146,20 @@ def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert
         if variant_id is None:
             raise Exception("Se requiere variant_id o id_producto para agregar al carrito")
 
+        opciones = data.get("opciones_elegidas")
+        if opciones is not None and not isinstance(opciones, dict):
+            opciones = {}
+        opciones_json = json.dumps(opciones) if opciones else "{}"
         usr = usr_insert or data.get("id_usuario") or 0
+
         params = {
             "id_usuario": data.get("id_usuario"),
             "session_id": data.get("session_id") or "",
             "variant_id": variant_id,
             "cantidad": int(cart_product.cantidad),
+            "opciones_elegidas": opciones_json,
             "usr_insert": usr,
+
         }
         print(f"🛒 [BACKEND] Agregando producto al carrito: variant_id={variant_id}, cantidad={params['cantidad']}")
 
@@ -162,6 +169,7 @@ def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert
             CAST(:session_id AS VARCHAR),
             CAST(:variant_id AS NUMERIC),
             CAST(:cantidad AS INTEGER),
+            CAST(:opciones_elegidas AS JSONB),
             CAST(:usr_insert AS NUMERIC)
         )
         """)
@@ -400,6 +408,7 @@ def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
             cp.precio_unitario_carrito,
             (cp.cantidad * cp.precio_unitario_carrito) AS subtotal,
             pv.stock AS num_stock,
+            COALESCE(cp.opciones_elegidas, '{}'::JSONB) AS opciones_elegidas,
             COALESCE(
                 (SELECT pi.image_url FROM tab_product_images pi
                  WHERE pi.product_id = p.id AND pi.variant_id = cp.variant_id
@@ -432,6 +441,15 @@ def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
         products_list = []
         for row in cart_items:
             img_url = row.get("img_principal")
+            opts = row.get("opciones_elegidas")
+            if opts is None or (isinstance(opts, str) and not opts):
+                opts = {}
+            elif isinstance(opts, str):
+                try:
+                    import json
+                    opts = json.loads(opts) if opts else {}
+                except Exception:
+                    opts = {}
             product_dict = {
                 "id_carrito_producto": row["id_carrito_producto"],
                 "id_categoria_producto": int(row["category_id"]) if row["category_id"] is not None else 0,
@@ -447,7 +465,7 @@ def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
                 "marca": row["nom_marca"] or "",
                 "sublinea": None,
                 "categoria": row["nom_categoria"] or "",
-                "opciones_elegidas": {},
+                "opciones_elegidas": opts if isinstance(opts, dict) else {},
             }
             products_list.append(product_dict)
 

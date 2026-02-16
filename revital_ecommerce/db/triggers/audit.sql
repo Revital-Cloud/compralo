@@ -7,7 +7,10 @@ BEGIN
     END IF;
     
     IF TG_OP = 'UPDATE' THEN
-        NEW.fec_update = CURRENT_TIMESTAMP;
+        -- tab_movimientos_puntos es solo de inserción (historial), no se actualiza
+        IF TG_TABLE_NAME != 'tab_movimientos_puntos' THEN
+            NEW.fec_update = CURRENT_TIMESTAMP;
+        END IF;
         RETURN NEW;
     END IF;
     IF TG_OP = 'DELETE' THEN
