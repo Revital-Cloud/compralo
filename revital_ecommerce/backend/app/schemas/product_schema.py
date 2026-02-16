@@ -94,6 +94,9 @@ class Product(ProductBase):
     # Detalle: variantes con precio/stock e imágenes por variante (GET /products/{slug_or_id})
     variants: Optional[List[Dict[str, Any]]] = Field(None, description="Variantes con id, sku, price, stock, is_active; en detalle también color, size, attributes.")
     images_by_variant: Optional[Dict[str, Any]] = Field(None, description="variant_id (str) -> lista de {image_url, is_main, sort_order}.")
+    # Grupos por color e imágenes de producto para PDP (GET /products/{slug_or_id})
+    variant_groups: Optional[List[Dict[str, Any]]] = Field(None, description="Grupos por color (dominant_value, images) para selector y galería PDP.")
+    product_images: Optional[List[Dict[str, Any]]] = Field(None, description="Imágenes del producto (grupo Sin color) para galería PDP.")
 
 # Esquemas para filtros de productos (tab_products: category_id, sin línea/sublínea)
 class ProductAdminResponse(BaseModel):

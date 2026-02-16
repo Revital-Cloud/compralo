@@ -203,8 +203,12 @@ const ProductPage = () => {
 
   const dominantValueForGallery = useMemo(() => {
     if (variantGroups.length && variantSelector?.selectedAttributes) {
-      const attrName = variantGroups[0]?.dominant_attribute ?? "color"
-      const name = typeof attrName === "string" ? attrName : "color"
+      // Usar el mismo nombre de atributo que el selector (variant_options.attributes[0].attribute_name)
+      const dominantAttrName =
+        productDetail?.attributeDefinitions?.[0]?.name ??
+        variantGroups[0]?.dominant_attribute ??
+        "color"
+      const name = String(dominantAttrName || "color").trim()
       const fromSelector =
         variantSelector.selectedAttributes[name] ??
         variantSelector.selectedAttributes["Color"] ??
@@ -212,13 +216,32 @@ const ProductPage = () => {
       if (fromSelector?.trim()) return String(fromSelector).trim()
     }
     return (selectedColor ?? "").trim()
-  }, [variantGroups, selectedColor, variantSelector?.selectedAttributes])
+  }, [variantGroups, selectedColor, variantSelector?.selectedAttributes, productDetail?.attributeDefinitions])
 
   const selectedGroupForGallery = useMemo(() => {
     if (!variantGroups.length) return null
-    const colorVal = dominantValueForGallery.toLowerCase()
-    if (!colorVal) return variantGroups[0]
-    return variantGroups.find((g) => (g.dominant_value ?? "").trim().toLowerCase() === colorVal) ?? variantGroups[0]
+    const colorVal = dominantValueForGallery.trim().toLowerCase()
+    if (!colorVal) {
+      // Sin selección: usar el primer grupo que NO sea "Sin color"
+      const firstNonSinColor = variantGroups.find(
+        (g) => (g.dominant_value ?? "").trim().toLowerCase() !== "sin color"
+      )
+      return firstNonSinColor ?? variantGroups[0]
+    }
+    // Buscar el grupo que coincida exactamente con el valor seleccionado
+    const found = variantGroups.find((g) => {
+      const gVal = (g.dominant_value ?? "").trim().toLowerCase()
+      return gVal === colorVal
+    })
+    // Si no se encuentra, buscar por coincidencia parcial (por si hay diferencias de formato)
+    if (!found) {
+      const partialMatch = variantGroups.find((g) => {
+        const gVal = (g.dominant_value ?? "").trim().toLowerCase()
+        return gVal.includes(colorVal) || colorVal.includes(gVal)
+      })
+      return partialMatch ?? variantGroups[0]
+    }
+    return found
   }, [variantGroups, dominantValueForGallery])
 
   // Imágenes del producto (no asociadas a variante) — van siempre primero
@@ -230,12 +253,13 @@ const ProductPage = () => {
     return []
   }, [product, variantGroups])
 
-  // Galería: con product_images desde API → [product_images] + [color seleccionado]; sin ellos → solo imágenes del color seleccionado
+  // Galería: mostrar SIEMPRE todas las imágenes (product_images + todos los grupos de color); al elegir color solo se selecciona la que corresponde
   const { allGalleryUrls, variantIdByIndex, firstImageIndexByVariantId, firstImageIndexForSelectedGroup } = useMemo(() => {
     const urls: string[] = []
     const seenUrls = new Set<string>()
     const variantAtIdx: (number | null)[] = []
     const firstByVariant: Record<string, number> = {}
+    const firstIndexByGroupId: Record<number, number> = {}
     let firstSelectedGroupIndex: number | undefined
 
     const addUrl = (url: string, variantId: number | null) => {
@@ -252,7 +276,7 @@ const ProductPage = () => {
 
     const hasProductImagesFromApi = ((product as { product_images?: unknown[] })?.product_images?.length ?? 0) > 0
 
-    // 1. Imágenes del producto solo si vienen de la API (grupo "Sin color"); así no mostramos otro color por defecto
+    // 1. Imágenes del producto (grupo "Sin color") si vienen de la API
     if (hasProductImagesFromApi && productImages.length) {
       const sorted = [...productImages].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
       const mainIdx = sorted.findIndex((x) => x.is_main)
@@ -262,21 +286,30 @@ const ProductPage = () => {
       }
     }
 
-    // 2. Imágenes del grupo seleccionado (color); si no hay product_images desde API, la galería es solo este grupo
-    const isSinColor = (selectedGroupForGallery?.dominant_value ?? "").trim().toLowerCase() === "sin color"
-    const shouldAddSelectedGroup =
-      selectedGroupForGallery?.images?.length &&
-      (!hasProductImagesFromApi || !isSinColor)
-    if (shouldAddSelectedGroup) {
-      const sorted = [...selectedGroupForGallery!.images].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    // 2. Imágenes de TODOS los grupos de color (orden estable); se registra el primer índice de cada grupo para seleccionar al elegir color
+    for (const group of variantGroups) {
+      const isSinColor = (group.dominant_value ?? "").trim().toLowerCase() === "sin color"
+      if (isSinColor && hasProductImagesFromApi) continue
+      if (!group.images?.length) continue
+      const sorted = [...group.images].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
       const mainIdx = sorted.findIndex((x) => x.is_main)
       const ordered = mainIdx >= 0 ? [sorted[mainIdx], ...sorted.filter((_, i) => i !== mainIdx)] : sorted
+      const firstUrl = ordered.find((x) => x.image_url)?.image_url ?? null
+      let firstIdxForGroup: number | undefined
       for (const x of ordered) {
         if (x.image_url) {
           const before = urls.length
-          if (addUrl(x.image_url, null) && firstSelectedGroupIndex === undefined) firstSelectedGroupIndex = before
+          if (addUrl(x.image_url, null) && firstIdxForGroup === undefined) firstIdxForGroup = before
         }
       }
+      if (firstIdxForGroup !== undefined) firstIndexByGroupId[group.id] = firstIdxForGroup
+      if (firstIdxForGroup === undefined && firstUrl && urls.length) {
+        const idx = urls.findIndex((u) => u === firstUrl)
+        if (idx >= 0) firstIndexByGroupId[group.id] = idx
+      }
+    }
+    if (selectedGroupForGallery?.id != null && firstIndexByGroupId[selectedGroupForGallery.id] !== undefined) {
+      firstSelectedGroupIndex = firstIndexByGroupId[selectedGroupForGallery.id]
     }
 
     // 3. Fallback: si no hay product_images ni grupo seleccionado, usar images o image_url del producto
@@ -326,7 +359,7 @@ const ProductPage = () => {
       firstImageIndexByVariantId: firstByVariant,
       firstImageIndexForSelectedGroup: firstSelectedGroupIndex,
     }
-  }, [product, productImages, imagesByVariant, selectedGroupForGallery, variantGroups.length])
+  }, [product, productImages, imagesByVariant, selectedGroupForGallery, variantGroups])
 
   // URLs resueltas para la galería
   const productImagesResolved = useMemo(
@@ -382,14 +415,23 @@ const ProductPage = () => {
   useEffect(() => {
     if (displayVariantIdForImage != null && firstImageIndexByVariantId[String(displayVariantIdForImage)] !== undefined) {
       setSelectedImageIndex(firstImageIndexByVariantId[String(displayVariantIdForImage)])
-    } else if (variantGroups.length && dominantValueForGallery && selectedGroupForGallery?.images?.length != null) {
+    } else if (variantGroups.length && selectedGroupForGallery && dominantValueForGallery) {
+      // Con variant_groups: usar el índice real de la primera imagen del grupo seleccionado
       if (firstImageIndexForSelectedGroup !== undefined) {
         setSelectedImageIndex(firstImageIndexForSelectedGroup)
-      } else {
-        setSelectedImageIndex(0)
+      } else if (selectedGroupForGallery.images?.length) {
+        // Fallback: si no hay índice calculado, calcularlo basado en si hay product_images desde API
+        const hasProductImagesFromApi = ((product as { product_images?: unknown[] })?.product_images?.length ?? 0) > 0
+        if (!hasProductImagesFromApi) {
+          // Sin product_images: la galería solo tiene el grupo seleccionado, índice 0
+          setSelectedImageIndex(0)
+        } else {
+          // Con product_images: la primera imagen del grupo está después de product_images
+          setSelectedImageIndex(productImages.length)
+        }
       }
     }
-  }, [displayVariantIdForImage, firstImageIndexByVariantId, variantGroups.length, dominantValueForGallery, selectedGroupForGallery?.images?.length, firstImageIndexForSelectedGroup])
+  }, [displayVariantIdForImage, firstImageIndexByVariantId, variantGroups.length, selectedGroupForGallery, dominantValueForGallery, firstImageIndexForSelectedGroup, product, productImages.length])
 
   // Sincronizar variante e imagen al cambiar la variante seleccionada (solo flujo legacy)
   useEffect(() => {

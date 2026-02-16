@@ -164,13 +164,13 @@ export function ProductFormComposite({
     }
   }, [initialData, form])
 
-  // Pre-fill cascade in edit mode from leaf category_id (categoría → línea → sublínea)
+  // Pre-llenar cascada (categoría → línea → sublínea) en edición: cuando haya initialData y categorías cargadas
   useEffect(() => {
-    if (!initialData?.product) return
+    if (!initialData?.product || list.length === 0) return
     const product = initialData.product as { category_id?: number | string }
-    const leafId = product.category_id != null && product.category_id !== '' ? Number(product.category_id) : null
-    if (leafId == null || Number.isNaN(leafId) || leafId <= 0) return
-    if (list.length === 0) return
+    const rawCat = product.category_id
+    const leafId = rawCat != null && rawCat !== '' && !Number.isNaN(Number(rawCat)) ? Number(rawCat) : null
+    if (leafId == null || leafId <= 0) return
     const byId = new Map<number, Category>()
     list.forEach((c) => {
       const n = idNum(c)
@@ -181,21 +181,19 @@ export function ProductFormComposite({
     const cat = byId.get(leafId)
     if (!cat) return
     const path: number[] = [leafId]
-    let current = cat
-    while (parentIdNum(current) != null) {
+    let current: Category | undefined = cat
+    while (current && parentIdNum(current) != null) {
       const pid = parentIdNum(current)!
       path.push(pid)
-      const parent = byId.get(pid)
-      if (!parent) break
-      current = parent
+      current = byId.get(pid)
     }
     const rootId = path[path.length - 1]
     const lineId = path.length >= 2 ? path[path.length - 2] : null
     const sublineId = path.length >= 3 ? path[0] : null
     setSelectedParentId(rootId)
     setSelectedLineId(lineId ?? null)
-    setSelectedSublineId(sublineId)
-  }, [initialData?.product, initialData?.product?.category_id, list, list.length])
+    setSelectedSublineId(sublineId ?? null)
+  }, [initialData?.product, initialData?.product?.category_id, list])
 
   // Sync form.category_id with leaf selection (categoría/línea/sublínea)
   // lineOptions deriva de selectedParentId, no hace falta en deps; mismo render ya está actualizado
