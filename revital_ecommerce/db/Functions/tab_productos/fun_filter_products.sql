@@ -1,7 +1,12 @@
 /*
  * Filtra productos por categoría (opcionalmente con subcategorías), marca, nombre, precio, stock.
  * Usa products, product_variants, categories. total_registros para paginación.
+ *
+ * Si cambias el tipo de retorno (ej. añadir precio_max), ejecuta antes:
+ *   DROP FUNCTION IF EXISTS fun_filter_products(numeric,boolean,numeric,varchar,numeric,numeric,boolean,varchar,varchar,integer,integer);
  */
+DROP FUNCTION IF EXISTS fun_filter_products(numeric, boolean, numeric, character varying, numeric, numeric, boolean, character varying, character varying, integer, integer);
+
 CREATE OR REPLACE FUNCTION fun_filter_products(
     p_category_id DECIMAL DEFAULT NULL,
     p_include_subcategories BOOLEAN DEFAULT FALSE,
@@ -24,6 +29,7 @@ RETURNS TABLE (
     description TEXT,
     id_marca DECIMAL,
     precio_min DECIMAL,
+    precio_max DECIMAL,
     stock_total BIGINT,
     img_principal VARCHAR,
     total_registros BIGINT
@@ -58,6 +64,7 @@ BEGIN
             p.description,
             p.id_marca,
             (SELECT MIN(c.price) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS precio_min,
+            (SELECT MAX(c.price) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS precio_max,
             (SELECT COALESCE(SUM(c.stock), 0) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS stock_total,
             (SELECT pvi.image_url FROM tab_product_variant_images pvi JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id WHERE g.product_id = p.id ORDER BY g.id, pvi.sort_order, pvi.id LIMIT 1) AS img_principal
         FROM tab_products p
@@ -84,6 +91,7 @@ BEGIN
         f.description,
         f.id_marca,
         f.precio_min,
+        f.precio_max,
         f.stock_total::BIGINT,
         f.img_principal,
         (SELECT n FROM total)

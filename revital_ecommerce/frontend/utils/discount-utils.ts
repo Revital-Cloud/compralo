@@ -45,53 +45,31 @@ export const getApplicableDiscount = (
       return true
     }
 
-    // Si aplica a un producto específico, debe coincidir TODA la combinación
-    if (aplicaA === 'producto_especifico' && discount.id_producto_aplica) {
-      // Verificar que coincidan todos los campos: categoría, línea, sublínea y producto
-      // Los campos deben existir en el descuento y coincidir con el producto
-      const hasAllRequiredFields = 
-        discount.id_categoria != null &&
-        discount.id_linea != null &&
-        discount.id_sublinea != null &&
-        discount.id_producto_aplica != null
-      
-      if (!hasAllRequiredFields) return false
-      
-      const productMatches = 
-        product.id_producto?.toString() === discount.id_producto_aplica?.toString() &&
-        product.id_categoria?.toString() === discount.id_categoria?.toString() &&
-        product.id_linea?.toString() === discount.id_linea?.toString() &&
-        product.id_sublinea?.toString() === discount.id_sublinea?.toString()
-      
-      return productMatches
+    // Producto específico: la BD solo tiene product_id_aplica
+    if (aplicaA === 'producto_especifico' && discount.id_producto_aplica != null) {
+      const productId = product.id ?? product.id_producto
+      return productId?.toString() === discount.id_producto_aplica?.toString()
     }
 
-    // Si aplica a una categoría específica (comparación robusta string|number)
+    // Categoría específica
     if (aplicaA === 'categoria_especifica' && discount.id_categoria_aplica != null) {
-      const prodCat = product.id_categoria != null ? String(product.id_categoria) : ''
+      const prodCat = product.id_categoria != null ? String(product.id_categoria) : product.category_id != null ? String(product.category_id) : ''
       const discCat = String(discount.id_categoria_aplica)
       return prodCat === discCat
     }
 
-    // Si aplica a una marca específica (comparación por id_marca)
+    // Marca específica
     if (aplicaA === 'marca_especifica' && discount.id_marca_aplica != null) {
       const prodMarca = product.id_marca != null ? String(product.id_marca) : ''
       const discMarca = String(discount.id_marca_aplica)
       return prodMarca === discMarca
     }
 
-    // Si aplica a una línea específica (comparación robusta string|number)
-    if (aplicaA === 'linea_especifica' && discount.id_linea_aplica != null) {
-      const prodLin = product.id_linea != null ? String(product.id_linea) : ''
-      const discLin = String(discount.id_linea_aplica)
-      return prodLin === discLin
-    }
-
-    // Si aplica a una sublínea específica (comparación robusta string|number)
-    if (aplicaA === 'sublinea_especifica' && discount.id_sublinea_aplica != null) {
-      const prodSub = product.id_sublinea != null ? String(product.id_sublinea) : ''
-      const discSub = String(discount.id_sublinea_aplica)
-      return prodSub === discSub
+    // Línea/sublínea: en la BD se usa category_id_aplica (categoría)
+    if ((aplicaA === 'linea_especifica' || aplicaA === 'sublinea_especifica') && discount.id_categoria_aplica != null) {
+      const prodCat = product.id_categoria != null ? String(product.id_categoria) : product.category_id != null ? String(product.category_id) : ''
+      const discCat = String(discount.id_categoria_aplica)
+      return prodCat === discCat
     }
 
     return false

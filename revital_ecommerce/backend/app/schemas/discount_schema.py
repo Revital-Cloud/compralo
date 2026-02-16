@@ -24,14 +24,9 @@ class DiscountBase(BaseModel):
         val_porce_descuento (Decimal): Valor del descuento en porcentaje.
         val_monto_descuento (Decimal): Valor del descuento en monto fijo.
         aplica_a (str): Tipo de aplicación del descuento.
-        id_categoria (Decimal): Identificador de la categoría.
-        id_linea (Decimal): Identificador de la linea.
-        id_sublinea (Decimal): Identificador de la sublinea.
-        id_producto_aplica (Decimal): Identificador del producto.
-        id_categoria_aplica (Decimal): Identificador de la categoría.
+        id_producto_aplica (Decimal): ID del producto al que aplica (tab_descuentos.product_id_aplica).
+        id_categoria_aplica (Decimal): ID de la categoría a la que aplica (tab_descuentos.category_id_aplica).
         id_marca_aplica (Decimal): Identificador de la marca.
-        id_linea_aplica (Decimal): Identificador de la linea.
-        id_sublinea_aplica (Decimal): Identificador de la sublinea.
         fec_inicio (date): Fecha de inicio de validez del descuento.
         fec_fin (date): Fecha de fin de validez del descuento.
         max_usos_total (int): Límite total de usos del descuento.
@@ -49,14 +44,9 @@ class DiscountBase(BaseModel):
     val_porce_descuento: Optional[Decimal] = Field(None, description="Valor del descuento en porcentaje.")
     val_monto_descuento: Optional[Decimal] = Field(None, description="Valor del descuento en monto fijo.")
     aplica_a: Optional[str] = Field(None, description="Tipo de aplicación del descuento.")
-    id_categoria: Optional[Decimal] = Field(None, description="Identificador de la categoría.")
-    id_linea: Optional[Decimal] = Field(None, description="Identificador de la línea.")
-    id_sublinea: Optional[Decimal] = Field(None, description="Identificador de la sublínea.")
-    id_producto_aplica: Optional[Decimal] = Field(None, description="Identificador del producto.")
-    id_categoria_aplica: Optional[Decimal] = Field(None, description="Identificador de la categoría.")
+    id_producto_aplica: Optional[Decimal] = Field(None, description="ID del producto al que aplica.")
+    id_categoria_aplica: Optional[Decimal] = Field(None, description="ID de la categoría a la que aplica.")
     id_marca_aplica: Optional[Decimal] = Field(None, description="Identificador de la marca.")
-    id_linea_aplica: Optional[Decimal] = Field(None, description="Identificador de la línea.")
-    id_sublinea_aplica: Optional[Decimal] = Field(None, description="Identificador de la sublínea.")
     min_valor_pedido: Optional[Decimal] = Field(None, description="Monto mínimo de pedido para aplicar el descuento.")
     ind_es_para_cumpleanos: Optional[bool] = Field(None, description="Indica si el descuento es para cumpleaños.")
     fec_inicio: Optional[date] = Field(None, description="Fecha de inicio de validez del descuento.")
@@ -138,15 +128,10 @@ class DiscountUpdate(BaseModel):
     tipo_calculo: Optional[bool] = Field(None, description = "Indica si el descuento es porcentaje o monto fijo.")
     val_porce_descuento: Optional[Decimal] = Field(None, description = "Valor del descuento en porcentaje.")
     val_monto_descuento: Optional[Decimal] = Field(None, description = "Valor del descuento en monto fijo.")
-    aplica_a: Optional[str] = Field(None, description = "Tipo de aplicación del descuento.")
-    id_categoria: Optional[Decimal] = Field(None, description = "Identificador de la categoría.")
-    id_linea: Optional[Decimal] = Field(None, description = "Identificador de la linea.")
-    id_sublinea: Optional[Decimal] = Field(None, description = "Identificador de la sublinea.")
-    id_producto_aplica: Optional[Decimal] = Field(None, description = "Identificador del producto.")
-    id_categoria_aplica: Optional[Decimal] = Field(None, description = "Identificador de la categoría.")
-    id_marca_aplica: Optional[Decimal] = Field(None, description = "Identificador de la marca.")
-    id_linea_aplica: Optional[Decimal] = Field(None, description = "Identificador de la linea.")
-    id_sublinea_aplica: Optional[Decimal] = Field(None, description = "Identificador de la sublinea.")
+    aplica_a: Optional[str] = Field(None, description="Tipo de aplicación del descuento.")
+    id_producto_aplica: Optional[Decimal] = Field(None, description="ID del producto al que aplica.")
+    id_categoria_aplica: Optional[Decimal] = Field(None, description="ID de la categoría a la que aplica.")
+    id_marca_aplica: Optional[Decimal] = Field(None, description="Identificador de la marca.")
     min_valor_pedido: Optional[Decimal] = Field(None, description = "Monto mínimo de pedido para aplicar el descuento.")
     ind_es_para_cumpleanos: Optional[bool] = Field(None, description = "Indica si el descuento es para cumpleaños.")
     fec_inicio: Optional[date] = Field(None, description = "Fecha de inicio de validez del descuento.")

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { Heart, Share2, Star, Check } from "lucide-react"
 import { motion } from "framer-motion"
 import { toast } from "sonner"
@@ -64,6 +64,12 @@ interface ProductInfoProps {
   addToCartDisabledLabel?: string
   /** Slot para opciones (ej. ProductVariantSelector) que se muestra debajo de nombre/precio/stock. */
   optionsSlot?: React.ReactNode
+  /** Precio mínimo del rango (mín de variantes). Si no hay variante seleccionada y min !== max, se muestra rango. */
+  priceMin?: number
+  /** Precio máximo del rango (máx de variantes). */
+  priceMax?: number
+  /** Si el usuario ya eligió una variante concreta; entonces se muestra un solo precio en lugar del rango. */
+  hasVariantSelected?: boolean
 }
 
 const ProductInfo: React.FC<ProductInfoProps> = ({
@@ -87,6 +93,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   canAddToCartOverride,
   addToCartDisabledLabel,
   optionsSlot,
+  priceMin: priceMinProp,
+  priceMax: priceMaxProp,
+  hasVariantSelected = false,
 }) => {
   const [internalColor, setInternalColor] = useState<string>("")
   const selectedColor = controlledColor !== undefined ? controlledColor : internalColor
@@ -98,7 +107,22 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
 
   const { toggleFavorite, isProductFavorite } = useFavorites()
   const { data: discounts } = useActiveDiscounts()
-  const applicableDiscount = discounts ? getApplicableDiscount(product, discounts) : null
+  
+  // Asegurar que el producto tenga category_id para la comparación de descuentos
+  const productForDiscount = useMemo(() => {
+    if (!product) return product
+    // Asegurar que tenga category_id (puede venir como id_categoria o category_id)
+    const catId = (product as any).id_categoria ?? (product as any).category_id
+    return {
+      ...product,
+      id_categoria: catId,
+      category_id: catId,
+      id_producto: product.id ?? (product as any).id_producto,
+      id_marca: (product as any).id_marca ?? (product as any).marca_id,
+    }
+  }, [product])
+  
+  const applicableDiscount = discounts ? getApplicableDiscount(productForDiscount as any, discounts) : null
   const originalPriceValue = parseFloat(price.toString())
   const discountedPrice = applicableDiscount 
     ? calculateDiscountedPrice(originalPriceValue, applicableDiscount)
@@ -107,6 +131,19 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   const discountPercentage = hasDiscount 
     ? calculateDiscountPercentage(originalPriceValue, discountedPrice)
     : 0
+
+  // Mostrar rango (Desde $min – $max) cuando hay varias variantes y aún no se eligió una
+  const showPriceRange = Boolean(
+    !hasVariantSelected &&
+    priceMinProp != null &&
+    priceMaxProp != null &&
+    priceMinProp !== priceMaxProp
+  )
+  const minVal = priceMinProp ?? 0
+  const maxVal = priceMaxProp ?? 0
+  const rangeMin = showPriceRange ? (applicableDiscount ? calculateDiscountedPrice(minVal, applicableDiscount) : minVal) : 0
+  const rangeMax = showPriceRange ? (applicableDiscount ? calculateDiscountedPrice(maxVal, applicableDiscount) : maxVal) : 0
+  const rangeHasDiscount = showPriceRange && applicableDiscount != null && (rangeMin < minVal || rangeMax < maxVal)
 
   const useAttributes = attributes.length > 0
   const requiresColor = !useAttributes && colors.length > 0
@@ -152,24 +189,48 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         </h1>
       </div>
 
-      {/* Price */}
-      <div className="flex items-baseline gap-3 flex-nowrap">
-        <div className="flex items-baseline gap-3 flex-1 min-w-0">
-          <span className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white whitespace-nowrap">
-            {formatPrice(hasDiscount ? discountedPrice : price, 'COP')}
-          </span>
-          {hasDiscount && (
-            <span className="text-lg text-gray-500 line-through whitespace-nowrap flex-shrink-0">
-              {formatPrice(originalPriceValue, 'COP')}
+      {/* Price: rango (desde min – max) o precio único según variante seleccionada */}
+      {showPriceRange ? (
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+              Desde {formatPrice(rangeMin, 'COP')} – {formatPrice(rangeMax, 'COP')}
             </span>
+            {rangeHasDiscount && (
+              <Badge variant="destructive" className="text-sm font-semibold px-3 py-1">
+                -{applicableDiscount ? calculateDiscountPercentage(minVal, rangeMin) : 0}%
+              </Badge>
+            )}
+          </div>
+          {rangeHasDiscount && (
+            <div className="flex items-center gap-2">
+              <span className="text-xl text-gray-500 dark:text-gray-400 line-through font-medium">
+                Desde {formatPrice(minVal, 'COP')} – {formatPrice(maxVal, 'COP')}
+              </span>
+            </div>
           )}
         </div>
-        {hasDiscount && (
-          <Badge variant="destructive" className="text-sm whitespace-nowrap flex-shrink-0">
-            -{discountPercentage}% OFF
-          </Badge>
-        )}
-      </div>
+      ) : hasDiscount ? (
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+              {formatPrice(discountedPrice, 'COP')}
+            </span>
+            <Badge variant="destructive" className="text-sm font-semibold px-3 py-1">
+              -{discountPercentage}%
+            </Badge>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xl text-gray-500 dark:text-gray-400 line-through font-medium">
+              {formatPrice(originalPriceValue, 'COP')}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <span className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+          {formatPrice(price, 'COP')}
+        </span>
+      )}
 
       {/* Rating: mostrar si hay reseñas o si hay valor promedio */}
       {(reviewCount > 0 || (rating != null && rating > 0)) && (

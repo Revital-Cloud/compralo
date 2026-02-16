@@ -77,7 +77,12 @@ const ProductList: React.FC<ProductListProps> = ({
     <div className="space-y-3">
       {products.map((product) => {
         const applicableDiscount = discounts ? getApplicableDiscount(product, discounts) : null
-        const originalPrice = parseFloat(((product as any).price_min?.toString() ?? product.val_precio?.toString()) || '0')
+        const priceMin = parseFloat(String((product as any).price_min ?? product.val_precio ?? 0)) || 0
+        const priceMaxRaw = (product as any).price_max
+        const priceMax = priceMaxRaw != null ? parseFloat(String(priceMaxRaw)) || priceMin : priceMin
+        const showPriceRange = !Number.isNaN(priceMin) && !Number.isNaN(priceMax) && priceMin !== priceMax
+
+        const originalPrice = priceMin
         const discountedPrice = applicableDiscount
           ? calculateDiscountedPrice(originalPrice, applicableDiscount)
           : originalPrice
@@ -85,6 +90,10 @@ const ProductList: React.FC<ProductListProps> = ({
         const discountPercentage = hasDiscount
           ? calculateDiscountPercentage(originalPrice, discountedPrice)
           : 0
+
+        const rangeDiscountedMin = showPriceRange && applicableDiscount ? calculateDiscountedPrice(priceMin, applicableDiscount) : priceMin
+        const rangeDiscountedMax = showPriceRange && applicableDiscount ? calculateDiscountedPrice(priceMax, applicableDiscount) : priceMax
+        const rangeHasDiscount = showPriceRange && applicableDiscount != null && (rangeDiscountedMin < priceMin || rangeDiscountedMax < priceMax)
 
         return (
         <div
@@ -122,19 +131,44 @@ const ProductList: React.FC<ProductListProps> = ({
                 
                 <div className="flex items-center justify-between mt-2">
                     <div className="flex flex-col gap-1">
-                     <div className="flex items-center gap-2 flex-wrap">
-                       <span className="font-bold text-lg text-gray-900 dark:text-white">
-                         {formatPrice(discountedPrice)}
-                       </span>
-                       {hasDiscount && (
-                         <>
-                           <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
-                             {formatPrice(originalPrice)}
-                           </span>
-                           <Badge variant="destructive" className="text-xs">{discountPercentage}% OFF</Badge>
-                         </>
-                       )}
-                     </div>
+                      {showPriceRange ? (
+                        <>
+                          <div className="flex items-baseline gap-2 flex-wrap">
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Desde</span>
+                            <span className="font-bold text-lg text-gray-900 dark:text-white">
+                              {formatPrice(rangeHasDiscount ? rangeDiscountedMin : priceMin)}
+                              <span className="mx-1 font-normal text-gray-500 dark:text-gray-400">–</span>
+                              {formatPrice(rangeHasDiscount ? rangeDiscountedMax : priceMax)}
+                            </span>
+                            {rangeHasDiscount && (
+                              <Badge variant="destructive" className="text-xs font-semibold px-2 py-0.5">-{discountPercentage}%</Badge>
+                            )}
+                          </div>
+                          {rangeHasDiscount && (
+                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
+                              Desde {formatPrice(priceMin)} – {formatPrice(priceMax)}
+                            </span>
+                          )}
+                        </>
+                      ) : hasDiscount ? (
+                        <>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-lg text-gray-900 dark:text-white">
+                              {formatPrice(discountedPrice)}
+                            </span>
+                            <Badge variant="destructive" className="text-xs font-semibold px-2 py-0.5">
+                              -{discountPercentage}%
+                            </Badge>
+                          </div>
+                          <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
+                            {formatPrice(originalPrice)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="font-bold text-lg text-gray-900 dark:text-white">
+                          {formatPrice(discountedPrice)}
+                        </span>
+                      )}
                    </div>
                   
                   <div className="flex items-center gap-2">
@@ -222,21 +256,44 @@ onClick={(e) => handleToggleFavorite(e, product)}
 
                 {/* Price */}
                 <div className="col-span-3">
-                  <div className="flex flex-col items-start gap-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-lg text-gray-900 dark:text-white">
-                        {formatPrice(discountedPrice)}
-                      </span>
-                      {hasDiscount && (
-                        <>
-                          <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
-                            {formatPrice(originalPrice)}
-                          </span>
-                          <Badge variant="destructive" className="text-xs">{discountPercentage}% OFF</Badge>
-                        </>
+                  {showPriceRange ? (
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Desde</span>
+                        <span className="font-bold text-lg text-gray-900 dark:text-white">
+                          {formatPrice(rangeHasDiscount ? rangeDiscountedMin : priceMin)}
+                          <span className="mx-1 font-normal text-gray-500 dark:text-gray-400">–</span>
+                          {formatPrice(rangeHasDiscount ? rangeDiscountedMax : priceMax)}
+                        </span>
+                        {rangeHasDiscount && (
+                          <Badge variant="destructive" className="text-xs font-semibold px-2 py-0.5">-{discountPercentage}%</Badge>
+                        )}
+                      </div>
+                      {rangeHasDiscount && (
+                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
+                          Desde {formatPrice(priceMin)} – {formatPrice(priceMax)}
+                        </span>
                       )}
                     </div>
-                  </div>
+                  ) : hasDiscount ? (
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-lg text-gray-900 dark:text-white">
+                          {formatPrice(discountedPrice)}
+                        </span>
+                        <Badge variant="destructive" className="text-xs font-semibold px-2 py-0.5">
+                          -{discountPercentage}%
+                        </Badge>
+                      </div>
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
+                        {formatPrice(originalPrice)}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="font-bold text-lg text-gray-900 dark:text-white">
+                      {formatPrice(discountedPrice)}
+                    </span>
+                  )}
                 </div>
 
                 {/* Actions */}

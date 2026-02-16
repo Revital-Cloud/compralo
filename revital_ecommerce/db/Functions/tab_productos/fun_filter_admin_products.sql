@@ -1,7 +1,13 @@
 /*
  * Lista todos los productos (activos e inactivos) para el panel de administración.
  * Usa tab_products, variant_combinations/groups, variant_images, tab_categories, tab_marcas.
+ *
+ * Si la función ya existe y cambias el tipo de retorno (ej. añadir precio_max),
+ * PostgreSQL exige DROP antes de CREATE. Ejecuta primero:
+ *   DROP FUNCTION IF EXISTS fun_get_all_products_admin(varchar, varchar, int, int);
  */
+DROP FUNCTION IF EXISTS fun_get_all_products_admin(varchar, varchar, int, int);
+
 CREATE OR REPLACE FUNCTION fun_get_all_products_admin(
     p_ordenar_por VARCHAR(20) DEFAULT 'nombre',
     p_orden VARCHAR(4) DEFAULT 'ASC',
@@ -17,6 +23,7 @@ RETURNS TABLE (
     description TEXT,
     img_principal VARCHAR,
     precio_min DECIMAL,
+    precio_max DECIMAL,
     stock_total BIGINT,
     nom_marca VARCHAR,
     fec_insert TIMESTAMP WITHOUT TIME ZONE,
@@ -44,6 +51,7 @@ BEGIN
             p.description,
             (SELECT pvi.image_url FROM tab_product_variant_images pvi JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id WHERE g.product_id = p.id ORDER BY g.id, pvi.sort_order, pvi.id LIMIT 1) AS img_principal,
             (SELECT MIN(c.price) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS precio_min,
+            (SELECT MAX(c.price) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS precio_max,
             (SELECT COALESCE(SUM(c.stock), 0) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS stock_total,
             m.nom_marca,
             p.fec_insert,
@@ -64,6 +72,7 @@ BEGIN
         a.description,
         a.img_principal,
         a.precio_min,
+        a.precio_max,
         a.stock_total::BIGINT,
         a.nom_marca,
         a.fec_insert,

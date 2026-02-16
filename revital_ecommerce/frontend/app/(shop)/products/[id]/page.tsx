@@ -377,6 +377,25 @@ const ProductPage = () => {
     return parseFloat(String((product as any).price_min ?? product.val_precio)) || 0
   }, [product, effectiveSelectedVariant, effectiveSelectedVariantId, variants])
 
+  // Rango de precios (mín y máx de todas las variantes) para mostrar "Desde $X - $Y" cuando no hay variante seleccionada
+  const { priceMin, priceMax } = useMemo(() => {
+    if (!product) return { priceMin: 0, priceMax: 0 }
+    if (variants.length === 0) {
+      const p = parseFloat(String((product as any).price_min ?? product.val_precio)) || 0
+      return { priceMin: p, priceMax: p }
+    }
+    const prices = variants
+      .map((v: { price?: number }) => (v?.price != null ? parseFloat(String(v.price)) : NaN))
+      .filter((n: number) => !Number.isNaN(n))
+    if (prices.length === 0) {
+      const p = parseFloat(String((product as any).price_min ?? product.val_precio)) || 0
+      return { priceMin: p, priceMax: p }
+    }
+    return { priceMin: Math.min(...prices), priceMax: Math.max(...prices) }
+  }, [product, variants])
+
+  const hasVariantSelected = effectiveSelectedVariantId != null
+
   const productStock = useMemo(() => {
     if (effectiveSelectedVariant?.stock != null) return Number(effectiveSelectedVariant.stock)
     if (!product) return 0
@@ -604,6 +623,9 @@ const ProductPage = () => {
               name={product.name}
               price={productPrice}
               originalPrice={productPrice}
+              priceMin={priceMin}
+              priceMax={priceMax}
+              hasVariantSelected={hasVariantSelected}
               rating={product.rating != null && product.rating > 0 ? Number(product.rating) : 0}
               reviewCount={product.review_count != null ? Number(product.review_count) : 0}
               colors={useVariantSelectorFlow ? [] : colors}

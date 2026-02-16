@@ -59,9 +59,13 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   return (
     <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
       {products.map((product, index) => {
-        // Calcular descuentos y precios fuera del return
         const applicableDiscount = discounts ? getApplicableDiscount(product, discounts) : null
-        const originalPrice = parseFloat(((product as any).price_min?.toString() ?? product.val_precio?.toString()) || '0')
+        const priceMin = parseFloat(String((product as any).price_min ?? product.val_precio ?? 0)) || 0
+        const priceMaxRaw = (product as any).price_max
+        const priceMax = priceMaxRaw != null ? parseFloat(String(priceMaxRaw)) || priceMin : priceMin
+        const showPriceRange = !Number.isNaN(priceMin) && !Number.isNaN(priceMax) && priceMin !== priceMax
+
+        const originalPrice = priceMin
         const discountedPrice = applicableDiscount 
           ? calculateDiscountedPrice(originalPrice, applicableDiscount)
           : originalPrice
@@ -69,6 +73,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         const discountPercentage = hasDiscount 
           ? calculateDiscountPercentage(originalPrice, discountedPrice)
           : 0
+
+        const rangeDiscountedMin = showPriceRange && applicableDiscount ? calculateDiscountedPrice(priceMin, applicableDiscount) : priceMin
+        const rangeDiscountedMax = showPriceRange && applicableDiscount ? calculateDiscountedPrice(priceMax, applicableDiscount) : priceMax
+        const rangeHasDiscount = showPriceRange && applicableDiscount != null && (rangeDiscountedMin < priceMin || rangeDiscountedMax < priceMax)
 
         return (
           <Link
@@ -109,24 +117,53 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 
             {/* Información del producto */}
             <div className="space-y-1 w-full min-w-0">
-              {/* Precio */}
-              <div className="flex items-center gap-2 flex-nowrap">
-                <div className="flex items-baseline gap-2 flex-1 min-w-0">
-                  <span className="font-bold text-lg text-gray-900 dark:text-white whitespace-nowrap">
-                    {formatPrice(discountedPrice)}
-                  </span>
-                  {hasDiscount && (
-                    <span className="text-sm text-gray-500 dark:text-gray-400 line-through whitespace-nowrap shrink-0">
-                      {formatPrice(originalPrice)}
+              {/* Precio: rango (Desde min – max) o precio único */}
+              {showPriceRange ? (
+                <div className="space-y-1">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      Desde
+                    </span>
+                    <span className="font-bold text-xl text-gray-900 dark:text-white">
+                      {formatPrice(rangeHasDiscount ? rangeDiscountedMin : priceMin)}
+                      <span className="mx-1 font-normal text-gray-500 dark:text-gray-400">–</span>
+                      {formatPrice(rangeHasDiscount ? rangeDiscountedMax : priceMax)}
+                    </span>
+                    {rangeHasDiscount && (
+                      <Badge variant="destructive" className="text-xs font-semibold px-2 py-0.5">
+                        -{discountPercentage}%
+                      </Badge>
+                    )}
+                  </div>
+                  {rangeHasDiscount && (
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
+                      Desde {formatPrice(priceMin)} – {formatPrice(priceMax)}
                     </span>
                   )}
                 </div>
-                {hasDiscount && (
-                  <Badge variant="destructive" className="text-xs shrink-0">
-                    {discountPercentage}% OFF
-                  </Badge>
-                )}
-              </div>
+              ) : hasDiscount ? (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-xl text-gray-900 dark:text-white">
+                      {formatPrice(discountedPrice)}
+                    </span>
+                    <Badge variant="destructive" className="text-xs font-semibold px-2 py-0.5">
+                      -{discountPercentage}%
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
+                      {formatPrice(originalPrice)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <span className="font-bold text-xl text-gray-900 dark:text-white">
+                    {formatPrice(discountedPrice)}
+                  </span>
+                </div>
+              )}
 
               {/* Nombre del producto */}
               <h3 className="font-medium text-sm text-gray-900 dark:text-white line-clamp-2">

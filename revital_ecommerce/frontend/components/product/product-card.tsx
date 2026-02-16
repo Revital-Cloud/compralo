@@ -106,16 +106,30 @@ const ProductCard: React.FC<ProductCardProps> = ({
       {/* Información del producto */}
       <div className="space-y-1">
         {/* Precio */}
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-lg text-gray-900 dark:text-white">
-            {formatPrice(price)}
-          </span>
-          {originalPrice && originalPrice > price && (
-            <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+        {originalPrice && originalPrice > price ? (
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-xl text-gray-900 dark:text-white">
+                {formatPrice(price)}
+              </span>
+              {(() => {
+                const discountPercent = Math.round(((originalPrice - price) / originalPrice) * 100)
+                return (
+                  <Badge variant="destructive" className="text-xs font-semibold px-2 py-0.5">
+                    -{discountPercent}%
+                  </Badge>
+                )
+              })()}
+            </div>
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
               {formatPrice(originalPrice)}
             </span>
-          )}
-        </div>
+          </div>
+        ) : (
+          <span className="font-bold text-xl text-gray-900 dark:text-white">
+            {formatPrice(price)}
+          </span>
+        )}
 
         {/* Nombre del producto */}
         <h3 className="font-medium text-sm text-gray-900 dark:text-white line-clamp-2">

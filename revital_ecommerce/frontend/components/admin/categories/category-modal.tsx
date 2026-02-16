@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useRef, useState } from 'react'
+import React, { useMemo, useRef, useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui'
 import { Button, Input, Label, Checkbox } from '@/components/ui'
@@ -20,6 +20,15 @@ import {
 import type { Category } from '@/types/category'
 import { Trash2 } from 'lucide-react'
 import { generateSlug } from '@/utils/slug'
+
+function categoryIdNum(c: Category): number {
+  return typeof c.id === 'number' ? c.id : Number(c.id)
+}
+
+function parentIdNum(c: Category): number | null {
+  if (c.parent_id == null) return null
+  return typeof c.parent_id === 'number' ? c.parent_id : Number(c.parent_id)
+}
 
 const schema = z.object({
   name: z.string().min(2, 'Mínimo 2 caracteres'),
@@ -61,6 +70,10 @@ export function CategoryModal({
   const [attributeRows, setAttributeRows] = useState<AttributeRow[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const [selectedLevel1Id, setSelectedLevel1Id] = useState<number | null>(null)
+  const [selectedLevel2Id, setSelectedLevel2Id] = useState<number | null>(null)
+  const [selectedLevel3Id, setSelectedLevel3Id] = useState<number | null>(null)
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema) as Resolver<FormValues>,
     defaultValues: { name: '', parent_id: null, ind_activo: true },
@@ -83,6 +96,77 @@ export function CategoryModal({
   })
   const allAttributes = allAttributesData ?? EMPTY_ALL_ATTRS
 
+  const list = useMemo(() => (Array.isArray(categories) ? categories : []) as Category[], [categories])
+
+  const excludedParentIds = useMemo(() => {
+    if (mode !== 'edit' || !editingCategory) return new Set<number>()
+    const id = categoryIdNum(editingCategory)
+    const excluded = new Set<number>([id])
+    const collectDescendants = (parentId: number) => {
+      list.forEach((c) => {
+        if (parentIdNum(c) === parentId) {
+          const cid = categoryIdNum(c)
+          if (!excluded.has(cid)) {
+            excluded.add(cid)
+            collectDescendants(cid)
+          }
+        }
+      })
+    }
+    collectDescendants(id)
+    return excluded
+  }, [mode, editingCategory, list])
+
+  const findCategoryPath = (categoryId: number | null | undefined): number[] => {
+    if (categoryId == null) return []
+    const id = Number(categoryId)
+    if (Number.isNaN(id)) return []
+    const path: number[] = []
+    let current = list.find((c) => categoryIdNum(c) === id)
+    while (current) {
+      path.unshift(categoryIdNum(current))
+      const pid = parentIdNum(current)
+      if (pid == null) break
+      current = list.find((c) => categoryIdNum(c) === pid)
+    }
+    return path
+  }
+
+  const level1Options = useMemo(
+    () =>
+      list.filter(
+        (c) => parentIdNum(c) == null && !excludedParentIds.has(categoryIdNum(c))
+      ),
+    [list, excludedParentIds]
+  )
+  const level2Options = useMemo(
+    () =>
+      selectedLevel1Id == null
+        ? []
+        : list.filter(
+            (c) =>
+              parentIdNum(c) === selectedLevel1Id &&
+              !excludedParentIds.has(categoryIdNum(c))
+          ),
+    [list, selectedLevel1Id, excludedParentIds]
+  )
+  const level3Options = useMemo(
+    () =>
+      selectedLevel2Id == null
+        ? []
+        : list.filter(
+            (c) =>
+              parentIdNum(c) === selectedLevel2Id &&
+              !excludedParentIds.has(categoryIdNum(c))
+          ),
+    [list, selectedLevel2Id, excludedParentIds]
+  )
+
+  useEffect(() => {
+    const parentId = selectedLevel3Id ?? selectedLevel2Id ?? selectedLevel1Id ?? null
+    form.setValue('parent_id', parentId)
+  }, [selectedLevel1Id, selectedLevel2Id, selectedLevel3Id, form])
+
   // Create: sync only when modal *just* opened (avoid loop from re-running every render).
   React.useEffect(() => {
     if (!open) {
@@ -94,6 +178,9 @@ export function CategoryModal({
     openedForCreateRef.current = true
     form.reset({ name: '', parent_id: null, ind_activo: true })
     setAttributeRows([])
+    setSelectedLevel1Id(null)
+    setSelectedLevel2Id(null)
+    setSelectedLevel3Id(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mode])
 
@@ -107,6 +194,10 @@ export function CategoryModal({
       parent_id: Number.isNaN(parent_id) ? null : parent_id,
       ind_activo: editingCategory.ind_activo ?? true,
     })
+    const path = findCategoryPath(parent_id ?? undefined)
+    setSelectedLevel1Id(path[0] ?? null)
+    setSelectedLevel2Id(path[1] ?? null)
+    setSelectedLevel3Id(path[2] ?? null)
     setAttributeRows(
       categoryAttributes.map((a) => ({
         attribute_id: a.attribute_id,
@@ -115,24 +206,7 @@ export function CategoryModal({
       }))
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, mode, editingCategory, categoryAttributes])
-
-  const parentOptions = useMemo(() => {
-    const list = categories as Category[]
-    const byId = new Map(list.map((c) => [Number(c.id), c]))
-    const depth = (id: number): number => {
-      const p = byId.get(id)?.parent_id
-      if (p == null || p === undefined) return 0
-      return 1 + depth(Number(p))
-    }
-    const sorted = [...list].sort((a, b) => {
-      const dA = depth(Number(a.id))
-      const dB = depth(Number(b.id))
-      if (dA !== dB) return dA - dB
-      return String(a.name).localeCompare(String(b.name))
-    })
-    return sorted
-  }, [categories])
+  }, [open, mode, editingCategory, categoryAttributes, list])
 
   const addAttributeRow = () => {
     const firstUnused = allAttributes.find((a) => !attributeRows.some((r) => r.attribute_id === a.id))
@@ -153,6 +227,13 @@ export function CategoryModal({
 
   const usedAttributeIds = attributeRows.map((r) => r.attribute_id)
   const duplicateAttr = attributeRows.length !== new Set(usedAttributeIds).size
+
+  const attributesSectionLabel =
+    selectedLevel2Id != null
+      ? 'Atributos sub-subcategoría'
+      : selectedLevel1Id != null
+        ? 'Atributos subcategoría'
+        : 'Atributos categoría'
 
   const doSubmit = async (values: FormValues) => {
     if (duplicateAttr) {
@@ -252,39 +333,84 @@ export function CategoryModal({
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-4">
             <Label>Categoría padre</Label>
-            <Select
-              value={form.watch('parent_id') != null ? String(form.watch('parent_id')) : 'none'}
-              onValueChange={(v) => form.setValue('parent_id', v === 'none' ? null : Number(v))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Ninguna" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Ninguna</SelectItem>
-                {parentOptions
-                  .filter((c) => mode !== 'edit' || Number(c.id) !== categoryId)
-                  .map((c) => {
-                    const depth = (() => {
-                      let d = 0
-                      let cur: number | null = c.parent_id ?? null
-                      while (cur != null) {
-                        d++
-                        const cat = parentOptions.find((x) => Number(x.id) === cur)
-                        cur = cat?.parent_id ?? null
-                      }
-                      return d
-                    })()
-                    const indent = '\u00A0'.repeat(depth * 2) // non-breaking spaces
-                    return (
-                      <SelectItem key={c.id} value={String(c.id)}>
-                        {indent}{c.name}
+            <p className="text-xs text-muted-foreground">
+              Selecciona por niveles: principal (raíz), luego subcategoría y opcionalmente sub-subcategoría.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="parent-level1" className="text-muted-foreground font-normal">Nivel 1 (Principal)</Label>
+              <Select
+                value={selectedLevel1Id != null ? String(selectedLevel1Id) : 'none'}
+                onValueChange={(v) => {
+                  const id = v === 'none' ? null : Number(v)
+                  setSelectedLevel1Id(id)
+                  setSelectedLevel2Id(null)
+                  setSelectedLevel3Id(null)
+                }}
+              >
+                <SelectTrigger id="parent-level1">
+                  <SelectValue placeholder="Ninguna" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Ninguna</SelectItem>
+                  {level1Options.map((c) => (
+                    <SelectItem key={c.id} value={String(categoryIdNum(c))}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedLevel1Id != null && level2Options.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="parent-level2" className="text-muted-foreground font-normal">Nivel 2 (Subcategoría)</Label>
+                <Select
+                  value={selectedLevel2Id != null ? String(selectedLevel2Id) : 'none'}
+                  onValueChange={(v) => {
+                    const id = v === 'none' ? null : Number(v)
+                    setSelectedLevel2Id(id)
+                    setSelectedLevel3Id(null)
+                  }}
+                >
+                  <SelectTrigger id="parent-level2">
+                    <SelectValue placeholder="Ninguna (usar nivel 1 como padre)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Ninguna (usar nivel 1 como padre)</SelectItem>
+                    {level2Options.map((c) => (
+                      <SelectItem key={c.id} value={String(categoryIdNum(c))}>
+                        {c.name}
                       </SelectItem>
-                    )
-                  })}
-              </SelectContent>
-            </Select>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {selectedLevel2Id != null && level3Options.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="parent-level3" className="text-muted-foreground font-normal">Nivel 3 (Sub-subcategoría)</Label>
+                <Select
+                  value={selectedLevel3Id != null ? String(selectedLevel3Id) : 'none'}
+                  onValueChange={(v) => {
+                    const id = v === 'none' ? null : Number(v)
+                    setSelectedLevel3Id(id)
+                  }}
+                >
+                  <SelectTrigger id="parent-level3">
+                    <SelectValue placeholder="Ninguna (usar nivel 2 como padre)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Ninguna (usar nivel 2 como padre)</SelectItem>
+                    {level3Options.map((c) => (
+                      <SelectItem key={c.id} value={String(categoryIdNum(c))}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -303,7 +429,7 @@ export function CategoryModal({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Atributos de la categoría</Label>
+              <Label>{attributesSectionLabel}</Label>
               <Button type="button" variant="outline" size="sm" onClick={addAttributeRow}>
                 Agregar atributo
               </Button>
