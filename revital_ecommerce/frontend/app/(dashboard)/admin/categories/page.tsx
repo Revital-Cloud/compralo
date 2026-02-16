@@ -158,28 +158,55 @@ const CategoriesPage = () => {
         const id = categoryIdNum(cat)
         const meta = categoryRowMeta.get(id)
         const level = meta?.level ?? 0
-        const isLast = meta?.isLastInGroup ?? true
-        const parentId = parentIdNum(cat)
-        const parentMeta = parentId != null ? categoryRowMeta.get(parentId) : null
-        const parentIsLast = parentMeta?.isLastInGroup ?? true
+        const hasChildren = (filteredData as Category[]).some((c) => parentIdNum(c) === id)
 
-        const branch = isLast ? '└' : '├'
-        const vertical = parentIsLast ? '    ' : '│   '
-        const line = '── '
-        const prefix =
-          level === 0
-            ? ''
-            : level === 1
-              ? `${branch}${line}`
-              : `${vertical}${branch}${line}`
+        const LINE_LEFT = 14
+        const STEP = 22
+        const HORIZ_WIDTH = 12
+        const NAME_LEFT = LINE_LEFT + HORIZ_WIDTH + 8
+        const CONNECT_UP = 400
 
+        const nameLeft = level === 0 ? 4 : NAME_LEFT + (level - 1) * STEP
         return (
-          <span className="flex items-center font-medium">
-            <span className="shrink-0 text-muted-foreground font-normal tabular-nums tracking-tight" style={{ fontFamily: 'ui-monospace, monospace' }}>
-              {prefix}
-            </span>
-            <span>{row.original.name}</span>
-          </span>
+          <div className="relative min-h-10 flex items-center overflow-visible" style={{ paddingLeft: nameLeft }}>
+            {/* Level 0: vertical line down from bottom so children connect */}
+            {level === 0 && hasChildren && (
+              <div
+                className="absolute w-px bg-border"
+                style={{ left: LINE_LEFT, top: '100%', height: CONNECT_UP }}
+                aria-hidden
+              />
+            )}
+            {/* Level 1+: vertical trunk(s) from above + horizontal L to name */}
+            {level >= 1 && (
+              <>
+                {/* Vertical trunks: one at each indent so parent lines continue down */}
+                {Array.from({ length: level }, (_, i) => (
+                  <div
+                    key={i}
+                    className="absolute w-px bg-border"
+                    style={{
+                      left: LINE_LEFT + i * STEP,
+                      top: -CONNECT_UP,
+                      bottom: 0,
+                    }}
+                    aria-hidden
+                  />
+                ))}
+                {/* Horizontal L branch from this level's trunk to name */}
+                <div
+                  className="absolute h-px bg-border"
+                  style={{
+                    left: LINE_LEFT + (level - 1) * STEP,
+                    top: '50%',
+                    width: HORIZ_WIDTH,
+                  }}
+                  aria-hidden
+                />
+              </>
+            )}
+            <span className="relative z-10 font-medium">{row.original.name}</span>
+          </div>
         )
       },
     },
@@ -375,6 +402,7 @@ const CategoriesPage = () => {
           columns={[...columns, ...actions]} 
           data={filteredData as unknown as Category[]}
           pageSize={10}
+          className="[&_[data-slot=table-container]]:overflow-y-visible"
         />
       )}
 
