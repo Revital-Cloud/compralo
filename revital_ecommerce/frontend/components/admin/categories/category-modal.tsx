@@ -336,7 +336,10 @@ export function CategoryModal({
           <div className="space-y-4">
             <Label>Categoría padre</Label>
             <p className="text-xs text-muted-foreground">
-              Selecciona por niveles: principal (raíz), luego subcategoría y opcionalmente sub-subcategoría.
+              Selecciona por niveles: principal (categoría), luego subcategoría y opcionalmente sub-subcategoría.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Categoría principal = nivel superior; los productos se asignan a categorías de último nivel (sublínea).
             </p>
             <div className="space-y-2">
               <Label htmlFor="parent-level1" className="text-muted-foreground font-normal">Nivel 1 (Principal)</Label>
