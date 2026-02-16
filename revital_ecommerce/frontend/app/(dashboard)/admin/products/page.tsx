@@ -204,6 +204,7 @@ const ProductsPage = () => {
       description: adminProduct.description,
       image_url: adminProduct.image_url,
       price_min: adminProduct.price_min,
+      price_max: (adminProduct as { price_max?: string }).price_max ?? adminProduct.price_min,
       id_proveedor: (adminProduct as { id_proveedor?: string }).id_proveedor,
       id_marca: adminProduct.id_marca,
       category_id: adminProduct.category_id,
@@ -276,9 +277,19 @@ const ProductsPage = () => {
     {
       accessorKey: 'price_min',
       header: 'Precio',
-      cell: ({ row }) => (
-        <span className="font-semibold">{formatPrice((row.original as any).price_min ?? (row.original as any).val_precio)}</span>
-      ),
+      cell: ({ row }) => {
+        const min = parseFloat(String((row.original as any).price_min ?? (row.original as any).val_precio ?? 0))
+        const maxRaw = (row.original as any).price_max
+        const max = maxRaw != null ? parseFloat(String(maxRaw)) : min
+        const showRange = !Number.isNaN(min) && !Number.isNaN(max) && min !== max
+        return (
+          <span className="font-semibold">
+            {showRange
+              ? `${formatPrice(min, 'COP')} – ${formatPrice(max, 'COP')}`
+              : formatPrice(min, 'COP')}
+          </span>
+        )
+      },
     },
     {
       accessorKey: 'stock_total',
@@ -453,7 +464,15 @@ const ProductsPage = () => {
                 <h4 className="text-sm font-medium text-muted-foreground">Precio y stock</h4>
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                   <dt className="text-muted-foreground">Precio</dt>
-                  <dd className="font-semibold">{formatPrice((selectedProduct as any).price_min ?? (selectedProduct as any).val_precio)}</dd>
+                  <dd className="font-semibold">
+                    {(() => {
+                      const min = parseFloat(String((selectedProduct as any).price_min ?? (selectedProduct as any).val_precio ?? 0))
+                      const maxRaw = (selectedProduct as any).price_max
+                      const max = maxRaw != null ? parseFloat(String(maxRaw)) : min
+                      const showRange = !Number.isNaN(min) && !Number.isNaN(max) && min !== max
+                      return showRange ? `${formatPrice(min, 'COP')} – ${formatPrice(max, 'COP')}` : formatPrice(min, 'COP')
+                    })()}
+                  </dd>
                   <dt className="text-muted-foreground">Stock</dt>
                   <dd>
                     {(() => {

@@ -19,16 +19,10 @@ export interface Discount {
   requiere_codigo?: boolean
   fec_insert?: string
   fec_update?: string
-  // Campos para productos específicos (requeridos para verificar producto completo)
-  id_categoria?: string | number
-  id_linea?: string | number
-  id_sublinea?: string | number
+  // Campos según tab_descuentos: category_id_aplica, product_id_aplica, id_marca_aplica
   id_producto_aplica?: string | number
-  // Campos para otros tipos de aplicación
   id_categoria_aplica?: string | number
   id_marca_aplica?: string | number
-  id_linea_aplica?: string | number
-  id_sublinea_aplica?: string | number
 }
 
 export interface DiscountStats {

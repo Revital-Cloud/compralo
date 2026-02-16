@@ -138,7 +138,7 @@ const DiscountsPage = () => {
       )}
 
       {isError && (
-        <div className="text-sm text-red-600">No se pudieron cargar los descuentos.</div>
+        <div className="text-sm text-muted-foreground">No hay descuentos disponibles.</div>
       )}
 
       {!isLoading && !isError && Array.isArray(filteredData) && filteredData.length > 0 && (

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui"
 import { Button } from "@/components/ui"
 import { Input } from "@/components/ui"
@@ -16,6 +16,7 @@ import { getCategories } from '@/services/category.service'
 import { brandService } from '@/services/brand.service'
 import { getProducts } from '@/services/product.service'
 import { parseDateSafe, toLocalISOString, isPastDate } from '@/utils/date-helpers'
+import type { Category } from '@/types/category'
 
 const discountSchema = z.object({
   nom_descuento: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
@@ -23,18 +24,10 @@ const discountSchema = z.object({
   tipo_descuento: z.enum(['porcentaje', 'monto_fijo']),
   val_descuento: z.string().min(1, 'El valor es requerido'),
   aplica_a: z.string().default('total_pedido'),
-  // IDs condicionales
+  // IDs según tab_descuentos: product_id_aplica, category_id_aplica, id_marca_aplica
   id_producto_aplica: z.string().optional(),
-  id_categoria_producto: z.string().optional(),
-  id_linea_producto: z.string().optional(),
-  id_sublinea_producto: z.string().optional(),
   id_categoria_aplica: z.string().optional(),
   id_marca_aplica: z.string().optional(),
-  id_categoria_linea: z.string().optional(),
-  id_linea_aplica: z.string().optional(),
-  id_categoria_sublinea: z.string().optional(),
-  id_linea_sublinea: z.string().optional(),
-  id_sublinea_aplica: z.string().optional(),
   // Resto de campos
   monto_min_compra: z.string().optional(),
   val_puntos_requeridos: z.string().optional(),
@@ -70,13 +63,72 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
   onSubmit 
 }) => {
   // Estados para datos de selects
-  const [categories, setCategories] = useState<any[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [brands, setBrands] = useState<any[]>([])
   
   // Estados para controlar los Popovers de fechas
   const [openStartDate, setOpenStartDate] = useState(false)
   const [openEndDate, setOpenEndDate] = useState(false)
+
+  // Estados para selects en cascada de categorías
+  const [selectedLevel1Id, setSelectedLevel1Id] = useState<number | null>(null)
+  const [selectedLevel2Id, setSelectedLevel2Id] = useState<number | null>(null)
+  const [selectedLevel3Id, setSelectedLevel3Id] = useState<number | null>(null)
+
+  // Helper functions para trabajar con categorías
+  const categoryIdNum = (c: Category): number => {
+    return typeof c.id === 'number' ? c.id : Number(c.id)
+  }
+
+  const parentIdNum = (c: Category): number | null => {
+    if (c.parent_id == null) return null
+    return typeof c.parent_id === 'number' ? c.parent_id : Number(c.parent_id)
+  }
+
+  const isCategoryActive = (c: Category): boolean => {
+    return (c.is_active ?? c.ind_activo) !== false
+  }
+
+  // Filtrar categorías por nivel
+  const list = Array.isArray(categories) ? categories : []
+  const level1Options = useMemo(
+    () => list.filter((c) => parentIdNum(c) == null && isCategoryActive(c)),
+    [list]
+  )
+  const level2Options = useMemo(
+    () =>
+      selectedLevel1Id == null
+        ? []
+        : list.filter((c) => parentIdNum(c) === selectedLevel1Id && isCategoryActive(c)),
+    [list, selectedLevel1Id]
+  )
+  const level3Options = useMemo(
+    () =>
+      selectedLevel2Id == null
+        ? []
+        : list.filter((c) => parentIdNum(c) === selectedLevel2Id && isCategoryActive(c)),
+    [list, selectedLevel2Id]
+  )
+
+  // Función para encontrar la ruta de una categoría (padre → abuelo → bisabuelo)
+  const findCategoryPath = (categoryId: number | string | null | undefined): number[] => {
+    if (!categoryId) return []
+    const id = typeof categoryId === 'string' ? Number(categoryId) : categoryId
+    if (Number.isNaN(id)) return []
+
+    const path: number[] = []
+    let current: Category | undefined = list.find((c) => categoryIdNum(c) === id)
+    
+    while (current) {
+      path.unshift(categoryIdNum(current))
+      const parentId = parentIdNum(current)
+      if (parentId == null) break
+      current = list.find((c) => categoryIdNum(c) === parentId)
+    }
+    
+    return path
+  }
 
   const form = useForm<DiscountFormData>({ 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -118,9 +170,31 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
     }
   }, [open])
 
+  // Limpiar estados de cascada cuando cambia aplica_a
+  useEffect(() => {
+    if (aplicaA !== 'categoria_especifica') {
+      setSelectedLevel1Id(null)
+      setSelectedLevel2Id(null)
+      setSelectedLevel3Id(null)
+      form.setValue('id_categoria_aplica', '')
+    }
+  }, [aplicaA, form])
+
+  // Actualizar id_categoria_aplica cuando cambia cualquier nivel
+  useEffect(() => {
+    if (aplicaA === 'categoria_especifica') {
+      const finalCategoryId = selectedLevel3Id ?? selectedLevel2Id ?? selectedLevel1Id
+      if (finalCategoryId != null) {
+        form.setValue('id_categoria_aplica', String(finalCategoryId))
+      } else {
+        form.setValue('id_categoria_aplica', '')
+      }
+    }
+  }, [selectedLevel1Id, selectedLevel2Id, selectedLevel3Id, aplicaA, form])
+
   // Cargar valores iniciales cuando cambien - esperar a que open e initialValues estén listos
   useEffect(() => {
-    if (!initialValues || !open) return
+    if (!initialValues || !open || list.length === 0) return
     const v = initialValues
     const toStr = (x: unknown) => (x != null ? String(x) : '')
     const toDateStr = (x: unknown) => {
@@ -139,16 +213,8 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
       val_descuento: v.tipo_calculo === true ? toStr(v.val_porce_descuento) : toStr(v.val_monto_descuento),
       aplica_a: toStr(v.aplica_a) || 'total_pedido',
       id_producto_aplica: toStr(v.id_producto_aplica),
-      id_categoria_producto: toStr(v.id_categoria),
-      id_linea_producto: toStr(v.id_linea),
-      id_sublinea_producto: toStr(v.id_sublinea),
-      id_categoria_aplica: toStr(v.id_categoria_aplica ?? v.id_categoria),
+      id_categoria_aplica: toStr(v.id_categoria_aplica),
       id_marca_aplica: toStr(v.id_marca_aplica),
-      id_categoria_linea: toStr(v.id_categoria),
-      id_linea_aplica: toStr(v.id_linea_aplica ?? v.id_linea),
-      id_categoria_sublinea: toStr(v.id_categoria),
-      id_linea_sublinea: toStr(v.id_linea),
-      id_sublinea_aplica: toStr(v.id_sublinea_aplica ?? v.id_sublinea),
       monto_min_compra: toStr(v.min_valor_pedido),
       val_puntos_requeridos: toStr(v.costo_puntos_canje),
       cod_cupon: toStr(v.codigo_descuento),
@@ -170,7 +236,21 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
       formattedValues.compra_minima = toStr(v.min_valor_pedido)
     }
     form.reset(formattedValues)
-  }, [initialValues, open, form])
+
+    // Inicializar estados de cascada si hay id_categoria_aplica
+    if (v.aplica_a === 'categoria_especifica' && v.id_categoria_aplica) {
+      const path = findCategoryPath(v.id_categoria_aplica)
+      if (path.length > 0) {
+        setSelectedLevel1Id(path[0] ?? null)
+        if (path.length > 1) {
+          setSelectedLevel2Id(path[1] ?? null)
+        }
+        if (path.length > 2) {
+          setSelectedLevel3Id(path[2] ?? null)
+        }
+      }
+    }
+  }, [initialValues, open, form, list, findCategoryPath])
 
   const handleSubmit = form.handleSubmit(async (values) => {
     await onSubmit(values)
@@ -179,11 +259,14 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
     setOpenEndDate(false)
   })
   
-  // Resetear estados de Popovers cuando se cierra el modal
+  // Resetear estados de Popovers y cascada cuando se cierra el modal
   useEffect(() => {
     if (!open) {
       setOpenStartDate(false)
       setOpenEndDate(false)
+      setSelectedLevel1Id(null)
+      setSelectedLevel2Id(null)
+      setSelectedLevel3Id(null)
     }
   }, [open])
 
@@ -281,14 +364,9 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                 onChange={(e) => {
                   const selectedProductId = e.target.value
                   if (selectedProductId) {
-                    const selectedProduct = products.find(p => p.id_producto.toString() === selectedProductId)
-                    if (selectedProduct) {
-                      form.setValue('id_producto_aplica', selectedProductId)
-                      form.setValue('id_categoria_producto', (selectedProduct.category_id ?? selectedProduct.id_categoria)?.toString() || '')
-                    }
+                    form.setValue('id_producto_aplica', selectedProductId)
                   } else {
                     form.setValue('id_producto_aplica', '')
-                    form.setValue('id_categoria_producto', '')
                   }
                 }}
                 className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
@@ -304,20 +382,77 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
           )}
 
           {aplicaA === 'categoria_especifica' && (
-            <div className="space-y-2">
-              <Label htmlFor="id_categoria_aplica">Categoría *</Label>
-              <select
-                id="id_categoria_aplica"
-                {...form.register('id_categoria_aplica')}
-                className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
-              >
-                <option value="">Selecciona una categoría</option>
-                {categories.map((category, index) => (
-                  <option key={`category-${category.id_categoria}-${index}`} value={category.id_categoria}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="level1_category">Nivel 1 (Categoría Principal) *</Label>
+                <select
+                  id="level1_category"
+                  value={selectedLevel1Id ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value ? Number(e.target.value) : null
+                    setSelectedLevel1Id(value)
+                    setSelectedLevel2Id(null)
+                    setSelectedLevel3Id(null)
+                  }}
+                  className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
+                >
+                  <option value="">Selecciona una categoría principal</option>
+                  {level1Options.map((category) => (
+                    <option key={`level1-${categoryIdNum(category)}`} value={categoryIdNum(category)}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {selectedLevel1Id != null && level2Options.length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="level2_category">Nivel 2 (Subcategoría) {level3Options.length > 0 ? '*' : '(Opcional)'}</Label>
+                  <select
+                    id="level2_category"
+                    value={selectedLevel2Id ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value ? Number(e.target.value) : null
+                      setSelectedLevel2Id(value)
+                      setSelectedLevel3Id(null)
+                    }}
+                    className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
+                  >
+                    <option value="">Selecciona una subcategoría (opcional)</option>
+                    {level2Options.map((category) => (
+                      <option key={`level2-${categoryIdNum(category)}`} value={categoryIdNum(category)}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {selectedLevel2Id != null && level3Options.length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="level3_category">Nivel 3 (Sub-subcategoría) (Opcional)</Label>
+                  <select
+                    id="level3_category"
+                    value={selectedLevel3Id ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value ? Number(e.target.value) : null
+                      setSelectedLevel3Id(value)
+                    }}
+                    className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
+                  >
+                    <option value="">Selecciona una sub-subcategoría (opcional)</option>
+                    {level3Options.map((category) => (
+                      <option key={`level3-${categoryIdNum(category)}`} value={categoryIdNum(category)}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground">
+                El descuento se aplicará a la última categoría seleccionada y todas sus subcategorías.
+              </p>
             </div>
           )}
 

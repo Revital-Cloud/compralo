@@ -57,11 +57,12 @@ export const transformDiscountPayload = (values: any): any => {
   if (aplicaA === 'producto_especifico' && (!values.id_producto_aplica || values.id_producto_aplica === '')) {
     throw new Error('Para descuentos de producto específico se requiere seleccionar un producto')
   }
-  if (aplicaA === 'linea_especifica' && (!values.id_linea_aplica || values.id_linea_aplica === '')) {
-    throw new Error('Para descuentos de línea específica se requiere seleccionar una línea')
+  // linea_especifica y sublinea_especifica usan category_id_aplica en la BD
+  if (aplicaA === 'linea_especifica' && (!values.id_categoria_aplica || values.id_categoria_aplica === '')) {
+    throw new Error('Para descuentos de línea específica se requiere seleccionar una categoría')
   }
-  if (aplicaA === 'sublinea_especifica' && (!values.id_sublinea_aplica || values.id_sublinea_aplica === '')) {
-    throw new Error('Para descuentos de sublínea específica se requiere seleccionar una sublínea')
+  if (aplicaA === 'sublinea_especifica' && (!values.id_categoria_aplica || values.id_categoria_aplica === '')) {
+    throw new Error('Para descuentos de sublínea específica se requiere seleccionar una categoría')
   }
 
   const payload: any = {
@@ -96,27 +97,18 @@ export const transformDiscountPayload = (values: any): any => {
     monto_minimo_producto: safeParseFloat(values.monto_minimo_producto, 0),
     cantidad_minima_producto: safeParseInt(values.cantidad_minima_producto, 1),
     requiere_codigo: values.requiere_codigo || false,
-    // IDs condicionales según "aplica_a" - ahora siempre se incluyen si aplica_a lo requiere
+    // IDs según tab_descuentos: solo category_id_aplica, product_id_aplica, id_marca_aplica
     ...(aplicaA === 'producto_especifico' && {
       id_producto_aplica: parseInt(values.id_producto_aplica),
-      id_categoria: values.id_categoria_producto ? parseInt(values.id_categoria_producto) : undefined,
-      id_linea: values.id_linea_producto ? parseInt(values.id_linea_producto) : undefined,
-      id_sublinea: values.id_sublinea_producto ? parseInt(values.id_sublinea_producto) : undefined,
     }),
     ...(aplicaA === 'categoria_especifica' && {
-      id_categoria_aplica: parseInt(values.id_categoria_aplica)
+      id_categoria_aplica: parseInt(values.id_categoria_aplica),
     }),
     ...(aplicaA === 'marca_especifica' && {
-      id_marca_aplica: parseInt(values.id_marca_aplica)
+      id_marca_aplica: parseInt(values.id_marca_aplica),
     }),
-    ...(aplicaA === 'linea_especifica' && {
-      id_linea_aplica: parseInt(values.id_linea_aplica),
-      id_categoria: parseInt(values.id_categoria_linea)
-    }),
-    ...(aplicaA === 'sublinea_especifica' && {
-      id_sublinea_aplica: parseInt(values.id_sublinea_aplica),
-      id_categoria: parseInt(values.id_categoria_sublinea),
-      id_linea: parseInt(values.id_linea_sublinea)
+    ...((aplicaA === 'linea_especifica' || aplicaA === 'sublinea_especifica') && {
+      id_categoria_aplica: parseInt(values.id_categoria_aplica),
     }),
   }
 

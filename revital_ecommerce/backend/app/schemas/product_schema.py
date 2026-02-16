@@ -109,6 +109,7 @@ class ProductAdminResponse(BaseModel):
     slug_producto: Optional[str] = None
     image_url: Optional[str] = Field(None, description="Imagen principal desde tab_product_images.")
     price_min: str = Field(..., description="Precio mínimo desde tab_product_variants.")
+    price_max: Optional[str] = Field(None, description="Precio máximo desde tab_product_variants (rango en admin).")
     stock_total: int = Field(..., description="Suma stock desde tab_product_variants.")
     id_marca: str
     nom_marca: str
@@ -162,6 +163,7 @@ class ProductFiltered(BaseModel):
     description: Optional[str] = None
     image_url: Optional[str] = Field(None, description="Imagen principal desde tab_product_images.")
     price_min: Decimal = Field(..., description="Precio mínimo desde tab_product_variants.")
+    price_max: Optional[Decimal] = Field(None, description="Precio máximo desde tab_product_variants (rango en listado).")
     stock_total: int = Field(..., description="Suma stock desde tab_product_variants.")
     total_registros: int = 0
     rating: Optional[float] = Field(None, ge=0, le=5)

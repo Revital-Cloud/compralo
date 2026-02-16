@@ -144,6 +144,7 @@ def get_products_admin(db: Session, params: dict):
                 "slug_producto": r.get("slug_producto"),
                 "image_url": r.get("img_principal"),
                 "price_min": str(r.get("precio_min") or "0"),
+                "price_max": str(r.get("precio_max") or r.get("precio_min") or "0"),
                 "stock_total": int(r.get("stock_total") or 0),
                 "id_marca": str(r.get("id_marca") or "") if r.get("id_marca") is not None else "",
                 "nom_marca": (r.get("nom_marca") or "") or "",
@@ -293,6 +294,8 @@ def _row_to_product_dict(db: Session, row) -> dict:
     product_dict["id"] = product_id
     product_dict["name"] = product_dict.get("nom_producto") or product_dict.get("name") or ""
     product_dict["category_name"] = product_dict.get("nom_categoria") or product_dict.get("category_name") or ""
+    if product_dict.get("category_id") is None and product_dict.get("id_categoria") is not None:
+        product_dict["category_id"] = product_dict["id_categoria"]
     product_dict.setdefault("slug", product_dict.get("slug"))
     product_dict["price_min"] = product_dict.get("val_precio")
     product_dict["stock_total"] = int(product_dict.get("num_stock") or 0) if product_dict.get("num_stock") is not None else 0
@@ -375,6 +378,9 @@ def get_product_by_id(db: Session, product_id: Decimal):
             return None
         result = _row_to_product_dict(db, row)
         result["num_stock"] = result.get("stock_total", 0)
+        # Para descuentos en PDP: el esquema Product usa category_id; la query devuelve id_categoria
+        if result.get("id_categoria") is not None and result.get("category_id") is None:
+            result["category_id"] = result["id_categoria"]
 
         # Grupos dominantes (ej. Color) con imágenes
         group_rows = db.execute(
@@ -1437,7 +1443,7 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
         }
         query = text("""
             SELECT product_id, category_id, nom_categoria, nom_producto, slug_producto, description,
-                   id_marca, precio_min, stock_total, img_principal, total_registros
+                   id_marca, precio_min, precio_max, stock_total, img_principal, total_registros
             FROM fun_filter_products(
                 :p_category_id, :p_include_subcategories, :p_id_marca, :p_nombre_producto,
                 :p_precio_min, :p_precio_max, :p_solo_con_stock, :p_ordenar_por, :p_orden,
@@ -1495,6 +1501,7 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
                 description=row.get("description"),
                 image_url=row.get("img_principal"),
                 price_min=row.get("precio_min") or Decimal("0"),
+                price_max=row.get("precio_max") or row.get("precio_min") or Decimal("0"),
                 stock_total=int(row.get("stock_total") or 0),
                 total_registros=int(total),
                 rating=ratings_dict.get(row["product_id"]),

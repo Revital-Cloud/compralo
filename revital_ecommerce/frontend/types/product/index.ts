@@ -69,6 +69,7 @@ export interface ProductAdmin {
   slug_producto?: string;
   image_url?: string;
   price_min: string;
+  price_max?: string;
   stock_total: number;
   id_marca: string;
   nom_marca: string;
@@ -210,6 +211,7 @@ export interface ProductFiltered {
   description?: string;
   image_url?: string;
   price_min: number;
+  price_max?: number;
   stock_total: number;
   total_registros: number;
   rating?: number;
