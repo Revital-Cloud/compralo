@@ -242,6 +242,7 @@ class VariantCreateItem(BaseModel):
     price: Decimal = Field(..., ge=0, description="Precio.")
     stock: int = Field(0, ge=0, description="Stock.")
     is_active: bool = Field(True, description="Variante activa.")
+    tipo_clasificacion: Optional[str] = Field(None, max_length=100, description="Tipo o clasificación de la variante (ej. Estándar, Premium, Básico).")
     attributes: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Mapa attribute_id (str) -> valor (text, number o boolean).")
     image_urls: Optional[List[str]] = Field(default_factory=list, description="URLs de imágenes de la variante.")
     main_index: Optional[int] = Field(0, ge=0, description="Índice de la imagen principal en image_urls (0 = primera).")

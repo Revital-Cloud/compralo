@@ -97,6 +97,7 @@ export interface VariantCreateItem {
   price: number;
   stock: number;
   is_active: boolean;
+  tipo_clasificacion?: string | null;
   attributes?: Record<string, string | number | boolean>;
   image_urls?: string[];
   main_index?: number;

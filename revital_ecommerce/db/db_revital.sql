@@ -192,6 +192,7 @@ CREATE TABLE IF NOT EXISTS tab_product_variant_combinations (
     sku             VARCHAR(120) NOT NULL UNIQUE,
     price           DECIMAL(12,2) NOT NULL CHECK (price >= 0),
     stock           INT NOT NULL DEFAULT 0 CHECK (stock >= 0),
+    tipo_clasificacion VARCHAR(100) NULL,
     attributes      JSONB NOT NULL DEFAULT '{}',
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
     usr_insert      DECIMAL(10) NOT NULL DEFAULT 0,

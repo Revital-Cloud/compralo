@@ -20,6 +20,7 @@ import { IconPlus, IconTrash } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 import { VariantImageUpload } from './variant-image-upload'
 import type { Category } from '@/types/category'
+import { formatNumberWithDots, parseFormattedNumber } from '@/utils/format-price'
 
 const schema = z.object({
   name: z.string().min(2, 'Mínimo 2 caracteres'),
@@ -50,6 +51,7 @@ const defaultVariant = (): VariantCreateItem => ({
   price: 0,
   stock: 0,
   is_active: true,
+  tipo_clasificacion: null,
   attributes: {},
   image_urls: [],
   main_index: 0,
@@ -174,6 +176,7 @@ export function ProductFormComposite({
                 price: Number(v.price),
                 stock: Number(v.stock),
                 is_active: v.is_active ?? true,
+                tipo_clasificacion: (v as { tipo_clasificacion?: string | null }).tipo_clasificacion ?? null,
                 attributes,
                 image_urls,
                 main_index,
@@ -338,6 +341,7 @@ export function ProductFormComposite({
         price: Number(v.price),
         stock: Number(v.stock) >= 0 ? Number(v.stock) : 0,
         is_active: v.is_active ?? true,
+        tipo_clasificacion: v.tipo_clasificacion && v.tipo_clasificacion.trim() ? v.tipo_clasificacion.trim() : null,
         attributes: Object.keys(attrs).length > 0 ? attrs : undefined,
         image_urls: v.image_urls?.length ? [...v.image_urls] : undefined,
         main_index: v.main_index ?? 0,
@@ -527,10 +531,15 @@ export function ProductFormComposite({
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          {variants.map((variant, index) => (
+          {variants.map((variant, index) => {
+            const variantLabel =
+              (variant.tipo_clasificacion && String(variant.tipo_clasificacion).trim()) ||
+              (variant.attributes && Object.values(variant.attributes).find((v) => v != null && String(v).trim()) as string | undefined)?.trim() ||
+              `Variante ${index + 1}`
+            return (
             <div key={index} className="border rounded-lg p-4 space-y-4 bg-muted/30">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-sm">Variante {index + 1}</span>
+                <span className="font-medium text-sm">{variantLabel}</span>
                 <Button
                   type="button"
                   variant="ghost"
@@ -547,11 +556,41 @@ export function ProductFormComposite({
                 <div className="space-y-1">
                   <Label>Precio *</Label>
                   <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={variant.price ?? 0}
-                    onChange={(e) => updateVariant(index, 'price', e.target.value)}
+                    type="text"
+                    inputMode="numeric"
+                    value={variant.price != null && variant.price > 0 ? formatNumberWithDots(variant.price) : ''}
+                    onChange={(e) => {
+                      const rawValue = e.target.value.trim()
+                      // Permitir borrar completamente
+                      if (rawValue === '') {
+                        updateVariant(index, 'price', 0)
+                        return
+                      }
+                      // Remover todo excepto números (incluyendo puntos que el usuario pueda haber escrito)
+                      const numbersOnly = rawValue.replace(/[^\d]/g, '')
+                      if (numbersOnly === '') {
+                        updateVariant(index, 'price', 0)
+                        return
+                      }
+                      // Parsear y actualizar (el formato se aplicará automáticamente en el value)
+                      const parsed = parseInt(numbersOnly, 10)
+                      if (!isNaN(parsed)) {
+                        updateVariant(index, 'price', parsed)
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // Asegurar formato al perder el foco
+                      const currentPrice = variant.price ?? 0
+                      if (currentPrice > 0) {
+                        const formatted = formatNumberWithDots(currentPrice)
+                        // Solo actualizar si el valor mostrado no coincide con el formateado
+                        if (e.target.value !== formatted) {
+                          updateVariant(index, 'price', currentPrice)
+                        }
+                      }
+                    }}
+                    placeholder="0"
+                    className="font-mono"
                   />
                 </div>
                 <div className="space-y-1">
@@ -561,6 +600,16 @@ export function ProductFormComposite({
                     min={0}
                     value={variant.stock ?? 0}
                     onChange={(e) => updateVariant(index, 'stock', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Tipo/Clasificación</Label>
+                  <Input
+                    type="text"
+                    value={variant.tipo_clasificacion ?? ''}
+                    onChange={(e) => updateVariant(index, 'tipo_clasificacion', e.target.value || null)}
+                    placeholder="Ej: Estándar, Premium, Básico"
+                    maxLength={100}
                   />
                 </div>
                 <div className="flex items-center gap-2 pt-6">
@@ -637,7 +686,8 @@ export function ProductFormComposite({
                 />
               </div>
             </div>
-          ))}
+            )
+          })}
         </CardContent>
       </Card>
 

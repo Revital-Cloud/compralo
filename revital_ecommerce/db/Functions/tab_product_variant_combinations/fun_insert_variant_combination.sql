@@ -8,7 +8,8 @@ CREATE OR REPLACE FUNCTION fun_insert_variant_combination(
     p_price DECIMAL(12,2) DEFAULT 0,
     p_stock INT DEFAULT 0,
     p_attributes JSONB DEFAULT '{}',
-    p_is_active BOOLEAN DEFAULT TRUE
+    p_is_active BOOLEAN DEFAULT TRUE,
+    p_tipo_clasificacion VARCHAR DEFAULT NULL
 ) RETURNS VARCHAR AS $$
 DECLARE
     v_id DECIMAL(10);
@@ -30,8 +31,8 @@ BEGIN
         RETURN 'Error: SKU no debe superar 119 caracteres.';
     END IF;
     v_id := (SELECT COALESCE(MAX(id), 0) + 1 FROM tab_product_variant_combinations);
-    INSERT INTO tab_product_variant_combinations (id, group_id, sku, price, stock, attributes, is_active, usr_insert, fec_insert)
-    VALUES (v_id, p_group_id, v_sku, p_price, COALESCE(p_stock, 0), COALESCE(p_attributes, '{}'::JSONB), COALESCE(p_is_active, TRUE), 0, NOW());
+    INSERT INTO tab_product_variant_combinations (id, group_id, sku, price, stock, attributes, is_active, tipo_clasificacion, usr_insert, fec_insert)
+    VALUES (v_id, p_group_id, v_sku, p_price, COALESCE(p_stock, 0), COALESCE(p_attributes, '{}'::JSONB), COALESCE(p_is_active, TRUE), nullif(trim(p_tipo_clasificacion), ''), 0, NOW());
     RETURN 'OK:' || v_id;
 EXCEPTION
     WHEN unique_violation THEN RETURN 'Error: SKU duplicado.';
