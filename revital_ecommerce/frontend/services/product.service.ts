@@ -204,10 +204,12 @@ export async function getFilterStats(filters: ProductFilterParams): Promise<Prod
 }
 
 /**
- * Obtener opciones disponibles para los filtros (tienda: solo activos)
+ * Obtener opciones disponibles para los filtros (tienda: solo activos).
+ * Si se pasa categoryId, el backend devuelve atributos filtrables solo de esa categoría.
  */
-export async function getFilterOptions(): Promise<FilterOptions> {
-  return await get<FilterOptions>('/products/filter/options');
+export async function getFilterOptions(categoryId?: number | null): Promise<FilterOptions> {
+  const params = categoryId != null ? { category_id: categoryId } : {};
+  return await get<FilterOptions>('/products/filter/options', { params });
 }
 
 /**

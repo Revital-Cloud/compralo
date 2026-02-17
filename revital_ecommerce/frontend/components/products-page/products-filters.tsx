@@ -40,7 +40,7 @@ function CategoryTreeItem({
   onSelect: (id: number | null) => void
   level?: number
 }) {
-  const [open, setOpen] = useState(level < 1)
+  const [open, setOpen] = useState(false)
   const hasChildren = node.children && node.children.length > 0
   const isSelected = selectedId === node.id
 

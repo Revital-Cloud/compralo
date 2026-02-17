@@ -22,7 +22,7 @@ const ProductsPage = () => {
   /** Atributos dinámicos: { "attributeId": ["Negro", "Blanco"] } */
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string[]>>({})
 
-  const { data: filterOptions, isLoading: optionsLoading } = useFilterOptions()
+  const { data: filterOptions, isLoading: optionsLoading } = useFilterOptions(selectedCategoryId)
 
   const dynamicPriceRange = useMemo(() => {
     const range = filterOptions?.precio_rango ?? filterOptions?.price_range
@@ -170,6 +170,11 @@ const ProductsPage = () => {
       setPriceRange([range.minimo, range.maximo])
     }
   }, [filterOptions])
+
+  // Al cambiar de categoría, limpiar filtros por atributos (son específicos de cada categoría)
+  useEffect(() => {
+    setSelectedAttributes({})
+  }, [selectedCategoryId])
 
 
   return (

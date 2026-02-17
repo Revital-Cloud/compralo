@@ -24,7 +24,7 @@ export const PRODUCT_KEYS = {
   filters: () => [...PRODUCT_KEYS.all, 'filters'] as const,
   filter: (filters: ProductFilterParams) => [...PRODUCT_KEYS.filters(), filters] as const,
   filterStats: (filters: ProductFilterParams) => [...PRODUCT_KEYS.filters(), 'stats', filters] as const,
-  filterOptions: () => [...PRODUCT_KEYS.filters(), 'options'] as const,
+  filterOptions: (categoryId?: number | null) => [...PRODUCT_KEYS.filters(), 'options', categoryId ?? 'all'] as const,
   filterOptionsAdmin: () => [...PRODUCT_KEYS.admin(), 'filter-options'] as const,
   search: (query: string) => [...PRODUCT_KEYS.all, 'search', query] as const,
 };
@@ -167,12 +167,13 @@ export function useFilterStats(filters: ProductFilterParams) {
 }
 
 /**
- * Hook para obtener opciones de filtros (tienda: solo activos)
+ * Hook para obtener opciones de filtros (tienda: solo activos).
+ * Si se pasa selectedCategoryId, los atributos devueltos son solo los de esa categoría.
  */
-export function useFilterOptions() {
+export function useFilterOptions(selectedCategoryId?: number | null) {
   return useQuery({
-    queryKey: PRODUCT_KEYS.filterOptions(),
-    queryFn: () => productService.getFilterOptions(),
+    queryKey: PRODUCT_KEYS.filterOptions(selectedCategoryId ?? undefined),
+    queryFn: () => productService.getFilterOptions(selectedCategoryId ?? undefined),
     staleTime: 15 * 60 * 1000, // 15 minutos - las opciones cambian poco
   });
 }

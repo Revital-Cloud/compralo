@@ -34,26 +34,26 @@ const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }
           {/* About Us */}
           <AboutSection />
 
-          {/* Categorías (raíz) */}
+          {/* Categorías (raíz) - máximo 5 */}
           <CategoriesSection
             title="Categorías"
-            categories={footerCategories?.categories || []}
+            categories={(footerCategories?.categories || []).slice(0, 5)}
             isLoading={isLoading}
             error={error}
           />
 
-          {/* Líneas (hijas de categorías) */}
+          {/* Líneas (hijas de categorías) - máximo 5 */}
           <CategoriesSection
             title="Líneas"
-            categories={footerCategories?.lineas || []}
+            categories={(footerCategories?.lineas || []).slice(0, 5)}
             isLoading={isLoading}
             error={error}
           />
 
-          {/* Sublíneas (nietas) */}
+          {/* Sublíneas (nietas) - máximo 5 */}
           <CategoriesSection
             title="Sublíneas"
-            categories={footerCategories?.sublineas || []}
+            categories={(footerCategories?.sublineas || []).slice(0, 5)}
             isLoading={isLoading}
             error={error}
           />
