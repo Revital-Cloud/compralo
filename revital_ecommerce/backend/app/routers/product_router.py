@@ -539,28 +539,16 @@ async def get_filter_stats(
 
 @router.get("/products/filter/options")
 async def get_filter_options(
+    category_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user_optional)
 ):
     """
-    Obtener opciones disponibles para los filtros.
-    
-    Este endpoint devuelve las opciones disponibles para poblar
-    los selectores del frontend, incluyendo categorías, líneas,
-    sublíneas, marcas, proveedores y rangos de precios.
-    
-    Args:
-        db (Session): Sesión de la base de datos inyectada por FastAPI.
-        current_user (UserInToken): Usuario autenticado (opcional).
-    
-    Returns:
-        dict: Diccionario con las opciones de filtro disponibles.
-        
-    Raises:
-        HTTPException: Si ocurre un error al obtener las opciones.
+    Opciones de filtro: categorías, precio, marcas. Si se pasa category_id,
+    además devuelve los atributos filtrables de esa categoría (y sus valores).
     """
     try:
-        options = product_service.get_filter_options(db)
+        options = product_service.get_filter_options(db, category_id=category_id)
         return options
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
