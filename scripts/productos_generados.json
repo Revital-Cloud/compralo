@@ -1,0 +1,3893 @@
+{
+  "metadata": {
+    "total_products": 50,
+    "categories_used": 14,
+    "brands_used": 17,
+    "suppliers_used": 13
+  },
+  "products": [
+    {
+      "name": "Producto FitLife",
+      "slug": "producto-fitlife",
+      "category_id": 11.0,
+      "category_name": "Portatiles",
+      "description": "Descripción detallada del producto Producto FitLife. Características y beneficios principales.",
+      "id_marca": 9.0,
+      "marca_name": "FitLife",
+      "id_proveedor": 7.0,
+      "proveedor_name": "Suministros del Norte SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Verde",
+          "hex_color": "#008000",
+          "combinations": [
+            {
+              "sku": "SKU-96796",
+              "price": 447280.35,
+              "stock": 94,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            },
+            {
+              "sku": "SKU-68970",
+              "price": 52415.51,
+              "stock": 84,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Blanco",
+          "hex_color": "#FFFFFF",
+          "combinations": [
+            {
+              "sku": "SKU-22353",
+              "price": 224736.63,
+              "stock": 56,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            },
+            {
+              "sku": "SKU-73446",
+              "price": 230015.38,
+              "stock": 68,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            },
+            {
+              "sku": "SKU-97078",
+              "price": 98469.76,
+              "stock": 22,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Amarillo",
+          "hex_color": "#FFFF00",
+          "combinations": [
+            {
+              "sku": "SKU-53328",
+              "price": 317274.41,
+              "stock": 73,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Morado",
+          "hex_color": "#800080",
+          "combinations": [
+            {
+              "sku": "SKU-40971",
+              "price": 163451.82,
+              "stock": 76,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            },
+            {
+              "sku": "SKU-65453",
+              "price": 486156.84,
+              "stock": 70,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Item SmartWear",
+      "slug": "item-smartwear",
+      "category_id": 58.0,
+      "category_name": "Maletas Grandes",
+      "description": "Descripción detallada del producto Item SmartWear. Características y beneficios principales.",
+      "id_marca": 18.0,
+      "marca_name": "SmartWear",
+      "id_proveedor": 9.0,
+      "proveedor_name": "Logistica Central SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-32865",
+              "price": 285172.83,
+              "stock": 16,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-76779",
+              "price": 447038.68,
+              "stock": 20,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-84934",
+              "price": 76709.59,
+              "stock": 55,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-66839",
+              "price": 452913.39,
+              "stock": 100,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-59179",
+              "price": 226338.15,
+              "stock": 35,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Servicio ToolMaster",
+      "slug": "servicio-toolmaster",
+      "category_id": 8.0,
+      "category_name": "Camisetas Hombre",
+      "description": "Descripción detallada del producto Servicio ToolMaster. Características y beneficios principales.",
+      "id_marca": 12.0,
+      "marca_name": "ToolMaster",
+      "id_proveedor": 7.0,
+      "proveedor_name": "Suministros del Norte SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Morado",
+          "hex_color": "#800080",
+          "combinations": [
+            {
+              "sku": "SKU-96880",
+              "price": 213310.6,
+              "stock": 83,
+              "attributes": {
+                "Talla": "S"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Verde",
+          "hex_color": "#008000",
+          "combinations": [
+            {
+              "sku": "SKU-75390",
+              "price": 377164.78,
+              "stock": 95,
+              "attributes": {
+                "Talla": "L"
+              }
+            },
+            {
+              "sku": "SKU-19554",
+              "price": 68583.99,
+              "stock": 83,
+              "attributes": {
+                "Talla": "M"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Rosado",
+          "hex_color": "#FFC0CB",
+          "combinations": [
+            {
+              "sku": "SKU-16635",
+              "price": 270118.87,
+              "stock": 59,
+              "attributes": {
+                "Talla": "S"
+              }
+            },
+            {
+              "sku": "SKU-20567",
+              "price": 83269.32,
+              "stock": 42,
+              "attributes": {
+                "Talla": "L"
+              }
+            },
+            {
+              "sku": "SKU-15242",
+              "price": 150735.68,
+              "stock": 100,
+              "attributes": {
+                "Talla": "M"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Amarillo",
+          "hex_color": "#FFFF00",
+          "combinations": [
+            {
+              "sku": "SKU-51308",
+              "price": 257031.88,
+              "stock": 41,
+              "attributes": {
+                "Talla": "L"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Rojo",
+          "hex_color": "#FF0000",
+          "combinations": [
+            {
+              "sku": "SKU-66965",
+              "price": 383665.8,
+              "stock": 75,
+              "attributes": {
+                "Talla": "S"
+              }
+            },
+            {
+              "sku": "SKU-37990",
+              "price": 82384.01,
+              "stock": 15,
+              "attributes": {
+                "Talla": "M"
+              }
+            },
+            {
+              "sku": "SKU-46922",
+              "price": 403269.31,
+              "stock": 99,
+              "attributes": {
+                "Talla": "L"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bien GardenPro",
+      "slug": "bien-gardenpro",
+      "category_id": 57.0,
+      "category_name": "Maletas de Cabina",
+      "description": "Descripción detallada del producto Bien GardenPro. Características y beneficios principales.",
+      "id_marca": 16.0,
+      "marca_name": "GardenPro",
+      "id_proveedor": 8.0,
+      "proveedor_name": "Proveedores Unidos SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-11512",
+              "price": 229492.04,
+              "stock": 93,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-39844",
+              "price": 470839.96,
+              "stock": 39,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-17522",
+              "price": 255541.35,
+              "stock": 18,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-64669",
+              "price": 201254.05,
+              "stock": 100,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Item GardenPro",
+      "slug": "item-gardenpro",
+      "category_id": 53.0,
+      "category_name": "Taladros",
+      "description": "Descripción detallada del producto Item GardenPro. Características y beneficios principales.",
+      "id_marca": 16.0,
+      "marca_name": "GardenPro",
+      "id_proveedor": 8.0,
+      "proveedor_name": "Proveedores Unidos SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Morado",
+          "hex_color": "#800080",
+          "combinations": [
+            {
+              "sku": "SKU-71143",
+              "price": 490385.09,
+              "stock": 52,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Naranja",
+          "hex_color": "#FFA500",
+          "combinations": [
+            {
+              "sku": "SKU-66522",
+              "price": 333051.17,
+              "stock": 93,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Verde",
+          "hex_color": "#008000",
+          "combinations": [
+            {
+              "sku": "SKU-21049",
+              "price": 371221.85,
+              "stock": 35,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Blanco",
+          "hex_color": "#FFFFFF",
+          "combinations": [
+            {
+              "sku": "SKU-61829",
+              "price": 422734.76,
+              "stock": 21,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bien ElectroMax",
+      "slug": "bien-electromax",
+      "category_id": 57.0,
+      "category_name": "Maletas de Cabina",
+      "description": "Descripción detallada del producto Bien ElectroMax. Características y beneficios principales.",
+      "id_marca": 8.0,
+      "marca_name": "ElectroMax",
+      "id_proveedor": 8.0,
+      "proveedor_name": "Proveedores Unidos SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-90893",
+              "price": 310447.29,
+              "stock": 86,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-24953",
+              "price": 244717.1,
+              "stock": 68,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-89197",
+              "price": 236399.23,
+              "stock": 20,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-61579",
+              "price": 104088.33,
+              "stock": 50,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-72830",
+              "price": 138498.39,
+              "stock": 77,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto PetWorld",
+      "slug": "producto-petworld",
+      "category_id": 55.0,
+      "category_name": "Sillas Ergonómicas",
+      "description": "Descripción detallada del producto Producto PetWorld. Características y beneficios principales.",
+      "id_marca": 11.0,
+      "marca_name": "PetWorld",
+      "id_proveedor": 4.0,
+      "proveedor_name": "Distribuciones Andina SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Naranja",
+          "hex_color": "#FFA500",
+          "combinations": [
+            {
+              "sku": "SKU-30641",
+              "price": 361857.36,
+              "stock": 60,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Gris",
+          "hex_color": "#808080",
+          "combinations": [
+            {
+              "sku": "SKU-40459",
+              "price": 292870.69,
+              "stock": 50,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Azul",
+          "hex_color": "#2363EB",
+          "combinations": [
+            {
+              "sku": "SKU-65003",
+              "price": 213076.34,
+              "stock": 49,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Verde",
+          "hex_color": "#008000",
+          "combinations": [
+            {
+              "sku": "SKU-51501",
+              "price": 341433.34,
+              "stock": 21,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Item BabyDreams",
+      "slug": "item-babydreams",
+      "category_id": 49.0,
+      "category_name": "Consolas Xbox",
+      "description": "Descripción detallada del producto Item BabyDreams. Características y beneficios principales.",
+      "id_marca": 10.0,
+      "marca_name": "BabyDreams",
+      "id_proveedor": 10.0,
+      "proveedor_name": "Grupo Comercial Atlas",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-37142",
+              "price": 359083.36,
+              "stock": 16,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-95617",
+              "price": 53501.97,
+              "stock": 50,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-33094",
+              "price": 161995.73,
+              "stock": 100,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-10508",
+              "price": 64292.45,
+              "stock": 57,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bien GardenPro 1",
+      "slug": "bien-gardenpro-1",
+      "category_id": 50.0,
+      "category_name": "Consolas Nintendo",
+      "description": "Descripción detallada del producto Bien GardenPro 1. Características y beneficios principales.",
+      "id_marca": 16.0,
+      "marca_name": "GardenPro",
+      "id_proveedor": 5.0,
+      "proveedor_name": "Comercializadora Nova SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-35493",
+              "price": 124952.42,
+              "stock": 82,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-76367",
+              "price": 66763.14,
+              "stock": 29,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-75308",
+              "price": 272500.07,
+              "stock": 98,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-10133",
+              "price": 229622.55,
+              "stock": 52,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Artículo SecureHome",
+      "slug": "art-culo-securehome",
+      "category_id": 11.0,
+      "category_name": "Portatiles",
+      "description": "Descripción detallada del producto Artículo SecureHome. Características y beneficios principales.",
+      "id_marca": 15.0,
+      "marca_name": "SecureHome",
+      "id_proveedor": 1.0,
+      "proveedor_name": "Tech Distribuciones SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Morado",
+          "hex_color": "#800080",
+          "combinations": [
+            {
+              "sku": "SKU-43266",
+              "price": 318883.12,
+              "stock": 94,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Rosado",
+          "hex_color": "#FFC0CB",
+          "combinations": [
+            {
+              "sku": "SKU-41681",
+              "price": 211830.32,
+              "stock": 43,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Gris",
+          "hex_color": "#808080",
+          "combinations": [
+            {
+              "sku": "SKU-25205",
+              "price": 266095.98,
+              "stock": 45,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            },
+            {
+              "sku": "SKU-34888",
+              "price": 249948.52,
+              "stock": 56,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            },
+            {
+              "sku": "SKU-46661",
+              "price": 386497.29,
+              "stock": 41,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Objeto TravelPro",
+      "slug": "objeto-travelpro",
+      "category_id": 50.0,
+      "category_name": "Consolas Nintendo",
+      "description": "Descripción detallada del producto Objeto TravelPro. Características y beneficios principales.",
+      "id_marca": 13.0,
+      "marca_name": "TravelPro",
+      "id_proveedor": 3.0,
+      "proveedor_name": "Importadores Colombia",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-42558",
+              "price": 115372.01,
+              "stock": 73,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-53428",
+              "price": 79306.4,
+              "stock": 85,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-85332",
+              "price": 187021.47,
+              "stock": 44,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-79639",
+              "price": 414691.93,
+              "stock": 86,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Elemento Apple",
+      "slug": "elemento-apple",
+      "category_id": 55.0,
+      "category_name": "Sillas Ergonómicas",
+      "description": "Descripción detallada del producto Elemento Apple. Características y beneficios principales.",
+      "id_marca": 1.0,
+      "marca_name": "Apple",
+      "id_proveedor": 10.0,
+      "proveedor_name": "Grupo Comercial Atlas",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Gris",
+          "hex_color": "#808080",
+          "combinations": [
+            {
+              "sku": "SKU-20709",
+              "price": 66387.55,
+              "stock": 22,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Blanco",
+          "hex_color": "#FFFFFF",
+          "combinations": [
+            {
+              "sku": "SKU-77451",
+              "price": 397101.75,
+              "stock": 93,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Negro",
+          "hex_color": "#000000",
+          "combinations": [
+            {
+              "sku": "SKU-89133",
+              "price": 91244.22,
+              "stock": 95,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Verde",
+          "hex_color": "#008000",
+          "combinations": [
+            {
+              "sku": "SKU-37456",
+              "price": 125433.9,
+              "stock": 27,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Rosado",
+          "hex_color": "#FFC0CB",
+          "combinations": [
+            {
+              "sku": "SKU-43348",
+              "price": 163831.62,
+              "stock": 51,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Artículo ToolMaster",
+      "slug": "art-culo-toolmaster",
+      "category_id": 7.0,
+      "category_name": "Smartphones",
+      "description": "Descripción detallada del producto Artículo ToolMaster. Características y beneficios principales.",
+      "id_marca": 12.0,
+      "marca_name": "ToolMaster",
+      "id_proveedor": 5.0,
+      "proveedor_name": "Comercializadora Nova SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Morado",
+          "hex_color": "#800080",
+          "combinations": [
+            {
+              "sku": "SKU-26982",
+              "price": 386356.93,
+              "stock": 33,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Amarillo",
+          "hex_color": "#FFFF00",
+          "combinations": [
+            {
+              "sku": "SKU-39036",
+              "price": 438557.0,
+              "stock": 13,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            },
+            {
+              "sku": "SKU-48515",
+              "price": 121089.33,
+              "stock": 34,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Negro",
+          "hex_color": "#000000",
+          "combinations": [
+            {
+              "sku": "SKU-51902",
+              "price": 202462.96,
+              "stock": 32,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Gris",
+          "hex_color": "#808080",
+          "combinations": [
+            {
+              "sku": "SKU-14282",
+              "price": 158235.21,
+              "stock": 69,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mercancía ToolMaster",
+      "slug": "mercanc-a-toolmaster",
+      "category_id": 52.0,
+      "category_name": "Juguetes Perro",
+      "description": "Descripción detallada del producto Mercancía ToolMaster. Características y beneficios principales.",
+      "id_marca": 12.0,
+      "marca_name": "ToolMaster",
+      "id_proveedor": 1.0,
+      "proveedor_name": "Tech Distribuciones SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-22627",
+              "price": 338132.98,
+              "stock": 23,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-41332",
+              "price": 479110.19,
+              "stock": 64,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-66801",
+              "price": 159371.87,
+              "stock": 56,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-57171",
+              "price": 395589.33,
+              "stock": 51,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-48652",
+              "price": 73462.64,
+              "stock": 45,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Elemento SecureHome",
+      "slug": "elemento-securehome",
+      "category_id": 11.0,
+      "category_name": "Portatiles",
+      "description": "Descripción detallada del producto Elemento SecureHome. Características y beneficios principales.",
+      "id_marca": 15.0,
+      "marca_name": "SecureHome",
+      "id_proveedor": 2.0,
+      "proveedor_name": "Moda Global SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Gris",
+          "hex_color": "#808080",
+          "combinations": [
+            {
+              "sku": "SKU-73378",
+              "price": 435940.57,
+              "stock": 33,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            },
+            {
+              "sku": "SKU-37765",
+              "price": 218262.04,
+              "stock": 15,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            },
+            {
+              "sku": "SKU-28681",
+              "price": 371092.01,
+              "stock": 39,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Verde",
+          "hex_color": "#008000",
+          "combinations": [
+            {
+              "sku": "SKU-23040",
+              "price": 99338.79,
+              "stock": 50,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            },
+            {
+              "sku": "SKU-52716",
+              "price": 461434.15,
+              "stock": 81,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Azul",
+          "hex_color": "#2363EB",
+          "combinations": [
+            {
+              "sku": "SKU-61303",
+              "price": 82127.39,
+              "stock": 100,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            },
+            {
+              "sku": "SKU-87974",
+              "price": 446212.51,
+              "stock": 51,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Negro",
+          "hex_color": "#000000",
+          "combinations": [
+            {
+              "sku": "SKU-40299",
+              "price": 286190.44,
+              "stock": 83,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            },
+            {
+              "sku": "SKU-22602",
+              "price": 169933.13,
+              "stock": 88,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            },
+            {
+              "sku": "SKU-12029",
+              "price": 90369.56,
+              "stock": 78,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Naranja",
+          "hex_color": "#FFA500",
+          "combinations": [
+            {
+              "sku": "SKU-43353",
+              "price": 182562.93,
+              "stock": 36,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mercancía TravelPro",
+      "slug": "mercanc-a-travelpro",
+      "category_id": 48.0,
+      "category_name": "Consolas PlayStation",
+      "description": "Descripción detallada del producto Mercancía TravelPro. Características y beneficios principales.",
+      "id_marca": 13.0,
+      "marca_name": "TravelPro",
+      "id_proveedor": 11.0,
+      "proveedor_name": "Soluciones Integrales SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-25833",
+              "price": 307119.05,
+              "stock": 81,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-46623",
+              "price": 197492.25,
+              "stock": 54,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-16911",
+              "price": 310266.95,
+              "stock": 30,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-34692",
+              "price": 317180.26,
+              "stock": 16,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-47764",
+              "price": 215218.21,
+              "stock": 51,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Artículo ToolMaster 1",
+      "slug": "art-culo-toolmaster-1",
+      "category_id": 58.0,
+      "category_name": "Maletas Grandes",
+      "description": "Descripción detallada del producto Artículo ToolMaster 1. Características y beneficios principales.",
+      "id_marca": 12.0,
+      "marca_name": "ToolMaster",
+      "id_proveedor": 11.0,
+      "proveedor_name": "Soluciones Integrales SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-42316",
+              "price": 61393.87,
+              "stock": 72,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-52582",
+              "price": 52954.91,
+              "stock": 56,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-47757",
+              "price": 261464.51,
+              "stock": 53,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-73975",
+              "price": 214226.26,
+              "stock": 77,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mercancía HyperTech",
+      "slug": "mercanc-a-hypertech",
+      "category_id": 58.0,
+      "category_name": "Maletas Grandes",
+      "description": "Descripción detallada del producto Mercancía HyperTech. Características y beneficios principales.",
+      "id_marca": 4.0,
+      "marca_name": "HyperTech",
+      "id_proveedor": 2.0,
+      "proveedor_name": "Moda Global SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-33735",
+              "price": 417954.32,
+              "stock": 46,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-75953",
+              "price": 85771.24,
+              "stock": 66,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-23578",
+              "price": 341111.61,
+              "stock": 60,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bien SecureHome",
+      "slug": "bien-securehome",
+      "category_id": 53.0,
+      "category_name": "Taladros",
+      "description": "Descripción detallada del producto Bien SecureHome. Características y beneficios principales.",
+      "id_marca": 15.0,
+      "marca_name": "SecureHome",
+      "id_proveedor": 10.0,
+      "proveedor_name": "Grupo Comercial Atlas",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Negro",
+          "hex_color": "#000000",
+          "combinations": [
+            {
+              "sku": "SKU-31298",
+              "price": 354230.31,
+              "stock": 73,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Amarillo",
+          "hex_color": "#FFFF00",
+          "combinations": [
+            {
+              "sku": "SKU-18333",
+              "price": 88878.15,
+              "stock": 90,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Rojo",
+          "hex_color": "#FF0000",
+          "combinations": [
+            {
+              "sku": "SKU-10487",
+              "price": 252100.68,
+              "stock": 11,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Item BrightLux",
+      "slug": "item-brightlux",
+      "category_id": 56.0,
+      "category_name": "Sillas Gamer",
+      "description": "Descripción detallada del producto Item BrightLux. Características y beneficios principales.",
+      "id_marca": 14.0,
+      "marca_name": "BrightLux",
+      "id_proveedor": 11.0,
+      "proveedor_name": "Soluciones Integrales SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-40452",
+              "price": 199438.45,
+              "stock": 85,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-88395",
+              "price": 279920.88,
+              "stock": 78,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-24787",
+              "price": 173226.34,
+              "stock": 45,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-15170",
+              "price": 229604.38,
+              "stock": 41,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-83200",
+              "price": 342860.18,
+              "stock": 95,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Servicio HyperTech",
+      "slug": "servicio-hypertech",
+      "category_id": 11.0,
+      "category_name": "Portatiles",
+      "description": "Descripción detallada del producto Servicio HyperTech. Características y beneficios principales.",
+      "id_marca": 4.0,
+      "marca_name": "HyperTech",
+      "id_proveedor": 3.0,
+      "proveedor_name": "Importadores Colombia",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Naranja",
+          "hex_color": "#FFA500",
+          "combinations": [
+            {
+              "sku": "SKU-93058",
+              "price": 461852.59,
+              "stock": 35,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            },
+            {
+              "sku": "SKU-46853",
+              "price": 50385.42,
+              "stock": 22,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            },
+            {
+              "sku": "SKU-89809",
+              "price": 469089.79,
+              "stock": 22,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Negro",
+          "hex_color": "#000000",
+          "combinations": [
+            {
+              "sku": "SKU-95050",
+              "price": 287853.24,
+              "stock": 21,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            },
+            {
+              "sku": "SKU-43306",
+              "price": 99398.61,
+              "stock": 98,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Rojo",
+          "hex_color": "#FF0000",
+          "combinations": [
+            {
+              "sku": "SKU-97041",
+              "price": 64793.59,
+              "stock": 58,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            },
+            {
+              "sku": "SKU-59411",
+              "price": 113429.65,
+              "stock": 21,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Rosado",
+          "hex_color": "#FFC0CB",
+          "combinations": [
+            {
+              "sku": "SKU-95172",
+              "price": 265958.13,
+              "stock": 41,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mercancía SmartWear",
+      "slug": "mercanc-a-smartwear",
+      "category_id": 7.0,
+      "category_name": "Smartphones",
+      "description": "Descripción detallada del producto Mercancía SmartWear. Características y beneficios principales.",
+      "id_marca": 18.0,
+      "marca_name": "SmartWear",
+      "id_proveedor": 10.0,
+      "proveedor_name": "Grupo Comercial Atlas",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Amarillo",
+          "hex_color": "#FFFF00",
+          "combinations": [
+            {
+              "sku": "SKU-41818",
+              "price": 376165.58,
+              "stock": 21,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            },
+            {
+              "sku": "SKU-65043",
+              "price": 273512.65,
+              "stock": 85,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Verde",
+          "hex_color": "#008000",
+          "combinations": [
+            {
+              "sku": "SKU-58209",
+              "price": 72358.3,
+              "stock": 13,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            },
+            {
+              "sku": "SKU-41883",
+              "price": 88113.11,
+              "stock": 26,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Negro",
+          "hex_color": "#000000",
+          "combinations": [
+            {
+              "sku": "SKU-59078",
+              "price": 356446.74,
+              "stock": 53,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            },
+            {
+              "sku": "SKU-63851",
+              "price": 313070.53,
+              "stock": 41,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Morado",
+          "hex_color": "#800080",
+          "combinations": [
+            {
+              "sku": "SKU-46509",
+              "price": 326389.85,
+              "stock": 47,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bien OfficeLine",
+      "slug": "bien-officeline",
+      "category_id": 11.0,
+      "category_name": "Portatiles",
+      "description": "Descripción detallada del producto Bien OfficeLine. Características y beneficios principales.",
+      "id_marca": 17.0,
+      "marca_name": "OfficeLine",
+      "id_proveedor": 6.0,
+      "proveedor_name": "Importadora TechCol SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Azul",
+          "hex_color": "#2363EB",
+          "combinations": [
+            {
+              "sku": "SKU-14354",
+              "price": 142117.96,
+              "stock": 94,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            },
+            {
+              "sku": "SKU-24846",
+              "price": 490954.32,
+              "stock": 27,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            },
+            {
+              "sku": "SKU-88375",
+              "price": 413448.24,
+              "stock": 47,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Verde",
+          "hex_color": "#008000",
+          "combinations": [
+            {
+              "sku": "SKU-37401",
+              "price": 204469.8,
+              "stock": 82,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            },
+            {
+              "sku": "SKU-14330",
+              "price": 272035.76,
+              "stock": 92,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            },
+            {
+              "sku": "SKU-15204",
+              "price": 410391.21,
+              "stock": 88,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Rosado",
+          "hex_color": "#FFC0CB",
+          "combinations": [
+            {
+              "sku": "SKU-73513",
+              "price": 269555.74,
+              "stock": 10,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            },
+            {
+              "sku": "SKU-92750",
+              "price": 80824.01,
+              "stock": 52,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            },
+            {
+              "sku": "SKU-90118",
+              "price": 225575.66,
+              "stock": 51,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Amarillo",
+          "hex_color": "#FFFF00",
+          "combinations": [
+            {
+              "sku": "SKU-13440",
+              "price": 100905.45,
+              "stock": 55,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            },
+            {
+              "sku": "SKU-47770",
+              "price": 163183.66,
+              "stock": 60,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            },
+            {
+              "sku": "SKU-22890",
+              "price": 372820.27,
+              "stock": 55,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Objeto UrbanStyle",
+      "slug": "objeto-urbanstyle",
+      "category_id": 7.0,
+      "category_name": "Smartphones",
+      "description": "Descripción detallada del producto Objeto UrbanStyle. Características y beneficios principales.",
+      "id_marca": 6.0,
+      "marca_name": "UrbanStyle",
+      "id_proveedor": 6.0,
+      "proveedor_name": "Importadora TechCol SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Negro",
+          "hex_color": "#000000",
+          "combinations": [
+            {
+              "sku": "SKU-81350",
+              "price": 437505.37,
+              "stock": 89,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Amarillo",
+          "hex_color": "#FFFF00",
+          "combinations": [
+            {
+              "sku": "SKU-30447",
+              "price": 167950.45,
+              "stock": 99,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            },
+            {
+              "sku": "SKU-61571",
+              "price": 381863.11,
+              "stock": 96,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Azul",
+          "hex_color": "#2363EB",
+          "combinations": [
+            {
+              "sku": "SKU-49410",
+              "price": 411725.72,
+              "stock": 69,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Gris",
+          "hex_color": "#808080",
+          "combinations": [
+            {
+              "sku": "SKU-69091",
+              "price": 403963.74,
+              "stock": 39,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            },
+            {
+              "sku": "SKU-25497",
+              "price": 494623.29,
+              "stock": 38,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Verde",
+          "hex_color": "#008000",
+          "combinations": [
+            {
+              "sku": "SKU-11186",
+              "price": 300103.93,
+              "stock": 19,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mercancía FitLife",
+      "slug": "mercanc-a-fitlife",
+      "category_id": 53.0,
+      "category_name": "Taladros",
+      "description": "Descripción detallada del producto Mercancía FitLife. Características y beneficios principales.",
+      "id_marca": 9.0,
+      "marca_name": "FitLife",
+      "id_proveedor": 3.0,
+      "proveedor_name": "Importadores Colombia",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Verde",
+          "hex_color": "#008000",
+          "combinations": [
+            {
+              "sku": "SKU-61699",
+              "price": 470175.96,
+              "stock": 37,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Morado",
+          "hex_color": "#800080",
+          "combinations": [
+            {
+              "sku": "SKU-98815",
+              "price": 118033.1,
+              "stock": 14,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Gris",
+          "hex_color": "#808080",
+          "combinations": [
+            {
+              "sku": "SKU-87322",
+              "price": 399906.95,
+              "stock": 95,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Amarillo",
+          "hex_color": "#FFFF00",
+          "combinations": [
+            {
+              "sku": "SKU-64015",
+              "price": 300516.17,
+              "stock": 84,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bien SecureHome 1",
+      "slug": "bien-securehome-1",
+      "category_id": 56.0,
+      "category_name": "Sillas Gamer",
+      "description": "Descripción detallada del producto Bien SecureHome 1. Características y beneficios principales.",
+      "id_marca": 15.0,
+      "marca_name": "SecureHome",
+      "id_proveedor": 7.0,
+      "proveedor_name": "Suministros del Norte SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-16266",
+              "price": 285653.5,
+              "stock": 23,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-57029",
+              "price": 173255.28,
+              "stock": 42,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-77999",
+              "price": 411641.72,
+              "stock": 40,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-99231",
+              "price": 126389.65,
+              "stock": 30,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Elemento BrightLux",
+      "slug": "elemento-brightlux",
+      "category_id": 50.0,
+      "category_name": "Consolas Nintendo",
+      "description": "Descripción detallada del producto Elemento BrightLux. Características y beneficios principales.",
+      "id_marca": 14.0,
+      "marca_name": "BrightLux",
+      "id_proveedor": 7.0,
+      "proveedor_name": "Suministros del Norte SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-51241",
+              "price": 94804.74,
+              "stock": 81,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-94207",
+              "price": 251835.12,
+              "stock": 65,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-15817",
+              "price": 413088.61,
+              "stock": 78,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-46240",
+              "price": 68483.51,
+              "stock": 24,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-88172",
+              "price": 51215.0,
+              "stock": 94,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Artículo Samsung",
+      "slug": "art-culo-samsung",
+      "category_id": 58.0,
+      "category_name": "Maletas Grandes",
+      "description": "Descripción detallada del producto Artículo Samsung. Características y beneficios principales.",
+      "id_marca": 2.0,
+      "marca_name": "Samsung",
+      "id_proveedor": 9.0,
+      "proveedor_name": "Logistica Central SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-82824",
+              "price": 118125.51,
+              "stock": 20,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-71801",
+              "price": 125860.62,
+              "stock": 30,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-99483",
+              "price": 331316.06,
+              "stock": 89,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-94738",
+              "price": 337828.88,
+              "stock": 70,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-76955",
+              "price": 459536.39,
+              "stock": 74,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Elemento UrbanStyle",
+      "slug": "elemento-urbanstyle",
+      "category_id": 52.0,
+      "category_name": "Juguetes Perro",
+      "description": "Descripción detallada del producto Elemento UrbanStyle. Características y beneficios principales.",
+      "id_marca": 6.0,
+      "marca_name": "UrbanStyle",
+      "id_proveedor": 9.0,
+      "proveedor_name": "Logistica Central SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-88273",
+              "price": 234881.84,
+              "stock": 45,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-99699",
+              "price": 480909.14,
+              "stock": 27,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-25386",
+              "price": 281366.58,
+              "stock": 97,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-57072",
+              "price": 419799.9,
+              "stock": 25,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-75299",
+              "price": 411801.99,
+              "stock": 94,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bien Nike",
+      "slug": "bien-nike",
+      "category_id": 8.0,
+      "category_name": "Camisetas Hombre",
+      "description": "Descripción detallada del producto Bien Nike. Características y beneficios principales.",
+      "id_marca": 3.0,
+      "marca_name": "Nike",
+      "id_proveedor": 2.0,
+      "proveedor_name": "Moda Global SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Blanco",
+          "hex_color": "#FFFFFF",
+          "combinations": [
+            {
+              "sku": "SKU-81828",
+              "price": 263971.69,
+              "stock": 69,
+              "attributes": {
+                "Talla": "M"
+              }
+            },
+            {
+              "sku": "SKU-33445",
+              "price": 170689.91,
+              "stock": 19,
+              "attributes": {
+                "Talla": "L"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Rosado",
+          "hex_color": "#FFC0CB",
+          "combinations": [
+            {
+              "sku": "SKU-73493",
+              "price": 106815.4,
+              "stock": 11,
+              "attributes": {
+                "Talla": "S"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Gris",
+          "hex_color": "#808080",
+          "combinations": [
+            {
+              "sku": "SKU-90883",
+              "price": 483727.45,
+              "stock": 40,
+              "attributes": {
+                "Talla": "M"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Servicio FitLife",
+      "slug": "servicio-fitlife",
+      "category_id": 9.0,
+      "category_name": "Licuadoras",
+      "description": "Descripción detallada del producto Servicio FitLife. Características y beneficios principales.",
+      "id_marca": 9.0,
+      "marca_name": "FitLife",
+      "id_proveedor": 10.0,
+      "proveedor_name": "Grupo Comercial Atlas",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Azul",
+          "hex_color": "#2363EB",
+          "combinations": [
+            {
+              "sku": "SKU-47823",
+              "price": 334412.17,
+              "stock": 74,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Gris",
+          "hex_color": "#808080",
+          "combinations": [
+            {
+              "sku": "SKU-32875",
+              "price": 377682.62,
+              "stock": 21,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Verde",
+          "hex_color": "#008000",
+          "combinations": [
+            {
+              "sku": "SKU-39193",
+              "price": 249234.38,
+              "stock": 93,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Negro",
+          "hex_color": "#000000",
+          "combinations": [
+            {
+              "sku": "SKU-91744",
+              "price": 161295.58,
+              "stock": 11,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Artículo GardenPro",
+      "slug": "art-culo-gardenpro",
+      "category_id": 48.0,
+      "category_name": "Consolas PlayStation",
+      "description": "Descripción detallada del producto Artículo GardenPro. Características y beneficios principales.",
+      "id_marca": 16.0,
+      "marca_name": "GardenPro",
+      "id_proveedor": 11.0,
+      "proveedor_name": "Soluciones Integrales SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-86639",
+              "price": 224923.18,
+              "stock": 26,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-24256",
+              "price": 265439.23,
+              "stock": 49,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-70781",
+              "price": 431928.2,
+              "stock": 60,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Elemento BabyDreams",
+      "slug": "elemento-babydreams",
+      "category_id": 55.0,
+      "category_name": "Sillas Ergonómicas",
+      "description": "Descripción detallada del producto Elemento BabyDreams. Características y beneficios principales.",
+      "id_marca": 10.0,
+      "marca_name": "BabyDreams",
+      "id_proveedor": 3.0,
+      "proveedor_name": "Importadores Colombia",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Morado",
+          "hex_color": "#800080",
+          "combinations": [
+            {
+              "sku": "SKU-37429",
+              "price": 158113.91,
+              "stock": 88,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Verde",
+          "hex_color": "#008000",
+          "combinations": [
+            {
+              "sku": "SKU-83794",
+              "price": 495113.83,
+              "stock": 29,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Rosado",
+          "hex_color": "#FFC0CB",
+          "combinations": [
+            {
+              "sku": "SKU-77184",
+              "price": 253457.1,
+              "stock": 93,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Item UrbanStyle",
+      "slug": "item-urbanstyle",
+      "category_id": 50.0,
+      "category_name": "Consolas Nintendo",
+      "description": "Descripción detallada del producto Item UrbanStyle. Características y beneficios principales.",
+      "id_marca": 6.0,
+      "marca_name": "UrbanStyle",
+      "id_proveedor": 13.0,
+      "proveedor_name": "Red de Distribución Colombiana",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-82341",
+              "price": 319718.36,
+              "stock": 63,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-50347",
+              "price": 162664.17,
+              "stock": 73,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-52678",
+              "price": 400518.0,
+              "stock": 29,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Item UrbanStyle 1",
+      "slug": "item-urbanstyle-1",
+      "category_id": 48.0,
+      "category_name": "Consolas PlayStation",
+      "description": "Descripción detallada del producto Item UrbanStyle 1. Características y beneficios principales.",
+      "id_marca": 6.0,
+      "marca_name": "UrbanStyle",
+      "id_proveedor": 10.0,
+      "proveedor_name": "Grupo Comercial Atlas",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-12577",
+              "price": 80267.85,
+              "stock": 73,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-37941",
+              "price": 73302.25,
+              "stock": 38,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-98345",
+              "price": 128171.23,
+              "stock": 66,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-10715",
+              "price": 292237.07,
+              "stock": 63,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Artículo BrightLux",
+      "slug": "art-culo-brightlux",
+      "category_id": 8.0,
+      "category_name": "Camisetas Hombre",
+      "description": "Descripción detallada del producto Artículo BrightLux. Características y beneficios principales.",
+      "id_marca": 14.0,
+      "marca_name": "BrightLux",
+      "id_proveedor": 6.0,
+      "proveedor_name": "Importadora TechCol SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Rojo",
+          "hex_color": "#FF0000",
+          "combinations": [
+            {
+              "sku": "SKU-91695",
+              "price": 347448.34,
+              "stock": 34,
+              "attributes": {
+                "Talla": "M"
+              }
+            },
+            {
+              "sku": "SKU-75737",
+              "price": 126228.05,
+              "stock": 70,
+              "attributes": {
+                "Talla": "L"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Morado",
+          "hex_color": "#800080",
+          "combinations": [
+            {
+              "sku": "SKU-47711",
+              "price": 160771.48,
+              "stock": 66,
+              "attributes": {
+                "Talla": "L"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Amarillo",
+          "hex_color": "#FFFF00",
+          "combinations": [
+            {
+              "sku": "SKU-16107",
+              "price": 92898.54,
+              "stock": 65,
+              "attributes": {
+                "Talla": "S"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Elemento SmartWear",
+      "slug": "elemento-smartwear",
+      "category_id": 57.0,
+      "category_name": "Maletas de Cabina",
+      "description": "Descripción detallada del producto Elemento SmartWear. Características y beneficios principales.",
+      "id_marca": 18.0,
+      "marca_name": "SmartWear",
+      "id_proveedor": 12.0,
+      "proveedor_name": "Abastecimientos Nacionales SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-69106",
+              "price": 400744.6,
+              "stock": 76,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-56828",
+              "price": 264767.52,
+              "stock": 51,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-98189",
+              "price": 392146.86,
+              "stock": 35,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-39396",
+              "price": 490873.8,
+              "stock": 78,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-54088",
+              "price": 219170.01,
+              "stock": 62,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Mercancía NovaGaming",
+      "slug": "mercanc-a-novagaming",
+      "category_id": 8.0,
+      "category_name": "Camisetas Hombre",
+      "description": "Descripción detallada del producto Mercancía NovaGaming. Características y beneficios principales.",
+      "id_marca": 5.0,
+      "marca_name": "NovaGaming",
+      "id_proveedor": 3.0,
+      "proveedor_name": "Importadores Colombia",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Amarillo",
+          "hex_color": "#FFFF00",
+          "combinations": [
+            {
+              "sku": "SKU-94358",
+              "price": 323070.25,
+              "stock": 37,
+              "attributes": {
+                "Talla": "S"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Morado",
+          "hex_color": "#800080",
+          "combinations": [
+            {
+              "sku": "SKU-90633",
+              "price": 397072.43,
+              "stock": 53,
+              "attributes": {
+                "Talla": "L"
+              }
+            },
+            {
+              "sku": "SKU-55762",
+              "price": 218419.24,
+              "stock": 36,
+              "attributes": {
+                "Talla": "M"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Rojo",
+          "hex_color": "#FF0000",
+          "combinations": [
+            {
+              "sku": "SKU-94536",
+              "price": 392659.24,
+              "stock": 42,
+              "attributes": {
+                "Talla": "S"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Azul",
+          "hex_color": "#2363EB",
+          "combinations": [
+            {
+              "sku": "SKU-40231",
+              "price": 188046.51,
+              "stock": 68,
+              "attributes": {
+                "Talla": "S"
+              }
+            },
+            {
+              "sku": "SKU-74628",
+              "price": 373495.64,
+              "stock": 28,
+              "attributes": {
+                "Talla": "L"
+              }
+            },
+            {
+              "sku": "SKU-12376",
+              "price": 92619.55,
+              "stock": 85,
+              "attributes": {
+                "Talla": "M"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Gris",
+          "hex_color": "#808080",
+          "combinations": [
+            {
+              "sku": "SKU-11835",
+              "price": 399660.14,
+              "stock": 18,
+              "attributes": {
+                "Talla": "M"
+              }
+            },
+            {
+              "sku": "SKU-24012",
+              "price": 235225.67,
+              "stock": 61,
+              "attributes": {
+                "Talla": "S"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Item Apple",
+      "slug": "item-apple",
+      "category_id": 54.0,
+      "category_name": "Pulidoras",
+      "description": "Descripción detallada del producto Item Apple. Características y beneficios principales.",
+      "id_marca": 1.0,
+      "marca_name": "Apple",
+      "id_proveedor": 12.0,
+      "proveedor_name": "Abastecimientos Nacionales SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-41900",
+              "price": 272979.6,
+              "stock": 11,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-63431",
+              "price": 116210.73,
+              "stock": 48,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-91510",
+              "price": 440813.83,
+              "stock": 20,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-79771",
+              "price": 172473.88,
+              "stock": 21,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-90042",
+              "price": 108944.17,
+              "stock": 63,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Item Apple 1",
+      "slug": "item-apple-1",
+      "category_id": 50.0,
+      "category_name": "Consolas Nintendo",
+      "description": "Descripción detallada del producto Item Apple 1. Características y beneficios principales.",
+      "id_marca": 1.0,
+      "marca_name": "Apple",
+      "id_proveedor": 9.0,
+      "proveedor_name": "Logistica Central SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-46533",
+              "price": 73817.05,
+              "stock": 40,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-68329",
+              "price": 140110.7,
+              "stock": 11,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-31221",
+              "price": 245575.96,
+              "stock": 71,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-29964",
+              "price": 309279.66,
+              "stock": 21,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-57517",
+              "price": 359695.66,
+              "stock": 79,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Objeto OfficeLine",
+      "slug": "objeto-officeline",
+      "category_id": 48.0,
+      "category_name": "Consolas PlayStation",
+      "description": "Descripción detallada del producto Objeto OfficeLine. Características y beneficios principales.",
+      "id_marca": 17.0,
+      "marca_name": "OfficeLine",
+      "id_proveedor": 9.0,
+      "proveedor_name": "Logistica Central SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-12764",
+              "price": 383952.69,
+              "stock": 56,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-75714",
+              "price": 275985.43,
+              "stock": 69,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-90329",
+              "price": 56862.68,
+              "stock": 100,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto SecureHome",
+      "slug": "producto-securehome",
+      "category_id": 7.0,
+      "category_name": "Smartphones",
+      "description": "Descripción detallada del producto Producto SecureHome. Características y beneficios principales.",
+      "id_marca": 15.0,
+      "marca_name": "SecureHome",
+      "id_proveedor": 5.0,
+      "proveedor_name": "Comercializadora Nova SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Verde",
+          "hex_color": "#008000",
+          "combinations": [
+            {
+              "sku": "SKU-64062",
+              "price": 78639.57,
+              "stock": 59,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            },
+            {
+              "sku": "SKU-75078",
+              "price": 204442.88,
+              "stock": 44,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            },
+            {
+              "sku": "SKU-98177",
+              "price": 232540.92,
+              "stock": 72,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Azul",
+          "hex_color": "#2363EB",
+          "combinations": [
+            {
+              "sku": "SKU-94007",
+              "price": 153044.02,
+              "stock": 38,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            },
+            {
+              "sku": "SKU-13717",
+              "price": 288003.4,
+              "stock": 83,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Rosado",
+          "hex_color": "#FFC0CB",
+          "combinations": [
+            {
+              "sku": "SKU-76413",
+              "price": 263085.94,
+              "stock": 35,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Naranja",
+          "hex_color": "#FFA500",
+          "combinations": [
+            {
+              "sku": "SKU-67364",
+              "price": 182784.59,
+              "stock": 92,
+              "attributes": {
+                "Almacenamiento": "256GB"
+              }
+            },
+            {
+              "sku": "SKU-73539",
+              "price": 140674.73,
+              "stock": 79,
+              "attributes": {
+                "Almacenamiento": "516GB"
+              }
+            },
+            {
+              "sku": "SKU-77202",
+              "price": 50973.79,
+              "stock": 74,
+              "attributes": {
+                "Almacenamiento": "128GB"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Item HyperTech",
+      "slug": "item-hypertech",
+      "category_id": 57.0,
+      "category_name": "Maletas de Cabina",
+      "description": "Descripción detallada del producto Item HyperTech. Características y beneficios principales.",
+      "id_marca": 4.0,
+      "marca_name": "HyperTech",
+      "id_proveedor": 6.0,
+      "proveedor_name": "Importadora TechCol SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-53637",
+              "price": 84644.3,
+              "stock": 57,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-82653",
+              "price": 346854.27,
+              "stock": 100,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-77087",
+              "price": 295650.44,
+              "stock": 58,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Elemento SecureHome 1",
+      "slug": "elemento-securehome-1",
+      "category_id": 52.0,
+      "category_name": "Juguetes Perro",
+      "description": "Descripción detallada del producto Elemento SecureHome 1. Características y beneficios principales.",
+      "id_marca": 15.0,
+      "marca_name": "SecureHome",
+      "id_proveedor": 1.0,
+      "proveedor_name": "Tech Distribuciones SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-23034",
+              "price": 393206.58,
+              "stock": 64,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-10042",
+              "price": 61476.83,
+              "stock": 50,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-45290",
+              "price": 359021.12,
+              "stock": 32,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Servicio HyperTech 1",
+      "slug": "servicio-hypertech-1",
+      "category_id": 49.0,
+      "category_name": "Consolas Xbox",
+      "description": "Descripción detallada del producto Servicio HyperTech 1. Características y beneficios principales.",
+      "id_marca": 4.0,
+      "marca_name": "HyperTech",
+      "id_proveedor": 12.0,
+      "proveedor_name": "Abastecimientos Nacionales SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-30566",
+              "price": 179949.71,
+              "stock": 38,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-84693",
+              "price": 381937.98,
+              "stock": 78,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-57793",
+              "price": 157975.5,
+              "stock": 56,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-51038",
+              "price": 142851.63,
+              "stock": 47,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-73295",
+              "price": 226017.04,
+              "stock": 75,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto NovaGaming",
+      "slug": "producto-novagaming",
+      "category_id": 58.0,
+      "category_name": "Maletas Grandes",
+      "description": "Descripción detallada del producto Producto NovaGaming. Características y beneficios principales.",
+      "id_marca": 5.0,
+      "marca_name": "NovaGaming",
+      "id_proveedor": 7.0,
+      "proveedor_name": "Suministros del Norte SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-22929",
+              "price": 356449.19,
+              "stock": 95,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-41245",
+              "price": 255057.95,
+              "stock": 68,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-21760",
+              "price": 238034.85,
+              "stock": 43,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-95205",
+              "price": 177199.12,
+              "stock": 26,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-78297",
+              "price": 176519.81,
+              "stock": 85,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bien HyperTech",
+      "slug": "bien-hypertech",
+      "category_id": 56.0,
+      "category_name": "Sillas Gamer",
+      "description": "Descripción detallada del producto Bien HyperTech. Características y beneficios principales.",
+      "id_marca": 4.0,
+      "marca_name": "HyperTech",
+      "id_proveedor": 10.0,
+      "proveedor_name": "Grupo Comercial Atlas",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-90796",
+              "price": 302293.32,
+              "stock": 72,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-23127",
+              "price": 221724.1,
+              "stock": 99,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-25024",
+              "price": 339843.39,
+              "stock": 22,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-12495",
+              "price": 76982.05,
+              "stock": 98,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-71766",
+              "price": 345615.13,
+              "stock": 35,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto OfficeLine",
+      "slug": "producto-officeline",
+      "category_id": 56.0,
+      "category_name": "Sillas Gamer",
+      "description": "Descripción detallada del producto Producto OfficeLine. Características y beneficios principales.",
+      "id_marca": 17.0,
+      "marca_name": "OfficeLine",
+      "id_proveedor": 7.0,
+      "proveedor_name": "Suministros del Norte SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-79559",
+              "price": 276268.51,
+              "stock": 15,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-77521",
+              "price": 365205.33,
+              "stock": 79,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-50118",
+              "price": 197922.47,
+              "stock": 59,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 4",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-37413",
+              "price": 404546.84,
+              "stock": 33,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 5",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-69817",
+              "price": 142474.05,
+              "stock": 11,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Servicio SecureHome",
+      "slug": "servicio-securehome",
+      "category_id": 52.0,
+      "category_name": "Juguetes Perro",
+      "description": "Descripción detallada del producto Servicio SecureHome. Características y beneficios principales.",
+      "id_marca": 15.0,
+      "marca_name": "SecureHome",
+      "id_proveedor": 6.0,
+      "proveedor_name": "Importadora TechCol SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 1",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-43595",
+              "price": 206161.83,
+              "stock": 88,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 2",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-12762",
+              "price": 259448.27,
+              "stock": 24,
+              "attributes": {}
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Variante",
+          "dominant_value": "Variante 3",
+          "hex_color": null,
+          "combinations": [
+            {
+              "sku": "SKU-27358",
+              "price": 271105.11,
+              "stock": 41,
+              "attributes": {}
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto UrbanStyle",
+      "slug": "producto-urbanstyle",
+      "category_id": 8.0,
+      "category_name": "Camisetas Hombre",
+      "description": "Descripción detallada del producto Producto UrbanStyle. Características y beneficios principales.",
+      "id_marca": 6.0,
+      "marca_name": "UrbanStyle",
+      "id_proveedor": 8.0,
+      "proveedor_name": "Proveedores Unidos SAS",
+      "variants": [
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Naranja",
+          "hex_color": "#FFA500",
+          "combinations": [
+            {
+              "sku": "SKU-43722",
+              "price": 62018.08,
+              "stock": 49,
+              "attributes": {
+                "Talla": "L"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Verde",
+          "hex_color": "#008000",
+          "combinations": [
+            {
+              "sku": "SKU-47730",
+              "price": 177674.23,
+              "stock": 25,
+              "attributes": {
+                "Talla": "S"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Morado",
+          "hex_color": "#800080",
+          "combinations": [
+            {
+              "sku": "SKU-88211",
+              "price": 268147.72,
+              "stock": 16,
+              "attributes": {
+                "Talla": "M"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Amarillo",
+          "hex_color": "#FFFF00",
+          "combinations": [
+            {
+              "sku": "SKU-30879",
+              "price": 117496.04,
+              "stock": 74,
+              "attributes": {
+                "Talla": "L"
+              }
+            },
+            {
+              "sku": "SKU-45030",
+              "price": 128859.88,
+              "stock": 93,
+              "attributes": {
+                "Talla": "S"
+              }
+            },
+            {
+              "sku": "SKU-42310",
+              "price": 86626.31,
+              "stock": 76,
+              "attributes": {
+                "Talla": "M"
+              }
+            }
+          ]
+        },
+        {
+          "dominant_attribute": "Color",
+          "dominant_value": "Negro",
+          "hex_color": "#000000",
+          "combinations": [
+            {
+              "sku": "SKU-11792",
+              "price": 236081.19,
+              "stock": 62,
+              "attributes": {
+                "Talla": "L"
+              }
+            },
+            {
+              "sku": "SKU-36985",
+              "price": 428067.31,
+              "stock": 31,
+              "attributes": {
+                "Talla": "M"
+              }
+            },
+            {
+              "sku": "SKU-84996",
+              "price": 211834.97,
+              "stock": 78,
+              "attributes": {
+                "Talla": "S"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

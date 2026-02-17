@@ -32,9 +32,15 @@ export default function ProductVariantSelector({
   return (
     <div className="space-y-6">
       {attributeDefinitions.map((attr) => {
-        const title = (attr.name ?? "").trim() || "Opciones"
-        const isColorAttr = (attr.name ?? "").trim().toLowerCase() === "color"
-        const hasColorSwatches = attr.values.some((v) => v.hex_color || (isColorAttr && (v.value ?? "").trim()))
+        const rawName = (attr.name ?? "").trim()
+        const isColorAttr = rawName.toLowerCase() === "color"
+        const hasHexSwatches = attr.values.some((v) => !!v.hex_color)
+        // Solo tratamos como "color" real si hay hex_color en al menos uno de los valores.
+        const hasColorSwatches = isColorAttr && hasHexSwatches
+        const title =
+          rawName && !(isColorAttr && !hasColorSwatches)
+            ? rawName
+            : "Opciones"
         const selectedValue = selectedAttributes[attr.name] ?? null
         const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase()
 

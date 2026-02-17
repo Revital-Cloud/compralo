@@ -338,11 +338,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         </div>
       ))}
 
-      {/* Colors (fallback cuando no hay variant_options.attributes ni optionsSlot) */}
+      {/* Opciones tipo color (fallback cuando no hay variant_options.attributes ni optionsSlot).
+          Nota: usamos un label genérico para no forzar siempre "COLOR" en productos donde
+          las variantes representan otro atributo (ej. tamaño, presentación, etc.). */}
       {optionsSlot == null && !useAttributes && colors.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900 dark:text-white">COLOR</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-white">OPCIONES</h3>
             {selectedColor && (() => {
               const selected = colors.find(c => c.value === selectedColor)
               if (!selected) return null
