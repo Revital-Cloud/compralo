@@ -40,6 +40,90 @@ def get_categories(db: Session):
         db.rollback()
         raise Exception(f"Error al obtener categorías: {str(e)}")
 
+# Categorías raíz (parent_id IS NULL)
+def get_categories_roots(db: Session):
+    try:
+        query = text("""
+        SELECT
+            c.id,
+            c.name,
+            c.slug,
+            c.parent_id,
+            c.is_active,
+            c.is_active AS ind_activo,
+            c.usr_insert,
+            c.fec_insert,
+            c.usr_update,
+            c.fec_update,
+            (SELECT COUNT(*) FROM tab_products p
+             WHERE p.category_id = c.id AND p.is_active = true)::int AS productos_count
+        FROM tab_categories c
+        WHERE c.parent_id IS NULL
+        ORDER BY c.name
+        """)
+        result = db.execute(query)
+        return result.mappings().all()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener categorías raíz: {str(e)}")
+
+# Líneas (hijas de categorías raíz)
+def get_categories_lines(db: Session):
+    try:
+        query = text("""
+        SELECT
+            c.id,
+            c.name,
+            c.slug,
+            c.parent_id,
+            c.is_active,
+            c.is_active AS ind_activo,
+            c.usr_insert,
+            c.fec_insert,
+            c.usr_update,
+            c.fec_update,
+            (SELECT COUNT(*) FROM tab_products p
+             WHERE p.category_id = c.id AND p.is_active = true)::int AS productos_count
+        FROM tab_categories c
+        WHERE c.parent_id IN (SELECT id FROM tab_categories WHERE parent_id IS NULL)
+        ORDER BY c.name
+        """)
+        result = db.execute(query)
+        return result.mappings().all()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener líneas: {str(e)}")
+
+# Sublíneas (nietas de categorías raíz)
+def get_categories_sublines(db: Session):
+    try:
+        query = text("""
+        SELECT
+            c.id,
+            c.name,
+            c.slug,
+            c.parent_id,
+            c.is_active,
+            c.is_active AS ind_activo,
+            c.usr_insert,
+            c.fec_insert,
+            c.usr_update,
+            c.fec_update,
+            (SELECT COUNT(*) FROM tab_products p
+             WHERE p.category_id = c.id AND p.is_active = true)::int AS productos_count
+        FROM tab_categories c
+        WHERE c.parent_id IN (
+            SELECT id FROM tab_categories 
+            WHERE parent_id IN (SELECT id FROM tab_categories WHERE parent_id IS NULL)
+        )
+        ORDER BY c.name
+        """)
+        result = db.execute(query)
+        return result.mappings().all()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener sublíneas: {str(e)}")
+
 # Una categoría específica (tab_categories)
 def get_category(db: Session, category_id: Decimal):
     try:
