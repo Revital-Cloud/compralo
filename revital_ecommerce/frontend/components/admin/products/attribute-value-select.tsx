@@ -3,6 +3,7 @@
 import React from 'react'
 import { Label } from '@/components/ui'
 import { cn } from '@/lib/utils'
+import { getHexForColorName } from '@/utils/color-map'
 import type { AttributeValueSummary } from '@/services/category.service'
 
 export interface AttributeValueSelectProps {
@@ -25,7 +26,8 @@ export function AttributeValueSelect({
   required,
   disabled,
 }: AttributeValueSelectProps) {
-  const hasHex = values.some((v) => v.hex_color)
+  const isColorAttr = (name ?? '').trim().toLowerCase() === 'color'
+  const hasHex = values.some((v) => v.hex_color || (isColorAttr && (v.value ?? '').trim()))
   const numericValue = value !== undefined && value !== null ? Number(value) : undefined
 
   if (values.length === 0) {
@@ -53,7 +55,7 @@ export function AttributeValueSelect({
           {values.map((v) => {
             const id = Number(v.id)
             const isSelected = numericValue !== undefined && id === numericValue
-            const bg = v.hex_color ?? '#e5e7eb'
+            const bg = v.hex_color ?? (isColorAttr ? getHexForColorName(v.value ?? '') : '#e5e7eb')
             return (
               <button
                 key={v.id}

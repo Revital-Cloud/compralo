@@ -50,6 +50,46 @@ def _resolve_attribute_value_id(db: Session, attr_id: int, val) -> tuple:
     return (None, None)
 
 
+def _resolve_filter_value_display(db: Session, attribute_id: int, raw_value: str) -> str:
+    """
+    Si raw_value es un ID de tab_attribute_values para este atributo, devuelve el texto (value);
+    si no, devuelve raw_value. Evita mostrar "5", "6", "8" en filtros cuando en JSONB se guardó el value_id.
+    """
+    if not raw_value or not str(raw_value).strip():
+        return str(raw_value)
+    s = str(raw_value).strip()
+    try:
+        vint = int(s)
+    except (TypeError, ValueError):
+        return s
+    r = db.execute(
+        text("SELECT value FROM tab_attribute_values WHERE attribute_id = :aid AND id = :vid AND is_active = TRUE"),
+        {"aid": attribute_id, "vid": vint},
+    ).first()
+    return r[0] if r else s
+
+
+def _filter_values_for_attribute(db: Session, attribute_id: int, display_values: List[str]) -> List[str]:
+    """
+    Para filtrar combinaciones por atributo: devuelve display_values más los value_id (como string)
+    que corresponden a esos textos en tab_attribute_values, para que coincidan tanto
+    combinaciones que guardaron "128GB" como las que guardaron "5".
+    """
+    out = list(display_values)
+    if not display_values:
+        return out
+    r = db.execute(
+        text("""
+            SELECT id, value FROM tab_attribute_values
+            WHERE attribute_id = :aid AND is_active = TRUE AND value = ANY(:vals)
+        """),
+        {"aid": attribute_id, "vals": display_values},
+    ).mappings().all()
+    for row in r:
+        out.append(str(row["id"]))
+    return list(dict.fromkeys(out))  # dedupe preserving order
+
+
 def _get_images_for_product_or_variant(
     db: Session, product_id: Decimal, variant_id: Optional[Decimal] = None
 ) -> List[dict]:
@@ -99,6 +139,8 @@ def get_products_admin(db: Session, params: dict):
         offset = params.get('offset', 0)
         search = params.get('search')
         category_id_param = params.get('category_id') or params.get('id_categoria')
+        if category_id_param is not None and (category_id_param == "" or int(category_id_param) == 0):
+            category_id_param = None  # "Todas las categorías" = sin filtro
         id_marca = params.get('id_marca')
 
         limit_val = min(int(limit), 1000)
@@ -123,13 +165,26 @@ def get_products_admin(db: Session, params: dict):
         })
         rows = result.mappings().all()
 
+        # Total: desde la función de BD; si no hay filtros y viene 0 o no existe, fallback con COUNT
+        total_original = int(rows[0].get("total_registros") or 0) if rows else 0
+        if not has_filters and total_original == 0 and rows:
+            cnt = db.execute(text("SELECT COUNT(*) AS n FROM tab_products")).scalar()
+            total_original = int(cnt) if cnt is not None else total_original
+
+        # Filtros adicionales en aplicación (search, category_id)
         if search and search.strip():
             search_lower = search.strip().lower()
             rows = [r for r in rows if (r.get("nom_producto") or "").lower().find(search_lower) >= 0]
         if category_id_param is not None:
-            rows = [r for r in rows if r.get("category_id") is not None and int(r.get("category_id")) == int(category_id_param)]
+            rows = [
+                r
+                for r in rows
+                if r.get("category_id") is not None and int(r.get("category_id")) == int(category_id_param)
+            ]
 
-        total_filtered = len(rows)
+        # Para vistas con filtros aplicados, total = cantidad filtrada;
+        # sin filtros, respetar total_registros devuelto por la función de BD
+        total_filtered = len(rows) if has_filters else total_original
         if has_filters:
             rows = rows[offset_val : offset_val + limit_val]
 
@@ -352,6 +407,7 @@ def get_product_by_id(db: Session, product_id: Decimal):
                 p.slug,
                 p.description,
                 p.id_marca,
+                p.id_proveedor,
                 p.is_active AS ind_activo,
                 p.usr_insert,
                 p.fec_insert,
@@ -367,10 +423,12 @@ def get_product_by_id(db: Session, product_id: Decimal):
                 (SELECT pvi.image_url FROM tab_product_variant_images pvi
                  JOIN tab_product_variant_groups gr ON gr.id = pvi.variant_group_id
                  WHERE gr.product_id = p.id ORDER BY gr.id, pvi.sort_order, pvi.id LIMIT 1) AS img_principal,
-                m.nom_marca
+                m.nom_marca,
+                pr.nom_proveedor
             FROM tab_products p
             JOIN tab_categories c ON c.id = p.category_id
             LEFT JOIN tab_marcas m ON m.id_marca = p.id_marca
+            LEFT JOIN tab_proveedores pr ON pr.id_proveedor = p.id_proveedor
             WHERE p.id = :product_id
         """)
         row = db.execute(query, {"product_id": product_id}).mappings().first()
@@ -441,10 +499,10 @@ def get_product_by_id(db: Session, product_id: Decimal):
                     "images": sorted(imgs, key=lambda x: (x.get("sort_order") or 0)),
                 })
 
-        # Combinaciones (variantes vendibles) con group_id y attributes JSONB
+        # Combinaciones (variantes vendibles) con group_id, attributes JSONB y tipo_clasificacion
         combo_rows = db.execute(
             text("""
-                SELECT c.id, c.group_id, c.sku, c.price, c.stock, c.attributes, c.is_active
+                SELECT c.id, c.group_id, c.sku, c.price, c.stock, c.attributes, c.is_active, c.tipo_clasificacion
                 FROM tab_product_variant_combinations c
                 JOIN tab_product_variant_groups g ON g.id = c.group_id
                 WHERE g.product_id = :pid AND c.is_active = TRUE
@@ -462,6 +520,11 @@ def get_product_by_id(db: Session, product_id: Decimal):
                     attrs = json.loads(attrs) if attrs else {}
                 except Exception:
                     attrs = {}
+            else:
+                attrs = dict(attrs)
+            tipo_clasif = (c.get("tipo_clasificacion") or "").strip() or None
+            if tipo_clasif:
+                attrs["Tipo/Clasificación"] = tipo_clasif
             result["variants"].append({
                 "id": int(c["id"]),
                 "group_id": int(c["group_id"]),
@@ -470,6 +533,7 @@ def get_product_by_id(db: Session, product_id: Decimal):
                 "stock": int(c.get("stock") or 0),
                 "is_active": bool(c.get("is_active", True)),
                 "attributes": attrs,
+                "tipo_clasificacion": tipo_clasif,
             })
         # images_by_variant: por cada combination id, las imágenes de su grupo (PDP usa galería por grupo)
         images_by_variant = {}
@@ -517,6 +581,31 @@ def get_product_by_id(db: Session, product_id: Decimal):
                         "hex_color": r.get("hex_color"),
                     }
 
+        value_to_hex = {}
+        display_vals = set()
+        for g in result["variant_groups"]:
+            raw = g.get("dominant_value") or ""
+            if raw and str(raw).strip():
+                try:
+                    int(raw)
+                except (TypeError, ValueError):
+                    display_vals.add(str(raw).strip().lower())
+        for v in result["variants"]:
+            for _aid, val in (v.get("attributes") or {}).items():
+                if val is not None and str(val).strip():
+                    try:
+                        int(val)
+                    except (TypeError, ValueError):
+                        display_vals.add(str(val).strip().lower())
+        if display_vals:
+            hex_rows = db.execute(
+                text("SELECT LOWER(TRIM(value)) AS k, hex_color FROM tab_attribute_values WHERE LOWER(TRIM(value)) = ANY(:vals) AND hex_color IS NOT NULL AND hex_color != ''"),
+                {"vals": list(display_vals)},
+            ).mappings().all()
+            for r in hex_rows:
+                if r.get("k") and r.get("hex_color"):
+                    value_to_hex[r["k"]] = (r.get("hex_color") or "").strip()
+
         # variant_options: atributo dominante primero, luego atributos internos con nombres legibles
         def _resolve_dominant_display(raw_val):
             if raw_val is None or str(raw_val).strip() == "":
@@ -529,7 +618,8 @@ def get_product_by_id(db: Session, product_id: Decimal):
             except (TypeError, ValueError):
                 pass
             s = str(raw_val).strip()
-            return s if s else None, None
+            hex_c = value_to_hex.get(s.lower()) if s else None
+            return s if s else None, hex_c
 
         colors_seen = {}  # display_value -> {name, value, hex_color}
         internal_attr_values = {}  # attr_id -> { value_display -> [variant_ids] }
@@ -541,27 +631,84 @@ def get_product_by_id(db: Session, product_id: Decimal):
             display_val, hex_c = _resolve_dominant_display(raw)
             if display_val is None:
                 display_val = str(raw).strip()
-                hex_c = None
+                hex_c = value_to_hex.get(display_val.lower()) if display_val else None
             dominant_raw_to_display[str(raw)] = display_val
             if display_val not in colors_seen:
                 colors_seen[display_val] = {"name": display_val, "value": display_val, "hex_color": hex_c}
-        # Actualizar variant_groups con dominant_value legible para que el frontend pueda emparejar
-        for g in result["variant_groups"]:
-            raw = g.get("dominant_value") or ""
-            if raw and str(raw) in dominant_raw_to_display:
-                g["dominant_value"] = dominant_raw_to_display[str(raw)]
-        dominant_value_to_variant_ids = {}
-        for g in result["variant_groups"]:
-            gid = g["id"]
-            vids = [v["id"] for v in result["variants"] if v["group_id"] == gid]
-            raw = g.get("dominant_value") or ""
-            display = dominant_raw_to_display.get(str(raw), raw) if raw else ""
-            dominant_value_to_variant_ids[display] = vids
+        # Fallback: si en BD quedaron "Variante 1", "Variante 2"... usar tipo_clasificacion de cada grupo
+        _variante_pattern = re.compile(r"^Variante\s*\d+$", re.IGNORECASE)
+        if colors_seen and all(_variante_pattern.match(str(k).strip()) for k in colors_seen):
+            group_id_to_tipo = {}
+            for v in result["variants"]:
+                gid = v.get("group_id")
+                tc = v.get("tipo_clasificacion") or (v.get("attributes") or {}).get("Tipo/Clasificación")
+                if gid is not None and tc and str(tc).strip():
+                    group_id_to_tipo[gid] = str(tc).strip()
+            if group_id_to_tipo:
+                colors_seen = {}
+                dominant_value_to_variant_ids = {}
+                for g in result["variant_groups"]:
+                    gid = g["id"]
+                    vids = [v["id"] for v in result["variants"] if v["group_id"] == gid]
+                    raw = g.get("dominant_value") or ""
+                    display = group_id_to_tipo.get(gid) or dominant_raw_to_display.get(str(raw), str(raw).strip() or "Sin nombre")
+                    dominant_raw_to_display[str(raw)] = display
+                    if display not in colors_seen:
+                        colors_seen[display] = {"name": display, "value": display, "hex_color": None}
+                    dominant_value_to_variant_ids[display] = vids
+                for g in result["variant_groups"]:
+                    raw = g.get("dominant_value") or ""
+                    if raw and str(raw) in dominant_raw_to_display:
+                        g["dominant_value"] = dominant_raw_to_display[str(raw)]
+            else:
+                dominant_value_to_variant_ids = {}
+                for g in result["variant_groups"]:
+                    gid = g["id"]
+                    vids = [v["id"] for v in result["variants"] if v["group_id"] == gid]
+                    raw = g.get("dominant_value") or ""
+                    display = dominant_raw_to_display.get(str(raw), raw) if raw else ""
+                    dominant_value_to_variant_ids[display] = vids
+        else:
+            # Actualizar variant_groups con dominant_value legible para que el frontend pueda emparejar
+            for g in result["variant_groups"]:
+                raw = g.get("dominant_value") or ""
+                if raw and str(raw) in dominant_raw_to_display:
+                    g["dominant_value"] = dominant_raw_to_display[str(raw)]
+            dominant_value_to_variant_ids = {}
+            for g in result["variant_groups"]:
+                gid = g["id"]
+                vids = [v["id"] for v in result["variants"] if v["group_id"] == gid]
+                raw = g.get("dominant_value") or ""
+                display = dominant_raw_to_display.get(str(raw), raw) if raw else ""
+                dominant_value_to_variant_ids[display] = vids
         attributes_list = []
         dominant_attr_name = (result["variant_groups"][0].get("dominant_attribute") or "color") if result["variant_groups"] else "color"
+        # Heuristic only (no DB): if all dominant values look like sizes (S,M,L,XL...), label as Talla so PDP is not wrong
+        _size_codes = {"s", "m", "l", "xl", "xxl", "xs"}
+        if colors_seen and all(
+            (str(v).strip().lower() in _size_codes for v in colors_seen)
+        ):
+            dominant_attr_name = "talla"
+        # Si las opciones dominantes coinciden con tipo_clasificacion, titular "Tipo/Clasificación" en lugar de "Color"/"Opciones"
+        _tipo_vals = set()
+        for _v in result["variants"]:
+            _tc = _v.get("tipo_clasificacion") or (_v.get("attributes") or {}).get("Tipo/Clasificación")
+            if _tc and str(_tc).strip():
+                _tipo_vals.add(str(_tc).strip())
+        if colors_seen and _tipo_vals and set(colors_seen.keys()) == _tipo_vals:
+            dominant_attr_name = "Tipo/Clasificación"
+        # Fallback: if colors_seen is empty but we have groups, add at least one value from the first group so PDP shows color options
+        if not colors_seen and result["variant_groups"]:
+            first_g = result["variant_groups"][0]
+            raw = first_g.get("dominant_value") or ""
+            display = str(raw).strip() if raw else "Sin color"
+            colors_seen[display] = {"name": display, "value": display, "hex_color": None}
+            gid = first_g.get("id")
+            vids = [v["id"] for v in result["variants"] if v.get("group_id") == gid]
+            dominant_value_to_variant_ids[display] = vids
         attributes_list.append({
             "attribute_id": "dominant",
-            "attribute_name": dominant_attr_name.capitalize(),
+            "attribute_name": (dominant_attr_name or "color").capitalize(),
             "values": [
                 {
                     "value": val,
@@ -589,7 +736,7 @@ def get_product_by_id(db: Session, product_id: Decimal):
                     hex_c = val_id_to_display[vid].get("hex_color")
                 else:
                     display = str(val_raw).strip() or str(val_raw)
-                    hex_c = None
+                    hex_c = value_to_hex.get(display.lower()) if display else None
                 if aid not in internal_attr_values:
                     internal_attr_values[aid] = {"_name": attr_name, "_vals": {}}
                 vals = internal_attr_values[aid]["_vals"]
@@ -613,6 +760,27 @@ def get_product_by_id(db: Session, product_id: Decimal):
                 vals = list((data.get("_vals") or {}).keys())
                 sizes_flat = [{"name": s, "available": True} for s in sorted(vals)]
                 break
+        # Atributo sintético Tipo/Clasificación solo cuando aporta opciones distintas al dominante
+        # (evita duplicar OPCIONES y TIPO/CLASIFICACIÓN con los mismos valores, ej. Estándar/Reforzada/Pro)
+        tipo_clasif_to_ids = {}
+        for v in result["variants"]:
+            tc = v.get("tipo_clasificacion") or (v.get("attributes") or {}).get("Tipo/Clasificación")
+            if tc and str(tc).strip():
+                val = str(tc).strip()
+                if val not in tipo_clasif_to_ids:
+                    tipo_clasif_to_ids[val] = []
+                tipo_clasif_to_ids[val].append(v["id"])
+        dominant_vals_set = set(colors_seen.keys())
+        tipo_vals_set = set(tipo_clasif_to_ids.keys())
+        if tipo_clasif_to_ids and tipo_vals_set != dominant_vals_set:
+            attributes_list.append({
+                "attribute_id": "tipo_clasificacion",
+                "attribute_name": "Tipo/Clasificación",
+                "values": [
+                    {"value": val, "hex_color": None, "variant_ids": ids}
+                    for val, ids in sorted(tipo_clasif_to_ids.items())
+                ],
+            })
         result["variant_options"] = {
             "colors": list(colors_seen.values()),
             "sizes": sizes_flat,
@@ -739,8 +907,9 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
             continue
         if gid not in images_by_group:
             images_by_group[gid] = []
-        seen_urls = {x["image_url"] for x in images_by_group[gid]}
-        if url in seen_urls:
+        _norm = url.split("?")[0].split("#")[0].strip()
+        seen_in_g = { (x.get("image_url") or "").strip().split("?")[0].split("#")[0].strip() for x in images_by_group[gid] }
+        if _norm in seen_in_g:
             continue
         images_by_group[gid].append({
             "image_url": url,
@@ -748,7 +917,7 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
             "sort_order": int(r.get("sort_order") or 0),
         })
     combo_rows = db.execute(text("""
-        SELECT id, group_id, sku, price, stock, attributes, is_active
+        SELECT id, group_id, sku, price, stock, attributes, is_active, tipo_clasificacion
         FROM tab_product_variant_combinations
         WHERE group_id = ANY(:gids) ORDER BY group_id, id
     """), {"gids": group_ids}).mappings().all()
@@ -771,6 +940,7 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
             "stock": int(c.get("stock") or 0),
             "is_active": bool(c.get("is_active", True)),
             "attributes": attrs,
+            "tipo_clasificacion": c.get("tipo_clasificacion"),
         })
         variants_flat.append({
             "id": int(c["id"]),
@@ -780,7 +950,15 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
             "stock": int(c.get("stock") or 0),
             "is_active": bool(c.get("is_active", True)),
             "attributes": dict(attrs),
+            "tipo_clasificacion": c.get("tipo_clasificacion"),
         })
+    # Resolver nombre del atributo dominante -> attribute_id (frontend usa attribute_id como clave; "dominant" solo para color)
+    # Usamos tab_attributes global para que funcione aunque el atributo no esté en tab_category_attributes
+    attr_rows = db.execute(text("""
+        SELECT id, LOWER(TRIM(name)) AS name FROM tab_attributes
+    """)).mappings().all()
+    name_to_attr_id = {(r.get("name") or "").strip(): int(r["id"]) for r in attr_rows if (r.get("name") or "").strip()}
+    group_id_to_dominant_attr_name = {int(g["id"]): (g.get("dominant_attribute") or "").strip().lower() for g in group_rows}
     group_id_to_dominant_value = {int(g["id"]): (g.get("dominant_value") or "") for g in group_rows}
     for v in variants_flat:
         gid = int(v["group_id"])
@@ -788,6 +966,11 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
         if dom_val is not None and str(dom_val).strip() and str(dom_val).strip().lower() != "sin color":
             v["attributes"] = dict(v.get("attributes") or {})
             v["attributes"]["dominant"] = dom_val
+            # Clave por attribute_id para que el formulario muestre el valor en "Atributos de la categoría"
+            dom_attr_name = group_id_to_dominant_attr_name.get(gid)
+            dominant_attr_id = name_to_attr_id.get(dom_attr_name) if dom_attr_name else None
+            if dominant_attr_id is not None:
+                v["attributes"][str(dominant_attr_id)] = dom_val
     variant_groups = []
     for g in group_rows:
         gid = int(g["id"])
@@ -816,7 +999,29 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
         if gid not in combos_by_group:
             combos_by_group[gid] = []
         combos_by_group[gid].append(v["id"])
-    # Cada variante muestra las imágenes de su grupo. Solo la primera del grupo "producto" (Sin color) queda vacía (van al panel derecho).
+    # Dedupe por URL (normalizada: sin query string) para evitar duplicados cuando la misma imagen tiene ?v=1 y ?v=2
+    def _normalize_url_for_dedupe(url: str) -> str:
+        u = (url or "").strip()
+        if "?" in u:
+            u = u.split("?")[0]
+        if "#" in u:
+            u = u.split("#")[0]
+        return u
+
+    def _dedupe_images_by_url(imgs: list) -> list:
+        seen = set()
+        out = []
+        for x in imgs:
+            u = (x.get("image_url") or "").strip()
+            if not u:
+                continue
+            key = _normalize_url_for_dedupe(u)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(x)
+        return out
+
     images_by_variant = {}
     for v in variants_flat:
         gid = str(v["group_id"])
@@ -827,7 +1032,7 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
         if is_product_images_combo:
             images_by_variant[str(combo_id)] = []
         else:
-            images_by_variant[str(combo_id)] = list(images_by_group.get(gid, []))
+            images_by_variant[str(combo_id)] = _dedupe_images_by_url(images_by_group.get(gid, []))
     # Imágenes de producto (panel derecho): grupo "Sin color" si existe; si no, primer grupo (retrocompatibilidad)
     image_urls_ordered = []
     if group_rows:
@@ -988,6 +1193,34 @@ def _get_dominant_attr_id(db: Session, attr_ids: set) -> Optional[int]:
     return min(attr_ids) if attr_ids else None
 
 
+def _get_color_attribute_id(db: Session) -> Optional[int]:
+    """Id del atributo 'Color' (dominante). Usado para opciones de filtro y filtrado por color."""
+    row = db.execute(
+        text("SELECT id FROM tab_attributes WHERE LOWER(TRIM(name)) = 'color' LIMIT 1"),
+    ).first()
+    return int(row[0]) if row else None
+
+
+def _get_attribute_name(db: Session, attr_id: Optional[int], default: str = "color") -> str:
+    """
+    Obtiene el nombre del atributo dado su id.
+
+    - Si attr_id es None o no se encuentra en DB, devuelve `default` (por compatibilidad).
+    - Esto permite que el atributo dominante para variantes/imágenes no se llame siempre "color"
+      cuando en realidad es, por ejemplo, "Almacenamiento", "Tipo", etc.
+    """
+    if attr_id is None:
+        return default
+    row = db.execute(
+        text("SELECT name FROM tab_attributes WHERE id = :id LIMIT 1"),
+        {"id": int(attr_id)},
+    ).first()
+    if row and row[0]:
+        name = str(row[0]).strip()
+        return name or default
+    return default
+
+
 def _group_variants_by_dominant(payload_variants: list, dominant_attr_id: Optional[int]) -> dict:
     """Agrupa variantes por valor del atributo dominante (ej. color). Key = valor o 'Sin color'."""
     groups = {}
@@ -1007,17 +1240,44 @@ def _group_variants_by_dominant(payload_variants: list, dominant_attr_id: Option
 
 
 def _group_variants_one_per_row(payload_variants: list, dominant_attr_id: Optional[int]) -> dict:
-    """Un grupo por variante (cada fila del formulario = un grupo con sus propias imágenes). Key = índice."""
+    """
+    Un grupo por variante (cada fila = su grupo e imágenes).
+    Si el mismo valor dominante se repite (ej. 2 variantes "Blanco"), la primera conserva
+    el label simple ("Blanco") y las demás usan label compuesto ("Blanco - Con USB" o "Blanco - Variante N")
+    para no violar UNIQUE(product_id, dominant_value).
+    """
     result = {}
+    # 1) Obtener valor dominante por fila (atributo dominante, o tipo_clasificación, o primer atributo; evitar "Variante N" si hay algo mejor)
+    dominant_vals = []
     for i, v in enumerate(payload_variants):
         attrs = getattr(v, "attributes", None) or {}
-        label = "Variante " + str(i + 1)
+        val = ""
         if dominant_attr_id is not None and str(dominant_attr_id) in attrs:
-            label = str(attrs[str(dominant_attr_id)]).strip() or label
-        elif attrs:
-            first_val = next((str(attrs[k]).strip() for k in attrs if attrs[k] is not None), None)
-            if first_val:
-                label = first_val
+            val = str(attrs[str(dominant_attr_id)]).strip()
+        if not val and attrs:
+            val = next((str(attrs[k]).strip() for k in attrs if attrs[k] is not None), "") or ""
+        if not val:
+            tipo = getattr(v, "tipo_clasificacion", None)
+            val = (str(tipo).strip() if tipo is not None else "") or ""
+        dominant_vals.append(val or f"Variante {i + 1}")
+    # 2) Contar cuántas veces aparece cada valor
+    counts = {}
+    for v in dominant_vals:
+        counts[v] = counts.get(v, 0) + 1
+    # 3) Asignar label: si es único queda igual; si se repite, primera vez igual y el resto con sufijo
+    seen_count = {}
+    for i, v in enumerate(payload_variants):
+        base = dominant_vals[i]
+        if counts.get(base, 0) <= 1:
+            label = base
+        else:
+            seen_count[base] = seen_count.get(base, 0) + 1
+            if seen_count[base] == 1:
+                label = base
+            else:
+                tipo = getattr(v, "tipo_clasificacion", None)
+                tipo_txt = (str(tipo).strip() if tipo is not None else "") or ""
+                label = f"{base} - {tipo_txt}" if tipo_txt else f"{base} - Variante {i + 1}"
         result[i] = (label, [v])
     return result
 
@@ -1057,7 +1317,9 @@ def create_product_composite(db: Session, payload: ProductCreateComposite, usr_i
             raise Exception(str(msg) if msg else "Error al insertar producto")
         product_id = Decimal(str(msg).replace("OK:", "").strip())
 
-        dominant_attr_name = "color"
+        # Nombre del atributo dominante: si existe en tab_attributes úsalo (ej. "Almacenamiento", "Tipo");
+        # si no, caer en "color" por compatibilidad con datos antiguos.
+        dominant_attr_name = _get_attribute_name(db, dominant_attr_id, default="color")
         product_image_urls_create = getattr(payload, "image_urls", None) or []
         if product_image_urls_create:
             rg = db.execute(
@@ -1078,9 +1340,14 @@ def create_product_composite(db: Session, payload: ProductCreateComposite, usr_i
                     )
 
         for _idx, (group_label, variants_in_group) in sorted(groups_one_per_row.items()):
+            resolved_label = group_label or "Sin color"
+            if dominant_attr_id is not None and (group_label or "").strip():
+                _, text_val = _resolve_attribute_value_id(db, dominant_attr_id, group_label)
+                if text_val:
+                    resolved_label = text_val
             rg = db.execute(
                 text("SELECT fun_insert_variant_group(:pid, :attr, :val, TRUE)"),
-                {"pid": product_id, "attr": dominant_attr_name, "val": group_label or "Sin color"},
+                {"pid": product_id, "attr": dominant_attr_name, "val": resolved_label},
             ).fetchone()[0]
             if not rg or str(rg).strip().upper().startswith("ERROR"):
                 raise Exception(str(rg) if rg else "Error al insertar grupo")
@@ -1105,12 +1372,21 @@ def create_product_composite(db: Session, payload: ProductCreateComposite, usr_i
                     for k, val in v.attributes.items():
                         if dominant_attr_id is not None and str(k) == str(dominant_attr_id):
                             continue
-                        if val is not None and str(val).strip() != "":
+                        if val is None or str(val).strip() == "":
+                            continue
+                        try:
+                            _, text_val = _resolve_attribute_value_id(db, int(k), val)
+                            if text_val:
+                                internal_attrs[str(k)] = text_val
+                            else:
+                                internal_attrs[str(k)] = str(val).strip()
+                        except (TypeError, ValueError):
                             internal_attrs[str(k)] = str(val).strip()
                 attrs_json = json.dumps(internal_attrs) if internal_attrs else "{}"
+                tipo_clasif = (v.tipo_clasificacion and v.tipo_clasificacion.strip()) or None if hasattr(v, 'tipo_clasificacion') else None
                 rc = db.execute(
-                    text("SELECT fun_insert_variant_combination(:gid, :sku, :price, :stock, CAST(:attrs AS JSONB), :active)"),
-                    {"gid": group_id, "sku": (v.sku and v.sku.strip()) or None, "price": v.price, "stock": v.stock, "attrs": attrs_json, "active": v.is_active},
+                    text("SELECT fun_insert_variant_combination(:gid, :sku, :price, :stock, CAST(:attrs AS JSONB), :active, :tipo_clasif)"),
+                    {"gid": group_id, "sku": (v.sku and v.sku.strip()) or None, "price": v.price, "stock": v.stock, "attrs": attrs_json, "active": v.is_active, "tipo_clasif": tipo_clasif},
                 ).fetchone()[0]
                 if not rc or str(rc).strip().upper().startswith("ERROR"):
                     raise Exception(str(rc) if rc else "Error al insertar combinación")
@@ -1164,7 +1440,8 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                         pass
         dominant_attr_id = _get_dominant_attr_id(db, all_attr_ids)
         groups_one_per_row = _group_variants_one_per_row(payload.variants, dominant_attr_id)
-        dominant_attr_name = "color"
+        # Nombre del atributo dominante al actualizar: mismo criterio que en create_product_composite
+        dominant_attr_name = _get_attribute_name(db, dominant_attr_id, default="color")
 
         product_image_urls = getattr(payload, "image_urls", None) or []
         product_images_in_sin_color = False
@@ -1190,9 +1467,15 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
 
         first_group = True
         for _idx, (group_label, variants_in_group) in sorted(groups_one_per_row.items()):
+            # Resolve value_id to display string for group dominant_value (e.g. "123" -> "Negro")
+            resolved_label = group_label or "Sin color"
+            if dominant_attr_id is not None and (group_label or "").strip():
+                _, text_val = _resolve_attribute_value_id(db, dominant_attr_id, group_label)
+                if text_val:
+                    resolved_label = text_val
             rg = db.execute(
                 text("SELECT fun_insert_variant_group(:pid, :attr, :val, TRUE)"),
-                {"pid": product_id, "attr": dominant_attr_name, "val": group_label or "Sin color"},
+                {"pid": product_id, "attr": dominant_attr_name, "val": resolved_label},
             ).fetchone()[0]
             if not rg or str(rg).strip().upper().startswith("ERROR"):
                 raise Exception(str(rg) if rg else "Error al insertar grupo")
@@ -1229,12 +1512,22 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                     for k, val in v.attributes.items():
                         if dominant_attr_id is not None and str(k) == str(dominant_attr_id):
                             continue
-                        if val is not None and str(val).strip() != "":
+                        if val is None or str(val).strip() == "":
+                            continue
+                        # Resolve value_id to display string so JSONB stores "Negro", "S" not "123"
+                        try:
+                            _, text_val = _resolve_attribute_value_id(db, int(k), val)
+                            if text_val:
+                                internal_attrs[str(k)] = text_val
+                            else:
+                                internal_attrs[str(k)] = str(val).strip()
+                        except (TypeError, ValueError):
                             internal_attrs[str(k)] = str(val).strip()
                 attrs_json = json.dumps(internal_attrs) if internal_attrs else "{}"
+                tipo_clasif = (v.tipo_clasificacion and v.tipo_clasificacion.strip()) or None if hasattr(v, 'tipo_clasificacion') else None
                 rc = db.execute(
-                    text("SELECT fun_insert_variant_combination(:gid, :sku, :price, :stock, CAST(:attrs AS JSONB), :active)"),
-                    {"gid": group_id, "sku": (v.sku and v.sku.strip()) or None, "price": v.price, "stock": v.stock, "attrs": attrs_json, "active": v.is_active},
+                    text("SELECT fun_insert_variant_combination(:gid, :sku, :price, :stock, CAST(:attrs AS JSONB), :active, :tipo_clasif)"),
+                    {"gid": group_id, "sku": (v.sku and v.sku.strip()) or None, "price": v.price, "stock": v.stock, "attrs": attrs_json, "active": v.is_active, "tipo_clasif": tipo_clasif},
                 ).fetchone()[0]
                 if not rc or str(rc).strip().upper().startswith("ERROR"):
                     raise Exception(str(rc) if rc else "Error al insertar combinación")
@@ -1453,22 +1746,35 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
         result = db.execute(query, params)
         rows = list(result.mappings().all())
 
-        # Filtro por atributos: productos que tengan combinaciones con todos los pares (attribute_id, value) indicados (attributes JSONB)
+        # Filtro por atributos: Color por g.dominant_value; el resto por c.attributes->>attribute_id.
         if getattr(filters, "atributos", None) and filters.atributos:
             product_ids_with_attrs = None
+            color_attr_id = _get_color_attribute_id(db)
             for (aid, values) in filters.atributos.items():
                 if not values:
                     continue
-                # attribute name from tab_attributes; filter combinations by attributes->>attr_name
-                q = text("""
-                    SELECT DISTINCT g.product_id
-                    FROM tab_product_variant_combinations c
-                    JOIN tab_product_variant_groups g ON g.id = c.group_id
-                    JOIN tab_products p ON p.id = g.product_id
-                    WHERE c.is_active = TRUE AND p.is_active = TRUE
-                      AND c.attributes->>(SELECT name FROM tab_attributes WHERE id = :aid LIMIT 1) = ANY(:vals)
-                """)
-                r = db.execute(q, {"aid": int(aid), "vals": list(values)})
+                aid_int = int(aid)
+                vals_expanded = _filter_values_for_attribute(db, aid_int, list(values))
+                if color_attr_id is not None and aid_int == color_attr_id:
+                    q = text("""
+                        SELECT DISTINCT g.product_id
+                        FROM tab_product_variant_groups g
+                        JOIN tab_products p ON p.id = g.product_id
+                        WHERE g.is_active = TRUE AND p.is_active = TRUE
+                          AND g.dominant_value = ANY(:vals)
+                    """)
+                    r = db.execute(q, {"vals": vals_expanded})
+                else:
+                    attr_key = str(aid_int)
+                    q = text("""
+                        SELECT DISTINCT g.product_id
+                        FROM tab_product_variant_combinations c
+                        JOIN tab_product_variant_groups g ON g.id = c.group_id
+                        JOIN tab_products p ON p.id = g.product_id
+                        WHERE c.is_active = TRUE AND p.is_active = TRUE
+                          AND c.attributes->>:attr_key = ANY(:vals)
+                    """)
+                    r = db.execute(q, {"attr_key": attr_key, "vals": vals_expanded})
                 ids = {x["product_id"] for x in r.mappings().all()}
                 if product_ids_with_attrs is None:
                     product_ids_with_attrs = ids
@@ -1556,18 +1862,32 @@ def get_filter_stats(db: Session, filters: ProductFilterParams) -> ProductFilter
         rows = list(result.mappings().all())
         if getattr(filters, "atributos", None) and filters.atributos:
             product_ids_with_attrs = None
+            color_attr_id = _get_color_attribute_id(db)
             for (aid, values) in filters.atributos.items():
                 if not values:
                     continue
-                q = text("""
-                    SELECT DISTINCT g.product_id
-                    FROM tab_product_variant_combinations c
-                    JOIN tab_product_variant_groups g ON g.id = c.group_id
-                    JOIN tab_products p ON p.id = g.product_id
-                    WHERE c.is_active = TRUE AND p.is_active = TRUE
-                      AND c.attributes->>(SELECT name FROM tab_attributes WHERE id = :aid LIMIT 1) = ANY(:vals)
-                """)
-                r = db.execute(q, {"aid": int(aid), "vals": list(values)})
+                aid_int = int(aid)
+                vals_expanded = _filter_values_for_attribute(db, aid_int, list(values))
+                if color_attr_id is not None and aid_int == color_attr_id:
+                    q = text("""
+                        SELECT DISTINCT g.product_id
+                        FROM tab_product_variant_groups g
+                        JOIN tab_products p ON p.id = g.product_id
+                        WHERE g.is_active = TRUE AND p.is_active = TRUE
+                          AND g.dominant_value = ANY(:vals)
+                    """)
+                    r = db.execute(q, {"vals": vals_expanded})
+                else:
+                    attr_key = str(aid_int)
+                    q = text("""
+                        SELECT DISTINCT g.product_id
+                        FROM tab_product_variant_combinations c
+                        JOIN tab_product_variant_groups g ON g.id = c.group_id
+                        JOIN tab_products p ON p.id = g.product_id
+                        WHERE c.is_active = TRUE AND p.is_active = TRUE
+                          AND c.attributes->>:attr_key = ANY(:vals)
+                    """)
+                    r = db.execute(q, {"attr_key": attr_key, "vals": vals_expanded})
                 ids = {x["product_id"] for x in r.mappings().all()}
                 product_ids_with_attrs = ids if product_ids_with_attrs is None else (product_ids_with_attrs & ids)
             if product_ids_with_attrs is not None and product_ids_with_attrs:
@@ -1599,11 +1919,11 @@ def get_filter_stats(db: Session, filters: ProductFilterParams) -> ProductFilter
         db.rollback()
         raise Exception(f"Error al obtener estadísticas de filtros: {str(e)}")
 
-def get_filter_options(db: Session) -> dict:
+def get_filter_options(db: Session, category_id: Optional[int] = None) -> dict:
     """
-    Opciones de filtro para tienda: árbol de categorías (tab_categories), precio (variantes),
-    atributos dinámicos (tab_attributes + tab_category_attributes is_filterable + valores desde combinations.attributes JSONB).
-    Estructura: categories_tree, price_range, attributes (id, name, values), marcas.
+    Opciones de filtro para tienda: árbol de categorías, precio, atributos (solo si category_id),
+    marcas. Los atributos solo se devuelven cuando se pasa category_id y son los de esa categoría.
+    En combinations.attributes el JSONB usa clave numérica (attribute_id como string).
     """
     try:
         # Árbol de categorías (solo activas): lista con id, name, slug, parent_id, level, children opcional
@@ -1639,34 +1959,63 @@ def get_filter_options(db: Session) -> dict:
             "maximo": float(precios["precio_maximo"]) if precios and precios["precio_maximo"] is not None else 0,
         } if precios else {"minimo": 0, "maximo": 0}
 
-        # Atributos filtrables: tab_category_attributes.is_filterable + valores desde combinations.attributes JSONB
-        attrs_query = text("""
-            SELECT a.id AS attribute_id, a.name AS attribute_name
-            FROM tab_attributes a
-            JOIN tab_category_attributes ca ON ca.attribute_id = a.id
-            WHERE ca.is_filterable = TRUE
-            GROUP BY a.id, a.name
-            ORDER BY a.name
-        """)
-        attrs = db.execute(attrs_query).mappings().all()
+        # Atributos solo para la categoría seleccionada; en JSONB la clave es attribute_id (string)
         attributes = []
-        for a in attrs:
-            attr_name = a["attribute_name"]
-            values_query = text("""
-                SELECT DISTINCT c.attributes->>:attr_name AS value_text
-                FROM tab_product_variant_combinations c
-                JOIN tab_product_variant_groups g ON g.id = c.group_id
-                JOIN tab_products p ON p.id = g.product_id
-                WHERE c.is_active = TRUE AND p.is_active = TRUE
-                  AND (c.attributes->>:attr_name) IS NOT NULL AND trim(COALESCE(c.attributes->>:attr_name, '')) != ''
-                ORDER BY value_text
+        if category_id is not None:
+            attrs_query = text("""
+                SELECT a.id AS attribute_id, a.name AS attribute_name
+                FROM tab_attributes a
+                JOIN tab_category_attributes ca ON ca.attribute_id = a.id
+                WHERE ca.category_id = :category_id AND ca.is_filterable = TRUE
+                GROUP BY a.id, a.name
+                ORDER BY a.name
             """)
-            values = [str(r["value_text"]) for r in db.execute(values_query, {"attr_name": attr_name}).mappings().all() if r.get("value_text")]
-            attributes.append({
-                "id": int(a["attribute_id"]),
-                "name": a["attribute_name"],
-                "values": values,
-            })
+            attrs = db.execute(attrs_query, {"category_id": category_id}).mappings().all()
+            color_attr_id = _get_color_attribute_id(db)
+            for a in attrs:
+                attr_id = int(a["attribute_id"])
+                attr_name = (a["attribute_name"] or "").strip().lower()
+                raw_values = []
+                # Color (atributo dominante) está en tab_product_variant_groups.dominant_value, no en combinations.attributes
+                if attr_name == "color" and color_attr_id is not None and attr_id == color_attr_id:
+                    dom_query = text("""
+                        SELECT DISTINCT g.dominant_value AS value_text
+                        FROM tab_product_variant_groups g
+                        JOIN tab_products p ON p.id = g.product_id
+                        WHERE g.is_active = TRUE AND p.is_active = TRUE AND p.category_id = :category_id
+                          AND (g.dominant_value) IS NOT NULL AND trim(COALESCE(g.dominant_value, '')) != ''
+                          AND LOWER(TRIM(g.dominant_value)) != 'sin color'
+                        ORDER BY value_text
+                    """)
+                    raw_values = [
+                        str(r["value_text"]) for r in db.execute(dom_query, {"category_id": category_id}).mappings().all()
+                        if r.get("value_text")
+                    ]
+                else:
+                    attr_key = str(attr_id)
+                    values_query = text("""
+                        SELECT DISTINCT c.attributes->>:attr_key AS value_text
+                        FROM tab_product_variant_combinations c
+                        JOIN tab_product_variant_groups g ON g.id = c.group_id
+                        JOIN tab_products p ON p.id = g.product_id
+                        WHERE c.is_active = TRUE AND p.is_active = TRUE AND p.category_id = :category_id
+                          AND (c.attributes->>:attr_key) IS NOT NULL AND trim(COALESCE(c.attributes->>:attr_key, '')) != ''
+                        ORDER BY value_text
+                    """)
+                    raw_values = [
+                        str(r["value_text"]) for r in db.execute(values_query, {"attr_key": attr_key, "category_id": category_id}).mappings().all()
+                        if r.get("value_text")
+                    ]
+                # Resolver value_id -> texto (tab_attribute_values) para no mostrar "5", "6", "8" en la UI
+                display_values = sorted(
+                    {_resolve_filter_value_display(db, attr_id, v) for v in raw_values},
+                    key=str.casefold,
+                )
+                attributes.append({
+                    "id": attr_id,
+                    "name": a["attribute_name"],
+                    "values": display_values,
+                })
 
         marcas_query = text("SELECT id_marca, nom_marca FROM tab_marcas WHERE ind_activo = TRUE ORDER BY nom_marca")
         marcas = [dict(m) for m in db.execute(marcas_query).mappings().all()]

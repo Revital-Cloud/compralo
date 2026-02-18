@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { ChevronDown, ChevronRight, X } from "lucide-react"
 import { Button } from "@/components/ui"
 import { Checkbox } from "@/components/ui"
@@ -34,15 +34,19 @@ function CategoryTreeItem({
   selectedId,
   onSelect,
   level = 0,
+  expandedCategories,
+  toggleExpanded,
 }: {
   node: CategoryTreeNode
   selectedId: number | null
   onSelect: (id: number | null) => void
   level?: number
+  expandedCategories: Set<number>
+  toggleExpanded: (id: number) => void
 }) {
-  const [open, setOpen] = useState(level < 1)
   const hasChildren = node.children && node.children.length > 0
   const isSelected = selectedId === node.id
+  const isOpen = expandedCategories.has(node.id)
 
   return (
     <div className="ml-0" style={{ marginLeft: level * 12 }}>
@@ -50,11 +54,14 @@ function CategoryTreeItem({
         {hasChildren ? (
           <button
             type="button"
-            onClick={() => setOpen(!open)}
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleExpanded(node.id)
+            }}
             className="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-            aria-label={open ? "Cerrar" : "Abrir"}
+            aria-label={isOpen ? "Cerrar" : "Abrir"}
           >
-            {open ? (
+            {isOpen ? (
               <ChevronDown className="w-4 h-4 text-gray-500" />
             ) : (
               <ChevronRight className="w-4 h-4 text-gray-500" />
@@ -79,7 +86,7 @@ function CategoryTreeItem({
           </label>
         </div>
       </div>
-      {hasChildren && open && (
+      {hasChildren && isOpen && (
         <div className="space-y-0">
           {node.children!.map((child) => (
             <CategoryTreeItem
@@ -88,6 +95,8 @@ function CategoryTreeItem({
               selectedId={selectedId}
               onSelect={onSelect}
               level={level + 1}
+              expandedCategories={expandedCategories}
+              toggleExpanded={toggleExpanded}
             />
           ))}
         </div>
@@ -121,6 +130,50 @@ export const ProductsFilters = ({
   const categorias = filterOptions?.categorias ?? []
   const marcas = filterOptions?.marcas ?? []
   const attributes = filterOptions?.attributes ?? []
+
+  // Estado para mantener las categorías expandidas (persiste entre selecciones)
+  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
+
+  const toggleExpanded = (categoryId: number) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev)
+      if (next.has(categoryId)) {
+        next.delete(categoryId)
+      } else {
+        next.add(categoryId)
+      }
+      return next
+    })
+  }
+
+  // Auto-expandir la categoría seleccionada y sus ancestros si existe
+  useEffect(() => {
+    if (!selectedCategoryId || !tree) return
+    
+    const findPath = (nodes: CategoryTreeNode[], targetId: number, path: number[] = []): number[] | null => {
+      for (const node of nodes) {
+        const currentPath = [...path, node.id]
+        if (node.id === targetId) {
+          return currentPath
+        }
+        if (node.children && node.children.length > 0) {
+          const found = findPath(node.children, targetId, currentPath)
+          if (found) return found
+        }
+      }
+      return null
+    }
+
+    const path = findPath(tree, selectedCategoryId)
+    if (path) {
+      setExpandedCategories((prev) => {
+        const next = new Set(prev)
+        // Expandir todos los ancestros de la categoría seleccionada
+        path.forEach((id) => next.add(id))
+        return next
+      })
+    }
+  }, [selectedCategoryId, tree])
 
   const toggleAttribute = (attrId: number, value: string) => {
     const idStr = String(attrId)
@@ -236,6 +289,8 @@ export const ProductsFilters = ({
                   node={node}
                   selectedId={selectedCategoryId}
                   onSelect={setSelectedCategoryId}
+                  expandedCategories={expandedCategories}
+                  toggleExpanded={toggleExpanded}
                 />
               ))
             ) : categorias.length > 0 ? (

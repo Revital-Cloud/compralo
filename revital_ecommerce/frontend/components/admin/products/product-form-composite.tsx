@@ -20,6 +20,7 @@ import { IconPlus, IconTrash } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 import { VariantImageUpload } from './variant-image-upload'
 import type { Category } from '@/types/category'
+import { formatNumberWithDots, parseFormattedNumber } from '@/utils/format-price'
 
 const schema = z.object({
   name: z.string().min(2, 'Mínimo 2 caracteres'),
@@ -50,6 +51,7 @@ const defaultVariant = (): VariantCreateItem => ({
   price: 0,
   stock: 0,
   is_active: true,
+  tipo_clasificacion: null,
   attributes: {},
   image_urls: [],
   main_index: 0,
@@ -142,21 +144,42 @@ export function ProductFormComposite({
           ? initialData.variants.map((v) => {
               const vid = (v as { id?: number }).id != null ? String((v as { id?: number }).id) : undefined
               const imgs = vid ? imagesByVariant[vid] : []
-              const sorted = [...(imgs || [])].sort((a, b) => a.sort_order - b.sort_order)
-              const image_urls = sorted.map((x) => x.image_url)
-              const mainIdx = sorted.findIndex((x) => x.is_main)
+              const sorted = [...(imgs || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+              const normalizeUrl = (u: string) => u.split('?')[0].split('#')[0].trim()
+              const seenUrls = new Set<string>()
+              const image_urls: string[] = []
+              let firstMainIndex = -1
+              sorted.forEach((x) => {
+                const url = (x.image_url ?? '').trim()
+                if (!url) return
+                const key = normalizeUrl(url)
+                if (seenUrls.has(key)) return
+                seenUrls.add(key)
+                const idx = image_urls.length
+                image_urls.push(url)
+                if (firstMainIndex < 0 && x.is_main) firstMainIndex = idx
+              })
+              const main_index = Math.min(
+                firstMainIndex >= 0 ? firstMainIndex : 0,
+                Math.max(0, image_urls.length - 1)
+              )
               const rawAttrs = v.attributes ?? {}
               const attributes: Record<string, string | number | boolean> = {}
               Object.entries(rawAttrs).forEach(([k, val]) => {
-                attributes[String(k)] = val as string | number | boolean
+                const key = String(k).trim()
+                if (!key) return
+                const single = Array.isArray(val) ? val[0] : val
+                if (single === undefined || single === null) return
+                attributes[key] = single as string | number | boolean
               })
               return {
                 price: Number(v.price),
                 stock: Number(v.stock),
                 is_active: v.is_active ?? true,
+                tipo_clasificacion: (v as { tipo_clasificacion?: string | null }).tipo_clasificacion ?? null,
                 attributes,
                 image_urls,
-                main_index: mainIdx >= 0 ? mainIdx : 0,
+                main_index,
               }
             })
           : [defaultVariant()]
@@ -221,6 +244,29 @@ export function ProductFormComposite({
     enabled: !!categoryId && categoryId > 0,
   })
 
+  // Sync dominant -> color attribute_id so state matches payload (same as iPhone)
+  useEffect(() => {
+    if (!initialData || !(categoryAttributes as CategoryAttributeWithValuesResponse[]).length) return
+    const colorAttr = (categoryAttributes as CategoryAttributeWithValuesResponse[]).find(
+      (a) => (a.attribute_name ?? '').toLowerCase() === 'color'
+    )
+    if (!colorAttr) return
+    const cid = String(colorAttr.attribute_id)
+    setVariants((prev) =>
+      prev.map((v) => {
+        const attrs = { ...(v.attributes || {}) }
+        if (attrs['dominant'] != null && attrs[cid] == null) {
+          const displayVal = String(attrs['dominant']).trim()
+          const found = (colorAttr.values ?? []).find(
+            (av) => (av.value ?? '').trim().toLowerCase() === displayVal.toLowerCase()
+          )
+          if (found?.id != null) attrs[cid] = found.id
+        }
+        return { ...v, attributes: attrs }
+      })
+    )
+  }, [initialData?.product?.name, categoryAttributes])
+
   const addVariant = useCallback(() => {
     setVariants((prev) => [...prev, defaultVariant()])
   }, [])
@@ -280,6 +326,27 @@ export function ProductFormComposite({
 
   const handleSubmit = form.handleSubmit((productFields) => {
     if (variants.length === 0) return
+    const catAttrs = (categoryAttributes ?? []) as CategoryAttributeWithValuesResponse[]
+    const colorAttr = catAttrs.find((a) => (a.attribute_name ?? '').toLowerCase() === 'color')
+    const normalizedVariants = variants.map((v) => {
+      const attrs = { ...(v.attributes || {}) }
+      if (colorAttr && attrs['dominant'] != null && attrs[String(colorAttr.attribute_id)] == null) {
+        const displayVal = String(attrs['dominant']).trim()
+        const found = (colorAttr.values ?? []).find(
+          (av) => (av.value ?? '').trim().toLowerCase() === displayVal.toLowerCase()
+        )
+        if (found?.id != null) attrs[String(colorAttr.attribute_id)] = found.id
+      }
+      return {
+        price: Number(v.price),
+        stock: Number(v.stock) >= 0 ? Number(v.stock) : 0,
+        is_active: v.is_active ?? true,
+        tipo_clasificacion: v.tipo_clasificacion && v.tipo_clasificacion.trim() ? v.tipo_clasificacion.trim() : null,
+        attributes: Object.keys(attrs).length > 0 ? attrs : undefined,
+        image_urls: v.image_urls?.length ? [...v.image_urls] : undefined,
+        main_index: v.main_index ?? 0,
+      }
+    })
     const payload: ProductCreateComposite = {
       product: {
         name: productFields.name,
@@ -289,14 +356,7 @@ export function ProductFormComposite({
         description: productFields.description || undefined,
         is_active: productFields.is_active ?? true,
       },
-      variants: variants.map((v) => ({
-        price: Number(v.price),
-        stock: Number(v.stock) >= 0 ? Number(v.stock) : 0,
-        is_active: v.is_active ?? true,
-        attributes: v.attributes && Object.keys(v.attributes).length > 0 ? v.attributes : undefined,
-        image_urls: v.image_urls?.length ? [...v.image_urls] : undefined,
-        main_index: v.main_index ?? 0,
-      })),
+      variants: normalizedVariants,
       image_urls: isEdit && initialData?.image_urls?.length ? [...initialData.image_urls] : [],
     }
     onSubmit(payload)
@@ -471,10 +531,15 @@ export function ProductFormComposite({
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
-          {variants.map((variant, index) => (
+          {variants.map((variant, index) => {
+            const variantLabel =
+              (variant.tipo_clasificacion && String(variant.tipo_clasificacion).trim()) ||
+              (variant.attributes && Object.values(variant.attributes).find((v) => v != null && String(v).trim()) as string | undefined)?.trim() ||
+              `Variante ${index + 1}`
+            return (
             <div key={index} className="border rounded-lg p-4 space-y-4 bg-muted/30">
               <div className="flex items-center justify-between">
-                <span className="font-medium text-sm">Variante {index + 1}</span>
+                <span className="font-medium text-sm">{variantLabel}</span>
                 <Button
                   type="button"
                   variant="ghost"
@@ -491,11 +556,41 @@ export function ProductFormComposite({
                 <div className="space-y-1">
                   <Label>Precio *</Label>
                   <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={variant.price ?? 0}
-                    onChange={(e) => updateVariant(index, 'price', e.target.value)}
+                    type="text"
+                    inputMode="numeric"
+                    value={variant.price != null && variant.price > 0 ? formatNumberWithDots(variant.price) : ''}
+                    onChange={(e) => {
+                      const rawValue = e.target.value.trim()
+                      // Permitir borrar completamente
+                      if (rawValue === '') {
+                        updateVariant(index, 'price', 0)
+                        return
+                      }
+                      // Remover todo excepto números (incluyendo puntos que el usuario pueda haber escrito)
+                      const numbersOnly = rawValue.replace(/[^\d]/g, '')
+                      if (numbersOnly === '') {
+                        updateVariant(index, 'price', 0)
+                        return
+                      }
+                      // Parsear y actualizar (el formato se aplicará automáticamente en el value)
+                      const parsed = parseInt(numbersOnly, 10)
+                      if (!isNaN(parsed)) {
+                        updateVariant(index, 'price', parsed)
+                      }
+                    }}
+                    onBlur={(e) => {
+                      // Asegurar formato al perder el foco
+                      const currentPrice = variant.price ?? 0
+                      if (currentPrice > 0) {
+                        const formatted = formatNumberWithDots(currentPrice)
+                        // Solo actualizar si el valor mostrado no coincide con el formateado
+                        if (e.target.value !== formatted) {
+                          updateVariant(index, 'price', currentPrice)
+                        }
+                      }
+                    }}
+                    placeholder="0"
+                    className="font-mono"
                   />
                 </div>
                 <div className="space-y-1">
@@ -505,6 +600,16 @@ export function ProductFormComposite({
                     min={0}
                     value={variant.stock ?? 0}
                     onChange={(e) => updateVariant(index, 'stock', e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Tipo/Clasificación</Label>
+                  <Input
+                    type="text"
+                    value={variant.tipo_clasificacion ?? ''}
+                    onChange={(e) => updateVariant(index, 'tipo_clasificacion', e.target.value || null)}
+                    placeholder="Ej: Estándar, Premium, Básico"
+                    maxLength={100}
                   />
                 </div>
                 <div className="flex items-center gap-2 pt-6">
@@ -527,15 +632,22 @@ export function ProductFormComposite({
                           values={attr.values}
                           value={(() => {
                             const isColorAttr = attr.attribute_name?.toLowerCase() === 'color' || String(attr.attribute_id) === 'dominant'
-                            const raw = isColorAttr
-                              ? (variant.attributes?.['dominant'] ?? variant.attributes?.[String(attr.attribute_id)])
-                              : variant.attributes?.[String(attr.attribute_id)]
+                            const attrKey = String(attr.attribute_id)
+                            const nameKey = (attr.attribute_name ?? '').trim()
+                            let raw =
+                              variant.attributes?.[attrKey] ??
+                              (nameKey ? variant.attributes?.[nameKey] : undefined) ??
+                              (isColorAttr ? variant.attributes?.['dominant'] : undefined)
+                            if (raw === undefined || raw === null) return undefined
+                            if (Array.isArray(raw)) raw = raw[0]
                             if (raw === undefined || raw === null) return undefined
                             const n = Number(raw)
-                            if (!Number.isNaN(n)) return n
-                            const str = String(raw).trim()
+                            if (!Number.isNaN(n) && n > 0) return n
+                            const str = String(raw).trim().split(',')[0].trim()
                             if (!str) return undefined
-                            const byValue = (attr.values ?? []).find((v) => (v.value ?? '').trim().toLowerCase() === str.toLowerCase())
+                            const byValue = (attr.values ?? []).find(
+                              (av) => (av.value ?? '').trim().toLowerCase() === str.toLowerCase()
+                            )
                             return byValue?.id != null ? Number(byValue.id) : undefined
                           })()}
                           onChange={(attributeValueId) => {
@@ -550,7 +662,10 @@ export function ProductFormComposite({
                         <AttributeInput
                           key={attr.attribute_id}
                           attribute={attr}
-                          value={variant.attributes?.[String(attr.attribute_id)]}
+                          value={
+                            variant.attributes?.[String(attr.attribute_id)] ??
+                            (attr.attribute_name ? variant.attributes?.[(attr.attribute_name ?? '').trim()] : undefined)
+                          }
                           onChange={(value) => updateVariantAttribute(index, attr.attribute_id, value)}
                         />
                       )
@@ -571,7 +686,8 @@ export function ProductFormComposite({
                 />
               </div>
             </div>
-          ))}
+            )
+          })}
         </CardContent>
       </Card>
 

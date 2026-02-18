@@ -1,6 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
+import { getHexForColorName } from "@/utils/color-map"
 import type { AttributeDefinition } from "@/types/product"
 
 interface ProductVariantSelectorProps {
@@ -31,21 +32,31 @@ export default function ProductVariantSelector({
   return (
     <div className="space-y-6">
       {attributeDefinitions.map((attr) => {
-        const hasColorSwatches = attr.values.some((v) => v.hex_color)
+        const rawName = (attr.name ?? "").trim()
+        const isColorAttr = rawName.toLowerCase() === "color"
+        const hasHexSwatches = attr.values.some((v) => !!v.hex_color)
+        // Solo tratamos como "color" real si hay hex_color en al menos uno de los valores.
+        const hasColorSwatches = isColorAttr && hasHexSwatches
+        const title =
+          rawName && !(isColorAttr && !hasColorSwatches)
+            ? rawName
+            : "Opciones"
         const selectedValue = selectedAttributes[attr.name] ?? null
         const norm = (s: string | null | undefined) => (s ?? "").trim().toLowerCase()
 
         return (
           <div key={attr.name} className="space-y-3">
             <h3 className="font-semibold text-gray-900 dark:text-white">
-              {attr.name.toUpperCase()}
+              {title.toUpperCase()}
             </h3>
-            {hasColorSwatches ? (
+            {attr.values.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay opciones disponibles</p>
+            ) : hasColorSwatches ? (
               <div className="flex gap-2 flex-wrap">
                 {attr.values.map((val) => {
                   const available = isOptionAvailable(attr.name, val.value)
                   const selected = norm(selectedValue) === norm(val.value)
-                  const hex = val.hex_color ?? undefined
+                  const hex = val.hex_color ?? (isColorAttr ? getHexForColorName(val.value ?? "") : undefined)
                   const isLight = hex ? isLightHex(hex) : false
                   return (
                     <button
