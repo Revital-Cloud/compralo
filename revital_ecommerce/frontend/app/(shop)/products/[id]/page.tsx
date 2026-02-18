@@ -17,7 +17,7 @@ import * as productService from "@/services/product.service"
 import { getProductImageUrl } from "@/utils/image-helpers"
 import { normalizeProductDetail, type ApiProductResponse } from "@/lib/product-detail-normalizer"
 
-const ProductPage = () => {
+const ProductPageContent = () => {
   const params = useParams()
   const router = useRouter()
   const slug = params?.id as string
@@ -123,14 +123,6 @@ const ProductPage = () => {
         displayHex: getHexForColorName(name)
       }))
   }, [product?.variant_options, product?.spcf_producto])
-
-  // Al cambiar de producto (slug), resetear selección
-  useEffect(() => {
-    setSelectedImageIndex(0)
-    setSelectedColor("")
-    setSelectedVariantId(null)
-    setSelectedAttributes({})
-  }, [slug])
 
   // Variantes e imágenes por variante (siempre mismos hooks; product puede ser undefined)
   const variants = useMemo(() => (product as any)?.variants ?? [], [product])
@@ -791,6 +783,12 @@ const ProductPage = () => {
       />
     </div>
   )
+}
+
+function ProductPage() {
+  const params = useParams()
+  const slug = (params?.id as string) ?? ""
+  return <ProductPageContent key={slug} />
 }
 
 export default ProductPage
