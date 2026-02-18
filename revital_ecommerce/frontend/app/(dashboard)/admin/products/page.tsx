@@ -5,6 +5,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from "sonner";
 import { ProductsHeader } from "@/components/admin/products";
 import { ProductsFilters } from "@/components/admin/products/products-filters";
+// Import explícito para evitar "Pagination is not defined" (referencia desde barrel u otro módulo)
+import { Pagination } from "@/components/admin/products/pagination";
 import { useProductsAdmin, useDeactivateActivateProductById, useFilterOptionsAdmin } from "@/hooks/use-products";
 import type { Product } from '@/types/product';
 import DataTable from '@/components/tables/table';
@@ -33,11 +35,9 @@ const ProductsPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Estado de paginación
-  const [currentPage, setCurrentPage] = useState(1);
+  // Estado de orden (la paginación la hace el DataTable en cliente, como en Categorías)
   const [sortBy, setSortBy] = useState<'nombre' | 'precio' | 'stock' | 'fecha' | 'categoria' | 'marca'>('nombre');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
-  const itemsPerPage = 10;
   
   // Obtener parámetros de búsqueda de la URL
   const search = searchParams.get('search') || '';
@@ -59,11 +59,12 @@ const ProductsPage = () => {
 
   const { data: filterOptions, isLoading: optionsLoading } = useFilterOptionsAdmin();
 
+  // Pedir todos los productos (límite alto) para que el DataTable pagine en cliente, igual que Categorías
   const filters = {
     ordenar_por: sortBy,
     orden: sortOrder,
-    limit: itemsPerPage,
-    offset: (currentPage - 1) * itemsPerPage,
+    limit: 1000,
+    offset: 0,
     search: search || undefined,
     category_id: category ? Number(category) : undefined,
     id_marca: brand ? Number(brand) : undefined,
@@ -80,15 +81,6 @@ const ProductsPage = () => {
   });
 
   const deactivateActivateProductMutation = useDeactivateActivateProductById();
-
-  // Manejar cambio de página
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    // Actualizar URL con la nueva página
-    const params = new URLSearchParams(searchParams);
-    params.set('page', page.toString());
-    router.push(`/admin/products?${params.toString()}`);
-  };
 
   const handleToggleActive = (row: Product) => {
     const isActive = Boolean((row as { ind_activo?: boolean; is_active?: boolean }).ind_activo ?? (row as { is_active?: boolean }).is_active ?? true);
@@ -189,11 +181,9 @@ const ProductsPage = () => {
     router.push('/admin/products');
   };
 
-  // Extraer datos de la respuesta
-  // El endpoint admin devuelve un array directo con total_registros
+  // Extraer datos de la respuesta (todos los productos de la consulta; el DataTable pagina en cliente)
   const adminProducts = Array.isArray(productsResponse) ? productsResponse : [];
-  const totalItems = adminProducts.length > 0 ? adminProducts[0].total_registros : 0;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const totalItems = adminProducts.length > 0 ? (adminProducts[0].total_registros ?? adminProducts.length) : adminProducts.length;
 
   const products: Product[] = adminProducts.map((adminProduct) => {
     const stock = adminProduct.stock_total ?? 0;
@@ -590,7 +580,7 @@ const ProductsPage = () => {
           <div className="h-10 bg-gray-200/50 dark:bg-gray-800/60 rounded-md animate-pulse" />
           {/* Skeleton de filas de tabla */}
           <div className="space-y-3">
-            {Array.from({ length: itemsPerPage }).map((_, i) => (
+            {Array.from({ length: 10 }).map((_, i) => (
               <div key={i} className="h-16 bg-gray-200/40 dark:bg-gray-800/40 rounded-md animate-pulse" />
             ))}
           </div>
@@ -599,7 +589,7 @@ const ProductsPage = () => {
         <DataTable 
           columns={[...columns, ...actions]} 
           data={products}
-          pageSize={itemsPerPage}
+          pageSize={10}
         />
       ) : (
         <div className="text-center py-12">

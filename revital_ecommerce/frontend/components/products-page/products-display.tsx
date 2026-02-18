@@ -2,6 +2,7 @@ import { Button, Loading } from "@/components/ui"
 import { ProductGrid, ProductList } from "@/components/product"
 import { EmptyProductsState } from "@/components/ui"
 import { FilterSuggestions } from "@/components/ui"
+import { ProductsPagination } from "./products-pagination"
 import { useCart } from "@/hooks/use-cart"
 import { toast } from "sonner"
 
@@ -19,6 +20,12 @@ interface ProductsDisplayProps {
   clearAllFilters: () => void
   onRemoveFilter?: (filterType: string, value?: string) => void
   filterOptions?: { categorias?: { id: number; name: string }[]; marcas?: { id_marca: number; nom_marca: string }[]; attributes?: { id: number; name: string; values: string[] }[] } | null
+  /** Paginación: solo se muestra si totalPages > 1 */
+  currentPage?: number
+  totalPages?: number
+  totalItems?: number
+  itemsPerPage?: number
+  onPageChange?: (page: number) => void
 }
 
 export const ProductsDisplay = ({
@@ -35,6 +42,11 @@ export const ProductsDisplay = ({
   clearAllFilters,
   onRemoveFilter,
   filterOptions,
+  currentPage = 1,
+  totalPages = 1,
+  totalItems = 0,
+  itemsPerPage = 20,
+  onPageChange,
 }: ProductsDisplayProps) => {
   // Hook del carrito para funcionalidad real
   const { addToCart, isAddingToCart } = useCart()
@@ -186,7 +198,9 @@ export const ProductsDisplay = ({
                   filterOptions={filterOptions}
                 />
                 <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                  Mostrando {filteredProducts.length} productos
+                  {totalPages > 1 && totalItems > 0
+                    ? `Mostrando ${(currentPage - 1) * itemsPerPage + 1} a ${Math.min(currentPage * itemsPerPage, totalItems)} de ${totalItems} productos`
+                    : `Mostrando ${filteredProducts.length} productos`}
                 </p>
               </div>
             )}
@@ -202,6 +216,17 @@ export const ProductsDisplay = ({
                 products={filteredProducts}
                 onAddToCart={handleAddToCart}
                 onToggleFavorite={handleToggleFavorite}
+              />
+            )}
+
+            {/* Paginación */}
+            {onPageChange && totalPages > 1 && (
+              <ProductsPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={onPageChange}
               />
             )}
           </>

@@ -190,8 +190,11 @@ export const ProductsFilters = ({
   }
 
   return (
-    <div className={`lg:w-80 lg:flex-shrink-0 ${showFilters ? "block" : "hidden md:block"}`}>
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 sticky top-4">
+    <div
+      className={`lg:w-80 lg:flex-shrink-0 lg:self-start space-y-4 ${showFilters ? "block" : "hidden md:block"}`}
+    >
+      {/* Bloque 1: Categoría, Marca, Precio, Disponibilidad (estático al hacer scroll; no se recarga al cambiar categoría) */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filtros</h3>
           <div className="flex items-center gap-2">
@@ -276,11 +279,11 @@ export const ProductsFilters = ({
           </div>
         </div>
 
-        {/* Categoría (árbol o lista plana) */}
+        {/* Categoría (árbol o lista plana) - no mostrar loading al cambiar categoría, solo en carga inicial */}
         <div className="mb-6">
           <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Categoría</h4>
           <div className="space-y-0 max-h-48 overflow-y-auto">
-            {optionsLoading ? (
+            {optionsLoading && !tree && categorias.length === 0 ? (
               <div className="text-sm text-gray-500">Cargando categorías...</div>
             ) : tree && tree.length > 0 ? (
               tree.map((node) => (
@@ -320,40 +323,6 @@ export const ProductsFilters = ({
             )}
           </div>
         </div>
-
-        {/* Atributos dinámicos */}
-        {attributes.length > 0 && (
-          <div className="mb-6">
-            <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Atributos</h4>
-            <div className="space-y-4">
-              {attributes.map((attr) => (
-                <div key={attr.id}>
-                  <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">{attr.name}</div>
-                  <div className="space-y-1.5 pl-1">
-                    {(attr.values || []).map((val) => {
-                      const checked = (selectedAttributes[String(attr.id)] ?? []).includes(val)
-                      return (
-                        <div key={`${attr.id}-${val}`} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`attr-${attr.id}-${val}`}
-                            checked={checked}
-                            onCheckedChange={() => toggleAttribute(attr.id, val)}
-                          />
-                          <label
-                            htmlFor={`attr-${attr.id}-${val}`}
-                            className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-                          >
-                            {val}
-                          </label>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Marcas */}
         <div className="mb-6">
@@ -414,6 +383,46 @@ export const ProductsFilters = ({
           </div>
         </div>
       </div>
+
+      {/* Bloque 2: Atributos (solo cuando hay categoría seleccionada o ya hay atributos; recarga independiente) */}
+      {(selectedCategoryId != null && (attributes.length > 0 || optionsLoading)) && (
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Atributos</h3>
+          {optionsLoading ? (
+            <div className="text-sm text-gray-500">Cargando atributos...</div>
+          ) : attributes.length > 0 ? (
+            <div className="space-y-4">
+              {attributes.map((attr) => (
+                <div key={attr.id}>
+                  <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">{attr.name}</div>
+                  <div className="space-y-1.5 pl-1">
+                    {(attr.values || []).map((val) => {
+                      const checked = (selectedAttributes[String(attr.id)] ?? []).includes(val)
+                      return (
+                        <div key={`${attr.id}-${val}`} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`attr-${attr.id}-${val}`}
+                            checked={checked}
+                            onCheckedChange={() => toggleAttribute(attr.id, val)}
+                          />
+                          <label
+                            htmlFor={`attr-${attr.id}-${val}`}
+                            className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                          >
+                            {val}
+                          </label>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">Esta categoría no tiene atributos para filtrar</div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
