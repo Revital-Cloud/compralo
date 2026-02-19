@@ -205,18 +205,20 @@ def _get_product_performance_by_category(db: Session) -> List[Dict[str, Any]]:
                 return product_performance
             # Si todas tienen 0 ventas en la tabla de estadísticas, usar fallback (datos reales de órdenes)
         
-        # Fallback: Calcular directamente desde órdenes (siempre datos reales)
+        # Fallback: Calcular directamente desde órdenes (siempre datos reales) usando el nuevo esquema
         end_date = datetime.now()
         start_date = end_date - timedelta(days=30)
         previous_start = start_date - timedelta(days=30)
         previous_end = start_date
         
-        # Primero obtener todas las categorías activas
+        # Primero obtener todas las categorías activas (tab_categories)
         categories_query = text("""
-            SELECT id_categoria, nom_categoria
-            FROM tab_categorias
-            WHERE ind_activo = TRUE
-            ORDER BY nom_categoria
+            SELECT 
+                c.id AS id_categoria, 
+                c.name AS nom_categoria
+            FROM tab_categories c
+            WHERE c.is_active = TRUE
+            ORDER BY c.name
         """)
         categories_result = db.execute(categories_query)
         all_categories = {}
@@ -232,9 +234,10 @@ def _get_product_performance_by_category(db: Session) -> List[Dict[str, Any]]:
             return []
         
         # Luego obtener ventas por categoría desde órdenes (LEFT JOIN para incluir todas las categorías)
+        # Nuevo esquema: tab_categories + tab_products + variantes + tab_orden_productos
         sales_query = text("""
             SELECT 
-                c.id_categoria,
+                c.id AS id_categoria,
                 COALESCE(SUM(op.subtotal) FILTER (
                     WHERE o.fec_pedido >= :start_date 
                     AND o.fec_pedido <= :end_date
@@ -245,16 +248,22 @@ def _get_product_performance_by_category(db: Session) -> List[Dict[str, Any]]:
                     AND o.fec_pedido <= :prev_end
                     AND o.ind_estado IN (2, 3)
                 ), 0) as ingresos_anteriores
-            FROM tab_categorias c
-            LEFT JOIN tab_productos p ON c.id_categoria = p.id_categoria AND p.ind_activo = TRUE
-            LEFT JOIN tab_orden_productos op ON p.id_categoria = op.id_categoria_producto 
-                AND p.id_linea = op.id_linea_producto 
-                AND p.id_sublinea = op.id_sublinea_producto 
-                AND p.id_producto = op.id_producto
-            LEFT JOIN tab_ordenes o ON op.id_orden = o.id_orden 
+            FROM tab_categories c
+            LEFT JOIN tab_products p 
+                ON p.category_id = c.id 
+                AND p.is_active = TRUE
+            LEFT JOIN tab_product_variant_groups g 
+                ON g.product_id = p.id
+            LEFT JOIN tab_product_variant_combinations pv 
+                ON pv.group_id = g.id 
+                AND pv.is_active = TRUE
+            LEFT JOIN tab_orden_productos op 
+                ON op.variant_id = pv.id
+            LEFT JOIN tab_ordenes o 
+                ON op.id_orden = o.id_orden 
                 AND o.ind_estado IN (2, 3)
-            WHERE c.ind_activo = TRUE
-            GROUP BY c.id_categoria
+            WHERE c.is_active = TRUE
+            GROUP BY c.id
         """)
         
         sales_result = db.execute(sales_query, {
@@ -311,12 +320,32 @@ def _get_product_performance_by_category(db: Session) -> List[Dict[str, Any]]:
 def _get_product_metrics(db: Session) -> Dict[str, Any]:
     """Obtiene métricas generales de productos."""
     query = text("""
+        WITH product_data AS (
+            SELECT
+                p.id,
+                p.is_active,
+                COALESCE((
+                    SELECT SUM(c.stock)
+                    FROM tab_product_variant_groups g
+                    JOIN tab_product_variant_combinations c ON c.group_id = g.id
+                    WHERE g.product_id = p.id
+                      AND c.is_active = TRUE
+                ), 0) AS stock_total,
+                (
+                    SELECT MIN(c.price)
+                    FROM tab_product_variant_groups g
+                    JOIN tab_product_variant_combinations c ON c.group_id = g.id
+                    WHERE g.product_id = p.id
+                      AND c.is_active = TRUE
+                ) AS price_min
+            FROM tab_products p
+        )
         SELECT 
-            COUNT(*) FILTER (WHERE ind_activo = TRUE) as productos_activos,
-            COUNT(*) FILTER (WHERE ind_activo = FALSE) as productos_inactivos,
-            COUNT(*) FILTER (WHERE num_stock = 0) as sin_stock,
-            AVG(val_precio) FILTER (WHERE ind_activo = TRUE) as precio_promedio
-        FROM tab_productos
+            COUNT(*) FILTER (WHERE is_active = TRUE) as productos_activos,
+            COUNT(*) FILTER (WHERE is_active = FALSE) as productos_inactivos,
+            COUNT(*) FILTER (WHERE stock_total = 0) as sin_stock,
+            AVG(price_min) FILTER (WHERE is_active = TRUE) as precio_promedio
+        FROM product_data
     """)
     
     result = db.execute(query)

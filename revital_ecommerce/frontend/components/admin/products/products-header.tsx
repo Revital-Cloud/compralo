@@ -11,7 +11,7 @@ interface ProductsHeaderProps { }
 export const ProductsHeader: React.FC<ProductsHeaderProps> = () => {
 
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between" data-tour-id="products-header">
       <div>
         <h1 className="text-2xl font-bold">Todos los Productos</h1>
         <Breadcrumb 

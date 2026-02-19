@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { useAllOrders, useOrderStats } from '@/hooks/use-orders'
 import { OrderStatsCards } from '@/components/admin/orders/order-stats-cards'
@@ -14,6 +14,7 @@ import { IconEye, IconCalendar, IconUser, IconMail, IconShoppingCart } from '@ta
 import Link from 'next/link'
 import { parseDateSafe } from '@/utils/date-helpers'
 import type { Order, OrderFilters as OrderFiltersType } from '@/types/order'
+import { useAdminTour } from '../_tour/useAdminDriverTour'
 
 /** Devuelve el timestamp de inicio del día en hora local para una fecha (para comparar solo por día). */
 function getLocalDayStart(d: Date): number {
@@ -211,23 +212,43 @@ const OrdersPage = () => {
     })
   }
 
+  const { startOrdersTour } = useAdminTour()
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('revital_orders_tour_seen')
+      if (!seen) {
+        startOrdersTour()
+        localStorage.setItem('revital_orders_tour_seen', '1')
+      }
+    } catch {
+      // ignore
+    }
+  }, [startOrdersTour])
+
   return (
     <div className="space-y-6">
-      <CatalogHeader 
-        title="Órdenes"
-        description="Gestiona todas las órdenes de tu tienda"
-        showImportButton={false}
-      />
+      <div data-tour-id="orders-header">
+        <CatalogHeader 
+          title="Órdenes"
+          description="Gestiona todas las órdenes de tu tienda"
+          showImportButton={false}
+        />
+      </div>
 
       {/* Estadísticas */}
-      <OrderStatsCards stats={calculatedStats} />
+      <div data-tour-id="orders-stats">
+        <OrderStatsCards stats={calculatedStats} />
+      </div>
 
       {/* Filtros */}
-      <OrderFilters
-        filters={filters}
-        onFiltersChange={handleFiltersChange}
-        onClear={handleClear}
-      />
+      <div data-tour-id="orders-filters">
+        <OrderFilters
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          onClear={handleClear}
+        />
+      </div>
 
       {/* Tabla de órdenes */}
       {isError && (
@@ -249,18 +270,20 @@ const OrdersPage = () => {
         </div>
       ) : (
         !isError && (
-          <DataTable
-            columns={[...columns, ...actions]}
-            data={Array.isArray(filteredOrders) ? filteredOrders : []}
-            pageSize={10}
-            emptyMessage={
-              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <IconShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                <div className="text-lg font-medium">No se encontraron órdenes</div>
-                <div className="text-sm">Intenta ajustar los filtros de búsqueda</div>
-              </div>
-            }
-          />
+          <div data-tour-id="orders-table">
+            <DataTable
+              columns={[...columns, ...actions]}
+              data={Array.isArray(filteredOrders) ? filteredOrders : []}
+              pageSize={10}
+              emptyMessage={
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <IconShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <div className="text-lg font-medium">No se encontraron órdenes</div>
+                  <div className="text-sm">Intenta ajustar los filtros de búsqueda</div>
+                </div>
+              }
+            />
+          </div>
         )
       )}
     </div>

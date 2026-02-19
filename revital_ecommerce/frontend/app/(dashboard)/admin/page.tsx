@@ -24,9 +24,11 @@ import type { DashboardRefreshIntervalKey } from '@/components/dashboard/dashboa
 
 // Custom Hook
 import { useDashboardData, DASHBOARD_REFRESH_INTERVALS } from '@/hooks/use-dashboard-data'
+import { useAdminTour } from './_tour/useAdminDriverTour';
 
 const STORAGE_KEY = 'dashboard-refresh-interval'
 const DEFAULT_REFRESH: DashboardRefreshIntervalKey = '30s'
+const ADMIN_TOUR_SEEN_KEY = 'revital_admin_tour_seen'
 
 const AdminDashboard = () => {
   const [timeRange, setTimeRange] = useState('monthly')
@@ -35,6 +37,7 @@ const AdminDashboard = () => {
   const [aiSummary, setAiSummary] = useState<string | null>(null)
   const [aiSummaryLoading, setAiSummaryLoading] = useState(false)
   const [aiSummaryError, setAiSummaryError] = useState<string | null>(null)
+  const { startAdminOverviewTour } = useAdminTour()
 
   const fetchAiSummary = useCallback(async () => {
     if (!aiEnabled) return
@@ -62,6 +65,18 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (aiEnabled) fetchAiSummary()
   }, [aiEnabled, fetchAiSummary])
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem(ADMIN_TOUR_SEEN_KEY)
+      if (!seen) {
+        startAdminOverviewTour()
+        localStorage.setItem(ADMIN_TOUR_SEEN_KEY, '1')
+      }
+    } catch {
+      // ignore
+    }
+  }, [startAdminOverviewTour])
 
   useEffect(() => {
     try {
@@ -127,7 +142,10 @@ const AdminDashboard = () => {
       )}
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        data-tour-id="admin-dashboard-kpis"
+      >
         <KPICard
           title="Total de Órdenes"
           data={data?.kpis?.totalOrders}
@@ -155,24 +173,26 @@ const AdminDashboard = () => {
       </div>
 
       {/* Main Dashboard Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <SalesChart 
-          salesData={data?.salesData || []} 
-          summary={data?.summary || { totalSales: 0, totalOrders: 0, conversionRate: '0' }}
-          loading={loading}
-        />
-        <BestSellers 
-          bestSellers={data?.bestSellers || []}
-          loading={loading}
-        />
-      </div>
+      <div data-tour-id="admin-dashboard-charts" className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <SalesChart 
+            salesData={data?.salesData || []} 
+            summary={data?.summary || { totalSales: 0, totalOrders: 0, conversionRate: '0' }}
+            loading={loading}
+          />
+          <BestSellers 
+            bestSellers={data?.bestSellers || []}
+            loading={loading}
+          />
+        </div>
 
-      {/* Recent Orders Section */}
-      <div className="grid grid-cols-1">
-        <RecentOrders 
-          recentOrders={data?.recentOrders || []}
-          loading={loading}
-        />
+        {/* Recent Orders Section */}
+        <div className="grid grid-cols-1">
+          <RecentOrders 
+            recentOrders={data?.recentOrders || []}
+            loading={loading}
+          />
+        </div>
       </div>
     </div>
   )

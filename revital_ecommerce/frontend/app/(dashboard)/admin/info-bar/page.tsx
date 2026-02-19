@@ -14,6 +14,7 @@ import { ColorPicker } from '@/components/admin/color-picker'
 import { Calendar } from '@/components/ui'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui'
 import { IconCalendar } from '@tabler/icons-react'
+import { useAdminTour } from '../_tour/useAdminDriverTour'
 
 const MESSAGE_MAX_LENGTH = 100
 
@@ -74,6 +75,20 @@ const InfoBarPage = () => {
     }
   }, [config])
 
+  const { startInfoBarTour } = useAdminTour()
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('revital_info_bar_tour_seen')
+      if (!seen) {
+        startInfoBarTour()
+        localStorage.setItem('revital_info_bar_tour_seen', '1')
+      }
+    } catch {
+      // ignore
+    }
+  }, [startInfoBarTour])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -126,11 +141,13 @@ const InfoBarPage = () => {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <CatalogHeader
-          title="Barra Informativa"
-          description="Configura la barra informativa superior de tu tienda"
-          showImportButton={false}
-        />
+        <div data-tour-id="info-bar-header">
+          <CatalogHeader
+            title="Barra Informativa"
+            description="Configura la barra informativa superior de tu tienda"
+            showImportButton={false}
+          />
+        </div>
         <div className="text-sm text-muted-foreground">Cargando configuración...</div>
       </div>
     )
@@ -139,11 +156,13 @@ const InfoBarPage = () => {
   if (isError) {
     return (
       <div className="space-y-6">
-        <CatalogHeader
-          title="Barra Informativa"
-          description="Configura la barra informativa superior de tu tienda"
-          showImportButton={false}
-        />
+        <div data-tour-id="info-bar-header">
+          <CatalogHeader
+            title="Barra Informativa"
+            description="Configura la barra informativa superior de tu tienda"
+            showImportButton={false}
+          />
+        </div>
         <div className="text-sm text-red-600">Error al cargar la configuración</div>
       </div>
     )
@@ -151,14 +170,16 @@ const InfoBarPage = () => {
 
   return (
     <div className="space-y-6">
-      <CatalogHeader
-        title="Barra Informativa"
-        description="Configura la barra informativa superior de tu tienda"
-        showImportButton={false}
-      />
+      <div data-tour-id="info-bar-header">
+        <CatalogHeader
+          title="Barra Informativa"
+          description="Configura la barra informativa superior de tu tienda"
+          showImportButton={false}
+        />
+      </div>
 
       {/* Preview */}
-      <Card>
+      <Card data-tour-id="info-bar-preview">
         <CardHeader>
           <CardTitle>Vista previa</CardTitle>
           <CardDescription>
@@ -195,7 +216,7 @@ const InfoBarPage = () => {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-tour-id="info-bar-form">
         <CardHeader>
           <CardTitle>Configuración de la Barra</CardTitle>
           <CardDescription>

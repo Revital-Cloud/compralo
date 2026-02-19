@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Card, CardContent } from "@/components/ui"
 import { Badge } from "@/components/ui"
 import { Button } from "@/components/ui"
@@ -19,6 +19,7 @@ import type { User } from '@/types'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useAdminTour } from '../_tour/useAdminDriverTour'
 
 const editUserSchema = z.object({
   nom_usuario: z.string().min(1, 'Nombre requerido'),
@@ -132,6 +133,20 @@ const UsersPage = () => {
     inactive: users.filter(u => !(u as any).ind_activo).length,
   }
 
+  const { startUsersTour } = useAdminTour()
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('revital_users_tour_seen')
+      if (!seen) {
+        startUsersTour()
+        localStorage.setItem('revital_users_tour_seen', '1')
+      }
+    } catch {
+      // ignore
+    }
+  }, [startUsersTour])
+
   const openEdit = (user: User) => {
     setEditingUser(user)
     form.reset({
@@ -239,7 +254,7 @@ const UsersPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between" data-tour-id="users-header">
         <div>
           <h1 className="text-2xl font-bold">Usuarios</h1>
           <p className="text-muted-foreground">
@@ -249,7 +264,7 @@ const UsersPage = () => {
       </div>
 
       {/* Tarjetas de resumen mejoradas */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4" data-tour-id="users-stats">
         {statCards.map(({ key, label, icon: Icon, color, bg, border }) => (
           <Card key={key} className={`overflow-hidden ${border} ${bg} transition-shadow hover:shadow-lg`}>
             <CardContent className="p-4">
@@ -280,11 +295,13 @@ const UsersPage = () => {
       )}
 
       {!isLoading && !isError && users.length > 0 && (
-        <DataTable
-          columns={[...columns, ...actions]}
-          data={users}
-          pageSize={10}
-        />
+        <div data-tour-id="users-table">
+          <DataTable
+            columns={[...columns, ...actions]}
+            data={users}
+            pageSize={10}
+          />
+        </div>
       )}
 
       {!isLoading && !isError && users.length === 0 && (

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { useToggleDiscountStatus, useCreateDiscount, useUpdateDiscount, useDiscountStats } from '@/hooks/use-discounts'
 import { transformDiscountPayload } from '@/services/discount.service'
@@ -13,6 +13,7 @@ import { useDiscountColumns } from '@/components/admin/discounts/discount-column
 import { useDiscountData } from '@/components/admin/discounts/use-discount-data'
 import DataTable from '@/components/tables/table'
 import { toast } from 'sonner'
+import { useAdminTour } from '../_tour/useAdminDriverTour'
 
 const DiscountsPage = () => {
   const { data: stats } = useDiscountStats()
@@ -43,6 +44,20 @@ const DiscountsPage = () => {
     },
     isToggling: toggleStatusMutation.isPending
   })
+
+  const { startDiscountsTour } = useAdminTour()
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('revital_discounts_tour_seen')
+      if (!seen) {
+        startDiscountsTour()
+        localStorage.setItem('revital_discounts_tour_seen', '1')
+      }
+    } catch {
+      // ignore
+    }
+  }, [startDiscountsTour])
 
   const handleCreateSubmit = async (values: any) => {
     try {
@@ -100,12 +115,14 @@ const DiscountsPage = () => {
 
   return (
     <div className="space-y-6">
-      <CatalogHeader 
-        title="Descuentos"
-        description="Gestiona los descuentos y cupones de tu tienda"
-        onCreateClick={() => setOpenCreate(true)}
-        createLabel="Crear Descuento"
-      />
+      <div data-tour-id="discounts-header">
+        <CatalogHeader 
+          title="Descuentos"
+          description="Gestiona los descuentos y cupones de tu tienda"
+          onCreateClick={() => setOpenCreate(true)}
+          createLabel="Crear Descuento"
+        />
+      </div>
 
       <CreateDiscountModal
         open={openCreate}
@@ -122,16 +139,18 @@ const DiscountsPage = () => {
 
       {stats && <DiscountStatsCards stats={stats} />}
 
-      <DiscountFilters
-        search={filters.search}
-        onSearchChange={filters.setSearch}
-        filterType={filters.filterType}
-        onFilterTypeChange={filters.setFilterType}
-        sortBy={filters.sortBy}
-        onSortByChange={filters.setSortBy}
-        sortOrder={filters.sortOrder}
-        onSortOrderToggle={() => filters.setSortOrder(filters.sortOrder === 'ASC' ? 'DESC' : 'ASC')}
-      />
+      <div data-tour-id="discounts-filters">
+        <DiscountFilters
+          search={filters.search}
+          onSearchChange={filters.setSearch}
+          filterType={filters.filterType}
+          onFilterTypeChange={filters.setFilterType}
+          sortBy={filters.sortBy}
+          onSortByChange={filters.setSortBy}
+          sortOrder={filters.sortOrder}
+          onSortOrderToggle={() => filters.setSortOrder(filters.sortOrder === 'ASC' ? 'DESC' : 'ASC')}
+        />
+      </div>
 
       {isLoading && (
         <div className="text-sm text-muted-foreground">Cargando descuentos...</div>
@@ -142,11 +161,13 @@ const DiscountsPage = () => {
       )}
 
       {!isLoading && !isError && Array.isArray(filteredData) && filteredData.length > 0 && (
-        <DataTable 
-          columns={columns} 
-          data={filteredData}
-          pageSize={10}
-        />
+        <div data-tour-id="discounts-table">
+          <DataTable 
+            columns={columns} 
+            data={filteredData}
+            pageSize={10}
+          />
+        </div>
       )}
 
       {!isLoading && !isError && filteredData.length === 0 && (

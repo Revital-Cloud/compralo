@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ProvidersFilters } from '@/components/admin/providers/providers-filters'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { CreateEntityModal } from '@/components/admin/common/create-entity-modal'
@@ -14,6 +14,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Button, Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui'
 import { Pencil, Power, Eye } from 'lucide-react'
 import { toast } from 'sonner'
+import { useAdminTour } from '../_tour/useAdminDriverTour'
 
 interface Provider {
   id_proveedor: number
@@ -136,15 +137,31 @@ const ProvidersPage = () => {
   const [openEdit, setOpenEdit] = useState(false)
   const [editing, setEditing] = useState<any | null>(null)
 
+  const { startProvidersTour } = useAdminTour()
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('revital_providers_tour_seen')
+      if (!seen) {
+        startProvidersTour()
+        localStorage.setItem('revital_providers_tour_seen', '1')
+      }
+    } catch {
+      // ignore
+    }
+  }, [startProvidersTour])
+
   return (
     <div className="space-y-6">
-      <CatalogHeader 
-        title="Proveedores"
-        description="Agrega y gestiona tus proveedores"
-        onCreateClick={() => setOpenCreate(true)}
-        createLabel="Agregar Proveedor"
-        showImportButton={false}
-      />
+      <div data-tour-id="providers-header">
+        <CatalogHeader 
+          title="Proveedores"
+          description="Agrega y gestiona tus proveedores"
+          onCreateClick={() => setOpenCreate(true)}
+          createLabel="Agregar Proveedor"
+          showImportButton={false}
+        />
+      </div>
 
       <CreateEntityModal
         open={openCreate}
@@ -184,12 +201,14 @@ const ProvidersPage = () => {
         }}
       />
 
-      <ProvidersFilters
-        search={search}
-        onSearchChange={setSearch}
-        onClearFilters={clearFilters}
-        totalResults={Array.isArray(filteredData) ? filteredData.length : 0}
-      />
+      <div data-tour-id="providers-filters">
+        <ProvidersFilters
+          search={search}
+          onSearchChange={setSearch}
+          onClearFilters={clearFilters}
+          totalResults={Array.isArray(filteredData) ? filteredData.length : 0}
+        />
+      </div>
 
       {isLoading && (
         <div className="text-sm text-muted-foreground">Cargando proveedores...</div>
@@ -209,12 +228,14 @@ const ProvidersPage = () => {
       )}
 
       {!isLoading && !isError && Array.isArray(filteredData) && filteredData.length > 0 && (
-        <DataTable 
-          columns={[...columns, ...actions]} 
-          data={filteredData}
-          pageSize={10}
-          getRowId={(row: Provider) => String(row.id_proveedor)}
-        />
+        <div data-tour-id="providers-table">
+          <DataTable 
+            columns={[...columns, ...actions]} 
+            data={filteredData}
+            pageSize={10}
+            getRowId={(row: Provider) => String(row.id_proveedor)}
+          />
+        </div>
       )}
 
       <Sheet open={!!selectedProvider} onOpenChange={(open) => !open && setSelectedProvider(null)}>

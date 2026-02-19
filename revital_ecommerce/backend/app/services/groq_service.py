@@ -3,7 +3,7 @@ Servicio para integración con Groq API (LLM).
 Usa el SDK oficial groq para chat completions.
 """
 import logging
-from typing import Iterator, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 from groq import Groq
 
@@ -17,6 +17,13 @@ DEFAULT_MODEL = "llama-3.3-70b-versatile"
 def is_groq_available() -> bool:
     """Indica si Groq está configurado (API key presente)."""
     return bool(settings.GROQ_API_KEY and settings.GROQ_API_KEY.strip())
+
+
+def _build_client() -> Groq:
+    """Crea una instancia de cliente Groq validando que haya API key."""
+    if not is_groq_available():
+        raise ValueError("GROQ_API_KEY no está configurada.")
+    return Groq(api_key=settings.GROQ_API_KEY)
 
 
 def chat_completion_stream(
@@ -37,7 +44,7 @@ def chat_completion_stream(
     messages.append({"role": "user", "content": user_content})
 
     try:
-        client = Groq(api_key=settings.GROQ_API_KEY)
+        client = _build_client()
         stream = client.chat.completions.create(
             model=model,
             messages=messages,
@@ -83,7 +90,7 @@ def chat_completion(
     messages.append({"role": "user", "content": user_content})
 
     try:
-        client = Groq(api_key=settings.GROQ_API_KEY)
+        client = _build_client()
         response = client.chat.completions.create(
             model=model,
             messages=messages,
@@ -94,3 +101,36 @@ def chat_completion(
     except Exception as e:
         logger.exception("Unexpected error calling Groq")
         raise RuntimeError(f"Error inesperado al usar Groq: {str(e)}") from e
+
+
+def chat_with_tools(
+    messages: List[Dict[str, Any]],
+    tools: List[Dict[str, Any]],
+    model: str = DEFAULT_MODEL,
+    temperature: float = 0.3,
+    tool_choice: str = "auto",
+) -> Dict[str, Any]:
+    """
+    Llama a Groq Chat Completions con tools (function calling) y devuelve la
+    respuesta cruda del modelo.
+
+    Esta función no ejecuta ninguna acción; solo devuelve la estructura con
+    posibles tool_calls para que la capa de servicio decida qué hacer.
+    """
+    if not is_groq_available():
+        raise ValueError("GROQ_API_KEY no está configurada. Las funciones de IA no están disponibles.")
+
+    try:
+        client = _build_client()
+        response = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            tools=tools,
+            tool_choice=tool_choice,
+            temperature=temperature,
+        )
+        # Convertimos a dict para desacoplar de la clase del SDK.
+        return response.to_dict() if hasattr(response, "to_dict") else dict(response)  # type: ignore[arg-type]
+    except Exception as e:
+        logger.exception("Unexpected error calling Groq with tools")
+        raise RuntimeError(f"Error inesperado al usar Groq (tools): {str(e)}") from e

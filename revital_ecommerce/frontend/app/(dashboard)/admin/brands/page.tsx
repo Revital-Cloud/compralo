@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { CreateEntityModal } from '@/components/admin/common/create-entity-modal'
 import { EditEntityModal } from '@/components/admin/common/edit-entity-modal'
@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui"
 import { Pencil, Power, Eye } from 'lucide-react'
 import { BrandsFilters } from '@/components/admin/brands/brands-filters'
 import { toast } from 'sonner'
+import { useAdminTour } from '../_tour/useAdminDriverTour'
 
 interface Brand {
   id_marca: number
@@ -134,15 +135,31 @@ const BrandsPage = () => {
   const [openEdit, setOpenEdit] = useState(false)
   const [editing, setEditing] = useState<any | null>(null)
 
+  const { startBrandsTour } = useAdminTour()
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('revital_brands_tour_seen')
+      if (!seen) {
+        startBrandsTour()
+        localStorage.setItem('revital_brands_tour_seen', '1')
+      }
+    } catch {
+      // ignore
+    }
+  }, [startBrandsTour])
+
   return (
     <div className="space-y-6">
-      <CatalogHeader 
-        title="Marcas"
-        description="Registra las marcas con las que trabajas"
-        onCreateClick={() => setOpenCreate(true)}
-        createLabel="Agregar Marca"
-        showImportButton={false}
-      />
+      <div data-tour-id="brands-header">
+        <CatalogHeader 
+          title="Marcas"
+          description="Registra las marcas con las que trabajas"
+          onCreateClick={() => setOpenCreate(true)}
+          createLabel="Agregar Marca"
+          showImportButton={false}
+        />
+      </div>
 
       <CreateEntityModal
         open={openCreate}
@@ -167,12 +184,14 @@ const BrandsPage = () => {
         }}
       />
 
-      <BrandsFilters
-        search={search}
-        onSearchChange={setSearch}
-        onClearFilters={clearFilters}
-        totalResults={Array.isArray(filteredData) ? filteredData.length : 0}
-      />
+      <div data-tour-id="brands-filters">
+        <BrandsFilters
+          search={search}
+          onSearchChange={setSearch}
+          onClearFilters={clearFilters}
+          totalResults={Array.isArray(filteredData) ? filteredData.length : 0}
+        />
+      </div>
 
       {isLoading && (
         <div className="text-sm text-muted-foreground">Cargando marcas...</div>
@@ -192,12 +211,14 @@ const BrandsPage = () => {
       )}
 
       {!isLoading && !isError && Array.isArray(filteredData) && filteredData.length > 0 && (
-        <DataTable 
-          columns={[...columns, ...actions]} 
-          data={filteredData}
-          pageSize={10}
-          getRowId={(row: Brand) => String(row.id_marca)}
-        />
+        <div data-tour-id="brands-table">
+          <DataTable 
+            columns={[...columns, ...actions]} 
+            data={filteredData}
+            pageSize={10}
+            getRowId={(row: Brand) => String(row.id_marca)}
+          />
+        </div>
       )}
 
       <Sheet open={!!selectedBrand} onOpenChange={(open) => !open && setSelectedBrand(null)}>

@@ -23,6 +23,7 @@ import {
   IconDownload
 } from "@tabler/icons-react"
 import { toast } from "sonner"
+import { useAdminTour } from '../_tour/useAdminDriverTour'
 import { analyticsService } from '@/services/analytics.service'
 import type {
   ConversionMetric,
@@ -501,10 +502,24 @@ const AnalyticsPage = () => {
     }
   }
 
+  const { startAnalyticsTour } = useAdminTour()
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('revital_analytics_tour_seen')
+      if (!seen) {
+        startAnalyticsTour()
+        localStorage.setItem('revital_analytics_tour_seen', '1')
+      }
+    } catch {
+      // ignore
+    }
+  }, [startAnalyticsTour])
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between" data-tour-id="analytics-header">
         <div>
           <h1 className="text-2xl font-bold">Analytics Avanzados</h1>
           <p className="text-muted-foreground">
@@ -531,7 +546,12 @@ const AnalyticsPage = () => {
       )}
 
       {/* Tabs para diferentes vistas de analytics (sincronizado con URL ?tab=conversacion|trafico|clientes|productos) */}
-      <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
+      <Tabs
+        value={currentTab}
+        onValueChange={handleTabChange}
+        className="space-y-6"
+        data-tour-id="analytics-tabs"
+      >
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="conversion">Conversión</TabsTrigger>
           <TabsTrigger value="traffic">Tráfico</TabsTrigger>

@@ -16,9 +16,11 @@ from services.admin_ai_service import (
     detect_intent,
     reply_for_intent,
     reply_for_action,
+    handle_confirmation_or_new_intent,
     stream_reply_sse,
     generate_dashboard_summary,
     FALLBACK_REPLY,
+    chat_with_admin_ai,
 )
 
 router = APIRouter(tags=["AI Admin"])
@@ -77,15 +79,8 @@ async def post_ai_chat(
     if len(message) > 1000:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El mensaje no puede superar 1000 caracteres")
 
-    intent = detect_intent(message)
-    if intent is None:
-        return {"reply": FALLBACK_REPLY}
-
     try:
-        if intent == "action":
-            reply = reply_for_action(message, db, current_user.id_usuario)
-        else:
-            reply = reply_for_intent(message, intent, db)
+        reply = chat_with_admin_ai(message, db, current_user.id_usuario)
         return {"reply": reply}
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)) from e
@@ -117,18 +112,35 @@ async def post_ai_chat_stream(
     if len(message) > 1000:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El mensaje no puede superar 1000 caracteres")
 
-    intent = detect_intent(message)
-    if intent is None:
-        def fallback_gen():
-            yield f"data: {json.dumps({'text': FALLBACK_REPLY})}\n\n".encode("utf-8")
+    # Para mantener el comportamiento simple y seguro, no hacemos streaming
+    # token a token cuando intervienen tools; generamos la respuesta completa.
+    try:
+        reply = chat_with_admin_ai(message, db, current_user.id_usuario)
+    except ValueError as e:
+        def error_gen():
+            yield f"data: {json.dumps({'text': str(e)})}\n\n".encode("utf-8")
+
         return StreamingResponse(
-            fallback_gen(),
+            error_gen(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+    except RuntimeError as e:
+        def error_gen():
+            text = f"Ocurrió un error al usar la IA: {str(e)}"
+            yield f"data: {json.dumps({'text': text})}\n\n".encode("utf-8")
+
+        return StreamingResponse(
+            error_gen(),
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
+    def single_event_gen():
+        yield f"data: {json.dumps({'text': reply})}\n\n".encode("utf-8")
+
     return StreamingResponse(
-        stream_reply_sse(message, intent, db, user_id=current_user.id_usuario),
+        single_event_gen(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from "sonner";
 import { ProductsHeader } from "@/components/admin/products";
@@ -34,6 +34,7 @@ import { Pencil, Power, Eye } from 'lucide-react';
 import { formatPrice } from '@/utils/format-price';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { useAdminTour } from '../_tour/useAdminDriverTour';
 
 /** Trunca texto por número de palabras y muestra el completo en tooltip */
 function TruncateWithTooltip({
@@ -63,6 +64,8 @@ function TruncateWithTooltip({
     </Tooltip>
   );
 }
+
+const PRODUCTS_LIST_TOUR_KEY = 'revital_products_tour_seen';
 
 const ProductsPage = () => {
   const router = useRouter();
@@ -95,6 +98,7 @@ const ProductsPage = () => {
   const provider = searchParams.get('provider') || '';
 
   const { data: filterOptions, isLoading: optionsLoading } = useFilterOptionsAdmin();
+  const { startProductsListTour } = useAdminTour();
 
   // Mapa category_id -> { category, line, subline } para mostrar Categoría/Línea/Sublínea en la tabla
   const categoryIdToLineSubline = useMemo(() => {
@@ -134,6 +138,18 @@ const ProductsPage = () => {
     });
     return result;
   }, [filterOptions?.categorias]);
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem(PRODUCTS_LIST_TOUR_KEY);
+      if (!seen) {
+        startProductsListTour();
+        localStorage.setItem(PRODUCTS_LIST_TOUR_KEY, '1');
+      }
+    } catch {
+      // ignore
+    }
+  }, [startProductsListTour]);
 
   // Pedir todos los productos (límite alto) para que el DataTable pagine en cliente, igual que Categorías
   const filters = {
@@ -520,25 +536,27 @@ const ProductsPage = () => {
       <ProductsHeader />
 
       {/* Filtros de productos */}
-      <ProductsFilters
-        search={searchInput}
-        onSearchChange={handleSearchChange}
-        category={category}
-        onCategoryChange={handleCategoryChange}
-        line={line}
-        onLineChange={handleLineChange}
-        subline={subline}
-        onSublineChange={handleSublineChange}
-        brand={brand}
-        onBrandChange={handleBrandChange}
-        provider={provider}
-        onProviderChange={handleProviderChange}
-        onClearFilters={handleClearFilters}
-        totalResults={totalItems}
-        products={products}
-        filterOptionsOverride={filterOptions}
-        optionsLoading={optionsLoading}
-      />
+      <div data-tour-id="products-filters">
+        <ProductsFilters
+          search={searchInput}
+          onSearchChange={handleSearchChange}
+          category={category}
+          onCategoryChange={handleCategoryChange}
+          line={line}
+          onLineChange={handleLineChange}
+          subline={subline}
+          onSublineChange={handleSublineChange}
+          brand={brand}
+          onBrandChange={handleBrandChange}
+          provider={provider}
+          onProviderChange={handleProviderChange}
+          onClearFilters={handleClearFilters}
+          totalResults={totalItems}
+          products={products}
+          filterOptionsOverride={filterOptions}
+          optionsLoading={optionsLoading}
+        />
+      </div>
 
       {/* Drawer de detalle del producto */}
       <Sheet open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
@@ -721,13 +739,15 @@ const ProductsPage = () => {
           </div>
         </div>
       ) : products.length > 0 ? (
-        <DataTable
-          columns={[...columns, ...actions]}
-          data={products}
-          pageSize={itemsPerPage}
-        />
+        <div data-tour-id="products-table">
+          <DataTable
+            columns={[...columns, ...actions]}
+            data={products}
+            pageSize={itemsPerPage}
+          />
+        </div>
       ) : (
-        <div className="text-center py-12">
+        <div className="text-center py-12" data-tour-id="products-table">
           <div className="text-muted-foreground">No se encontraron productos</div>
         </div>
       )}
