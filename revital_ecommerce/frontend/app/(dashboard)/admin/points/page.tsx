@@ -15,6 +15,7 @@ import { Input } from "@/components/ui"
 import type { UserWithPoints } from '@/types/points'
 import Link from 'next/link'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
+import { searchMatches } from '@/utils/search-helpers'
 
 const PointsPage = () => {
   const { data: activeRates } = useActivePointsRate()
@@ -23,12 +24,12 @@ const PointsPage = () => {
   const [search, setSearch] = useState('')
 
   const filteredUsers = useMemo(() => {
-    if (!search) return users
-    const q = search.toLowerCase()
-    return users.filter(user => 
-      user.nom_usuario.toLowerCase().includes(q) ||
-      user.ape_usuario.toLowerCase().includes(q) ||
-      user.email_usuario.toLowerCase().includes(q)
+    if (!search.trim()) return users
+    return users.filter(
+      (user) =>
+        searchMatches(search, user.nom_usuario) ||
+        searchMatches(search, user.ape_usuario) ||
+        searchMatches(search, user.email_usuario)
     )
   }, [users, search])
 
