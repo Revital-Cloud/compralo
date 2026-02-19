@@ -97,7 +97,7 @@ export const aiService = {
               }
               // Manejar metadata sobre entidades afectadas
               if (data.metadata?.affected_entities && callbacks.onMetadata) {
-                callbacks.onMetadata(data.metadata)
+                callbacks.onMetadata({ affected_entities: data.metadata.affected_entities })
               }
             } catch {
               // ignorar líneas no JSON
@@ -118,7 +118,7 @@ export const aiService = {
             }
             // Manejar metadata sobre entidades afectadas
             if (data.metadata?.affected_entities && callbacks.onMetadata) {
-              callbacks.onMetadata(data.metadata)
+              callbacks.onMetadata({ affected_entities: data.metadata.affected_entities })
             }
           } catch {
             // ignore
