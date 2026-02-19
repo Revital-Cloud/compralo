@@ -110,7 +110,10 @@ def create_users(db: Session, user: UserCreate):
     try:
         params = user.model_dump()
         params["usr_insert"] = Decimal(user.id_usuario)
-        
+        # Fecha de nacimiento es opcional: enviar NULL si viene vacía o vacía string
+        if not params.get("fec_nacimiento"):
+            params["fec_nacimiento"] = None
+
         # El id_rol ya no se pasa como parámetro, se asume que la función
         # de base de datos le asigna un valor por defecto.
         query = text("""
@@ -178,6 +181,9 @@ def update_user(db: Session, id_usuario: Decimal, user: UserUpdate, current_user
             "usr_update": str(current_user_id)
         }
         
+        # Fecha de nacimiento opcional: cadena vacía → NULL
+        if update_params["fec_nacimiento"] == "":
+            update_params["fec_nacimiento"] = None
         # Convertir fec_nacimiento a formato adecuado si es necesario
         if update_params["fec_nacimiento"] and isinstance(update_params["fec_nacimiento"], str):
             # Ya está en formato string, mantenerlo

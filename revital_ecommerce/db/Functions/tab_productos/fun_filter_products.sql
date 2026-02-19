@@ -1,6 +1,9 @@
 /*
  * Filtra productos por categoría (opcionalmente con subcategorías), marca, nombre, precio, stock.
  * Usa products, product_variants, categories. total_registros para paginación.
+ * Búsqueda por nombre insensible a tildes (unaccent): "jose" encuentra "José".
+ * Requiere extensión unaccent para búsqueda sin tildes (ejecutar una vez como superuser):
+ *   CREATE EXTENSION IF NOT EXISTS unaccent;
  *
  * Si cambias el tipo de retorno (ej. añadir precio_max), ejecuta antes:
  *   DROP FUNCTION IF EXISTS fun_filter_products(numeric,boolean,numeric,varchar,numeric,numeric,boolean,varchar,varchar,integer,integer);
@@ -72,7 +75,7 @@ BEGIN
         WHERE p.is_active = TRUE
         AND p.category_id IN (SELECT id FROM category_ids)
         AND (p_id_marca IS NULL OR p.id_marca = p_id_marca)
-        AND (p_nombre_producto IS NULL OR trim(p_nombre_producto) = '' OR UPPER(p.name) LIKE '%' || UPPER(trim(p_nombre_producto)) || '%')
+        AND (p_nombre_producto IS NULL OR trim(p_nombre_producto) = '' OR unaccent(lower(p.name)) LIKE '%' || unaccent(lower(trim(p_nombre_producto))) || '%')
     ),
     filt AS (
         SELECT agg.*

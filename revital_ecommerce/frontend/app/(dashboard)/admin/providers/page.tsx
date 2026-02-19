@@ -15,6 +15,7 @@ import { Button, Sheet, SheetContent, SheetHeader, SheetTitle } from '@/componen
 import { Pencil, Power, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
+import { searchMatches } from '@/utils/search-helpers'
 
 interface Provider {
   id_proveedor: number
@@ -126,9 +127,8 @@ const ProvidersPage = () => {
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
     let rows = data as Provider[]
-    if (search) {
-      const q = search.toLowerCase()
-      rows = rows.filter(r => r.nom_proveedor?.toLowerCase().includes(q))
+    if (search.trim()) {
+      rows = rows.filter((r) => searchMatches(search, r.nom_proveedor))
     }
     return [...rows].sort((a, b) => String(a.nom_proveedor || '').localeCompare(String(b.nom_proveedor || '')))
   }, [data, search])

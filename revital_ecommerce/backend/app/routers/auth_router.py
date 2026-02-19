@@ -266,9 +266,10 @@ async def send_verification_email(
         
     except Exception as e:
         logger.error(f"Error en send_verification_email: {str(e)}")
+        from core.exceptions import get_safe_message
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error interno: {str(e)}"
+            detail=get_safe_message(e),
         )
 
 @router.post("/verify-email")

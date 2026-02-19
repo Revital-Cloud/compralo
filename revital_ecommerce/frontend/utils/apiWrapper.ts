@@ -372,5 +372,20 @@ const apiWrapper = {
   validateApiResponse,
 };
 
+/**
+ * Extrae un mensaje legible del detail de una respuesta de error del API.
+ * Soporta detail como string (4xx/5xx) o como array (422 validación Pydantic).
+ */
+export function getApiErrorMessage(error: unknown, fallback: string): string {
+  const err = error as { response?: { data?: { detail?: string | Array<{ msg?: string }> } } };
+  const detail = err?.response?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail) && detail.length > 0) {
+    const first = detail[0];
+    return typeof first === 'object' && first?.msg ? first.msg : String(first);
+  }
+  return fallback;
+}
+
 export default apiWrapper;
 

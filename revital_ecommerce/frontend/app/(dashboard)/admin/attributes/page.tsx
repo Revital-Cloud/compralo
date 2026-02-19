@@ -36,6 +36,7 @@ import { UniversalFilters } from '@/components/ui'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
+import { searchMatches } from '@/utils/search-helpers'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
@@ -78,9 +79,8 @@ const AttributesPage = () => {
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
     let rows = data
-    if (search) {
-      const q = search.toLowerCase()
-      rows = rows.filter((r) => r.name?.toLowerCase().includes(q))
+    if (search.trim()) {
+      rows = rows.filter((r) => searchMatches(search, r.name))
     }
     return [...rows].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
   }, [data, search])

@@ -80,6 +80,10 @@ export interface ProductAdmin {
   ind_activo_categoria: boolean;
   ind_activo_marca: boolean;
   total_registros: number;
+  /** Estadísticas globales de stock (solo en el primer ítem de la respuesta) */
+  stock_stats_en_stock?: number;
+  stock_stats_bajo?: number;
+  stock_stats_sin_stock?: number;
 }
 
 export interface ProductAdminParams {

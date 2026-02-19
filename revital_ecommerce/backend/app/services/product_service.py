@@ -17,6 +17,7 @@ from fastapi import UploadFile
 from typing import List, Optional
 import json
 import re
+import unicodedata
 from psycopg2.extras import Json
 
 from schemas.product_schema import (
@@ -33,6 +34,15 @@ from services import cloudinary_service
 # y el router se encarga de la validación con el response_model.
 
 MAX_IMAGES_PER_VARIANT = 10
+
+
+def _normalize_for_search(text: Optional[str]) -> str:
+    """Normaliza texto para búsqueda: minúsculas y sin tildes (ej. 'José' -> 'jose')."""
+    if not text:
+        return ""
+    s = text.strip().lower()
+    nfd = unicodedata.normalize("NFD", s)
+    return "".join(c for c in nfd if unicodedata.category(c) != "Mn")
 
 
 def _resolve_attribute_value_id(db: Session, attr_id: int, val) -> tuple:
@@ -170,7 +180,7 @@ def get_products_admin(db: Session, params: dict):
         else:
             fetch_limit, fetch_offset = limit_val, offset_val
 
-        # Estadísticas globales de stock (todos los productos, sin filtros ni paginación)
+        # Estadísticas globales de stock: solo productos activos (los deshabilitados no cuentan como "sin stock")
         global_stock_q = text("""
             WITH product_stock AS (
                 SELECT p.id,
@@ -178,6 +188,7 @@ def get_products_admin(db: Session, params: dict):
                 FROM tab_products p
                 LEFT JOIN tab_product_variant_groups g ON g.product_id = p.id
                 LEFT JOIN tab_product_variant_combinations c ON c.group_id = g.id AND c.is_active = TRUE
+                WHERE p.is_active = TRUE
                 GROUP BY p.id
             )
             SELECT
@@ -223,16 +234,26 @@ def get_products_admin(db: Session, params: dict):
         })
         rows = result.mappings().all()
 
-        # Total: desde la función de BD; si no hay filtros y viene 0 o no existe, fallback con COUNT
+        # Total: desde la función de BD. Sin filtros, usar además COUNT(*) para asegurar total correcto de paginación
         total_original = int(rows[0].get("total_registros") or 0) if rows else 0
-        if not has_filters and total_original == 0 and rows:
+        if not has_filters:
+            cnt = db.execute(text("SELECT COUNT(*) AS n FROM tab_products")).scalar()
+            total_from_count = int(cnt) if cnt is not None else 0
+            if total_from_count > 0:
+                total_original = total_from_count
+        elif total_original == 0 and rows:
             cnt = db.execute(text("SELECT COUNT(*) AS n FROM tab_products")).scalar()
             total_original = int(cnt) if cnt is not None else total_original
 
         # Filtros adicionales en aplicación (search, category_id, line_id, subline_id)
+        # Búsqueda normalizada: sin importar tildes (ej. "jose" encuentra "José")
         if search and search.strip():
-            search_lower = search.strip().lower()
-            rows = [r for r in rows if (r.get("nom_producto") or "").lower().find(search_lower) >= 0]
+            norm_query = _normalize_for_search(search)
+            rows = [
+                r
+                for r in rows
+                if norm_query in _normalize_for_search(r.get("nom_producto") or "")
+            ]
         if subline_id_param is not None:
             sid = int(subline_id_param)
             rows = [r for r in rows if r.get("category_id") is not None and int(r.get("category_id")) == sid]
@@ -300,9 +321,11 @@ def get_products_admin(db: Session, params: dict):
                 "description": r.get("description"),
                 "slug_producto": r.get("slug_producto"),
                 "image_url": r.get("img_principal"),
-                "price_min": str(r.get("precio_min") or "0"),
-                "price_max": str(r.get("precio_max") or r.get("precio_min") or "0"),
-                "stock_total": int(r.get("stock_total") or 0),
+                # Asegurar que precio_min y precio_max siempre sean strings válidos, incluso si son NULL
+                "price_min": str(r.get("precio_min") or 0) if r.get("precio_min") is not None else "0",
+                "price_max": str(r.get("precio_max") or r.get("precio_min") or 0) if (r.get("precio_max") is not None or r.get("precio_min") is not None) else "0",
+                # Asegurar que stock_total siempre sea un número válido
+                "stock_total": int(r.get("stock_total") or 0) if r.get("stock_total") is not None else 0,
                 "id_marca": str(r.get("id_marca") or "") if r.get("id_marca") is not None else "",
                 "nom_marca": (r.get("nom_marca") or "") or "",
                 "id_proveedor": str(r.get("id_proveedor") or "") if r.get("id_proveedor") is not None else "",

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useDiscounts } from '@/hooks/use-discounts'
+import { searchMatches } from '@/utils/search-helpers'
 import type { Discount } from './discount-columns'
 
 export const useDiscountData = () => {
@@ -17,13 +18,13 @@ export const useDiscountData = () => {
     if (!Array.isArray(data)) return []
     let rows = data as unknown as Discount[]
     
-    // Búsqueda
-    if (search) {
-      const q = search.toLowerCase()
-      rows = rows.filter(r => 
-        r.nom_descuento?.toLowerCase().includes(q) ||
-        r.des_descuento?.toLowerCase().includes(q) ||
-        r.codigo_descuento?.toLowerCase().includes(q)
+    // Búsqueda (sin importar tildes: "descuento" encuentra "Descuento", "año" encuentra "año")
+    if (search.trim()) {
+      rows = rows.filter(
+        (r) =>
+          searchMatches(search, r.nom_descuento) ||
+          searchMatches(search, r.des_descuento) ||
+          searchMatches(search, r.codigo_descuento)
       )
     }
 
