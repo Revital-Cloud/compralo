@@ -16,6 +16,12 @@ import { toast } from "sonner"
 import * as productService from "@/services/product.service"
 import { getProductImageUrl } from "@/utils/image-helpers"
 import { normalizeProductDetail, type ApiProductResponse } from "@/lib/product-detail-normalizer"
+import { useActiveDiscounts } from "@/hooks/use-discounts"
+import { 
+  getApplicableDiscount, 
+  calculateDiscountedPrice, 
+  calculateDiscountPercentage 
+} from "@/utils/discount-utils"
 
 const ProductPageContent = () => {
   const params = useParams()
@@ -48,19 +54,23 @@ const ProductPageContent = () => {
   const variantSelector = useVariantSelector(productDetail, slug)
   const useVariantSelectorFlow = (productDetail?.attributeDefinitions?.length ?? 0) > 0
 
-  // Productos de la misma categoría para "También te puede gustar"
+  // Productos de la misma categoría para "También te puede gustar" (solo categoría específica, sin subcategorías)
   const categoryId = product?.category_id != null ? Number(product.category_id) : undefined
-  const { data: relatedResponse } = useQuery({
+  const { data: relatedResponse, isLoading: isLoadingRelated, error: errorRelated } = useQuery({
     queryKey: ["relatedProducts", categoryId, slug],
-    queryFn: () =>
-      productService.filterProducts({
+    queryFn: async () => {
+      console.log("🔍 [PRODUCT] Buscando productos relacionados para categoría:", categoryId);
+      const result = await productService.filterProducts({
         category_id: categoryId!,
-        include_subcategories: true,
+        include_subcategories: false, // Solo productos de esta categoría específica
         limit: 9,
         offset: 0,
         ordenar_por: "nombre",
         orden: "ASC",
-      }),
+      });
+      console.log("✅ [PRODUCT] Productos encontrados:", result?.products?.length || 0);
+      return result;
+    },
     enabled: categoryId != null && !!slug,
     staleTime: 5 * 60 * 1000,
   })
@@ -85,6 +95,9 @@ const ProductPageContent = () => {
     isAddingToCart,
     error: cartError 
   } = useCart()
+
+  // Hook de descuentos para calcular precio con descuento
+  const { data: discounts } = useActiveDiscounts()
 
   // Manejar errores del carrito solo cuando estamos intentando agregar
   useEffect(() => {
@@ -368,6 +381,32 @@ const ProductPageContent = () => {
     }
     return parseFloat(String((product as any).price_min ?? product.val_precio)) || 0
   }, [product, effectiveSelectedVariant, effectiveSelectedVariantId, variants])
+
+  // Calcular descuento para el precio mostrado en el toast
+  const { discountedPrice, originalPrice, discountPercentage } = useMemo(() => {
+    if (!product || !discounts) {
+      return { discountedPrice: productPrice, originalPrice: undefined, discountPercentage: undefined }
+    }
+    const productForDiscount = {
+      ...product,
+      id_categoria: (product as any).id_categoria ?? (product as any).category_id,
+      category_id: (product as any).category_id ?? (product as any).id_categoria,
+      id_producto: product.id ?? (product as any).id_producto,
+      id_marca: (product as any).id_marca ?? (product as any).marca_id,
+    }
+    const applicableDiscount = getApplicableDiscount(productForDiscount as any, discounts)
+    if (!applicableDiscount) {
+      return { discountedPrice: productPrice, originalPrice: undefined, discountPercentage: undefined }
+    }
+    const original = productPrice
+    const discounted = calculateDiscountedPrice(original, applicableDiscount)
+    const percentage = calculateDiscountPercentage(original, discounted)
+    return {
+      discountedPrice: discounted < original ? discounted : original,
+      originalPrice: discounted < original ? original : undefined,
+      discountPercentage: discounted < original ? percentage : undefined,
+    }
+  }, [product, productPrice, discounts])
 
   // Rango de precios (mín y máx de todas las variantes) para mostrar "Desde $X - $Y" cuando no hay variante seleccionada
   const { priceMin, priceMax } = useMemo(() => {
@@ -723,10 +762,6 @@ const ProductPageContent = () => {
               </h3>
               <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <div className="flex justify-between">
-                  <span>ID:</span>
-                  <span className="font-mono text-xs">{product.id}</span>
-                </div>
-                <div className="flex justify-between">
                   <span>Categoría:</span>
                   <span>{product.category_name || product.category_id}</span>
                 </div>
@@ -736,7 +771,7 @@ const ProductPageContent = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Proveedor:</span>
-                  <span>{String((product as { nom_proveedor?: string; id_proveedor?: string }).nom_proveedor ?? (product as { id_proveedor?: string }).id_proveedor ?? '-')}</span>
+                  <span>{(product as { nom_proveedor?: string }).nom_proveedor || '-'}</span>
                 </div>
               </div>
             </div>
@@ -775,7 +810,9 @@ const ProductPageContent = () => {
           }
           return productImagesResolved[selectedImageIndex] ?? productImagesResolved[0] ?? ''
         })()}
-        price={productPrice as number}
+        price={discountedPrice}
+        originalPrice={originalPrice}
+        discountPercentage={discountPercentage}
         selectedColor={cartData.color}
         selectedSize={cartData.size}
         onClose={() => setShowCartToast(false)}

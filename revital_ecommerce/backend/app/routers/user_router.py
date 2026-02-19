@@ -19,7 +19,9 @@ from core.jwt_utils import get_password_hash
 from core.otp_store import set_otp, get_otp_expires_minutes
 from core.config import settings
 from services.email_service import send_welcome_email, send_verification_otp_email
+from services.discount_service import get_first_purchase_discount
 from core.rate_limiter import limiter
+from core.database import SessionLocal
 
 router = APIRouter(tags=["Usuarios"])
 
@@ -32,9 +34,19 @@ async def send_user_registration_emails(user_email: str, user_name: str):
         user_name (str): Nombre del usuario
     """
     try:
+        # Obtener descuento de primera compra si existe
+        first_purchase_discount = None
+        try:
+            db = SessionLocal()
+            first_purchase_discount = get_first_purchase_discount(db)
+            db.close()
+        except Exception as e:
+            print(f"⚠️ Error obteniendo descuento de primera compra: {str(e)}")
+        
         await send_welcome_email(
             user_email=user_email,
             user_name=user_name,
+            first_purchase_discount=first_purchase_discount
         )
         otp_code = set_otp(user_email)
         verify_url = f"{settings.VERIFY_EMAIL_URL}?email={quote(user_email)}"

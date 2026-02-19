@@ -69,6 +69,7 @@ DECLARE
     v_descuento_canje JSON;                                  -- Descuento por canje de puntos
     v_descuentos_aplicados JSON := '[]'::JSON;               -- Todos los descuentos aplicados
     v_descuento RECORD;                                       -- Record para iterar descuentos
+    v_descuento_auto RECORD;                                 -- Record para iterar descuentos automáticos en registro de usos
     v_canje_info RECORD;                                     -- Información del canje
     v_es_primera_compra BOOLEAN := FALSE;                    -- Indicador primera compra
     v_descuento_canje_valor DECIMAL(10,2) := 0;               -- Descuento calculado por canje (PASO 7.5)
@@ -486,6 +487,36 @@ BEGIN
                 id_orden_aplicado = v_id_orden,
                 usr_update = p_usr_operacion
             WHERE id_canje = p_id_canje;
+            
+            -- Registrar uso del descuento canjeado (si hay usuario)
+            IF v_id_usuario IS NOT NULL AND v_canje_info.id_descuento IS NOT NULL THEN
+                PERFORM fun_registrar_uso_descuento(v_canje_info.id_descuento, v_id_usuario, p_usr_operacion);
+            END IF;
+        END IF;
+        
+    -- PASO 13.5: Registrar usos de descuentos aplicados (código y automáticos)
+        -- Registrar uso del descuento por código (si se aplicó y hay usuario)
+        IF v_descuento_codigo IS NOT NULL AND v_id_usuario IS NOT NULL THEN
+            PERFORM fun_registrar_uso_descuento(
+                (v_descuento_codigo->>'id_descuento')::DECIMAL,
+                v_id_usuario,
+                p_usr_operacion
+            );
+        END IF;
+        
+        -- Registrar usos de descuentos automáticos (si hay usuario)
+        IF v_id_usuario IS NOT NULL AND v_descuentos_automaticos IS NOT NULL AND json_array_length(v_descuentos_automaticos) > 0 THEN
+            FOR v_descuento_auto IN 
+                SELECT (elem->>'id_descuento')::DECIMAL AS id_descuento_val
+                FROM json_array_elements(v_descuentos_automaticos) AS elem
+                WHERE (elem->>'id_descuento') IS NOT NULL
+            LOOP
+                PERFORM fun_registrar_uso_descuento(
+                    v_descuento_auto.id_descuento_val,
+                    v_id_usuario,
+                    p_usr_operacion
+                );
+            END LOOP;
         END IF;
         
     -- PASO 14: Productos transferidos exitosamente a la orden

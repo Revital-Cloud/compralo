@@ -23,6 +23,11 @@ export interface Discount {
   id_producto_aplica?: string | number
   id_categoria_aplica?: string | number
   id_marca_aplica?: string | number
+  // Campos adicionales agregados por el backend para identificar tipos especiales
+  es_cumpleanos?: boolean  // Marcador para descuentos de cumpleaños
+  es_primera_compra?: boolean  // Marcador para descuentos de primera compra
+  solo_primera_compra?: boolean  // Campo de la BD para descuentos solo primera compra
+  ind_es_para_cumpleanos?: boolean  // Campo de la BD para descuentos de cumpleaños
 }
 
 export interface DiscountStats {

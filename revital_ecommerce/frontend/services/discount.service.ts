@@ -132,6 +132,11 @@ export const discountService = {
     return get<Discount[]>(`/discounts/active?limit=${limit}`)
   },
 
+  // Obtener descuentos disponibles para el usuario autenticado (incluye cumpleaños y primera compra si aplican)
+  async getMyAvailableDiscounts(limit: number = 50): Promise<Discount[]> {
+    return get<Discount[]>(`/discounts/my-available?limit=${limit}`)
+  },
+
   // Buscar descuento por código de cupón
   async getDiscountByCode(codigo: string): Promise<Discount> {
     return get<Discount>(`/discounts/by-code/${codigo.toUpperCase()}`)

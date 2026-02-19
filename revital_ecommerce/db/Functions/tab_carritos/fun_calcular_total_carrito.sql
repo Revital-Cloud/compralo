@@ -138,9 +138,9 @@ BEGIN
     FOR v_descuento IN
         SELECT d.*, 
                 CASE 
-                    -- TIPO 1: Descuento por total del pedido
+                    -- TIPO 1: Descuento por total del pedido (o 'todos' = aplicar al total)
                     -- Se aplica cuando el total del carrito cumple el mínimo requerido
-                    WHEN d.aplica_a = 'total_pedido' AND v_total_productos >= d.min_valor_pedido THEN
+                    WHEN d.aplica_a IN ('total_pedido', 'todos') AND v_total_productos >= COALESCE(d.min_valor_pedido, 0) THEN
                         CASE WHEN d.tipo_calculo THEN 
                            -- Descuento porcentual: calcula % sobre el total
                            v_total_productos * d.val_porce_descuento / 100
@@ -192,7 +192,8 @@ BEGIN
                 END AS descuento_calculado
         FROM tab_descuentos d
         WHERE d.ind_activo = TRUE                                                    -- Solo descuentos activos
-            AND CURRENT_DATE BETWEEN d.fec_inicio AND d.fec_fin                     -- Dentro del rango de fechas válido
+            AND (d.fec_inicio IS NULL OR d.fec_inicio <= CURRENT_DATE)               -- Fecha inicio: NULL = sin restricción
+            AND (d.fec_fin IS NULL OR d.fec_fin >= CURRENT_DATE)                     -- Fecha fin: NULL = sin restricción (permite primera compra, cupón)
             AND d.ind_canjeable_puntos = FALSE                                      -- Solo descuentos automáticos (no canjeables)
             AND d.requiere_codigo = FALSE                                           -- Sin código requerido (automáticos)
             AND (d.codigo_descuento IS NULL OR d.codigo_descuento = '')            -- NO debe tener código definido (automáticos puros)

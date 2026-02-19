@@ -61,12 +61,19 @@ const DiscountsPage = () => {
 
   const handleCreateSubmit = async (values: any) => {
     try {
-      // Fechas obligatorias solo si no es canjeable por puntos (plantillas canjeables pueden no tener fechas)
-      if (!values.ind_canjeable_puntos && (!values.fec_inicio || !values.fec_fin)) {
-        toast.error('Las fechas de inicio y fin son requeridas cuando el descuento no es canjeable por puntos')
+      // Fechas NO obligatorias si:
+      // - Es canjeable por puntos
+      // - Es solo primera compra
+      // - Requiere código de cupón
+      // - Es para cumpleaños
+      const fechasNoObligatorias = values.ind_canjeable_puntos || values.solo_primera_compra || values.requiere_codigo || values.ind_es_para_cumpleanos
+      
+      if (!fechasNoObligatorias && (!values.fec_inicio || !values.fec_fin)) {
+        toast.error('Las fechas de inicio y fin son requeridas para descuentos generales')
         return
       }
-      if (values.ind_canjeable_puntos && (!!values.fec_inicio !== !!values.fec_fin)) {
+      // Si las fechas no son obligatorias pero se especifican, ambas deben estar presentes
+      if (fechasNoObligatorias && (!!values.fec_inicio !== !!values.fec_fin)) {
         toast.error('Debe especificar ambas fechas o ninguna')
         return
       }
@@ -96,6 +103,23 @@ const DiscountsPage = () => {
 
   const handleEditSubmit = async (values: any) => {
     try {
+      // Fechas NO obligatorias si:
+      // - Es canjeable por puntos
+      // - Es solo primera compra
+      // - Requiere código de cupón
+      // - Es para cumpleaños
+      const fechasNoObligatorias = values.ind_canjeable_puntos || values.solo_primera_compra || values.requiere_codigo || values.ind_es_para_cumpleanos
+      
+      if (!fechasNoObligatorias && (!values.fec_inicio || !values.fec_fin)) {
+        toast.error('Las fechas de inicio y fin son requeridas para descuentos generales')
+        return
+      }
+      // Si las fechas no son obligatorias pero se especifican, ambas deben estar presentes
+      if (fechasNoObligatorias && (!!values.fec_inicio !== !!values.fec_fin)) {
+        toast.error('Debe especificar ambas fechas o ninguna')
+        return
+      }
+
       const payload = transformDiscountPayload(values)
       await updateMutation.mutateAsync({ id: String(editing?.id_descuento) || '', data: payload })
       toast.success('Descuento actualizado exitosamente')
@@ -132,7 +156,10 @@ const DiscountsPage = () => {
 
       <EditDiscountModal
         open={openEdit}
-        onOpenChange={setOpenEdit}
+        onOpenChange={(v) => {
+          setOpenEdit(v)
+          if (!v) setEditing(null)
+        }}
         initialValues={editing}
         onSubmit={handleEditSubmit}
       />

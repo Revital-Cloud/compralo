@@ -133,6 +133,38 @@ async def get_active_discounts(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error: {str(e)}")
 
+@router.get("/discounts/my-available", response_model=list[Discount], summary="Obtiene descuentos disponibles para el usuario autenticado")
+async def get_my_available_discounts(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user)
+):
+    """
+    Obtiene descuentos disponibles para el usuario autenticado, incluyendo:
+    - Descuentos activos generales
+    - Descuento de cumpleaños (si hoy es su cumpleaños)
+    - Descuento de primera compra (si es su primera compra)
+    
+    Args:
+        limit (int): Límite de resultados a retornar (default: 50)
+        db (Session): Sesión de base de datos
+        current_user (UserInToken): Usuario autenticado
+        
+    Returns:
+        list[Discount]: Lista de descuentos disponibles para el usuario
+    """
+    try:
+        discounts = discount_service.get_user_available_discounts(
+            db, 
+            Decimal(current_user.id_usuario), 
+            limit
+        )
+        if not discounts:
+            return []
+        return discounts
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error: {str(e)}")
+
 @router.get("/discounts/exchangeable/{id_usuario}", response_model=list[DiscountExchangeableResponse], summary="Obtiene todos los descuentos canjeables (Cliente)")
 async def get_discount_exchangeable(
     id_usuario: Decimal,

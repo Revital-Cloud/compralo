@@ -138,13 +138,14 @@ class EmailTemplates:
     
     # ==================== TEMPLATES DE AUTENTICACIÓN ====================
     
-    def get_welcome_template(self, user_name: str, verify_url: Optional[str] = None) -> str:
+    def get_welcome_template(self, user_name: str, verify_url: Optional[str] = None, first_purchase_discount: Optional[Dict[str, Any]] = None) -> str:
         """
         Genera el template de email de bienvenida.
         
         Args:
             user_name (str): Nombre del usuario
             verify_url (Optional[str]): URL para verificar email
+            first_purchase_discount (Optional[Dict]): Descuento de primera compra disponible
             
         Returns:
             str: HTML del email de bienvenida
@@ -152,7 +153,25 @@ class EmailTemplates:
         return self.render_template(
             'auth/welcome.html',
             user_name=user_name,
-            verify_url=verify_url
+            verify_url=verify_url,
+            first_purchase_discount=first_purchase_discount
+        )
+    
+    def get_birthday_template(self, user_name: str, birthday_discount: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Genera el template de email de cumpleaños.
+        
+        Args:
+            user_name (str): Nombre del usuario
+            birthday_discount (Optional[Dict]): Descuento de cumpleaños disponible
+            
+        Returns:
+            str: HTML del email de cumpleaños
+        """
+        return self.render_template(
+            'marketing/birthday.html',
+            user_name=user_name,
+            birthday_discount=birthday_discount
         )
     
     def get_verification_template(self, user_name: str, verification_token: str, expires_in_hours: int = 24) -> str:

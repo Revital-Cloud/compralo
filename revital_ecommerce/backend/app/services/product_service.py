@@ -215,6 +215,8 @@ def get_products_admin(db: Session, params: dict):
                 precio_max,
                 stock_total,
                 nom_marca,
+                id_proveedor,
+                nom_proveedor,
                 fec_insert,
                 ind_activo_producto,
                 ind_activo_categoria,
@@ -326,6 +328,8 @@ def get_products_admin(db: Session, params: dict):
                 "stock_total": int(r.get("stock_total") or 0) if r.get("stock_total") is not None else 0,
                 "id_marca": str(r.get("id_marca") or "") if r.get("id_marca") is not None else "",
                 "nom_marca": (r.get("nom_marca") or "") or "",
+                "id_proveedor": str(r.get("id_proveedor") or "") if r.get("id_proveedor") is not None else "",
+                "nom_proveedor": (r.get("nom_proveedor") or "") or "",
                 "fec_insert": str(r.get("fec_insert") or ""),
                 "is_active": bool(r.get("ind_activo_producto", True)),
                 "ind_activo_categoria": bool(r.get("ind_activo_categoria", True)),
@@ -437,6 +441,7 @@ def get_product_by_slug(db: Session, slug: str):
                 p.slug,
                 p.description,
                 p.id_marca,
+                p.id_proveedor,
                 p.is_active AS ind_activo,
                 p.usr_insert,
                 p.fec_insert,
@@ -452,10 +457,12 @@ def get_product_by_slug(db: Session, slug: str):
                 (SELECT pvi.image_url FROM tab_product_variant_images pvi
                  JOIN tab_product_variant_groups gr ON gr.id = pvi.variant_group_id
                  WHERE gr.product_id = p.id ORDER BY gr.id, pvi.sort_order, pvi.id LIMIT 1) AS img_principal,
-                m.nom_marca
+                m.nom_marca,
+                pr.nom_proveedor
             FROM tab_products p
             JOIN tab_categories c ON c.id = p.category_id
             LEFT JOIN tab_marcas m ON m.id_marca = p.id_marca
+            LEFT JOIN tab_proveedores pr ON pr.id_proveedor = p.id_proveedor
             WHERE p.slug = :slug AND p.is_active = TRUE
         """)
         row = db.execute(query, {"slug": slug.strip()}).mappings().first()
@@ -970,9 +977,9 @@ def get_product_admin_detail(
         "image_url": row.get("image_url") or (row.get("img_producto") or {}).get("main") if isinstance(row.get("img_producto"), dict) else None,
         "price_min": str(row.get("val_precio") or row.get("price_min") or "0"),
         "stock_total": int(row.get("num_stock") or row.get("stock_total") or 0),
-        "id_proveedor": "",
+        "id_proveedor": str(row.get("id_proveedor") or ""),
         "id_marca": str(row.get("id_marca") or ""),
-        "nom_proveedor": "",
+        "nom_proveedor": row.get("nom_proveedor") or "",
         "nom_marca": row.get("nom_marca") or "",
         "usr_insert": str(row.get("usr_insert") or ""),
         "fec_insert": str(row.get("fec_insert") or ""),

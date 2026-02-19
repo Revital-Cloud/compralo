@@ -71,3 +71,13 @@ export const useActiveDiscounts = (limit: number = 50) => {
     staleTime: 1000 * 60 * 5, // 5 minutos
   })
 }
+
+// Hook para obtener descuentos disponibles para el usuario autenticado (incluye cumpleaños y primera compra)
+export const useMyAvailableDiscounts = (limit: number = 50) => {
+  return useQuery({
+    queryKey: ['discounts', 'my-available', limit],
+    queryFn: () => discountService.getMyAvailableDiscounts(limit),
+    staleTime: 1000 * 60 * 2, // 2 minutos (más corto porque depende del estado del usuario)
+    retry: false,
+  })
+}

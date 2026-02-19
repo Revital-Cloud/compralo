@@ -73,6 +73,8 @@ export interface ProductAdmin {
   stock_total: number;
   id_marca: string;
   nom_marca: string;
+  id_proveedor?: string;
+  nom_proveedor?: string;
   fec_insert: string;
   is_active: boolean;
   ind_activo_categoria: boolean;
