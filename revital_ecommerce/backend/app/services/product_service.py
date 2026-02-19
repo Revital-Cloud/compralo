@@ -170,6 +170,27 @@ def get_products_admin(db: Session, params: dict):
         else:
             fetch_limit, fetch_offset = limit_val, offset_val
 
+        # Estadísticas globales de stock (todos los productos, sin filtros ni paginación)
+        global_stock_q = text("""
+            WITH product_stock AS (
+                SELECT p.id,
+                    COALESCE(SUM(c.stock), 0)::BIGINT AS stock_total
+                FROM tab_products p
+                LEFT JOIN tab_product_variant_groups g ON g.product_id = p.id
+                LEFT JOIN tab_product_variant_combinations c ON c.group_id = g.id AND c.is_active = TRUE
+                GROUP BY p.id
+            )
+            SELECT
+                COUNT(*) FILTER (WHERE stock_total > 10) AS en_stock,
+                COUNT(*) FILTER (WHERE stock_total > 0 AND stock_total <= 10) AS stock_bajo,
+                COUNT(*) FILTER (WHERE stock_total = 0) AS sin_stock
+            FROM product_stock
+        """)
+        global_stock_row = db.execute(global_stock_q).mappings().first()
+        stock_en_global = int(global_stock_row["en_stock"] or 0) if global_stock_row else 0
+        stock_bajo_global = int(global_stock_row["stock_bajo"] or 0) if global_stock_row else 0
+        stock_sin_global = int(global_stock_row["sin_stock"] or 0) if global_stock_row else 0
+
         query = text("""
             SELECT * FROM fun_get_all_products_admin(
                 :p_ordenar_por, :p_orden, :p_limit, :p_offset
@@ -247,11 +268,6 @@ def get_products_admin(db: Session, params: dict):
 
         total_filtered = len(rows) if has_filters else total_original
 
-        # Estadísticas de stock sobre todo el conjunto filtrado (no solo la página actual)
-        stock_en = sum(1 for r in rows if (int(r.get("stock_total") or 0)) > 10)
-        stock_bajo = sum(1 for r in rows if 0 < (int(r.get("stock_total") or 0)) <= 10)
-        stock_sin = sum(1 for r in rows if (int(r.get("stock_total") or 0)) == 0)
-
         if has_filters:
             rows = rows[offset_val : offset_val + limit_val]
 
@@ -277,9 +293,9 @@ def get_products_admin(db: Session, params: dict):
                 "total_registros": total_filtered,
             }
             if i == 0:
-                item["stock_stats_en_stock"] = stock_en
-                item["stock_stats_bajo"] = stock_bajo
-                item["stock_stats_sin_stock"] = stock_sin
+                item["stock_stats_en_stock"] = stock_en_global
+                item["stock_stats_bajo"] = stock_bajo_global
+                item["stock_stats_sin_stock"] = stock_sin_global
             out.append(item)
         return out
     except Exception as e:
