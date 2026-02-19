@@ -71,14 +71,15 @@ const ProductsPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Estado de paginación
-  const [currentPage, setCurrentPage] = useState(1);
+  // Estado de orden (la página actual viene de la URL)
   const [sortBy, setSortBy] = useState<'nombre' | 'precio' | 'stock' | 'fecha' | 'categoria' | 'marca'>('nombre');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
   const itemsPerPage = 10;
   
   // Obtener parámetros de búsqueda de la URL
   const search = searchParams.get('search') || '';
+  // Página actual desde la URL (sincronizada para que la paginación y la petición coincidan)
+  const currentPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
   
   // Estado local para el input de búsqueda (se actualiza inmediatamente)
   const [searchInput, setSearchInput] = useState(search);
@@ -176,13 +177,12 @@ const ProductsPage = () => {
 
   const deactivateActivateProductMutation = useDeactivateActivateProductById();
 
-  // Manejar cambio de página
+  // Manejar cambio de página (actualiza la URL; currentPage se lee de la URL)
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    // Actualizar URL con la nueva página
     const params = new URLSearchParams(searchParams);
-    params.set('page', page.toString());
-    router.push(`/admin/products?${params.toString()}`);
+    if (page <= 1) params.delete('page');
+    else params.set('page', page.toString());
+    router.push(`/admin/products${params.toString() ? `?${params.toString()}` : ''}`);
   };
 
   const handleToggleActive = (row: Product) => {
@@ -291,6 +291,17 @@ const ProductsPage = () => {
   const adminProducts = Array.isArray(productsResponse) ? productsResponse : [];
   const totalItems = adminProducts.length > 0 ? adminProducts[0].total_registros : 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  // Estadísticas globales de stock (todo el inventario, no solo la tabla filtrada)
+  const first = adminProducts[0];
+  const globalStockStats =
+    adminProducts.length > 0 && first && typeof first.stock_stats_en_stock === 'number'
+      ? {
+          enStock: Number(first.stock_stats_en_stock) || 0,
+          stockBajo: Number(first.stock_stats_bajo) || 0,
+          sinStock: Number(first.stock_stats_sin_stock) || 0,
+        }
+      : null;
 
   const products: Product[] = adminProducts.map((adminProduct) => {
     const stock = Number(adminProduct.stock_total) || 0;
@@ -560,6 +571,7 @@ const ProductsPage = () => {
           products={products}
           filterOptionsOverride={filterOptions}
           optionsLoading={optionsLoading}
+          stockStatsOverride={globalStockStats}
         />
       </div>
 
@@ -749,6 +761,10 @@ const ProductsPage = () => {
             columns={[...columns, ...actions]}
             data={products}
             pageSize={itemsPerPage}
+            manualPagination
+            pageCount={totalPages}
+            pageIndex={currentPage - 1}
+            onPageChange={(pageIndex) => handlePageChange(pageIndex + 1)}
           />
         </div>
       ) : (
