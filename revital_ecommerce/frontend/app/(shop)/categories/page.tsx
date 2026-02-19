@@ -1,11 +1,15 @@
 'use client';
 
-import { createElement, useMemo } from 'react';
+import { createElement, useMemo, useState, useEffect } from 'react';
 import { useRootCategories, useCategoriesRaw } from '@/hooks/use-categories';
 import { CategoryCard } from '@/components/cards/CategoryCard';
 import { getIconForCategory } from '@/utils/category-mapper';
 import { Package } from 'lucide-react';
+import { Button } from '@/components/ui';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Category } from '@/types/category';
+
+const CARDS_PER_PAGE = 16; // 4x4 grid
 
 /** Conteo recursivo: productos en esta categoría + todos los descendientes */
 function useRecursiveProductCounts(categories: Category[]): Map<number, number> {
@@ -30,9 +34,25 @@ function useRecursiveProductCounts(categories: Category[]): Map<number, number> 
 }
 
 export default function CategoriesPage() {
+  const [currentPage, setCurrentPage] = useState(1);
   const { data: categories, isLoading } = useRootCategories();
   const { data: allCategoriesRaw } = useCategoriesRaw();
   const recursiveCounts = useRecursiveProductCounts(allCategoriesRaw ?? []);
+
+  // Al entrar a esta página, llevar con animación al tope para que el título se vea completo
+  useEffect(() => {
+    const scrollToTop = () =>
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    scrollToTop();
+    requestAnimationFrame(scrollToTop); // Por si el navegador restaura scroll después del primer paint
+  }, []);
+
+  const totalItems = categories?.length ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalItems / CARDS_PER_PAGE));
+  const paginatedCategories = useMemo(
+    () => (categories ?? []).slice((currentPage - 1) * CARDS_PER_PAGE, currentPage * CARDS_PER_PAGE),
+    [categories, currentPage]
+  );
 
   if (isLoading) {
     return (
@@ -56,26 +76,66 @@ export default function CategoriesPage() {
         </p>
       </div>
 
-      {/* Grid de Categorías (raíz); al entrar verás Líneas y luego Sublíneas */}
+      {/* Grid de Categorías (raíz) 4x4 = 16 por página */}
       {categories && categories.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {categories.map((category) => {
-            const IconComponent = getIconForCategory(category.name);
-            const totalProducts = recursiveCounts.get(Number(category.id)) ?? category.productCount ?? 0;
-            return (
-              <CategoryCard
-                key={category.id}
-                title={category.name}
-                description={category.description}
-                icon={createElement(IconComponent, { className: 'w-6 h-6' })}
-                count={totalProducts}
-                countLabel="productos"
-                variant="default"
-                categoryId={category.id}
-              />
-            );
-          })}
-        </div>
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {paginatedCategories.map((category) => {
+              const IconComponent = getIconForCategory(category.name);
+              const totalProducts = recursiveCounts.get(Number(category.id)) ?? category.productCount ?? 0;
+              return (
+                <CategoryCard
+                  key={category.id}
+                  title={category.name}
+                  description={category.description}
+                  icon={createElement(IconComponent, { className: 'w-6 h-6' })}
+                  count={totalProducts}
+                  countLabel="productos"
+                  variant="default"
+                  categoryId={category.id}
+                />
+              );
+            })}
+          </div>
+          {/* Paginación: 16 tarjetas por página (4x4) */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-10 pt-8 border-t border-border">
+              <p className="text-sm text-muted-foreground order-2 sm:order-1">
+                Mostrando{' '}
+                <span className="font-medium">{(currentPage - 1) * CARDS_PER_PAGE + 1}</span> a{' '}
+                <span className="font-medium">
+                  {Math.min(currentPage * CARDS_PER_PAGE, totalItems)}
+                </span>{' '}
+                de <span className="font-medium">{totalItems}</span> categorías
+              </p>
+              <div className="flex items-center gap-2 order-1 sm:order-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="gap-1"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Anterior
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  Página {currentPage} de {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="gap-1"
+                >
+                  Siguiente
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-muted rounded-full mx-auto mb-4 flex items-center justify-center">

@@ -1,14 +1,18 @@
 'use client'
 
-import { createElement, useMemo } from 'react'
+import { createElement, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useCategory, useCategoriesRaw } from '@/hooks/use-categories'
 import { useFilterProducts } from '@/hooks/use-products'
 import { getIconForCategory } from '@/utils/category-mapper'
 import { ArrowLeft, Package } from 'lucide-react'
+import { Button } from '@/components/ui'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { CategoryCard } from '@/components/cards/CategoryCard'
 import { ProductCard } from '@/components/cards/ProductCard'
 import type { Category } from '@/types/category'
+
+const CARDS_PER_PAGE = 16 // 4x4 grid para Líneas/Sublíneas
 
 /** Conteo recursivo: productos en esta categoría + todos los descendientes */
 function useRecursiveProductCounts(categories: Category[]): Map<number, number> {
@@ -40,11 +44,21 @@ const CategoryPage = () => {
 
   const { data: category } = useCategory(categoryId)
   const { data: allCategoriesRaw } = useCategoriesRaw()
+  const [childrenPage, setChildrenPage] = useState(1)
   const childCategories = useMemo(
     () => (allCategoriesRaw ?? []).filter((c) => c.parent_id != null && Number(c.parent_id) === categoryId),
     [allCategoriesRaw, categoryId]
   )
   const hasChildren = childCategories.length > 0
+  const childrenTotalPages = Math.max(1, Math.ceil(childCategories.length / CARDS_PER_PAGE))
+  const paginatedChildren = useMemo(
+    () =>
+      childCategories.slice(
+        (childrenPage - 1) * CARDS_PER_PAGE,
+        childrenPage * CARDS_PER_PAGE
+      ),
+    [childCategories, childrenPage]
+  )
   const recursiveCounts = useRecursiveProductCounts(allCategoriesRaw ?? [])
   // Si la categoría actual es raíz (parent_id null) → hijos son "Líneas"; si no → "Sublíneas"
   const isRootCategory = category?.parent_id == null
@@ -101,24 +115,67 @@ const CategoryPage = () => {
           <h2 className="text-xl font-semibold text-foreground mb-4">
             {childrenSectionTitle}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-          {childCategories.map((child) => {
-            const IconComponent = getIconForCategory(child.name)
-            const totalProducts = recursiveCounts.get(Number(child.id)) ?? child.productos_count ?? 0
-            return (
-              <CategoryCard
-                key={child.id}
-                title={child.name}
-                description={child.description}
-                icon={createElement(IconComponent, { className: 'w-6 h-6' })}
-                count={totalProducts}
-                countLabel="productos"
-                categoryId={String(child.id)}
-                showExploreHint
-              />
-            )
-          })}
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
+            {paginatedChildren.map((child) => {
+              const IconComponent = getIconForCategory(child.name)
+              const totalProducts = recursiveCounts.get(Number(child.id)) ?? child.productos_count ?? 0
+              return (
+                <CategoryCard
+                  key={child.id}
+                  title={child.name}
+                  description={child.description}
+                  icon={createElement(IconComponent, { className: 'w-6 h-6' })}
+                  count={totalProducts}
+                  countLabel="productos"
+                  categoryId={String(child.id)}
+                  showExploreHint
+                />
+              )
+            })}
+          </div>
+          {childrenTotalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-10 pt-6 border-t border-border">
+              <p className="text-sm text-muted-foreground order-2 sm:order-1">
+                Mostrando{' '}
+                <span className="font-medium">
+                  {(childrenPage - 1) * CARDS_PER_PAGE + 1}
+                </span>{' '}
+                a{' '}
+                <span className="font-medium">
+                  {Math.min(childrenPage * CARDS_PER_PAGE, childCategories.length)}
+                </span>{' '}
+                de <span className="font-medium">{childCategories.length}</span>{' '}
+                {childrenSectionTitle.toLowerCase()}
+              </p>
+              <div className="flex items-center gap-2 order-1 sm:order-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setChildrenPage((p) => Math.max(1, p - 1))}
+                  disabled={childrenPage === 1}
+                  className="gap-1"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Anterior
+                </Button>
+                <span className="text-sm text-muted-foreground px-2">
+                  Página {childrenPage} de {childrenTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setChildrenPage((p) => Math.min(childrenTotalPages, p + 1))
+                  }
+                  disabled={childrenPage === childrenTotalPages}
+                  className="gap-1"
+                >
+                  Siguiente
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </>
       ) : null}
 

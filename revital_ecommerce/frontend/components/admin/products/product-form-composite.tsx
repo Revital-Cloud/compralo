@@ -532,9 +532,10 @@ export function ProductFormComposite({
         </CardHeader>
         <CardContent className="space-y-4">
           {variants.map((variant, index) => {
+            const attrValue = variant.attributes && Object.values(variant.attributes).find((v) => v != null && String(v).trim())
             const variantLabel =
               (variant.tipo_clasificacion && String(variant.tipo_clasificacion).trim()) ||
-              (variant.attributes && Object.values(variant.attributes).find((v) => v != null && String(v).trim()) as string | undefined)?.trim() ||
+              (attrValue != null ? String(attrValue).trim() : undefined) ||
               `Variante ${index + 1}`
             return (
             <div key={index} className="border rounded-lg p-4 space-y-4 bg-muted/30">

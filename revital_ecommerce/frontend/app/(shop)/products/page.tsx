@@ -131,6 +131,11 @@ function ProductsPageInner({
     return { limit: itemsPerPage, offset: (currentPage - 1) * itemsPerPage, ordenar_por, orden }
   }, [sortBy, itemsPerPage, currentPage])
 
+  // Al cambiar filtros que afectan el resultado, volver a la página 1
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedCategoryId, selectedBrands, searchQuery, priceRange[0], priceRange[1], inStockOnly, selectedAttributes])
+
   const {
     data: productsData,
     isLoading: productsLoading,
@@ -235,6 +240,11 @@ function ProductsPageInner({
             clearAllFilters={clearAllFilters}
             onRemoveFilter={handleRemoveFilter}
             filterOptions={filterOptions}
+            currentPage={currentPage}
+            totalPages={productsData?.total_pages ?? 1}
+            totalItems={productsData?.total ?? 0}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
           />
         </div>
       </div>
