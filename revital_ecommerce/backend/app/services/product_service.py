@@ -192,7 +192,24 @@ def get_products_admin(db: Session, params: dict):
         stock_sin_global = int(global_stock_row["sin_stock"] or 0) if global_stock_row else 0
 
         query = text("""
-            SELECT * FROM fun_get_all_products_admin(
+            SELECT
+                product_id,
+                category_id,
+                nom_categoria,
+                nom_producto,
+                slug_producto,
+                description,
+                img_principal,
+                precio_min,
+                precio_max,
+                stock_total,
+                nom_marca,
+                fec_insert,
+                ind_activo_producto,
+                ind_activo_categoria,
+                ind_activo_marca,
+                total_registros
+            FROM fun_get_all_products_admin(
                 :p_ordenar_por, :p_orden, :p_limit, :p_offset
             )
         """)

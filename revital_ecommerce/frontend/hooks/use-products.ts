@@ -169,12 +169,14 @@ export function useFilterStats(filters: ProductFilterParams) {
 /**
  * Hook para obtener opciones de filtros (tienda: solo activos).
  * Si se pasa selectedCategoryId, los atributos devueltos son solo los de esa categoría.
+ * placeholderData mantiene categorías/marcas visibles mientras se recargan solo los atributos.
  */
 export function useFilterOptions(selectedCategoryId?: number | null) {
   return useQuery({
     queryKey: PRODUCT_KEYS.filterOptions(selectedCategoryId ?? undefined),
     queryFn: () => productService.getFilterOptions(selectedCategoryId ?? undefined),
     staleTime: 15 * 60 * 1000, // 15 minutos - las opciones cambian poco
+    placeholderData: (previousData) => previousData, // No recargar categorías al cambiar categoría; solo actualizar atributos
   });
 }
 

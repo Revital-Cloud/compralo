@@ -5,6 +5,8 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from "sonner";
 import { ProductsHeader } from "@/components/admin/products";
 import { ProductsFilters } from "@/components/admin/products/products-filters";
+// Import explícito para evitar "Pagination is not defined" (referencia desde barrel u otro módulo)
+import { Pagination } from "@/components/admin/products/pagination";
 import { useProductsAdmin, useDeactivateActivateProductById, useFilterOptionsAdmin } from "@/hooks/use-products";
 import type { Product } from '@/types/product';
 import DataTable from '@/components/tables/table';
@@ -65,10 +67,14 @@ function TruncateWithTooltip({
 const ProductsPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-
+  
+  // Estado de paginación
+  const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState<'nombre' | 'precio' | 'stock' | 'fecha' | 'categoria' | 'marca'>('nombre');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
   const itemsPerPage = 10;
-  const currentPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
-
+  
+  // Obtener parámetros de búsqueda de la URL
   const search = searchParams.get('search') || '';
   
   // Estado local para el input de búsqueda (se actualiza inmediatamente)
@@ -90,9 +96,49 @@ const ProductsPage = () => {
 
   const { data: filterOptions, isLoading: optionsLoading } = useFilterOptionsAdmin();
 
+  // Mapa category_id -> { category, line, subline } para mostrar Categoría/Línea/Sublínea en la tabla
+  const categoryIdToLineSubline = useMemo(() => {
+    const categorias = (filterOptions?.categorias ?? []) as Array<{ id: number; name?: string; nom_categoria?: string; parent_id?: number | null; parentId?: number | null }>;
+    const getParentId = (c: (typeof categorias)[number]) => (c.parent_id ?? (c as { parentId?: number | null }).parentId) ?? null;
+    const getName = (c: (typeof categorias)[number]) => (c.nom_categoria ?? c.name) ?? '–';
+    const roots = categorias.filter((c) => getParentId(c) === null);
+    const rootIds = new Set(roots.map((r) => Number(r.id)));
+    const lineCandidates = categorias.filter((c) => {
+      const pid = getParentId(c);
+      return pid != null && rootIds.has(pid);
+    });
+    const lineIds = new Set(lineCandidates.map((c) => Number(c.id)));
+    const sublineCandidates = categorias.filter((c) => {
+      const pid = getParentId(c);
+      return pid != null && lineIds.has(pid);
+    });
+    const result: Record<number, { category: string; line: string; subline: string }> = {};
+    roots.forEach((r) => {
+      result[Number(r.id)] = { category: getName(r), line: '–', subline: '–' };
+    });
+    lineCandidates.forEach((c) => {
+      const pid = getParentId(c);
+      const root = pid != null ? roots.find((r) => Number(r.id) === pid) : null;
+      result[Number(c.id)] = { category: root ? getName(root) : '–', line: getName(c), subline: '–' };
+    });
+    sublineCandidates.forEach((c) => {
+      const pid = getParentId(c);
+      const line = pid != null ? lineCandidates.find((l) => Number(l.id) === pid) : null;
+      const rootId = line ? getParentId(line) : null;
+      const root = rootId != null ? roots.find((r) => Number(r.id) === rootId) : null;
+      result[Number(c.id)] = {
+        category: root ? getName(root) : '–',
+        line: line ? getName(line) : '–',
+        subline: getName(c),
+      };
+    });
+    return result;
+  }, [filterOptions?.categorias]);
+
+  // Pedir todos los productos (límite alto) para que el DataTable pagine en cliente, igual que Categorías
   const filters = {
-    ordenar_por: 'nombre' as const,
-    orden: 'ASC' as const,
+    ordenar_por: sortBy,
+    orden: sortOrder,
     limit: itemsPerPage,
     offset: (currentPage - 1) * itemsPerPage,
     search: search || undefined,
@@ -114,10 +160,12 @@ const ProductsPage = () => {
 
   const deactivateActivateProductMutation = useDeactivateActivateProductById();
 
+  // Manejar cambio de página
   const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Actualizar URL con la nueva página
     const params = new URLSearchParams(searchParams);
-    if (page <= 1) params.delete('page');
-    else params.set('page', String(page));
+    params.set('page', page.toString());
     router.push(`/admin/products?${params.toString()}`);
   };
 
@@ -223,53 +271,10 @@ const ProductsPage = () => {
     router.push('/admin/products');
   };
 
-  // Extraer datos de la respuesta
-  // El endpoint admin devuelve un array directo con total_registros
+  // Extraer datos de la respuesta (todos los productos de la consulta; el DataTable pagina en cliente)
   const adminProducts = Array.isArray(productsResponse) ? productsResponse : [];
-  const totalItems = adminProducts.length > 0 ? Number(adminProducts[0].total_registros) : 0;
-  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
-  const firstAdmin = adminProducts[0] as { stock_stats_en_stock?: number; stock_stats_bajo?: number; stock_stats_sin_stock?: number } | undefined;
-  const stockStatsOverride =
-    firstAdmin != null && typeof firstAdmin.stock_stats_en_stock === 'number'
-      ? {
-          enStock: firstAdmin.stock_stats_en_stock ?? 0,
-          stockBajo: firstAdmin.stock_stats_bajo ?? 0,
-          sinStock: firstAdmin.stock_stats_sin_stock ?? 0,
-        }
-      : undefined;
-
-  // Mapa por category_id: Categoría (raíz) | Línea (hijo) | Sublínea (nieta). Doc: padre→hijo→nieta.
-  const categoryIdToLineSubline = useMemo(() => {
-    const categorias = (filterOptions?.categorias ?? []) as Array<{ id: number; nom_categoria?: string; name?: string; parent_id?: number | null }>;
-    const byId = new Map(categorias.map((c) => [Number(c.id), c]));
-    const getRoot = (c: (typeof categorias)[0]): (typeof categorias)[0] => {
-      const pid = c.parent_id != null ? Number(c.parent_id) : null;
-      if (pid === null) return c;
-      const p = byId.get(pid);
-      return p ? getRoot(p) : c;
-    };
-    const result: Record<number, { category: string; line: string; subline: string }> = {};
-    for (const c of categorias) {
-      const id = Number(c.id);
-      const name = (c.nom_categoria ?? c.name) ?? '';
-      const pid = c.parent_id != null ? Number(c.parent_id) : null;
-      const root = getRoot(c);
-      const rootName = (root.nom_categoria ?? root.name) ?? '–';
-      if (pid === null) {
-        result[id] = { category: name, line: '–', subline: '–' };
-      } else {
-        const parent = byId.get(pid);
-        const parentName = (parent?.nom_categoria ?? parent?.name) ?? '–';
-        const parentIsRoot = parent && (parent.parent_id == null || parent.parent_id === null);
-        if (parentIsRoot) {
-          result[id] = { category: rootName, line: name, subline: '–' };
-        } else {
-          result[id] = { category: rootName, line: parentName, subline: name };
-        }
-      }
-    }
-    return result;
-  }, [filterOptions?.categorias]);
+  const totalItems = adminProducts.length > 0 ? adminProducts[0].total_registros : 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   const products: Product[] = adminProducts.map((adminProduct) => {
     const stock = adminProduct.stock_total ?? 0;
@@ -533,7 +538,6 @@ const ProductsPage = () => {
         products={products}
         filterOptionsOverride={filterOptions}
         optionsLoading={optionsLoading}
-        stockStatsOverride={stockStatsOverride ?? null}
       />
 
       {/* Drawer de detalle del producto */}
@@ -711,7 +715,7 @@ const ProductsPage = () => {
           <div className="h-10 bg-gray-200/50 dark:bg-gray-800/60 rounded-md animate-pulse" />
           {/* Skeleton de filas de tabla */}
           <div className="space-y-3">
-            {Array.from({ length: itemsPerPage }).map((_, i) => (
+            {Array.from({ length: 10 }).map((_, i) => (
               <div key={i} className="h-16 bg-gray-200/40 dark:bg-gray-800/40 rounded-md animate-pulse" />
             ))}
           </div>
@@ -721,10 +725,6 @@ const ProductsPage = () => {
           columns={[...columns, ...actions]}
           data={products}
           pageSize={itemsPerPage}
-          manualPagination
-          pageCount={totalPages}
-          pageIndex={currentPage - 1}
-          onPageChange={(pageIndex) => handlePageChange(pageIndex + 1)}
         />
       ) : (
         <div className="text-center py-12">
