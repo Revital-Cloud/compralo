@@ -15,6 +15,7 @@ import json
 
 from core.database import get_db
 from core.dependencies import require_admin, get_current_user, get_current_user_optional
+from core.exceptions import get_safe_message
 from schemas.product_schema import (
     Product,
     ProductCreate,
@@ -189,7 +190,7 @@ async def get_filter_options_admin(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
+            detail=get_safe_message(e),
         )
 
 
@@ -212,7 +213,7 @@ async def upload_single_image(
         )
         return {"url": url}
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
 
 
 # Detalle para edición: producto + variantes + atributos + image_urls (solo product_id)
@@ -272,7 +273,7 @@ async def update_product_composite_route(
         product_service.update_product_composite(db, product_id, payload, current_user.id_usuario)
         return ResponseMessage(message="Producto actualizado correctamente")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
 
 
 #crea un producto
@@ -367,7 +368,7 @@ async def create_product(
         
         return ResponseMessage(message=service_response_message)
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
 
 
 @router.post("/products/composite", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
@@ -417,7 +418,7 @@ async def create_product_composite(
         product_id = result.replace("OK:", "").strip()
         return ResponseMessage(message=f"Producto creado correctamente. ID: {product_id}")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
 
 
 # Activar/desactivar producto por product_id
@@ -439,7 +440,7 @@ async def toggle_product_by_id(
         )
         return ResponseMessage(message=f"Producto {'activado' if toggle_data.activar else 'desactivado'} correctamente")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
 
 
 # ==================== ENDPOINTS DE FILTROS ====================
@@ -511,9 +512,9 @@ async def filter_products(
         result = product_service.filter_products(db, filters)
         return result
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=get_safe_message(e))
 
 @router.get("/products/filter/stats", response_model=ProductFilterStats)
 async def get_filter_stats(
@@ -543,7 +544,7 @@ async def get_filter_stats(
         stats = product_service.get_filter_stats(db, filters)
         return stats
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=get_safe_message(e))
 
 @router.get("/products/filter/options")
 async def get_filter_options(
@@ -559,7 +560,7 @@ async def get_filter_options(
         options = product_service.get_filter_options(db, category_id=category_id)
         return options
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=get_safe_message(e))
 
 @router.get("/products/search")
 async def search_products(
@@ -603,7 +604,7 @@ async def search_products(
         result = product_service.filter_products(db, search_filters)
         return result
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=get_safe_message(e))
 
 
 # Detalle de producto por slug o id (debe ir después de /products/filter, /products/search, etc.)

@@ -9,16 +9,24 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.gzip import GZipMiddleware
+from starlette.exceptions import HTTPException as StarletteHTTPException
 import logging
 
 from slowapi.errors import RateLimitExceeded
 
+from core.config import is_production
+from core.exceptions import (
+    MSG_GENERIC_ERROR,
+    MSG_DATABASE_ERROR,
+    get_safe_message,
+)
+from sqlalchemy.exc import SQLAlchemyError
 from middlewares.auth_middleware import AuthMiddleware
 from middlewares.security_middleware import SecurityMiddleware
 # from middlewares.role_middleware import SmartAuthMiddleware
 from routers.cms_router import router as cms_router
 from routers.provider_router import router as provider_router
-from core.config import settings, is_production
+from core.config import settings
 from routers.product_router import router as product_router
 from routers.user_router import router as user_router
 from routers.brand_router import router as brand_router
@@ -91,9 +99,48 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
         }
     )
 
+
+def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    """
+    Sanitize 5xx error details in production – never expose SQL or internal errors to the client.
+    """
+    if exc.status_code >= 500 and is_production():
+        logger.warning("HTTP 5xx sanitized for client: status=%s", exc.status_code, exc_info=False)
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": MSG_GENERIC_ERROR},
+        )
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
+def sqlalchemy_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """
+    Catch all SQLAlchemy/DB errors and return a safe message. Log the real error server-side only.
+    """
+    logger.exception("Database/SQL error (not exposed to client): %s", type(exc).__name__)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": MSG_DATABASE_ERROR},
+    )
+
+
+def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """
+    Catch any unhandled exception. Never expose stack trace or message to the client.
+    """
+    logger.exception("Unhandled exception (not exposed to client): %s", type(exc).__name__)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": get_safe_message(exc)},
+    )
+
+
 # Configurar Rate Limiter en la app
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
+app.add_exception_handler(Exception, generic_exception_handler)
 
 # Compresión de respuestas (mejora Lighthouse uses-text-compression)
 app.add_middleware(GZipMiddleware, minimum_size=500)

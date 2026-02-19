@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from core.database import get_db
 from core.dependencies import require_admin, UserInToken
+from core.exceptions import get_safe_message, MSG_SERVICE_UNAVAILABLE, MSG_BAD_GATEWAY
 from services.groq_service import is_groq_available, DEFAULT_MODEL
 from services.admin_ai_service import (
     detect_intent,
@@ -50,13 +51,13 @@ async def get_ai_summary(
         summary_text = generate_dashboard_summary(db, time_range)
         return {"summary": summary_text}
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)) from e
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=get_safe_message(e) or MSG_SERVICE_UNAVAILABLE) from e
     except RuntimeError as e:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e)) from e
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=get_safe_message(e) or MSG_BAD_GATEWAY) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error inesperado: {str(e)}",
+            detail=get_safe_message(e),
         ) from e
 
 
@@ -87,13 +88,13 @@ async def post_ai_chat(
         # Si es un string, devolverlo en formato antiguo para compatibilidad
         return {"reply": reply}
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)) from e
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=get_safe_message(e) or MSG_SERVICE_UNAVAILABLE) from e
     except RuntimeError as e:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e)) from e
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=get_safe_message(e) or MSG_BAD_GATEWAY) from e
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error inesperado: {str(e)}",
+            detail=get_safe_message(e),
         ) from e
 
 
@@ -122,7 +123,7 @@ async def post_ai_chat_stream(
         reply = chat_with_admin_ai(message, db, current_user.id_usuario)
     except ValueError as e:
         def error_gen():
-            yield f"data: {json.dumps({'text': str(e)})}\n\n".encode("utf-8")
+            yield f"data: {json.dumps({'text': get_safe_message(e) or MSG_SERVICE_UNAVAILABLE})}\n\n".encode("utf-8")
 
         return StreamingResponse(
             error_gen(),
@@ -131,7 +132,7 @@ async def post_ai_chat_stream(
         )
     except RuntimeError as e:
         def error_gen():
-            text = f"Ocurrió un error al usar la IA: {str(e)}"
+            text = get_safe_message(e) or MSG_BAD_GATEWAY
             yield f"data: {json.dumps({'text': text})}\n\n".encode("utf-8")
 
         return StreamingResponse(

@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Body, HTTPException, status
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user
+from core.exceptions import get_safe_message
 from schemas.auth_schema import UserInToken
 from schemas.favorites_schema import FavoritesCreate, FavoritesBase, ResponseMessage, FavoritesPostBody, FavoriteDetails
 from services import favorites_service
@@ -34,8 +35,7 @@ async def get_favorites(id_usuario: Decimal,
             return []
         return favorites
     except Exception as e:
-        print(f"Error en get_favorites: {str(e)}")  # Para debugging
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error interno del servidor: {str(e)}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=get_safe_message(e))
 
 @router.post("/favorites", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_favorite(
@@ -64,7 +64,7 @@ async def create_favorite(
         favorites_service.create_favorite(db, favorite_to_create, current_user.id_usuario)
         return ResponseMessage(message="Favorito creado exitosamente")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
 
 @router.delete("/favorites/{id_usuario}-{id_producto}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def delete_favorite(
@@ -85,4 +85,4 @@ async def delete_favorite(
         favorites_service.delete_favorite(db, id_usuario, id_producto)
         return ResponseMessage(message="Favorito eliminado exitosamente")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))

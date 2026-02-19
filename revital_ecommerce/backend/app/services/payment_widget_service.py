@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from fastapi import HTTPException, status
 from core.tenant import StoreWompiConfig, get_wompi_base_url
+from core.exceptions import get_safe_message
 from services import order_service
 
 logger = logging.getLogger(__name__)
@@ -443,7 +444,7 @@ def create_payment(
         logger.error(f"Error al crear payment: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al crear el registro de pago: {str(e)}"
+            detail=get_safe_message(e),
         )
 
 
@@ -616,7 +617,7 @@ def attach_transaction_id(
         logger.error(f"Error al attachar transaction_id: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al asociar transaction_id: {str(e)}"
+            detail=get_safe_message(e),
         )
 
 
@@ -685,18 +686,18 @@ async def poll_transaction_status(
                 if e.response.status_code == 404:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"Transacción {transaction_id} no encontrada en Wompi"
+                        detail="Transacción no encontrada",
                     )
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Error al consultar transacción en Wompi: {e.response.text}"
+                    detail=get_safe_message(e),
                 )
             except Exception as e:
                 logger.error(f"Error inesperado al consultar transacción: {str(e)}")
                 if attempt == max_attempts - 1:
                     raise HTTPException(
                         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                        detail=f"Error al consultar transacción: {str(e)}"
+                        detail=get_safe_message(e),
                     )
                 await asyncio.sleep(interval)
     
@@ -941,7 +942,7 @@ def update_payment_status(
         from fastapi import status as http_status
         raise HTTPException(
             status_code=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al actualizar estado del pago: {str(e)}"
+            detail=get_safe_message(e),
         )
 
 

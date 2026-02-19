@@ -11,6 +11,7 @@ from decimal import Decimal
 from urllib.parse import quote
 from core.database import get_db
 from core.dependencies import get_current_user, get_current_user_optional
+from core.exceptions import get_safe_message
 from schemas.user_schema import User, UserCreate, UserUpdate, UserPublic, ResponseMessage
 from schemas.auth_schema import UserInToken
 from services import user_service
@@ -138,11 +139,11 @@ async def create_users(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="La función fun_insert_usuarios no existe en la base de datos. Ejecute el script: revital_ecommerce/db/Functions/tab_usuarios/fun_insert_usuarios.sql"
             )
-        # Para otros errores, devolver el mensaje real para depuración
+        # Para otros errores, mensaje genérico (nunca exponer SQL ni detalles internos)
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=error_msg or "Error al crear el usuario. Verifique los datos e inténtelo de nuevo."
+                detail=get_safe_message(e),
             )
     
 @router.put("/users/me", response_model=UserPublic, status_code=status.HTTP_200_OK)
@@ -189,7 +190,7 @@ async def update_current_user(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
 
 
 @router.put("/users/{id_usuario}/status", response_model=User, status_code=status.HTTP_200_OK)
@@ -221,7 +222,7 @@ async def update_user_status(
     except Exception as e:
         if "no encontrado" in str(e).lower():
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
 
 
 @router.put("/users/{id_usuario}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
@@ -293,7 +294,7 @@ async def update_user(
     except HTTPException:
         raise  # Re-lanzar HTTPExceptions específicas
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
     
 @router.delete("/users/{id_usuario}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
 async def delete_user(id_usuario: Decimal, db: Session = Depends(get_db)):
@@ -308,4 +309,4 @@ async def delete_user(id_usuario: Decimal, db: Session = Depends(get_db)):
         user_service.delete_user(db,id_usuario)
         return ResponseMessage(message="Usuario eliminado exitosamente")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) 
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
