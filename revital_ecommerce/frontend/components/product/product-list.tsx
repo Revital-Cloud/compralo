@@ -133,8 +133,7 @@ const ProductList: React.FC<ProductListProps> = ({
                     <div className="flex flex-col gap-1">
                       {showPriceRange ? (
                         <>
-                          <div className="flex items-baseline gap-2 flex-wrap">
-                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Desde</span>
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-bold text-lg text-gray-900 dark:text-white">
                               {formatPrice(rangeHasDiscount ? rangeDiscountedMin : priceMin)}
                               <span className="mx-1 font-normal text-gray-500 dark:text-gray-400">–</span>
@@ -146,7 +145,7 @@ const ProductList: React.FC<ProductListProps> = ({
                           </div>
                           {rangeHasDiscount && (
                             <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
-                              Desde {formatPrice(priceMin)} – {formatPrice(priceMax)}
+                              {formatPrice(priceMin)} – {formatPrice(priceMax)}
                             </span>
                           )}
                         </>
@@ -258,8 +257,7 @@ onClick={(e) => handleToggleFavorite(e, product)}
                 <div className="col-span-3">
                   {showPriceRange ? (
                     <div className="flex flex-col items-start gap-1">
-                      <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Desde</span>
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-lg text-gray-900 dark:text-white">
                           {formatPrice(rangeHasDiscount ? rangeDiscountedMin : priceMin)}
                           <span className="mx-1 font-normal text-gray-500 dark:text-gray-400">–</span>
@@ -271,7 +269,7 @@ onClick={(e) => handleToggleFavorite(e, product)}
                       </div>
                       {rangeHasDiscount && (
                         <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
-                          Desde {formatPrice(priceMin)} – {formatPrice(priceMax)}
+                          {formatPrice(priceMin)} – {formatPrice(priceMax)}
                         </span>
                       )}
                     </div>
