@@ -22,8 +22,6 @@ interface OrderItem {
 interface OrderProductItem {
   id_item?: number;
   id_categoria?: number;
-  id_linea?: number;
-  id_sublinea?: number;
   id_producto?: number;
   product_name: string;
   quantity: number;
@@ -116,24 +114,22 @@ export default function OrdersTab() {
         return;
       }
 
-      // Crear comentario usando el servicio existente
+      // Crear comentario (solo id_producto e id_orden; sin línea/sublinea)
       const { createComment } = await import('@/services/review.service');
-      
+      const idProducto = Number(product.id_producto);
+      if (!idProducto) {
+        toast.error('No se pudo identificar el producto para la reseña');
+        return;
+      }
       await createComment({
-        id_categoria: Number(product.id_categoria),
-        id_linea: Number(product.id_linea),
-        id_sublinea: Number(product.id_sublinea),
-        id_producto: Number(product.id_producto),
+        id_producto: idProducto,
         id_orden: Number(orderDetail.id_orden),
         comentario: comment.trim(),
         calificacion: rating
       });
-      
-      // Cerrar el formulario de reseña
-      setReviewingProduct(null);
-      
-      // Actualizar el estado de reseñas enviadas para esta orden específica
-      const productKey = `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`;
+
+      // Clave de producto para “ya reseñado”: el backend devuelve product_id como string
+      const productKey = String(idProducto);
       if (orderDetail?.id_orden) {
         setReviewsSentByOrder(prev => {
           const newMap = new Map(prev);
@@ -143,6 +139,9 @@ export default function OrdersTab() {
           return newMap;
         });
       }
+      
+      // Cerrar el formulario de reseña
+      setReviewingProduct(null);
       
       toast.success('¡Reseña enviada exitosamente!');
     } catch (error: any) {
@@ -163,7 +162,7 @@ export default function OrdersTab() {
         if (typeof errorMessage === 'string' && errorMessage.includes('Ya has reseñado')) {
           const product = orderDetail?.items?.find(item => item.id_item === reviewingProduct);
           if (product && orderDetail?.id_orden) {
-            const productKey = `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`;
+            const productKey = product.id_producto != null ? String(product.id_producto) : `item-${product.id_item}`;
             setReviewsSentByOrder(prev => {
               const newMap = new Map(prev);
               const orderReviews = newMap.get(orderDetail.id_orden) || new Set();
@@ -352,14 +351,14 @@ export default function OrdersTab() {
                   </div>
                 </div>
 
-                {orderDetail.items && orderDetail.items.length > 0 && (
+                {orderDetail.items && orderDetail.items.length > 0 ? (
                   <div className="rounded-md border border-border p-4">
                     <p className="font-medium mb-3">Productos</p>
                     <div className="space-y-4">
                       {orderDetail.items.map((it, idx) => {
                         const productImage = it.imagen_url || getProductImage(it.product_image);
                         const isReviewing = reviewingProduct === it.id_item;
-                        const productKey = `${it.id_categoria}-${it.id_linea}-${it.id_sublinea}-${it.id_producto}`;
+                        const productKey = it.id_producto != null ? String(it.id_producto) : `item-${it.id_item ?? idx}`;
                         const orderReviews = reviewsSentByOrder.get(orderDetail.id_orden) || new Set();
                         const hasReviewInThisOrder = orderReviews.has(productKey);
                         
@@ -441,6 +440,13 @@ export default function OrdersTab() {
                         );
                       })}
                     </div>
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-border p-4">
+                    <p className="font-medium mb-2">Productos</p>
+                    <p className="text-sm text-muted-foreground">
+                      No se encontró detalle de productos para esta orden. Si crees que es un error, contacta a soporte.
+                    </p>
                   </div>
                 )}
 

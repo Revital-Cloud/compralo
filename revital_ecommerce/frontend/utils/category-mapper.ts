@@ -308,22 +308,23 @@ const getColorsForCategory = (categoryName: string) => {
 export const mapCategoriesToDisplay = (categories: Category[]): CategoryDisplay[] => {
   if (!categories || !Array.isArray(categories)) return [];
 
+  const isActive = (c: Category) => (c.ind_activo ?? c.is_active) !== false
   return categories
-    .filter((category) => category && category.ind_activo)
+    .filter((category) => category && isActive(category))
     .map((category, index) => {
       // Asignar colores automáticamente basados en la posición
       const colors = getColorsByIndex(index);
-      const icon = getIconByName(category.nom_categoria);
-      const description = generateDescription(category.nom_categoria);
+      const icon = getIconByName(category.name);
+      const description = generateDescription(category.name);
       return {
-        id: String(category.id_categoria),
-        name: category.nom_categoria,
+        id: String((category as { id?: number }).id ?? (category as { id_categoria?: number }).id_categoria ?? ''),
+        name: category.name,
         description,
         icon: (icon as { name?: string }).name || 'ShoppingBag',
         color: colors.color,
         bgGradient: colors.bgGradient,
         iconBg: colors.iconBg,
-        isActive: category.ind_activo,
+        isActive: (category.ind_activo ?? category.is_active) !== false,
         productCount: category.productos_count ?? 0,
       };
     });

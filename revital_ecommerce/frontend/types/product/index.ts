@@ -3,17 +3,22 @@
 // =============================================================================
 
 export interface ProductBase {
-  nom_producto: string;
-  spcf_producto: Record<string, any>; // Equivalente a Dict[str, Any] de Python
+  name: string;
+  description?: string; // tab_products.description
+  category_id: string;
+  id_marca: string;
+  /** @deprecated Use price_min; API devuelve price_min desde variantes */
+  val_precio?: string;
+  /** @deprecated Use stock_total */
+  num_stock?: number;
+  price_min?: number | string;
+  stock_total?: number;
+  image_url?: string;
+  images?: Array<{ image_url: string; is_main?: boolean; sort_order?: number }>;
+  variant_options?: { colors?: Array<{ name: string; value?: string; hex_color?: string }>; sizes?: Array<{ name: string; available?: boolean }> };
+  /** @deprecated Use variant_options / description */
+  spcf_producto?: Record<string, any>;
   img_producto?: ProductImages;
-  val_precio: string; // Cambiado a string porque el API devuelve string
-  id_proveedor: string; // Cambiado a string porque el API devuelve string
-  id_marca: string; // Cambiado a string porque el API devuelve string
-  id_sublinea: string; // Cambiado a string porque el API devuelve string
-  id_linea: string; // Cambiado a string porque el API devuelve string
-  id_categoria: string; // Cambiado a string porque el API devuelve string
-  num_stock: number;
-  images?: any; // Campo que viene del backend
 }
 
 export interface ProductImages {
@@ -25,34 +30,30 @@ export interface ProductImages {
 export interface ProductCreate extends ProductBase {}
 
 export interface ProductUpdate {
-  nom_producto?: string;
+  name?: string;
   des_producto?: string;
   spcf_producto?: Record<string, any>;
   img_producto?: ProductImages;
   val_precio?: number;
   id_proveedor?: number;
   id_marca?: number;
-  id_sublinea?: number;
-  id_linea?: number;
-  id_categoria?: number;
+  category_id?: number;
   num_stock?: number;
 }
 
 export interface Product extends ProductBase {
-  id_producto: string; // Cambiado a string porque el API devuelve string
-  usr_insert: string;
-  fec_insert: string; // Fecha como string, ya que viene del JSON
+  id: string;
+  slug?: string | null;
+  usr_insert?: string;
+  fec_insert?: string;
   usr_update?: string | null;
   fec_update?: string | null;
-  ind_activo: boolean; // Agregado campo que viene del API
-  // Nombres opcionales del endpoint admin
-  nom_categoria?: string;
-  nom_linea?: string;
-  nom_sublinea?: string;
-  nom_proveedor?: string;
+  is_active?: boolean;
+  category_name?: string;
   nom_marca?: string;
-  rating?: number; // Promedio de calificaciones del producto (1-5 estrellas)
-  review_count?: number; // Cantidad de reseñas con calificación
+  nom_proveedor?: string;
+  rating?: number;
+  review_count?: number;
 }
 
 // =============================================================================
@@ -60,28 +61,21 @@ export interface Product extends ProductBase {
 // =============================================================================
 
 export interface ProductAdmin {
-  id_categoria: string;
-  id_linea: string;
-  id_sublinea: string;
-  id_producto: string;
-  nom_categoria: string;
-  nom_linea: string;
-  nom_sublinea: string;
-  nom_producto: string;
-  spcf_producto: Record<string, any>;
-  img_producto?: ProductImages;
-  val_precio: string;
-  num_stock: number;
-  id_proveedor: string;
+  category_id: string;
+  id: string;
+  category_name: string;
+  name: string;
+  description?: string;
+  slug_producto?: string;
+  image_url?: string;
+  price_min: string;
+  price_max?: string;
+  stock_total: number;
   id_marca: string;
-  nom_proveedor: string;
   nom_marca: string;
   fec_insert: string;
-  ind_activo_producto: boolean;
+  is_active: boolean;
   ind_activo_categoria: boolean;
-  ind_activo_linea: boolean;
-  ind_activo_sublinea: boolean;
-  ind_activo_proveedor: boolean;
   ind_activo_marca: boolean;
   total_registros: number;
 }
@@ -91,13 +85,71 @@ export interface ProductAdminParams {
   orden?: 'ASC' | 'DESC';
   limit?: number;
   offset?: number;
-  // Filtros opcionales para el endpoint admin
   search?: string;
-  id_categoria?: number;
-  id_linea?: number;
-  id_sublinea?: number;
+  category_id?: number;
+  line_id?: number;
+  subline_id?: number;
   id_marca?: number;
   id_proveedor?: number;
+}
+
+/** Variante para crear/editar (tab_product_variants: id, product_id, sku, price, stock, is_active; sin color/size) */
+export interface VariantCreateItem {
+  sku?: string | null;
+  price: number;
+  stock: number;
+  is_active: boolean;
+  tipo_clasificacion?: string | null;
+  attributes?: Record<string, string | number | boolean>;
+  image_urls?: string[];
+  main_index?: number;
+}
+
+/** Payload para crear o actualizar producto compuesto (producto + variantes + imágenes) */
+export interface ProductCreateComposite {
+  product: {
+    name: string;
+    category_id: number;
+    id_marca?: number | null;
+    id_proveedor?: number | null;
+    description?: string | null;
+    is_active: boolean;
+  };
+  variants: VariantCreateItem[];
+  image_urls?: string[];
+}
+
+// =============================================================================
+// TIPOS PARA SELECTOR DE VARIANTES (DETALLE PRODUCTO - NOMBRE DE ATRIBUTO)
+// =============================================================================
+
+/** Variante normalizada para el selector: atributos por nombre de atributo. */
+export interface Variant {
+  id: number;
+  price: number;
+  stock: number;
+  image: string | null;
+  /** Clave = nombre del atributo (ej. "Color", "Almacenamiento"); valor = string del valor. */
+  attributes: Record<string, string>;
+}
+
+/** Producto mínimo para el selector de variantes. */
+export interface ProductDetail {
+  id: number;
+  name: string;
+  description?: string;
+  variants: Variant[];
+}
+
+/** Definición de un atributo para la UI: nombre y valores posibles (hex_color para swatches). */
+export interface AttributeDefinition {
+  name: string;
+  values: { value: string; hex_color?: string | null }[];
+}
+
+/** ProductDetail + lista de atributos para el hook useVariantSelector. */
+export interface ProductDetailForSelector extends ProductDetail {
+  attributeDefinitions: AttributeDefinition[];
 }
 
 // =============================================================================
@@ -106,9 +158,7 @@ export interface ProductAdminParams {
 
 export interface ProductFilters {
   search?: string;
-  id_categoria?: number;
-  id_linea?: number;
-  id_sublinea?: number;
+  category_id?: number;
   id_marca?: number;
   id_proveedor?: number;
   precio_min?: number;
@@ -116,7 +166,7 @@ export interface ProductFilters {
   en_stock?: boolean;
   page?: number;
   limit?: number;
-  sort?: 'nom_producto' | 'val_precio' | 'fec_insert' | 'num_stock';
+  sort?: 'name' | 'val_precio' | 'fec_insert' | 'num_stock';
   order?: 'asc' | 'desc';
 }
 
@@ -125,40 +175,52 @@ export interface ProductFilters {
 // =============================================================================
 
 export interface ProductFilterParams {
-  id_categoria?: number | number[];
-  id_linea?: number | number[];
-  id_sublinea?: number | number[];
-  id_marca?: number | number[];
-  id_proveedor?: number | number[];
+  /** ID de categoría (árbol tab_categories); con include_subcategories se incluyen hijos */
+  category_id?: number;
+  include_subcategories?: boolean;
+  id_marca?: number;
   nombre_producto?: string;
   precio_min?: number;
   precio_max?: number;
-  stock_min?: number;
   solo_con_stock?: boolean;
   ordenar_por?: 'precio' | 'nombre' | 'stock' | 'fecha';
   orden?: 'ASC' | 'DESC';
   limit?: number;
   offset?: number;
+  /** Filtro por atributos: { attribute_id: [ "Negro", "Blanco" ] } */
+  atributos?: Record<string, string[]>;
+}
+
+export interface CategoryTreeNode {
+  id: number;
+  name: string;
+  slug?: string;
+  parent_id?: number | null;
+  children: CategoryTreeNode[];
+}
+
+export interface FilterAttributeOption {
+  id: number;
+  name: string;
+  values: string[];
 }
 
 export interface ProductFiltered {
-  id_categoria: number;
-  id_linea: number;
-  id_sublinea: number;
-  id_producto: number;
-  nom_categoria: string;
-  nom_linea: string;
-  nom_sublinea: string;
-  nom_producto: string;
-  spcf_producto: Record<string, any>;
-  img_producto?: Record<string, any>;
-  val_precio: number;
-  num_stock: number;
-  nom_proveedor: string;
-  nom_marca: string;
-  fec_insert: string;
+  category_id: number;
+  id: number;
+  slug?: string | null;
+  category_name: string;
+  name: string;
+  description?: string;
+  image_url?: string;
+  price_min: number;
+  price_max?: number;
+  stock_total: number;
   total_registros: number;
-  rating?: number; // Promedio de calificaciones del producto (1-5 estrellas)
+  rating?: number;
+  id_marca?: number;
+  nom_marca?: string;
+  fec_insert?: string | null;
 }
 
 export interface ProductFilterResponse {
@@ -181,15 +243,19 @@ export interface ProductFilterStats {
 }
 
 export interface FilterOptions {
-  categorias: Array<{ id_categoria: number; nom_categoria: string }>;
-  lineas: Array<{ id_linea: number; nom_linea: string; id_categoria: number }>;
-  sublineas: Array<{ id_sublinea: number; nom_sublinea: string; id_linea: number; id_categoria: number }>;
+  /** Árbol de categorías (tab_categories con parent_id) */
+  categories_tree?: CategoryTreeNode[];
+  /** Lista plana de categorías (compatibilidad) */
+  categorias: Array<{ id: number; name: string }>;
   marcas: Array<{ id_marca: number; nom_marca: string }>;
-  proveedores: Array<{ id_proveedor: number; nom_proveedor: string }>;
+  proveedores?: Array<{ id_proveedor: number; nom_proveedor: string }>;
   precio_rango: {
     minimo: number;
     maximo: number;
   };
+  price_range?: { minimo: number; maximo: number };
+  /** Atributos dinámicos para filtro (ej. Color: [Negro, Blanco], Tamaño: [M, L]) */
+  attributes?: FilterAttributeOption[];
 }
 
 // =============================================================================
@@ -197,8 +263,8 @@ export interface FilterOptions {
 // =============================================================================
 
 export interface Category {
-  id_categoria: number;
-  nom_categoria: string;
+  id: number;
+  name: string; // tab_categories.name
   des_categoria?: string;
   img_categoria?: string;
 }
@@ -218,25 +284,12 @@ export interface Provider {
   email_proveedor?: string;
 }
 
-export interface ProductLine {
-  id_linea: number;
-  nom_linea: string;
-  des_linea?: string;
-}
-
-export interface ProductSubline {
-  id_sublinea: number;
-  nom_sublinea: string;
-  des_sublinea?: string;
-  id_linea: number;
-}
-
 // =============================================================================
 // TIPOS DE INVENTARIO
 // =============================================================================
 
 export interface StockUpdate {
-  id_producto: number;
+  id: number; // tab_products.id
   num_stock: number;
   motivo?: string;
 }

@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/hooks/use-cart";
+import * as cartService from "@/services/cart.service";
 import { useAuth } from "@/hooks/use-auth";
 import { formatPrice } from "@/utils/format-price";
 import { ChevronLeft, Truck, Package, CreditCard, ShieldCheck, Plus, X } from "lucide-react";
@@ -67,7 +68,7 @@ type PaymentFormData = z.infer<typeof paymentSchema>;
 const CheckoutPage = () => {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
-  const { items, totals, total, hasItems, isLoading: cartLoading, id_carrito, selectedCanjeId } = useCart();
+  const { items, totals, total, hasItems, isLoading: cartLoading, id_carrito, selectedCanjeId, cartUser } = useCart();
   const queryClient = useQueryClient();
   
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
@@ -149,11 +150,6 @@ const CheckoutPage = () => {
   };
 
   const handlePaymentSubmit = async (data: PaymentFormData) => {
-    if (!id_carrito) {
-      toast.error('No se pudo obtener el carrito. Por favor, recarga la página.');
-      return;
-    }
-
     // Obtener dirección seleccionada
     const selectedAddress = addresses?.find(
       (addr) => addr.id_direccion?.toString() === informationForm.getValues().direccion
@@ -161,6 +157,22 @@ const CheckoutPage = () => {
 
     if (!selectedAddress?.id_direccion) {
       toast.error('Debes seleccionar una dirección de envío.');
+      return;
+    }
+
+    // Obtener el carrito actual del servidor para evitar enviar un id_carrito obsoleto (p. ej. persistido)
+    let cartId: number;
+    try {
+      const cartRes = await cartService.getOrCreateCart(cartUser);
+      cartId = cartRes.id_carrito;
+    } catch (e) {
+      console.error('Error al obtener el carrito:', e);
+      toast.error('No se pudo cargar el carrito. Por favor, vuelve al carrito e intenta de nuevo.');
+      return;
+    }
+
+    if (!cartId) {
+      toast.error('No se pudo obtener el carrito. Por favor, recarga la página.');
       return;
     }
 
@@ -172,7 +184,7 @@ const CheckoutPage = () => {
           ? Number(selectedCanjeId)
           : undefined;
     const checkoutData: CheckoutData = {
-      cart_id: Number(id_carrito),
+      cart_id: cartId,
       id_direccion: Number(selectedAddress.id_direccion),
       id_canje: idCanje,
     };
@@ -420,12 +432,12 @@ function InformationStep({
                   Dirección <span className="text-red-500">*</span>
                 </Label>
                 <div className="flex gap-2 mt-1">
-                  <Select value={selectedAddressId} onValueChange={setSelectedAddressId}>
+                  <Select value={selectedAddressId || "__none__"} onValueChange={(v) => setSelectedAddressId(v === "__none__" ? "" : v)}>
                     <SelectTrigger id="direccion-select" className="flex-1">
                       <SelectValue placeholder="Selecciona una dirección" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Selecciona una dirección</SelectItem>
+                      <SelectItem value="__none__">Selecciona una dirección</SelectItem>
                       {Array.isArray(addresses) &&
                         addresses.map((addr) => (
                           <SelectItem key={addr.id_direccion} value={String(addr.id_direccion)}>
@@ -1066,14 +1078,14 @@ function PaymentStep({
                       Tipo de Identificación <span className="text-red-500">*</span>
                     </Label>
                     <Select
-                      value={form.watch("tipoIdentificacion") || ""}
-                      onValueChange={(v) => form.setValue("tipoIdentificacion", v)}
+                      value={form.watch("tipoIdentificacion") || "__none__"}
+                      onValueChange={(v) => form.setValue("tipoIdentificacion", v === "__none__" ? "" : v)}
                     >
                       <SelectTrigger id="tipoIdentificacion" className="mt-1">
                         <SelectValue placeholder="Elige una opción" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Elige una opción</SelectItem>
+                        <SelectItem value="__none__">Elige una opción</SelectItem>
                         <SelectItem value="CC">Cédula de Ciudadanía</SelectItem>
                         <SelectItem value="CE">Cédula de Extranjería</SelectItem>
                         <SelectItem value="NIT">NIT</SelectItem>

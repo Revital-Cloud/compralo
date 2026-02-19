@@ -214,26 +214,21 @@ def _get_sales_data(db: Session, start_date: datetime, end_date: datetime,
 
 
 def _get_best_sellers(db: Session, limit: int = 10) -> List[Dict[str, Any]]:
-    """Obtiene los productos más vendidos."""
+    """Obtiene los productos más vendidos (tab_products + tab_orden_productos por variant_id = combination id)."""
     query = text("""
         SELECT 
-            p.id_categoria,
-            p.id_linea,
-            p.id_sublinea,
-            p.id_producto,
-            p.nom_producto,
-            p.img_producto,
-            COALESCE(SUM(op.cant_producto), 0) as total_sold,
-            COALESCE(SUM(op.subtotal), 0) as total_revenue
-        FROM tab_productos p
-        LEFT JOIN tab_orden_productos op ON 
-            p.id_categoria = op.id_categoria_producto 
-            AND p.id_linea = op.id_linea_producto
-            AND p.id_sublinea = op.id_sublinea_producto
-            AND p.id_producto = op.id_producto
+            p.id AS product_id,
+            p.name AS nom_producto,
+            (SELECT pvi.image_url FROM tab_product_variant_images pvi JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id WHERE g.product_id = p.id ORDER BY g.id, pvi.sort_order, pvi.id LIMIT 1) AS image_url,
+            COALESCE(SUM(op.cant_producto), 0) AS total_sold,
+            COALESCE(SUM(op.subtotal), 0) AS total_revenue
+        FROM tab_products p
+        LEFT JOIN tab_product_variant_groups g ON g.product_id = p.id
+        LEFT JOIN tab_product_variant_combinations pv ON pv.group_id = g.id
+        LEFT JOIN tab_orden_productos op ON op.variant_id = pv.id
         LEFT JOIN tab_ordenes o ON op.id_orden = o.id_orden AND o.ind_estado = 2
-        WHERE p.ind_activo = TRUE
-        GROUP BY p.id_categoria, p.id_linea, p.id_sublinea, p.id_producto, p.nom_producto, p.img_producto
+        WHERE p.is_active = TRUE
+        GROUP BY p.id, p.name
         HAVING COALESCE(SUM(op.cant_producto), 0) > 0
         ORDER BY total_sold DESC, total_revenue DESC
         LIMIT :limit
@@ -251,33 +246,17 @@ def _get_best_sellers(db: Session, limit: int = 10) -> List[Dict[str, Any]]:
         else:
             revenue = float(revenue or 0)
         
-        # Construir ID único usando la clave compuesta
-        id_categoria = str(row.get('id_categoria', ''))
-        id_linea = str(row.get('id_linea', ''))
-        id_sublinea = str(row.get('id_sublinea', ''))
-        id_producto = str(row.get('id_producto', ''))
-        unique_id = f"{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}"
-        
-        # Extraer URL de imagen desde img_producto (JSONB: { "main": "url" } o { "url": "..." })
-        image_url = None
-        img_producto = row.get('img_producto')
-        if img_producto:
-            try:
-                if isinstance(img_producto, str):
-                    img_producto = json.loads(img_producto)
-                if isinstance(img_producto, dict):
-                    image_url = img_producto.get('main') or img_producto.get('url') or None
-                    if image_url and not isinstance(image_url, str):
-                        image_url = None
-            except (json.JSONDecodeError, TypeError):
-                pass
+        product_id = str(row.get('product_id', ''))
+        image_url = row.get('image_url')
+        if image_url and not isinstance(image_url, str):
+            image_url = None
 
         best_sellers.append({
-            'id': unique_id,
-            'id_categoria': id_categoria,
-            'id_linea': id_linea,
-            'id_sublinea': id_sublinea,
-            'id_producto': id_producto,
+            'id': product_id,
+            'id_categoria': None,
+            'id_linea': None,
+            'id_sublinea': None,
+            'id_producto': product_id,
             'name': str(row.get('nom_producto', '')),
             'image': image_url,
             'sales': int(row.get('total_sold', 0) or 0),

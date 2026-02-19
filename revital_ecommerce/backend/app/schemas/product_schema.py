@@ -29,171 +29,100 @@ class ProductImages(BaseModel):
 
 class ProductBase(BaseModel):
     """
-    Esquema Base para Productos.
-
-    Contiene los campos comunes para la creación y visualización de productos.
-    Utilizado como base para otros esquemas de productos más específicos.
-
-    Atributos:
-        nom_producto (str): Nombre del producto.
-        spcf_producto (Dict[str, Any]): Especificaciones del producto en formato JSON.
-        img_producto (Optional[str]): URL o ruta de la imagen del producto (mantenido por compatibilidad).
-        images (Optional[ProductImages]): Estructura para múltiples imágenes del producto.
-        val_precio (Decimal): Precio de venta del producto.
-        id_proveedor (Decimal): Identificador del proveedor.
-        id_marca (Decimal): Identificador de la marca.
-        id_sublinea (Decimal): Identificador de la sublínea.
-        id_linea (Decimal): Identificador de la línea.
-        id_categoria (Decimal): Identificador de la categoría.
-        num_stock (int): Cantidad de unidades disponibles en inventario.
-        usr_insert (Optional[Decimal]): Usuario que insertó el registro.
+    Esquema base alineado con tab_products: id, category_id, name, slug, description, id_marca, is_active.
+    Precio y stock en tab_product_variant_combinations; imágenes en tab_product_variant_images.
     """
-    # id_producto: Optional[Decimal] = Field(None, description="Identificador único para el producto.") # Generalmente no se incluye en Create, se genera por la DB. Puede estar en el modelo de respuesta.
-    nom_producto: str = Field(..., description="Nombre del producto.")
-    spcf_producto: Dict[str, Any] = Field(..., description="Especificaciones del producto en formato JSON.")
-    img_producto: Optional[Dict[str, Any]] = Field(None, description="URL o ruta de la imagen del producto (mantenido por compatibilidad).")
-    images: Optional[ProductImages] = Field(None, description="Estructura para múltiples imágenes del producto.")
-    val_precio: Decimal = Field(..., gt=0, description="Precio de venta del producto.") # Usamos float, gt=0 para la validación CHECK (val_precio >= 0)
-    id_proveedor: Decimal # Asumiendo que los IDs decimales pueden ser representados como int en la API si no son muy grandes
-    id_marca: Decimal
-    id_sublinea: Decimal
-    id_linea: Decimal
-    id_categoria: Decimal
-    num_stock: int = Field(0, ge=0, description="Cantidad de unidades disponibles en inventario.")
-    usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
-    fec_insert: Optional[datetime] = Field(None, description="Fecha y hora de la inserción del registro.")
-    ind_activo: Optional[bool] = Field(None, description="Indica si el producto está activo.")
-    usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
-    fec_update: Optional[datetime] = Field(None, description="Fecha y hora de la última actualización del registro.")
-    
+    name: str = Field(..., description="tab_products.name.")
+    category_id: Optional[Decimal] = Field(None, description="tab_products.category_id.")
+    slug: Optional[str] = Field(None, description="tab_products.slug (generado si no se envía).")
+    description: Optional[str] = Field(None, description="tab_products.description.")
+    id_marca: Optional[Decimal] = Field(None, description="tab_products.id_marca.")
+    is_active: Optional[bool] = Field(None, description="tab_products.is_active.")
+    usr_insert: Optional[Decimal] = Field(None, description="Auditoría.")
+    fec_insert: Optional[datetime] = Field(None, description="Auditoría.")
+    usr_update: Optional[Decimal] = Field(None, description="Auditoría.")
+    fec_update: Optional[datetime] = Field(None, description="Auditoría.")
+
     class Config:
         from_attributes = True
 
 class ProductCreate(ProductBase):
     """
-    Esquema para la Creación de Productos.
-
-    Hereda de `ProductBase` y se utiliza para validar los datos
-    al crear un nuevo producto. Puede incluir campos adicionales o
-    modificar el comportamiento de los campos heredados si es necesario
-    para la operación de creación.
+    Creación de producto. Hereda tab_products; opcionales para formulario legacy:
+    id_categoria (para category_id), spcf_producto (description + atributos),
+    val_precio/num_stock (primera variante), img_producto (URLs para tab_product_images).
     """
-    # Aquí puedes añadir campos específicos para la creación si son diferentes de ProductBase
-    # o si algunos campos de ProductBase no deben ser proporcionados al crear.
-    # Por ejemplo, usr_insert y fec_insert podrían ser gestionados por el backend.
-    pass
+    id_categoria: Optional[Decimal] = Field(None, description="Categoría (tab_categories); usado como category_id si no se envía category_id).")
+    spcf_producto: Optional[Dict[str, Any]] = Field(None, description="Legacy: dict con description y/o atributos para variante.")
+    val_precio: Optional[Decimal] = Field(None, description="Legacy: precio primera variante.")
+    num_stock: Optional[int] = Field(None, ge=0, description="Legacy: stock primera variante.")
+    img_producto: Optional[Dict[str, Any]] = Field(None, description="Legacy: URLs de imágenes tras subida.")
+    ind_activo: Optional[bool] = Field(None, description="Legacy: alias de is_active.")
+    id_proveedor: Optional[Decimal] = Field(None, description="Legacy: no usado en tab_products.")
 
 class ProductUpdate(BaseModel):
-    """
-    Esquema para la Actualización de Productos.
-
-    Define los campos que pueden ser actualizados para un producto existente.
-    Todos los campos son opcionales, permitiendo actualizaciones parciales.
-
-    Atributos:
-        nom_producto (Optional[str]): Nuevo nombre del producto.
-        spcf_producto (Optional[Dict[str, Any]]): Nuevas especificaciones del producto.
-        img_producto (Optional[str]): Nueva URL o ruta de la imagen del producto.
-        val_precio (Optional[Decimal]): Nuevo precio de venta del producto.
-        id_proveedor (Optional[Decimal]): Nuevo identificador del proveedor.
-        id_marca (Optional[Decimal]): Nuevo identificador de la marca.
-        id_sublinea (Optional[Decimal]): Nuevo identificador de la sublínea.
-        id_linea (Optional[Decimal]): Nuevo identificador de la línea.
-        id_categoria (Optional[Decimal]): Nuevo identificador de la categoría.
-        id_producto (Optional[Decimal]): Nuevo identificador del producto.
-        num_stock (Optional[int]): Nueva cantidad de unidades en inventario.
-        ind_activo (Optional[bool]): Nuevo estado de activo del producto.
-        usr_update (Optional[Decimal]): Usuario que actualizó el registro.
-    """
-    # Para las actualizaciones, a menudo todos los campos son opcionales
-    id_producto: Optional[Decimal] = None # Aunque generalmente no se actualiza, puede ser útil para identificar el producto
-    id_categoria: Optional[Decimal] = None
-    id_linea: Optional[Decimal] = None
-    id_sublinea: Optional[Decimal] = None
-    nom_producto: Optional[str] = None
-    spcf_producto: Optional[Dict[str, Any]] = None
-    img_producto: Optional[Dict[str, Any]] = None
-    val_precio: Optional[Decimal] = Field(None, gt=0)
-    id_proveedor: Optional[Decimal] = None
+    """Campos actualizables de tab_products (fun_update_producto)."""
+    id: Optional[Decimal] = None
+    category_id: Optional[Decimal] = None
+    name: Optional[str] = None
+    description: Optional[str] = None
     id_marca: Optional[Decimal] = None
-    num_stock: Optional[int] = Field(None, ge=0)
-    ind_activo: Optional[bool] = None # Para activar/desactivar el producto
+    is_active: Optional[bool] = None
     usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el registro.")
 
-class Product(ProductBase): # Este será el modelo de respuesta principal
+class Product(ProductBase):
     """
-    Esquema para la Visualización de Productos.
-
-    Hereda de `ProductBase` y se utiliza como el modelo de respuesta
-    principal para los endpoints que devuelven información de productos.
-    Incluye el `id_producto` y los campos de auditoría.
-    
-    Atributos adicionales:
-        rating (Optional[float]): Promedio de calificaciones del producto (1-5 estrellas).
-                                 Calculado desde tab_comentarios. None si no hay calificaciones.
-
-    Atributos:
-        id_producto (Decimal): Identificador único del producto.
-        usr_insert (str): Usuario que insertó el registro.
-        fec_insert (datetime): Fecha y hora de inserción del registro.
-        usr_update (Optional[str]): Usuario que realizó la última actualización.
-        fec_update (Optional[datetime]): Fecha y hora de la última actualización.
-        nom_categoria (Optional[str]): Nombre de la categoría.
-        nom_linea (Optional[str]): Nombre de la línea.
-        nom_sublinea (Optional[str]): Nombre de la sublínea.
-        nom_marca (Optional[str]): Nombre de la marca.
-        nom_proveedor (Optional[str]): Nombre del proveedor.
+    Respuesta de producto: tab_products + campos calculados (precio, stock, imagen, rating).
+    Sin spcf_producto ni img_producto; ver variant_options para colores/tallas desde atributos.
     """
-    id_producto: Decimal # El ID principal del producto, generalmente se incluye en la respuesta
-    
-    # Incluir campos de auditoría en la respuesta si se desea
-    usr_insert: Decimal
-    fec_insert: datetime
+    id: Decimal = Field(..., description="tab_products.id.")
+    slug: Optional[str] = Field(None, description="tab_products.slug.")
+    usr_insert: Optional[Decimal] = None
+    fec_insert: Optional[datetime] = None
     usr_update: Optional[Decimal] = None
     fec_update: Optional[datetime] = None
-    
-    # Campos de nombres de las tablas relacionadas (opcionales)
-    nom_categoria: Optional[str] = None
-    nom_linea: Optional[str] = None
-    nom_sublinea: Optional[str] = None
+    category_name: Optional[str] = Field(None, description="tab_categories.name.")
     nom_marca: Optional[str] = None
-    nom_proveedor: Optional[str] = None
-    rating: Optional[float] = Field(None, ge=0, le=5, description="Promedio de calificaciones del producto (1-5 estrellas). Calculado desde tab_comentarios.")
-    review_count: Optional[int] = Field(0, ge=0, description="Cantidad de reseñas con calificación del producto.")
+    rating: Optional[float] = Field(None, ge=0, le=5, description="Desde tab_comentarios.")
+    review_count: Optional[int] = Field(0, ge=0)
+    # Calculados desde tab_product_variants y tab_product_images
+    price_min: Optional[Decimal] = Field(None, description="Precio mínimo (variantes).")
+    stock_total: Optional[int] = Field(None, description="Suma stock (variantes).")
+    image_url: Optional[str] = Field(None, description="Imagen principal (tab_product_images).")
+    images: Optional[List[Dict[str, Any]]] = Field(None, description="Lista de imágenes (tab_product_images).")
+    variant_options: Optional[Dict[str, Any]] = Field(None, description="Colores/tallas desde tab_product_variant_attributes (para tienda).")
+    # Detalle: variantes con precio/stock e imágenes por variante (GET /products/{slug_or_id})
+    variants: Optional[List[Dict[str, Any]]] = Field(None, description="Variantes con id, sku, price, stock, is_active; en detalle también color, size, attributes.")
+    images_by_variant: Optional[Dict[str, Any]] = Field(None, description="variant_id (str) -> lista de {image_url, is_main, sort_order}.")
+    # Grupos por color e imágenes de producto para PDP (GET /products/{slug_or_id})
+    variant_groups: Optional[List[Dict[str, Any]]] = Field(None, description="Grupos por color (dominant_value, images) para selector y galería PDP.")
+    product_images: Optional[List[Dict[str, Any]]] = Field(None, description="Imágenes del producto (grupo Sin color) para galería PDP.")
 
-# Esquemas para filtros de productos
+# Esquemas para filtros de productos (tab_products: category_id, sin línea/sublínea)
 class ProductAdminResponse(BaseModel):
-    """
-    Esquema para la respuesta del endpoint de productos admin.
-    
-    Incluye información completa de productos con estados de activación
-    de todas las tablas relacionadas para el panel de administración.
-    """
-    id_categoria: str
-    id_linea: str
-    id_sublinea: str
-    id_producto: str
-    nom_categoria: str
-    nom_linea: str
-    nom_sublinea: str
-    nom_producto: str
-    spcf_producto: Dict[str, Any]
-    img_producto: Optional[Dict[str, Any]]
-    val_precio: str
-    num_stock: int
-    id_proveedor: str
+    """Respuesta admin: tab_products + precio/stock/imagen desde variantes e imágenes."""
+    category_id: str
+    id: str = Field(..., description="tab_products.id.")
+    category_name: str = Field(..., description="tab_categories.name.")
+    name: str = Field(..., description="tab_products.name.")
+    description: Optional[str] = Field(None, description="tab_products.description.")
+    slug_producto: Optional[str] = None
+    image_url: Optional[str] = Field(None, description="Imagen principal desde tab_product_images.")
+    price_min: str = Field(..., description="Precio mínimo desde tab_product_variants.")
+    price_max: Optional[str] = Field(None, description="Precio máximo desde tab_product_variants (rango en admin).")
+    stock_total: int = Field(..., description="Suma stock desde tab_product_variants.")
     id_marca: str
-    nom_proveedor: str
     nom_marca: str
     fec_insert: str
-    ind_activo_producto: bool
-    ind_activo_categoria: bool
-    ind_activo_linea: bool
-    ind_activo_sublinea: bool
-    ind_activo_proveedor: bool
-    ind_activo_marca: bool
-    total_registros: int
-    
+    is_active: bool = Field(..., description="tab_products.is_active.")
+    ind_activo_categoria: bool = True
+    ind_activo_marca: bool = True
+    total_registros: int = 0
+    # Estadísticas globales del conjunto filtrado (solo en el primer ítem de la lista)
+    stock_stats_en_stock: Optional[int] = None
+    stock_stats_bajo: Optional[int] = None
+    stock_stats_sin_stock: Optional[int] = None
+
     class Config:
         from_attributes = True
 
@@ -208,90 +137,44 @@ class ProductAdminParams(BaseModel):
 
 class ProductFilterParams(BaseModel):
     """
-    Esquema para parámetros de filtrado de productos.
-    
-    Utilizado para validar los parámetros de búsqueda y filtrado
-    que se envían desde el frontend a la función de base de datos.
-    
-    Atributos:
-        id_categoria (Optional[int]): ID de categoría para filtrar.
-        id_linea (Optional[int]): ID de línea para filtrar.
-        id_sublinea (Optional[int]): ID de sublínea para filtrar.
-        id_marca (Optional[int]): ID de marca para filtrar.
-        id_proveedor (Optional[int]): ID de proveedor para filtrar.
-        nombre_producto (Optional[str]): Texto para buscar en nombre del producto.
-        precio_min (Optional[Decimal]): Precio mínimo para filtrar.
-        precio_max (Optional[Decimal]): Precio máximo para filtrar.
-        stock_min (Optional[int]): Stock mínimo para filtrar.
-        solo_con_stock (bool): TRUE para mostrar solo productos con stock > 0.
-        ordenar_por (str): Campo para ordenar ('precio', 'nombre', 'stock', 'fecha').
-        orden (str): Dirección del orden ('ASC' o 'DESC').
-        limit (int): Límite de resultados (1-1000).
-        offset (int): Offset para paginación (>=0).
+    Parámetros de filtrado (tab_products/tab_product_variants).
+    category_id + include_subcategories; precio; atributos por attribute_id y valores.
     """
-    id_categoria: Optional[List[int]] = Query(None, description="ID de categoría para filtrar (puede ser múltiple)")
-    id_linea: Optional[List[int]] = Query(None, description="ID de línea para filtrar (puede ser múltiple)")
-    id_sublinea: Optional[List[int]] = Query(None, description="ID de sublínea para filtrar (puede ser múltiple)")
-    id_marca: Optional[List[int]] = Query(None, description="ID de marca para filtrar (puede ser múltiple)")
-    id_proveedor: Optional[List[int]] = Query(None, description="ID de proveedor para filtrar (puede ser múltiple)")
+    category_id: Optional[int] = Field(None, description="ID de categoría (tab_categories); si se usa árbol, incluir subcategorías con include_subcategories")
+    include_subcategories: bool = Field(True, description="Si True y hay category_id, incluye productos de subcategorías")
+    id_marca: Optional[int] = Field(None, description="ID de marca para filtrar")
     nombre_producto: Optional[str] = Field(None, max_length=255, description="Texto para buscar en nombre del producto")
-    precio_min: Optional[Decimal] = Field(None, ge=0, description="Precio mínimo para filtrar")
-    precio_max: Optional[Decimal] = Field(None, ge=0, description="Precio máximo para filtrar")
-    stock_min: Optional[int] = Field(None, ge=0, description="Stock mínimo para filtrar")
-    solo_con_stock: bool = Field(False, description="TRUE para mostrar solo productos con stock > 0")
+    precio_min: Optional[Decimal] = Field(None, ge=0, description="Precio mínimo (desde variantes)")
+    precio_max: Optional[Decimal] = Field(None, ge=0, description="Precio máximo (desde variantes)")
+    solo_con_stock: bool = Field(False, description="Solo productos con stock > 0")
     ordenar_por: str = Field("nombre", pattern="^(precio|nombre|stock|fecha)$", description="Campo para ordenar")
     orden: str = Field("ASC", pattern="^(ASC|DESC)$", description="Dirección del orden")
     limit: int = Field(50, ge=1, le=1000, description="Límite de resultados")
     offset: int = Field(0, ge=0, description="Offset para paginación")
-    
+    # Atributos dinámicos: dict attribute_id -> list of value_text (ej. {"1": ["Negro","Blanco"], "2": ["M","L"]})
+    atributos: Optional[Dict[str, List[str]]] = Field(None, description="Filtro por atributos: { attribute_id: [valores] }")
+
     class Config:
         from_attributes = True
 
 class ProductFiltered(BaseModel):
-    """
-    Esquema para productos filtrados con información completa.
-    
-    Representa un producto con datos de las tablas relacionadas
-    obtenido de la función de filtrado de la base de datos.
-    
-    Atributos:
-        id_categoria (int): ID de la categoría.
-        id_linea (int): ID de la línea.
-        id_sublinea (int): ID de la sublínea.
-        id_producto (int): ID del producto.
-        nom_categoria (str): Nombre de la categoría.
-        nom_linea (str): Nombre de la línea.
-        nom_sublinea (str): Nombre de la sublínea.
-        nom_producto (str): Nombre del producto.
-        spcf_producto (Dict[str, Any]): Especificaciones del producto.
-        img_producto (Optional[Dict[str, Any]]): Imágenes del producto.
-        val_precio (Decimal): Precio del producto.
-        num_stock (int): Stock disponible.
-        nom_proveedor (str): Nombre del proveedor.
-        id_marca (Optional[int]): ID de la marca (para descuentos por marca).
-        nom_marca (str): Nombre de la marca.
-        fec_insert (datetime): Fecha de inserción.
-        total_registros (int): Total de registros encontrados.
-    """
-    id_categoria: int
-    id_linea: int
-    id_sublinea: int
-    id_producto: int
-    nom_categoria: str
-    nom_linea: str
-    nom_sublinea: str
-    nom_producto: str
-    spcf_producto: Dict[str, Any]
-    img_producto: Optional[Dict[str, Any]] = None
-    val_precio: Decimal
-    num_stock: int
-    nom_proveedor: str
+    """Producto filtrado: tab_products + price_min, stock_total, image_url desde variantes e imágenes."""
+    category_id: int
+    id: int = Field(..., description="tab_products.id.")
+    slug: Optional[str] = None
+    category_name: str = Field(..., description="tab_categories.name.")
+    name: str = Field(..., description="tab_products.name.")
+    description: Optional[str] = None
+    image_url: Optional[str] = Field(None, description="Imagen principal desde tab_product_images.")
+    price_min: Decimal = Field(..., description="Precio mínimo desde tab_product_variants.")
+    price_max: Optional[Decimal] = Field(None, description="Precio máximo desde tab_product_variants (rango en listado).")
+    stock_total: int = Field(..., description="Suma stock desde tab_product_variants.")
+    total_registros: int = 0
+    rating: Optional[float] = Field(None, ge=0, le=5)
     id_marca: Optional[int] = None
-    nom_marca: str
-    fec_insert: datetime
-    total_registros: int
-    rating: Optional[float] = Field(None, ge=0, le=5, description="Promedio de calificaciones del producto (1-5 estrellas). Calculado desde tab_comentarios.")
-    
+    nom_marca: Optional[str] = None
+    fec_insert: Optional[datetime] = None
+
     class Config:
         from_attributes = True
 
@@ -345,6 +228,36 @@ class ProductFilterStats(BaseModel):
     
     class Config:
         from_attributes = True
+
+# Creación compuesta: producto base + variantes + URLs de imágenes (una transacción)
+class ProductCreateBase(BaseModel):
+    """Datos del producto (tab_products) sin precio/stock."""
+    name: str = Field(..., min_length=2, description="Nombre del producto.")
+    category_id: Decimal = Field(..., description="ID de categoría (tab_categories).")
+    id_marca: Optional[Decimal] = Field(None, description="ID de marca.")
+    id_proveedor: Optional[Decimal] = Field(None, description="ID de proveedor (tab_proveedores).")
+    description: Optional[str] = Field(None, description="Descripción del producto.")
+    is_active: bool = Field(True, description="Producto activo.")
+
+
+class VariantCreateItem(BaseModel):
+    """Una variante a crear (tab_product_variants): precio, stock, opcionalmente sku; atributos en tab_product_variant_attributes."""
+    sku: Optional[str] = Field(None, description="SKU; si vacío el backend genera.")
+    price: Decimal = Field(..., ge=0, description="Precio.")
+    stock: int = Field(0, ge=0, description="Stock.")
+    is_active: bool = Field(True, description="Variante activa.")
+    tipo_clasificacion: Optional[str] = Field(None, max_length=100, description="Tipo o clasificación de la variante (ej. Estándar, Premium, Básico).")
+    attributes: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Mapa attribute_id (str) -> valor (text, number o boolean).")
+    image_urls: Optional[List[str]] = Field(default_factory=list, description="URLs de imágenes de la variante.")
+    main_index: Optional[int] = Field(0, ge=0, description="Índice de la imagen principal en image_urls (0 = primera).")
+
+
+class ProductCreateComposite(BaseModel):
+    """Payload para crear producto + variantes + imágenes en una transacción."""
+    product: ProductCreateBase
+    variants: List[VariantCreateItem] = Field(..., min_length=1, description="Al menos una variante.")
+    image_urls: Optional[List[str]] = Field(default_factory=list, description="URLs de imágenes del producto.")
+
 
 # Esquema para toggle (activar/desactivar)
 class ToggleRequest(BaseModel):

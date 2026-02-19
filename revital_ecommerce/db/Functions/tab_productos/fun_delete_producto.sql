@@ -1,65 +1,36 @@
-CREATE OR REPLACE FUNCTION fun_delete_producto(p_id_producto INTEGER)
+/*
+ * Elimina un producto: borra imágenes, atributos de variantes, variantes y producto.
+ * No permite eliminar si hay ítems en carrito o en órdenes con sus variantes.
+ */
+CREATE OR REPLACE FUNCTION fun_delete_producto(p_id DECIMAL)
 RETURNS JSON AS $$
 DECLARE
-    v_count_carrito INTEGER;
-    v_count_ordenes INTEGER;
-    v_result JSON;
-    v_id_producto INTEGER := p_id_producto;
+    v_carrito INT;
+    v_orden INT;
 BEGIN
-    -- Verificar si el producto existe
-    IF NOT EXISTS (SELECT 1 FROM tab_productos WHERE id_producto = p_id_producto) THEN
-        RETURN json_build_object(
-            'success', false,
-            'message', 'El producto no existe',
-            'id_producto', p_id_producto
-        );
+    IF p_id IS NULL OR NOT EXISTS (SELECT 1 FROM tab_products WHERE id = p_id) THEN
+        RETURN json_build_object('success', false, 'message', 'Producto no encontrado', 'id_producto', p_id);
+    END IF;
+    SELECT COUNT(*) INTO v_carrito FROM tab_carrito_productos cp JOIN tab_product_variant_combinations pv ON cp.variant_id = pv.id JOIN tab_product_variant_groups g ON g.id = pv.group_id WHERE g.product_id = p_id;
+    IF v_carrito > 0 THEN
+        RETURN json_build_object('success', false, 'message', 'No se puede eliminar: hay ítems en carrito', 'id_producto', p_id);
+    END IF;
+    SELECT COUNT(*) INTO v_orden FROM tab_orden_productos op JOIN tab_product_variant_combinations pv ON op.variant_id = pv.id JOIN tab_product_variant_groups g ON g.id = pv.group_id WHERE g.product_id = p_id;
+    IF v_orden > 0 THEN
+        RETURN json_build_object('success', false, 'message', 'No se puede eliminar: hay ítems en órdenes', 'id_producto', p_id);
     END IF;
 
-    -- Verificar si el producto está en carritos
-    SELECT COUNT(*) INTO v_count_carrito 
-    FROM tab_carrito_productos cp
-    WHERE cp.id_producto = v_id_producto;
+    DELETE FROM tab_product_variant_images WHERE variant_group_id IN (SELECT id FROM tab_product_variant_groups WHERE product_id = p_id);
+    DELETE FROM tab_product_variant_combinations WHERE group_id IN (SELECT id FROM tab_product_variant_groups WHERE product_id = p_id);
+    DELETE FROM tab_product_variant_groups WHERE product_id = p_id;
+    DELETE FROM tab_estadisticas_productos WHERE product_id = p_id;
+    DELETE FROM tab_favoritos WHERE product_id = p_id;
+    DELETE FROM tab_comentarios WHERE product_id = p_id;
+    DELETE FROM tab_products WHERE id = p_id;
 
-    IF v_count_carrito > 0 THEN
-        RETURN json_build_object(
-            'success', false,
-            'message', 'No se puede eliminar el producto porque está en carritos',
-            'carritos_asociados', v_count_carrito,
-            'id_producto', p_id_producto
-        );
-    END IF;
-
-    -- Verificar si el producto tiene órdenes asociadas
-    SELECT COUNT(*) INTO v_count_ordenes 
-    FROM tab_orden_productos op
-    INNER JOIN tab_ordenes o ON op.id_orden = o.id_orden
-    WHERE op.id_producto = v_id_producto;
-
-    IF v_count_ordenes > 0 THEN
-        RETURN json_build_object(
-            'success', false,
-            'message', 'No se puede eliminar el producto porque tiene órdenes asociadas',
-            'ordenes_asociadas', v_count_ordenes,
-            'id_producto', p_id_producto
-        );
-    END IF;
-
-    -- Eliminar el producto completamente
-    DELETE FROM tab_productos 
-    WHERE id_producto = v_id_producto;
-
-    RETURN json_build_object(
-        'success', true,
-        'message', 'Producto eliminado exitosamente',
-        'id_producto', p_id_producto
-    );
-
+    RETURN json_build_object('success', true, 'message', 'Producto eliminado', 'id_producto', p_id);
 EXCEPTION
     WHEN OTHERS THEN
-        RETURN json_build_object(
-            'success', false,
-            'message', 'Error al eliminar el producto: ' || SQLERRM,
-            'id_producto', p_id_producto
-        );
+        RETURN json_build_object('success', false, 'message', 'Error: ' || SQLERRM, 'id_producto', p_id);
 END;
 $$ LANGUAGE plpgsql;

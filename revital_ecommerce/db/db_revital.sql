@@ -9,6 +9,9 @@
 -- Primero: Eliminar VISTAS que dependen de las tablas
 DROP VIEW IF EXISTS vw_resumen_puntos_usuario;
 DROP VIEW IF EXISTS vw_descuentos_canjeables;
+DROP VIEW IF EXISTS vw_top_productos_vendidos;
+DROP VIEW IF EXISTS vw_resumen_ventas_categoria;
+DROP VIEW IF EXISTS vw_kpis_disponibles;
 
 -- Segundo: Eliminar TABLAS en orden de dependencias
 
@@ -21,7 +24,8 @@ DROP TABLE IF EXISTS tab_orden_compra_proveedor; --depende de proveedores y prod
 DROP TABLE IF EXISTS tab_estadisticas_productos; --depende de productos
 DROP TABLE IF EXISTS tab_estadisticas_categorias; --depende de categorias
 
--- Nivel 3: Sistema de fidelización y órdenes
+-- Nivel 3: Sistema de fidelización y órdenes (tab_comentarios antes que tab_ordenes por FK)
+DROP TABLE IF EXISTS tab_comentarios; -- FK a tab_ordenes; debe dropearse antes que tab_ordenes
 DROP TABLE IF EXISTS tab_pagos; -- depende de ordenes
 DROP TABLE IF EXISTS tab_metodos_pago_usuario; -- depende de usuarios
 DROP TABLE IF EXISTS tab_canjes_puntos_descuentos; --depende de usuarios y descuentos
@@ -32,17 +36,41 @@ DROP TABLE IF EXISTS tab_ordenes; --depende de usuarios y descuentos
 DROP TABLE IF EXISTS tab_descuentos; --depende de categorias, marcas, productos
 
 -- Nivel 2: Tablas intermedias
-DROP TABLE IF EXISTS tab_comentarios; --depende de usuarios, productos, lineas, sublineas, categorias
-DROP TABLE IF EXISTS tab_productos; --depende de sublineas, proveedores, marcas
 DROP TABLE IF EXISTS tab_carritos; --depende de usuarios
 DROP TABLE IF EXISTS tab_direcciones_usuario; --depende de usuarios
-DROP TABLE IF EXISTS tab_sublineas; --depende de lineas
-DROP TABLE IF EXISTS tab_lineas; --depende de categorias
+-- Tablas KPIs/dashboards (dependen de tab_usuarios; dropear antes que tab_usuarios)
+DROP TABLE IF EXISTS tab_alertas_kpi;
+DROP TABLE IF EXISTS tab_compartir_dashboards;
+DROP TABLE IF EXISTS tab_widgets_dashboard;
+DROP TABLE IF EXISTS tab_dashboards_usuarios;
+DROP TABLE IF EXISTS tab_valores_kpi_cache;
+DROP TABLE IF EXISTS tab_kpis_maestros;
 DROP TABLE IF EXISTS tab_usuarios; --depende de roles
 
 
 -- Nivel 1: Tablas base (no dependen de otras)
-DROP TABLE IF EXISTS tab_categorias;
+-- Nuevo catálogo (eliminar antes de recrear para script idempotente)
+-- Nombres antiguos (por si la DB viene de antes del prefijo tab_)
+DROP TABLE IF EXISTS tab_product_variant_attributes;
+DROP TABLE IF EXISTS tab_category_attributes;
+DROP TABLE IF EXISTS tab_product_images;
+DROP TABLE IF EXISTS tab_product_variants;
+DROP TABLE IF EXISTS tab_attributes;
+DROP TABLE IF EXISTS tab_products;
+DROP TABLE IF EXISTS tab_categories;
+-- Nombres con prefijo tab_
+DROP TABLE IF EXISTS tab_product_variant_images;
+DROP TABLE IF EXISTS tab_product_variant_combinations;
+DROP TABLE IF EXISTS tab_product_variant_groups;
+DROP TABLE IF EXISTS tab_product_variant_attributes;
+DROP TABLE IF EXISTS tab_category_attributes;
+DROP TABLE IF EXISTS tab_product_images;
+DROP TABLE IF EXISTS tab_product_variants;
+DROP TABLE IF EXISTS tab_attribute_values;
+DROP TABLE IF EXISTS tab_attributes;
+DROP TABLE IF EXISTS tab_products;
+DROP TABLE IF EXISTS tab_categories;
+
 DROP TABLE IF EXISTS tab_marcas;
 DROP TABLE IF EXISTS tab_proveedores;
 DROP TABLE IF EXISTS tab_roles;
@@ -62,51 +90,142 @@ CREATE TABLE IF NOT EXISTS tab_reg_del(
     fec_delete                  TIMESTAMP 	WITHOUT TIME ZONE NOT NULL 
 );
 
--- Tabla Categorias
-CREATE TABLE IF NOT EXISTS tab_categorias (
-    id_categoria                DECIMAL(10),
-    nom_categoria               VARCHAR 		NOT NULL 		UNIQUE,
-    ind_activo                  BOOLEAN 		DEFAULT TRUE,
-    usr_insert                  DECIMAL(10) 		NOT NULL,
-    fec_insert                  TIMESTAMP 		WITHOUT TIME ZONE 	NOT NULL,
-    usr_update                  DECIMAL(10),
-    fec_update                  TIMESTAMP 		WITHOUT TIME ZONE,
-		PRIMARY KEY (id_categoria)
+-- =============================================================
+-- CATÁLOGO MULTI-INDUSTRIA: categorías jerárquicas, productos, variantes, atributos
+-- =============================================================
+
+-- Tabla tab_categories (jerarquía por parent_id; reemplaza tab_categorias, tab_lineas, tab_sublineas)
+CREATE TABLE IF NOT EXISTS tab_categories (
+    id              DECIMAL(10)                 PRIMARY KEY,
+    name            VARCHAR                     NOT NULL,
+    slug            VARCHAR                     NOT NULL UNIQUE,
+    parent_id       DECIMAL(10)                 NULL REFERENCES tab_categories(id),
+    is_active       BOOLEAN                     DEFAULT TRUE,
+    usr_insert      DECIMAL(10)                 NOT NULL,
+    fec_insert      TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    usr_update      DECIMAL(10),
+    fec_update      TIMESTAMP WITHOUT TIME ZONE NULL
+);
+CREATE INDEX IF NOT EXISTS idx_tab_categories_parent_id ON tab_categories(parent_id);
+
+-- Tabla tab_attributes (maestro de atributos dinámicos)
+CREATE TABLE IF NOT EXISTS tab_attributes (
+    id                      DECIMAL(10)                 PRIMARY KEY,
+    name                    VARCHAR                     NOT NULL,
+    data_type               VARCHAR                     NOT NULL CHECK (data_type IN ('text', 'number', 'boolean')),
+    has_predefined_values   BOOLEAN                     DEFAULT FALSE,
+    usr_insert              DECIMAL(10)                 NOT NULL,
+    fec_insert              TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    usr_update              DECIMAL(10),
+    fec_update              TIMESTAMP WITHOUT TIME ZONE NULL
 );
 
--- Tabla Linea
-CREATE TABLE IF NOT EXISTS tab_lineas (
-    id_categoria                DECIMAL(10),
-    id_linea                    DECIMAL(10),
-    FOREIGN KEY (id_categoria)  REFERENCES tab_categorias(id_categoria),
-    nom_linea                   VARCHAR 		NOT NULL UNIQUE,
-    ind_activo                  BOOLEAN 		DEFAULT TRUE,
-    usr_insert                  DECIMAL(10) 		NOT NULL,
-    fec_insert                  TIMESTAMP 		WITHOUT TIME ZONE NOT NULL,
-    usr_update                  DECIMAL(10),
-    fec_update                  TIMESTAMP 		WITHOUT TIME ZONE,
-    PRIMARY KEY (id_linea, id_categoria)
+-- Tabla tab_attribute_values (valores predefinidos por atributo; hex_color para swatches)
+CREATE TABLE IF NOT EXISTS tab_attribute_values (
+    id              DECIMAL(10)                 PRIMARY KEY,
+    attribute_id    DECIMAL(10)                 NOT NULL REFERENCES tab_attributes(id) ON DELETE CASCADE,
+    value           VARCHAR                     NOT NULL,
+    hex_color       VARCHAR                     NULL,
+    sort_order      INT                         DEFAULT 0,
+    is_active       BOOLEAN                     DEFAULT TRUE,
+    -- Auditoría
+    usr_insert      DECIMAL(10)                 NOT NULL,
+    fec_insert      TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    usr_update      DECIMAL(10),
+    fec_update      TIMESTAMP WITHOUT TIME ZONE NULL
 );
+CREATE INDEX IF NOT EXISTS idx_tab_attribute_values_attribute_id ON tab_attribute_values(attribute_id);
 
--- Tabla Sublinea
-CREATE TABLE IF NOT EXISTS tab_sublineas (
-    id_categoria                DECIMAL(10),
-    id_linea                    DECIMAL(10),
-    id_sublinea                 DECIMAL(10),
-    FOREIGN KEY (id_linea, id_categoria)  REFERENCES tab_lineas(id_linea, id_categoria),
-    nom_sublinea                VARCHAR 		NOT NULL,
-    ind_activo                  BOOLEAN 		DEFAULT TRUE,
-    usr_insert                  DECIMAL(10) 		NOT NULL,
-    fec_insert                  TIMESTAMP 		WITHOUT TIME ZONE NOT NULL,
-    usr_update                  DECIMAL(10),
-    fec_update                  TIMESTAMP		WITHOUT TIME ZONE,
-    PRIMARY KEY (id_sublinea, id_linea, id_categoria)
+-- Tabla tab_category_attributes (atributos por categoría; filtrable/requerido)
+CREATE TABLE IF NOT EXISTS tab_category_attributes (
+    id              DECIMAL(10)                 PRIMARY KEY,
+    category_id     DECIMAL(10)                 NOT NULL REFERENCES tab_categories(id),
+    attribute_id    DECIMAL(10)                 NOT NULL REFERENCES tab_attributes(id),
+    is_required     BOOLEAN                     NOT NULL DEFAULT FALSE,
+    is_filterable   BOOLEAN                     NOT NULL DEFAULT FALSE,
+    usr_insert      DECIMAL(10)                 NOT NULL,
+    fec_insert      TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    usr_update      DECIMAL(10),
+    fec_update      TIMESTAMP WITHOUT TIME ZONE NULL,
+    UNIQUE (category_id, attribute_id)
 );
+CREATE INDEX IF NOT EXISTS idx_tab_category_attributes_category_id ON tab_category_attributes(category_id);
+CREATE INDEX IF NOT EXISTS idx_tab_category_attributes_attribute_id ON tab_category_attributes(attribute_id);
+
+-- Tabla tab_products (sin precio ni stock; reemplaza tab_productos)
+CREATE TABLE IF NOT EXISTS tab_products (
+    id              DECIMAL(10)                 PRIMARY KEY,
+    category_id     DECIMAL(10)                 NOT NULL REFERENCES tab_categories(id),
+    name            VARCHAR                     NOT NULL,
+    slug            VARCHAR                     NOT NULL UNIQUE,
+    description     TEXT                        NULL,
+    id_marca        DECIMAL(10)                 NULL,
+    id_proveedor    DECIMAL(10)                 NULL,
+    is_active       BOOLEAN                     DEFAULT TRUE,
+    usr_insert      DECIMAL(10)                 NOT NULL,
+    fec_insert      TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    usr_update      DECIMAL(10),
+    fec_update      TIMESTAMP WITHOUT TIME ZONE NULL
+);
+CREATE INDEX IF NOT EXISTS idx_tab_products_category_id ON tab_products(category_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tab_products_slug ON tab_products(slug);
+
+-- Tablas modelo variant_groups (atributo dominante: un grupo = una galería; combinaciones = stock/SKU)
+CREATE TABLE IF NOT EXISTS tab_product_variant_groups (
+    id                  BIGSERIAL PRIMARY KEY,
+    product_id          DECIMAL(10) NOT NULL REFERENCES tab_products(id) ON DELETE CASCADE,
+    dominant_attribute  VARCHAR(100) NOT NULL,
+    dominant_value     VARCHAR(255) NOT NULL,
+    is_active          BOOLEAN NOT NULL DEFAULT TRUE,
+    usr_insert         DECIMAL(10) NOT NULL DEFAULT 0,
+    fec_insert         TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    usr_update         DECIMAL(10),
+    fec_update         TIMESTAMP WITHOUT TIME ZONE,
+    UNIQUE (product_id, dominant_value)
+);
+CREATE INDEX IF NOT EXISTS idx_tab_product_variant_groups_product_id ON tab_product_variant_groups(product_id);
+CREATE INDEX IF NOT EXISTS idx_tab_product_variant_groups_product_active ON tab_product_variant_groups(product_id, is_active);
+
+CREATE TABLE IF NOT EXISTS tab_product_variant_combinations (
+    id              DECIMAL(10) PRIMARY KEY,
+    group_id        BIGINT NOT NULL REFERENCES tab_product_variant_groups(id) ON DELETE CASCADE,
+    sku             VARCHAR(120) NOT NULL UNIQUE,
+    price           DECIMAL(12,2) NOT NULL CHECK (price >= 0),
+    stock           INT NOT NULL DEFAULT 0 CHECK (stock >= 0),
+    tipo_clasificacion VARCHAR(100) NULL,
+    attributes      JSONB NOT NULL DEFAULT '{}',
+    is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+    usr_insert      DECIMAL(10) NOT NULL DEFAULT 0,
+    fec_insert      TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    usr_update      DECIMAL(10),
+    fec_update      TIMESTAMP WITHOUT TIME ZONE
+);
+CREATE INDEX IF NOT EXISTS idx_tab_product_variant_combinations_group_id ON tab_product_variant_combinations(group_id);
+CREATE INDEX IF NOT EXISTS idx_tab_product_variant_combinations_group_active ON tab_product_variant_combinations(group_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_tab_product_variant_combinations_attributes_gin ON tab_product_variant_combinations USING GIN (attributes);
+
+CREATE TABLE IF NOT EXISTS tab_product_variant_images (
+    id               BIGSERIAL PRIMARY KEY,
+    variant_group_id BIGINT NOT NULL REFERENCES tab_product_variant_groups(id) ON DELETE CASCADE,
+    image_url        VARCHAR NOT NULL,
+    is_primary       BOOLEAN NOT NULL DEFAULT FALSE,
+    sort_order       INT NOT NULL DEFAULT 0,
+    usr_insert      DECIMAL(10) NOT NULL DEFAULT 0,
+    fec_insert      TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+    usr_update      DECIMAL(10),
+    fec_update      TIMESTAMP WITHOUT TIME ZONE
+);
+CREATE INDEX IF NOT EXISTS idx_tab_product_variant_images_variant_group_id ON tab_product_variant_images(variant_group_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_tab_product_variant_images_group_url ON tab_product_variant_images(variant_group_id, image_url);
+
+-- =============================================================
+-- Estadísticas por categoría (referencia a tab_categories)
+-- =============================================================
 
 CREATE TABLE IF NOT EXISTS tab_estadisticas_categorias (
     -- Identificación de la categoría
-    id_categoria                DECIMAL(10) PRIMARY KEY,
-    nom_categoria               VARCHAR(255),
+    category_id                 DECIMAL(10) PRIMARY KEY REFERENCES tab_categories(id),
+    nom_categoria               VARCHAR,
     categoria_activa            BOOLEAN,
     -- Estadísticas agregadas de productos
     total_productos             INT DEFAULT 0,              -- Productos totales en la categoría
@@ -135,9 +254,7 @@ CREATE TABLE IF NOT EXISTS tab_estadisticas_categorias (
     mejor_mes_ventas            VARCHAR(7),                 -- Mejor mes de ventas (YYYY-MM)
     -- Control de actualizaciones
     ultima_actualizacion        TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
-    periodo_calculo             VARCHAR(7),                 -- Período del último cálculo
-    -- FK Constraint
-    FOREIGN KEY (id_categoria) REFERENCES tab_categorias(id_categoria)
+    periodo_calculo             VARCHAR(7)                  -- Período del último cálculo
 );
 
 --Tabla de Roles
@@ -171,6 +288,9 @@ CREATE TABLE IF NOT EXISTS tab_usuarios (
     fec_nacimiento              DATE, 
 --ind_
     ind_activo                  BOOLEAN 		DEFAULT TRUE,
+-- Avatar (perfil: Facehash seed y colores hex)
+    avatar_seed                 VARCHAR(255),
+    avatar_colors               VARCHAR(500),
 -- Campos de auditoría    
     usr_insert                  DECIMAL(10) 		NOT NULL,
     fec_insert                  TIMESTAMP WITHOUT TIME ZONE NOT NULL,
@@ -302,43 +422,22 @@ CREATE TABLE IF NOT EXISTS tab_marcas (
 		PRIMARY KEY(id_marca)
 );
 
--- Tabla Producto
-CREATE TABLE IF NOT EXISTS tab_productos (
-    id_categoria                DECIMAL(10),
-    id_linea                    DECIMAL(10),
-    id_sublinea                 DECIMAL(10),
-    id_producto                 DECIMAL(10),
-    nom_producto                VARCHAR         NOT NULL,
-    spcf_producto               JSONB           NOT NULL,
-    img_producto                JSONB,          -- ✅ JSONB para múltiples imágenes
-    val_precio                  DECIMAL(10)     NOT NULL CHECK (val_precio >= 0),
-    id_proveedor                DECIMAL(10)     NOT NULL,
-    id_marca                    DECIMAL(10)     NOT NULL,
-    FOREIGN KEY (id_proveedor)  REFERENCES tab_proveedores(id_proveedor),
-    FOREIGN KEY (id_categoria, id_linea, id_sublinea)   REFERENCES tab_sublineas(id_categoria, id_linea, id_sublinea),
-    FOREIGN KEY (id_marca)      REFERENCES tab_marcas(id_marca),
-    num_stock                   INT             NOT NULL DEFAULT 0 CHECK (num_stock >= 0),
-    ind_activo                  BOOLEAN         DEFAULT TRUE,
-    usr_insert                  DECIMAL(10)     NOT NULL,
-    fec_insert                  TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    usr_update                  DECIMAL(10),
-    fec_update                  TIMESTAMP WITHOUT TIME ZONE,
-    PRIMARY KEY (id_categoria,id_linea,id_sublinea,id_producto)
-);
+ALTER TABLE tab_products
+    ADD CONSTRAINT fk_tab_products_marca FOREIGN KEY (id_marca) REFERENCES tab_marcas(id_marca);
+ALTER TABLE tab_products
+    ADD CONSTRAINT fk_tab_products_proveedor FOREIGN KEY (id_proveedor) REFERENCES tab_proveedores(id_proveedor);
 
--- Tabla de Órdenes de Compra a Proveedores (después de tab_productos)
+-- Tabla de Órdenes de Compra a Proveedores (referencia a product_id y variant_id)
 CREATE TABLE IF NOT EXISTS tab_orden_compra_proveedor (
     id_orden_compra             DECIMAL(10) DEFAULT NULL,                           -- ID de la orden de compra (PK)
-    id_proveedor                DECIMAL(10) NOT NULL,                  -- Proveedor de la orden
+    id_proveedor                DECIMAL(10) NOT NULL REFERENCES tab_proveedores(id_proveedor),
     fec_orden_compra            DATE NOT NULL DEFAULT CURRENT_DATE,    -- Fecha de la orden
     fec_esperada_entrega        DATE NOT NULL,                         -- Fecha esperada de entrega
     observaciones_orden         VARCHAR,                               -- Observaciones generales
-    id_categoria                DECIMAL(10) NOT NULL,                  -- ID categoría del producto
-    id_linea                    DECIMAL(10) NOT NULL,                  -- ID línea del producto  
-    id_sublinea                 DECIMAL(10) NOT NULL,                  -- ID sublínea del producto
-    id_producto                 DECIMAL(10) NOT NULL,                  -- ID del producto
-    cantidad_solicitada         INT NOT NULL CHECK (cantidad_solicitada > 0),     -- Cantidad pedida
-    cantidad_recibida           INT NOT NULL DEFAULT 0 CHECK (cantidad_recibida >= 0), -- Cantidad recibida
+    product_id                  DECIMAL(10) NOT NULL REFERENCES tab_products(id),       -- Producto
+    variant_id                  DECIMAL(10) NULL REFERENCES tab_product_variant_combinations(id),  -- Combinación (opcional)
+    cantidad_solicitada          INT NOT NULL CHECK (cantidad_solicitada > 0),     -- Cantidad pedida
+    cantidad_recibida            INT NOT NULL DEFAULT 0 CHECK (cantidad_recibida >= 0), -- Cantidad recibida
     costo_unitario              DECIMAL(10,2) NOT NULL CHECK (costo_unitario >= 0),    -- Costo por unidad
     subtotal_producto           DECIMAL(12,2) GENERATED ALWAYS AS (cantidad_solicitada * costo_unitario) STORED, -- Subtotal calculado
     ind_estado_producto         DECIMAL(1) NOT NULL DEFAULT 1 CHECK (ind_estado_producto BETWEEN 1 AND 4), -- Estado del producto
@@ -350,10 +449,6 @@ CREATE TABLE IF NOT EXISTS tab_orden_compra_proveedor (
     fec_update                  TIMESTAMP WITHOUT TIME ZONE,          -- Fecha actualización
     
     PRIMARY KEY (id_orden_compra),
-    FOREIGN KEY (id_proveedor) REFERENCES tab_proveedores(id_proveedor),
-    FOREIGN KEY (id_categoria, id_linea, id_sublinea, id_producto) 
-        REFERENCES tab_productos(id_categoria, id_linea, id_sublinea, id_producto),
-
     CONSTRAINT chk_cantidad_recibida_limite CHECK (cantidad_recibida <= cantidad_solicitada),
     CONSTRAINT chk_fec_esperada_futura CHECK (fec_esperada_entrega >= fec_orden_compra),
     CONSTRAINT chk_recepcion_completa_coherente CHECK (
@@ -367,7 +462,10 @@ CREATE INDEX IF NOT EXISTS idx_orden_compra_proveedor_orden
     ON tab_orden_compra_proveedor(id_orden_compra, id_proveedor);
 
 CREATE INDEX IF NOT EXISTS idx_orden_compra_proveedor_producto 
-    ON tab_orden_compra_proveedor(id_categoria, id_linea, id_sublinea, id_producto);
+    ON tab_orden_compra_proveedor(product_id);
+
+CREATE INDEX IF NOT EXISTS idx_orden_compra_proveedor_variant 
+    ON tab_orden_compra_proveedor(variant_id) WHERE variant_id IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_orden_compra_proveedor_estado 
     ON tab_orden_compra_proveedor(ind_estado_producto, fec_esperada_entrega);
@@ -375,32 +473,26 @@ CREATE INDEX IF NOT EXISTS idx_orden_compra_proveedor_estado
 CREATE INDEX IF NOT EXISTS idx_orden_compra_proveedor_proveedor_fecha 
     ON tab_orden_compra_proveedor(id_proveedor, fec_orden_compra DESC);
 
--- Tabla Comentarios
+-- Tabla Comentarios (referencia a product_id)
 CREATE TABLE IF NOT EXISTS tab_comentarios (
-    id_categoria                DECIMAL(10) 	NOT NULL,
-    id_linea                    DECIMAL(10) 	NOT NULL,
-    id_sublinea                 DECIMAL(10) 	NOT NULL,
-    id_producto                 DECIMAL(10) 	NOT NULL,
-    id_usuario                  DECIMAL(10) 	NOT NULL,
-    id_orden                    DECIMAL(10) 	NOT NULL,  -- ID de la orden asociada al comentario
-    id_comentario              DECIMAL(10) 	NOT NULL,
+    id_comentario               DECIMAL(10) 	NOT NULL,
+    product_id                  DECIMAL(10) 	NOT NULL REFERENCES tab_products(id),
+    id_usuario                  DECIMAL(10) 	NOT NULL REFERENCES tab_usuarios(id_usuario),
+    id_orden                    DECIMAL(10) 	NOT NULL,  -- FK a tab_ordenes (creada después)
     comentario                  VARCHAR 		NOT NULL CHECK (LENGTH(TRIM(comentario)) >= 3),
     calificacion                INT 		NOT NULL CHECK (calificacion >= 1 AND calificacion <= 5),
     ind_activo                  BOOLEAN 		NOT NULL DEFAULT TRUE,
     usr_insert                  DECIMAL(10) 	NOT NULL,
     fec_insert                  TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-	usr_update					DECIMAL(10),
-	fec_update					TIMESTAMP WITHOUT TIME ZONE,
-    FOREIGN KEY (id_usuario) REFERENCES tab_usuarios(id_usuario),
-    FOREIGN KEY (id_orden) REFERENCES tab_ordenes(id_orden),
-    FOREIGN KEY (id_categoria,id_linea,id_sublinea,id_producto) REFERENCES tab_productos(id_categoria, id_linea, id_sublinea, id_producto),
-    PRIMARY KEY (id_comentario,id_categoria,id_linea,id_sublinea,id_producto),
+    usr_update                  DECIMAL(10),
+    fec_update                  TIMESTAMP WITHOUT TIME ZONE,
+    PRIMARY KEY (id_comentario, product_id),
     -- Restricción UNIQUE: Un usuario solo puede hacer una reseña por producto por orden
-    CONSTRAINT uq_comentario_usuario_producto_orden UNIQUE (id_usuario, id_orden, id_categoria, id_linea, id_sublinea, id_producto)
+    CONSTRAINT uq_comentario_usuario_producto_orden UNIQUE (id_usuario, id_orden, product_id)
 );
 
 
--- Tabla principal de descuentos con capacidades avanzadas
+-- Tabla principal de descuentos con capacidades avanzadas (referencia a tab_categories y tab_products)
 CREATE TABLE IF NOT EXISTS tab_descuentos (
     -- Campos originales
     id_descuento                DECIMAL(10) PRIMARY KEY,  --Identificador único del descuento
@@ -410,15 +502,9 @@ CREATE TABLE IF NOT EXISTS tab_descuentos (
     val_porce_descuento         DECIMAL(10,2)   NOT NULL, --Valor del descuento en porcentaje
     val_monto_descuento         DECIMAL(10,0)   NOT NULL, --Valor del descuento en monto fijo
     aplica_a                    VARCHAR(30)     NOT NULL, --Tipo de aplicación del descuento
-    id_categoria                DECIMAL(10)     NULL,    -- Para FK a tab_productos (requerido por FK compuesta)
-    id_linea                    DECIMAL(10)     NULL,    -- Para FK a tab_productos (requerido por FK compuesta)
-    id_sublinea                 DECIMAL(10)     NULL,    -- Para FK a tab_productos (requerido por FK compuesta)
-    
-    id_producto_aplica          DECIMAL(10)     NULL,
-    id_categoria_aplica         DECIMAL(10)     NULL,
+    category_id_aplica          DECIMAL(10)     NULL REFERENCES tab_categories(id) ON DELETE SET NULL,
+    product_id_aplica           DECIMAL(10)     NULL REFERENCES tab_products(id) ON DELETE SET NULL,
     id_marca_aplica             DECIMAL(10)     NULL,
-    id_linea_aplica             DECIMAL(10)     NULL,
-    id_sublinea_aplica          DECIMAL(10)     NULL,
     min_valor_pedido            DECIMAL(10,2)   DEFAULT 0, --Monto mínimo de pedido para aplicar el descuento
     ind_es_para_cumpleanos      BOOLEAN         DEFAULT FALSE, --TRUE = el descuento es para cumpleaños, FALSE = el descuento no es para cumpleaños
     fec_inicio                  DATE            NULL,    --Fecha de inicio (NULL = plantilla canjeable sin límite)
@@ -453,13 +539,11 @@ CREATE TABLE IF NOT EXISTS tab_descuentos (
         (tipo_calculo = TRUE AND val_porce_descuento >= 0 AND val_porce_descuento <= 100) OR 
         (tipo_calculo = FALSE AND val_monto_descuento >= 0)
     ),
-    CONSTRAINT chk_fk_producto_condicional      CHECK (id_producto_aplica IS NULL OR aplica_a = 'producto_especifico'),
-    CONSTRAINT chk_fk_categoria_condicional     CHECK (id_categoria_aplica IS NULL OR aplica_a = 'categoria_especifica'),
+    CONSTRAINT chk_fk_producto_condicional      CHECK (product_id_aplica IS NULL OR aplica_a = 'producto_especifico'),
+    CONSTRAINT chk_fk_categoria_condicional     CHECK (category_id_aplica IS NULL OR aplica_a = 'categoria_especifica'),
     CONSTRAINT chk_fk_marca_condicional         CHECK (id_marca_aplica IS NULL OR aplica_a = 'marca_especifica'),
-    CONSTRAINT chk_fk_linea_condicional         CHECK (id_linea_aplica IS NULL OR aplica_a = 'linea_especifica'),
-    CONSTRAINT chk_fk_sublinea_condicional      CHECK (id_sublinea_aplica IS NULL OR aplica_a = 'sublinea_especifica'),
     
-    -- Nuevos constraints
+    -- Nuevos constraints (linea_especifica y sublinea_especifica deprecados; usar categoria)
     CONSTRAINT chk_aplica_a                     CHECK (aplica_a IN (
         'total_pedido', 
         'producto_especifico', 
@@ -490,21 +574,8 @@ CREATE TABLE IF NOT EXISTS tab_descuentos (
         (ind_canjeable_puntos = TRUE AND costo_puntos_canje IS NOT NULL AND costo_puntos_canje > 0)
     ),
     
-    -- Foreign Keys compuestas consistentes
-    FOREIGN KEY (id_categoria, id_linea, id_sublinea, id_producto_aplica) 
-        REFERENCES tab_productos(id_categoria, id_linea, id_sublinea, id_producto) 
-        ON DELETE SET NULL,
-    FOREIGN KEY (id_categoria_aplica) 
-        REFERENCES tab_categorias(id_categoria) 
-        ON DELETE SET NULL,
     FOREIGN KEY (id_marca_aplica) 
         REFERENCES tab_marcas(id_marca) 
-        ON DELETE SET NULL,
-    FOREIGN KEY (id_categoria, id_linea_aplica) 
-        REFERENCES tab_lineas(id_categoria, id_linea) 
-        ON DELETE SET NULL,
-    FOREIGN KEY (id_categoria, id_linea, id_sublinea_aplica) 
-        REFERENCES tab_sublineas(id_categoria, id_linea, id_sublinea) 
         ON DELETE SET NULL
 );
 
@@ -578,8 +649,14 @@ CREATE TABLE IF NOT EXISTS tab_ordenes (
     fec_update                  TIMESTAMP WITHOUT TIME ZONE,
     -- Constraint para validar coherencia de totales
     CONSTRAINT chk_totales_orden CHECK (val_total_pedido = val_total_productos - val_total_descuentos),
-	PRIMARY KEY (id_orden)
+    PRIMARY KEY (id_orden)
 );
+
+-- FK tab_comentarios -> tab_ordenes (tab_ordenes ya existe)
+ALTER TABLE tab_comentarios
+    DROP CONSTRAINT IF EXISTS fk_comentarios_orden;
+ALTER TABLE tab_comentarios
+    ADD CONSTRAINT fk_comentarios_orden FOREIGN KEY (id_orden) REFERENCES tab_ordenes(id_orden);
 
 -- 3. Tabla para Pagos/Transacciones (Actualizada para Wompi Checkout Widget)
 CREATE TABLE IF NOT EXISTS tab_pagos (
@@ -654,65 +731,48 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_pagos_provider_transaction_unique
     WHERE provider_transaction_id IS NOT NULL;
 
 
--- Tabla de productos de la orden
+-- Tabla de productos de la orden (referencia a combination id)
 CREATE TABLE IF NOT EXISTS tab_orden_productos (
     id_orden_producto           DECIMAL(10),
-    -- AÑADIDO: Columnas para la FK compuesta a tab_productos
-    id_categoria_producto       DECIMAL(10) 	NOT NULL,
-    id_linea_producto           DECIMAL(10) 	NOT NULL,
-    id_sublinea_producto        DECIMAL(10) 	NOT NULL,
-    id_producto                 DECIMAL(10) 	NOT NULL, 
-    id_orden                    DECIMAL(10) 	NOT NULL,
-    FOREIGN KEY (id_orden)      REFERENCES tab_ordenes(id_orden),
-    -- MODIFICADO: FK a tab_productos
-    FOREIGN KEY (id_categoria_producto, id_linea_producto, id_sublinea_producto, id_producto) 
-        REFERENCES tab_productos(id_categoria, id_linea, id_sublinea, id_producto),
+    id_orden                    DECIMAL(10) 	NOT NULL REFERENCES tab_ordenes(id_orden),
+    variant_id                  DECIMAL(10) 	NOT NULL REFERENCES tab_product_variant_combinations(id),
     cant_producto               INT 			NOT NULL CHECK (cant_producto > 0),
     precio_unitario_orden       DECIMAL(10,0) 	NOT NULL CHECK (precio_unitario_orden >= 0),
     subtotal                    DECIMAL(10,0) 	NOT NULL CHECK (subtotal >= 0),
-    usr_insert                  DECIMAL(10) 		NOT NULL,
+    opciones_elegidas           JSONB 			NOT NULL DEFAULT '{}'::JSONB,
+    usr_insert                  DECIMAL(10) 	NOT NULL,
     fec_insert                  TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     usr_update                  DECIMAL(10),
     fec_update                  TIMESTAMP WITHOUT TIME ZONE,
-    -- MODIFICADO: Restricción UNIQUE para incluir todos los componentes del producto
-    CONSTRAINT uq_orden_producto UNIQUE (id_orden, id_categoria_producto, id_linea_producto, id_sublinea_producto, id_producto),
-    -- Constraint para validar coherencia de subtotal
+    CONSTRAINT uq_orden_producto UNIQUE (id_orden, variant_id),
     CONSTRAINT chk_subtotal_orden_producto CHECK (subtotal = cant_producto * precio_unitario_orden),
-	PRIMARY KEY(id_orden_producto)
+    PRIMARY KEY(id_orden_producto)
 );
+CREATE INDEX IF NOT EXISTS idx_orden_productos_orden ON tab_orden_productos(id_orden);
+CREATE INDEX IF NOT EXISTS idx_orden_productos_variant_id ON tab_orden_productos(variant_id);
 
--- Tabla Carrito Productos
+-- Tabla Carrito Productos (referencia a combination id)
 CREATE TABLE IF NOT EXISTS tab_carrito_productos (
     id_carrito_producto         SERIAL,
-    id_carrito                  INT 			NOT NULL,
-    -- AÑADIDO: Columnas para la FK compuesta a tab_productos
-    id_categoria_producto       DECIMAL(10) 	NOT NULL,
-    id_linea_producto           DECIMAL(10) 	NOT NULL,
-    id_sublinea_producto        DECIMAL(10) 	NOT NULL,
-    id_producto                 DECIMAL(10) 	NOT NULL,
+    id_carrito                  INT 			NOT NULL REFERENCES tab_carritos(id_carrito),
+    variant_id                  DECIMAL(10) 	NOT NULL REFERENCES tab_product_variant_combinations(id),
     cantidad                    INT 			NOT NULL DEFAULT 1 CHECK (cantidad > 0),
     precio_unitario_carrito     DECIMAL(7,0) 	NOT NULL CHECK (precio_unitario_carrito >= 0),
-    FOREIGN KEY (id_carrito)    REFERENCES tab_carritos(id_carrito),
-    -- MODIFICADO: FK a tab_productos
-    FOREIGN KEY (id_categoria_producto, id_linea_producto, id_sublinea_producto, id_producto) 
-    REFERENCES tab_productos(id_categoria, id_linea, id_sublinea, id_producto),
-    -- MODIFICADO: Restricción UNIQUE
-    CONSTRAINT uq_carrito_producto UNIQUE (id_carrito, id_categoria_producto, id_linea_producto, id_sublinea_producto, id_producto),
-	usr_insert                  DECIMAL(10) 		NOT NULL,
+    opciones_elegidas           JSONB 			NOT NULL DEFAULT '{}'::JSONB,
+    usr_insert                  DECIMAL(10) 	NOT NULL,
     fec_insert                  TIMESTAMP 		WITHOUT TIME ZONE NOT NULL,
     usr_update                  DECIMAL(10),
     fec_update                  TIMESTAMP 		WITHOUT TIME ZONE,
-		PRIMARY KEY(id_carrito_producto)
+    CONSTRAINT uq_carrito_producto UNIQUE (id_carrito, variant_id),
+    PRIMARY KEY(id_carrito_producto)
 );
+CREATE INDEX IF NOT EXISTS idx_carrito_productos_carrito ON tab_carrito_productos(id_carrito);
+CREATE INDEX IF NOT EXISTS idx_carrito_productos_variant_id ON tab_carrito_productos(variant_id);
 
--- Tabla Movimientos de Inventario
+-- Tabla Movimientos de Inventario (referencia a combination id)
 CREATE TABLE IF NOT EXISTS tab_movimientos_inventario (
     id_movimiento               SERIAL,
-    -- AÑADIDO: Columnas para la FK compuesta a tab_productos
-    id_categoria_producto       DECIMAL(10) 	NOT NULL,
-    id_linea_producto           DECIMAL(10) 	NOT NULL,
-    id_sublinea_producto        DECIMAL(10) 	NOT NULL,
-    id_producto                 DECIMAL(10) 	NOT NULL,
+    variant_id                  DECIMAL(10) 	NOT NULL REFERENCES tab_product_variant_combinations(id),
     tipo_movimiento             VARCHAR(25) 	NOT NULL CHECK (tipo_movimiento IN ('entrada_compra', 'salida_venta', 'ajuste_incremento', 'ajuste_decremento', 'devolucion_usuario', 'devolucion_proveedor', 'inventario_inicial')),
     cantidad                    INT 			NOT NULL CHECK (cantidad >= 0),
     costo_unitario_movimiento   DECIMAL(10,2) 	DEFAULT NULL,
@@ -721,62 +781,43 @@ CREATE TABLE IF NOT EXISTS tab_movimientos_inventario (
     stock_actual   				INT 			NULL,
     saldo_costo_total_actual_mov DECIMAL(12,2) NULL,
     costo_promedio_ponderado_mov DECIMAL(10,2) NULL,
-    id_orden_usuario_detalle    DECIMAL(10) 	NULL,
-    id_orden_compra             DECIMAL(10) 	NULL,
+    id_orden_usuario_detalle    DECIMAL(10) 	NULL REFERENCES tab_orden_productos(id_orden_producto),
+    id_orden_compra             DECIMAL(10) 	NULL REFERENCES tab_orden_compra_proveedor(id_orden_compra),
     descripcion                 VARCHAR,
     observaciones               VARCHAR,
-    usr_insert                  DECIMAL(10) 		NOT NULL,
+    usr_insert                  DECIMAL(10) 	NOT NULL,
     fec_insert                  TIMESTAMP WITHOUT TIME ZONE NOT NULL,
     usr_update                  DECIMAL(10),
     fec_update                  TIMESTAMP WITHOUT TIME ZONE,
-    -- MODIFICADO: FK a tab_productos
-    FOREIGN KEY (id_categoria_producto, id_linea_producto, id_sublinea_producto, id_producto) 
-        REFERENCES tab_productos(id_categoria, id_linea, id_sublinea, id_producto),
-    FOREIGN KEY (id_orden_usuario_detalle) REFERENCES tab_orden_productos(id_orden_producto),
-    FOREIGN KEY (id_orden_compra) REFERENCES tab_orden_compra_proveedor(id_orden_compra),
-		PRIMARY KEY (id_movimiento)
+    PRIMARY KEY (id_movimiento)
 );
+CREATE INDEX IF NOT EXISTS idx_movimientos_inventario_variant_id ON tab_movimientos_inventario(variant_id);
 
 CREATE TABLE IF NOT EXISTS tab_estadisticas_productos (
-    -- Identificación del producto (FK compuesta)
-    id_categoria                DECIMAL(10) NOT NULL,
-    id_linea                    DECIMAL(10) NOT NULL,
-    id_sublinea                 DECIMAL(10) NOT NULL,
-    id_producto                 DECIMAL(10) NOT NULL,
-    nom_producto                VARCHAR(255),
+    product_id                  DECIMAL(10) NOT NULL PRIMARY KEY REFERENCES tab_products(id),
+    nom_producto                VARCHAR,
     precio_actual               DECIMAL(10,2),
     stock_actual                INT,
     producto_activo             BOOLEAN,
-    -- Estadísticas de ventas
-    total_ordenes               INT DEFAULT 0,              -- Número total de órdenes que incluyen este producto
-    total_unidades_vendidas     INT DEFAULT 0,              -- Cantidad total de unidades vendidas
-    total_ingresos              DECIMAL(15,2) DEFAULT 0,    -- Ingresos totales generados
-    -- Estadísticas temporales
-    ventas_mes_actual           INT DEFAULT 0,              -- Unidades vendidas en el mes actual
-    ingresos_mes_actual         DECIMAL(12,2) DEFAULT 0,    -- Ingresos del mes actual
-    ventas_mes_anterior         INT DEFAULT 0,              -- Unidades vendidas en el mes anterior
-    ingresos_mes_anterior       DECIMAL(12,2) DEFAULT 0,    -- Ingresos del mes anterior
-    -- Estadísticas de tendencias
-    promedio_venta_mensual      DECIMAL(8,2) DEFAULT 0,     -- Promedio de unidades vendidas por mes
-    promedio_ingreso_mensual    DECIMAL(12,2) DEFAULT 0,    -- Promedio de ingresos por mes
-    precio_promedio_venta       DECIMAL(10,2) DEFAULT 0,    -- Precio promedio de venta histórico
-    -- Fechas importantes
-    fecha_primera_venta         DATE,                       -- Primera vez que se vendió el producto
-    fecha_ultima_venta          DATE,                       -- Última vez que se vendió el producto
-    mes_mejor_venta             VARCHAR(7),                 -- Mes con mejores ventas (YYYY-MM)
-    mejor_venta_unidades        INT DEFAULT 0,              -- Máximo de unidades vendidas en un mes
-    -- Análisis de rotación
-    dias_desde_ultima_venta     INT,                        -- Días desde la última venta
-    rotacion_inventario         DECIMAL(5,2) DEFAULT 0,     -- Veces que rota el inventario al año
-    nivel_rotacion              VARCHAR(20),                -- ALTA, MEDIA, BAJA, SIN_VENTAS
-    -- Control de actualizaciones
+    total_ordenes               INT DEFAULT 0,
+    total_unidades_vendidas     INT DEFAULT 0,
+    total_ingresos              DECIMAL(15,2) DEFAULT 0,
+    ventas_mes_actual           INT DEFAULT 0,
+    ingresos_mes_actual         DECIMAL(12,2) DEFAULT 0,
+    ventas_mes_anterior         INT DEFAULT 0,
+    ingresos_mes_anterior       DECIMAL(12,2) DEFAULT 0,
+    promedio_venta_mensual      DECIMAL(8,2) DEFAULT 0,
+    promedio_ingreso_mensual    DECIMAL(12,2) DEFAULT 0,
+    precio_promedio_venta       DECIMAL(10,2) DEFAULT 0,
+    fecha_primera_venta         DATE,
+    fecha_ultima_venta          DATE,
+    mes_mejor_venta             VARCHAR(7),
+    mejor_venta_unidades        INT DEFAULT 0,
+    dias_desde_ultima_venta     INT,
+    rotacion_inventario         DECIMAL(5,2) DEFAULT 0,
+    nivel_rotacion              VARCHAR(20),
     ultima_actualizacion        TIMESTAMP WITHOUT TIME ZONE DEFAULT NOW(),
-    periodo_calculo             VARCHAR(7),                 -- Período del último cálculo (YYYY-MM)
-    -- FK Constraint
-    FOREIGN KEY (id_categoria, id_linea, id_sublinea, id_producto) 
-        REFERENCES tab_productos(id_categoria, id_linea, id_sublinea, id_producto),
-    -- PK
-    PRIMARY KEY (id_categoria, id_linea, id_sublinea, id_producto)
+    periodo_calculo             VARCHAR(7)
 );
 
 --Tabla de CMS
@@ -792,27 +833,20 @@ CREATE TABLE IF NOT EXISTS tab_cms_content (
     fec_update TIMESTAMP WITHOUT TIME ZONE
 );
 
--- Tabla de Favoritos (Compatible con funciones CRUD existentes)
+-- Tabla de Favoritos (referencia a product_id)
 CREATE TABLE IF NOT EXISTS tab_favoritos (
-    id_usuario                  DECIMAL(10) 	NOT NULL,
-    -- Columnas para la FK compuesta a tab_productos
-    id_categoria_producto       DECIMAL(10) 	NOT NULL,
-    id_linea_producto           DECIMAL(10) 	NOT NULL,
-    id_sublinea_producto        DECIMAL(10) 	NOT NULL,
-    id_producto                 DECIMAL(10) 	NOT NULL,
+    id_usuario                  DECIMAL(10) 	NOT NULL REFERENCES tab_usuarios(id_usuario),
+    product_id                  DECIMAL(10) 	NOT NULL REFERENCES tab_products(id),
     usr_insert                  DECIMAL(10) NOT NULL,
     fec_insert                  TIMESTAMP WITHOUT TIME ZONE NOT NULL,
-    FOREIGN KEY (id_usuario) REFERENCES tab_usuarios(id_usuario),
-    FOREIGN KEY (id_categoria_producto, id_linea_producto, id_sublinea_producto, id_producto) REFERENCES tab_productos(id_categoria, id_linea, id_sublinea, id_producto),
-    PRIMARY KEY (id_usuario, id_categoria_producto, id_linea_producto, id_sublinea_producto, id_producto)
+    PRIMARY KEY (id_usuario, product_id)
 );
 
--- Índices para optimizar consultas de favoritos
 CREATE INDEX IF NOT EXISTS idx_favoritos_usuario_fecha 
     ON tab_favoritos(id_usuario, fec_insert DESC);
 
 CREATE INDEX IF NOT EXISTS idx_favoritos_producto 
-    ON tab_favoritos(id_categoria_producto, id_linea_producto, id_sublinea_producto, id_producto);
+    ON tab_favoritos(product_id);
 
 CREATE INDEX IF NOT EXISTS idx_favoritos_fecha 
     ON tab_favoritos(fec_insert DESC);

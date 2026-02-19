@@ -38,6 +38,16 @@ export type GenericTableProps<TData, TValue> = {
   actionsHeader?: React.ReactNode
   /** Clave única por fila (evita duplicados cuando id_linea/id_sublinea se repiten por categoría) */
   getRowId?: (row: TData) => string
+  /** Paginación en servidor: los datos ya son la página actual, total de páginas y página actual vienen de fuera */
+  manualPagination?: boolean
+  /** Total de páginas (solo con manualPagination) */
+  pageCount?: number
+  /** Índice de página actual 0-based (solo con manualPagination) */
+  pageIndex?: number
+  /** Al cambiar de página (solo con manualPagination); recibe índice 0-based */
+  onPageChange?: (pageIndex: number) => void
+  /** Al cambiar tamaño de página (solo con manualPagination) */
+  onPageSizeChange?: (pageSize: number) => void
 }
 
 function DataTable<TData, TValue>({
@@ -50,12 +60,21 @@ function DataTable<TData, TValue>({
   actions,
   actionsHeader = 'Acciones',
   getRowId,
+  manualPagination = false,
+  pageCount: controlledPageCount,
+  pageIndex: controlledPageIndex = 0,
+  onPageChange,
+  onPageSizeChange,
 }: GenericTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
-  const [pagination, setPagination] = React.useState<PaginationState>({
+  const [internalPagination, setInternalPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize,
   })
+
+  const pagination = manualPagination
+    ? { pageIndex: controlledPageIndex, pageSize }
+    : internalPagination
 
   const table = useReactTable({
     data,
@@ -63,15 +82,17 @@ function DataTable<TData, TValue>({
     getRowId: getRowId as (row: TData, index: number) => string,
     state: { sorting, pagination },
     onSortingChange: setSorting,
-    onPaginationChange: (updater) => {
-      setPagination((prev) => {
+    onPaginationChange: manualPagination ? undefined : (updater) => {
+      setInternalPagination((prev) => {
         const next = typeof updater === 'function' ? updater(prev) : prev
         return next ?? prev
       })
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    ...(manualPagination
+      ? { manualPagination: true, pageCount: controlledPageCount ?? 1 }
+      : { getPaginationRowModel: getPaginationRowModel() }),
   })
 
   return (
@@ -142,8 +163,12 @@ function DataTable<TData, TValue>({
             value={String(table.getState().pagination.pageSize)}
             onValueChange={(v) => {
               const size = Number(v)
-              table.setPageSize(size)
-              table.setPageIndex(0)
+              if (manualPagination && onPageSizeChange) {
+                onPageSizeChange(size)
+              } else {
+                table.setPageSize(size)
+                table.setPageIndex(0)
+              }
             }}
           >
             <SelectTrigger className="h-8 w-[72px]">
@@ -165,7 +190,13 @@ function DataTable<TData, TValue>({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.previousPage()}
+            onClick={() => {
+              if (manualPagination && onPageChange) {
+                onPageChange(table.getState().pagination.pageIndex - 1)
+              } else {
+                table.previousPage()
+              }
+            }}
             disabled={!table.getCanPreviousPage()}
           >
             <ChevronLeft className="mr-1" />
@@ -174,7 +205,13 @@ function DataTable<TData, TValue>({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => table.nextPage()}
+            onClick={() => {
+              if (manualPagination && onPageChange) {
+                onPageChange(table.getState().pagination.pageIndex + 1)
+              } else {
+                table.nextPage()
+              }
+            }}
             disabled={!table.getCanNextPage()}
           >
             Siguiente

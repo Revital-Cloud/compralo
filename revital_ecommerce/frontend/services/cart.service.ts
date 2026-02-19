@@ -27,14 +27,19 @@ export interface CartResponse {
   message: string;
 }
 
+/**
+ * Crear ítem en el carrito.
+ * tab_carrito_productos usa variant_id; la API acepta variant_id (preferido) o id_producto
+ * (en ese caso usa la primera variante activa). Sin línea/sublínea.
+ */
 export interface CartProductCreate {
-  id_categoria_producto: number;
-  id_linea_producto: number;
-  id_sublinea_producto: number;
+  /** ID de variante (tab_product_variants). Preferido. */
+  variant_id?: number;
+  /** ID de producto (tab_products.id). Si no hay variant_id, se usa la primera variante activa. */
   id_producto: number;
   cantidad: number;
   precio_unitario_carrito: number;
-  /** Opciones que el cliente eligió (ej. { color: "rojo", talla: "39" }). Genérico para cualquier producto. */
+  stock_disponible?: number;
   opciones_elegidas?: Record<string, string>;
   id_usuario?: number;
   session_id?: string;
@@ -71,11 +76,10 @@ export interface CartTotalResponse {
   mensaje_resumen: string;
 }
 
+/** Detalle de ítem en el carrito (respuesta API). tab_carrito_productos usa variant_id; sin línea/sublínea. */
 export interface CartProductDetail {
   id_carrito_producto: number;
-  id_categoria_producto?: number;
-  id_linea_producto?: number;
-  id_sublinea_producto?: number;
+  variant_id?: number;
   id_producto: number;
   nombre_producto: string;
   descripcion_producto?: string;
@@ -85,11 +89,12 @@ export interface CartProductDetail {
   imagen_url?: string;
   categoria?: string;
   marca?: string;
-  linea?: string;
-  sublinea?: string;
   stock_disponible?: number;
-  /** Opciones elegidas por el cliente (ej. { color: "rojo", talla: "39" }). */
   opciones_elegidas?: Record<string, string>;
+  /** Slug del producto para enlace al detalle (si el backend lo envía). */
+  product_slug?: string;
+  /** category_id (tab_products) para "También te puede gustar". */
+  category_id?: number;
 }
 
 

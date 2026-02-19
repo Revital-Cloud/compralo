@@ -5,7 +5,7 @@ import { Button } from "@/components/ui"
 import { Badge } from "@/components/ui"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import type { Product } from "@/types"
+import type { Product } from "@/types/product"
 import Image from "next/image"
 import { getProductImageUrl } from "@/utils/image-helpers"
 import { useFavorites } from "@/hooks/use-favorites"
@@ -45,55 +45,13 @@ const ProductList: React.FC<ProductListProps> = ({
     onAddToCart?.(productId)
   }
 
-  const handleToggleFavorite = async (e: React.MouseEvent, productKey: string) => {
+  const handleToggleFavorite = async (e: React.MouseEvent, product: { id: string | number }) => {
     e.preventDefault()
     e.stopPropagation()
-    
-    // Parsear el key compuesto: "categoria-linea-sublinea-producto"
-    const [cat, lin, sub, prod] = productKey.split('-')
-    
-    const product = products.find(p => 
-      p.id_categoria.toString() === cat &&
-      p.id_linea.toString() === lin &&
-      p.id_sublinea.toString() === sub &&
-      p.id_producto.toString() === prod
-    )
-    
-    if (!product) {
-      console.error('❌ Producto no encontrado:', productKey)
-      return
-    }
-
-    // Convertir strings a numbers explícitamente
-    const id_categoria = Number(product.id_categoria)
-    const id_linea = Number(product.id_linea)
-    const id_sublinea = Number(product.id_sublinea)
-    const id_producto = Number(product.id_producto)
-
-    console.log('🔍 ProductList - IDs del producto:', {
-      id_categoria,
-      id_linea,
-      id_sublinea,
-      id_producto,
-      nombre: product.nom_producto
-    })
-
-    const isFavorite = isProductFavorite(
-      id_categoria,
-      id_linea,
-      id_sublinea,
-      id_producto
-    )
-
-    await toggleFavorite(
-      id_categoria,
-      id_linea,
-      id_sublinea,
-      id_producto,
-      isFavorite
-    )
-
-    onToggleFavorite?.(product.id_producto.toString())
+    const id = Number(product.id)
+    const isFavorite = isProductFavorite(id)
+    await toggleFavorite(id, isFavorite)
+    onToggleFavorite?.(product.id.toString())
   }
 
   if (loading) {
@@ -119,7 +77,12 @@ const ProductList: React.FC<ProductListProps> = ({
     <div className="space-y-3">
       {products.map((product) => {
         const applicableDiscount = discounts ? getApplicableDiscount(product, discounts) : null
-        const originalPrice = parseFloat(product.val_precio?.toString() || '0')
+        const priceMin = parseFloat(String((product as any).price_min ?? product.val_precio ?? 0)) || 0
+        const priceMaxRaw = (product as any).price_max
+        const priceMax = priceMaxRaw != null ? parseFloat(String(priceMaxRaw)) || priceMin : priceMin
+        const showPriceRange = !Number.isNaN(priceMin) && !Number.isNaN(priceMax) && priceMin !== priceMax
+
+        const originalPrice = priceMin
         const discountedPrice = applicableDiscount
           ? calculateDiscountedPrice(originalPrice, applicableDiscount)
           : originalPrice
@@ -128,21 +91,25 @@ const ProductList: React.FC<ProductListProps> = ({
           ? calculateDiscountPercentage(originalPrice, discountedPrice)
           : 0
 
+        const rangeDiscountedMin = showPriceRange && applicableDiscount ? calculateDiscountedPrice(priceMin, applicableDiscount) : priceMin
+        const rangeDiscountedMax = showPriceRange && applicableDiscount ? calculateDiscountedPrice(priceMax, applicableDiscount) : priceMax
+        const rangeHasDiscount = showPriceRange && applicableDiscount != null && (rangeDiscountedMin < priceMin || rangeDiscountedMax < priceMax)
+
         return (
         <div
-          key={`${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
+          key={product.slug ?? String(product.id)}
           className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-all duration-200 overflow-hidden"
         >
           <div className="flex items-center p-4">
             {/* Product Image */}
             <Link
-              href={`/products/${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
+              href={`/products/${product.slug ?? product.id}`}
               className="relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden group"
             >
               
               <Image
-                src={getProductImageUrl(product.img_producto)}
-                alt={product.nom_producto}
+                src={getProductImageUrl((product as any).image_url ?? product.img_producto)}
+                alt={product.name}
                 width={80}
                 height={80}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
@@ -154,60 +121,75 @@ const ProductList: React.FC<ProductListProps> = ({
               {/* Mobile Layout */}
               <div className="block md:hidden">
                 <Link
-                  href={`/products/${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
+                  href={`/products/${product.slug ?? product.id}`}
                   className="block group"
                 >
                   <h3 className="font-medium text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm">
-                    {product.nom_producto}
+                    {product.name}
                   </h3>
                 </Link>
                 
                 <div className="flex items-center justify-between mt-2">
                     <div className="flex flex-col gap-1">
-                     <div className="flex items-center gap-2 flex-wrap">
-                       <span className="font-bold text-lg text-gray-900 dark:text-white">
-                         {formatPrice(discountedPrice)}
-                       </span>
-                       {hasDiscount && (
-                         <>
-                           <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
-                             {formatPrice(originalPrice)}
-                           </span>
-                           <Badge variant="destructive" className="text-xs">{discountPercentage}% OFF</Badge>
-                         </>
-                       )}
-                     </div>
+                      {showPriceRange ? (
+                        <>
+                          <div className="flex items-baseline gap-2 flex-wrap">
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Desde</span>
+                            <span className="font-bold text-lg text-gray-900 dark:text-white">
+                              {formatPrice(rangeHasDiscount ? rangeDiscountedMin : priceMin)}
+                              <span className="mx-1 font-normal text-gray-500 dark:text-gray-400">–</span>
+                              {formatPrice(rangeHasDiscount ? rangeDiscountedMax : priceMax)}
+                            </span>
+                            {rangeHasDiscount && (
+                              <Badge variant="destructive" className="text-xs font-semibold px-2 py-0.5">-{discountPercentage}%</Badge>
+                            )}
+                          </div>
+                          {rangeHasDiscount && (
+                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
+                              Desde {formatPrice(priceMin)} – {formatPrice(priceMax)}
+                            </span>
+                          )}
+                        </>
+                      ) : hasDiscount ? (
+                        <>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-lg text-gray-900 dark:text-white">
+                              {formatPrice(discountedPrice)}
+                            </span>
+                            <Badge variant="destructive" className="text-xs font-semibold px-2 py-0.5">
+                              -{discountPercentage}%
+                            </Badge>
+                          </div>
+                          <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
+                            {formatPrice(originalPrice)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="font-bold text-lg text-gray-900 dark:text-white">
+                          {formatPrice(discountedPrice)}
+                        </span>
+                      )}
                    </div>
                   
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={(e) => handleToggleFavorite(e, `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`)}
+onClick={(e) => handleToggleFavorite(e, product)}
+                    className={cn(
+                      "w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center transition-all",
+                      "cursor-pointer hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:scale-110",
+                      isProductFavorite(Number(product.id)) && "border-red-500 bg-red-50 dark:bg-red-900/20"
+                    )}
+                  >
+                    <Heart 
                       className={cn(
-                        "w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center transition-all",
-                        "cursor-pointer hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:scale-110",
-                        isProductFavorite(
-                          Number(product.id_categoria),
-                          Number(product.id_linea),
-                          Number(product.id_sublinea),
-                          Number(product.id_producto)
-                        ) && "border-red-500 bg-red-50 dark:bg-red-900/20"
+                        "w-3 h-3 transition-all",
+                        isProductFavorite(Number(product.id)) ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-500"
                       )}
-                    >
-                      <Heart 
-                        className={cn(
-                          "w-3 h-3 transition-all",
-                          isProductFavorite(
-                            Number(product.id_categoria),
-                            Number(product.id_linea),
-                            Number(product.id_sublinea),
-                            Number(product.id_producto)
-                          ) ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-500"
-                        )}
                       />
                     </button>
                     
                     <Button
-                      onClick={(e) => handleAddToCart(e, `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`)}
+                      onClick={(e) => handleAddToCart(e, product.slug ?? String(product.id))}
                       size="sm"
                       className="bg-black text-white hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-xs"
                     >
@@ -243,11 +225,11 @@ const ProductList: React.FC<ProductListProps> = ({
                 {/* Product Name & Rating */}
                 <div className="col-span-5">
                   <Link
-                    href={`/products/${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
+                    href={`/products/${product.slug ?? product.id}`}
                     className="block group"
                   >
                     <h3 className="font-medium text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors text-sm">
-                      {product.nom_producto}
+                      {product.name}
                     </h3>
                   </Link>
                   
@@ -274,53 +256,66 @@ const ProductList: React.FC<ProductListProps> = ({
 
                 {/* Price */}
                 <div className="col-span-3">
-                  <div className="flex flex-col items-start gap-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-lg text-gray-900 dark:text-white">
-                        {formatPrice(discountedPrice)}
-                      </span>
-                      {hasDiscount && (
-                        <>
-                          <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
-                            {formatPrice(originalPrice)}
-                          </span>
-                          <Badge variant="destructive" className="text-xs">{discountPercentage}% OFF</Badge>
-                        </>
+                  {showPriceRange ? (
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Desde</span>
+                        <span className="font-bold text-lg text-gray-900 dark:text-white">
+                          {formatPrice(rangeHasDiscount ? rangeDiscountedMin : priceMin)}
+                          <span className="mx-1 font-normal text-gray-500 dark:text-gray-400">–</span>
+                          {formatPrice(rangeHasDiscount ? rangeDiscountedMax : priceMax)}
+                        </span>
+                        {rangeHasDiscount && (
+                          <Badge variant="destructive" className="text-xs font-semibold px-2 py-0.5">-{discountPercentage}%</Badge>
+                        )}
+                      </div>
+                      {rangeHasDiscount && (
+                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
+                          Desde {formatPrice(priceMin)} – {formatPrice(priceMax)}
+                        </span>
                       )}
                     </div>
-                  </div>
+                  ) : hasDiscount ? (
+                    <div className="flex flex-col items-start gap-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-lg text-gray-900 dark:text-white">
+                          {formatPrice(discountedPrice)}
+                        </span>
+                        <Badge variant="destructive" className="text-xs font-semibold px-2 py-0.5">
+                          -{discountPercentage}%
+                        </Badge>
+                      </div>
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
+                        {formatPrice(originalPrice)}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="font-bold text-lg text-gray-900 dark:text-white">
+                      {formatPrice(discountedPrice)}
+                    </span>
+                  )}
                 </div>
 
                 {/* Actions */}
                 <div className="col-span-4 flex items-center justify-end gap-2">
                   <button
-                    onClick={(e) => handleToggleFavorite(e, `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`)}
+                    onClick={(e) => handleToggleFavorite(e, product)}
                     className={cn(
                       "w-10 h-10 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center transition-all",
                       "cursor-pointer hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:scale-110",
-                      isProductFavorite(
-                        Number(product.id_categoria),
-                        Number(product.id_linea),
-                        Number(product.id_sublinea),
-                        Number(product.id_producto)
-                      ) && "border-red-500 bg-red-50 dark:bg-red-900/20"
+                      isProductFavorite(Number(product.id)) && "border-red-500 bg-red-50 dark:bg-red-900/20"
                     )}
                   >
                     <Heart 
                       className={cn(
                         "w-4 h-4 transition-all",
-                        isProductFavorite(
-                          Number(product.id_categoria),
-                          Number(product.id_linea),
-                          Number(product.id_sublinea),
-                          Number(product.id_producto)
-                        ) ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-500"
+                        isProductFavorite(Number(product.id)) ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-500"
                       )}
                     />
                   </button>
                   
                   <Button
-                    onClick={(e) => handleAddToCart(e, `${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`)}
+                    onClick={(e) => handleAddToCart(e, product.slug ?? String(product.id))}
                     className="bg-black text-white hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 px-4 py-2 h-10"
                   >
                     <ShoppingCart className="w-4 h-4 mr-2" />

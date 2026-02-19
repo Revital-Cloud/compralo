@@ -30,7 +30,8 @@ SELECT
     COALESCE(pu.puntos_disponibles, 0) as puntos_disponibles,          -- Puntos disponibles (0 por defecto)
     COALESCE(pu.puntos_totales_ganados, 0) as puntos_totales_ganados,  -- Total ganados histórico
     COALESCE(pu.puntos_totales_canjeados, 0) as puntos_totales_canjeados, -- Total canjeados histórico
-    pu.fec_ultima_acumulacion,                                         -- Fecha última acumulación
+    (SELECT MAX(mp.fec_insert) FROM tab_movimientos_puntos mp          -- Fecha última acumulación (tipo 1)
+     WHERE mp.id_usuario = u.id_usuario AND mp.tipo_movimiento = 1) as fec_ultima_acumulacion,
     pu.fec_ultimo_canje,                                               -- Fecha último canje
     COUNT(cpd.id_canje) as canjes_disponibles                          -- Cantidad canjes disponibles
 FROM tab_usuarios u
@@ -43,4 +44,4 @@ LEFT JOIN tab_canjes_puntos_descuentos cpd ON (                       -- LEFT JO
 WHERE u.id_rol = 2                                                    -- FILTRO: Solo clientes
 GROUP BY u.id_usuario, u.nom_usuario, u.ape_usuario, u.email_usuario, -- Agrupar por datos del usuario
          pu.puntos_disponibles, pu.puntos_totales_ganados, pu.puntos_totales_canjeados,
-         pu.fec_ultima_acumulacion, pu.fec_ultimo_canje;
+         pu.fec_ultimo_canje;

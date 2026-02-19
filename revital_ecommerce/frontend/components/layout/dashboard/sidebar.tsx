@@ -7,7 +7,7 @@ import {
   IconHelp,
   IconInnerShadowTop,
   IconCategory,
-  IconHierarchy,
+  IconListDetails,
   IconTags,
   IconBuildingFactory2,
   IconSearch,
@@ -52,27 +52,15 @@ const data = {
       section: "principal"
     },
     {
-      title: "Productos",
-      url: "/admin/products",
-      icon: IconPackage,
-      section: "catalogo"
-    },
-    {
       title: "Categorías",
       url: "/admin/categories",
       icon: IconCategory,
       section: "catalogo"
     },
     {
-      title: "Líneas",
-      url: "/admin/lines",
-      icon: IconHierarchy,
-      section: "catalogo"
-    },
-    {
-      title: "Sublíneas",
-      url: "/admin/sublines",
-      icon: IconHierarchy,
+      title: "Atributos",
+      url: "/admin/attributes",
+      icon: IconListDetails,
       section: "catalogo"
     },
     {
@@ -85,6 +73,12 @@ const data = {
       title: "Proveedores",
       url: "/admin/providers",
       icon: IconBuildingFactory2,
+      section: "catalogo"
+    },
+    {
+      title: "Productos",
+      url: "/admin/products",
+      icon: IconPackage,
       section: "catalogo"
     },
     {

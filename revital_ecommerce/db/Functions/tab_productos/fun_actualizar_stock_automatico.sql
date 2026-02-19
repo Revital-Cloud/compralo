@@ -1,29 +1,10 @@
 /*
  * FUNCIÓN: fun_actualizar_stock_automatico
- * 
- * DESCRIPCIÓN: Función TRIGGER que reduce automáticamente el stock de productos
- *              ÚNICAMENTE cuando una orden es marcada como PAGADA.
- *              Procesa todos los productos de la orden y reduce su stock.
- * 
- * PARÁMETROS: Ninguno (función TRIGGER - usa NEW y OLD records)
- * 
- * RETORNA: TRIGGER - NULL (estándar para triggers AFTER)
- * 
- * LÓGICA:
- *   - Solo se ejecuta cuando una orden cambia a estado PAGADA (ind_estado = 2)
- *   - Procesa todos los productos de la orden pagada
- *   - Valida stock disponible antes de reducir
- *   - Registra movimientos de inventario
- * 
- * EFECTOS:
- *   - Reduce num_stock en tab_productos
- *   - Crea registro en tab_movimientos_inventario
- *   - Actualiza fec_update del producto
- * 
- * USO: Se ejecuta automáticamente por TRIGGER en UPDATE de tab_ordenes
- * 
- * AUTOR: Sistema DB_Revital
- * FECHA: 2025
+ *
+ * DESCRIPCIÓN: Trigger que reduce el stock de variantes cuando una orden se marca PAGADA.
+ *              Usa variant_id (combination id) en tab_orden_productos y tab_product_variant_combinations.
+ *
+ * EFECTOS: Reduce stock en tab_product_variant_combinations; inserta en tab_movimientos_inventario (variant_id).
  */
 CREATE OR REPLACE FUNCTION fun_actualizar_stock_automatico()
 RETURNS TRIGGER AS $$
@@ -31,102 +12,70 @@ DECLARE
     v_stock_actual INT;
     v_nom_producto VARCHAR;
     v_stock_nuevo INT;
-    v_producto_record RECORD;
-    v_total_productos_procesados INT := 0;
+    v_record RECORD;
+    v_total INT := 0;
     v_id_orden tab_ordenes.id_orden%TYPE;
-    v_usr_operacion tab_ordenes.usr_update%TYPE;
+    v_usr DECIMAL(10);
 BEGIN
-    -- VALIDACIÓN: Solo procesar cuando la orden cambia a estado PAGADA
-    -- El trigger ya filtra con WHEN (OLD.ind_estado != 2 AND NEW.ind_estado = 2)
-    -- Por lo tanto, cuando lleguemos aquí, ya sabemos que es el cambio correcto
     IF NEW.ind_estado != 2 THEN
-        RETURN NULL; -- Seguridad extra: solo procesar estado PAGADA
+        RETURN NULL;
     END IF;
-    
+    -- En UPDATE, solo reducir stock si antes no estaba pagada (evitar doble descuento)
+    IF TG_OP = 'UPDATE' AND OLD.ind_estado = 2 THEN
+        RETURN NULL;
+    END IF;
+
     v_id_orden := NEW.id_orden;
-    -- Si usr_update es NULL, usar ID del sistema (1000000000 = usuario sistema)
-    v_usr_operacion := COALESCE(NEW.usr_update, 1000000000);
-    
-    -- LOG: Iniciar proceso
-    RAISE NOTICE 'Iniciando actualización de stock para orden PAGADA #%', v_id_orden;
-    
-    -- Procesar cada producto de la orden pagada
-    FOR v_producto_record IN
-        SELECT 
-            id_orden_producto, id_categoria_producto, id_linea_producto, 
-            id_sublinea_producto, id_producto, cant_producto
-        FROM tab_orden_productos 
-        WHERE id_orden = v_id_orden
+    v_usr := COALESCE(NEW.usr_update, 1000000000);
+
+    FOR v_record IN
+        SELECT op.id_orden_producto, op.variant_id, op.cant_producto, p.name AS nom_producto
+        FROM tab_orden_productos op
+        JOIN tab_product_variant_combinations pv ON pv.id = op.variant_id
+        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+        JOIN tab_products p ON p.id = g.product_id
+        WHERE op.id_orden = v_id_orden
     LOOP
-        -- PASO 1: Obtener stock actual del producto
-        SELECT num_stock, nom_producto 
-        INTO v_stock_actual, v_nom_producto
-        FROM tab_productos 
-        WHERE id_categoria = v_producto_record.id_categoria_producto
-          AND id_linea = v_producto_record.id_linea_producto
-          AND id_sublinea = v_producto_record.id_sublinea_producto
-          AND id_producto = v_producto_record.id_producto;
-        
-        -- VALIDACIÓN: Verificar que el producto existe
+        SELECT stock INTO v_stock_actual
+        FROM tab_product_variant_combinations
+        WHERE id = v_record.variant_id;
+
         IF NOT FOUND THEN
-            RAISE EXCEPTION 'Error: Producto no encontrado (%, %, %, %)', 
-                v_producto_record.id_categoria_producto, v_producto_record.id_linea_producto, 
-                v_producto_record.id_sublinea_producto, v_producto_record.id_producto;
+            RAISE EXCEPTION 'Error: Combinación no encontrada (variant_id %)', v_record.variant_id;
         END IF;
-        
-        -- VALIDACIÓN: Verificar stock suficiente
-        IF v_stock_actual < v_producto_record.cant_producto THEN
-            RAISE EXCEPTION 'Error: Stock insuficiente para %. Stock actual: %, Solicitado: %', 
-                v_nom_producto, v_stock_actual, v_producto_record.cant_producto;
+
+        IF v_stock_actual < v_record.cant_producto THEN
+            RAISE EXCEPTION 'Error: Stock insuficiente para %. Stock actual: %, Solicitado: %',
+                v_record.nom_producto, v_stock_actual, v_record.cant_producto;
         END IF;
-        
-        -- PASO 2: Calcular nuevo stock
-        v_stock_nuevo := v_stock_actual - v_producto_record.cant_producto;
-        
-        -- PASO 3: Actualizar stock del producto
-        UPDATE tab_productos 
-        SET num_stock = v_stock_nuevo,
-            usr_update = v_usr_operacion
-        WHERE id_categoria = v_producto_record.id_categoria_producto
-          AND id_linea = v_producto_record.id_linea_producto
-          AND id_sublinea = v_producto_record.id_sublinea_producto
-          AND id_producto = v_producto_record.id_producto;
-        
-        -- PASO 4: Registrar movimiento de inventario
+
+        v_stock_nuevo := v_stock_actual - v_record.cant_producto;
+
+        UPDATE tab_product_variant_combinations
+        SET stock = v_stock_nuevo, usr_update = v_usr, fec_update = NOW()
+        WHERE id = v_record.variant_id;
+
         INSERT INTO tab_movimientos_inventario (
-            id_categoria_producto, id_linea_producto, id_sublinea_producto, id_producto,
-            tipo_movimiento, cantidad, 
+            variant_id, tipo_movimiento, cantidad,
             stock_anterior, stock_actual,
             id_orden_usuario_detalle, descripcion, usr_insert
         ) VALUES (
-            v_producto_record.id_categoria_producto, v_producto_record.id_linea_producto, 
-            v_producto_record.id_sublinea_producto, v_producto_record.id_producto,
-            'salida_venta',                                  -- Tipo específico para ventas pagadas
-            v_producto_record.cant_producto,                        -- Cantidad vendida
-            v_stock_actual,                                         -- Stock anterior
-            v_stock_nuevo,                                          -- Stock actual
-            v_producto_record.id_orden_producto,                    -- Referencia a orden producto
-            'Venta pagada - Orden #' || v_id_orden || ' - ' || v_nom_producto,
-            v_usr_operacion                                         -- Usuario que marcó como pagada
+            v_record.variant_id,
+            'salida_venta',
+            v_record.cant_producto,
+            v_stock_actual,
+            v_stock_nuevo,
+            v_record.id_orden_producto,
+            'Venta pagada - Orden #' || v_id_orden || ' - ' || v_record.nom_producto,
+            v_usr
         );
-        
-        -- LOG: Producto procesado
-        RAISE NOTICE 'Stock actualizado por PAGO: % - Stock anterior: %, Stock actual: %', 
-            v_nom_producto, v_stock_actual, v_stock_nuevo;
-        
-        v_total_productos_procesados := v_total_productos_procesados + 1;
-    END LOOP;
-    
-    -- LOG: Resumen final
-    RAISE NOTICE 'Stock actualizado para orden PAGADA #%: % productos procesados', 
-        v_id_orden, v_total_productos_procesados;
-    
-    -- RETORNO: NULL estándar para triggers AFTER
-    RETURN NULL;
 
--- MANEJO DE ERRORES: Capturar excepciones y hacer rollback automático
-EXCEPTION 
+        v_total := v_total + 1;
+    END LOOP;
+
+    RETURN NULL;
+EXCEPTION
     WHEN OTHERS THEN
         RAISE EXCEPTION 'Error en actualización automática de stock: %', SQLERRM;
 END;
-$$ LANGUAGE plpgsql; 
+$$ LANGUAGE plpgsql;

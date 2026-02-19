@@ -144,13 +144,13 @@ const OrdersPage = () => {
     },
     { 
       id: 'monto', 
-      header: 'Monto', 
+      header: 'Monto',
       cell: ({ row }) => {
         const valTotal = row.original.val_total_pedido ?? 0
         const valDescuentos = row.original.val_total_descuentos ?? 0
         
         return (
-          <div className="text-right">
+          <div className="tabular-nums">
             <div className="font-semibold">${valTotal.toLocaleString('es-CO')}</div>
             {valDescuentos > 0 && (
               <div className="text-sm text-green-600">
@@ -163,9 +163,9 @@ const OrdersPage = () => {
     },
     { 
       id: 'items_count', 
-      header: 'Items', 
+      header: () => <div className="text-center w-full">Items</div>,
       cell: ({ row }) => (
-        <div className="text-center">
+        <div className="text-center w-full">
           <Badge variant="outline">
             {row.original.items_count || 0}
           </Badge>

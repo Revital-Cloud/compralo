@@ -1,0 +1,529 @@
+// Revital E-commerce - Database Schema
+// Generado a partir de db_revital.sql para dbdiagram.io
+// Docs: https://dbml.dbdiagram.io/docs
+
+Project RevitalDB {
+  database_type: 'PostgreSQL'
+  Note: 'Base de datos e-commerce Revital - catálogo, usuarios, órdenes, fidelización'
+}
+
+// ========== Registro y catálogo base ==========
+
+Table tab_reg_del {
+  id_del serial [pk]
+  tab_name varchar [not null]
+  atributos jsonb [not null]
+  usr_delete varchar [not null]
+  fec_delete timestamp [not null]
+}
+
+Table tab_categories {
+  id decimal [pk]
+  name varchar [not null]
+  slug varchar [not null, unique]
+  parent_id decimal [ref: > tab_categories.id]
+  is_active boolean [default: true]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_attributes {
+  id decimal [pk]
+  name varchar [not null]
+  data_type varchar [not null]
+  has_predefined_values boolean [default: false]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_attribute_values {
+  id decimal [pk]
+  attribute_id decimal [not null, ref: > tab_attributes.id]
+  value varchar [not null]
+  hex_color varchar
+  sort_order int [default: 0]
+  is_active boolean [default: true]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_category_attributes {
+  id decimal [pk]
+  category_id decimal [not null, ref: > tab_categories.id]
+  attribute_id decimal [not null, ref: > tab_attributes.id]
+  is_required boolean [not null, default: false]
+  is_filterable boolean [not null, default: false]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_roles {
+  id_rol decimal [pk]
+  nom_rol varchar [not null, unique]
+  des_rol varchar
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_marcas {
+  id_marca decimal [pk]
+  nom_marca varchar [not null, unique]
+  ind_activo boolean [default: true]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_proveedores {
+  id_proveedor decimal [pk]
+  nom_proveedor varchar [not null]
+  email varchar [not null, unique]
+  tel_proveedor decimal [not null]
+  ind_activo boolean [default: true]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_products {
+  id decimal [pk]
+  category_id decimal [not null, ref: > tab_categories.id]
+  name varchar [not null]
+  slug varchar [not null, unique]
+  description text
+  id_marca decimal [ref: > tab_marcas.id_marca]
+  id_proveedor decimal [ref: > tab_proveedores.id_proveedor]
+  is_active boolean [default: true]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_product_variant_groups {
+  id bigserial [pk]
+  product_id decimal [not null, ref: > tab_products.id]
+  dominant_attribute varchar [not null]
+  dominant_value varchar [not null]
+  is_active boolean [not null, default: true]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_product_variant_combinations {
+  id decimal [pk]
+  group_id bigint [not null, ref: > tab_product_variant_groups.id]
+  sku varchar [not null, unique]
+  price decimal [not null]
+  stock int [not null, default: 0]
+  attributes jsonb [not null]
+  is_active boolean [not null, default: true]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_product_variant_images {
+  id bigserial [pk]
+  variant_group_id bigint [not null, ref: > tab_product_variant_groups.id]
+  image_url varchar [not null]
+  is_primary boolean [not null, default: false]
+  sort_order int [not null, default: 0]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_estadisticas_categorias {
+  category_id decimal [pk, ref: - tab_categories.id]
+  nom_categoria varchar
+  categoria_activa boolean
+  total_productos int [default: 0]
+  productos_activos int [default: 0]
+  productos_con_ventas int [default: 0]
+  total_ordenes int [default: 0]
+  total_unidades_vendidas int [default: 0]
+  total_ingresos decimal [default: 0]
+  ventas_mes_actual int [default: 0]
+  ingresos_mes_actual decimal [default: 0]
+  ventas_mes_anterior int [default: 0]
+  ingresos_mes_anterior decimal [default: 0]
+  participacion_ventas decimal [default: 0]
+  crecimiento_mensual decimal [default: 0]
+  precio_promedio_categoria decimal [default: 0]
+  producto_mas_vendido varchar
+  producto_mayor_ingreso varchar
+  unidades_top_producto int [default: 0]
+  fecha_primera_venta date
+  fecha_ultima_venta date
+  mejor_mes_ventas varchar
+  ultima_actualizacion timestamp
+  periodo_calculo varchar
+}
+
+// ========== Usuarios y direcciones ==========
+
+Table tab_usuarios {
+  id_usuario decimal [pk]
+  nom_usuario varchar [not null]
+  ape_usuario varchar [not null]
+  email_usuario varchar [not null, unique]
+  password_usuario varchar [not null]
+  id_rol decimal [default: 2, ref: > tab_roles.id_rol]
+  ind_genero boolean [not null]
+  cel_usuario varchar [not null]
+  fec_nacimiento date
+  ind_activo boolean [default: true]
+  avatar_seed varchar
+  avatar_colors varchar
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_direcciones_usuario {
+  id_direccion decimal [pk]
+  id_usuario decimal [not null, ref: > tab_usuarios.id_usuario]
+  nombre_direccion varchar [not null]
+  calle_direccion varchar [not null]
+  ciudad varchar [not null]
+  departamento varchar [not null]
+  codigo_postal varchar [not null]
+  barrio varchar [not null]
+  referencias varchar
+  complemento varchar
+  ind_principal boolean [not null, default: false]
+  ind_activa boolean [not null, default: true]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_metodos_pago_usuario {
+  id_metodo_pago serial [pk]
+  id_usuario decimal [not null, ref: > tab_usuarios.id_usuario]
+  provider_name varchar [not null, default: 'wompi']
+  provider_source_id varchar [not null]
+  brand varchar
+  last_four_digits varchar
+  expiration_month int
+  expiration_year int
+  card_holder varchar
+  is_default boolean [not null, default: false]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+// ========== Carritos ==========
+
+Table tab_carritos {
+  id_carrito serial [pk]
+  id_usuario decimal [ref: > tab_usuarios.id_usuario]
+  session_id varchar
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+// ========== Descuentos ==========
+
+Table tab_descuentos {
+  id_descuento decimal [pk]
+  nom_descuento varchar [not null]
+  des_descuento varchar
+  tipo_calculo boolean [not null]
+  val_porce_descuento decimal [not null]
+  val_monto_descuento decimal [not null]
+  aplica_a varchar [not null]
+  category_id_aplica decimal [ref: > tab_categories.id]
+  product_id_aplica decimal [ref: > tab_products.id]
+  id_marca_aplica decimal [ref: > tab_marcas.id_marca]
+  min_valor_pedido decimal [default: 0]
+  ind_es_para_cumpleanos boolean [default: false]
+  fec_inicio date
+  fec_fin date
+  ind_activo boolean [default: true]
+  max_usos_total int
+  usos_actuales_total int [default: 0]
+  costo_puntos_canje int
+  ind_canjeable_puntos boolean [not null, default: false]
+  codigo_descuento varchar [unique]
+  max_usos_por_usuario int
+  dias_semana_aplica varchar
+  horas_inicio time
+  horas_fin time
+  solo_primera_compra boolean [default: false]
+  monto_minimo_producto decimal [default: 0]
+  cantidad_minima_producto int [default: 1]
+  requiere_codigo boolean [default: false]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_descuentos_usuarios {
+  id_descuento decimal [not null, ref: > tab_descuentos.id_descuento]
+  id_usuario decimal [not null, ref: > tab_usuarios.id_usuario]
+  veces_usado int [default: 1]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+// ========== Órdenes y pagos ==========
+
+Table tab_ordenes {
+  id_orden decimal [pk]
+  fec_pedido timestamp [not null]
+  id_usuario decimal [not null, ref: > tab_usuarios.id_usuario]
+  val_total_productos decimal [not null]
+  val_total_descuentos decimal [not null, default: 0]
+  val_total_pedido decimal [not null]
+  ind_estado decimal [not null, default: 1]
+  metodo_pago varchar
+  id_descuento decimal [ref: > tab_descuentos.id_descuento]
+  detalle_descuentos_aplicados json
+  des_observaciones varchar
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_pagos {
+  id_pago serial [pk]
+  id_orden decimal [not null, ref: > tab_ordenes.id_orden]
+  reference varchar
+  provider_transaction_id varchar
+  provider_name varchar [not null, default: 'wompi']
+  status varchar [not null]
+  status_detail varchar
+  amount decimal [not null]
+  currency_id varchar [not null, default: 'COP']
+  installments int
+  payment_method_type varchar
+  payment_method_extra jsonb
+  fee_amount decimal [default: 0]
+  net_received_amount decimal
+  provider_date_created timestamp
+  provider_date_approved timestamp
+  raw_response jsonb
+  raw_last_event jsonb
+  parent_payment_id int [ref: > tab_pagos.id_pago]
+  estado_procesamiento varchar [default: 'pendiente']
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_orden_productos {
+  id_orden_producto decimal [pk]
+  id_orden decimal [not null, ref: > tab_ordenes.id_orden]
+  variant_id decimal [not null, ref: > tab_product_variant_combinations.id]
+  cant_producto int [not null]
+  precio_unitario_orden decimal [not null]
+  subtotal decimal [not null]
+  opciones_elegidas jsonb [not null]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+// ========== Comentarios, órdenes proveedor, carrito productos ==========
+
+Table tab_comentarios {
+  id_comentario decimal [not null, pk]
+  product_id decimal [not null, pk, ref: > tab_products.id]
+  id_usuario decimal [not null, ref: > tab_usuarios.id_usuario]
+  id_orden decimal [not null, ref: > tab_ordenes.id_orden]
+  comentario varchar [not null]
+  calificacion int [not null]
+  ind_activo boolean [not null, default: true]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_orden_compra_proveedor {
+  id_orden_compra decimal [pk]
+  id_proveedor decimal [not null, ref: > tab_proveedores.id_proveedor]
+  fec_orden_compra date [not null]
+  fec_esperada_entrega date [not null]
+  observaciones_orden varchar
+  product_id decimal [not null, ref: > tab_products.id]
+  variant_id decimal [ref: > tab_product_variant_combinations.id]
+  cantidad_solicitada int [not null]
+  cantidad_recibida int [not null, default: 0]
+  costo_unitario decimal [not null]
+  ind_estado_producto decimal [not null, default: 1]
+  fec_recepcion_completa timestamp
+  observaciones_producto varchar
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_carrito_productos {
+  id_carrito_producto serial [pk]
+  id_carrito int [not null, ref: > tab_carritos.id_carrito]
+  variant_id decimal [not null, ref: > tab_product_variant_combinations.id]
+  cantidad int [not null, default: 1]
+  precio_unitario_carrito decimal [not null]
+  opciones_elegidas jsonb [not null]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_movimientos_inventario {
+  id_movimiento serial [pk]
+  variant_id decimal [not null, ref: > tab_product_variant_combinations.id]
+  tipo_movimiento varchar [not null]
+  cantidad int [not null]
+  costo_unitario_movimiento decimal
+  stock_anterior int
+  saldo_costo_total_anterior_mov decimal
+  stock_actual int
+  saldo_costo_total_actual_mov decimal
+  costo_promedio_ponderado_mov decimal
+  id_orden_usuario_detalle decimal [ref: > tab_orden_productos.id_orden_producto]
+  id_orden_compra decimal [ref: > tab_orden_compra_proveedor.id_orden_compra]
+  descripcion varchar
+  observaciones varchar
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+// ========== Estadísticas, CMS, Favoritos ==========
+
+Table tab_estadisticas_productos {
+  product_id decimal [pk, ref: - tab_products.id]
+  nom_producto varchar
+  precio_actual decimal
+  stock_actual int
+  producto_activo boolean
+  total_ordenes int [default: 0]
+  total_unidades_vendidas int [default: 0]
+  total_ingresos decimal [default: 0]
+  ventas_mes_actual int [default: 0]
+  ingresos_mes_actual decimal [default: 0]
+  ventas_mes_anterior int [default: 0]
+  ingresos_mes_anterior decimal [default: 0]
+  promedio_venta_mensual decimal [default: 0]
+  promedio_ingreso_mensual decimal [default: 0]
+  precio_promedio_venta decimal [default: 0]
+  fecha_primera_venta date
+  fecha_ultima_venta date
+  mes_mejor_venta varchar
+  mejor_venta_unidades int [default: 0]
+  dias_desde_ultima_venta int
+  rotacion_inventario decimal [default: 0]
+  nivel_rotacion varchar
+  ultima_actualizacion timestamp
+  periodo_calculo varchar
+}
+
+Table tab_cms_content {
+  id_cms_content serial [pk]
+  nom_cms_content varchar [not null]
+  des_cms_content jsonb [not null]
+  num_version int [default: 1]
+  ind_publicado boolean [default: false]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_favoritos {
+  id_usuario decimal [not null, pk, ref: > tab_usuarios.id_usuario]
+  product_id decimal [not null, pk, ref: > tab_products.id]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+}
+
+// ========== Sistema de fidelización (puntos) ==========
+
+Table tab_config_puntos_empresa {
+  id_config_puntos serial [pk]
+  pesos_por_punto decimal [not null]
+  ind_activo boolean [not null, default: true]
+  descripcion varchar [not null]
+  fec_inicio_vigencia date [not null]
+  fec_fin_vigencia date
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_puntos_usuario {
+  id_usuario decimal [pk, ref: - tab_usuarios.id_usuario]
+  puntos_disponibles int [not null, default: 0]
+  puntos_totales_ganados int [not null, default: 0]
+  puntos_totales_canjeados int [not null, default: 0]
+  fec_ultimo_canje timestamp
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}
+
+Table tab_movimientos_puntos {
+  id_movimiento_puntos serial [pk]
+  id_usuario decimal [not null, ref: > tab_usuarios.id_usuario]
+  tipo_movimiento decimal [not null]
+  cantidad_puntos int [not null]
+  puntos_disponibles_anterior int [not null]
+  puntos_disponibles_actual int [not null]
+  id_orden_origen decimal [ref: > tab_ordenes.id_orden]
+  id_descuento_canjeado decimal [ref: > tab_descuentos.id_descuento]
+  descripcion varchar [not null]
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+}
+
+Table tab_canjes_puntos_descuentos {
+  id_canje serial [pk]
+  id_usuario decimal [not null, ref: > tab_usuarios.id_usuario]
+  id_descuento decimal [not null, ref: > tab_descuentos.id_descuento]
+  puntos_utilizados int [not null]
+  id_orden_aplicado decimal [ref: > tab_ordenes.id_orden]
+  fec_expiracion_canje timestamp
+  ind_utilizado boolean [not null, default: false]
+  fec_utilizacion timestamp
+  usr_insert decimal [not null]
+  fec_insert timestamp [not null]
+  usr_update decimal
+  fec_update timestamp
+}

@@ -21,7 +21,8 @@ export async function getCategories(): Promise<Category[]> {
     const categories = await get<Category[]>('/categories');
     console.log('Category service: Raw response:', categories);
     
-    const activeCategories = categories.filter(category => category.ind_activo);
+    const isActive = (c: Category) => (c.ind_activo ?? c.is_active) !== false
+    const activeCategories = categories.filter(isActive);
     console.log('Category service: Active categories:', activeCategories);
     
     return activeCategories;
@@ -45,24 +46,65 @@ export async function getCategoryById(id: string | number): Promise<Category> {
   return await get<Category>(`/categories/${id}`);
 }
 
-/**
- * Crear nueva categoría
- */
-export async function createCategory(categoryData: {
-  nom_categoria: string;
-  ind_activo?: boolean;
-}): Promise<ApiResponse> {
-  return await post<ApiResponse>('/categories', categoryData);
+export interface CategoryAttributeResponse {
+  id: number;
+  category_id: number;
+  attribute_id: number;
+  is_required: boolean;
+  is_filterable: boolean;
+  attribute_name?: string;
+  data_type?: string;
+  has_predefined_values?: boolean;
+}
+
+export interface AttributeValueSummary {
+  id: number;
+  value: string;
+  hex_color?: string | null;
+  sort_order: number;
+}
+
+export interface CategoryAttributeWithValuesResponse extends CategoryAttributeResponse {
+  values?: AttributeValueSummary[];
 }
 
 /**
- * Actualizar categoría
+ * Obtener atributos de una categoría con sus valores predefinidos (para formulario de producto).
+ */
+export async function getCategoryAttributesWithValues(
+  categoryId: string | number
+): Promise<CategoryAttributeWithValuesResponse[]> {
+  return await get<CategoryAttributeWithValuesResponse[]>(
+    `/categories/${categoryId}/attributes-with-values`
+  );
+}
+
+export interface CategoryAttributeItem {
+  attribute_id: number;
+  is_required: boolean;
+  is_filterable: boolean;
+}
+
+/**
+ * Crear nueva categoría (acepta parent_id). Devuelve message e id_categoria.
+ */
+export async function createCategory(categoryData: {
+  name: string;
+  is_active?: boolean;
+  parent_id?: number | null;
+}): Promise<ApiResponse & { id?: number }> {
+  return await post<ApiResponse & { id?: number }>('/categories', categoryData);
+}
+
+/**
+ * Actualizar categoría (acepta parent_id)
  */
 export async function updateCategory(
   id: string | number, 
   categoryData: {
-    nom_categoria?: string;
-    ind_activo?: boolean;
+    name?: string;
+    is_active?: boolean;
+    parent_id?: number | null;
   }
 ): Promise<ApiResponse> {
   console.log('Updating category with ID:', id, 'Data:', categoryData);
@@ -74,6 +116,23 @@ export async function updateCategory(
     console.error('Error updating category:', error);
     throw error;
   }
+}
+
+/**
+ * Obtener atributos de una categoría
+ */
+export async function getCategoryAttributes(categoryId: string | number): Promise<CategoryAttributeResponse[]> {
+  return await get<CategoryAttributeResponse[]>(`/categories/${categoryId}/attributes`);
+}
+
+/**
+ * Actualizar atributos de una categoría (reemplaza la lista)
+ */
+export async function updateCategoryAttributes(
+  categoryId: string | number,
+  attributes: CategoryAttributeItem[]
+): Promise<ApiResponse> {
+  return await put<ApiResponse>(`/categories/${categoryId}/attributes`, { attributes });
 }
 
 /**

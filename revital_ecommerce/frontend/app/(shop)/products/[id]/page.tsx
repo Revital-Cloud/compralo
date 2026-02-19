@@ -3,19 +3,21 @@
 import { useState, useEffect, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
-import { ProductGallery, ProductInfo, RelatedProducts } from "@/components/product"
+import { ProductGallery, ProductInfo, ProductVariantSelector, RelatedProducts } from "@/components/product"
 import type { ProductColorOption } from "@/components/product/product-info"
 import { ReviewsSection } from "@/components/ui/reviews-section"
 import Loading from "@/components/ui/loading"
 import { CartToast } from "@/components/ui"
 import { useProduct } from "@/hooks/use-products"
+import { useVariantSelector } from "@/hooks/use-variant-selector"
 import { useCart } from "@/hooks/use-cart"
 import { getHexForColorName } from "@/utils/color-map"
 import { toast } from "sonner"
 import * as productService from "@/services/product.service"
 import { getProductImageUrl } from "@/utils/image-helpers"
+import { normalizeProductDetail, type ApiProductResponse } from "@/lib/product-detail-normalizer"
 
-const ProductPage = () => {
+const ProductPageContent = () => {
   const params = useParams()
   const router = useRouter()
   const slug = params?.id as string
@@ -28,6 +30,9 @@ const ProductPage = () => {
   const [isAttemptingAdd, setIsAttemptingAdd] = useState(false)
   const [selectedColor, setSelectedColor] = useState<string>("")
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null)
+  /** Atributos seleccionados por attribute_id para filtrado dependiente (ej. Color=Negro → solo 128GB habilitado) */
+  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({})
 
   // Obtener datos del producto usando el hook
   const { 
@@ -36,36 +41,41 @@ const ProductPage = () => {
     error 
   } = useProduct(slug)
 
+  const productDetail = useMemo(
+    () => normalizeProductDetail(product as ApiProductResponse | undefined),
+    [product]
+  )
+  const variantSelector = useVariantSelector(productDetail, slug)
+  const useVariantSelectorFlow = (productDetail?.attributeDefinitions?.length ?? 0) > 0
+
   // Productos de la misma categoría para "También te puede gustar"
-  const idCategoria = product?.id_categoria != null ? Number(product.id_categoria) : undefined
+  const categoryId = product?.category_id != null ? Number(product.category_id) : undefined
   const { data: relatedResponse } = useQuery({
-    queryKey: ["relatedProducts", idCategoria, slug],
+    queryKey: ["relatedProducts", categoryId, slug],
     queryFn: () =>
       productService.filterProducts({
-        id_categoria: idCategoria!,
+        category_id: categoryId!,
+        include_subcategories: true,
         limit: 9,
         offset: 0,
         ordenar_por: "nombre",
         orden: "ASC",
       }),
-    enabled: idCategoria != null && !!slug,
+    enabled: categoryId != null && !!slug,
     staleTime: 5 * 60 * 1000,
   })
   const relatedProducts = useMemo(() => {
     if (!relatedResponse?.products || !slug) return []
     const currentSlug = slug
     return relatedResponse.products
-      .filter(
-        (p) =>
-          `${p.id_categoria}-${p.id_linea}-${p.id_sublinea}-${p.id_producto}` !== currentSlug
-      )
+      .filter((p) => (p.slug ?? String(p.id)) !== currentSlug)
       .slice(0, 8)
       .map((p) => ({
-        id: p.id_producto,
-        name: p.nom_producto,
-        price: typeof p.val_precio === "number" ? p.val_precio : parseFloat(String(p.val_precio)),
-        image: getProductImageUrl(p.img_producto),
-        slug: `${p.id_categoria}-${p.id_linea}-${p.id_sublinea}-${p.id_producto}`,
+        id: p.id,
+        name: p.name,
+        price: typeof p.price_min === "number" ? p.price_min : parseFloat(String(p.price_min ?? 0)),
+        image: getProductImageUrl(p.image_url),
+        slug: p.slug ?? String(p.id),
       }))
   }, [relatedResponse, slug])
 
@@ -88,19 +98,19 @@ const ProductPage = () => {
     }
   }, [cartError, isAddingToCart, isAttemptingAdd])
 
-  // Extraer colores (hook siempre llamado para respetar orden de Hooks)
+  // Extraer colores desde API (spcf_producto.colors con hex_color cuando exista)
   const colors: ProductColorOption[] = useMemo(() => {
-    const raw = product?.spcf_producto
+    const raw = product?.variant_options ?? product?.spcf_producto
     if (!raw) return []
     if (Array.isArray(raw.colors) && raw.colors.length > 0) {
-      return raw.colors.map((c: { name?: string; value?: string; available?: boolean }) => ({
+      return raw.colors.map((c: { name?: string; value?: string; available?: boolean; hex_color?: string }) => ({
         name: c.name ?? c.value ?? '',
         value: c.value ?? c.name ?? '',
         available: c.available !== false,
-        displayHex: getHexForColorName((c.value ?? c.name ?? '').trim())
+        displayHex: c.hex_color ?? getHexForColorName((c.value ?? c.name ?? '').trim())
       }))
     }
-    const colorStr = raw.color
+    const colorStr = (raw as Record<string, unknown>).color
     if (!colorStr || typeof colorStr !== 'string') return []
     return colorStr
       .split(',')
@@ -112,13 +122,348 @@ const ProductPage = () => {
         available: true,
         displayHex: getHexForColorName(name)
       }))
-  }, [product?.spcf_producto])
+  }, [product?.variant_options, product?.spcf_producto])
 
-  // Al cambiar de producto, resetear índice de imagen (hook siempre llamado)
+  // Variantes e imágenes por variante (siempre mismos hooks; product puede ser undefined)
+  const variants = useMemo(() => (product as any)?.variants ?? [], [product])
+  const imagesByVariant = useMemo(() => (product as any)?.images_by_variant ?? {}, [product])
+  const attributesFromApi = useMemo(
+    () => (product as { variant_options?: { attributes?: Array<{ attribute_id: number; attribute_name: string; values: Array<{ value: string; hex_color?: string | null; variant_ids: number[] }> }> } })?.variant_options?.attributes ?? [],
+    [product]
+  )
+
+  // Variantes que coinciden con la selección actual de atributos (filtrado dependiente)
+  const matchingVariantIds = useMemo(() => {
+    if (attributesFromApi.length === 0) return new Set(variants.map((v: { id: number }) => v.id))
+    let ids: Set<number> | null = null
+    for (const attr of attributesFromApi) {
+      const selectedVal = selectedAttributes[String(attr.attribute_id)]
+      if (!selectedVal) continue
+      const valueObj = attr.values.find((v) => (v.value ?? "").trim() === (selectedVal ?? "").trim())
+      const variantIds = (valueObj?.variant_ids ?? []) as number[]
+      const vids = new Set<number>(variantIds)
+      if (ids === null) ids = vids
+      else ids = new Set<number>([...ids].filter((id: number) => vids.has(id)))
+    }
+    return ids ?? new Set(variants.map((v: { id: number }) => v.id))
+  }, [attributesFromApi, selectedAttributes, variants])
+
+  // Por cada atributo, marcar qué valores están disponibles (existen en alguna variante que coincida con el resto de selección)
+  const attributesWithAvailability = useMemo(() => {
+    return attributesFromApi.map((attr) => ({
+      ...attr,
+      values: attr.values.map((v) => ({
+        ...v,
+        available: ((v.variant_ids ?? []) as number[]).some((id: number) => matchingVariantIds.has(id)),
+      })),
+    }))
+  }, [attributesFromApi, matchingVariantIds])
+
+  // Variante seleccionada (flujo legacy por attribute_id)
+  const selectedVariant = useMemo(() => {
+    const match = variants.find((v: { id: number }) => matchingVariantIds.has(v.id))
+    if (match) return match as { id: number; price?: number; stock?: number; color?: string }
+    return null
+  }, [variants, matchingVariantIds])
+
+  const effectiveSelectedVariantId = useVariantSelectorFlow
+    ? (variantSelector.selectedVariant?.id ?? null)
+    : selectedVariantId
+  const effectiveSelectedVariant = useVariantSelectorFlow ? variantSelector.selectedVariant : selectedVariant
+
+  const variantGroups = (product as { variant_groups?: Array<{ id: number; dominant_attribute?: string; dominant_value: string; images: Array<{ image_url?: string; is_main?: boolean; sort_order?: number }> }> })?.variant_groups ?? []
+
+  // Preseleccionar primera variante/color o primeros atributos cuando cargan los datos (solo flujo legacy)
   useEffect(() => {
-    setSelectedImageIndex(0)
-    setSelectedColor("")
-  }, [slug])
+    if (useVariantSelectorFlow || !product) return
+    if (attributesFromApi.length > 0) {
+      const initial: Record<string, string> = {}
+      for (const attr of attributesFromApi) {
+        const firstVal = attr.values[0]?.value
+        if (firstVal) initial[String(attr.attribute_id)] = firstVal
+      }
+      setSelectedAttributes((prev) => (Object.keys(prev).length === 0 ? initial : prev))
+    } else if (colors.length > 0) {
+      const firstColor = colors[0].value
+      setSelectedColor(firstColor)
+      const firstV = (product as any)?.variants?.find((v: { color?: string }) => (v.color ?? '').trim() === (firstColor ?? '').trim())
+      setSelectedVariantId(firstV ? (firstV as { id: number }).id : null)
+    } else if ((product as any)?.variants?.length) {
+      setSelectedVariantId((product as any).variants[0].id)
+    }
+  }, [useVariantSelectorFlow, product?.id, colors.length, attributesFromApi.length])
+
+  const dominantValueForGallery = useMemo(() => {
+    if (variantGroups.length && variantSelector?.selectedAttributes) {
+      // Usar el mismo nombre de atributo que el selector (variant_options.attributes[0].attribute_name)
+      const dominantAttrName =
+        productDetail?.attributeDefinitions?.[0]?.name ??
+        variantGroups[0]?.dominant_attribute ??
+        "color"
+      const name = String(dominantAttrName || "color").trim()
+      const fromSelector =
+        variantSelector.selectedAttributes[name] ??
+        variantSelector.selectedAttributes["Color"] ??
+        variantSelector.selectedAttributes["color"]
+      if (fromSelector?.trim()) return String(fromSelector).trim()
+    }
+    return (selectedColor ?? "").trim()
+  }, [variantGroups, selectedColor, variantSelector?.selectedAttributes, productDetail?.attributeDefinitions])
+
+  const selectedGroupForGallery = useMemo(() => {
+    if (!variantGroups.length) return null
+    const colorVal = dominantValueForGallery.trim().toLowerCase()
+    if (!colorVal) {
+      // Sin selección: usar el primer grupo que NO sea "Sin color"
+      const firstNonSinColor = variantGroups.find(
+        (g) => (g.dominant_value ?? "").trim().toLowerCase() !== "sin color"
+      )
+      return firstNonSinColor ?? variantGroups[0]
+    }
+    // Buscar el grupo que coincida exactamente con el valor seleccionado
+    const found = variantGroups.find((g) => {
+      const gVal = (g.dominant_value ?? "").trim().toLowerCase()
+      return gVal === colorVal
+    })
+    // Si no se encuentra, buscar por coincidencia parcial (por si hay diferencias de formato)
+    if (!found) {
+      const partialMatch = variantGroups.find((g) => {
+        const gVal = (g.dominant_value ?? "").trim().toLowerCase()
+        return gVal.includes(colorVal) || colorVal.includes(gVal)
+      })
+      return partialMatch ?? variantGroups[0]
+    }
+    return found
+  }, [variantGroups, dominantValueForGallery])
+
+  // Imágenes del producto (no asociadas a variante) — van siempre primero
+  // Si no hay product_images (productos antiguos), usar primer grupo como fallback
+  const productImages = useMemo(() => {
+    const fromApi = (product as { product_images?: Array<{ image_url?: string; is_main?: boolean; sort_order?: number }> })?.product_images ?? []
+    if (fromApi.length) return fromApi
+    if (variantGroups.length) return variantGroups[0]?.images ?? []
+    return []
+  }, [product, variantGroups])
+
+  // Galería: mostrar SIEMPRE todas las imágenes (product_images + todos los grupos de color); al elegir color solo se selecciona la que corresponde
+  const { allGalleryUrls, variantIdByIndex, firstImageIndexByVariantId, firstImageIndexForSelectedGroup } = useMemo(() => {
+    const urls: string[] = []
+    const seenUrls = new Set<string>()
+    const variantAtIdx: (number | null)[] = []
+    const firstByVariant: Record<string, number> = {}
+    const firstIndexByGroupId: Record<number, number> = {}
+    let firstSelectedGroupIndex: number | undefined
+
+    const addUrl = (url: string, variantId: number | null) => {
+      if (url && !seenUrls.has(url)) {
+        seenUrls.add(url)
+        urls.push(url)
+        variantAtIdx.push(variantId)
+        return true
+      }
+      return false
+    }
+
+    if (!product) return { allGalleryUrls: [], variantIdByIndex: [], firstImageIndexByVariantId: {}, firstImageIndexForSelectedGroup: undefined }
+
+    const hasProductImagesFromApi = ((product as { product_images?: unknown[] })?.product_images?.length ?? 0) > 0
+
+    // 1. Imágenes del producto (grupo "Sin color") si vienen de la API
+    if (hasProductImagesFromApi && productImages.length) {
+      const sorted = [...productImages].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      const mainIdx = sorted.findIndex((x) => x.is_main)
+      const ordered = mainIdx >= 0 ? [sorted[mainIdx], ...sorted.filter((_, i) => i !== mainIdx)] : sorted
+      for (const x of ordered) {
+        if (x.image_url) addUrl(x.image_url, null)
+      }
+    }
+
+    // 2. Imágenes de TODOS los grupos de color (orden estable); se registra el primer índice de cada grupo para seleccionar al elegir color
+    for (const group of variantGroups) {
+      const isSinColor = (group.dominant_value ?? "").trim().toLowerCase() === "sin color"
+      if (isSinColor && hasProductImagesFromApi) continue
+      if (!group.images?.length) continue
+      const sorted = [...group.images].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      const mainIdx = sorted.findIndex((x) => x.is_main)
+      const ordered = mainIdx >= 0 ? [sorted[mainIdx], ...sorted.filter((_, i) => i !== mainIdx)] : sorted
+      const firstUrl = ordered.find((x) => x.image_url)?.image_url ?? null
+      let firstIdxForGroup: number | undefined
+      for (const x of ordered) {
+        if (x.image_url) {
+          const before = urls.length
+          if (addUrl(x.image_url, null) && firstIdxForGroup === undefined) firstIdxForGroup = before
+        }
+      }
+      if (firstIdxForGroup !== undefined) firstIndexByGroupId[group.id] = firstIdxForGroup
+      if (firstIdxForGroup === undefined && firstUrl && urls.length) {
+        const idx = urls.findIndex((u) => u === firstUrl)
+        if (idx >= 0) firstIndexByGroupId[group.id] = idx
+      }
+    }
+    if (selectedGroupForGallery?.id != null && firstIndexByGroupId[selectedGroupForGallery.id] !== undefined) {
+      firstSelectedGroupIndex = firstIndexByGroupId[selectedGroupForGallery.id]
+    }
+
+    // 3. Fallback: si no hay product_images ni grupo seleccionado, usar images o image_url del producto
+    if (urls.length === 0) {
+      const imagesArray = (product as { images?: Array<{ image_url?: string; is_main?: boolean; sort_order?: number }> }).images
+      if (imagesArray?.length) {
+      const sorted = [...imagesArray].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+      for (const x of sorted) {
+        if (x.image_url) addUrl(x.image_url, null)
+      }
+    } else {
+      const img = (product as any).image_url ?? (product as any).img_producto
+      if (img && typeof img === "object" && "main" in img) {
+        const main = (img as { main?: string }).main
+        const gallery = (img as { gallery?: string[] }).gallery || []
+        if (main) addUrl(main, null)
+        gallery.forEach((u: string) => {
+          if (u) addUrl(u, null)
+        })
+      } else if (img && typeof img === "string") {
+        addUrl(img, null)
+      }
+    }
+    }
+
+    // 4. Legacy: imágenes por variante (solo si no hay variant_groups)
+    if (variantGroups.length === 0) {
+      const variantList = (product as any)?.variants ?? []
+      for (const v of variantList) {
+        const vid = String(v.id)
+        const list = imagesByVariant[vid]
+        if (!list?.length) continue
+        const ordered = [...list].sort((a, b) => a.sort_order - b.sort_order)
+        const mainIdx = ordered.findIndex((x) => x.is_main)
+        const orderedList = mainIdx >= 0 ? [ordered[mainIdx], ...ordered.filter((_, i) => i !== mainIdx)] : ordered
+        const startIdx = urls.length
+        firstByVariant[vid] = startIdx
+        for (const x of orderedList) {
+          if (x.image_url) addUrl(x.image_url, v.id)
+        }
+      }
+    }
+
+    return {
+      allGalleryUrls: urls,
+      variantIdByIndex: variantAtIdx,
+      firstImageIndexByVariantId: firstByVariant,
+      firstImageIndexForSelectedGroup: firstSelectedGroupIndex,
+    }
+  }, [product, productImages, imagesByVariant, selectedGroupForGallery, variantGroups])
+
+  // URLs resueltas para la galería
+  const productImagesResolved = useMemo(
+    () => allGalleryUrls.map((url) => getProductImageUrl(url)),
+    [allGalleryUrls]
+  )
+
+  const productPrice = useMemo(() => {
+    if (!product) return 0
+    if (effectiveSelectedVariant?.price != null) return parseFloat(String(effectiveSelectedVariant.price))
+    if (effectiveSelectedVariantId != null && variants.length) {
+      const v = variants.find((x: { id: number }) => x.id === effectiveSelectedVariantId)
+      if (v?.price != null) return parseFloat(String(v.price))
+    }
+    return parseFloat(String((product as any).price_min ?? product.val_precio)) || 0
+  }, [product, effectiveSelectedVariant, effectiveSelectedVariantId, variants])
+
+  // Rango de precios (mín y máx de todas las variantes) para mostrar "Desde $X - $Y" cuando no hay variante seleccionada
+  const { priceMin, priceMax } = useMemo(() => {
+    if (!product) return { priceMin: 0, priceMax: 0 }
+    if (variants.length === 0) {
+      const p = parseFloat(String((product as any).price_min ?? product.val_precio)) || 0
+      return { priceMin: p, priceMax: p }
+    }
+    const prices = variants
+      .map((v: { price?: number }) => (v?.price != null ? parseFloat(String(v.price)) : NaN))
+      .filter((n: number) => !Number.isNaN(n))
+    if (prices.length === 0) {
+      const p = parseFloat(String((product as any).price_min ?? product.val_precio)) || 0
+      return { priceMin: p, priceMax: p }
+    }
+    return { priceMin: Math.min(...prices), priceMax: Math.max(...prices) }
+  }, [product, variants])
+
+  const hasVariantSelected = effectiveSelectedVariantId != null
+
+  const productStock = useMemo(() => {
+    if (effectiveSelectedVariant?.stock != null) return Number(effectiveSelectedVariant.stock)
+    if (!product) return 0
+    return (product as { num_stock?: number; stock_total?: number }).num_stock ?? (product as { stock_total?: number }).stock_total ?? 0
+  }, [product, effectiveSelectedVariant])
+
+  // Nombre del atributo que es "color" (el que tiene hex_color en sus valores) para ligar la imagen solo al color
+  const colorAttributeName = useMemo(
+    () =>
+      productDetail?.attributeDefinitions?.find((attr) =>
+        attr.values.some((v) => v.hex_color != null && v.hex_color !== "")
+      )?.name ?? null,
+    [productDetail?.attributeDefinitions]
+  )
+
+  // Imagen ligada solo al color: si hay color seleccionado, primera variante con ese color; si no, null (imagen principal)
+  const displayVariantIdForImage = useMemo(() => {
+    if (!useVariantSelectorFlow || !colorAttributeName) return effectiveSelectedVariantId
+    const selectedColorValue = variantSelector.selectedAttributes[colorAttributeName]
+    if (!selectedColorValue || String(selectedColorValue).trim() === "") return null
+    const firstWithColor = productDetail?.variants?.find(
+      (v) =>
+        (v.attributes[colorAttributeName] ?? "").trim().toLowerCase() ===
+        (selectedColorValue ?? "").trim().toLowerCase()
+    )
+    return firstWithColor?.id ?? null
+  }, [
+    useVariantSelectorFlow,
+    colorAttributeName,
+    variantSelector.selectedAttributes,
+    productDetail?.variants,
+    effectiveSelectedVariantId,
+  ])
+
+  // Al seleccionar color → mostrar primera imagen de ese color (índice real en la galería, con dedup)
+  useEffect(() => {
+    if (displayVariantIdForImage != null && firstImageIndexByVariantId[String(displayVariantIdForImage)] !== undefined) {
+      setSelectedImageIndex(firstImageIndexByVariantId[String(displayVariantIdForImage)])
+    } else if (variantGroups.length && selectedGroupForGallery && dominantValueForGallery) {
+      // Con variant_groups: usar el índice real de la primera imagen del grupo seleccionado
+      if (firstImageIndexForSelectedGroup !== undefined) {
+        setSelectedImageIndex(firstImageIndexForSelectedGroup)
+      } else if (selectedGroupForGallery.images?.length) {
+        // Fallback: si no hay índice calculado, calcularlo basado en si hay product_images desde API
+        const hasProductImagesFromApi = ((product as { product_images?: unknown[] })?.product_images?.length ?? 0) > 0
+        if (!hasProductImagesFromApi) {
+          // Sin product_images: la galería solo tiene el grupo seleccionado, índice 0
+          setSelectedImageIndex(0)
+        } else {
+          // Con product_images: la primera imagen del grupo está después de product_images
+          setSelectedImageIndex(productImages.length)
+        }
+      }
+    }
+  }, [displayVariantIdForImage, firstImageIndexByVariantId, variantGroups.length, selectedGroupForGallery, dominantValueForGallery, firstImageIndexForSelectedGroup, product, productImages.length])
+
+  // Sincronizar variante e imagen al cambiar la variante seleccionada (solo flujo legacy)
+  useEffect(() => {
+    if (useVariantSelectorFlow) return
+    if (selectedVariant) {
+      setSelectedVariantId(selectedVariant.id)
+      if (selectedVariant.color) setSelectedColor(selectedVariant.color)
+    } else {
+      setSelectedVariantId(null)
+    }
+  }, [useVariantSelectorFlow, selectedVariant?.id])
+
+  const variantByColorSize = useMemo(() => {
+    const byColor = (c: string) => variants.find((v: { color?: string }) => (v.color ?? '').trim() === (c ?? '').trim())
+    const byColorSize = (c: string, s: string) =>
+      variants.find(
+        (v: { color?: string; size?: string }) =>
+          (v.color ?? '').trim() === (c ?? '').trim() && (v.size ?? '').trim() === (s ?? '').trim()
+      )
+    return { byColor, byColorSize }
+  }, [variants])
 
   const handleAddToCart = async (selectedColor?: string, selectedSize?: string) => {
     if (!product) {
@@ -126,24 +471,29 @@ const ProductPage = () => {
       return
     }
     
-    // Validar stock disponible
-    if (product.num_stock <= 0) {
+    if (productStock <= 0) {
       toast.error('Producto agotado')
       return
     }
-    
-    // Opciones elegidas (genérico: color, talla, etc.). Solo se envían al API si hay al menos una.
+
     const opciones: Record<string, string> = {}
-    if (selectedColor?.trim()) opciones.color = selectedColor.trim()
-    if (selectedSize?.trim()) opciones.talla = selectedSize.trim()
+    if (useVariantSelectorFlow) {
+      Object.entries(variantSelector.selectedAttributes).forEach(([attrName, val]) => {
+        if (val?.trim()) opciones[attrName] = val.trim()
+      })
+    } else {
+      if (selectedColor?.trim()) opciones.color = selectedColor.trim()
+      if (selectedSize?.trim()) opciones.talla = selectedSize.trim()
+      Object.entries(selectedAttributes).forEach(([attrId, val]) => {
+        if (val?.trim()) opciones[`attr_${attrId}`] = val.trim()
+      })
+    }
 
     const cartProductData: Parameters<typeof addToCart>[0] = {
-      id_categoria_producto: Number(product.id_categoria) || 1,
-      id_linea_producto: Number(product.id_linea) || 1,
-      id_sublinea_producto: Number(product.id_sublinea) || 1,
-      id_producto: Number(product.id_producto),
+      id_producto: Number(product.id),
       cantidad: 1,
-      precio_unitario_carrito: parseFloat(product.val_precio.toString()),
+      precio_unitario_carrito: productPrice,
+      ...(effectiveSelectedVariantId != null && { variant_id: effectiveSelectedVariantId }),
       ...(Object.keys(opciones).length > 0 && { opciones_elegidas: opciones }),
     }
 
@@ -205,43 +555,28 @@ const ProductPage = () => {
     )
   }
 
-  // Preparar datos para los componentes
-  
-  // Verificar que img_producto tenga la estructura correcta
-  const hasValidImages = product.img_producto && 
-    typeof product.img_producto === 'object' && 
-    'main' in product.img_producto
-  
-  const productImages = hasValidImages ? [
-    (product.img_producto as any).main,
-    ...((product.img_producto as any).gallery || [])
-  ].filter(Boolean) : []
-  
-  // Preparar miniaturas para la galería
-  const productThumbnails = hasValidImages ? ((product.img_producto as any).thumbnails || []) : []
-  
-  const productPrice = parseFloat(product.val_precio.toString()) || 0
+  const hasValidImages = productImagesResolved.length > 0
 
-  // Mapeo color <-> imagen: si hay misma cantidad, el backend suele enviar imágenes en orden
-  // inverso al texto "rojo, azul" (ej. main=azul, gallery[0]=rojo), así que invertimos el índice.
   const colorIndexToImageIndex = (colorIndex: number) => {
-    if (colors.length === productImages.length && colors.length > 0) {
-      return colors.length - 1 - colorIndex
+    if (colors.length && allGalleryUrls.length && colors.length === allGalleryUrls.length) {
+      return allGalleryUrls.length - 1 - colorIndex
     }
     return colorIndex
   }
   const imageIndexToColorIndex = (imageIndex: number) => {
-    if (colors.length === productImages.length && colors.length > 0) {
-      return productImages.length - 1 - imageIndex
+    if (colors.length && allGalleryUrls.length && allGalleryUrls.length === colors.length) {
+      return allGalleryUrls.length - 1 - imageIndex
     }
     return imageIndex
   }
 
   // Soporta sizes como array, o talla/talla_calzado como string (ej. "M, L, XL") parseado a opciones
   const tallaRaw =
-    product.spcf_producto?.talla ?? product.spcf_producto?.talla_calzado
+    (product as any).variant_options?.sizes?.[0]?.name ?? product.spcf_producto?.talla ?? product.spcf_producto?.talla_calzado
   const sizes: { name: string; available: boolean }[] =
-    product.spcf_producto?.sizes && Array.isArray(product.spcf_producto.sizes)
+    (product as any).variant_options?.sizes && Array.isArray((product as any).variant_options.sizes)
+      ? (product as any).variant_options.sizes
+      : product.spcf_producto?.sizes && Array.isArray(product.spcf_producto.sizes)
       ? product.spcf_producto.sizes
       : tallaRaw
         ? typeof tallaRaw === 'string'
@@ -260,35 +595,69 @@ const ProductPage = () => {
           {/* Product Gallery: índice sincronizado con el color seleccionado */}
           <div className="w-full">
             <ProductGallery
-              images={productImages}
-              productName={product.nom_producto}
-              selectedIndex={productImages.length > 0 ? selectedImageIndex : undefined}
+              images={productImagesResolved}
+              productName={product.name}
+              selectedIndex={productImagesResolved.length > 0 ? selectedImageIndex : undefined}
               onSelectedIndexChange={(idx) => {
                 setSelectedImageIndex(idx)
-                const cIdx = imageIndexToColorIndex(idx)
-                if (colors[cIdx]) setSelectedColor(colors[cIdx].value)
+                // Al cambiar de imagen (flecha o miniatura), deseleccionar color/variante
+                setSelectedColor("")
+                setSelectedVariantId(null)
+                variantSelector.setSelectedAttributes({})
               }}
             />
           </div>
 
-          {/* Product Information: al elegir color se actualiza la imagen de la galería */}
-          <div className="w-full mt-4 lg:mt-0">
+          {/* Product Information: nombre, precio y stock arriba; opciones debajo */}
+          <div className="w-full mt-4 lg:mt-0 space-y-6">
             <ProductInfo
-              product={product as any}
-              name={product.nom_producto}
+              product={{ ...product, num_stock: productStock } as any}
+              name={product.name}
               price={productPrice}
               originalPrice={productPrice}
+              priceMin={priceMin}
+              priceMax={priceMax}
+              hasVariantSelected={hasVariantSelected}
               rating={product.rating != null && product.rating > 0 ? Number(product.rating) : 0}
               reviewCount={product.review_count != null ? Number(product.review_count) : 0}
-              colors={colors}
-              sizes={sizes}
+              colors={useVariantSelectorFlow ? [] : colors}
+              sizes={useVariantSelectorFlow ? [] : sizes}
               isNew={false}
               selectedColor={selectedColor}
-              onColorChange={(value, index) => {
+              onColorChange={useVariantSelectorFlow ? undefined : (value) => {
+                if (!value || value.trim() === "") {
+                  setSelectedColor("")
+                  setSelectedVariantId(null)
+                  setSelectedImageIndex(0)
+                  return
+                }
                 setSelectedColor(value)
-                setSelectedImageIndex(colorIndexToImageIndex(index))
+                const v = variantByColorSize.byColor(value)
+                const variantId = v ? (v as { id: number }).id : null
+                setSelectedVariantId(variantId)
+                const firstIdx = variantId != null ? firstImageIndexByVariantId[String(variantId)] : undefined
+                setSelectedImageIndex(firstIdx !== undefined ? firstIdx : 0)
               }}
               onAddToCart={handleAddToCart}
+              attributes={useVariantSelectorFlow ? [] : attributesWithAvailability}
+              selectedAttributes={useVariantSelectorFlow ? {} : selectedAttributes}
+              onAttributeChange={useVariantSelectorFlow ? undefined : (attributeId, value) => {
+                setSelectedAttributes((prev) => ({ ...prev, [String(attributeId)]: value }))
+              }}
+              description={product.description}
+              canAddToCartOverride={useVariantSelectorFlow ? !!variantSelector.selectedVariant && productStock > 0 : (attributesWithAvailability.length > 0 ? !!selectedVariant && productStock > 0 : undefined)}
+              addToCartDisabledLabel={useVariantSelectorFlow && !variantSelector.selectedVariant ? "Selecciona todas las opciones" : undefined}
+              optionsSlot={useVariantSelectorFlow ? (
+                <ProductVariantSelector
+                  attributeDefinitions={variantSelector.attributeDefinitions}
+                  selectedAttributes={variantSelector.selectedAttributes}
+                  onSelectAttribute={(attrName, value) => {
+                    variantSelector.handleSelectAttribute(attrName, value)
+                    if (value === null && attrName === colorAttributeName) setSelectedImageIndex(0)
+                  }}
+                  isOptionAvailable={variantSelector.isOptionAvailable}
+                />
+              ) : undefined}
             />
           </div>
         </div>
@@ -304,14 +673,14 @@ const ProductPage = () => {
               <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <div className="flex justify-between">
                   <span>Stock disponible:</span>
-                  <span className={`font-medium ${product.num_stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {product.num_stock > 0 ? `${product.num_stock} unidades` : 'Sin stock'}
+                  <span className={`font-medium ${productStock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {productStock > 0 ? `${productStock} unidades` : 'Sin stock'}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Estado:</span>
-                  <span className={`font-medium ${(product as any).ind_activo ? 'text-green-600' : 'text-red-600'}`}>
-                    {(product as any).ind_activo ? 'Activo' : 'Inactivo'}
+                  <span className={`font-medium ${(product as any).ind_activo ?? (product as any).is_active ?? true ? 'text-green-600' : 'text-red-600'}`}>
+                    {(product as any).ind_activo ?? (product as any).is_active ?? true ? 'Activo' : 'Inactivo'}
                   </span>
                 </div>
               </div>
@@ -323,10 +692,12 @@ const ProductPage = () => {
                 Especificaciones
               </h3>
               <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                {product.spcf_producto && typeof product.spcf_producto === 'object' ? (
+                {product.description && (
+                  <p className="mb-3">{product.description}</p>
+                )}
+                {product.spcf_producto && typeof product.spcf_producto === 'object' && Object.keys(product.spcf_producto).length > 0 ? (
                   Object.entries(product.spcf_producto)
                     .filter(([key, value]) => {
-                      // Filtrar valores que no tengan información útil
                       if (value === null || value === undefined) return false
                       if (typeof value === 'string' && value.trim() === '') return false
                       if (Array.isArray(value) && value.length === 0) return false
@@ -339,9 +710,9 @@ const ProductPage = () => {
                         <span>{Array.isArray(value) ? value.join(', ') : String(value)}</span>
                       </div>
                     ))
-                ) : (
+                ) : !product.description ? (
                   <p>Sin especificaciones disponibles</p>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -353,19 +724,11 @@ const ProductPage = () => {
               <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
                 <div className="flex justify-between">
                   <span>ID:</span>
-                  <span className="font-mono text-xs">{product.id_producto}</span>
+                  <span className="font-mono text-xs">{product.id}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Categoría:</span>
-                  <span>{product.nom_categoria || product.id_categoria}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Línea:</span>
-                  <span>{product.nom_linea || product.id_linea}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Sub-línea:</span>
-                  <span>{product.nom_sublinea || product.id_sublinea}</span>
+                  <span>{product.category_name || product.category_id}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Marca:</span>
@@ -373,7 +736,7 @@ const ProductPage = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Proveedor:</span>
-                  <span>{product.nom_proveedor || product.id_proveedor}</span>
+                  <span>{String((product as { nom_proveedor?: string; id_proveedor?: string }).nom_proveedor ?? (product as { id_proveedor?: string }).id_proveedor ?? '-')}</span>
                 </div>
               </div>
             </div>
@@ -383,8 +746,9 @@ const ProductPage = () => {
         {/* Reviews Section */}
         <div className="border-t border-gray-200 dark:border-gray-700 pt-8 md:pt-16">
           <ReviewsSection
-            productId={`${product.id_categoria}-${product.id_linea}-${product.id_sublinea}-${product.id_producto}`}
-            productName={product.nom_producto}
+            productId={product.slug ?? String(product.id)}
+            idProducto={Number(product.id)}
+            productName={product.name}
           />
         </div>
 
@@ -400,16 +764,16 @@ const ProductPage = () => {
       {/* Cart Toast: imagen según color seleccionado */}
       <CartToast
         isVisible={showCartToast}
-        productName={product.nom_producto}
+        productName={product.name}
         productImage={(() => {
-          if (cartData.color && colors.length > 0 && productImages.length > 0) {
-            const colorIdx = colors.findIndex((c) => c.value === cartData.color)
-            if (colorIdx >= 0) {
-              const imgIdx = colorIndexToImageIndex(colorIdx)
-              if (productImages[imgIdx]) return productImages[imgIdx]
+          if (cartData.color && productImagesResolved.length > 0) {
+            const v = variantByColorSize.byColor(cartData.color)
+            if (v) {
+              const idx = firstImageIndexByVariantId[String((v as { id: number }).id)]
+              if (idx !== undefined && productImagesResolved[idx]) return productImagesResolved[idx]
             }
           }
-          return productImages[selectedImageIndex] ?? productImages[0] ?? ''
+          return productImagesResolved[selectedImageIndex] ?? productImagesResolved[0] ?? ''
         })()}
         price={productPrice as number}
         selectedColor={cartData.color}
@@ -419,6 +783,12 @@ const ProductPage = () => {
       />
     </div>
   )
+}
+
+function ProductPage() {
+  const params = useParams()
+  const slug = (params?.id as string) ?? ""
+  return <ProductPageContent key={slug} />
 }
 
 export default ProductPage

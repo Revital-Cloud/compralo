@@ -59,7 +59,7 @@ export const extractMainImageUrl = (imageInput: ImageInput): string | null => {
     }
     
     // Caso 3: Diccionario JSON del backend (puede tener diferentes claves)
-    const possibleKeys = ['main', 'primary', 'image', 'url', 'src', 'img_producto']
+    const possibleKeys = ['main', 'primary', 'image', 'image_url', 'url', 'src', 'img_producto']
     
     for (const key of possibleKeys) {
       if (key in imageInput && typeof (imageInput as Record<string, any>)[key] === 'string') {

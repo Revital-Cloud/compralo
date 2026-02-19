@@ -5,10 +5,10 @@
  * categorías, marcas, inventario usando React Query.
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as productService from '@/services/product.service';
-import type { Product, ProductCreate, ProductUpdate, ProductFilterParams, ProductFilterResponse, ProductFilterStats, FilterOptions, ProductAdmin, ProductAdminParams } from '@/types/product';
+import type { Product, ProductCreateComposite, ProductFilterParams, ProductFilterResponse, ProductFilterStats, FilterOptions, ProductAdmin, ProductAdminParams } from '@/types/product';
 import type { PaginationParams } from '@/types/common';
 
 export const PRODUCT_KEYS = {
@@ -24,7 +24,7 @@ export const PRODUCT_KEYS = {
   filters: () => [...PRODUCT_KEYS.all, 'filters'] as const,
   filter: (filters: ProductFilterParams) => [...PRODUCT_KEYS.filters(), filters] as const,
   filterStats: (filters: ProductFilterParams) => [...PRODUCT_KEYS.filters(), 'stats', filters] as const,
-  filterOptions: () => [...PRODUCT_KEYS.filters(), 'options'] as const,
+  filterOptions: (categoryId?: number | null) => [...PRODUCT_KEYS.filters(), 'options', categoryId ?? 'all'] as const,
   filterOptionsAdmin: () => [...PRODUCT_KEYS.admin(), 'filter-options'] as const,
   search: (query: string) => [...PRODUCT_KEYS.all, 'search', query] as const,
 };
@@ -53,69 +53,12 @@ export function useProducts(filters: PaginationParams = { page: 1, limit: 12 }) 
   });
 }
 
-export function useProduct(slug: string) {
+export function useProduct(slugOrId: string) {
   return useQuery({
-    queryKey: PRODUCT_KEYS.detail(slug),
-    queryFn: () => productService.getProductByIds(slug),
-    enabled: !!slug,
+    queryKey: PRODUCT_KEYS.detail(slugOrId),
+    queryFn: () => productService.getProductBySlugOrId(slugOrId),
+    enabled: !!slugOrId,
     staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useProductAdminDetail(slug: string) {
-  return useQuery({
-    queryKey: [...PRODUCT_KEYS.detail(slug), 'admin'],
-    queryFn: () => productService.getProductAdminDetail(slug),
-    enabled: !!slug,
-    staleTime: 5 * 60 * 1000,
-  });
-}
-
-export function useCreateProduct() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: (productData: ProductCreate) => productService.createProduct(productData),
-    onSuccess: () => {
-      toast.success('Producto creado exitosamente');
-      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
-    },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Error al crear el producto';
-      toast.error(message);
-    },
-  });
-}
-
-export function useUpdateProduct() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: ({ 
-      id_categoria, 
-      id_linea, 
-      id_sublinea, 
-      id_producto, 
-      data 
-    }: { 
-      id_categoria: number; 
-      id_linea: number; 
-      id_sublinea: number; 
-      id_producto: number; 
-      data: FormData 
-    }) => 
-      productService.updateProduct(id_categoria, id_linea, id_sublinea, id_producto, data),
-    onSuccess: (_, { id_categoria, id_linea, id_sublinea, id_producto }) => {
-      toast.success('Producto actualizado exitosamente');
-      const slug = `${id_categoria}-${id_linea}-${id_sublinea}-${id_producto}`;
-      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.detail(slug) });
-      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
-      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.admin() });
-    },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Error al actualizar el producto';
-      toast.error(message);
-    },
   });
 }
 
@@ -135,58 +78,47 @@ export function useDeleteProduct() {
   });
 }
 
-export function useDeactivateActivateProduct() {
+/**
+ * Activar/desactivar producto por product_id
+ */
+export function useDeactivateActivateProductById() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ params, activar }: { params: { id_categoria: number; id_linea: number; id_sublinea: number; id_producto: number }; activar: boolean }) => {
-      const result = await productService.deactivateActivateProduct(params, activar);
-      if (!result || (result as any).message === undefined) {
-        throw new Error('No se recibió confirmación del servidor');
-      }
-      return result;
-    },
+    mutationFn: ({ productId, activar }: { productId: number; activar: boolean }) =>
+      productService.deactivateActivateProductById(productId, activar),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.admin() });
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
-      toast.success(variables.activar ? 'Producto activado exitosamente' : 'Producto desactivado exitosamente');
+      toast.success(variables.activar ? 'Producto activado' : 'Producto desactivado');
     },
     onError: (error: any, variables) => {
-      console.error(`Error al ${variables.activar ? 'activar' : 'desactivar'} producto:`, error);
-      const errorMessage = error?.response?.data?.detail || error?.message || `Error al ${variables.activar ? 'activar' : 'desactivar'} el producto`;
-      toast.error(errorMessage);
+      const msg = error?.response?.data?.detail || error?.message;
+      toast.error(msg || `Error al ${variables.activar ? 'activar' : 'desactivar'} producto`);
     },
   });
 }
 
-export function useDeactivateProduct() {
+/**
+ * Crear producto compuesto (producto + variantes + imágenes)
+ */
+export function useCreateProductComposite() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (params: { id_categoria: number; id_linea: number; id_sublinea: number; id_producto: number }) =>
-      productService.deactivateProduct(params),
+    mutationFn: ({
+      payload,
+      imageFiles,
+    }: {
+      payload: ProductCreateComposite;
+      imageFiles?: File[];
+    }) => productService.createProductComposite(payload, imageFiles),
     onSuccess: () => {
-      toast.success('Producto desactivado exitosamente');
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.admin() });
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
+      toast.success('Producto creado correctamente');
     },
     onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Error al desactivar el producto';
-      toast.error(message);
-    },
-  });
-}
-
-export function useActivateProduct() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (product: Product) => productService.activateProduct(product),
-    onSuccess: () => {
-      toast.success('Producto activado exitosamente');
-      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.admin() });
-      queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.lists() });
-    },
-    onError: (error: any) => {
-      const message = error?.response?.data?.detail || 'Error al activar el producto';
-      toast.error(message);
+      const msg = error?.response?.data?.detail || error?.message;
+      toast.error(msg || 'Error al crear el producto');
     },
   });
 }
@@ -205,11 +137,13 @@ export function useBrands() {
 
 /**
  * Hook para filtrar productos con criterios avanzados
+ * @param enabled - Si false, no ejecuta la consulta (útil para fallbacks condicionales)
  */
-export function useFilterProducts(filters: ProductFilterParams) {
+export function useFilterProducts(filters: ProductFilterParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: PRODUCT_KEYS.filter(filters),
     queryFn: () => productService.filterProducts(filters),
+    enabled: options?.enabled !== false,
     staleTime: 5 * 60 * 1000, // 5 minutos - aumentar para evitar llamadas frecuentes
     placeholderData: (previousData) => previousData, // Mantener datos anteriores durante la carga
     refetchOnWindowFocus: false, // Evitar refetch innecesario
@@ -233,13 +167,16 @@ export function useFilterStats(filters: ProductFilterParams) {
 }
 
 /**
- * Hook para obtener opciones de filtros (tienda: solo activos)
+ * Hook para obtener opciones de filtros (tienda: solo activos).
+ * Si se pasa selectedCategoryId, los atributos devueltos son solo los de esa categoría.
+ * placeholderData mantiene categorías/marcas visibles mientras se recargan solo los atributos.
  */
-export function useFilterOptions() {
+export function useFilterOptions(selectedCategoryId?: number | null) {
   return useQuery({
-    queryKey: PRODUCT_KEYS.filterOptions(),
-    queryFn: () => productService.getFilterOptions(),
+    queryKey: PRODUCT_KEYS.filterOptions(selectedCategoryId ?? undefined),
+    queryFn: () => productService.getFilterOptions(selectedCategoryId ?? undefined),
     staleTime: 15 * 60 * 1000, // 15 minutos - las opciones cambian poco
+    placeholderData: (previousData) => previousData, // No recargar categorías al cambiar categoría; solo actualizar atributos
   });
 }
 
@@ -277,22 +214,11 @@ export function useProductsAdmin(params: ProductAdminParams = {}) {
   return useQuery({
     queryKey: PRODUCT_KEYS.adminList(params),
     queryFn: () => productService.getProductsAdmin(params),
-    staleTime: 2 * 60 * 1000, // 2 minutos
+    staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    gcTime: 5 * 60 * 1000, // 5 minutos en cache
+    gcTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData, // Mantener total y stats al cambiar de página
   });
 }
-
-/**
- * Hook para obtener productos por sublínea (compatibilidad)
- */
-export function useProductsBySubline(id_sublinea: string) {
-  return useQuery({
-    queryKey: ['products', 'subline', id_sublinea],
-    queryFn: () => productService.getProducts({ id_sublinea: Number(id_sublinea) }),
-    enabled: !!id_sublinea,
-    staleTime: 5 * 60 * 1000,
-  });
-} 

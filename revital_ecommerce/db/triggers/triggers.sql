@@ -12,10 +12,10 @@
 DROP TRIGGER IF EXISTS trg_orden_acumular_puntos ON tab_ordenes;
 
 CREATE TRIGGER trg_orden_acumular_puntos
-    AFTER UPDATE ON tab_ordenes                                       -- Después de actualizar órdenes
-    FOR EACH ROW                                                       -- Por cada fila afectada
-    WHEN (OLD.ind_estado != 2 AND NEW.ind_estado = 2)                -- Solo cuando cambie a PAGADA (estado 2)
-    EXECUTE FUNCTION trg_acumular_puntos_orden();                      -- Ejecutar función de acumulación 
+    AFTER INSERT OR UPDATE ON tab_ordenes
+    FOR EACH ROW
+    WHEN (NEW.ind_estado = 2)
+    EXECUTE FUNCTION trg_acumular_puntos_orden();
 
 -- =====================================================
 -- TRIGGER: Actualizar estadísticas al PAGAR orden
@@ -68,9 +68,9 @@ CREATE TRIGGER trg_actualizar_estadisticas_cambio_producto_orden
 DROP TRIGGER IF EXISTS trg_actualizar_stock_orden_pagada ON tab_ordenes;
 
 CREATE TRIGGER trg_actualizar_stock_orden_pagada
-    AFTER UPDATE ON tab_ordenes
+    AFTER INSERT OR UPDATE ON tab_ordenes
     FOR EACH ROW
-    WHEN (OLD.ind_estado != 2 AND NEW.ind_estado = 2)  -- Solo cuando cambia a PAGADA
+    WHEN (NEW.ind_estado = 2)
     EXECUTE FUNCTION fun_actualizar_stock_automatico();
 
 
@@ -100,9 +100,12 @@ CREATE TRIGGER trg_marcar_orden_pagada_mercadopago
 /*
  * TRIGGER: trg_limpiar_carrito_pagado
  * 
- * DESCRIPCIÓN: Se ejecuta cuando se actualiza una orden.
- *              Si la orden se marca como PAGADA, limpia el carrito.
- *              Lógica: El carrito se limpia cuando se confirma el pago.
+ * DESCRIPCIÓN: Se ejecuta solo cuando se ACTUALIZA una orden a PAGADA (ind_estado = 2).
+ *              Limpia el carrito del usuario.
+ *              No se usa en INSERT: cuando la orden se crea ya como Pagada (pago Wompi),
+ *              fun_crear_orden_desde_carrito copia primero los ítems a tab_orden_productos
+ *              y luego limpia el carrito en PASO 12b; si este trigger disparara en INSERT,
+ *              vaciaría el carrito antes de copiar y no se insertarían productos en la orden.
  */
 
 DROP TRIGGER IF EXISTS trg_limpiar_carrito_pagado ON tab_ordenes;
@@ -110,7 +113,7 @@ DROP TRIGGER IF EXISTS trg_limpiar_carrito_pagado ON tab_ordenes;
 CREATE TRIGGER trg_limpiar_carrito_pagado
     AFTER UPDATE ON tab_ordenes
     FOR EACH ROW
-    WHEN (OLD.ind_estado != 2 AND NEW.ind_estado = 2)  -- Solo cuando cambia a PAGADA
+    WHEN (OLD.ind_estado IS DISTINCT FROM 2 AND NEW.ind_estado = 2)
     EXECUTE FUNCTION fun_limpiar_carrito_pagado();
 
 

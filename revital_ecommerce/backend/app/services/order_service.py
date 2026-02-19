@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text, bindparam, Integer
 
 from schemas.order_schema import OrderCreate
-from services.cart_product_service import _imagen_url_por_color
 
 logger = logging.getLogger(__name__)
 
@@ -202,22 +201,23 @@ def get_order_detail_admin(db: Session, id_orden: int):
             d = dict(row)
             return {k: _to_jsonable(v) for k, v in d.items()}
             
-        # Productos de la orden (tab_orden_productos usa FK compuesta a tab_productos)
+        # Productos de la orden (variant_id = tab_product_variant_combinations.id; producto vía group)
         products_query = text("""
         SELECT 
-            op.id_producto,
-            p.nom_producto,
-            p.img_producto,
-            p.spcf_producto,
+            op.variant_id,
+            p.id AS id_producto,
+            p.name AS nom_producto,
             op.cant_producto AS cantidad,
             op.precio_unitario_orden AS val_precio_unitario,
             op.subtotal AS val_subtotal,
-            COALESCE(op.opciones_elegidas, '{}'::JSONB) AS opciones_elegidas
+            COALESCE(op.opciones_elegidas, pv.attributes, '{}'::JSONB) AS opciones_elegidas,
+            (SELECT pvi.image_url FROM tab_product_variant_images pvi
+             WHERE pvi.variant_group_id = pv.group_id
+             ORDER BY pvi.is_primary DESC, pvi.sort_order, pvi.id LIMIT 1) AS imagen_url
         FROM tab_orden_productos op
-        JOIN tab_productos p ON op.id_categoria_producto = p.id_categoria
-            AND op.id_linea_producto = p.id_linea
-            AND op.id_sublinea_producto = p.id_sublinea
-            AND op.id_producto = p.id_producto
+        JOIN tab_product_variant_combinations pv ON pv.id = op.variant_id
+        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+        JOIN tab_products p ON p.id = g.product_id
         WHERE op.id_orden = :id_orden
         """)
         products_result = db.execute(products_query, {"id_orden": id_orden})
@@ -259,22 +259,31 @@ def get_order_detail_admin(db: Session, id_orden: int):
         orden_dict = _row_to_dict(order_data)
         descuentos = order_data.get("detalle_descuentos_aplicados") if hasattr(order_data, "get") else orden_dict.get("detalle_descuentos_aplicados")
 
-        # Productos con imagen según color elegido (opciones_elegidas)
+        # Atributos de variante para rellenar opciones cuando opciones_elegidas viene vacío (órdenes antiguas)
+        variant_attrs_query = text("""
+        SELECT a.name, COALESCE(av.value, pva.value_text::VARCHAR, pva.value_number::VARCHAR, '') AS val
+        FROM tab_product_variant_attributes pva
+        JOIN tab_attributes a ON a.id = pva.attribute_id
+        LEFT JOIN tab_attribute_values av ON av.id = pva.attribute_value_id
+        WHERE pva.variant_id = :variant_id
+        """)
         productos_list = []
         for p in products_data:
             d = _row_to_dict(p)
-            opts = d.get("opciones_elegidas") or {}
-            if isinstance(opts, str):
-                try:
-                    import json
-                    opts = json.loads(opts) if opts else {}
-                except Exception:
-                    opts = {}
-            img_url = _imagen_url_por_color(d.get("img_producto"), d.get("spcf_producto"), opts)
-            if img_url:
-                d["imagen_url"] = img_url
-            # No exponer spcf_producto al frontend
-            d.pop("spcf_producto", None)
+            if not d.get("imagen_url"):
+                d.pop("imagen_url", None)
+            opts = d.get("opciones_elegidas")
+            if opts is None or (isinstance(opts, dict) and not opts) or opts == {}:
+                variant_id = d.get("variant_id")
+                if variant_id is not None:
+                    try:
+                        attrs_result = db.execute(variant_attrs_query, {"variant_id": variant_id})
+                        attrs_rows = attrs_result.mappings().all()
+                        if attrs_rows:
+                            d["opciones_elegidas"] = {str(row["name"]): str(row["val"] or "") for row in attrs_rows}
+                    except Exception:
+                        pass
+            d.pop("variant_id", None)
             productos_list.append(d)
         
         return {
@@ -418,7 +427,13 @@ def get_order_detail(db:Session, id_orden: Decimal):
         raise Exception(f"Error al obtener los detalles de la orden: {str(e)}")
     
 
-def create_order(db:Session, order:OrderCreate, usr_insert: Decimal):
+def create_order(
+    db: Session,
+    order: OrderCreate,
+    usr_insert: Decimal,
+    ind_estado: int | None = None,
+    metodo_pago: str | None = None,
+):
     """
     Crea una nueva orden en la base de datos.
     Utiliza la función de base de datos `fun_crear_orden_desde_carrito` para crear la orden.
@@ -426,6 +441,8 @@ def create_order(db:Session, order:OrderCreate, usr_insert: Decimal):
         db (Session): La sesión de base de datos SQLAlchemy.
         order (OrderCreate): Un objeto Pydantic `OrderCreate` con los datos a insertar.
         usr_insert (Decimal): El identificador del usuario que insertó la orden.
+        ind_estado (int | None): Estado inicial (1=Pendiente, 2=Pagada). Si None, usa default BD.
+        metodo_pago (str | None): Método de pago cuando ya está aprobado ('tarjeta', 'transferencia', etc).
     Returns:
         dict: El diccionario completo con toda la información de la orden creada.
     """
@@ -444,8 +461,10 @@ def create_order(db:Session, order:OrderCreate, usr_insert: Decimal):
             "des_observaciones": order.des_observaciones,
             "usr_insert": usr_insert,
             "id_canje": id_canje_val,
+            "ind_estado": ind_estado,
+            "metodo_pago": metodo_pago,
         }
-        logger.info("create_order: id_carrito=%s, id_canje=%s (descuento por puntos)", params["id_carrito"], params["id_canje"])
+        logger.info("create_order: id_carrito=%s, id_canje=%s, ind_estado=%s (descuento por puntos)", params["id_carrito"], params["id_canje"], ind_estado)
         query = text("""
         SELECT fun_crear_orden_desde_carrito(
             :id_carrito,
@@ -453,7 +472,9 @@ def create_order(db:Session, order:OrderCreate, usr_insert: Decimal):
             :codigo_descuento,
             :des_observaciones,
             :usr_insert,
-            :id_canje
+            :id_canje,
+            :ind_estado,
+            :metodo_pago
         )
         """).bindparams(bindparam("id_canje", type_=Integer))
         result = db.execute(query, params)
@@ -503,78 +524,110 @@ def _pick_first_key(d: dict, keys: list, default=None):
     return default
 
 
+def _decimal_to_number(v):
+    """Convierte Decimal a int/float para JSON; deja el resto igual."""
+    if v is None:
+        return None
+    if isinstance(v, Decimal):
+        return int(v) if v % 1 == 0 else float(v)
+    return v
+
+
 def get_order_with_items(db: Session, id_orden: Decimal):
     """
     Devuelve la orden y un arreglo `items` con el snapshot de productos comprados
-    (nombre, cantidad, precio unitario, total y metadatos como imagen), evitando
-    depender del estado actual del producto. Lee desde `tab_orden_productos` con LEFT JOIN a `tab_productos`
-    sin filtrar por estado, o usa una función de fallback. Nunca falla: si no encuentra fuente, retorna items=[].
+    (nombre, cantidad, precio unitario, total, variante y atributos). Usa variant_id
+    en tab_orden_productos y JOIN a tab_product_variant_combinations + tab_products.
     """
     # 1) Obtener la orden base
-    order = get_order_by_id(db, id_orden)
+    id_orden_val = int(id_orden) if id_orden is not None else None
+    if id_orden_val is None:
+        return None
+    order = get_order_by_id(db, Decimal(id_orden_val))
     if not order:
         return None
 
     items = []
-
-    # 2) Intentar leer de tab_orden_productos + LEFT JOIN a tab_productos (para nombre/imagen)
     try:
+        # Comprobar si hay filas en tab_orden_productos para esta orden (diagnóstico)
+        count_result = db.execute(
+            text("SELECT COUNT(*) AS n FROM tab_orden_productos WHERE id_orden = :id_orden"),
+            {"id_orden": id_orden_val},
+        )
+        count_row = count_result.mappings().first()
+        num_rows_in_table = int(count_row["n"]) if count_row and count_row.get("n") is not None else 0
+
+        # 2) tab_orden_productos usa variant_id; LEFT JOIN para no perder filas si producto/variante inactivo
         query_items = text(
             """
-            SELECT 
+            SELECT
                 op.id_orden,
                 op.id_orden_producto AS id_item,
-                op.id_categoria_producto AS id_categoria,
-                op.id_linea_producto AS id_linea,
-                op.id_sublinea_producto AS id_sublinea,
-                op.id_producto,
-                p.nom_producto AS product_name,
+                p.id AS id_producto,
+                p.category_id AS id_categoria,
+                pv.id AS variant_id,
+                COALESCE(p.name, 'Producto') AS product_name,
                 op.cant_producto AS quantity,
                 op.precio_unitario_orden AS unit_price,
                 op.subtotal AS total_price,
-                p.img_producto AS product_image,
-                p.spcf_producto,
-                COALESCE(op.opciones_elegidas, '{}'::JSONB) AS opciones_elegidas
+                (SELECT pvi.image_url FROM tab_product_variant_images pvi
+                 WHERE pvi.variant_group_id = pv.group_id
+                 ORDER BY pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id LIMIT 1) AS product_image,
+                COALESCE(op.opciones_elegidas, pv.attributes, '{}'::jsonb) AS opciones_elegidas
             FROM tab_orden_productos op
-            LEFT JOIN tab_productos p 
-              ON p.id_categoria = op.id_categoria_producto
-             AND p.id_linea = op.id_linea_producto
-             AND p.id_sublinea = op.id_sublinea_producto
-             AND p.id_producto = op.id_producto
+            LEFT JOIN tab_product_variant_combinations pv ON pv.id = op.variant_id
+            LEFT JOIN tab_product_variant_groups g ON g.id = pv.group_id
+            LEFT JOIN tab_products p ON p.id = g.product_id
             WHERE op.id_orden = :id_orden
             ORDER BY op.id_orden_producto ASC
             """
         )
-        result_items = db.execute(query_items, {"id_orden": id_orden})
-        items = [dict(row) for row in result_items.mappings().all()]
-        # Imagen según color elegido para cada ítem
-        for it in items:
-            opts = it.get("opciones_elegidas") or {}
+        result_items = db.execute(query_items, {"id_orden": id_orden_val})
+        rows = result_items.mappings().all()
+        for row in rows:
+            raw = dict(row)
+            opts = raw.get("opciones_elegidas") or {}
             if isinstance(opts, str):
                 try:
                     import json
                     opts = json.loads(opts) if opts else {}
                 except Exception:
                     opts = {}
-            img_url = _imagen_url_por_color(it.get("product_image"), it.get("spcf_producto"), opts)
-            if img_url:
-                it["imagen_url"] = img_url
-            it.pop("spcf_producto", None)
+            if not isinstance(opts, dict):
+                opts = {}
+            # Frontend espera: id_item, id_producto, id_categoria, product_name, quantity, unit_price, total_price, imagen_url, opciones_elegidas
+            it = {
+                "id_orden": _decimal_to_number(raw.get("id_orden")),
+                "id_item": _decimal_to_number(raw.get("id_item")),
+                "id_producto": _decimal_to_number(raw.get("id_producto")),
+                "id_categoria": _decimal_to_number(raw.get("id_categoria")),
+                "id_linea": None,
+                "id_sublinea": None,
+                "variant_id": _decimal_to_number(raw.get("variant_id")),
+                "product_name": raw.get("product_name") or "",
+                "quantity": _decimal_to_number(raw.get("quantity")) or 0,
+                "unit_price": _decimal_to_number(raw.get("unit_price")) or 0,
+                "total_price": _decimal_to_number(raw.get("total_price")) or 0,
+                "product_image": raw.get("product_image"),
+                "imagen_url": raw.get("product_image"),
+                "opciones_elegidas": opts,
+            }
+            items.append(it)
+        if not rows and id_orden_val:
+            if num_rows_in_table > 0:
+                logger.warning(
+                    "get_order_with_items: orden id_orden=%s tiene %s filas en tab_orden_productos pero la query con JOIN devolvió 0. Revisar variant_id/product_id.",
+                    id_orden_val, num_rows_in_table,
+                )
+            else:
+                logger.info(
+                    "get_order_with_items: orden id_orden=%s sin filas en tab_orden_productos (orden creada sin ítems o datos antiguos).",
+                    id_orden_val,
+                )
     except Exception as e:
-        # 3) Fallback: intentar una función si existe
-        try:
-            query_fn = text("SELECT fun_obtener_orden_detalle(:id_orden)")
-            fn_row = db.execute(query_fn, {"id_orden": id_orden}).fetchone()
-            if fn_row and fn_row[0]:
-                payload = fn_row[0]
-                if isinstance(payload, list):
-                    items = payload
-                elif isinstance(payload, dict):
-                    items = payload.get("items", payload.get("productos", []))
-        except Exception as e2:
-            items = []
+        logger.exception("get_order_with_items: error al cargar ítems para id_orden=%s: %s", id_orden_val, e)
+        items = []
 
-    # 4) Unir y devolver
     enriched = dict(order)
     enriched["items"] = items
     return enriched

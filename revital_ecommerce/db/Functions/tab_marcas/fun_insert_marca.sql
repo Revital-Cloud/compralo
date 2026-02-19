@@ -66,12 +66,3 @@ $$
     END;
 $$
 LANGUAGE plpgsql;
-
--- Ejemplos de uso corregidos (ahora con todos los parámetros necesarios y IDs numéricos)
-SELECT fun_insert_marca('Samsung', TRUE, 1234567890);
-SELECT fun_insert_marca('Apple', TRUE, 1234567890);
-SELECT fun_insert_marca('Sony', TRUE, 1234567890);
-SELECT fun_insert_marca('LG', TRUE, 1234567890);
-SELECT fun_insert_marca('HP', TRUE, 1234567890);
-SELECT fun_insert_marca('Dell', TRUE, 1234567890);
-SELECT fun_insert_marca('Lenovo', TRUE, 1234567890);

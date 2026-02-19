@@ -2,9 +2,6 @@ import { get, post, put } from '@/utils/apiWrapper';
 
 export interface Comment {
   id_comentario: number;
-  id_categoria: number;
-  id_linea: number;
-  id_sublinea: number;
   id_producto: number;
   id_usuario: number;
   comentario: string;
@@ -16,9 +13,6 @@ export interface Comment {
 }
 
 export interface CreateCommentRequest {
-  id_categoria: number;
-  id_linea: number;
-  id_sublinea: number;
   id_producto: number;
   id_orden?: number;
   comentario: string;
@@ -33,16 +27,10 @@ export interface CommentResponse {
 }
 
 /**
- * Obtener comentarios de un producto específico
+ * Obtener comentarios de un producto (acepta product_id numérico o slug)
  */
-export async function getProductComments(
-  id_categoria: number,
-  id_linea: number,
-  id_sublinea: number,
-  id_producto: number
-): Promise<CommentResponse> {
-  const productId = `${id_categoria}-${id_linea}-${id_sublinea}-${id_producto}`;
-  return await get<CommentResponse>(`/comentaries/product/${productId}`);
+export async function getProductComments(productIdOrSlug: string): Promise<CommentResponse> {
+  return await get<CommentResponse>(`/comentaries/product/${encodeURIComponent(productIdOrSlug)}`);
 }
 
 /**

@@ -1,178 +1,133 @@
-'use client';
+'use client'
 
-import React, { useMemo, useRef, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { ProductCreateHeader, ProductForm, type ProductFormRef, ProductImageUpload } from '@/components/admin/products';
-import { Button } from '@/components/ui';
-import { useProductAdminDetail, useUpdateProduct } from '@/hooks/use-products';
-import type { ProductCreate } from '@/types';
+import React, { useState, useCallback, useRef, useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import {
+  ProductCreateHeader,
+  ProductFormComposite,
+  UnifiedProductImagesPanel,
+} from '@/components/admin/products'
+import {
+  getProductAdminDetailById,
+  updateProductComposite,
+  type ProductAdminDetailComposite,
+} from '@/services/product.service'
+import type { ProductCreateComposite, VariantCreateItem } from '@/types/product'
+import { useQuery } from '@tanstack/react-query'
 
-const FORM_ID = 'product-form-edit';
+const FORM_ID = 'product-form-composite-edit'
 
-const ProductEditPage = () => {
-  const params = useParams();
-  const router = useRouter();
-  const slug = (params?.id as string) || '';
-  const formRef = useRef<ProductFormRef>(null);
-  const [selectedImages, setSelectedImages] = useState<any[]>([]);
+export default function ProductEditPage() {
+  const params = useParams()
+  const router = useRouter()
+  const productId = params?.id as string
+  const [selectedImages, setSelectedImages] = useState<{ file?: File; preview?: string }[]>([])
+  const productImageFilesRef = useRef<File[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [variantsForPreview, setVariantsForPreview] = useState<VariantCreateItem[]>([])
+  const [productImageUrls, setProductImageUrls] = useState<string[]>([])
 
-  const { data: product, isLoading, error } = useProductAdminDetail(slug);
-  const updateProductMutation = useUpdateProduct();
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['product-admin-detail', productId],
+    queryFn: () => getProductAdminDetailById(productId),
+    enabled: !!productId && /^\d+$/.test(productId),
+  })
 
-  const initialData = useMemo(() => {
-    if (!product) return undefined;
-    return {
-      nom_producto: product.nom_producto ?? '',
-      des_producto: product.spcf_producto?.descripcion || product.spcf_producto?.des_producto || '',
-      val_precio: String(product.val_precio ?? ''),
-      num_stock: String(product.num_stock ?? ''),
-      id_categoria: String(product.id_categoria ?? ''),
-      id_marca: String(product.id_marca ?? ''),
-      id_linea: String(product.id_linea ?? ''),
-      id_sublinea: String(product.id_sublinea ?? ''),
-      id_proveedor: String(product.id_proveedor ?? ''),
-      cod_producto: product.spcf_producto?.cod_producto || '',
-      tags: Array.isArray(product.spcf_producto?.tags) ? product.spcf_producto.tags : [],
-      spcf_producto: product.spcf_producto ?? {},
-    } as any;
-  }, [product]);
-
-  const handleFormSubmit = async (formData: any) => {
-    try {
-      console.log('=== EDIT PAGE DEBUG ===');
-      console.log('Product ID:', product?.id_producto);
-      console.log('Form data received:', formData);
-      console.log('Selected images:', selectedImages);
-
-      const idNumber = Number(product?.id_producto);
-      if (!idNumber || Number.isNaN(idNumber)) {
-        toast.error('ID de producto inválido');
-        return;
-      }
-
-      // Usar los IDs actuales del formulario, no los originales
-      const currentIdCategoria = Number(formData.id_categoria);
-      const currentIdLinea = Number(formData.id_linea);
-      const currentIdSublinea = Number(formData.id_sublinea);
-
-      // Valores numéricos: evitar NaN; si el form devuelve inválido, usar datos actuales del producto
-      const valPrecio = Number(formData.val_precio);
-      const numStock = Number(formData.num_stock);
-      const idProveedor = Number(formData.id_proveedor);
-      const idMarca = Number(formData.id_marca);
-      const safeValPrecio = Number.isFinite(valPrecio) && valPrecio > 0 ? valPrecio : Number(product?.val_precio) || 0;
-      const safeNumStock = Number.isFinite(numStock) && numStock >= 0 ? numStock : Number(product?.num_stock) ?? 0;
-      const safeIdProveedor = Number.isFinite(idProveedor) && idProveedor > 0 ? idProveedor : Number(product?.id_proveedor) || 1;
-      const safeIdMarca = Number.isFinite(idMarca) && idMarca > 0 ? idMarca : Number(product?.id_marca) || 1;
-
-      // Preparar FormData para el backend (siempre strings para Form)
-      const formDataToSend = new FormData();
-      formDataToSend.append('nom_producto', String(formData.nom_producto ?? product?.nom_producto ?? ''));
-      formDataToSend.append('spcf_producto', JSON.stringify(formData.spcf_producto ?? {}));
-      formDataToSend.append('val_precio', String(safeValPrecio));
-      formDataToSend.append('id_proveedor', String(safeIdProveedor));
-      formDataToSend.append('id_marca', String(safeIdMarca));
-      formDataToSend.append('num_stock', String(safeNumStock));
-      formDataToSend.append('ind_activo', 'true');
-
-      // Manejar imágenes: enviar existentes si no hay nuevas, o nuevas si las hay
-      if (selectedImages.length > 0) {
-        // Hay nuevas imágenes seleccionadas
-        selectedImages.forEach((image, index) => {
-          if (image.file) {
-            formDataToSend.append('image_files', image.file);
-          }
-        });
-      } else {
-        // No hay nuevas imágenes, mantener las existentes
-        if (product?.img_producto) {
-          formDataToSend.append('img_producto', JSON.stringify(product.img_producto));
-        }
-      }
-
-      console.log('Final form data to send:', Object.fromEntries(formDataToSend.entries()));
-      
-      await updateProductMutation.mutateAsync({ 
-        id_categoria: currentIdCategoria, 
-        id_linea: currentIdLinea, 
-        id_sublinea: currentIdSublinea, 
-        id_producto: idNumber, 
-        data: formDataToSend as any
-      });
-      console.log('Update successful, redirecting...');
-      router.push('/admin/products');
-    } catch (e: any) {
-      // El hook ya muestra toast de error
-      console.error('Error updating product:', e);
-      console.error('Error details:', e?.response?.data);
+  useEffect(() => {
+    if (data?.image_urls && Array.isArray(data.image_urls)) {
+      setProductImageUrls(data.image_urls)
+    } else {
+      setProductImageUrls([])
     }
-  };
+  }, [data?.image_urls])
 
-  // Manejar cambio de imágenes
-  const handleImagesChange = (images: any[]) => {
-    setSelectedImages(images);
-  };
+  useEffect(() => {
+    const files = selectedImages.map((img) => img?.file).filter((f): f is File => !!f)
+    productImageFilesRef.current = files
+  }, [selectedImages])
+
+  const handleVariantsChange = useCallback((variants: VariantCreateItem[]) => {
+    setVariantsForPreview(variants)
+  }, [])
+
+  const handleSubmit = async (payload: ProductCreateComposite) => {
+    if (!productId) return
+    try {
+      setIsSubmitting(true)
+      const imageFiles = productImageFilesRef.current.length > 0 ? productImageFilesRef.current : selectedImages.map((img) => img?.file).filter((f): f is File => !!f)
+      const payloadWithExistingImages: ProductCreateComposite = {
+        ...payload,
+        image_urls: productImageUrls.length > 0 ? [...productImageUrls] : (payload.image_urls ?? []),
+      }
+      await updateProductComposite(productId, payloadWithExistingImages, imageFiles)
+      toast.success('Producto actualizado correctamente')
+      router.push('/admin/products')
+    } catch (err: unknown) {
+      console.error('Error al actualizar producto:', err)
+      const msg =
+        err && typeof err === 'object' && 'response' in err
+          ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
+          : (err as Error)?.message
+      toast.error(msg || 'Error al actualizar el producto')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const existingImagesForUpload =
+    productImageUrls.length > 0
+      ? productImageUrls.length === 1
+        ? { main: productImageUrls[0], gallery: [] as string[] }
+        : { main: productImageUrls[0], gallery: productImageUrls.slice(1) }
+      : undefined
+
+  const handleRemoveProductImage = useCallback((url: string) => {
+    setProductImageUrls((prev) => prev.filter((u) => u !== url))
+  }, [])
 
   if (error) {
     return (
       <div className="space-y-6">
-        <ProductCreateHeader 
-          title="Editar Producto"
-          description="Actualiza los datos del producto"
-          backUrl="/admin/products"
-        />
+        <ProductCreateHeader title="Editar Producto" description="Actualiza los datos del producto" backUrl="/admin/products" />
         <div className="text-red-600">Error al cargar el producto.</div>
       </div>
-    );
+    )
   }
 
   return (
     <div className="space-y-6">
-      <ProductCreateHeader 
+      <ProductCreateHeader
         title="Editar Producto"
         description="Actualiza los datos del producto"
         backUrl="/admin/products"
       />
 
-      {/* Main Content: formulario e imágenes; botones siempre al final en responsive */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2">
-          <ProductForm
-            ref={formRef}
-            formId={FORM_ID}
-            hideActionButtons
-            initialData={initialData}
-            isLoading={isLoading || updateProductMutation.isPending}
-            submitLabel="GUARDAR CAMBIOS"
-            onSubmit={handleFormSubmit}
-            isEditing
-          />
+          {isLoading ? (
+            <div className="text-muted-foreground">Cargando producto...</div>
+          ) : (
+            <ProductFormComposite
+              formId={FORM_ID}
+              initialData={data as ProductAdminDetailComposite | undefined}
+              onSubmit={handleSubmit}
+              isLoading={isSubmitting}
+              submitLabel="Guardar cambios"
+              onVariantsChange={handleVariantsChange}
+            />
+          )}
         </div>
         <div className="xl:col-span-1">
-          <ProductImageUpload
-            onImagesChange={handleImagesChange}
+          <UnifiedProductImagesPanel
+            onImagesChange={setSelectedImages}
             maxImages={10}
             maxFileSize={5}
-            existingImages={product?.img_producto}
+            existingImages={existingImagesForUpload}
+            onRemoveExistingImage={handleRemoveProductImage}
           />
-        </div>
-        <div className="col-span-1 xl:col-span-3 flex flex-wrap items-center justify-end gap-4 pt-6 border-t">
-          <Button type="button" variant="outline" onClick={() => formRef.current?.reset()}>
-            LIMPIAR
-          </Button>
-          <Button
-            type="submit"
-            form={FORM_ID}
-            disabled={isLoading || updateProductMutation.isPending}
-            className="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            {updateProductMutation.isPending ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
-          </Button>
         </div>
       </div>
     </div>
-  );
-};
-
-export default ProductEditPage;
+  )
+}

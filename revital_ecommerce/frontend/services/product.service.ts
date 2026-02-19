@@ -8,6 +8,7 @@
 import { get, post, put, del } from '@/utils/apiWrapper';
 import type {
   ProductCreate,
+  ProductCreateComposite,
   ProductUpdate,
   ProductFilters,
   ProductFilterParams,
@@ -17,8 +18,6 @@ import type {
   Category,
   Brand,
   Provider,
-  ProductLine,
-  ProductSubline,
   StockUpdate,
   StockMovement,
   Product,
@@ -49,145 +48,93 @@ export async function getProductsAdmin(params?: ProductAdminParams): Promise<Pro
 }
 
 /**
- * Obtener producto por ID compuesto
- * Formato esperado: "{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}"
+ * Obtener producto por slug o ID (tienda: GET /products/{slug_or_id})
  */
-export async function getProductByIds(
-  ids:
-    | string
-    | {
-        id_categoria: string | number
-        id_linea: string | number
-        id_sublinea: string | number
-        id_producto: string | number
-      }
-): Promise<Product> {
-  const slug =
-    typeof ids === 'string'
-      ? ids
-      : `${ids.id_categoria}-${ids.id_linea}-${ids.id_sublinea}-${ids.id_producto}`
-
-  return await get<Product>(`/products/${slug}`)
+export async function getProductBySlugOrId(slugOrId: string): Promise<Product> {
+  return await get<Product>(`/products/${slugOrId}`);
 }
 
 /**
- * Obtener producto con detalle admin (joins completos)
- * Formato esperado: "{id_categoria}-{id_linea}-{id_sublinea}-{id_producto}"
+ * Sube una imagen y devuelve la URL. Usado para imágenes de variantes en el admin.
  */
-export async function getProductAdminDetail(
-  ids:
-    | string
-    | {
-        id_categoria: string | number
-        id_linea: string | number
-        id_sublinea: string | number
-        id_producto: string | number
-      }
-): Promise<Product> {
-  const slug =
-    typeof ids === 'string'
-      ? ids
-      : `${ids.id_categoria}-${ids.id_linea}-${ids.id_sublinea}-${ids.id_producto}`
-
-  return await get<Product>(`/products-admin/${slug}`)
-}
-
-/**
- * Crear nuevo producto
- */
-export async function createProduct(productData: ProductCreate): Promise<Product> {
-  return await post<Product>('/products', productData);
-}
-
-/**
- * Crear nuevo producto con imágenes
- */
-export async function createProductWithImages(
-  productData: ProductCreate, 
-  imageFiles: File[]
-): Promise<Product> {
+export async function uploadProductImage(file: File): Promise<{ url: string }> {
   const formData = new FormData();
-  
-  // Agregar datos del producto
-  formData.append('id_categoria', productData.id_categoria.toString());
-  formData.append('id_linea', productData.id_linea.toString());
-  formData.append('id_sublinea', productData.id_sublinea.toString());
-  formData.append('nom_producto', productData.nom_producto);
-  formData.append('spcf_producto', JSON.stringify(productData.spcf_producto));
-  formData.append('val_precio', productData.val_precio.toString());
-  formData.append('id_proveedor', productData.id_proveedor.toString());
-  formData.append('id_marca', productData.id_marca.toString());
-  formData.append('num_stock', productData.num_stock?.toString() || '0');
-  formData.append('ind_activo', 'true');
-  
-  // Agregar archivos de imagen
-  imageFiles.forEach((file, index) => {
-    formData.append('image_files', file);
-  });
-  
-  return await post<Product>('/products', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
+  formData.append('file', file);
+  const { post } = await import('@/utils/apiWrapper');
+  return await post<{ url: string }>('/products/upload-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
   });
 }
 
+/** Detalle para edición: producto + variantes + image_urls (solo product_id) */
+export interface ProductAdminDetailComposite {
+  product: { name: string; category_id: number; id_marca?: number | null; id_proveedor?: number | null; description?: string | null; is_active: boolean }
+  variants: Array<{
+    id?: number
+    sku?: string | null
+    price: number
+    stock: number
+    is_active: boolean
+    attributes?: Record<string, string | number | boolean>
+  }>
+  image_urls: string[]
+  images_by_variant?: Record<string, Array<{ image_url: string; is_main: boolean; sort_order: number }>>
+}
+
+export async function getProductAdminDetailById(productId: string | number): Promise<ProductAdminDetailComposite> {
+  return await get<ProductAdminDetailComposite>(`/products/${productId}/admin-detail`)
+}
+
 /**
- * Actualizar producto
+ * Actualizar producto compuesto (producto + variantes + imágenes)
  */
-export async function updateProduct(
-  id_categoria: number, 
-  id_linea: number, 
-  id_sublinea: number, 
-  id_producto: number, 
-  productData: FormData
-): Promise<Product> {
-  // No enviar Content-Type: axios lo fija con boundary para FormData
-  return await put<Product>(`/products/${id_categoria}-${id_linea}-${id_sublinea}-${id_producto}`, productData);
+export async function updateProductComposite(
+  productId: string | number,
+  payload: ProductCreateComposite,
+  imageFiles?: File[]
+): Promise<ApiResponse & { message?: string }> {
+  if (imageFiles && imageFiles.length > 0) {
+    const formData = new FormData()
+    formData.append('payload', JSON.stringify(payload))
+    imageFiles.forEach((f) => formData.append('image_files', f))
+    return await put<ApiResponse & { message?: string }>(`/products/${productId}/composite`, formData)
+  }
+  return await put<ApiResponse & { message?: string }>(`/products/${productId}/composite`, payload)
 }
 
 /**
- * Eliminar producto
+ * Activar o desactivar producto por product_id
+ */
+export async function deactivateActivateProductById(
+  productId: number,
+  activar: boolean
+): Promise<ApiResponse> {
+  return await put<ApiResponse>(`/products/${productId}/toggle`, { activar })
+}
+
+/**
+ * Crear producto compuesto (producto + variantes + imágenes)
+ */
+export async function createProductComposite(
+  payload: ProductCreateComposite,
+  imageFiles?: File[]
+): Promise<ApiResponse & { message?: string }> {
+  if (imageFiles && imageFiles.length > 0) {
+    const formData = new FormData();
+    formData.append('payload', JSON.stringify(payload));
+    imageFiles.forEach((f) => formData.append('image_files', f));
+    return await post<ApiResponse & { message?: string }>('/products/composite', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  }
+  return await post<ApiResponse & { message?: string }>('/products/composite', payload);
+}
+
+/**
+ * Eliminar producto por ID
  */
 export async function deleteProduct(id: number): Promise<ApiResponse> {
   return await del<ApiResponse>(`/products/${id}`);
-}
-
-/**
- * Activar o desactivar producto por IDs compuestos
- */
-export async function deactivateActivateProduct(params: {
-  id_categoria: number;
-  id_linea: number;
-  id_sublinea: number;
-  id_producto: number;
-}, activar: boolean): Promise<ApiResponse> {
-  const slug = `${params.id_categoria}-${params.id_linea}-${params.id_sublinea}-${params.id_producto}`;
-  return await put<ApiResponse>(`/products/${slug}/toggle`, { activar });
-}
-
-/**
- * Desactivar producto por IDs compuestos (mantener compatibilidad)
- */
-export async function deactivateProduct(params: {
-  id_categoria: number;
-  id_linea: number;
-  id_sublinea: number;
-  id_producto: number;
-}): Promise<ApiResponse> {
-  return deactivateActivateProduct(params, false);
-}
-
-/**
- * Activar producto (mantener compatibilidad)
- */
-export async function activateProduct(product: Product): Promise<ApiResponse> {
-  return deactivateActivateProduct({
-    id_categoria: Number(product.id_categoria),
-    id_linea: Number(product.id_linea),
-    id_sublinea: Number(product.id_sublinea),
-    id_producto: Number(product.id_producto),
-  }, true);
 }
 
 /**
@@ -204,96 +151,65 @@ export async function searchProducts(query: string, params?: ProductFilters): Pr
 // =============================================================================
 
 /**
- * Filtrar productos con criterios avanzados
+ * Filtrar productos con criterios avanzados.
+ * Backend: category_id (uno), include_subcategories, precio_min/max, atributos (JSON), id_marca.
  */
 export async function filterProducts(filters: ProductFilterParams): Promise<ProductFilterResponse> {
-  // Convertir arrays a la sintaxis que espera el backend
   const params = new URLSearchParams();
-  
-  // Agregar parámetros básicos
+
   if (filters.nombre_producto) params.append('nombre_producto', filters.nombre_producto);
   if (filters.precio_min !== undefined) params.append('precio_min', filters.precio_min.toString());
   if (filters.precio_max !== undefined) params.append('precio_max', filters.precio_max.toString());
-  if (filters.stock_min !== undefined) params.append('stock_min', filters.stock_min.toString());
   if (filters.solo_con_stock !== undefined) params.append('solo_con_stock', filters.solo_con_stock.toString());
   if (filters.ordenar_por) params.append('ordenar_por', filters.ordenar_por);
   if (filters.orden) params.append('orden', filters.orden);
   if (filters.limit !== undefined) params.append('limit', filters.limit.toString());
   if (filters.offset !== undefined) params.append('offset', filters.offset.toString());
-  
-  // Agregar arrays con sintaxis correcta (sin [])
-  if (filters.id_categoria) {
-    const categories = Array.isArray(filters.id_categoria) ? filters.id_categoria : [filters.id_categoria];
-    categories.forEach(id => params.append('id_categoria', id.toString()));
+
+  if (filters.category_id !== undefined) params.append('category_id', filters.category_id.toString());
+  if (filters.include_subcategories !== undefined) params.append('include_subcategories', filters.include_subcategories.toString());
+  if (filters.id_marca !== undefined) params.append('id_marca', filters.id_marca.toString());
+
+  if (filters.atributos && Object.keys(filters.atributos).length > 0) {
+    params.append('atributos', JSON.stringify(filters.atributos));
   }
-  if (filters.id_linea) {
-    const lines = Array.isArray(filters.id_linea) ? filters.id_linea : [filters.id_linea];
-    lines.forEach(id => params.append('id_linea', id.toString()));
-  }
-  if (filters.id_sublinea) {
-    const sublines = Array.isArray(filters.id_sublinea) ? filters.id_sublinea : [filters.id_sublinea];
-    sublines.forEach(id => params.append('id_sublinea', id.toString()));
-  }
-  if (filters.id_marca) {
-    const brands = Array.isArray(filters.id_marca) ? filters.id_marca : [filters.id_marca];
-    brands.forEach(id => params.append('id_marca', id.toString()));
-  }
-  if (filters.id_proveedor) {
-    const providers = Array.isArray(filters.id_proveedor) ? filters.id_proveedor : [filters.id_proveedor];
-    providers.forEach(id => params.append('id_proveedor', id.toString()));
-  }
-  
+
   return await get<ProductFilterResponse>(`/products/filter?${params.toString()}`);
 }
 
 /**
- * Obtener estadísticas de productos filtrados
+ * Obtener estadísticas de productos filtrados (mismos params que filter)
  */
 export async function getFilterStats(filters: ProductFilterParams): Promise<ProductFilterStats> {
-  // Convertir arrays a la sintaxis que espera el backend
   const params = new URLSearchParams();
-  
-  // Agregar parámetros básicos
+
   if (filters.nombre_producto) params.append('nombre_producto', filters.nombre_producto);
   if (filters.precio_min !== undefined) params.append('precio_min', filters.precio_min.toString());
   if (filters.precio_max !== undefined) params.append('precio_max', filters.precio_max.toString());
-  if (filters.stock_min !== undefined) params.append('stock_min', filters.stock_min.toString());
   if (filters.solo_con_stock !== undefined) params.append('solo_con_stock', filters.solo_con_stock.toString());
   if (filters.ordenar_por) params.append('ordenar_por', filters.ordenar_por);
   if (filters.orden) params.append('orden', filters.orden);
   if (filters.limit !== undefined) params.append('limit', filters.limit.toString());
   if (filters.offset !== undefined) params.append('offset', filters.offset.toString());
-  
-  // Agregar arrays con sintaxis correcta (sin [])
-  if (filters.id_categoria) {
-    const categories = Array.isArray(filters.id_categoria) ? filters.id_categoria : [filters.id_categoria];
-    categories.forEach(id => params.append('id_categoria', id.toString()));
+
+  if (filters.category_id !== undefined) params.append('category_id', filters.category_id.toString());
+  if (filters.include_subcategories !== undefined) params.append('include_subcategories', filters.include_subcategories.toString());
+  if (filters.id_marca !== undefined) params.append('id_marca', filters.id_marca.toString());
+
+  if (filters.atributos && Object.keys(filters.atributos).length > 0) {
+    params.append('atributos', JSON.stringify(filters.atributos));
   }
-  if (filters.id_linea) {
-    const lines = Array.isArray(filters.id_linea) ? filters.id_linea : [filters.id_linea];
-    lines.forEach(id => params.append('id_linea', id.toString()));
-  }
-  if (filters.id_sublinea) {
-    const sublines = Array.isArray(filters.id_sublinea) ? filters.id_sublinea : [filters.id_sublinea];
-    sublines.forEach(id => params.append('id_sublinea', id.toString()));
-  }
-  if (filters.id_marca) {
-    const brands = Array.isArray(filters.id_marca) ? filters.id_marca : [filters.id_marca];
-    brands.forEach(id => params.append('id_marca', id.toString()));
-  }
-  if (filters.id_proveedor) {
-    const providers = Array.isArray(filters.id_proveedor) ? filters.id_proveedor : [filters.id_proveedor];
-    providers.forEach(id => params.append('id_proveedor', id.toString()));
-  }
-  
+
   return await get<ProductFilterStats>(`/products/filter/stats?${params.toString()}`);
 }
 
 /**
- * Obtener opciones disponibles para los filtros (tienda: solo activos)
+ * Obtener opciones disponibles para los filtros (tienda: solo activos).
+ * Si se pasa categoryId, el backend devuelve atributos filtrables solo de esa categoría.
  */
-export async function getFilterOptions(): Promise<FilterOptions> {
-  return await get<FilterOptions>('/products/filter/options');
+export async function getFilterOptions(categoryId?: number | null): Promise<FilterOptions> {
+  const params = categoryId != null ? { category_id: categoryId } : {};
+  return await get<FilterOptions>('/products/filter/options', { params });
 }
 
 /**
@@ -327,13 +243,6 @@ export async function getProductsByBrand(brandId: number, params?: PaginationPar
 }
 
 /**
- * Obtener productos por sublínea
- */
-export async function getProductsBySubline(sublineId: number, params?: PaginationParams): Promise<PaginatedResponse<Product>> {
-  return await get<PaginatedResponse<Product>>(`/products/subline/${sublineId}`, { params });
-}
-
-/**
  * Obtener productos destacados
  */
 export async function getFeaturedProducts(limit?: number): Promise<Product[]> {
@@ -355,7 +264,7 @@ export async function getProductsOnSale(params?: PaginationParams): Promise<Pagi
  * Actualizar stock de producto
  */
 export async function updateProductStock(stockData: StockUpdate): Promise<Product> {
-  return await put<Product>(`/products/${stockData.id_producto}/stock`, stockData);
+  return await put<Product>(`/products/${stockData.id}/stock`, stockData);
 }
 
 /**
@@ -503,42 +412,20 @@ export async function deleteProvider(id: number): Promise<ApiResponse> {
 }
 
 // =============================================================================
-// FUNCIONES DE LÍNEAS Y SUBLÍNEAS
-// =============================================================================
-
-/**
- * Obtener todas las líneas
- */
-export async function getProductLines(): Promise<ProductLine[]> {
-  return await get<ProductLine[]>('/lines');
-}
-
-/**
- * Obtener sublíneas por línea
- */
-export async function getSublinesByLine(lineId: number): Promise<ProductSubline[]> {
-  return await get<ProductSubline[]>(`/lines/${lineId}/sublines`);
-}
-
-// =============================================================================
 // EXPORT COMO OBJETO PARA COMPATIBILIDAD
 // =============================================================================
 
 const productService = {
-  // Productos
   getProducts,
-  getProductByIds,
-  getProductAdminDetail,
-  createProduct,
-  updateProduct,
+  getProductBySlugOrId,
+  getProductAdminDetailById,
+  createProductComposite,
+  updateProductComposite,
+  deactivateActivateProductById,
   deleteProduct,
-  deactivateActivateProduct,
-  deactivateProduct,
-  activateProduct,
   searchProducts,
   getProductsByCategory,
   getProductsByBrand,
-  getProductsBySubline,
   getFeaturedProducts,
   getProductsOnSale,
   
@@ -574,10 +461,6 @@ const productService = {
   createProvider,
   updateProvider,
   deleteProvider,
-  
-  // Líneas
-  getProductLines,
-  getSublinesByLine,
 };
 
 export default productService; 

@@ -10,7 +10,17 @@ from core.dependencies import get_current_user
 from schemas.auth_schema import UserInToken
 
 # Importar los esquemas de categoria
-from schemas.category_schema import CategoryCreate, CategoryUpdate, Category, ResponseMessage, ToggleRequest
+from schemas.category_schema import (
+    CategoryCreate,
+    CategoryUpdate,
+    Category,
+    ResponseMessage,
+    CreateCategoryResponse,
+    ToggleRequest,
+    SetCategoryAttributesRequest,
+    CategoryAttributeResponse,
+    CategoryAttributeWithValuesResponse,
+)
 from services import category_service
 
 router = APIRouter(tags=["Categorías"])
@@ -29,9 +39,7 @@ async def get_categories(db: Session = Depends(get_db)):
         list[Category]: Lista de categorías registradas.
     """
     categories = category_service.get_categories(db)
-    if not categories:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron categorías")
-    return categories
+    return categories if categories else []
 
 
 # Ruta para obtener una categoría específica por ID
@@ -57,26 +65,18 @@ async def get_category(id_categoria: Decimal, db: Session = Depends(get_db)):
 
 
 # Ruta para crear una nueva categoría
-@router.post("/categories", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
+@router.post("/categories", response_model=CreateCategoryResponse, status_code=status.HTTP_201_CREATED)
 async def create_category(
     db: Session = Depends(get_db),
     category_data: CategoryCreate = Body(...),
     current_user: UserInToken = Depends(get_current_user)
 ):
     """
-    Crea una nueva categoría en la base de datos.
-
-    Args:
-        db (Session): Sesión de la base de datos inyectada por FastAPI.
-        nom_categoria (str): Nombre de la categoría a crear.
-        ind_activo (bool): Indica si la categoría está activa.
-
-    Returns:
-        ResponseMessage: Mensaje de confirmación de creación exitosa.
+    Crea una nueva categoría en la base de datos. Devuelve id_categoria para poder asignar atributos (PUT /categories/{id}/attributes).
     """
     try:
-        category_service.create_category(db, category_data, current_user.id_usuario)
-        return ResponseMessage(message="Categoría creada exitosamente")
+        category_id = category_service.create_category(db, category_data, current_user.id_usuario)
+        return CreateCategoryResponse(message="Categoría creada exitosamente", id=category_id)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -111,6 +111,48 @@ async def update_category(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     
+# Atributos de la categoría
+@router.get("/categories/{id_categoria}/attributes", response_model=list[CategoryAttributeResponse])
+async def get_category_attributes(id_categoria: Decimal, db: Session = Depends(get_db)):
+    """Devuelve los atributos asociados a la categoría (id, attribute_id, is_required, is_filterable, attribute_name, data_type)."""
+    try:
+        rows = category_service.get_category_attributes(db, id_categoria)
+        return [CategoryAttributeResponse(**dict(r)) for r in rows]
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.get("/categories/{id_categoria}/attributes-with-values", response_model=list[CategoryAttributeWithValuesResponse])
+async def get_category_attributes_with_values(id_categoria: Decimal, db: Session = Depends(get_db)):
+    """Obtiene los atributos de la categoría con sus valores predefinidos (para admin/product form)."""
+    try:
+        rows = category_service.get_category_attributes_with_values(db, id_categoria)
+        return [CategoryAttributeWithValuesResponse(**r) for r in rows]
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.put("/categories/{id_categoria}/attributes", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def set_category_attributes(
+    id_categoria: Decimal,
+    body: SetCategoryAttributesRequest = Body(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user),
+):
+    """Reemplaza los atributos de la categoría. Body: { attributes: [{ attribute_id, is_required, is_filterable }] }."""
+    try:
+        category = category_service.get_category(db, id_categoria)
+        if not category:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Categoría no encontrada")
+        items = [x.model_dump() for x in body.attributes]
+        category_service.set_category_attributes(db, id_categoria, items, current_user.id_usuario)
+        return ResponseMessage(message="Atributos de la categoría actualizados correctamente")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
 # Ruta para activar/desactivar una categoría existente   
 @router.put(
     "/categories/{id_categoria}/toggle",

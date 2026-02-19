@@ -70,19 +70,7 @@ class RoleBasedAccessMiddleware:
                 "DELETE": [1],    # Solo administradores
                 "GET": [1, 2]     # Administradores y usuarios
             },
-            "/api/sublines": {
-                "POST": [1],      # Solo administradores
-                "PUT": [1],       # Solo administradores
-                "DELETE": [1],    # Solo administradores
-                "GET": [1, 2]     # Administradores y usuarios
-            },
             "/api/categories": {
-                "POST": [1],      # Solo administradores
-                "PUT": [1],       # Solo administradores
-                "DELETE": [1],    # Solo administradores
-                "GET": [1, 2]     # Administradores y usuarios
-            },
-            "/api/lines": {
                 "POST": [1],      # Solo administradores
                 "PUT": [1],       # Solo administradores
                 "DELETE": [1],    # Solo administradores
@@ -217,8 +205,6 @@ class SmartAuthMiddleware(BaseHTTPMiddleware):
             "/api/products",    # Catálogo público
             "/api/categories",  # Categorías públicas
             "/api/brands",      # Marcas públicas
-            "/api/lines",       # Líneas públicas
-            "/api/sublines",    # Sublíneas públicas
             "/api/cms"          # Contenido público (páginas, banners, etc.)
         ]
         
@@ -248,9 +234,8 @@ class SmartAuthMiddleware(BaseHTTPMiddleware):
             "/api/products",
             "/api/categories",
             "/api/brands",
-            "/api/lines",
-            "/api/sublines",
-            "/api/cms"
+            "/api/cms",
+            "/api/attributes"
         ]
         
         # Recursos que solo admins pueden modificar pero todos pueden leer
@@ -258,9 +243,8 @@ class SmartAuthMiddleware(BaseHTTPMiddleware):
             "/api/products",    # Solo admin puede crear/editar productos
             "/api/categories",  # Solo admin puede gestionar categorías
             "/api/brands",      # Solo admin puede gestionar marcas
-            "/api/lines",       # Solo admin puede gestionar líneas
-            "/api/sublines",    # Solo admin puede gestionar sublíneas
-            "/api/cms"          # Solo admin puede gestionar contenido
+            "/api/cms",         # Solo admin puede gestionar contenido
+            "/api/attributes"   # Solo admin puede gestionar atributos
         ]
     
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:

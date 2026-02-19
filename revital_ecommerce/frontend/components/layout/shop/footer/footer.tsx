@@ -30,30 +30,30 @@ const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }
 
       {/* Main Footer Content */}
       <div className="container mx-auto px-4 py-8 sm:py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[1.4fr_0.85fr_0.85fr_0.85fr_1fr_1.3fr] gap-6 lg:gap-6 xl:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[1.2fr_0.7fr_0.7fr_0.7fr_0.85fr_1.2fr] gap-6 lg:gap-6 xl:gap-4">
           {/* About Us */}
           <AboutSection />
 
-          {/* Categorías */}
+          {/* Categorías (raíz) - máximo 5 */}
           <CategoriesSection
             title="Categorías"
-            categories={footerCategories?.categories || []}
+            categories={(footerCategories?.categories || []).slice(0, 5)}
             isLoading={isLoading}
             error={error}
           />
 
-          {/* Líneas */}
+          {/* Líneas (hijas de categorías) - máximo 5 */}
           <CategoriesSection
             title="Líneas"
-            categories={footerCategories?.lineas || []}
+            categories={(footerCategories?.lineas || []).slice(0, 5)}
             isLoading={isLoading}
             error={error}
           />
 
-          {/* Sublíneas */}
+          {/* Sublíneas (nietas) - máximo 5 */}
           <CategoriesSection
             title="Sublíneas"
-            categories={footerCategories?.sublineas || []}
+            categories={(footerCategories?.sublineas || []).slice(0, 5)}
             isLoading={isLoading}
             error={error}
           />

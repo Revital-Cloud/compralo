@@ -76,3 +76,48 @@ export function formatPriceRange(minPrice: number, maxPrice: number): string {
   
   return `${formatPrice(minPrice)} - ${formatPrice(maxPrice)}`
 }
+
+/**
+ * Formatea un número con puntos de miles (sin símbolo de moneda)
+ * Ejemplo: 1600000 -> "1.600.000"
+ * @param value - Número o string numérico
+ * @returns String formateado con puntos de miles
+ */
+export function formatNumberWithDots(value: number | string | null | undefined): string {
+  if (value === null || value === undefined || value === '') {
+    return ''
+  }
+  
+  // Remover puntos existentes y convertir a número
+  const numericValue = typeof value === 'string' 
+    ? parseFloat(value.replace(/\./g, '')) 
+    : value
+  
+  if (isNaN(numericValue)) {
+    return ''
+  }
+  
+  // Formatear con puntos de miles (formato colombiano)
+  return new Intl.NumberFormat('es-CO', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(numericValue)
+}
+
+/**
+ * Parsea un string formateado con puntos de miles a número
+ * Ejemplo: "1.600.000" -> 1600000
+ * @param formattedValue - String con formato "1.600.000"
+ * @returns Número parseado
+ */
+export function parseFormattedNumber(formattedValue: string): number {
+  if (!formattedValue || formattedValue.trim() === '') {
+    return 0
+  }
+  
+  // Remover puntos y espacios, luego parsear
+  const cleaned = formattedValue.replace(/\./g, '').replace(/\s/g, '')
+  const parsed = parseFloat(cleaned)
+  
+  return isNaN(parsed) ? 0 : parsed
+}

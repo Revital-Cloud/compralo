@@ -2,15 +2,18 @@
  * FUNCIÓN: fun_limpiar_carrito_pagado
  * 
  * DESCRIPCIÓN: Función TRIGGER que limpia automáticamente el carrito del usuario
- *              cuando una orden cambia a estado PAGADA (ind_estado = 2).
- *              Se ejecuta después de UPDATE en tab_ordenes.
+ *              cuando una orden se ACTUALIZA a estado PAGADA (ind_estado = 2).
+ *              El trigger trg_limpiar_carrito_pagado está definido solo para UPDATE
+ *              (no INSERT): cuando la orden se crea ya como Pagada, la limpieza la
+ *              hace fun_crear_orden_desde_carrito en PASO 12b, después de copiar
+ *              ítems a tab_orden_productos.
  * 
  * PARÁMETROS: Ninguno (función TRIGGER - usa NEW y OLD records)
  * 
  * RETORNA: TRIGGER - NULL (estándar para triggers AFTER)
  * 
  * LÓGICA:
- *   1. Verificar que es un cambio a estado PAGADA
+ *   1. Verificar que es un cambio a estado PAGADA (UPDATE)
  *   2. Obtener carrito(s) del usuario de la orden
  *   3. Eliminar todos los productos del carrito
  *   4. Mantener el carrito vacío para futuras compras
@@ -49,11 +52,10 @@ DECLARE
     v_count_productos_eliminados INT := 0;
     v_count_carritos_limpiados INT := 0;
 BEGIN
-    -- VALIDACIÓN: Solo procesar si es cambio a estado PAGADA (2)
-    -- OLD.ind_estado != 2 significa que NO estaba pagada antes
-    -- NEW.ind_estado = 2 significa que AHORA está pagada
-    IF OLD.ind_estado = 2 OR NEW.ind_estado != 2 THEN
-        -- Si ya estaba pagada o no es pago, no hacer nada
+    -- VALIDACIÓN: El trigger solo se dispara en UPDATE (cuando orden pasa a Pagada).
+    -- Las órdenes creadas ya como Pagada (INSERT ind_estado=2) no disparan este trigger;
+    -- la limpieza del carrito en ese caso la hace fun_crear_orden_desde_carrito (PASO 12b).
+    IF TG_OP != 'UPDATE' OR OLD.ind_estado = 2 OR NEW.ind_estado != 2 THEN
         RETURN NULL;
     END IF;
     
@@ -79,9 +81,9 @@ BEGIN
             DELETE FROM tab_carrito_productos 
             WHERE id_carrito = v_carrito_record.id_carrito;
             
-            -- PASO 5: Actualizar fecha de modificación del carrito
+            -- PASO 5: Actualizar fecha de modificación del carrito (INSERT suele tener usr_update NULL)
             UPDATE tab_carritos 
-            SET usr_update = NEW.usr_update
+            SET usr_update = COALESCE(NEW.usr_update, NEW.usr_insert)
             WHERE id_carrito = v_carrito_record.id_carrito;
             
             -- LOG: Registro por carrito limpiado
@@ -102,7 +104,7 @@ BEGIN
     IF v_count_carritos_limpiados = 0 THEN
         -- Crear carrito vacío para futuras compras
         INSERT INTO tab_carritos (id_usuario, usr_insert)
-        VALUES (NEW.id_usuario, NEW.usr_update);
+        VALUES (NEW.id_usuario, COALESCE(NEW.usr_update, NEW.usr_insert));
         
         RAISE NOTICE 'Carrito vacío creado para usuario % tras PAGAR orden #%', 
             NEW.id_usuario, NEW.id_orden;

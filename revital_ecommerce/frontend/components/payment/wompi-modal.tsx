@@ -99,24 +99,25 @@ export function WompiModal({
         name: shippingAddress.name
       } : undefined;
 
-      // Asegurarse de que el script de Wompi esté cargado antes de continuar
-      console.log('🔍 Verificando script de Wompi...');
+      // Cargar el script de Wompi si no está disponible y esperar a que esté listo
       if (typeof (window as any).WidgetCheckout === 'undefined') {
-        console.log('⏳ Script no cargado, esperando...');
-        // Esperar hasta 5 segundos a que el script se cargue
+        console.log('📥 Cargando script de Wompi...');
+        try {
+          await wompiWidgetService.loadWidgetScript();
+        } catch (loadErr) {
+          console.warn('⚠️ Error al cargar script, esperando por si ya se está cargando...', loadErr);
+        }
+        // Por si el script se está cargando en paralelo, esperar hasta 5 segundos
         let attempts = 0;
-        const maxAttempts = 50; // 5 segundos (50 * 100ms)
-        
+        const maxAttempts = 50;
         while (typeof (window as any).WidgetCheckout === 'undefined' && attempts < maxAttempts) {
           await new Promise(resolve => setTimeout(resolve, 100));
           attempts++;
         }
-        
         if (typeof (window as any).WidgetCheckout === 'undefined') {
           throw new Error('El script de Wompi no se cargó correctamente. Por favor, recarga la página e intenta nuevamente.');
         }
       }
-      
       console.log('✅ Script de Wompi verificado');
 
       // Flujo checkout session: no se crea orden hasta que Wompi confirme el pago (checkoutData).
@@ -172,6 +173,8 @@ export function WompiModal({
           errorMessage = 'Error de configuración del sistema de pagos. Contacta al soporte técnico.';
         } else if (error.message.includes('script')) {
           errorMessage = 'El script de Wompi no se cargó correctamente. Por favor, recarga la página e intenta nuevamente.';
+        } else if (error.message.includes('Carrito no encontrado')) {
+          errorMessage = 'Carrito no encontrado. Por favor, vuelve al carrito e intenta de nuevo.';
         } else {
           errorMessage = error.message || 'Error al cargar el sistema de pagos.';
         }

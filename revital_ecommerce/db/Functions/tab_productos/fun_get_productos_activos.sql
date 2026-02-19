@@ -1,52 +1,35 @@
+/*
+ * Lista solo productos activos (is_active = TRUE) con categoría, precio mínimo, stock e imagen.
+ */
 CREATE OR REPLACE FUNCTION fun_get_productos_activos()
 RETURNS TABLE (
-    nom_categoria tab_categorias.nom_categoria%TYPE,
-    nom_linea tab_lineas.nom_linea%TYPE,
-    nom_sublinea tab_sublineas.nom_sublinea%TYPE,
-    nom_producto tab_productos.nom_producto%TYPE,
-    spcf_producto tab_productos.spcf_producto%TYPE,
-    img_producto tab_productos.img_producto%TYPE,
-    val_precio tab_productos.val_precio%TYPE,
-    num_stock tab_productos.num_stock%TYPE,
-    nom_proveedor tab_proveedores.nom_proveedor%TYPE,
-    nom_marca tab_marcas.nom_marca%TYPE
+    product_id DECIMAL,
+    category_id DECIMAL,
+    nom_categoria VARCHAR,
+    nom_producto VARCHAR,
+    slug_producto VARCHAR,
+    description TEXT,
+    id_marca DECIMAL,
+    precio_min DECIMAL,
+    stock_total BIGINT,
+    img_principal VARCHAR
 ) AS $$
 BEGIN
     RETURN QUERY
-    (
-    SELECT 
-        c.nom_categoria, 
-        l.nom_linea, 
-        s.nom_sublinea, 
-        p.nom_producto, 
-        p.spcf_producto, 
-        p.img_producto, 
-        p.val_precio, 
-        p.num_stock, 
-        pr.nom_proveedor, 
-        m.nom_marca 
-    FROM tab_lineas l 
-    INNER JOIN tab_categorias c ON l.id_categoria = c.id_categoria
-    INNER JOIN tab_sublineas s ON l.id_linea = s.id_linea
-    INNER JOIN tab_productos p ON s.id_sublinea = p.id_sublinea
-    INNER JOIN tab_proveedores pr ON p.id_proveedor = pr.id_proveedor
-    INNER JOIN tab_marcas m ON p.id_marca = m.id_marca
-    WHERE c.ind_activo = true 
-        AND l.ind_activo = true 
-        AND s.ind_activo = true 
-        AND p.ind_activo = true 
-        AND pr.ind_activo = true 
-        AND m.ind_activo = true
-    );
-END
+    SELECT
+        p.id AS product_id,
+        p.category_id,
+        c.name AS nom_categoria,
+        p.name AS nom_producto,
+        p.slug AS slug_producto,
+        p.description,
+        p.id_marca,
+        (SELECT MIN(c.price) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS precio_min,
+        (SELECT COALESCE(SUM(c.stock), 0) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS stock_total,
+        (SELECT pvi.image_url FROM tab_product_variant_images pvi JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id WHERE g.product_id = p.id ORDER BY g.id, pvi.sort_order, pvi.id LIMIT 1) AS img_principal
+    FROM tab_products p
+    JOIN tab_categories c ON c.id = p.category_id
+    WHERE p.is_active = TRUE
+    ORDER BY p.id;
+END;
 $$ LANGUAGE plpgsql;
-
-
-
-
-
-
-
-
-
-

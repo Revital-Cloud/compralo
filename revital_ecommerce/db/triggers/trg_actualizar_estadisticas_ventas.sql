@@ -61,15 +61,18 @@ BEGIN
     RAISE NOTICE 'Iniciando actualización de estadísticas para orden PAGADA ID: %', NEW.id_orden;
     
     BEGIN
-        -- OBTENER: Categorías afectadas por esta orden
+        -- OBTENER: Categorías afectadas por esta orden (vía variant -> product -> category_id)
         FOR v_categoria_record IN 
-            SELECT DISTINCT op.id_categoria_producto as id_categoria
+            SELECT DISTINCT p.category_id AS id_categoria
             FROM tab_orden_productos op
+            JOIN tab_product_variant_combinations pv ON pv.id = op.variant_id
+            JOIN tab_product_variant_groups g ON g.id = pv.group_id
+            JOIN tab_products p ON p.id = g.product_id
             WHERE op.id_orden = NEW.id_orden
         LOOP
             -- ACTUALIZAR: Estadísticas de productos de la categoría
             SELECT fun_actualizar_resumen_ventas(
-                v_categoria_record.id_categoria, NULL, NULL, NULL, FALSE
+                v_categoria_record.id_categoria, NULL, FALSE
             ) INTO v_resultado;
             
             -- Verificar resultado de productos
@@ -137,59 +140,28 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION fun_trigger_actualizar_estadisticas_producto_orden()
 RETURNS TRIGGER AS $$
 DECLARE
-    v_orden_completada BOOLEAN := FALSE;
+    v_orden_pagada BOOLEAN := FALSE;
     v_resultado JSON;
-    v_categoria_ids DECIMAL(10)[];
+    v_category_id DECIMAL(10);
 BEGIN
-    -- VERIFICAR: Si la orden está completada
     IF TG_OP = 'DELETE' THEN
-        SELECT (o.ind_estado = 3) INTO v_orden_completada
-        FROM tab_ordenes o 
-        WHERE o.id_orden = OLD.id_orden;
-        
-        -- Recopilar categorías afectadas del producto eliminado
-        v_categoria_ids := ARRAY[OLD.id_categoria_producto];
+        SELECT (o.ind_estado IN (2, 3)) INTO v_orden_pagada FROM tab_ordenes o WHERE o.id_orden = OLD.id_orden;
+        SELECT p.category_id INTO v_category_id FROM tab_product_variant_combinations pv JOIN tab_product_variant_groups g ON g.id = pv.group_id JOIN tab_products p ON p.id = g.product_id WHERE pv.id = OLD.variant_id;
     ELSE
-        SELECT (o.ind_estado = 3) INTO v_orden_completada
-        FROM tab_ordenes o 
-        WHERE o.id_orden = NEW.id_orden;
-        
-        -- Recopilar categorías afectadas del producto nuevo/modificado
-        v_categoria_ids := ARRAY[NEW.id_categoria_producto];
+        SELECT (o.ind_estado IN (2, 3)) INTO v_orden_pagada FROM tab_ordenes o WHERE o.id_orden = NEW.id_orden;
+        SELECT p.category_id INTO v_category_id FROM tab_product_variant_combinations pv JOIN tab_product_variant_groups g ON g.id = pv.group_id JOIN tab_products p ON p.id = g.product_id WHERE pv.id = NEW.variant_id;
     END IF;
-    
-    -- PROCESAR: Solo si la orden está completada
-    IF v_orden_completada THEN
+
+    IF v_orden_pagada AND v_category_id IS NOT NULL THEN
         BEGIN
-            -- Actualizar estadísticas para cada categoría afectada
-            FOR i IN 1..array_length(v_categoria_ids, 1) LOOP
-                -- Sincronizar estadísticas completas para la categoría
-                SELECT fun_sincronizar_estadisticas_completas(
-                    v_categoria_ids[i], FALSE
-                ) INTO v_resultado;
-                
-                IF (v_resultado->>'success')::BOOLEAN THEN
-                    RAISE NOTICE 'Estadísticas sincronizadas para categoría % tras cambio en producto orden', 
-                        v_categoria_ids[i];
-                ELSE
-                    RAISE WARNING 'Error sincronizando estadísticas categoría %: %', 
-                        v_categoria_ids[i], (v_resultado->>'error')::TEXT;
-                END IF;
-            END LOOP;
-            
-        EXCEPTION
-            WHEN OTHERS THEN
-                RAISE WARNING 'Error actualizando estadísticas por cambio producto orden: % (SQL State: %)', 
-                    SQLERRM, SQLSTATE;
+            SELECT fun_actualizar_resumen_ventas(v_category_id, NULL, FALSE) INTO v_resultado;
+            SELECT fun_actualizar_resumen_categoria(v_category_id, FALSE) INTO v_resultado;
+        EXCEPTION WHEN OTHERS THEN
+            RAISE WARNING 'Error actualizando estadísticas por cambio producto orden: %', SQLERRM;
         END;
     END IF;
-    
-    -- RETORNAR: Registro apropiado según operación
-    IF TG_OP = 'DELETE' THEN
-        RETURN OLD;
-    ELSE
-        RETURN NEW;
-    END IF;
+
+    IF TG_OP = 'DELETE' THEN RETURN OLD; ELSE RETURN NEW; END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -219,7 +191,7 @@ BEGIN
     RAISE NOTICE 'Iniciando recálculo batch de estadísticas...';
     
     -- RECALCULAR: Todas las estadísticas de productos
-    SELECT fun_actualizar_resumen_ventas(NULL, NULL, NULL, NULL, TRUE) 
+    SELECT fun_actualizar_resumen_ventas(NULL, NULL, TRUE) 
     INTO v_resultado_productos;
     
     v_total_productos := (v_resultado_productos->>'productos_actualizados')::INT;
