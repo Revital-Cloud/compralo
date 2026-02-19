@@ -293,15 +293,17 @@ const ProductsPage = () => {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   const products: Product[] = adminProducts.map((adminProduct) => {
-    const stock = adminProduct.stock_total ?? 0;
+    const stock = Number(adminProduct.stock_total) || 0;
     const isActive = adminProduct.is_active ?? true;
+    const priceMin = adminProduct.price_min || '0';
+    const priceMax = (adminProduct as { price_max?: string }).price_max || priceMin;
     return {
       id: adminProduct.id,
       name: adminProduct.name,
       description: adminProduct.description,
       image_url: adminProduct.image_url,
-      price_min: adminProduct.price_min,
-      price_max: (adminProduct as { price_max?: string }).price_max ?? adminProduct.price_min,
+      price_min: priceMin,
+      price_max: priceMax,
       id_proveedor: (adminProduct as { id_proveedor?: string }).id_proveedor,
       id_marca: adminProduct.id_marca,
       category_id: adminProduct.category_id,
@@ -419,15 +421,17 @@ const ProductsPage = () => {
       accessorKey: 'price_min',
       header: 'Precio',
       cell: ({ row }) => {
-        const min = parseFloat(String((row.original as any).price_min ?? (row.original as any).val_precio ?? 0))
-        const maxRaw = (row.original as any).price_max
-        const max = maxRaw != null ? parseFloat(String(maxRaw)) : min
-        const showRange = !Number.isNaN(min) && !Number.isNaN(max) && min !== max
+        const minRaw = (row.original as any).price_min ?? (row.original as any).val_precio ?? 0;
+        const min = parseFloat(String(minRaw)) || 0;
+        const maxRaw = (row.original as any).price_max;
+        const max = maxRaw != null ? (parseFloat(String(maxRaw)) || min) : min;
+        const showRange = !Number.isNaN(min) && !Number.isNaN(max) && min !== max && min > 0 && max > 0;
         return (
           <span className="font-semibold">
-            {showRange
+            {min > 0 && (showRange
               ? `${formatPrice(min, 'COP')} – ${formatPrice(max, 'COP')}`
-              : formatPrice(min, 'COP')}
+              : formatPrice(min, 'COP'))}
+            {min === 0 && <span className="text-muted-foreground">$0</span>}
           </span>
         )
       },
@@ -436,19 +440,20 @@ const ProductsPage = () => {
       accessorKey: 'stock_total',
       header: 'Stock',
       cell: ({ row }) => {
-        const stock = (row.original as any).stock_total ?? (row.original as any).num_stock ?? 0;
+        const stock = Number((row.original as any).stock_total ?? (row.original as any).num_stock ?? 0);
+        const stockValue = isNaN(stock) ? 0 : stock;
         return (
           <Badge 
-            variant={stock === 0 ? 'destructive' : stock <= 10 ? 'default' : 'secondary'}
+            variant={stockValue === 0 ? 'destructive' : stockValue <= 10 ? 'default' : 'secondary'}
             className={
-              stock === 0 
-                ? 'bg-red-100 text-red-800 hover:bg-red-100' 
-                : stock <= 10 
-                ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' 
-                : 'bg-green-100 text-green-800 hover:bg-green-100'
+              stockValue === 0 
+                ? 'bg-red-500 text-white hover:bg-red-600 dark:bg-red-600 dark:text-white' 
+                : stockValue <= 10 
+                ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100 dark:bg-yellow-900 dark:text-yellow-100' 
+                : 'bg-green-100 text-green-800 hover:bg-green-100 dark:bg-green-900 dark:text-green-100'
             }
           >
-            {stock}
+            {stockValue}
           </Badge>
         );
       },

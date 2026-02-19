@@ -34,6 +34,7 @@ export const aiService = {
   /**
    * Chat con streaming (SSE). Llama onChunk(accumulatedText) por cada fragmento y onDone() al terminar.
    * En caso de error llama onError(error) y no onDone.
+   * También puede recibir metadata sobre entidades afectadas para invalidar queries.
    */
   async chatStream(
     message: string,
@@ -41,6 +42,7 @@ export const aiService = {
       onChunk: (text: string) => void
       onDone: () => void
       onError: (err: Error) => void
+      onMetadata?: (metadata: { affected_entities: string[] }) => void
     }
   ): Promise<void> {
     const { baseURL } = getApiConfig()
@@ -84,7 +86,7 @@ export const aiService = {
             const payload = line.slice(6).trim()
             if (payload === '[DONE]' || !payload) continue
             try {
-              const data = JSON.parse(payload) as { text?: string; error?: string }
+              const data = JSON.parse(payload) as { text?: string; error?: string; metadata?: { affected_entities?: string[] } }
               if (data.error) {
                 callbacks.onError(new Error(data.error))
                 return
@@ -92,6 +94,10 @@ export const aiService = {
               if (typeof data.text === 'string') {
                 accumulated += data.text
                 callbacks.onChunk(accumulated)
+              }
+              // Manejar metadata sobre entidades afectadas
+              if (data.metadata?.affected_entities && callbacks.onMetadata) {
+                callbacks.onMetadata(data.metadata)
               }
             } catch {
               // ignorar líneas no JSON
@@ -104,11 +110,15 @@ export const aiService = {
         const payload = buffer.slice(6).trim()
         if (payload && payload !== '[DONE]') {
           try {
-            const data = JSON.parse(payload) as { text?: string; error?: string }
+            const data = JSON.parse(payload) as { text?: string; error?: string; metadata?: { affected_entities?: string[] } }
             if (data.error) callbacks.onError(new Error(data.error))
             else if (typeof data.text === 'string') {
               accumulated += data.text
               callbacks.onChunk(accumulated)
+            }
+            // Manejar metadata sobre entidades afectadas
+            if (data.metadata?.affected_entities && callbacks.onMetadata) {
+              callbacks.onMetadata(data.metadata)
             }
           } catch {
             // ignore

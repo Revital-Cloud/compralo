@@ -81,6 +81,10 @@ async def post_ai_chat(
 
     try:
         reply = chat_with_admin_ai(message, db, current_user.id_usuario)
+        # Si reply es un dict con metadata, devolverlo completo
+        if isinstance(reply, dict):
+            return reply
+        # Si es un string, devolverlo en formato antiguo para compatibilidad
         return {"reply": reply}
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e)) from e
@@ -137,7 +141,18 @@ async def post_ai_chat_stream(
         )
 
     def single_event_gen():
-        yield f"data: {json.dumps({'text': reply})}\n\n".encode("utf-8")
+        # Si reply es un dict con metadata, incluirla en el stream
+        if isinstance(reply, dict):
+            text_content = reply.get("message", "")
+            affected_entities = reply.get("affected_entities", [])
+            # Enviar primero el texto
+            yield f"data: {json.dumps({'text': text_content})}\n\n".encode("utf-8")
+            # Luego enviar metadata si hay entidades afectadas
+            if affected_entities:
+                yield f"data: {json.dumps({'metadata': {'affected_entities': affected_entities}})}\n\n".encode("utf-8")
+        else:
+            # Respuesta normal sin metadata
+            yield f"data: {json.dumps({'text': reply})}\n\n".encode("utf-8")
 
     return StreamingResponse(
         single_event_gen(),

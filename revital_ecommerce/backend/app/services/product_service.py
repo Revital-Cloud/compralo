@@ -298,9 +298,11 @@ def get_products_admin(db: Session, params: dict):
                 "description": r.get("description"),
                 "slug_producto": r.get("slug_producto"),
                 "image_url": r.get("img_principal"),
-                "price_min": str(r.get("precio_min") or "0"),
-                "price_max": str(r.get("precio_max") or r.get("precio_min") or "0"),
-                "stock_total": int(r.get("stock_total") or 0),
+                # Asegurar que precio_min y precio_max siempre sean strings válidos, incluso si son NULL
+                "price_min": str(r.get("precio_min") or 0) if r.get("precio_min") is not None else "0",
+                "price_max": str(r.get("precio_max") or r.get("precio_min") or 0) if (r.get("precio_max") is not None or r.get("precio_min") is not None) else "0",
+                # Asegurar que stock_total siempre sea un número válido
+                "stock_total": int(r.get("stock_total") or 0) if r.get("stock_total") is not None else 0,
                 "id_marca": str(r.get("id_marca") or "") if r.get("id_marca") is not None else "",
                 "nom_marca": (r.get("nom_marca") or "") or "",
                 "fec_insert": str(r.get("fec_insert") or ""),

@@ -13,13 +13,19 @@ export const registerSchema = z.object({
   email_usuario: z.string().email({
     message: "Por favor, introduce una dirección de correo válida.",
   }),
-  password_usuario: z.string().min(8, {
-    message: "La contraseña debe tener al menos 8 caracteres.",
-  }),
+  password_usuario: z
+    .string()
+    .min(8, { message: "La contraseña debe tener al menos 8 caracteres." })
+    .refine((val) => /[A-Z]/.test(val), {
+      message: "La contraseña debe incluir al menos una letra mayúscula.",
+    })
+    .refine((val) => /\d/.test(val), {
+      message: "La contraseña debe incluir al menos un número.",
+    }),
   cel_usuario: z.string().min(9, {
     message: "El número de celular debe tener al menos 9 dígitos.",
   }),
-  ind_genero: z.enum(["masculino", "femenino", "otro"]),
+  ind_genero: z.enum(["masculino", "femenino"]),
   des_direccion: z.string().optional(),
   fec_nacimiento: z.string().optional(),
 }); 

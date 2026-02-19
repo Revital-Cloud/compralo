@@ -20,6 +20,11 @@ from services.groq_service import chat_completion, chat_completion_stream, chat_
 from services import admin_ai_actions
 from services import admin_ai_state
 from services.admin_ai_tools import ADMIN_AI_TOOLS
+from services.admin_ai_memory import (
+    save_conversation,
+    get_recent_conversations,
+    build_conversation_context,
+)
 from services.admin_ai_instructions import (
     INTENT_PENDING_ORDERS,
     INTENT_TOP_PRODUCTS,
@@ -215,6 +220,23 @@ def _build_action_confirmation_message(action_id: str, params: dict) -> str:
         else:
             val = params.get("val_monto_descuento")
             desc = f'Crear el descuento "{nom}" con ${val} de descuento.'
+    elif action_id == "toggle_product_status":
+        pid = params.get("product_id")
+        nom = (params.get("product_name") or "").strip()
+        activar = params.get("activar")
+        if nom:
+            desc = f'{"Activar" if activar else "Desactivar"} el producto "{nom}".'
+        else:
+            desc = f'{"Activar" if activar else "Desactivar"} el producto con ID {pid}.'
+    elif action_id == "update_order_status":
+        oid = params.get("order_id")
+        est = params.get("new_status")
+        estado_map = {1: "Pendiente", 2: "Completada", 3: "Cancelada"}
+        desc = f'Actualizar la orden #{oid} a estado «{estado_map.get(est, est)}».'
+    elif action_id == "toggle_discount_status":
+        did = params.get("discount_id")
+        activar = params.get("activar")
+        desc = f'{"Activar" if activar else "Desactivar"} el descuento con ID {did}.'
     else:
         desc = "Ejecutar una acción administrativa con los datos que indicaste."
 
@@ -227,10 +249,10 @@ def _build_action_confirmation_message(action_id: str, params: dict) -> str:
 
 def _maybe_handle_pending_action_confirmation(
     message: str, db: Session, user_id: str | int
-) -> Optional[str]:
+) -> Optional[str | dict[str, any]]:
     """
     Si hay una acción pendiente, interpreta el mensaje como confirmación/cancelación.
-    Devuelve la respuesta al usuario o None si no había acción pendiente.
+    Devuelve la respuesta al usuario (string o dict con metadata) o None si no había acción pendiente.
     """
     pending = admin_ai_state.get_pending_action(user_id)
     if not pending:
@@ -249,15 +271,28 @@ def _maybe_handle_pending_action_confirmation(
         return False
 
     if _matches_any(msg_norm, CONFIRM):
-        result = admin_ai_actions.execute_action(
+        result_data = admin_ai_actions.execute_action_with_metadata(
             db, pending["action"], pending["params"], str(user_id)
         )
+        result = result_data["message"]
         admin_ai_state.clear_pending_action(user_id)
-        return result
+        # Guardar conversación de confirmación y ejecución
+        save_conversation(
+            db, user_id, message, result,
+            tool_calls=[{"name": pending["action"], "params": pending["params"], "status": "executed"}]
+        )
+        # Devolver dict con metadata para invalidar queries en el frontend
+        return {"message": result, "affected_entities": result_data["affected_entities"]}
 
     if _matches_any(msg_norm, CANCEL):
         admin_ai_state.clear_pending_action(user_id)
-        return "He cancelado la acción pendiente, no se ejecutará nada."
+        cancel_msg = "He cancelado la acción pendiente, no se ejecutará nada."
+        # Guardar conversación de cancelación
+        save_conversation(
+            db, user_id, message, cancel_msg,
+            tool_calls=[{"name": pending["action"], "params": pending["params"], "status": "cancelled"}]
+        )
+        return cancel_msg
 
     # Respuesta ambigua: mantenemos la acción pendiente y pedimos confirmación explícita.
     return (
@@ -268,38 +303,136 @@ def _maybe_handle_pending_action_confirmation(
 
 def chat_with_admin_ai(
     message: str, db: Session, user_id: str | int
-) -> str:
+) -> str | dict[str, any]:
     """
-    Punto de entrada de alto nivel para el chat admin.
+    Punto de entrada de alto nivel para el chat admin con aprendizaje incremental.
 
     - Si hay acción pendiente, interpreta confirmación/cancelación.
+    - Obtiene historial de conversaciones recientes para contexto.
+    - Detecta automáticamente preguntas de resumen y proporciona contexto.
     - En caso contrario, llama al LLM con tools; si hay tool_calls, pide confirmación.
     - Si no hay tool_calls, devuelve texto normal del modelo.
+    - Guarda la conversación en el historial para aprendizaje futuro.
     """
     # 1) Intentar resolver una acción pendiente primero.
     maybe = _maybe_handle_pending_action_confirmation(message, db, user_id)
     if maybe is not None:
-        return maybe
+        # Guardar conversación de confirmación
+        if isinstance(maybe, dict):
+            save_conversation(db, user_id, message, maybe["message"])
+            return maybe
+        else:
+            save_conversation(db, user_id, message, maybe)
+            return maybe
 
-    # 2) Preparar mensajes para el LLM con tools.
+    # 2) Obtener historial de conversaciones recientes para contexto
+    recent_convs = get_recent_conversations(db, user_id, limit=5, days_back=7)
+    conversation_context = build_conversation_context(recent_convs, max_tokens=1500)
+
+    # 3) Detectar si es una pregunta de resumen y ejecutar automáticamente get_store_summary
+    msg_lower = message.strip().lower()
+    is_summary_request = any(
+        kw in msg_lower 
+        for kw in ["resumen", "resume", "resumir", "dame un resumen", "quiero obtener un resumen",
+                   "estado de la tienda", "cómo va", "como va", "qué tal", "que tal", 
+                   "cómo estamos", "como estamos", "panorama", "visión general", "vision general", 
+                   "overview", "resumen general", "información general"]
+    )
+    
+    # Si es una pregunta de resumen, ejecutar automáticamente get_store_summary
+    enhanced_message = message.strip()
+    context_data = None
+    if is_summary_request:
+        # Ejecutar directamente get_store_summary sin esperar al LLM
+        try:
+            summary_result = admin_ai_actions.execute_action(
+                db, "get_store_summary", {"time_range": "monthly"}, user_id
+            )
+            
+            # Obtener datos del dashboard para contexto adicional
+            data = get_dashboard_data(db, "monthly")
+            alerts = get_alerts(db)
+            kpis = data.get("kpis", {})
+            best_sellers = data.get("bestSellers", [])[:5]
+            recent_orders = data.get("recentOrders", [])[:5]
+            
+            context_data = {
+                "kpis": {
+                    "totalOrders": kpis.get("totalOrders", {}).get("formatted", "0"),
+                    "activeOrders": kpis.get("activeOrders", {}).get("formatted", "0"),
+                    "shippedOrders": kpis.get("shippedOrders", {}).get("formatted", "0"),
+                    "totalRevenue": kpis.get("totalRevenue", {}).get("formatted", "$0"),
+                },
+                "bestSellers": [{"name": b.get("name"), "sales": b.get("sales")} for b in best_sellers],
+                "recentOrdersCount": len(recent_orders),
+                "alerts": alerts,
+            }
+            
+            # Generar una respuesta natural usando el resumen obtenido
+            user_content = f"""El usuario pregunta: {message}
+
+He obtenido el siguiente resumen de la tienda:
+{summary_result}
+
+Genera una respuesta natural y conversacional en español (1-3 frases) basándote en esta información. 
+Sé claro, directo y útil. No repitas toda la información, solo destaca lo más importante."""
+            
+            try:
+                natural_reply = chat_completion(
+                    user_content=user_content,
+                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara, seria pero cercana, usando solo los datos proporcionados.",
+                    temperature=0.3
+                )
+                
+                # Guardar conversación con tool call ejecutado
+                save_conversation(
+                    db, user_id, message, natural_reply,
+                    context_data=context_data,
+                    tool_calls=[{"name": "get_store_summary", "params": {"time_range": "monthly"}, "status": "executed"}]
+                )
+                return natural_reply
+            except Exception:
+                # Si falla la generación natural, devolver el resumen directo
+                save_conversation(
+                    db, user_id, message, summary_result,
+                    context_data=context_data,
+                    tool_calls=[{"name": "get_store_summary", "params": {"time_range": "monthly"}, "status": "executed"}]
+                )
+                return summary_result
+        except Exception as e:
+            # Si falla get_store_summary, continuar con el flujo normal
+            print(f"Error al obtener resumen automático: {str(e)}")
+            pass
+
+    # 4) Preparar mensajes para el LLM con tools y contexto histórico
+    system_prompt = SYSTEM_PROMPT_ADMIN_AI.strip()
+    if conversation_context:
+        system_prompt += f"\n\n{conversation_context}"
+    
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT_ADMIN_AI.strip()},
-        {"role": "user", "content": message.strip()},
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": enhanced_message},
     ]
 
     try:
         response = chat_with_tools(messages=messages, tools=ADMIN_AI_TOOLS)
     except ValueError:
         # IA no disponible -> mensaje claro al usuario.
-        return "La IA no está configurada actualmente. Pídele al administrador que configure GROQ_API_KEY."
+        error_msg = "La IA no está configurada actualmente. Pídele al administrador que configure GROQ_API_KEY."
+        save_conversation(db, user_id, message, error_msg)
+        return error_msg
 
     except RuntimeError as e:
-        return f"Ocurrió un error al usar la IA: {str(e)}"
+        error_msg = f"Ocurrió un error al usar la IA: {str(e)}"
+        save_conversation(db, user_id, message, error_msg)
+        return error_msg
 
     # Estructura tipo OpenAI Chat Completions.
     choices = response.get("choices") or []
     if not choices:
-        return FALLBACK_REPLY
+        fallback_reply = FALLBACK_REPLY
+        save_conversation(db, user_id, message, fallback_reply)
+        return fallback_reply
 
     first = choices[0]
     message_obj = (first.get("message") or {}) if isinstance(first, dict) else {}
@@ -309,10 +442,18 @@ def chat_with_admin_ai(
     content = message_obj.get("content")
     if not tool_calls:
         if isinstance(content, str) and content.strip():
+            # Guardar conversación sin tool calls
+            save_conversation(
+                db, user_id, message, content, 
+                context_data=context_data,
+                tool_calls=None
+            )
             return content
-        return FALLBACK_REPLY
+        fallback_reply = FALLBACK_REPLY
+        save_conversation(db, user_id, message, fallback_reply)
+        return fallback_reply
 
-    # 3) Hay al menos un tool_call: extraemos la primera llamada válida.
+    # 5) Hay al menos un tool_call: extraemos la primera llamada válida.
     tool_call = tool_calls[0]
     function = tool_call.get("function") or {}
     name = function.get("name")
@@ -326,11 +467,13 @@ def chat_with_admin_ai(
         params = {}
 
     if not name or not params:
-        return (
+        error_reply = (
             "He intentado preparar una acción, pero no pude extraer parámetros válidos. "
             "Dime de nuevo qué quieres hacer, por ejemplo: 'crea la marca Nike' o "
             "'actualiza la barra con: Envíos gratis hoy'."
         )
+        save_conversation(db, user_id, message, error_reply)
+        return error_reply
 
     # Guardas extra para evitar alucinaciones: solo aceptamos ciertas tools si
     # los parámetros clave aparecen explícitamente en el mensaje original.
@@ -339,18 +482,39 @@ def chat_with_admin_ai(
         if not nom or nom.lower() not in message.lower():
             # No hay nombre explícito en el mensaje del usuario: tratamos esto
             # como una pregunta conversacional, no como ejecución de acción.
-            return (
+            reply = (
                 "Puedo ayudarte a crear una marca, pero necesito que me digas el nombre "
                 "exacto. Por ejemplo: \"crea la marca Nike\"."
             )
+            save_conversation(db, user_id, message, reply)
+            return reply
 
-    # list_categories se ejecuta directamente sin confirmación (es solo lectura).
-    if name == "list_categories":
-        return admin_ai_actions.execute_action(db, name, params, user_id)
+    # Tools de solo lectura: se ejecutan directamente sin confirmación.
+    READ_ONLY_TOOLS = (
+        "get_store_summary", "list_categories",
+        "list_products", "get_product", "list_orders", "get_order",
+        "check_low_stock", "list_users", "get_user", "list_discounts",
+    )
+    if name in READ_ONLY_TOOLS:
+        reply = admin_ai_actions.execute_action(db, name, params, user_id)
+        # Guardar conversación con tool call ejecutado
+        save_conversation(
+            db, user_id, message, reply,
+            context_data=context_data,
+            tool_calls=[{"name": name, "params": params}]
+        )
+        return reply
 
     # Guardar acción pendiente por usuario.
     admin_ai_state.set_pending_action(user_id, name, params)
-    return _build_action_confirmation_message(name, params)
+    confirmation_msg = _build_action_confirmation_message(name, params)
+    # Guardar conversación de confirmación pendiente
+    save_conversation(
+        db, user_id, message, confirmation_msg,
+        context_data=context_data,
+        tool_calls=[{"name": name, "params": params, "status": "pending"}]
+    )
+    return confirmation_msg
 
 
 def stream_reply_sse(

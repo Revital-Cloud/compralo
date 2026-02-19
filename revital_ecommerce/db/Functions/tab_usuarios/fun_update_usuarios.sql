@@ -13,7 +13,7 @@
  *   - wdes_direccion: Nueva dirección (obligatorio, mínimo 3 caracteres)
  *   - wind_genero: Nuevo indicador de género (obligatorio)
  *   - wcel_usuario: Nuevo número de celular (obligatorio, mínimo 3 caracteres)
- *   - wfec_nacimiento: Nueva fecha de nacimiento (obligatorio)
+ *   - wfec_nacimiento: Nueva fecha de nacimiento (opcional, puede ser NULL)
  *   - wind_activo: Nuevo estado activo (opcional, mantiene actual si es NULL)
  *   - wusr_operacion: ID del usuario que realiza la operación (obligatorio, > 0)
  * 
@@ -77,12 +77,9 @@ $$
             RETURN 'Error: El número de celular es obligatorio y debe tener al menos 3 caracteres.';
         END IF;
 
-        -- VALIDACIÓN 10: Fecha de nacimiento
-        IF wfec_nacimiento IS NULL THEN
-            RETURN 'Error: La fecha de nacimiento es obligatoria.';
-        END IF;
+        -- wfec_nacimiento es opcional (puede ser NULL)
 
-        -- VALIDACIÓN 11: ID de usuario operación para auditoría
+        -- VALIDACIÓN 10: ID de usuario operación para auditoría
         IF wusr_operacion IS NULL OR wusr_operacion <= 0 THEN
             RETURN 'Error: El ID del usuario que realiza la operación es obligatorio y debe ser mayor a 0.';
         END IF;
