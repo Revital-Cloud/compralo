@@ -10,7 +10,7 @@ import {
 import { SuccessModal, Button } from '@/components/ui';
 import { useCreateProductComposite } from '@/hooks/use-products';
 import type { ProductCreateComposite, VariantCreateItem } from '@/types/product';
-import { useAdminTour } from '../_tour/useAdminDriverTour';
+import { useAdminTour } from '../../_tour/useAdminDriverTour';
 
 const FORM_ID = 'product-form-composite';
 const PRODUCT_CREATE_TOUR_KEY = 'revital_product_create_tour_seen';
