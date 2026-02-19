@@ -6,13 +6,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getAllCategories, deactivateActivateCategory } from '@/services/category.service'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
-import { Button, Sheet, SheetContent, SheetHeader, SheetTitle, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui'
+import { Button, Sheet, SheetContent, SheetHeader, SheetTitle, Tabs, TabsContent, TabsList, TabsTrigger, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui'
 import { Pencil, Power, Eye, Info } from 'lucide-react'
 import { CategoryModal } from '@/components/admin/categories/category-modal'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { CategoriesFilters } from '@/components/admin/categories/categories-filters'
 import type { Category } from '@/types/category'
 import { toast } from 'sonner'
+
+const TAB_VALUES = ['categoria', 'linea', 'sublinea'] as const
+type CategoryTab = (typeof TAB_VALUES)[number]
+const DEFAULT_TAB: CategoryTab = 'categoria'
+
+function isValidTab(value: string | null): value is CategoryTab {
+  return value !== null && TAB_VALUES.includes(value as CategoryTab)
+}
 
 function categoryIdNum(c: Category): number {
   return typeof c.id === 'number' ? c.id : Number(c.id)
@@ -79,16 +88,42 @@ function sortCategoriesHierarchically(list: Category[]): Category[] {
 }
 
 const CategoriesPage = () => {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const queryClient = useQueryClient()
   const { data, isLoading, isError } = useQuery({
     queryKey: ['categories', 'all'],
     queryFn: getAllCategories,
+    staleTime: 5 * 60 * 1000, // 5 min: cache por tab/focus, sin refetch al cambiar de pestaña
   })
 
   const [search, setSearch] = useState('')
+  const [filterByParentCategoryId, setFilterByParentCategoryId] = useState('')
+  const [filterByParentLineId, setFilterByParentLineId] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
 
-  const clearFilters = () => setSearch('')
+  const tabParam = searchParams.get('tab')
+  const currentTab: CategoryTab = isValidTab(tabParam) ? tabParam : DEFAULT_TAB
+
+  const handleTabChange = (value: string) => {
+    const next = isValidTab(value) ? value : DEFAULT_TAB
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('tab', next)
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+  }
+
+  useEffect(() => {
+    if (!searchParams.get('tab')) {
+      router.replace(`${pathname}?tab=${DEFAULT_TAB}`, { scroll: false })
+    }
+  }, [pathname, router, searchParams])
+
+  const clearFilters = () => {
+    setSearch('')
+    setFilterByParentCategoryId('')
+    setFilterByParentLineId('')
+  }
 
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
@@ -129,209 +164,142 @@ const CategoriesPage = () => {
 
   const categoriesList = Array.isArray(data) ? (data as Category[]) : []
 
-  /** Metadata per category for tree lines: level and whether it's the last sibling under its parent. */
-  const categoryRowMeta = useMemo(() => {
-    const map = new Map<number, { level: number; isLastInGroup: boolean }>()
-    const list = filteredData as Category[]
-    for (let i = 0; i < list.length; i++) {
-      const cat = list[i]
-      const id = categoryIdNum(cat)
-      const level = getCategoryLevelNumber(cat, categoriesList)
-      const next = list[i + 1]
-      const sameParent = next && parentIdNum(next) === parentIdNum(cat)
-      map.set(id, { level, isLastInGroup: !sameParent })
-    }
-    return map
-  }, [filteredData, categoriesList])
+  const categoriasOnly = useMemo(
+    () => (filteredData as Category[]).filter((c) => getCategoryLevel(c, categoriesList) === 'root'),
+    [filteredData, categoriesList]
+  )
+  const lineasOnly = useMemo(
+    () => (filteredData as Category[]).filter((c) => getCategoryLevel(c, categoriesList) === 'line'),
+    [filteredData, categoriesList]
+  )
+  const sublineasOnly = useMemo(
+    () => (filteredData as Category[]).filter((c) => getCategoryLevel(c, categoriesList) === 'subline'),
+    [filteredData, categoriesList]
+  )
 
-  const columns: ColumnDef<Category>[] = [
-    {
-      accessorKey: 'id',
-      header: 'ID',
-      cell: ({ row }) => <span className="text-muted-foreground">{row.original.id}</span>,
-    },
-    {
-      accessorKey: 'name',
-      header: 'Nombre',
-      cell: ({ row }) => {
-        const cat = row.original
-        const id = categoryIdNum(cat)
-        const meta = categoryRowMeta.get(id)
-        const level = meta?.level ?? 0
-        const hasChildren = (filteredData as Category[]).some((c) => parentIdNum(c) === id)
+  const lineasFiltered = useMemo(() => {
+    if (!filterByParentCategoryId) return lineasOnly
+    const parentId = Number(filterByParentCategoryId)
+    if (Number.isNaN(parentId)) return lineasOnly
+    return lineasOnly.filter((c) => parentIdNum(c) === parentId)
+  }, [lineasOnly, filterByParentCategoryId])
 
-        const LINE_LEFT = 14
-        const STEP = 22
-        const HORIZ_WIDTH = 12
-        const NAME_LEFT = LINE_LEFT + HORIZ_WIDTH + 8
-        const CONNECT_UP = 400
+  const sublineasFiltered = useMemo(() => {
+    if (!filterByParentLineId) return sublineasOnly
+    const parentId = Number(filterByParentLineId)
+    if (Number.isNaN(parentId)) return sublineasOnly
+    return sublineasOnly.filter((c) => parentIdNum(c) === parentId)
+  }, [sublineasOnly, filterByParentLineId])
 
-        const nameLeft = level === 0 ? 4 : NAME_LEFT + (level - 1) * STEP
-        return (
-          <div className="relative min-h-10 flex items-center overflow-visible" style={{ paddingLeft: nameLeft }}>
-            {/* Level 0: vertical line down from bottom so children connect */}
-            {level === 0 && hasChildren && (
-              <div
-                className="absolute w-px bg-border"
-                style={{ left: LINE_LEFT, top: '100%', height: CONNECT_UP }}
-                aria-hidden
-              />
-            )}
-            {/* Level 1+: vertical trunk(s) from above + horizontal L to name */}
-            {level >= 1 && (
-              <>
-                {/* Vertical trunks: one at each indent so parent lines continue down */}
-                {Array.from({ length: level }, (_, i) => (
-                  <div
-                    key={i}
-                    className="absolute w-px bg-border"
-                    style={{
-                      left: LINE_LEFT + i * STEP,
-                      top: -CONNECT_UP,
-                      bottom: 0,
-                    }}
-                    aria-hidden
-                  />
-                ))}
-                {/* Horizontal L branch from this level's trunk to name */}
-                <div
-                  className="absolute h-px bg-border"
-                  style={{
-                    left: LINE_LEFT + (level - 1) * STEP,
-                    top: '50%',
-                    width: HORIZ_WIDTH,
-                  }}
-                  aria-hidden
-                />
-              </>
-            )}
-            <span className="relative z-10 font-medium">{row.original.name}</span>
-          </div>
-        )
+  function buildColumnsForTab(tab: CategoryTab): ColumnDef<Category>[] {
+    const baseColumns: ColumnDef<Category>[] = [
+      {
+        accessorKey: 'id',
+        header: 'ID',
+        cell: ({ row }) => <span className="text-muted-foreground">{row.original.id}</span>,
       },
-    },
-    {
-      accessorKey: 'level',
-      header: 'Nivel',
-      cell: ({ row }) => {
-        const level = getCategoryLevel(row.original, categoriesList)
-        const label = level === 'root' ? 'Categoría' : level === 'line' ? 'Línea' : 'Sublínea'
-        return <span className="text-muted-foreground">{label}</span>
+      {
+        accessorKey: 'name',
+        header: 'Nombre',
+        cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
       },
-    },
-    {
-      accessorKey: 'parent_id',
-      header: () => (
-        <span className="inline-flex items-center gap-1">
-          Padre
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button type="button" className="inline-flex text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded" aria-label="Ayuda">
-                <Info className="w-3.5 h-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent sideOffset={6}>
-              Categoría superior bajo la que se muestra esta. Las categorías principales no tienen padre.
-            </TooltipContent>
-          </Tooltip>
-        </span>
-      ),
-      cell: ({ row }) => {
-        const cat = row.original
-        const pid = parentIdNum(cat)
-        const parent = pid != null ? categoriesList.find((c) => categoryIdNum(c) === pid) : null
-        const pathNames = getCategoryPathNames(categoryIdNum(cat), categoriesList)
-        const pathLabel = pathNames.length > 0 ? pathNames.join(' › ') : ''
+    ]
 
-        if (pid == null || !parent) {
-          return (
+    if (tab === 'linea' || tab === 'sublinea') {
+      baseColumns.push({
+        accessorKey: 'parent_id',
+        header: () => (
+          <span className="inline-flex items-center gap-1">
+            Padre
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-muted-foreground cursor-default">Ninguno</span>
+                <button type="button" className="inline-flex text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded" aria-label="Ayuda">
+                  <Info className="w-3.5 h-3.5" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent>Categoría principal (nivel superior)</TooltipContent>
+              <TooltipContent sideOffset={6}>
+                Categoría superior bajo la que se muestra esta.
+              </TooltipContent>
             </Tooltip>
-          )
-        }
-
-        return (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={() => setSelectedCategory(parent)}
-                className="text-primary hover:underline cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded text-left"
-              >
-                {parent.name}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent sideOffset={6}>
-              {pathLabel || parent.name}
-            </TooltipContent>
-          </Tooltip>
-        )
-      },
-    },
-    {
-      accessorKey: 'fec_insert',
-      header: 'Fecha de Creación',
-      cell: ({ getValue }) => {
-        const v = getValue<string | undefined>()
-        return v ? new Date(v).toLocaleDateString('es-ES') : <span className="text-muted-foreground">-</span>
-      },
-    },
-    {
-      accessorKey: 'ind_activo',
-      header: 'Estado',
-      cell: ({ row }) => {
-        const active = (row.original.ind_activo ?? (row.original as { is_active?: boolean }).is_active) !== false
-        return (
-          <span className={active ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
-            {active ? 'Activo' : 'Inactivo'}
           </span>
-        )
-      },
-    },
-  ]
-
-  const actions: ColumnDef<Category>[] = [
-    {
-      id: 'actions',
-      header: 'Acciones',
-      cell: ({ row }) => {
-        const isActive = (row.original.ind_activo ?? (row.original as { is_active?: boolean }).is_active) !== false
-        const isPending = deactivateActivateCategoryMutation.isPending
-        
-        return (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" aria-label="Ver categoría" onClick={() => setSelectedCategory(row.original)}>
-              <Eye className="w-4 h-4" />
-            </Button>
-            <Button variant="outline" size="icon" aria-label="Editar categoría" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
-              <Pencil className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={isActive ? "default" : "destructive"}
-              size="icon"
-              aria-label={isActive ? "Desactivar" : "Activar"}
-              onClick={() => {
-                const id = Number(row.original.id)
-                if (isNaN(id)) {
-                  toast.error('ID de categoría inválido')
-                  return
-                }
-                deactivateActivateCategoryMutation.mutate({ id: id, activar: !isActive })
-              }}
-              disabled={isPending}
-              className={isActive ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+        ),
+        cell: ({ row }) => {
+          const cat = row.original
+          const pid = parentIdNum(cat)
+          const parent = pid != null ? categoriesList.find((c) => categoryIdNum(c) === pid) : null
+          if (pid == null || !parent) return <span className="text-muted-foreground">—</span>
+          return (
+            <button
+              type="button"
+              onClick={() => setSelectedCategory(parent)}
+              className="text-muted-foreground hover:text-foreground hover:underline cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded text-left transition-colors"
             >
-              <Power className="w-4 h-4" />
-            </Button>
-          </div>
-        )
+              {parent.name}
+            </button>
+          )
+        },
+      })
+    }
+
+    baseColumns.push(
+      {
+        accessorKey: 'fec_insert',
+        header: 'Fecha de Creación',
+        cell: ({ getValue }) => {
+          const v = getValue<string | undefined>()
+          return v ? new Date(v).toLocaleDateString('es-ES') : <span className="text-muted-foreground">-</span>
+        },
       },
-    },
-  ]
+      {
+        accessorKey: 'ind_activo',
+        header: 'Estado',
+        cell: ({ row }) => {
+          const active = (row.original.ind_activo ?? (row.original as { is_active?: boolean }).is_active) !== false
+          return (
+            <span className={active ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+              {active ? 'Activo' : 'Inactivo'}
+            </span>
+          )
+        },
+      },
+      {
+        id: 'actions',
+        header: 'Acciones',
+        cell: ({ row }) => {
+          const isActive = (row.original.ind_activo ?? (row.original as { is_active?: boolean }).is_active) !== false
+          const isPending = deactivateActivateCategoryMutation.isPending
+          return (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" aria-label="Ver categoría" onClick={() => setSelectedCategory(row.original)}>
+                <Eye className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="icon" aria-label="Editar categoría" onClick={() => { setEditing(row.original); setOpenEdit(true) }}>
+                <Pencil className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={isActive ? 'default' : 'destructive'}
+                size="icon"
+                aria-label={isActive ? 'Desactivar' : 'Activar'}
+                onClick={() => {
+                  const id = Number(row.original.id)
+                  if (isNaN(id)) {
+                    toast.error('ID de categoría inválido')
+                    return
+                  }
+                  deactivateActivateCategoryMutation.mutate({ id, activar: !isActive })
+                }}
+                disabled={isPending}
+                className={isActive ? 'bg-green-600 hover:bg-green-700 text-white' : ''}
+              >
+                <Power className="w-4 h-4" />
+              </Button>
+            </div>
+          )
+        },
+      }
+    )
+    return baseColumns
+  }
 
   return (
     <div className="space-y-6">
@@ -373,13 +341,6 @@ const CategoriesPage = () => {
         }}
       />
 
-      <CategoriesFilters
-        search={search}
-        onSearchChange={setSearch}
-        onClearFilters={clearFilters}
-        totalResults={Array.isArray(filteredData) ? filteredData.length : 0}
-      />
-
       {isLoading && (
         <div className="text-sm text-muted-foreground">Cargando categorías...</div>
       )}
@@ -389,21 +350,138 @@ const CategoriesPage = () => {
       )}
 
       {!isLoading && !isError && Array.isArray(data) && data.length === 0 && (
-        <EmptyState 
+        <EmptyState
           title="Aún no tienes categorías"
           description="Crea categorías para organizar tus productos por tipo."
           iconPath="M4 6h16M4 10h16M4 14h10"
-          primaryAction={<a href="/admin/categories/create" className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">Agregar Categoría</a>}
+          primaryAction={
+            <Button onClick={() => setOpenCreate(true)} className="inline-flex items-center justify-center px-6 py-3 bg-primary text-primary-foreground font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all">
+              Agregar Categoría
+            </Button>
+          }
         />
       )}
 
-      {!isLoading && !isError && Array.isArray(filteredData) && filteredData.length > 0 && (
-        <DataTable 
-          columns={[...columns, ...actions]} 
-          data={filteredData as unknown as Category[]}
-          pageSize={10}
-          className="[&_[data-slot=table-container]]:overflow-y-visible"
-        />
+      {!isLoading && !isError && Array.isArray(data) && data.length > 0 && (
+        <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="categoria">
+              Categoría ({categoriasOnly.length})
+            </TabsTrigger>
+            <TabsTrigger value="linea">
+              Línea ({lineasOnly.length})
+            </TabsTrigger>
+            <TabsTrigger value="sublinea">
+              Sublínea ({sublineasOnly.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="categoria" className="space-y-6 outline-none">
+            <CategoriesFilters
+              search={search}
+              onSearchChange={setSearch}
+              onClearFilters={clearFilters}
+              totalResults={categoriasOnly.length}
+              title="Filtros de Categorías"
+              searchPlaceholder="Buscar categoría..."
+            />
+            {categoriasOnly.length === 0 ? (
+              <EmptyState
+                title="Aún no tienes categorías"
+                description="Las categorías son el nivel superior. Crea una para organizar líneas y sublíneas."
+                iconPath="M4 6h16M4 10h16M4 14h10"
+                primaryAction={
+                  <Button onClick={() => setOpenCreate(true)}>Agregar Categoría</Button>
+                }
+              />
+            ) : (
+              <DataTable
+                columns={buildColumnsForTab('categoria')}
+                data={categoriasOnly}
+                pageSize={10}
+                className="[&_[data-slot=table-container]]:overflow-y-visible"
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="linea" className="space-y-6 outline-none">
+            <CategoriesFilters
+              search={search}
+              onSearchChange={setSearch}
+              onClearFilters={clearFilters}
+              totalResults={lineasFiltered.length}
+              title="Filtros de Líneas"
+              searchPlaceholder="Buscar línea..."
+              extraFilters={[
+                {
+                  id: 'parentCategory',
+                  label: 'Categoría',
+                  type: 'select',
+                  emptyOptionLabel: 'Todas las categorías',
+                  options: categoriasOnly.map((c) => ({ id: c.id, nombre: c.name ?? '', label: c.name ?? '' })),
+                  value: filterByParentCategoryId,
+                  onChange: (v) => setFilterByParentCategoryId(v ?? ''),
+                },
+              ]}
+            />
+            {lineasFiltered.length === 0 ? (
+              <EmptyState
+                title="Aún no tienes líneas"
+                description="Las líneas se crean dentro de una categoría. Crea primero una categoría y luego añade líneas."
+                iconPath="M4 6h16M4 10h16M4 14h10"
+                primaryAction={
+                  <Button onClick={() => setOpenCreate(true)}>Agregar Categoría</Button>
+                }
+              />
+            ) : (
+              <DataTable
+                columns={buildColumnsForTab('linea')}
+                data={lineasFiltered}
+                pageSize={10}
+                className="[&_[data-slot=table-container]]:overflow-y-visible"
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="sublinea" className="space-y-6 outline-none">
+            <CategoriesFilters
+              search={search}
+              onSearchChange={setSearch}
+              onClearFilters={clearFilters}
+              totalResults={sublineasFiltered.length}
+              title="Filtros de Sublíneas"
+              searchPlaceholder="Buscar sublínea..."
+              extraFilters={[
+                {
+                  id: 'parentLine',
+                  label: 'Línea',
+                  type: 'select',
+                  emptyOptionLabel: 'Todas las líneas',
+                  options: lineasOnly.map((c) => ({ id: c.id, nombre: c.name ?? '', label: c.name ?? '' })),
+                  value: filterByParentLineId,
+                  onChange: (v) => setFilterByParentLineId(v ?? ''),
+                },
+              ]}
+            />
+            {sublineasFiltered.length === 0 ? (
+              <EmptyState
+                title="Aún no tienes sublíneas"
+                description="Las sublíneas se crean dentro de una línea. Crea categorías y líneas primero."
+                iconPath="M4 6h16M4 10h16M4 14h10"
+                primaryAction={
+                  <Button onClick={() => setOpenCreate(true)}>Agregar Categoría</Button>
+                }
+              />
+            ) : (
+              <DataTable
+                columns={buildColumnsForTab('sublinea')}
+                data={sublineasFiltered}
+                pageSize={10}
+                className="[&_[data-slot=table-container]]:overflow-y-visible"
+              />
+            )}
+          </TabsContent>
+        </Tabs>
       )}
 
       {/* Drawer ver categoría */}

@@ -118,6 +118,10 @@ class ProductAdminResponse(BaseModel):
     ind_activo_categoria: bool = True
     ind_activo_marca: bool = True
     total_registros: int = 0
+    # Estadísticas globales del conjunto filtrado (solo en el primer ítem de la lista)
+    stock_stats_en_stock: Optional[int] = None
+    stock_stats_bajo: Optional[int] = None
+    stock_stats_sin_stock: Optional[int] = None
 
     class Config:
         from_attributes = True

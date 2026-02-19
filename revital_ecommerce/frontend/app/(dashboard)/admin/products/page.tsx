@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from "sonner";
 import { ProductsHeader } from "@/components/admin/products";
@@ -24,22 +24,51 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@/components/ui";
 import { Pencil, Power, Eye } from 'lucide-react';
 import { formatPrice } from '@/utils/format-price';
+import { cn } from '@/lib/utils';
 import Image from 'next/image';
+
+/** Trunca texto por número de palabras y muestra el completo en tooltip */
+function TruncateWithTooltip({
+  text,
+  maxWords = 3,
+  className,
+}: {
+  text: string;
+  maxWords?: number;
+  className?: string;
+}) {
+  const s = (text || '').trim();
+  if (!s) return <span className={className}>–</span>;
+  const words = s.split(/\s+/);
+  const truncated = words.length <= maxWords ? s : words.slice(0, maxWords).join(' ') + '...';
+  if (words.length <= maxWords) {
+    return <span className={className}>{s}</span>;
+  }
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className={cn(className, 'cursor-help underline decoration-dotted')}>{truncated}</span>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs">
+        {s}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 const ProductsPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  
-  // Estado de paginación
-  const [currentPage, setCurrentPage] = useState(1);
-  const [sortBy, setSortBy] = useState<'nombre' | 'precio' | 'stock' | 'fecha' | 'categoria' | 'marca'>('nombre');
-  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
+
   const itemsPerPage = 10;
-  
-  // Obtener parámetros de búsqueda de la URL
+  const currentPage = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+
   const search = searchParams.get('search') || '';
   
   // Estado local para el input de búsqueda (se actualiza inmediatamente)
@@ -54,18 +83,22 @@ const ProductsPage = () => {
   const [productToDeactivate, setProductToDeactivate] = useState<Product | null>(null);
   
   const category = searchParams.get('category') || '';
+  const line = searchParams.get('line') || '';
+  const subline = searchParams.get('subline') || '';
   const brand = searchParams.get('brand') || '';
   const provider = searchParams.get('provider') || '';
 
   const { data: filterOptions, isLoading: optionsLoading } = useFilterOptionsAdmin();
 
   const filters = {
-    ordenar_por: sortBy,
-    orden: sortOrder,
+    ordenar_por: 'nombre' as const,
+    orden: 'ASC' as const,
     limit: itemsPerPage,
     offset: (currentPage - 1) * itemsPerPage,
     search: search || undefined,
     category_id: category ? Number(category) : undefined,
+    line_id: line ? Number(line) : undefined,
+    subline_id: subline ? Number(subline) : undefined,
     id_marca: brand ? Number(brand) : undefined,
     id_proveedor: provider ? Number(provider) : undefined,
   };
@@ -81,12 +114,10 @@ const ProductsPage = () => {
 
   const deactivateActivateProductMutation = useDeactivateActivateProductById();
 
-  // Manejar cambio de página
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    // Actualizar URL con la nueva página
     const params = new URLSearchParams(searchParams);
-    params.set('page', page.toString());
+    if (page <= 1) params.delete('page');
+    else params.set('page', String(page));
     router.push(`/admin/products?${params.toString()}`);
   };
 
@@ -168,32 +199,77 @@ const ProductsPage = () => {
     router.push(`?${params.toString()}`);
   };
 
-  const handleSortByChange = (value: string) => {
-    setSortBy(value as 'nombre' | 'precio' | 'stock' | 'fecha' | 'categoria' | 'marca');
+  const handleLineChange = (value: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (value) params.set('line', value);
+    else params.delete('line');
+    params.delete('subline'); // al cambiar línea limpiamos sublínea
+    router.push(`/admin/products?${params.toString()}`);
   };
 
-  const handleSortOrderChange = (value: string) => {
-    setSortOrder(value as 'ASC' | 'DESC');
+  const handleSublineChange = (value: string) => {
+    const params = new URLSearchParams(searchParams);
+    if (value) params.set('subline', value);
+    else params.delete('subline');
+    router.push(`/admin/products?${params.toString()}`);
   };
 
   const handleClearFilters = () => {
-    // Limpiar timeout pendiente si existe
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
       searchTimeoutRef.current = null;
     }
-    
-    setSortBy('nombre');
-    setSortOrder('ASC');
-    setSearchInput(''); // Limpiar también el input local
+    setSearchInput('');
     router.push('/admin/products');
   };
 
   // Extraer datos de la respuesta
   // El endpoint admin devuelve un array directo con total_registros
   const adminProducts = Array.isArray(productsResponse) ? productsResponse : [];
-  const totalItems = adminProducts.length > 0 ? adminProducts[0].total_registros : 0;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const totalItems = adminProducts.length > 0 ? Number(adminProducts[0].total_registros) : 0;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const firstAdmin = adminProducts[0] as { stock_stats_en_stock?: number; stock_stats_bajo?: number; stock_stats_sin_stock?: number } | undefined;
+  const stockStatsOverride =
+    firstAdmin != null && typeof firstAdmin.stock_stats_en_stock === 'number'
+      ? {
+          enStock: firstAdmin.stock_stats_en_stock ?? 0,
+          stockBajo: firstAdmin.stock_stats_bajo ?? 0,
+          sinStock: firstAdmin.stock_stats_sin_stock ?? 0,
+        }
+      : undefined;
+
+  // Mapa por category_id: Categoría (raíz) | Línea (hijo) | Sublínea (nieta). Doc: padre→hijo→nieta.
+  const categoryIdToLineSubline = useMemo(() => {
+    const categorias = (filterOptions?.categorias ?? []) as Array<{ id: number; nom_categoria?: string; name?: string; parent_id?: number | null }>;
+    const byId = new Map(categorias.map((c) => [Number(c.id), c]));
+    const getRoot = (c: (typeof categorias)[0]): (typeof categorias)[0] => {
+      const pid = c.parent_id != null ? Number(c.parent_id) : null;
+      if (pid === null) return c;
+      const p = byId.get(pid);
+      return p ? getRoot(p) : c;
+    };
+    const result: Record<number, { category: string; line: string; subline: string }> = {};
+    for (const c of categorias) {
+      const id = Number(c.id);
+      const name = (c.nom_categoria ?? c.name) ?? '';
+      const pid = c.parent_id != null ? Number(c.parent_id) : null;
+      const root = getRoot(c);
+      const rootName = (root.nom_categoria ?? root.name) ?? '–';
+      if (pid === null) {
+        result[id] = { category: name, line: '–', subline: '–' };
+      } else {
+        const parent = byId.get(pid);
+        const parentName = (parent?.nom_categoria ?? parent?.name) ?? '–';
+        const parentIsRoot = parent && (parent.parent_id == null || parent.parent_id === null);
+        if (parentIsRoot) {
+          result[id] = { category: rootName, line: name, subline: '–' };
+        } else {
+          result[id] = { category: rootName, line: parentName, subline: name };
+        }
+      }
+    }
+    return result;
+  }, [filterOptions?.categorias]);
 
   const products: Product[] = adminProducts.map((adminProduct) => {
     const stock = adminProduct.stock_total ?? 0;
@@ -261,11 +337,55 @@ const ProductsPage = () => {
       ),
     },
     {
-      accessorKey: 'category_name',
+      id: 'category',
       header: 'Categoría',
-      cell: ({ row }) => (
-        <span className="text-sm">{row.original.category_name || '-'}</span>
-      ),
+      cell: ({ row }) => {
+        const catId = Number((row.original as { category_id?: string }).category_id);
+        const info = categoryIdToLineSubline[catId];
+        return (
+          <span className="text-sm">
+            {info ? (
+              <TruncateWithTooltip text={info.category} maxWords={3} className="text-sm" />
+            ) : (
+              '–'
+            )}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'line',
+      header: 'Línea',
+      cell: ({ row }) => {
+        const catId = Number((row.original as { category_id?: string }).category_id);
+        const info = categoryIdToLineSubline[catId];
+        return (
+          <span className="text-sm">
+            {info && info.line !== '–' ? (
+              <TruncateWithTooltip text={info.line} maxWords={3} className="text-sm" />
+            ) : (
+              '–'
+            )}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'subline',
+      header: 'Sublínea',
+      cell: ({ row }) => {
+        const catId = Number((row.original as { category_id?: string }).category_id);
+        const info = categoryIdToLineSubline[catId];
+        return (
+          <span className="text-sm">
+            {info && info.subline !== '–' ? (
+              <TruncateWithTooltip text={info.subline} maxWords={3} className="text-sm" />
+            ) : (
+              '–'
+            )}
+          </span>
+        );
+      },
     },
     {
       accessorKey: 'nom_marca',
@@ -398,12 +518,12 @@ const ProductsPage = () => {
       <ProductsFilters
         search={searchInput}
         onSearchChange={handleSearchChange}
-        sortBy={sortBy}
-        onSortByChange={handleSortByChange}
-        sortOrder={sortOrder}
-        onSortOrderChange={handleSortOrderChange}
         category={category}
         onCategoryChange={handleCategoryChange}
+        line={line}
+        onLineChange={handleLineChange}
+        subline={subline}
+        onSublineChange={handleSublineChange}
         brand={brand}
         onBrandChange={handleBrandChange}
         provider={provider}
@@ -413,6 +533,7 @@ const ProductsPage = () => {
         products={products}
         filterOptionsOverride={filterOptions}
         optionsLoading={optionsLoading}
+        stockStatsOverride={stockStatsOverride ?? null}
       />
 
       {/* Drawer de detalle del producto */}
@@ -596,10 +717,14 @@ const ProductsPage = () => {
           </div>
         </div>
       ) : products.length > 0 ? (
-        <DataTable 
-          columns={[...columns, ...actions]} 
+        <DataTable
+          columns={[...columns, ...actions]}
           data={products}
           pageSize={itemsPerPage}
+          manualPagination
+          pageCount={totalPages}
+          pageIndex={currentPage - 1}
+          onPageChange={(pageIndex) => handlePageChange(pageIndex + 1)}
         />
       ) : (
         <div className="text-center py-12">

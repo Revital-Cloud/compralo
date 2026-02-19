@@ -5,7 +5,7 @@
  * categorías, marcas, inventario usando React Query.
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as productService from '@/services/product.service';
 import type { Product, ProductCreateComposite, ProductFilterParams, ProductFilterResponse, ProductFilterStats, FilterOptions, ProductAdmin, ProductAdminParams } from '@/types/product';
@@ -212,10 +212,11 @@ export function useProductsAdmin(params: ProductAdminParams = {}) {
   return useQuery({
     queryKey: PRODUCT_KEYS.adminList(params),
     queryFn: () => productService.getProductsAdmin(params),
-    staleTime: 2 * 60 * 1000, // 2 minutos
+    staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-    gcTime: 5 * 60 * 1000, // 5 minutos en cache
+    gcTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData, // Mantener total y stats al cambiar de página
   });
 }
