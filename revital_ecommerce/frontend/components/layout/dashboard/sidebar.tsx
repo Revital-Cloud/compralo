@@ -153,7 +153,11 @@ const data = {
 
 export function AppSidebar({ variant }: { variant: "sidebar" | "inset" }) {
   return (
-    <Sidebar variant={variant} className="border-r border-sidebar-border bg-sidebar transition-colors duration-300">
+    <Sidebar
+      variant={variant}
+      className="border-r border-sidebar-border bg-sidebar transition-colors duration-300"
+      data-tour-id="admin-sidebar"
+    >
       <SidebarHeader className="border-b border-sidebar-border transition-colors duration-300">
         <div className="flex h-[--header-height] shrink-0 items-center gap-2 px-4 lg:px-6">
           <div className="flex items-center gap-2">

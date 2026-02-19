@@ -693,7 +693,12 @@ export function ProductFormComposite({
       </Card>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={isLoading} className="bg-[#fec806] hover:bg-[#e6b800] text-black">
+        <Button
+          type="submit"
+          disabled={isLoading}
+          className="bg-[#fec806] hover:bg-[#e6b800] text-black"
+          data-tour-id="product-submit-button"
+        >
           {isLoading ? 'Guardando...' : submitLabel}
         </Button>
       </div>

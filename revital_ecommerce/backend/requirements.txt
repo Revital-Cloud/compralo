@@ -13,6 +13,7 @@ dnspython==2.7.0
 email_validator==2.2.0
 fastapi==0.128.6
 fastapi-cli==0.0.7
+groq==0.14.0
 greenlet==3.2.2
 h11==0.16.0
 httpcore==1.0.9

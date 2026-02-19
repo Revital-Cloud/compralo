@@ -1,12 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   IconShoppingCart, 
   IconCash,
   IconTruck,
-  IconArrowUpRight
+  IconArrowUpRight,
+  IconSparkles
 } from "@tabler/icons-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
+import { aiService } from '@/services/ai.service'
 
 // Dashboard Components
 import {
@@ -21,13 +24,59 @@ import type { DashboardRefreshIntervalKey } from '@/components/dashboard/dashboa
 
 // Custom Hook
 import { useDashboardData, DASHBOARD_REFRESH_INTERVALS } from '@/hooks/use-dashboard-data'
+import { useAdminTour } from './_tour/useAdminDriverTour';
 
 const STORAGE_KEY = 'dashboard-refresh-interval'
 const DEFAULT_REFRESH: DashboardRefreshIntervalKey = '30s'
+const ADMIN_TOUR_SEEN_KEY = 'revital_admin_tour_seen'
 
 const AdminDashboard = () => {
   const [timeRange, setTimeRange] = useState('monthly')
   const [refreshInterval, setRefreshInterval] = useState<DashboardRefreshIntervalKey>(DEFAULT_REFRESH)
+  const [aiEnabled, setAiEnabled] = useState<boolean | null>(null)
+  const [aiSummary, setAiSummary] = useState<string | null>(null)
+  const [aiSummaryLoading, setAiSummaryLoading] = useState(false)
+  const [aiSummaryError, setAiSummaryError] = useState<string | null>(null)
+  const { startAdminOverviewTour } = useAdminTour()
+
+  const fetchAiSummary = useCallback(async () => {
+    if (!aiEnabled) return
+    setAiSummaryLoading(true)
+    setAiSummaryError(null)
+    try {
+      const res = await aiService.getSummary(timeRange)
+      setAiSummary(res.summary)
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      if (status === 503) {
+        setAiSummaryError('IA no disponible')
+      } else {
+        setAiSummaryError('Error al generar resumen')
+      }
+    } finally {
+      setAiSummaryLoading(false)
+    }
+  }, [aiEnabled, timeRange])
+
+  useEffect(() => {
+    aiService.getHealth().then((res) => setAiEnabled(res.enabled)).catch(() => setAiEnabled(false))
+  }, [])
+
+  useEffect(() => {
+    if (aiEnabled) fetchAiSummary()
+  }, [aiEnabled, fetchAiSummary])
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem(ADMIN_TOUR_SEEN_KEY)
+      if (!seen) {
+        startAdminOverviewTour()
+        localStorage.setItem(ADMIN_TOUR_SEEN_KEY, '1')
+      }
+    } catch {
+      // ignore
+    }
+  }, [startAdminOverviewTour])
 
   useEffect(() => {
     try {
@@ -69,8 +118,34 @@ const AdminDashboard = () => {
         onRefresh={refetch}
       />
 
+      {/* AI Summary Card */}
+      {aiEnabled === true && (
+        <Card className="transition-all duration-300">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <IconSparkles className="h-4 w-4 text-primary" />
+              Resumen del mes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {aiSummaryLoading && (
+              <p className="text-sm text-muted-foreground animate-pulse">Generando resumen...</p>
+            )}
+            {aiSummaryError && (
+              <p className="text-sm text-muted-foreground">{aiSummaryError}</p>
+            )}
+            {!aiSummaryLoading && !aiSummaryError && aiSummary && (
+              <p className="text-sm text-muted-foreground">{aiSummary}</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+        data-tour-id="admin-dashboard-kpis"
+      >
         <KPICard
           title="Total de Órdenes"
           data={data?.kpis?.totalOrders}
@@ -98,24 +173,26 @@ const AdminDashboard = () => {
       </div>
 
       {/* Main Dashboard Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <SalesChart 
-          salesData={data?.salesData || []} 
-          summary={data?.summary || { totalSales: 0, totalOrders: 0, conversionRate: '0' }}
-          loading={loading}
-        />
-        <BestSellers 
-          bestSellers={data?.bestSellers || []}
-          loading={loading}
-        />
-      </div>
+      <div data-tour-id="admin-dashboard-charts" className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <SalesChart 
+            salesData={data?.salesData || []} 
+            summary={data?.summary || { totalSales: 0, totalOrders: 0, conversionRate: '0' }}
+            loading={loading}
+          />
+          <BestSellers 
+            bestSellers={data?.bestSellers || []}
+            loading={loading}
+          />
+        </div>
 
-      {/* Recent Orders Section */}
-      <div className="grid grid-cols-1">
-        <RecentOrders 
-          recentOrders={data?.recentOrders || []}
-          loading={loading}
-        />
+        {/* Recent Orders Section */}
+        <div className="grid grid-cols-1">
+          <RecentOrders 
+            recentOrders={data?.recentOrders || []}
+            loading={loading}
+          />
+        </div>
       </div>
     </div>
   )

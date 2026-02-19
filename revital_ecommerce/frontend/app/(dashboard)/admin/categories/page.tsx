@@ -14,10 +14,12 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { CategoriesFilters } from '@/components/admin/categories/categories-filters'
 import type { Category } from '@/types/category'
 import { toast } from 'sonner'
+import { useAdminTour } from '../_tour/useAdminDriverTour'
 
 const TAB_VALUES = ['categoria', 'linea', 'sublinea'] as const
 type CategoryTab = (typeof TAB_VALUES)[number]
 const DEFAULT_TAB: CategoryTab = 'categoria'
+const CATEGORIES_TOUR_KEY = 'revital_categories_tour_seen'
 
 function isValidTab(value: string | null): value is CategoryTab {
   return value !== null && TAB_VALUES.includes(value as CategoryTab)
@@ -191,6 +193,20 @@ const CategoriesPage = () => {
     return sublineasOnly.filter((c) => parentIdNum(c) === parentId)
   }, [sublineasOnly, filterByParentLineId])
 
+  const { startCategoriesListTour } = useAdminTour()
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem(CATEGORIES_TOUR_KEY)
+      if (!seen) {
+        startCategoriesListTour()
+        localStorage.setItem(CATEGORIES_TOUR_KEY, '1')
+      }
+    } catch {
+      // ignore
+    }
+  }, [startCategoriesListTour])
+
   function buildColumnsForTab(tab: CategoryTab): ColumnDef<Category>[] {
     const baseColumns: ColumnDef<Category>[] = [
       {
@@ -303,13 +319,15 @@ const CategoriesPage = () => {
 
   return (
     <div className="space-y-6">
-      <CatalogHeader 
-        title="Categorías"
-        description="Gestiona las categorías para organizar tus productos"
-        onCreateClick={() => setOpenCreate(true)}
-        createLabel="Agregar Categoría"
-        showImportButton={false}
-      />
+      <div data-tour-id="categories-header">
+        <CatalogHeader 
+          title="Categorías"
+          description="Gestiona las categorías para organizar tus productos"
+          onCreateClick={() => setOpenCreate(true)}
+          createLabel="Agregar Categoría"
+          showImportButton={false}
+        />
+      </div>
 
       <CategoryModal
         open={openCreate}
@@ -364,7 +382,7 @@ const CategoriesPage = () => {
 
       {!isLoading && !isError && Array.isArray(data) && data.length > 0 && (
         <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-3" data-tour-id="categories-tabs">
             <TabsTrigger value="categoria">
               Categoría ({categoriasOnly.length})
             </TabsTrigger>
@@ -377,14 +395,16 @@ const CategoriesPage = () => {
           </TabsList>
 
           <TabsContent value="categoria" className="space-y-6 outline-none">
-            <CategoriesFilters
-              search={search}
-              onSearchChange={setSearch}
-              onClearFilters={clearFilters}
-              totalResults={categoriasOnly.length}
-              title="Filtros de Categorías"
-              searchPlaceholder="Buscar categoría..."
-            />
+            <div data-tour-id="categories-filters">
+              <CategoriesFilters
+                search={search}
+                onSearchChange={setSearch}
+                onClearFilters={clearFilters}
+                totalResults={categoriasOnly.length}
+                title="Filtros de Categorías"
+                searchPlaceholder="Buscar categoría..."
+              />
+            </div>
             {categoriasOnly.length === 0 ? (
               <EmptyState
                 title="Aún no tienes categorías"
@@ -395,35 +415,39 @@ const CategoriesPage = () => {
                 }
               />
             ) : (
-              <DataTable
-                columns={buildColumnsForTab('categoria')}
-                data={categoriasOnly}
-                pageSize={10}
-                className="[&_[data-slot=table-container]]:overflow-y-visible"
-              />
+              <div data-tour-id="categories-table">
+                <DataTable
+                  columns={buildColumnsForTab('categoria')}
+                  data={categoriasOnly}
+                  pageSize={10}
+                  className="[&_[data-slot=table-container]]:overflow-y-visible"
+                />
+              </div>
             )}
           </TabsContent>
 
           <TabsContent value="linea" className="space-y-6 outline-none">
-            <CategoriesFilters
-              search={search}
-              onSearchChange={setSearch}
-              onClearFilters={clearFilters}
-              totalResults={lineasFiltered.length}
-              title="Filtros de Líneas"
-              searchPlaceholder="Buscar línea..."
-              extraFilters={[
-                {
-                  id: 'parentCategory',
-                  label: 'Categoría',
-                  type: 'select',
-                  emptyOptionLabel: 'Todas las categorías',
-                  options: categoriasOnly.map((c) => ({ id: c.id, nombre: c.name ?? '', label: c.name ?? '' })),
-                  value: filterByParentCategoryId,
-                  onChange: (v) => setFilterByParentCategoryId(v ?? ''),
-                },
-              ]}
-            />
+            <div data-tour-id="categories-filters">
+              <CategoriesFilters
+                search={search}
+                onSearchChange={setSearch}
+                onClearFilters={clearFilters}
+                totalResults={lineasFiltered.length}
+                title="Filtros de Líneas"
+                searchPlaceholder="Buscar línea..."
+                extraFilters={[
+                  {
+                    id: 'parentCategory',
+                    label: 'Categoría',
+                    type: 'select',
+                    emptyOptionLabel: 'Todas las categorías',
+                    options: categoriasOnly.map((c) => ({ id: c.id, nombre: c.name ?? '', label: c.name ?? '' })),
+                    value: filterByParentCategoryId,
+                    onChange: (v) => setFilterByParentCategoryId(v ?? ''),
+                  },
+                ]}
+              />
+            </div>
             {lineasFiltered.length === 0 ? (
               <EmptyState
                 title="Aún no tienes líneas"
@@ -434,35 +458,39 @@ const CategoriesPage = () => {
                 }
               />
             ) : (
-              <DataTable
-                columns={buildColumnsForTab('linea')}
-                data={lineasFiltered}
-                pageSize={10}
-                className="[&_[data-slot=table-container]]:overflow-y-visible"
-              />
+              <div data-tour-id="categories-table">
+                <DataTable
+                  columns={buildColumnsForTab('linea')}
+                  data={lineasFiltered}
+                  pageSize={10}
+                  className="[&_[data-slot=table-container]]:overflow-y-visible"
+                />
+              </div>
             )}
           </TabsContent>
 
           <TabsContent value="sublinea" className="space-y-6 outline-none">
-            <CategoriesFilters
-              search={search}
-              onSearchChange={setSearch}
-              onClearFilters={clearFilters}
-              totalResults={sublineasFiltered.length}
-              title="Filtros de Sublíneas"
-              searchPlaceholder="Buscar sublínea..."
-              extraFilters={[
-                {
-                  id: 'parentLine',
-                  label: 'Línea',
-                  type: 'select',
-                  emptyOptionLabel: 'Todas las líneas',
-                  options: lineasOnly.map((c) => ({ id: c.id, nombre: c.name ?? '', label: c.name ?? '' })),
-                  value: filterByParentLineId,
-                  onChange: (v) => setFilterByParentLineId(v ?? ''),
-                },
-              ]}
-            />
+            <div data-tour-id="categories-filters">
+              <CategoriesFilters
+                search={search}
+                onSearchChange={setSearch}
+                onClearFilters={clearFilters}
+                totalResults={sublineasFiltered.length}
+                title="Filtros de Sublíneas"
+                searchPlaceholder="Buscar sublínea..."
+                extraFilters={[
+                  {
+                    id: 'parentLine',
+                    label: 'Línea',
+                    type: 'select',
+                    emptyOptionLabel: 'Todas las líneas',
+                    options: lineasOnly.map((c) => ({ id: c.id, nombre: c.name ?? '', label: c.name ?? '' })),
+                    value: filterByParentLineId,
+                    onChange: (v) => setFilterByParentLineId(v ?? ''),
+                  },
+                ]}
+              />
+            </div>
             {sublineasFiltered.length === 0 ? (
               <EmptyState
                 title="Aún no tienes sublíneas"
@@ -473,12 +501,14 @@ const CategoriesPage = () => {
                 }
               />
             ) : (
-              <DataTable
-                columns={buildColumnsForTab('sublinea')}
-                data={sublineasFiltered}
-                pageSize={10}
-                className="[&_[data-slot=table-container]]:overflow-y-visible"
-              />
+              <div data-tour-id="categories-table">
+                <DataTable
+                  columns={buildColumnsForTab('sublinea')}
+                  data={sublineasFiltered}
+                  pageSize={10}
+                  className="[&_[data-slot=table-container]]:overflow-y-visible"
+                />
+              </div>
             )}
           </TabsContent>
         </Tabs>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { useActivePointsRate, useAllUsersWithPoints } from '@/hooks/use-points'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
@@ -14,6 +14,7 @@ import { PointsStatsCards } from '@/components/admin/points/points-stats-cards'
 import { Input } from "@/components/ui"
 import type { UserWithPoints } from '@/types/points'
 import Link from 'next/link'
+import { useAdminTour } from '../_tour/useAdminDriverTour'
 
 const PointsPage = () => {
   const { data: activeRates } = useActivePointsRate()
@@ -128,14 +129,30 @@ const PointsPage = () => {
 
   const activeRate = Array.isArray(activeRates) && activeRates.length > 0 ? activeRates[0] : null
 
+  const { startPointsTour } = useAdminTour()
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('revital_points_tour_seen')
+      if (!seen) {
+        startPointsTour()
+        localStorage.setItem('revital_points_tour_seen', '1')
+      }
+    } catch {
+      // ignore
+    }
+  }, [startPointsTour])
+
   return (
     <div className="space-y-6">
-      <CatalogHeader 
-        title="Sistema de Puntos"
-        description="Gestiona el programa de lealtad y consulta los puntos de tus usuarios"
-        onCreateClick={() => setOpenConfig(true)}
-        createLabel={activeRate ? 'Actualizar Configuración' : 'Nueva Configuración'}
-      />
+      <div data-tour-id="points-header">
+        <CatalogHeader 
+          title="Sistema de Puntos"
+          description="Gestiona el programa de lealtad y consulta los puntos de tus usuarios"
+          onCreateClick={() => setOpenConfig(true)}
+          createLabel={activeRate ? 'Actualizar Configuración' : 'Nueva Configuración'}
+        />
+      </div>
       <CreatePointsConfigModal open={openConfig} onOpenChange={setOpenConfig} />
 
       {/* Estadísticas actuales */}
@@ -192,7 +209,9 @@ const PointsPage = () => {
       )}
 
       {/* Estadísticas de usuarios */}
-      <PointsStatsCards users={users} />
+      <div data-tour-id="points-stats">
+        <PointsStatsCards users={users} />
+      </div>
 
       {/* Búsqueda */}
       <div className="flex items-center space-x-4">
@@ -208,11 +227,13 @@ const PointsPage = () => {
       {isLoading && <div className="text-sm text-muted-foreground">Cargando usuarios...</div>}
       {isError && <div className="text-sm text-red-600">No se pudieron cargar los usuarios.</div>}
       {!isLoading && !isError && Array.isArray(filteredUsers) && (
-        <DataTable 
-          columns={[...columns, ...actions]} 
-          data={filteredUsers} 
-          pageSize={10} 
-        />
+        <div data-tour-id="points-table">
+          <DataTable 
+            columns={[...columns, ...actions]} 
+            data={filteredUsers} 
+            pageSize={10} 
+          />
+        </div>
       )}
     </div>
   )

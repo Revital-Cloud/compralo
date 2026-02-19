@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { EmptyState } from '@/components/admin/empty-states'
 import { attributeService, type Attribute, type AttributeCreate } from '@/services/attribute.service'
@@ -35,6 +35,7 @@ import Link from 'next/link'
 import { UniversalFilters } from '@/components/ui'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { useAdminTour } from '../_tour/useAdminDriverTour'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
@@ -58,6 +59,19 @@ const AttributesPage = () => {
   const [openEdit, setOpenEdit] = useState(false)
   const [editing, setEditing] = useState<Attribute | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Attribute | null>(null)
+  const { startAttributesTour } = useAdminTour()
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('revital_attributes_tour_seen')
+      if (!seen) {
+        startAttributesTour()
+        localStorage.setItem('revital_attributes_tour_seen', '1')
+      }
+    } catch {
+      // ignore
+    }
+  }, [startAttributesTour])
 
   const clearFilters = () => setSearch('')
 
@@ -177,20 +191,24 @@ const AttributesPage = () => {
 
   return (
     <div className="space-y-6">
-      <CatalogHeader
-        title="Atributos"
-        description="Catálogo de atributos para categorías y variantes de producto"
-        onCreateClick={() => setOpenCreate(true)}
-        createLabel="Agregar Atributo"
-        showImportButton={false}
-      />
+      <div data-tour-id="attributes-header">
+        <CatalogHeader
+          title="Atributos"
+          description="Catálogo de atributos para categorías y variantes de producto"
+          onCreateClick={() => setOpenCreate(true)}
+          createLabel="Agregar Atributo"
+          showImportButton={false}
+        />
+      </div>
 
-      <AttributesFilters
-        search={search}
-        onSearchChange={setSearch}
-        onClearFilters={clearFilters}
-        totalResults={filteredData.length}
-      />
+      <div data-tour-id="attributes-filters">
+        <AttributesFilters
+          search={search}
+          onSearchChange={setSearch}
+          onClearFilters={clearFilters}
+          totalResults={filteredData.length}
+        />
+      </div>
 
       {isLoading && <div className="text-sm text-muted-foreground">Cargando atributos...</div>}
       {isError && <div className="text-sm text-red-600">No se pudieron cargar los atributos.</div>}
@@ -209,12 +227,14 @@ const AttributesPage = () => {
       )}
 
       {!isLoading && !isError && filteredData.length > 0 && (
-        <DataTable
-          columns={[...columns, ...actions]}
-          data={filteredData}
-          pageSize={10}
-          getRowId={(row: Attribute) => String(row.id)}
-        />
+        <div data-tour-id="attributes-table">
+          <DataTable
+            columns={[...columns, ...actions]}
+            data={filteredData}
+            pageSize={10}
+            getRowId={(row: Attribute) => String(row.id)}
+          />
+        </div>
       )}
 
       <AttributeModal
