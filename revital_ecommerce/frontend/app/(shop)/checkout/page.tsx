@@ -32,6 +32,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useActiveDiscounts } from "@/hooks/use-discounts";
+import { 
+  getApplicableDiscount, 
+  calculateDiscountedPrice, 
+  calculateDiscountPercentage 
+} from "@/utils/discount-utils";
 
 // Esquemas de validación
 const informationSchema = z.object({
@@ -183,10 +189,15 @@ const CheckoutPage = () => {
         : selectedCanjeId != null
           ? Number(selectedCanjeId)
           : undefined;
+    const codigoDescuento =
+      typeof window !== "undefined"
+        ? sessionStorage.getItem("checkout_codigo_descuento")
+        : null;
     const checkoutData: CheckoutData = {
       cart_id: cartId,
       id_direccion: Number(selectedAddress.id_direccion),
       id_canje: idCanje,
+      ...(codigoDescuento ? { codigo_descuento: codigoDescuento } : {}),
     };
     setCheckoutDataForModal(checkoutData);
     setIsWompiModalOpen(true);
@@ -203,6 +214,9 @@ const CheckoutPage = () => {
       // para que muestre "carrito vacío" sin necesidad de refrescar.
       if (transaction?.status === "APPROVED") {
         setCheckoutDataForModal(null);
+        if (typeof window !== "undefined") {
+          sessionStorage.removeItem("checkout_codigo_descuento");
+        }
         queryClient.invalidateQueries({ queryKey: ["cart"] });
         queryClient.invalidateQueries({ queryKey: ["orders"] });
       }
@@ -1149,6 +1163,7 @@ function OrderSummary({
   total: number;
   discountCanjeAmount?: number;
 }) {
+  const { data: discounts } = useActiveDiscounts()
   return (
     <Card className="sticky top-8">
       <CardContent className="p-6">
@@ -1178,7 +1193,43 @@ function OrderSummary({
                     {item.categoria && `${item.categoria} / `}
                     Tipo: {item.sublinea || "Único"}
                   </p>
-                  <p className="text-sm font-semibold mt-1">{formatPrice(item.subtotal)}</p>
+                  {(() => {
+                    const productForDiscount = {
+                      id_producto: item.id_producto,
+                      id_categoria: item.id_categoria_producto ?? item.category_id,
+                      category_id: item.category_id ?? item.id_categoria_producto,
+                      id_marca: item.id_marca ?? (item as any).marca_id,
+                    }
+                    const applicableDiscount = discounts ? getApplicableDiscount(productForDiscount as any, discounts) : null
+                    const originalUnitPrice = item.precio_unitario
+                    const discountedUnitPrice = applicableDiscount 
+                      ? calculateDiscountedPrice(originalUnitPrice, applicableDiscount)
+                      : originalUnitPrice
+                    const hasDiscount = applicableDiscount && discountedUnitPrice < originalUnitPrice
+                    const discountPercentage = hasDiscount 
+                      ? calculateDiscountPercentage(originalUnitPrice, discountedUnitPrice)
+                      : undefined
+                    const originalSubtotal = item.subtotal
+                    const discountedSubtotal = hasDiscount ? discountedUnitPrice * item.cantidad : originalSubtotal
+                    
+                    return (
+                      <div className="flex items-center gap-2 flex-wrap mt-1">
+                        <p className="text-sm font-semibold">{formatPrice(discountedSubtotal)}</p>
+                        {hasDiscount && originalSubtotal > discountedSubtotal && (
+                          <>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 line-through">
+                              {formatPrice(originalSubtotal)}
+                            </span>
+                            {discountPercentage != null && discountPercentage > 0 && (
+                              <Badge variant="destructive" className="text-xs shrink-0">
+                                -{discountPercentage}% OFF
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
               </div>
             ))}

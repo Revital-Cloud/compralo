@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}¡Feliz Cumpleaños! - {{ app_name }}{% endblock %}
+
+{% block preheader %}¡Feliz Cumpleaños {{ user_name }}! Tienes un descuento especial esperándote.{% endblock %}
+
+{% block content %}
+<div class="greeting">¡Feliz Cumpleaños {{ user_name }}! 🎉</div>
+
+<div class="highlight-box" style="background-color:#fef3c7; border:2px solid #f59e0b;">
+    <h2 style="margin:0; font-size:24px; color:#92400e;">🎂 ¡Es tu día especial!</h2>
+    <p style="margin:10px 0 0; font-size:16px; color:#78350f;">Queremos celebrar contigo y por eso tenemos un regalo especial.</p>
+</div>
+
+{% if birthday_discount %}
+<div class="content-block">
+    <h2 style="margin:0 0 15px; font-size:22px; color:#dc2626;">Tu Descuento de Cumpleaños</h2>
+    <div style="background-color:#fef2f2; border:2px solid #dc2626; border-radius:8px; padding:20px; margin:20px 0;">
+        <p style="margin:0 0 10px; font-size:18px; color:#991b1b; font-weight:600;">
+            {{ birthday_discount.nom_descuento }}
+        </p>
+        {% if birthday_discount.des_descuento %}
+        <p style="margin:0 0 15px; font-size:15px; color:#7f1d1d;">
+            {{ birthday_discount.des_descuento }}
+        </p>
+        {% endif %}
+        <p style="margin:0 0 15px; font-size:24px; color:#dc2626; font-weight:bold;">
+            {% if birthday_discount.tipo_calculo %}
+                {{ birthday_discount.val_porce_descuento or 0 }}% de descuento
+            {% else %}
+                ${{ "{:,.0f}".format(birthday_discount.val_monto_descuento or 0) }} de descuento
+            {% endif %}
+        </p>
+        {% if birthday_discount.codigo_descuento %}
+        <div style="background-color:#fff; padding:12px; border-radius:6px; margin:15px 0;">
+            <p style="margin:0 0 8px; font-size:14px; color:#7f1d1d; font-weight:600;">Usa este código al realizar tu compra:</p>
+            <p style="margin:0; font-size:20px; font-family:monospace; font-weight:bold; color:#dc2626; text-align:center; letter-spacing:2px;">
+                {{ birthday_discount.codigo_descuento }}
+            </p>
+        </div>
+        {% endif %}
+        {% if birthday_discount.min_valor_pedido %}
+        <p style="margin:15px 0 0; font-size:13px; color:#7f1d1d;">
+            * Válido en compras superiores a ${{ "{:,.0f}".format(birthday_discount.min_valor_pedido or 0) }}
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="text-center" style="margin:30px 0;">
+    {% set shop_url = frontend_url ~ '/productos' %}
+    {% set url = shop_url %}
+    {% set label = "Ver Productos" %}
+    {% set variant = "success" %}
+    {% include "_button.html" %}
+</div>
+{% else %}
+<div class="content-block">
+    <p>Queremos celebrar contigo. Visita nuestra tienda y descubre las mejores ofertas especiales para tu día.</p>
+</div>
+
+<div class="text-center" style="margin:30px 0;">
+    {% set shop_url = frontend_url ~ '/productos' %}
+    {% set url = shop_url %}
+    {% set label = "Explorar Productos" %}
+    {% set variant = "primary" %}
+    {% include "_button.html" %}
+</div>
+{% endif %}
+
+<div class="divider"></div>
+
+<div class="content-block">
+    <p>Esperamos que tengas un día maravilloso y que disfrutes de tus compras.</p>
+    <p>¿Necesitas ayuda? <a href="mailto:{{ support_email }}" style="color:#dc2626;">{{ support_email }}</a> · <a href="{{ frontend_url }}/contacto" style="color:#dc2626;">Contacto</a></p>
+    <p class="text-muted">Con cariño, el equipo de {{ app_name }}.</p>
+</div>
+{% endblock %}

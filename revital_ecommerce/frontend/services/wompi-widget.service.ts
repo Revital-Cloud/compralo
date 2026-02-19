@@ -1385,6 +1385,8 @@ export interface CheckoutData {
   cart_id: number;
   id_direccion: number;
   id_canje?: number | null;
+  /** Código de cupón aplicado en el carrito; se envía al crear la sesión de checkout para aplicarlo al crear la orden. */
+  codigo_descuento?: string | null;
 }
 
 // Función helper para inicializar el pago

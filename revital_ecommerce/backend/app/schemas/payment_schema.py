@@ -104,6 +104,7 @@ class CheckoutCreateRequest(BaseModel):
     cart_id: int = Field(..., description="ID del carrito")
     id_direccion: int = Field(..., description="ID de la dirección de envío")
     id_canje: Optional[int] = Field(None, description="ID del canje de puntos a aplicar (opcional)")
+    codigo_descuento: Optional[str] = Field(None, description="Código de cupón a aplicar al crear la orden (opcional)")
 
 
 class PaymentCreateResponse(BaseModel):

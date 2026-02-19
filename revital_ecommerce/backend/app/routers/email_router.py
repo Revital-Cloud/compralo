@@ -14,6 +14,7 @@ Endpoints disponibles:
 - GET /config: Obtener configuración del servicio
 """
 from fastapi import APIRouter, HTTPException, Depends, status
+from sqlalchemy.orm import Session
 import logging
 
 from schemas.email_schema import (
@@ -25,8 +26,10 @@ from services.email_service import (
     send_verification_email as send_verification_email_func,
     send_password_reset_email as send_password_reset_email_func,
     validate_email_config,
-    get_email_config_status
+    get_email_config_status,
+    process_birthday_emails
 )
+from core.database import get_db
 from core.dependencies import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -267,6 +270,58 @@ async def validate_email_config(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al validar configuración: {str(e)}"
+        )
+
+# ==================== ENDPOINTS DE MARKETING ====================
+
+@router.post("/birthday/process", response_model=ResponseMessage)
+async def process_birthday_emails_endpoint(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Procesa usuarios con cumpleaños hoy y envía emails con descuentos.
+    
+    Este endpoint debe ser llamado diariamente (por ejemplo, mediante un cron job)
+    para verificar usuarios con cumpleaños y enviarles emails automáticamente.
+    
+    Solo accesible para administradores.
+    
+    Args:
+        db (Session): Sesión de base de datos
+        current_user (dict): Usuario autenticado
+        
+    Returns:
+        ResponseMessage: Resultado del procesamiento
+    """
+    try:
+        # Verificar que sea admin
+        if current_user.get('id_rol') != 1:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Se requieren permisos de administrador"
+            )
+        
+        logger.info("Iniciando procesamiento de emails de cumpleaños")
+        result = await process_birthday_emails(db)
+        
+        return ResponseMessage(
+            message=result.get("message", "Procesamiento completado"),
+            success=result.get("success", False),
+            data={
+                "emails_sent": result.get("emails_sent", 0),
+                "users_found": result.get("users_found", 0),
+                "errors": result.get("errors")
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en process_birthday_emails: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al procesar emails de cumpleaños: {str(e)}"
         )
 
 # ==================== ENDPOINTS DE ESTADÍSTICAS ====================

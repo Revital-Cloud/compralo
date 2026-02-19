@@ -11,14 +11,16 @@ import resend
 import logging
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, date
 
 from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from core.config import settings
 from core.database import SessionLocal
 from schemas.email_schema import EmailSend, EmailResponse
 from services.email_templates import email_templates
+from services.discount_service import get_birthday_discount
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +90,7 @@ async def send_basic_email(email_data: EmailSend) -> EmailResponse:
 
 # ==================== FUNCIONES DE AUTENTICACIÓN ====================
 
-async def send_welcome_email(user_email: str, user_name: str, verify_url: Optional[str] = None) -> bool:
+async def send_welcome_email(user_email: str, user_name: str, verify_url: Optional[str] = None, first_purchase_discount: Optional[Dict[str, Any]] = None) -> bool:
     """
     Envía email de bienvenida a un nuevo usuario.
     
@@ -96,6 +98,7 @@ async def send_welcome_email(user_email: str, user_name: str, verify_url: Option
         user_email (str): Email del usuario
         user_name (str): Nombre del usuario
         verify_url (Optional[str]): URL para verificar email
+        first_purchase_discount (Optional[Dict]): Descuento de primera compra disponible
         
     Returns:
         bool: True si se envió exitosamente
@@ -103,7 +106,8 @@ async def send_welcome_email(user_email: str, user_name: str, verify_url: Option
     try:
         html_content = email_templates.get_welcome_template(
             user_name=user_name,
-            verify_url=verify_url
+            verify_url=verify_url,
+            first_purchase_discount=first_purchase_discount
         )
         
         email_data = EmailSend(
@@ -117,6 +121,37 @@ async def send_welcome_email(user_email: str, user_name: str, verify_url: Option
         
     except Exception as e:
         logger.error(f"Error al enviar email de bienvenida: {str(e)}")
+        return False
+
+async def send_birthday_email(user_email: str, user_name: str, birthday_discount: Optional[Dict[str, Any]] = None) -> bool:
+    """
+    Envía email de cumpleaños con descuento especial.
+    
+    Args:
+        user_email (str): Email del usuario
+        user_name (str): Nombre del usuario
+        birthday_discount (Optional[Dict]): Descuento de cumpleaños disponible
+        
+    Returns:
+        bool: True si se envió exitosamente
+    """
+    try:
+        html_content = email_templates.get_birthday_template(
+            user_name=user_name,
+            birthday_discount=birthday_discount
+        )
+        
+        email_data = EmailSend(
+            to=user_email,
+            subject=f"¡Feliz Cumpleaños {user_name}! 🎉 - Descuento Especial",
+            html_content=html_content
+        )
+        
+        response = await send_basic_email(email_data)
+        return response.success
+        
+    except Exception as e:
+        logger.error(f"Error al enviar email de cumpleaños: {str(e)}")
         return False
 
 async def send_verification_email(user_email: str, user_name: str, verification_token: str) -> bool:
@@ -580,6 +615,110 @@ async def send_new_user_notification(user_data: Dict[str, Any], admin_emails: Li
     except Exception as e:
         logger.error(f"Error al enviar notificación de usuario: {str(e)}")
         return False
+
+# ==================== FUNCIONES DE MARKETING ====================
+
+async def process_birthday_emails(db: Session = None) -> Dict[str, Any]:
+    """
+    Procesa usuarios con cumpleaños hoy y envía emails con descuentos de cumpleaños.
+    
+    Args:
+        db (Session): Sesión de base de datos (opcional, crea una nueva si no se proporciona)
+        
+    Returns:
+        dict: Resultado del procesamiento con estadísticas
+    """
+    if db is None:
+        db = SessionLocal()
+        should_close = True
+    else:
+        should_close = False
+    
+    try:
+        # Obtener descuento de cumpleaños activo
+        birthday_discount = get_birthday_discount(db)
+        
+        if not birthday_discount:
+            logger.info("No hay descuento de cumpleaños activo configurado")
+            return {
+                "success": True,
+                "message": "No hay descuento de cumpleaños activo",
+                "emails_sent": 0,
+                "users_found": 0
+            }
+        
+        # Buscar usuarios con cumpleaños hoy
+        today = date.today()
+        query = text("""
+        SELECT 
+            id_usuario,
+            nom_usuario,
+            email_usuario,
+            fec_nacimiento
+        FROM tab_usuarios
+        WHERE fec_nacimiento IS NOT NULL
+            AND EXTRACT(MONTH FROM fec_nacimiento) = :month
+            AND EXTRACT(DAY FROM fec_nacimiento) = :day
+            AND ind_activo = TRUE
+            AND email_usuario IS NOT NULL
+            AND email_usuario != ''
+        """)
+        
+        result = db.execute(query, {
+            'month': today.month,
+            'day': today.day
+        })
+        users = result.mappings().all()
+        
+        if not users:
+            logger.info(f"No se encontraron usuarios con cumpleaños el {today}")
+            return {
+                "success": True,
+                "message": f"No hay usuarios con cumpleaños el {today}",
+                "emails_sent": 0,
+                "users_found": 0
+            }
+        
+        # Enviar emails a cada usuario
+        emails_sent = 0
+        errors = []
+        
+        for user in users:
+            try:
+                success = await send_birthday_email(
+                    user_email=user['email_usuario'],
+                    user_name=user['nom_usuario'],
+                    birthday_discount=birthday_discount
+                )
+                if success:
+                    emails_sent += 1
+                    logger.info(f"Email de cumpleaños enviado a {user['email_usuario']}")
+                else:
+                    errors.append(f"Error al enviar a {user['email_usuario']}")
+            except Exception as e:
+                error_msg = f"Error al enviar email a {user['email_usuario']}: {str(e)}"
+                errors.append(error_msg)
+                logger.error(error_msg)
+        
+        return {
+            "success": True,
+            "message": f"Procesados {len(users)} usuarios con cumpleaños",
+            "emails_sent": emails_sent,
+            "users_found": len(users),
+            "errors": errors if errors else None
+        }
+        
+    except Exception as e:
+        logger.error(f"Error al procesar emails de cumpleaños: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Error al procesar emails de cumpleaños: {str(e)}",
+            "emails_sent": 0,
+            "users_found": 0
+        }
+    finally:
+        if should_close:
+            db.close()
 
 # ==================== FUNCIONES DE UTILIDAD ====================
 

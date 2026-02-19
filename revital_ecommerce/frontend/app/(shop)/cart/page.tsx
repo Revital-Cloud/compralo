@@ -25,10 +25,18 @@ import { listPaymentMethods, addPaymentMethod } from "@/services/payment.service
 import { payCartAndCreateOrder } from "@/services/order.service";
 import { discountService } from "@/services/discount.service";
 import { exchangeService } from "@/services/exchange.service";
+import { useActiveDiscounts, useMyAvailableDiscounts } from "@/hooks/use-discounts";
+import { 
+  getApplicableDiscount, 
+  calculateDiscountedPrice, 
+  calculateDiscountPercentage 
+} from "@/utils/discount-utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { WompiPaymentModal } from "@/components/payment/wompi-payment-modal";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, Alert, AlertDescription, Button, Input, Loading, Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction, RadioGroup, RadioGroupItem, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Badge } from "@/components/ui";
+import categoryService from "@/services/category.service";
+import { Category } from "@/types/category";
 
 const cartTexts = {
   es: {
@@ -105,30 +113,47 @@ const CartPage = () => {
   const cartCategoryIds = useMemo(() => {
     if (!Array.isArray(items) || items.length === 0) return [];
     const ids = items
-      .map((item) => Number((item as { category_id?: number }).category_id))
+      .map((item) => {
+        // El backend devuelve id_categoria_producto, pero también puede venir como category_id
+        const categoryId = (item as any).id_categoria_producto ?? (item as any).category_id;
+        return Number(categoryId);
+      })
       .filter((id) => !Number.isNaN(id) && id > 0);
     return [...new Set(ids)];
   }, [items]);
 
-  // Productos recomendados: primera categoría del carrito (con subcategorías)
-  const { data: relatedResponse } = useQuery({
+  // Productos recomendados: buscar en las categorías del carrito incluyendo subcategorías (nieta, hija, padre)
+  // Usamos include_subcategories: true para incluir automáticamente todas las categorías relacionadas
+  const { data: relatedResponse, isLoading: isLoadingRelated, error: errorRelated } = useQuery({
     queryKey: ["cartRelatedProducts", cartCategoryIds],
-    queryFn: () =>
-      productService.filterProducts({
+    queryFn: async () => {
+      if (cartCategoryIds.length === 0) return null;
+      
+      console.log("🔍 [CART] Buscando productos relacionados para categorías:", cartCategoryIds);
+      
+      // Buscar productos en la primera categoría del carrito con subcategorías
+      // Esto incluirá automáticamente nietas, hijas y padres relacionados
+      const result = await productService.filterProducts({
         category_id: cartCategoryIds[0],
-        include_subcategories: true,
+        include_subcategories: true, // Incluye nietas, hijas y padres relacionados
         limit: 20,
         offset: 0,
         ordenar_por: "nombre",
         orden: "ASC",
-      }),
+      });
+      
+      console.log("✅ [CART] Productos encontrados:", result?.products?.length || 0);
+      return result;
+    },
     enabled: cartCategoryIds.length > 0,
     staleTime: 5 * 60 * 1000,
   });
 
   const relatedProducts = useMemo(() => {
     if (!relatedResponse?.products) return [];
+    
     const cartIds = new Set((items ?? []).map((i) => i.id_producto));
+    
     return relatedResponse.products
       .filter((p) => !cartIds.has(p.id))
       .slice(0, 8)
@@ -204,13 +229,17 @@ const CartPage = () => {
       );
       
       if (validation && validation.es_aplicable) {
-        setAppliedDiscount({ 
-          codigo: promoCode.trim().toUpperCase(), 
+        const codigo = promoCode.trim().toUpperCase();
+        setAppliedDiscount({
+          codigo,
           descuento: validation.descuento,
           descuento_calculado: validation.descuento_calculado,
           total_con_descuento: validation.total_con_descuento
         });
-        toast.success(`Código "${promoCode.trim().toUpperCase()}" aplicado correctamente`);
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("checkout_codigo_descuento", codigo);
+        }
+        toast.success(`Código "${codigo}" aplicado correctamente`);
       }
     } catch (error: any) {
       if (error?.response?.status === 404) {
@@ -221,6 +250,9 @@ const CartPage = () => {
         toast.error("Error al validar el código de descuento");
       }
       setAppliedDiscount(null);
+      if (typeof window !== "undefined") {
+        sessionStorage.removeItem("checkout_codigo_descuento");
+      }
     } finally {
       setIsApplyingCode(false);
     }
@@ -230,55 +262,185 @@ const CartPage = () => {
   const handleRemovePromoCode = () => {
     setAppliedDiscount(null);
     setPromoCode("");
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("checkout_codigo_descuento");
+    }
     toast.success("Código de descuento removido");
   };
 
-  // Cálculos del carrito - calcular desde items (fuente de verdad)
-  // El subtotal debe calcularse desde los items del carrito, no desde totals del backend
-  // para evitar discrepancias
-  const subtotal = Array.isArray(items) && items.length > 0
+  // Obtener descuentos activos para calcular descuentos automáticos por producto
+  const { data: activeDiscounts } = useActiveDiscounts();
+  // Obtener descuentos disponibles para el usuario (incluye cumpleaños y primera compra si aplican)
+  const { data: myAvailableDiscounts } = useMyAvailableDiscounts();
+  const descuentoCanjeado = totals?.descuento_canjeado as { tipo?: string; valor?: number } | undefined;
+  const totalDescCanjeado = Number(totals?.total_desc_canjeado ?? 0);
+  
+  // Buscar descuento de cumpleaños disponible
+  const birthdayDiscount = myAvailableDiscounts?.find(d => d.es_cumpleanos === true);
+  // Buscar descuento de primera compra disponible
+  const firstPurchaseDiscount = myAvailableDiscounts?.find(d => d.es_primera_compra === true);
+
+  /** Verifica si un descuento aplicado por código aplica a un producto específico */
+  function doesDiscountApplyToProduct(discount: any, product: {
+    id_producto?: number;
+    id_categoria?: number;
+    category_id?: number;
+    id_marca?: number;
+    marca_id?: number;
+  }): boolean {
+    if (!discount || !discount.descuento) return false;
+    
+    const aplicaA = discount.descuento.aplica_a || 'todos';
+    
+    // Si aplica a todos, aplica a todos los productos (pero total_pedido no cambia precios individuales)
+    if (aplicaA === 'todos') {
+      return true;
+    }
+    
+    // total_pedido no aplica a productos individuales (solo al total)
+    if (aplicaA === 'total_pedido') {
+      return false;
+    }
+    
+    // Producto específico
+    if (aplicaA === 'producto_especifico' && discount.descuento.id_producto_aplica != null) {
+      const productId = product.id_producto;
+      return productId?.toString() === discount.descuento.id_producto_aplica?.toString();
+    }
+    
+    // Categoría específica
+    if (aplicaA === 'categoria_especifica' && discount.descuento.id_categoria_aplica != null) {
+      const prodCat = product.id_categoria ?? product.category_id;
+      return prodCat?.toString() === discount.descuento.id_categoria_aplica?.toString();
+    }
+    
+    // Marca específica
+    if (aplicaA === 'marca_especifica' && discount.descuento.id_marca_aplica != null) {
+      const prodMarca = product.id_marca ?? product.marca_id;
+      return prodMarca?.toString() === discount.descuento.id_marca_aplica?.toString();
+    }
+    
+    // Línea/sublínea (usa category_id_aplica)
+    if ((aplicaA === 'linea_especifica' || aplicaA === 'sublinea_especifica') && discount.descuento.id_categoria_aplica != null) {
+      const prodCat = product.id_categoria ?? product.category_id;
+      return prodCat?.toString() === discount.descuento.id_categoria_aplica?.toString();
+    }
+    
+    return false;
+  }
+
+  // Calcular subtotal original (sin descuentos por código)
+  const subtotalOriginal = Array.isArray(items) && items.length > 0
     ? items.reduce((acc, item) => {
         const itemSubtotal = Number(item.subtotal) || 0;
         return acc + itemSubtotal;
       }, 0)
     : 0;
-  const shipping =
-    Number(totals?.resumen?.costo_envio) ||
-    (subtotal > 50 || subtotal === 0 ? 0 : 10);
-  const salesTax = Number(totals?.resumen?.impuestos) || 0;
-  
-  // Calcular total final desde el subtotal local, aplicando descuentos del backend
-  const totalDescAutomaticos = Number(totals?.total_desc_automaticos ?? 0);
-  const totalDescCanjeado = Number(totals?.total_desc_canjeado ?? 0);
-  const totalDescuentos = totalDescAutomaticos + totalDescCanjeado;
-  
-  // Total final = subtotal + shipping + salesTax - descuentos
-  const finalTotal = Math.max(0, subtotal + shipping + salesTax - totalDescuentos);
-  const selectedCanjeNombre = selectedCanjeId != null
-    ? availableCanjes.find((c) => c.id_canje === selectedCanjeId)?.nom_descuento
-    : null;
-  const descuentoCanjeado = totals?.descuento_canjeado as { tipo?: string; valor?: number } | undefined;
 
-  /** Para cada ítem del carrito, calcula precio unitario con descuento por puntos (si aplica) y % para mostrar */
-  function getItemPriceWithCanjeDiscount(item: { precio_unitario: number; cantidad: number; subtotal: number }) {
-    if (totalDescCanjeado <= 0 || !descuentoCanjeado || subtotal <= 0) {
-      return { unitPrice: item.precio_unitario, originalUnitPrice: undefined, discountPercentage: undefined };
+  /** Para cada ítem del carrito, calcula precio unitario con descuentos automáticos, de código y de canje */
+  function getItemPriceWithDiscounts(item: { 
+    precio_unitario: number; 
+    cantidad: number; 
+    subtotal: number;
+    id_producto?: number;
+    id_categoria_producto?: number;
+    category_id?: number;
+    id_marca?: number;
+    marca_id?: number;
+  }) {
+    const originalUnitPrice = item.precio_unitario;
+    let currentPrice = originalUnitPrice;
+    let totalDiscountPercentage = 0;
+    
+    const productForDiscount = {
+      id_producto: item.id_producto,
+      id_categoria: item.id_categoria_producto ?? item.category_id,
+      category_id: item.category_id ?? item.id_categoria_producto,
+      id_marca: item.id_marca ?? item.marca_id,
+      marca_id: item.marca_id ?? item.id_marca,
+    };
+    
+    // 1. Calcular descuento automático por producto/categoría/marca
+    if (activeDiscounts && activeDiscounts.length > 0) {
+      const applicableDiscount = getApplicableDiscount(productForDiscount as any, activeDiscounts);
+      if (applicableDiscount) {
+        const discountedPrice = calculateDiscountedPrice(originalUnitPrice, applicableDiscount);
+        if (discountedPrice < originalUnitPrice) {
+          currentPrice = discountedPrice;
+          totalDiscountPercentage = calculateDiscountPercentage(originalUnitPrice, discountedPrice);
+        }
+      }
     }
-    const tipo = descuentoCanjeado.tipo;
-    const valor = Number(descuentoCanjeado.valor ?? 0);
-    if (tipo === "porcentaje" && valor > 0) {
-      const originalUnitPrice = item.precio_unitario;
-      const unitPrice = originalUnitPrice * (1 - valor / 100);
-      return { unitPrice, originalUnitPrice, discountPercentage: valor };
+    
+    // 2. Aplicar descuento por código si existe y aplica a este producto
+    if (appliedDiscount && appliedDiscount.descuento) {
+      const discountApplies = doesDiscountApplyToProduct(appliedDiscount, productForDiscount);
+      
+      if (discountApplies) {
+        const discount = appliedDiscount.descuento;
+        let priceAfterCodeDiscount = currentPrice;
+        
+        if (discount.tipo_calculo) {
+          // Porcentaje: aplicar sobre precio actual
+          const discountAmount = currentPrice * ((discount.val_porce_descuento || 0) / 100);
+          priceAfterCodeDiscount = currentPrice - discountAmount;
+        } else {
+          // Monto fijo: aplicar sobre precio actual
+          priceAfterCodeDiscount = Math.max(0, currentPrice - (discount.val_monto_descuento || 0));
+        }
+        
+        if (priceAfterCodeDiscount < currentPrice) {
+          currentPrice = priceAfterCodeDiscount;
+          totalDiscountPercentage = originalUnitPrice > 0
+            ? Math.round(((originalUnitPrice - currentPrice) / originalUnitPrice) * 100)
+            : totalDiscountPercentage;
+        }
+      }
     }
-    if (tipo === "monto_fijo" && totalDescCanjeado > 0) {
-      const discountShare = totalDescCanjeado * (item.subtotal / subtotal);
-      const discountedSubtotal = item.subtotal - discountShare;
-      const unitPrice = item.cantidad > 0 ? discountedSubtotal / item.cantidad : item.precio_unitario;
-      const discountPercentage = item.subtotal > 0 ? Math.round((discountShare / item.subtotal) * 100) : 0;
-      return { unitPrice, originalUnitPrice: item.precio_unitario, discountPercentage };
+    
+    // 3. Aplicar descuento de canje si hay (sobre el precio ya descontado)
+    // Usar subtotalOriginal calculado fuera de la función
+    const currentSubtotal = subtotalOriginal;
+    if (totalDescCanjeado > 0 && descuentoCanjeado && currentSubtotal > 0) {
+      const tipo = descuentoCanjeado.tipo;
+      const valor = Number(descuentoCanjeado.valor ?? 0);
+      
+      if (tipo === "porcentaje" && valor > 0) {
+        // Descuento porcentual de canje: aplicar sobre precio actual
+        const priceAfterCanje = currentPrice * (1 - valor / 100);
+        // Calcular porcentaje total combinado
+        const canjeDiscountAmount = currentPrice - priceAfterCanje;
+        const totalDiscountAmount = originalUnitPrice - priceAfterCanje;
+        totalDiscountPercentage = originalUnitPrice > 0 
+          ? Math.round((totalDiscountAmount / originalUnitPrice) * 100)
+          : totalDiscountPercentage;
+        currentPrice = priceAfterCanje;
+      } else if (tipo === "monto_fijo" && totalDescCanjeado > 0) {
+        // Descuento fijo de canje: distribuir proporcionalmente sobre subtotal original
+        const discountShare = totalDescCanjeado * (item.subtotal / currentSubtotal);
+        const discountedSubtotal = (currentPrice * item.cantidad) - discountShare;
+        currentPrice = item.cantidad > 0 ? discountedSubtotal / item.cantidad : currentPrice;
+        const totalDiscountAmount = originalUnitPrice - currentPrice;
+        totalDiscountPercentage = originalUnitPrice > 0
+          ? Math.round((totalDiscountAmount / originalUnitPrice) * 100)
+          : totalDiscountPercentage;
+      }
     }
-    return { unitPrice: item.precio_unitario, originalUnitPrice: undefined, discountPercentage: undefined };
+    
+    // Retornar precio final, precio original y porcentaje de descuento
+    if (currentPrice < originalUnitPrice && totalDiscountPercentage > 0) {
+      return {
+        unitPrice: currentPrice,
+        originalUnitPrice: originalUnitPrice,
+        discountPercentage: totalDiscountPercentage,
+      };
+    }
+    
+    return {
+      unitPrice: originalUnitPrice,
+      originalUnitPrice: undefined,
+      discountPercentage: undefined,
+    };
   }
 
   // Cargar dirección principal del usuario (si existe)
@@ -316,6 +478,65 @@ const CartPage = () => {
         ? paymentMethods.find((m) => m.id_metodo_pago.toString() === selectedPaymentMethodId)
         : paymentMethods.find((m) => m.is_default) || paymentMethods[0])
     : undefined;
+
+  // Calcular subtotal con descuentos por código aplicados (si aplican a productos individuales)
+  const subtotal = Array.isArray(items) && items.length > 0
+    ? items.reduce((acc, item) => {
+        if (appliedDiscount && appliedDiscount.descuento) {
+          const discountApplies = doesDiscountApplyToProduct(
+            appliedDiscount,
+            {
+              id_producto: item.id_producto,
+              id_categoria: (item as any).id_categoria_producto ?? (item as any).category_id,
+              category_id: (item as any).category_id ?? (item as any).id_categoria_producto,
+              id_marca: (item as any).id_marca,
+              marca_id: (item as any).marca_id,
+            }
+          );
+          // Si el descuento aplica solo al total_pedido, usar subtotal original
+          // Si aplica al producto, usar precio con descuento calculado
+          if (appliedDiscount.descuento.aplica_a === 'total_pedido') {
+            return acc + (Number(item.subtotal) || 0);
+          } else if (discountApplies) {
+            const { unitPrice } = getItemPriceWithDiscounts({
+              precio_unitario: item.precio_unitario,
+              cantidad: item.cantidad,
+              subtotal: item.subtotal,
+              id_producto: item.id_producto,
+              id_categoria_producto: (item as any).id_categoria_producto,
+              category_id: (item as any).category_id,
+              id_marca: (item as any).id_marca,
+              marca_id: (item as any).marca_id,
+            });
+            return acc + (unitPrice * item.cantidad);
+          }
+        }
+        // Sin descuento por código o no aplica a este producto, usar subtotal original
+        return acc + (Number(item.subtotal) || 0);
+      }, 0)
+    : subtotalOriginal;
+
+  const shipping =
+    Number(totals?.resumen?.costo_envio) ||
+    (subtotal > 50 || subtotal === 0 ? 0 : 10);
+  const salesTax = Number(totals?.resumen?.impuestos) || 0;
+  
+  // Calcular total final desde el subtotal local, aplicando descuentos del backend
+  const totalDescAutomaticos = Number(totals?.total_desc_automaticos ?? 0);
+  // totalDescCanjeado ya está definido arriba (línea 274)
+  const totalDescuentos = totalDescAutomaticos + totalDescCanjeado;
+  
+  // Si hay descuento por código que aplica solo al total del pedido, agregarlo al total de descuentos
+  let descuentoCodigo = 0;
+  if (appliedDiscount && appliedDiscount.descuento_calculado != null && appliedDiscount.descuento.aplica_a === 'total_pedido') {
+    descuentoCodigo = Number(appliedDiscount.descuento_calculado) || 0;
+  }
+  
+  // Total final = subtotal + shipping + salesTax - descuentos (automáticos, canje y código si aplica al total)
+  const finalTotal = Math.max(0, subtotal + shipping + salesTax - totalDescuentos - descuentoCodigo);
+  const selectedCanjeNombre = selectedCanjeId != null
+    ? availableCanjes.find((c) => c.id_canje === selectedCanjeId)?.nom_descuento
+    : null;
 
   const [isPaying, setIsPaying] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<number | null>(null);
@@ -495,10 +716,15 @@ const CartPage = () => {
                   <div className="divide-y divide-gray-200 dark:divide-gray-700">
                     {items.map((item) => {
                       const productSlug = (item as { product_slug?: string }).product_slug ?? String(item.id_producto);
-                      const { unitPrice, originalUnitPrice, discountPercentage } = getItemPriceWithCanjeDiscount({
+                      const { unitPrice, originalUnitPrice, discountPercentage } = getItemPriceWithDiscounts({
                         precio_unitario: item.precio_unitario,
                         cantidad: item.cantidad,
                         subtotal: item.subtotal,
+                        id_producto: item.id_producto,
+                        id_categoria_producto: (item as any).id_categoria_producto,
+                        category_id: (item as any).category_id,
+                        id_marca: (item as any).id_marca,
+                        marca_id: (item as any).marca_id,
                       });
                       return (
                         <CartItem
@@ -555,31 +781,251 @@ const CartPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
-                  {/* Lista detallada de productos */}
-                  <div className="space-y-4 mb-6 max-h-60 overflow-y-auto">
-                    {Array.isArray(items) &&
-                      items.map((item) => (
-                        <div
-                          key={item.id_carrito_producto}
-                          className="flex justify-between text-sm py-2"
-                        >
-                          <div className="flex-1 min-w-0 pr-4">
-                            <p className="font-semibold text-gray-900 dark:text-white truncate text-base">
-                              {item.nombre_producto}
+                  {/* Banner de descuento de cumpleaños */}
+                  {birthdayDiscount && (
+                    <div className="mb-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="text-2xl">🎂</div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-yellow-900 dark:text-yellow-200 mb-1 text-sm">
+                            ¡Feliz Cumpleaños! 🎉
+                          </h3>
+                          <p className="text-xs text-yellow-800 dark:text-yellow-300 mb-2">
+                            Tienes un descuento especial disponible:
+                          </p>
+                          <div className="bg-white dark:bg-gray-800 rounded-md p-2 border border-yellow-200 dark:border-yellow-800">
+                            <p className="font-semibold text-gray-900 dark:text-white text-xs">
+                              {birthdayDiscount.nom_descuento}
                             </p>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                              {item.marca && `${item.marca} • `}{texts.size}{" "}
-                              {texts.quantity}{" "}{item.cantidad}
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              {birthdayDiscount.des_descuento || ''}
                             </p>
-                          </div>
-                          <div className="shrink-0">
-                            <span className="font-bold text-gray-900 dark:text-white text-base">
-                              {formatPrice(item.subtotal)}
-                            </span>
+                            <p className="text-base font-bold text-yellow-600 dark:text-yellow-400 mt-1">
+                              {birthdayDiscount.tipo_calculo 
+                                ? `${birthdayDiscount.val_porce_descuento || 0}% de descuento`
+                                : `${formatPrice(birthdayDiscount.val_monto_descuento || 0)} de descuento`}
+                            </p>
+                            {birthdayDiscount.codigo_descuento && (
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                Código: <span className="font-mono font-bold">{birthdayDiscount.codigo_descuento}</span>
+                              </p>
+                            )}
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-medium">
+                              ✓ Se aplicará automáticamente
+                            </p>
                           </div>
                         </div>
-                      ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Banner de descuento de primera compra */}
+                  {firstPurchaseDiscount && (
+                    <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="text-2xl">🎁</div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-blue-900 dark:text-blue-200 mb-1 text-sm">
+                            ¡Bienvenido! 🎉
+                          </h3>
+                          <p className="text-xs text-blue-800 dark:text-blue-300 mb-2">
+                            Descuento especial para tu primera compra:
+                          </p>
+                          <div className="bg-white dark:bg-gray-800 rounded-md p-2 border border-blue-200 dark:border-blue-800">
+                            <p className="font-semibold text-gray-900 dark:text-white text-xs">
+                              {firstPurchaseDiscount.nom_descuento}
+                            </p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              {firstPurchaseDiscount.des_descuento || ''}
+                            </p>
+                            <p className="text-base font-bold text-blue-600 dark:text-blue-400 mt-1">
+                              {firstPurchaseDiscount.tipo_calculo 
+                                ? `${firstPurchaseDiscount.val_porce_descuento || 0}% de descuento`
+                                : `${formatPrice(firstPurchaseDiscount.val_monto_descuento || 0)} de descuento`}
+                            </p>
+                            {firstPurchaseDiscount.codigo_descuento && (
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                Código: <span className="font-mono font-bold">{firstPurchaseDiscount.codigo_descuento}</span>
+                              </p>
+                            )}
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-medium">
+                              ✓ Se aplicará automáticamente
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Lista detallada de productos */}
+                  <div className="mb-6">
+                    {Array.isArray(items) && items.length > 0 ? (
+                      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                        {items.map((item) => {
+                          const { unitPrice, originalUnitPrice, discountPercentage } = getItemPriceWithDiscounts({
+                            precio_unitario: item.precio_unitario,
+                            cantidad: item.cantidad,
+                            subtotal: item.subtotal,
+                            id_producto: item.id_producto,
+                            id_categoria_producto: (item as any).id_categoria_producto,
+                            category_id: (item as any).category_id,
+                            id_marca: (item as any).id_marca,
+                            marca_id: (item as any).marca_id,
+                          });
+                          const finalSubtotal = unitPrice * item.cantidad;
+                          const opciones = (item as { opciones_elegidas?: Record<string, string> }).opciones_elegidas || {};
+                          const opcionesArray = Object.entries(opciones)
+                            .filter(([, v]) => v)
+                            .map(([k, v]) => ({
+                              label: k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '),
+                              value: v
+                            }));
+                          
+                          return (
+                            <div
+                              key={item.id_carrito_producto}
+                              className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 border border-gray-200 dark:border-gray-700"
+                            >
+                              {/* Nombre y marca */}
+                              <div className="mb-2">
+                                <p className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
+                                  {item.nombre_producto}
+                                </p>
+                                {item.marca && (
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                                    {item.marca}
+                                  </p>
+                                )}
+                              </div>
+                              
+                              {/* Precio - en su propia línea */}
+                              <div className="mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-gray-900 dark:text-white text-base">
+                                    {formatPrice(finalSubtotal)}
+                                  </span>
+                                  {originalUnitPrice != null && originalUnitPrice > unitPrice && (
+                                    <>
+                                      <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                                        {formatPrice(originalUnitPrice * item.cantidad)}
+                                      </span>
+                                      {discountPercentage != null && discountPercentage > 0 && (
+                                        <Badge variant="destructive" className="text-xs shrink-0 px-2 py-0.5">
+                                          -{discountPercentage}%
+                                        </Badge>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                              
+                              {/* Especificaciones */}
+                              {opcionesArray.length > 0 && (
+                                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                                  {opcionesArray.map((opt, idx) => (
+                                    <span key={idx} className="text-xs text-gray-600 dark:text-gray-400">
+                                      <span className="font-medium">{opt.label}:</span> <span className="text-gray-700 dark:text-gray-300">{opt.value}</span>
+                                    </span>
+                                  ))}
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                                    <span className="font-medium">Cantidad:</span> <span className="text-gray-700 dark:text-gray-300">{item.cantidad}</span>
+                                  </span>
+                                </div>
+                              )}
+                              
+                              {opcionesArray.length === 0 && (
+                                <div>
+                                  <span className="text-xs text-gray-600 dark:text-gray-400">
+                                    <span className="font-medium">Cantidad:</span> <span className="text-gray-700 dark:text-gray-300">{item.cantidad}</span>
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                        No hay productos en el carrito
+                      </p>
+                    )}
                   </div>
+
+                  {/* Banner de descuento de cumpleaños */}
+                  {birthdayDiscount && (
+                    <div className="mb-4 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="text-2xl">🎂</div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-yellow-900 dark:text-yellow-200 mb-1">
+                            ¡Feliz Cumpleaños! 🎉
+                          </h3>
+                          <p className="text-sm text-yellow-800 dark:text-yellow-300 mb-2">
+                            Tienes un descuento especial disponible:
+                          </p>
+                          <div className="bg-white dark:bg-gray-800 rounded-md p-2 border border-yellow-200 dark:border-yellow-800">
+                            <p className="font-semibold text-gray-900 dark:text-white text-sm">
+                              {birthdayDiscount.nom_descuento}
+                            </p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              {birthdayDiscount.des_descuento || ''}
+                            </p>
+                            <p className="text-lg font-bold text-yellow-600 dark:text-yellow-400 mt-1">
+                              {birthdayDiscount.tipo_calculo 
+                                ? `${birthdayDiscount.val_porce_descuento || 0}% de descuento`
+                                : `${formatPrice(birthdayDiscount.val_monto_descuento || 0)} de descuento`}
+                            </p>
+                            {birthdayDiscount.codigo_descuento && (
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                Código: <span className="font-mono font-bold">{birthdayDiscount.codigo_descuento}</span>
+                              </p>
+                            )}
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-2 font-medium">
+                              ✓ Este descuento se aplicará automáticamente al realizar tu compra
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Banner de descuento de primera compra */}
+                  {firstPurchaseDiscount && (
+                    <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-lg">
+                      <div className="flex items-start gap-3">
+                        <div className="text-2xl">🎁</div>
+                        <div className="flex-1">
+                          <h3 className="font-bold text-blue-900 dark:text-blue-200 mb-1">
+                            ¡Bienvenido! 🎉
+                          </h3>
+                          <p className="text-sm text-blue-800 dark:text-blue-300 mb-2">
+                            Descuento especial para tu primera compra:
+                          </p>
+                          <div className="bg-white dark:bg-gray-800 rounded-md p-2 border border-blue-200 dark:border-blue-800">
+                            <p className="font-semibold text-gray-900 dark:text-white text-sm">
+                              {firstPurchaseDiscount.nom_descuento}
+                            </p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">
+                              {firstPurchaseDiscount.des_descuento || ''}
+                            </p>
+                            <p className="text-lg font-bold text-blue-600 dark:text-blue-400 mt-1">
+                              {firstPurchaseDiscount.tipo_calculo 
+                                ? `${firstPurchaseDiscount.val_porce_descuento || 0}% de descuento`
+                                : `${formatPrice(firstPurchaseDiscount.val_monto_descuento || 0)} de descuento`}
+                            </p>
+                            {firstPurchaseDiscount.codigo_descuento && (
+                              <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                                Código: <span className="font-mono font-bold">{firstPurchaseDiscount.codigo_descuento}</span>
+                              </p>
+                            )}
+                            <p className="text-xs text-green-600 dark:text-green-400 mt-2 font-medium">
+                              ✓ Este descuento se aplicará automáticamente al realizar tu compra
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
                     <div className="flex justify-between text-sm">
@@ -609,10 +1055,19 @@ const CartPage = () => {
                       </div>
                     )}
                     {Number(totals?.total_desc_automaticos ?? 0) > 0 && (
-                      <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                        <span>Descuentos aplicados</span>
-                        <span>-{formatPrice(Number(totals?.total_desc_automaticos ?? 0))}</span>
-                      </div>
+                      Array.isArray(totals?.descuentos_automaticos) && totals.descuentos_automaticos.length > 0
+                        ? totals.descuentos_automaticos.map((d: { nombre?: string; descuento_aplicado?: number }, i: number) => (
+                            <div key={i} className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                              <span>{d.nombre || "Descuento"}</span>
+                              <span>-{formatPrice(Number(d.descuento_aplicado ?? 0))}</span>
+                            </div>
+                          ))
+                        : (
+                            <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                              <span>Descuentos aplicados</span>
+                              <span>-{formatPrice(Number(totals?.total_desc_automaticos ?? 0))}</span>
+                            </div>
+                          )
                     )}
                     {selectedCanjeId != null && (
                       <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
@@ -793,36 +1248,97 @@ const CartPage = () => {
 
               <div className="flex-1 overflow-y-auto p-6">
                 {/* Lista detallada de productos - Mobile */}
-                <div className="space-y-4 mb-6">
-                  {Array.isArray(items) &&
-                    items.map((item) => (
-                      <div
-                        key={item.id_carrito_producto}
-                        className="flex justify-between text-sm py-2"
-                      >
-                        <div className="flex-1 min-w-0 pr-4">
-                          <p className="font-semibold text-gray-900 dark:text-white truncate text-base">
-                            {item.nombre_producto}
-                          </p>
-                          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                            {[
-                              item.marca,
-                              (item as { opciones_elegidas?: Record<string, string> }).opciones_elegidas &&
-                                Object.entries((item as { opciones_elegidas?: Record<string, string> }).opciones_elegidas || {})
-                                  .filter(([, v]) => v)
-                                  .map(([k, v]) => `${k.replace(/_/g, ' ')}: ${v}`)
-                                  .join(' • '),
-                              `${texts.quantity} ${item.cantidad}`,
-                            ].filter(Boolean).join(' • ')}
-                          </p>
-                        </div>
-                        <div className="shrink-0">
-                          <span className="font-bold text-gray-900 dark:text-white text-base">
-                            {formatPrice(item.subtotal)}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                <div className="mb-6">
+                  {Array.isArray(items) && items.length > 0 ? (
+                    <div className="space-y-3">
+                      {items.map((item) => {
+                        const { unitPrice, originalUnitPrice, discountPercentage } = getItemPriceWithDiscounts({
+                          precio_unitario: item.precio_unitario,
+                          cantidad: item.cantidad,
+                          subtotal: item.subtotal,
+                          id_producto: item.id_producto,
+                          id_categoria_producto: (item as any).id_categoria_producto,
+                          category_id: (item as any).category_id,
+                          id_marca: (item as any).id_marca,
+                          marca_id: (item as any).marca_id,
+                        });
+                        const finalSubtotal = unitPrice * item.cantidad;
+                        const opciones = (item as { opciones_elegidas?: Record<string, string> }).opciones_elegidas || {};
+                        const opcionesArray = Object.entries(opciones)
+                          .filter(([, v]) => v)
+                          .map(([k, v]) => ({
+                            label: k.charAt(0).toUpperCase() + k.slice(1).replace(/_/g, ' '),
+                            value: v
+                          }));
+                        
+                        return (
+                          <div
+                            key={item.id_carrito_producto}
+                            className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-3 border border-gray-200 dark:border-gray-700"
+                          >
+                            {/* Nombre y marca */}
+                            <div className="mb-2">
+                              <p className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
+                                {item.nombre_producto}
+                              </p>
+                              {item.marca && (
+                                <p className="text-xs text-gray-600 dark:text-gray-400">
+                                  {item.marca}
+                                </p>
+                              )}
+                            </div>
+                            
+                            {/* Precio - en su propia línea */}
+                            <div className="mb-2 pb-2 border-b border-gray-200 dark:border-gray-700">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-gray-900 dark:text-white text-base">
+                                  {formatPrice(finalSubtotal)}
+                                </span>
+                                {originalUnitPrice != null && originalUnitPrice > unitPrice && (
+                                  <>
+                                    <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
+                                      {formatPrice(originalUnitPrice * item.cantidad)}
+                                    </span>
+                                    {discountPercentage != null && discountPercentage > 0 && (
+                                      <Badge variant="destructive" className="text-xs shrink-0 px-2 py-0.5">
+                                        -{discountPercentage}%
+                                      </Badge>
+                                    )}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            
+                            {/* Especificaciones */}
+                            {opcionesArray.length > 0 && (
+                              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                                {opcionesArray.map((opt, idx) => (
+                                  <span key={idx} className="text-xs text-gray-600 dark:text-gray-400">
+                                    <span className="font-medium">{opt.label}:</span> <span className="text-gray-700 dark:text-gray-300">{opt.value}</span>
+                                  </span>
+                                ))}
+                                <span className="text-xs text-gray-600 dark:text-gray-400">
+                                  <span className="font-medium">Cantidad:</span> <span className="text-gray-700 dark:text-gray-300">{item.cantidad}</span>
+                                </span>
+                              </div>
+                            )}
+                            
+                            {opcionesArray.length === 0 && (
+                              <div>
+                                <span className="text-xs text-gray-600 dark:text-gray-400">
+                                  <span className="font-medium">Cantidad:</span> <span className="text-gray-700 dark:text-gray-300">{item.cantidad}</span>
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                      No hay productos en el carrito
+                    </p>
+                  )}
                 </div>
 
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
@@ -853,10 +1369,19 @@ const CartPage = () => {
                     </div>
                   )}
                     {Number(totals?.total_desc_automaticos ?? 0) > 0 && (
-                      <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                        <span>Descuentos aplicados</span>
-                        <span>-{formatPrice(Number(totals?.total_desc_automaticos ?? 0))}</span>
-                      </div>
+                      Array.isArray(totals?.descuentos_automaticos) && totals.descuentos_automaticos.length > 0
+                        ? totals.descuentos_automaticos.map((d: { nombre?: string; descuento_aplicado?: number }, i: number) => (
+                            <div key={i} className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                              <span>{d.nombre || "Descuento"}</span>
+                              <span>-{formatPrice(Number(d.descuento_aplicado ?? 0))}</span>
+                            </div>
+                          ))
+                        : (
+                            <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                              <span>Descuentos aplicados</span>
+                              <span>-{formatPrice(Number(totals?.total_desc_automaticos ?? 0))}</span>
+                            </div>
+                          )
                     )}
                   {selectedCanjeId != null && (
                     <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">

@@ -161,22 +161,25 @@ def generate_checkout_reference_from_cart(
     cart_id: int,
     id_direccion: int,
     id_canje: Optional[int] = None,
+    codigo_descuento: Optional[str] = None,
 ) -> str:
-    """Genera referencia única para Wompi codificando carrito/dirección/canje. No persiste nada en BD."""
+    """Genera referencia única para Wompi codificando carrito/dirección/canje. Opcionalmente codigo_descuento (se añade con separador .)."""
     canje_val = id_canje if id_canje is not None else 0
     nonce = uuid.uuid4().hex[:8]
-    return f"revital_cart_{cart_id}_{id_direccion}_{canje_val}_{nonce}"
+    ref = f"revital_cart_{cart_id}_{id_direccion}_{canje_val}_{nonce}"
+    if codigo_descuento and str(codigo_descuento).strip():
+        ref = f"{ref}.{str(codigo_descuento).strip()}"
+    return ref
 
 
-def parse_checkout_reference(reference: str) -> Optional[tuple[int, int, Optional[int]]]:
+def parse_checkout_reference(reference: str) -> Optional[tuple[int, int, Optional[int], Optional[str]]]:
     """
-    Parsea referencia revital_cart_* y devuelve (cart_id, id_direccion, id_canje).
-    id_canje es None si en la referencia es 0. Devuelve None si el formato no es válido.
+    Parsea referencia revital_cart_* y devuelve (cart_id, id_direccion, id_canje, codigo_descuento).
+    id_canje es None si en la referencia es 0. codigo_descuento es opcional (parte tras el último punto en el último segmento).
     """
     if not reference or not reference.startswith("revital_cart_"):
         return None
     parts = reference.split("_")
-    # revital_cart_5_2_0_a1b2c3d4 -> 5 partes: revital, cart, cart_id, id_direccion, id_canje, nonce
     if len(parts) != 6:
         return None
     try:
@@ -184,7 +187,13 @@ def parse_checkout_reference(reference: str) -> Optional[tuple[int, int, Optiona
         id_direccion = int(parts[3])
         canje_val = int(parts[4])
         id_canje = None if canje_val == 0 else canje_val
-        return (cart_id, id_direccion, id_canje)
+        last = parts[5]
+        codigo_descuento = None
+        if "." in last:
+            _, codigo_descuento = last.split(".", 1)
+            if not codigo_descuento or not codigo_descuento.strip():
+                codigo_descuento = None
+        return (cart_id, id_direccion, id_canje, codigo_descuento)
     except (ValueError, IndexError):
         return None
 
@@ -230,8 +239,8 @@ def create_order_from_checkout_reference(
     if not parsed:
         logger.warning(f"create_order_from_checkout_reference: referencia no parseada: {reference}")
         return None
-    cart_id, id_direccion, id_canje = parsed
-    logger.info(f"create_order_from_checkout_reference: reference={reference} -> cart_id={cart_id}, id_direccion={id_direccion}, id_canje={id_canje}")
+    cart_id, id_direccion, id_canje, codigo_descuento = parsed
+    logger.info(f"create_order_from_checkout_reference: reference={reference} -> cart_id={cart_id}, id_direccion={id_direccion}, id_canje={id_canje}, codigo_descuento={codigo_descuento}")
     status_tx = tx.get("status")
     # Sin pago exitoso en Wompi no se crea ninguna orden
     if status_tx != "APPROVED":
@@ -283,7 +292,7 @@ def create_order_from_checkout_reference(
         order_data = OrderCreate(
             id_carrito=cart_id,
             id_direccion=id_direccion,
-            codigo_descuento=None,
+            codigo_descuento=codigo_descuento,
             des_observaciones=None,
             id_canje=Decimal(int(id_canje)) if id_canje is not None else None,
         )

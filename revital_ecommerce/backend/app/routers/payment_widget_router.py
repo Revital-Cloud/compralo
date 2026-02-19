@@ -146,9 +146,9 @@ async def create_checkout_session_endpoint(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El carrito está vacío o el total es inválido")
         amount_in_cents = int(total_final * 100)
         currency = "COP"
-        # Referencia codificada: id_canje en la referencia para que la orden se cree con descuento por puntos
-        reference = generate_checkout_reference_from_cart(cart_id, id_direccion, id_canje)
-        logger.info(f"create-checkout: cart_id={cart_id}, id_direccion={id_direccion}, id_canje={id_canje} -> reference={reference}, amount={amount_in_cents}")
+        codigo_descuento = getattr(payload, "codigo_descuento", None) or None
+        reference = generate_checkout_reference_from_cart(cart_id, id_direccion, id_canje, codigo_descuento=codigo_descuento)
+        logger.info(f"create-checkout: cart_id={cart_id}, id_direccion={id_direccion}, id_canje={id_canje}, codigo_descuento={codigo_descuento} -> reference={reference}, amount={amount_in_cents}")
         wompi_config = get_store_from_request(request, db)
         if not wompi_config.wompi_public_key or not wompi_config.wompi_integrity_secret:
             raise HTTPException(
