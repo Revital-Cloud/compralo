@@ -199,6 +199,22 @@ def _build_action_confirmation_message(action_id: str, params: dict) -> str:
         nom = params.get("nom_proveedor") or ""
         email = params.get("email") or ""
         desc = f'Crear el proveedor "{nom}" con email "{email}".'
+    elif action_id == "create_category":
+        nom = params.get("name") or ""
+        parent_id = params.get("parent_id")
+        if parent_id is None:
+            desc = f'Crear la categoría raíz "{nom}".'
+        else:
+            desc = f'Crear la categoría "{nom}" como hija de la categoría con ID {parent_id}.'
+    elif action_id == "create_discount":
+        nom = params.get("nom_descuento") or ""
+        tipo_calculo = params.get("tipo_calculo")
+        if tipo_calculo:
+            val = params.get("val_porce_descuento")
+            desc = f'Crear el descuento "{nom}" con {val}% de descuento.'
+        else:
+            val = params.get("val_monto_descuento")
+            desc = f'Crear el descuento "{nom}" con ${val} de descuento.'
     else:
         desc = "Ejecutar una acción administrativa con los datos que indicaste."
 
@@ -327,6 +343,10 @@ def chat_with_admin_ai(
                 "Puedo ayudarte a crear una marca, pero necesito que me digas el nombre "
                 "exacto. Por ejemplo: \"crea la marca Nike\"."
             )
+
+    # list_categories se ejecuta directamente sin confirmación (es solo lectura).
+    if name == "list_categories":
+        return admin_ai_actions.execute_action(db, name, params, user_id)
 
     # Guardar acción pendiente por usuario.
     admin_ai_state.set_pending_action(user_id, name, params)

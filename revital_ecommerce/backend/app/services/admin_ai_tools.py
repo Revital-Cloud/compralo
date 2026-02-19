@@ -115,5 +115,99 @@ ADMIN_AI_TOOLS: List[Tool] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_categories",
+            "description": "Lista las categorías existentes. Útil para consultar categorías raíz, líneas y sublíneas antes de crear nuevas.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "parent_id": {
+                        "type": "number",
+                        "description": "Si se proporciona, lista solo las categorías hijas de este parent_id. Si es null o no se proporciona, lista todas las categorías.",
+                    },
+                },
+                "required": [],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_category",
+            "description": "Crea una categoría, línea o sublínea. Si parent_id es null o no se proporciona, crea una categoría raíz. Si parent_id es el id de una categoría raíz, crea una línea. Si parent_id es el id de una línea, crea una sublínea.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Nombre de la categoría, línea o sublínea a crear.",
+                    },
+                    "parent_id": {
+                        "type": "number",
+                        "description": "ID de la categoría padre. Null para crear una categoría raíz. Opcional.",
+                    },
+                },
+                "required": ["name"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_discount",
+            "description": "Crea un descuento o cupón. Puede ser porcentaje o monto fijo.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "nom_descuento": {
+                        "type": "string",
+                        "description": "Nombre descriptivo del descuento.",
+                    },
+                    "des_descuento": {
+                        "type": "string",
+                        "description": "Descripción detallada del descuento.",
+                    },
+                    "tipo_calculo": {
+                        "type": "boolean",
+                        "description": "true = descuento por porcentaje, false = descuento por monto fijo.",
+                    },
+                    "val_porce_descuento": {
+                        "type": "number",
+                        "description": "Valor del descuento en porcentaje (requerido si tipo_calculo es true).",
+                    },
+                    "val_monto_descuento": {
+                        "type": "number",
+                        "description": "Valor del descuento en monto fijo (requerido si tipo_calculo es false).",
+                    },
+                    "codigo_descuento": {
+                        "type": "string",
+                        "description": "Código único del cupón (opcional).",
+                    },
+                    "aplica_a": {
+                        "type": "string",
+                        "description": "A qué aplica el descuento: 'todos', 'categoria', 'producto', 'marca'.",
+                    },
+                    "min_valor_pedido": {
+                        "type": "number",
+                        "description": "Monto mínimo del pedido para aplicar el descuento (opcional).",
+                    },
+                    "fec_inicio": {
+                        "type": "string",
+                        "description": "Fecha de inicio en formato YYYY-MM-DD (opcional).",
+                    },
+                    "fec_fin": {
+                        "type": "string",
+                        "description": "Fecha de fin en formato YYYY-MM-DD (opcional).",
+                    },
+                },
+                "required": ["nom_descuento", "des_descuento", "tipo_calculo"],
+                "additionalProperties": False,
+            },
+        },
+    },
 ]
 
