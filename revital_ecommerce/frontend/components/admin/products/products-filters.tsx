@@ -9,12 +9,12 @@ import type { FilterOptions } from '@/types/product';
 interface ProductsFiltersProps {
   search: string;
   onSearchChange: (value: string) => void;
-  sortBy?: string;
-  onSortByChange?: (value: string) => void;
-  sortOrder?: 'ASC' | 'DESC';
-  onSortOrderChange?: (value: string) => void;
   category: string;
   onCategoryChange: (value: string) => void;
+  line?: string;
+  onLineChange?: (value: string) => void;
+  subline?: string;
+  onSublineChange?: (value: string) => void;
   brand: string;
   onBrandChange: (value: string) => void;
   provider: string;
@@ -24,26 +24,19 @@ interface ProductsFiltersProps {
   products: any[];
   filterOptionsOverride?: FilterOptions | null;
   optionsLoading?: boolean;
+  /** Estadísticas de stock del conjunto completo (no solo la página actual); evita que cambien al paginar */
+  stockStatsOverride?: StockStats | null;
 }
-
-const SORT_OPTIONS = [
-  { value: 'nombre', label: 'Nombre' },
-  { value: 'precio', label: 'Precio' },
-  { value: 'stock', label: 'Stock' },
-  { value: 'fecha', label: 'Fecha' },
-  { value: 'categoria', label: 'Categoría' },
-  { value: 'marca', label: 'Marca' },
-];
 
 export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
   search,
   onSearchChange,
-  sortBy = 'nombre',
-  onSortByChange,
-  sortOrder = 'ASC',
-  onSortOrderChange,
   category,
   onCategoryChange,
+  line = '',
+  onLineChange,
+  subline = '',
+  onSublineChange,
   brand,
   onBrandChange,
   provider,
@@ -53,6 +46,7 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
   products,
   filterOptionsOverride,
   optionsLoading: optionsLoadingOverride,
+  stockStatsOverride,
 }) => {
   const { data: filterOptionsFromHook, isLoading: hookLoading } = useFilterOptions();
   const filterOptions = filterOptionsOverride ?? filterOptionsFromHook;
@@ -62,10 +56,48 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
   const rawBrands = filterOptions?.marcas ?? [];
   const rawProviders = filterOptions?.proveedores ?? [];
 
-  const categoryOptions = rawCategories.map((c: any) => ({
-    id: c.id ?? c.category_id,
-    nombre: c.name,
+  type CatWithParent = { id: number; nom_categoria?: string; name?: string; parent_id?: number | null; parentId?: number | null };
+  const categoriesWithParent = rawCategories as CatWithParent[];
+  const getParentId = (c: CatWithParent) => {
+    const p = c.parent_id ?? (c as { parentId?: number | null }).parentId;
+    return p == null ? null : Number(p);
+  };
+  const roots = categoriesWithParent.filter((c) => getParentId(c) === null);
+
+  // Categoría = solo raíces (padre, parent_id null)
+  const categoryOptions = roots.map((c) => ({
+    id: Number(c.id),
+    nombre: (c.nom_categoria ?? c.name) ?? '',
   }));
+
+  // Línea = hijas (parent_id = raíz). Si hay Categoría elegida, solo hijas de esa raíz
+  const lineCandidates = categoriesWithParent.filter((c) => {
+    const pid = getParentId(c);
+    return pid != null && roots.some((r) => Number(r.id) === pid);
+  });
+  const lineOptions = (category
+    ? lineCandidates.filter((c) => getParentId(c) === Number(category))
+    : lineCandidates
+  ).map((c) => ({
+    id: Number(c.id),
+    nombre: (c.nom_categoria ?? c.name) ?? '',
+  }));
+
+  // Sublínea = nietas (categorías cuyo padre es una línea/hija). Si hay Línea elegida, solo las de esa línea
+  const lineIds = new Set(lineCandidates.map((c) => Number(c.id)));
+  const allNietas = categoriesWithParent.filter((c) => {
+    const pid = getParentId(c);
+    return pid != null && lineIds.has(pid);
+  });
+  const sublineOptions: { id: number; nombre: string }[] = onSublineChange
+    ? (line
+        ? allNietas.filter((c) => getParentId(c) === Number(line))
+        : allNietas
+      ).map((c) => ({
+        id: Number(c.id),
+        nombre: (c.nom_categoria ?? c.name) ?? '',
+      }))
+    : [];
 
   const brandOptions = rawBrands.map((b: any) => ({
     id: b.id_marca,
@@ -77,24 +109,19 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
     nombre: p.nom_proveedor,
   }));
 
-  const hasActiveFilters = Boolean(search || category || brand || provider);
+  const hasActiveFilters = Boolean(search || category || line || subline || brand || provider);
 
-  // Calcular estadísticas de stock
-  const stockStats: StockStats = useMemo(() => {
+  const computedStockStats = useMemo(() => {
     return products.reduce((acc, product) => {
-      const stock = product.num_stock || 0;
-      if (stock === 0) {
-        acc.sinStock++;
-      } else if (stock <= 10) {
-        acc.stockBajo++;
-      } else {
-        acc.enStock++;
-      }
+      const stock = product.num_stock ?? product.stock_total ?? 0;
+      if (stock === 0) acc.sinStock++;
+      else if (stock <= 10) acc.stockBajo++;
+      else acc.enStock++;
       return acc;
     }, { enStock: 0, stockBajo: 0, sinStock: 0 });
   }, [products]);
+  const stockStats: StockStats = stockStatsOverride ?? computedStockStats;
 
-  // Configurar filtros dinámicos
   const filters: FilterConfig[] = [
     {
       id: 'category',
@@ -104,8 +131,36 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
       value: category,
       onChange: onCategoryChange,
       options: categoryOptions,
-      isLoading
+      isLoading,
     },
+    ...(onLineChange
+      ? [
+          {
+            id: 'line',
+            label: 'Línea',
+            emptyOptionLabel: 'Todas las líneas',
+            type: 'select' as const,
+            value: line,
+            onChange: onLineChange,
+            options: lineOptions,
+            isLoading,
+          },
+        ]
+      : []),
+    ...(onSublineChange
+      ? [
+          {
+            id: 'subline',
+            label: 'Sublínea',
+            emptyOptionLabel: 'Todas las sublíneas',
+            type: 'select' as const,
+            value: subline,
+            onChange: onSublineChange,
+            options: sublineOptions,
+            isLoading,
+          },
+        ]
+      : []),
     {
       id: 'brand',
       label: 'Marca',
@@ -114,7 +169,7 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
       value: brand,
       onChange: onBrandChange,
       options: brandOptions,
-      isLoading
+      isLoading,
     },
     {
       id: 'provider',
@@ -124,8 +179,8 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
       value: provider,
       onChange: onProviderChange,
       options: providerOptions,
-      isLoading
-    }
+      isLoading,
+    },
   ];
 
   return (
@@ -135,11 +190,6 @@ export const ProductsFilters: React.FC<ProductsFiltersProps> = ({
       onSearchChange={onSearchChange}
       searchPlaceholder="Nombre del producto..."
       filters={filters}
-      sortBy={sortBy}
-      onSortByChange={onSortByChange}
-      sortOrder={sortOrder}
-      onSortOrderChange={onSortOrderChange}
-      sortOptions={SORT_OPTIONS}
       stockStats={stockStats}
       totalResults={totalResults}
       onClearFilters={onClearFilters}

@@ -62,6 +62,8 @@ async def get_products_admin(
     offset: int = 0,
     search: str | None = None,
     category_id: int | None = None,
+    line_id: int | None = None,
+    subline_id: int | None = None,
     id_marca: int | None = None,
     id_proveedor: int | None = None,
     db: Session = Depends(get_db),
@@ -109,6 +111,8 @@ async def get_products_admin(
         'offset': offset,
         'search': search,
         'category_id': category_id,
+        'line_id': line_id,
+        'subline_id': subline_id,
         'id_marca': id_marca,
         'id_proveedor': id_proveedor,
     }
@@ -126,6 +130,8 @@ async def get_products_admin_test(
     offset: int = 0,
     search: str | None = None,
     category_id: int | None = None,
+    line_id: int | None = None,
+    subline_id: int | None = None,
     id_marca: int | None = None,
     id_proveedor: int | None = None,
     db: Session = Depends(get_db)
@@ -155,6 +161,8 @@ async def get_products_admin_test(
         'offset': offset,
         'search': search,
         'category_id': category_id,
+        'line_id': line_id,
+        'subline_id': subline_id,
         'id_marca': id_marca,
         'id_proveedor': id_proveedor,
     }

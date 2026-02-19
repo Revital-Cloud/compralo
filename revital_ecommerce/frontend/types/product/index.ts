@@ -87,6 +87,8 @@ export interface ProductAdminParams {
   offset?: number;
   search?: string;
   category_id?: number;
+  line_id?: number;
+  subline_id?: number;
   id_marca?: number;
   id_proveedor?: number;
 }

@@ -140,17 +140,56 @@ def get_products_admin(db: Session, params: dict):
         search = params.get('search')
         category_id_param = params.get('category_id') or params.get('id_categoria')
         if category_id_param is not None and (category_id_param == "" or int(category_id_param) == 0):
-            category_id_param = None  # "Todas las categorías" = sin filtro
+            category_id_param = None
+        line_id_param = params.get('line_id')
+        if line_id_param is not None and (line_id_param == "" or int(line_id_param) == 0):
+            line_id_param = None
+        subline_id_param = params.get('subline_id')
+        if subline_id_param is not None and (subline_id_param == "" or int(subline_id_param) == 0):
+            subline_id_param = None
         id_marca = params.get('id_marca')
+        if id_marca is not None and (id_marca == "" or int(id_marca) == 0):
+            id_marca = None
+        id_proveedor = params.get('id_proveedor')
+        if id_proveedor is not None and (id_proveedor == "" or int(id_proveedor) == 0):
+            id_proveedor = None
 
         limit_val = min(int(limit), 1000)
         offset_val = max(0, int(offset))
-        has_filters = (search and search.strip()) or (category_id_param is not None)
+        has_filters = (
+            (search and search.strip())
+            or (category_id_param is not None)
+            or (line_id_param is not None)
+            or (subline_id_param is not None)
+            or (id_marca is not None)
+            or (id_proveedor is not None)
+        )
         if has_filters:
             # Con filtros: traer hasta 1000, filtrar en app y paginar
             fetch_limit, fetch_offset = 1000, 0
         else:
             fetch_limit, fetch_offset = limit_val, offset_val
+
+        # Estadísticas globales de stock (todos los productos, sin filtros ni paginación)
+        global_stock_q = text("""
+            WITH product_stock AS (
+                SELECT p.id,
+                    COALESCE(SUM(c.stock), 0)::BIGINT AS stock_total
+                FROM tab_products p
+                LEFT JOIN tab_product_variant_groups g ON g.product_id = p.id
+                LEFT JOIN tab_product_variant_combinations c ON c.group_id = g.id AND c.is_active = TRUE
+                GROUP BY p.id
+            )
+            SELECT
+                COUNT(*) FILTER (WHERE stock_total > 10) AS en_stock,
+                COUNT(*) FILTER (WHERE stock_total > 0 AND stock_total <= 10) AS stock_bajo,
+                COUNT(*) FILTER (WHERE stock_total = 0) AS sin_stock
+            FROM product_stock
+        """)
+        global_stock_row = db.execute(global_stock_q).mappings().first()
+        stock_en_global = int(global_stock_row["en_stock"] or 0) if global_stock_row else 0
+        stock_bajo_global = int(global_stock_row["stock_bajo"] or 0) if global_stock_row else 0
+        stock_sin_global = int(global_stock_row["sin_stock"] or 0) if global_stock_row else 0
 
         query = text("""
             SELECT
@@ -188,26 +227,70 @@ def get_products_admin(db: Session, params: dict):
             cnt = db.execute(text("SELECT COUNT(*) AS n FROM tab_products")).scalar()
             total_original = int(cnt) if cnt is not None else total_original
 
-        # Filtros adicionales en aplicación (search, category_id)
+        # Filtros adicionales en aplicación (search, category_id, line_id, subline_id)
         if search and search.strip():
             search_lower = search.strip().lower()
             rows = [r for r in rows if (r.get("nom_producto") or "").lower().find(search_lower) >= 0]
-        if category_id_param is not None:
+        if subline_id_param is not None:
+            sid = int(subline_id_param)
+            rows = [r for r in rows if r.get("category_id") is not None and int(r.get("category_id")) == sid]
+        elif line_id_param is not None:
+            lid = int(line_id_param)
+            children_q = text("SELECT id FROM tab_categories WHERE parent_id = :pid")
+            children_ids = [row["id"] for row in db.execute(children_q, {"pid": lid}).mappings().all()]
+            allowed_ids = [lid] + children_ids
+            rows = [
+                r
+                for r in rows
+                if r.get("category_id") is not None and int(r.get("category_id")) in allowed_ids
+            ]
+        elif category_id_param is not None:
             rows = [
                 r
                 for r in rows
                 if r.get("category_id") is not None and int(r.get("category_id")) == int(category_id_param)
             ]
+        if id_marca is not None:
+            mid = int(id_marca)
+            if rows and "id_marca" in rows[0]:
+                rows = [
+                    r for r in rows
+                    if r.get("id_marca") is not None and int(r.get("id_marca")) == mid
+                ]
+            else:
+                q_marca = text("SELECT id FROM tab_products WHERE id_marca = :mid")
+                allowed_ids = {
+                    int(row["id"]) for row in db.execute(q_marca, {"mid": mid}).mappings().all()
+                }
+                rows = [
+                    r for r in rows
+                    if r.get("product_id") is not None and int(r.get("product_id")) in allowed_ids
+                ]
+        if id_proveedor is not None:
+            pid = int(id_proveedor)
+            if rows and "id_proveedor" in rows[0]:
+                rows = [
+                    r for r in rows
+                    if r.get("id_proveedor") is not None and int(r.get("id_proveedor")) == pid
+                ]
+            else:
+                q_prov = text("SELECT id FROM tab_products WHERE id_proveedor = :pid")
+                allowed_ids = {
+                    int(row["id"]) for row in db.execute(q_prov, {"pid": pid}).mappings().all()
+                }
+                rows = [
+                    r for r in rows
+                    if r.get("product_id") is not None and int(r.get("product_id")) in allowed_ids
+                ]
 
-        # Para vistas con filtros aplicados, total = cantidad filtrada;
-        # sin filtros, respetar total_registros devuelto por la función de BD
         total_filtered = len(rows) if has_filters else total_original
+
         if has_filters:
             rows = rows[offset_val : offset_val + limit_val]
 
         out = []
-        for r in rows:
-            out.append({
+        for i, r in enumerate(rows):
+            item = {
                 "category_id": str(r.get("category_id") or ""),
                 "id": str(r.get("product_id") or ""),
                 "category_name": (r.get("nom_categoria") or "") or "",
@@ -225,7 +308,12 @@ def get_products_admin(db: Session, params: dict):
                 "ind_activo_categoria": bool(r.get("ind_activo_categoria", True)),
                 "ind_activo_marca": bool(r.get("ind_activo_marca", True)),
                 "total_registros": total_filtered,
-            })
+            }
+            if i == 0:
+                item["stock_stats_en_stock"] = stock_en_global
+                item["stock_stats_bajo"] = stock_bajo_global
+                item["stock_stats_sin_stock"] = stock_sin_global
+            out.append(item)
         return out
     except Exception as e:
         db.rollback()
@@ -2078,7 +2166,7 @@ def get_filter_options_admin(db: Session) -> dict:
     """
     try:
         categorias_query = text("""
-            SELECT id, name AS nom_categoria FROM tab_categories ORDER BY name
+            SELECT id, name AS nom_categoria, parent_id FROM tab_categories ORDER BY name
         """)
         categorias = db.execute(categorias_query).mappings().all()
 
