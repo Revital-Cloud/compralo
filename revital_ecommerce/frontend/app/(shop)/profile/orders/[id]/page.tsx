@@ -4,6 +4,7 @@ import api from '@/utils/apiWrapper';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
+import { formatPrice } from '@/utils/format-price';
 
 interface OrderProductItem {
   id_item?: number;
@@ -112,8 +113,61 @@ export default function OrderDetailPage() {
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="text-sm">${Number(it.unit_price).toLocaleString()} c/u</p>
-                    <p className="font-semibold">${Number(it.total_price).toLocaleString()}</p>
+                    {(() => {
+                      // Calcular precio original si hay descuentos aplicados
+                      const unitPrice = Number(it.unit_price)
+                      const totalPrice = Number(it.total_price)
+                      // Si hay descuentos en el item o en la orden, intentar calcular el precio original
+                      const hasItemDiscounts = it.item_discounts && Array.isArray(it.item_discounts) && it.item_discounts.length > 0
+                      const orderDiscounts = order.detalle_descuentos_aplicados || []
+                      
+                      // Si hay descuentos, calcular precio original aproximado
+                      let originalUnitPrice: number | undefined
+                      let discountPercentage: number | undefined
+                      
+                      if (hasItemDiscounts || orderDiscounts.length > 0) {
+                        // Calcular descuento aproximado basado en el total de descuentos de la orden
+                        const totalDiscounts = Number(order.val_total_descuentos || 0)
+                        const totalProducts = Number(order.val_total_productos || 0)
+                        if (totalProducts > 0 && totalDiscounts > 0) {
+                          // Aproximación: distribuir el descuento proporcionalmente
+                          const discountRatio = totalDiscounts / totalProducts
+                          originalUnitPrice = unitPrice / (1 - discountRatio)
+                          discountPercentage = Math.round((discountRatio * 100))
+                        }
+                      }
+                      
+                      const originalTotalPrice = originalUnitPrice ? originalUnitPrice * it.quantity : undefined
+                      const showDiscount = originalUnitPrice && originalUnitPrice > unitPrice
+                      
+                      return (
+                        <>
+                          <div className="flex items-center gap-2 justify-end flex-wrap">
+                            <p className="text-sm">{formatPrice(unitPrice)} c/u</p>
+                            {showDiscount && originalUnitPrice && (
+                              <>
+                                <span className="text-xs text-muted-foreground line-through">
+                                  {formatPrice(originalUnitPrice)} c/u
+                                </span>
+                                {discountPercentage && discountPercentage > 0 && (
+                                  <span className="text-xs bg-red-500 text-white px-1.5 py-0.5 rounded">
+                                    -{discountPercentage}%
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 justify-end flex-wrap mt-1">
+                            <p className="font-semibold">{formatPrice(totalPrice)}</p>
+                            {showDiscount && originalTotalPrice && originalTotalPrice > totalPrice && (
+                              <span className="text-xs text-muted-foreground line-through">
+                                {formatPrice(originalTotalPrice)}
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      )
+                    })()}
                   </div>
                 </div>
               );

@@ -28,6 +28,7 @@ RETURNS TABLE (
     id_marca DECIMAL,
     nom_marca VARCHAR,
     id_proveedor DECIMAL,
+    nom_proveedor VARCHAR,
     fec_insert TIMESTAMP WITHOUT TIME ZONE,
     ind_activo_producto BOOLEAN,
     ind_activo_categoria BOOLEAN,
@@ -58,6 +59,7 @@ BEGIN
             p.id_marca,
             m.nom_marca,
             p.id_proveedor,
+            pr.nom_proveedor,
             p.fec_insert,
             p.is_active AS ind_activo_producto,
             c.is_active AS ind_activo_categoria,
@@ -65,6 +67,7 @@ BEGIN
         FROM tab_products p
         JOIN tab_categories c ON c.id = p.category_id
         LEFT JOIN tab_marcas m ON m.id_marca = p.id_marca
+        LEFT JOIN tab_proveedores pr ON pr.id_proveedor = p.id_proveedor
     ),
     total AS (SELECT COUNT(*) AS n FROM agg)
     SELECT
@@ -81,6 +84,7 @@ BEGIN
         a.id_marca,
         a.nom_marca,
         a.id_proveedor,
+        a.nom_proveedor,
         a.fec_insert,
         a.ind_activo_producto,
         a.ind_activo_categoria,

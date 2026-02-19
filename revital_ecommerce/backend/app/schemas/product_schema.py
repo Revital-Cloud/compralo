@@ -83,6 +83,7 @@ class Product(ProductBase):
     fec_update: Optional[datetime] = None
     category_name: Optional[str] = Field(None, description="tab_categories.name.")
     nom_marca: Optional[str] = None
+    nom_proveedor: Optional[str] = Field(None, description="tab_proveedores.nom_proveedor.")
     rating: Optional[float] = Field(None, ge=0, le=5, description="Desde tab_comentarios.")
     review_count: Optional[int] = Field(0, ge=0)
     # Calculados desde tab_product_variants y tab_product_images
@@ -113,6 +114,8 @@ class ProductAdminResponse(BaseModel):
     stock_total: int = Field(..., description="Suma stock desde tab_product_variants.")
     id_marca: str
     nom_marca: str
+    id_proveedor: Optional[str] = Field(None, description="tab_products.id_proveedor.")
+    nom_proveedor: Optional[str] = Field(None, description="tab_proveedores.nom_proveedor.")
     fec_insert: str
     is_active: bool = Field(..., description="tab_products.is_active.")
     ind_activo_categoria: bool = True

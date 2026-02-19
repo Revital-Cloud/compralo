@@ -11,6 +11,8 @@ interface CartToastProps {
   productName: string
   productImage: string
   price: number
+  originalPrice?: number
+  discountPercentage?: number
   selectedColor?: string
   selectedSize?: string
   onClose: () => void
@@ -22,6 +24,8 @@ const CartToast: React.FC<CartToastProps> = ({
   productName,
   productImage,
   price,
+  originalPrice,
+  discountPercentage,
   selectedColor,
   selectedSize,
   onClose,
@@ -77,9 +81,23 @@ const CartToast: React.FC<CartToastProps> = ({
                   <h4 className="font-medium text-gray-900 dark:text-white text-sm line-clamp-2">
                     {productName}
                   </h4>
-                  <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                    {formatPrice(price)}
-                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {formatPrice(price)}
+                    </p>
+                    {originalPrice != null && originalPrice > price && (
+                      <>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 line-through">
+                          {formatPrice(originalPrice)}
+                        </span>
+                        {discountPercentage != null && discountPercentage > 0 && (
+                          <span className="text-xs bg-red-500 text-white px-1.5 py-0.5 rounded">
+                            -{discountPercentage}%
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
                                      {(selectedColor || selectedSize) && (
                      <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                        {selectedColor && <p>Color: <span className="capitalize">{selectedColor}</span></p>}

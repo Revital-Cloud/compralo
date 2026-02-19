@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui"
 import { Button } from "@/components/ui"
 import { Input } from "@/components/ui"
@@ -9,12 +9,13 @@ import { Switch } from "@/components/ui"
 import { Calendar } from "@/components/ui"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { getCategories } from '@/services/category.service'
 import { brandService } from '@/services/brand.service'
-import { getProducts } from '@/services/product.service'
+import { getProductsAdmin } from '@/services/product.service'
 import { parseDateSafe, toLocalISOString, isPastDate } from '@/utils/date-helpers'
 import type { Category } from '@/types/category'
 
@@ -111,8 +112,8 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
     [list, selectedLevel2Id]
   )
 
-  // Función para encontrar la ruta de una categoría (padre → abuelo → bisabuelo)
-  const findCategoryPath = (categoryId: number | string | null | undefined): number[] => {
+  // Función para encontrar la ruta de una categoría (padre → abuelo → bisabuelo). useCallback evita loop.
+  const findCategoryPath = useCallback((categoryId: number | string | null | undefined): number[] => {
     if (!categoryId) return []
     const id = typeof categoryId === 'string' ? Number(categoryId) : categoryId
     if (Number.isNaN(id)) return []
@@ -128,7 +129,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
     }
     
     return path
-  }
+  }, [list])
 
   const form = useForm<DiscountFormData>({ 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -154,7 +155,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
       try {
         const [catsData, productsData, brandsData] = await Promise.all([
           getCategories(),
-          getProducts(),
+          getProductsAdmin({ limit: 1000, offset: 0 }),
           brandService.getAllBrands(),
         ])
         setCategories(catsData)
@@ -192,9 +193,9 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
     }
   }, [selectedLevel1Id, selectedLevel2Id, selectedLevel3Id, aplicaA, form])
 
-  // Cargar valores iniciales cuando cambien - esperar a que open e initialValues estén listos
+  // Cargar valores iniciales cuando abra el modal con datos. No esperar categorías para el form base.
   useEffect(() => {
-    if (!initialValues || !open || list.length === 0) return
+    if (!initialValues || !open) return
     const v = initialValues
     const toStr = (x: unknown) => (x != null ? String(x) : '')
     const toDateStr = (x: unknown) => {
@@ -206,14 +207,17 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
         return ''
       }
     }
+    // Backend puede devolver category_id_aplica/product_id_aplica; mapear a id_*_aplica
+    const idProducto = v.id_producto_aplica ?? v.product_id_aplica
+    const idCategoria = v.id_categoria_aplica ?? v.category_id_aplica
     const formattedValues: any = {
       nom_descuento: toStr(v.nom_descuento),
       des_descuento: toStr(v.des_descuento),
       tipo_descuento: v.tipo_calculo === true ? 'porcentaje' : 'monto_fijo',
       val_descuento: v.tipo_calculo === true ? toStr(v.val_porce_descuento) : toStr(v.val_monto_descuento),
       aplica_a: toStr(v.aplica_a) || 'total_pedido',
-      id_producto_aplica: toStr(v.id_producto_aplica),
-      id_categoria_aplica: toStr(v.id_categoria_aplica),
+      id_producto_aplica: toStr(idProducto),
+      id_categoria_aplica: toStr(idCategoria),
       id_marca_aplica: toStr(v.id_marca_aplica),
       monto_min_compra: toStr(v.min_valor_pedido),
       val_puntos_requeridos: toStr(v.costo_puntos_canje),
@@ -237,9 +241,9 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
     }
     form.reset(formattedValues)
 
-    // Inicializar estados de cascada si hay id_categoria_aplica
-    if (v.aplica_a === 'categoria_especifica' && v.id_categoria_aplica) {
-      const path = findCategoryPath(v.id_categoria_aplica)
+    // Inicializar estados de cascada si hay id_categoria_aplica (cuando categorías están cargadas)
+    if (list.length > 0 && v.aplica_a === 'categoria_especifica' && (idCategoria || v.id_categoria_aplica)) {
+      const path = findCategoryPath(idCategoria ?? v.id_categoria_aplica)
       if (path.length > 0) {
         setSelectedLevel1Id(path[0] ?? null)
         if (path.length > 1) {
@@ -308,14 +312,18 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="tipo_descuento">Tipo de Descuento *</Label>
-              <select
-                id="tipo_descuento"
-                {...form.register('tipo_descuento')}
-                className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
+              <Select
+                value={form.watch('tipo_descuento')}
+                onValueChange={(value) => form.setValue('tipo_descuento', value as 'porcentaje' | 'monto_fijo')}
               >
-                <option value="porcentaje">Porcentaje (%)</option>
-                <option value="monto_fijo">Monto Fijo ($)</option>
-              </select>
+                <SelectTrigger id="tipo_descuento" className="w-full">
+                  <SelectValue placeholder="Selecciona el tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="porcentaje">Porcentaje (%)</SelectItem>
+                  <SelectItem value="monto_fijo">Monto Fijo ($)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -338,46 +346,49 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
           {/* Aplica a */}
           <div className="space-y-2">
             <Label htmlFor="aplica_a">Aplica a *</Label>
-            <select
-              id="aplica_a"
-              {...form.register('aplica_a')}
-              className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
+            <Select
+              value={form.watch('aplica_a')}
+              onValueChange={(value) => form.setValue('aplica_a', value)}
             >
-              <option value="total_pedido">Total del Pedido</option>
-              <option value="producto_especifico">Producto Específico</option>
-              <option value="categoria_especifica">Categoría Específica</option>
-              <option value="marca_especifica">Marca Específica</option>
-              <option value="costo_envio">Costo de Envío</option>
-              <option value="envio_gratis">Envío Gratis</option>
-              <option value="segunda_unidad">Segunda Unidad</option>
-              <option value="compra_minima">Compra Mínima</option>
-            </select>
+              <SelectTrigger id="aplica_a" className="w-full">
+                <SelectValue placeholder="Selecciona a qué aplica" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="total_pedido">Total del Pedido</SelectItem>
+                <SelectItem value="producto_especifico">Producto Específico</SelectItem>
+                <SelectItem value="categoria_especifica">Categoría Específica</SelectItem>
+                <SelectItem value="marca_especifica">Marca Específica</SelectItem>
+                <SelectItem value="costo_envio">Costo de Envío</SelectItem>
+                <SelectItem value="envio_gratis">Envío Gratis</SelectItem>
+                <SelectItem value="segunda_unidad">Segunda Unidad</SelectItem>
+                <SelectItem value="compra_minima">Compra Mínima</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* SELECTS CONDICIONALES */}
           {aplicaA === 'producto_especifico' && (
             <div className="space-y-2">
               <Label htmlFor="id_producto_aplica">Producto *</Label>
-              <select
-                id="id_producto_aplica"
-                {...form.register('id_producto_aplica')}
-                onChange={(e) => {
-                  const selectedProductId = e.target.value
-                  if (selectedProductId) {
-                    form.setValue('id_producto_aplica', selectedProductId)
-                  } else {
-                    form.setValue('id_producto_aplica', '')
-                  }
-                }}
-                className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
+              <Select
+                value={form.watch('id_producto_aplica') || ''}
+                onValueChange={(value) => form.setValue('id_producto_aplica', value || '')}
               >
-                <option value="">Selecciona un producto</option>
-                {products.map((product, index) => (
-                  <option key={`product-${product.id_producto}-${index}`} value={product.id_producto}>
-                    {product.nom_producto}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="id_producto_aplica" className="w-full">
+                  <SelectValue placeholder="Selecciona un producto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.map((product: { id?: string | number; id_producto?: number; name?: string; nom_producto?: string }, index) => {
+                    const pid = String(product.id_producto ?? product.id ?? '')
+                    const pname = product.nom_producto ?? product.name ?? ''
+                    return (
+                      <SelectItem key={`product-${pid}-${index}`} value={pid}>
+                        {pname}
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
@@ -385,68 +396,74 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="level1_category">Nivel 1 (Categoría Principal) *</Label>
-                <select
-                  id="level1_category"
-                  value={selectedLevel1Id ?? ''}
-                  onChange={(e) => {
-                    const value = e.target.value ? Number(e.target.value) : null
-                    setSelectedLevel1Id(value)
+                <Select
+                  value={selectedLevel1Id ? String(selectedLevel1Id) : ''}
+                  onValueChange={(value) => {
+                    const numValue = value ? Number(value) : null
+                    setSelectedLevel1Id(numValue)
                     setSelectedLevel2Id(null)
                     setSelectedLevel3Id(null)
                   }}
-                  className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
                 >
-                  <option value="">Selecciona una categoría principal</option>
-                  {level1Options.map((category) => (
-                    <option key={`level1-${categoryIdNum(category)}`} value={categoryIdNum(category)}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="level1_category" className="w-full">
+                    <SelectValue placeholder="Selecciona una categoría principal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {level1Options.map((category) => (
+                      <SelectItem key={`level1-${categoryIdNum(category)}`} value={String(categoryIdNum(category))}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {selectedLevel1Id != null && level2Options.length > 0 && (
                 <div className="space-y-2">
                   <Label htmlFor="level2_category">Nivel 2 (Subcategoría) {level3Options.length > 0 ? '*' : '(Opcional)'}</Label>
-                  <select
-                    id="level2_category"
-                    value={selectedLevel2Id ?? ''}
-                    onChange={(e) => {
-                      const value = e.target.value ? Number(e.target.value) : null
-                      setSelectedLevel2Id(value)
+                  <Select
+                    value={selectedLevel2Id ? String(selectedLevel2Id) : ''}
+                    onValueChange={(value) => {
+                      const numValue = value ? Number(value) : null
+                      setSelectedLevel2Id(numValue)
                       setSelectedLevel3Id(null)
                     }}
-                    className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
                   >
-                    <option value="">Selecciona una subcategoría (opcional)</option>
-                    {level2Options.map((category) => (
-                      <option key={`level2-${categoryIdNum(category)}`} value={categoryIdNum(category)}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger id="level2_category" className="w-full">
+                      <SelectValue placeholder="Selecciona una subcategoría (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {level2Options.map((category) => (
+                        <SelectItem key={`level2-${categoryIdNum(category)}`} value={String(categoryIdNum(category))}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
               {selectedLevel2Id != null && level3Options.length > 0 && (
                 <div className="space-y-2">
                   <Label htmlFor="level3_category">Nivel 3 (Sub-subcategoría) (Opcional)</Label>
-                  <select
-                    id="level3_category"
-                    value={selectedLevel3Id ?? ''}
-                    onChange={(e) => {
-                      const value = e.target.value ? Number(e.target.value) : null
-                      setSelectedLevel3Id(value)
+                  <Select
+                    value={selectedLevel3Id ? String(selectedLevel3Id) : ''}
+                    onValueChange={(value) => {
+                      const numValue = value ? Number(value) : null
+                      setSelectedLevel3Id(numValue)
                     }}
-                    className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
                   >
-                    <option value="">Selecciona una sub-subcategoría (opcional)</option>
-                    {level3Options.map((category) => (
-                      <option key={`level3-${categoryIdNum(category)}`} value={categoryIdNum(category)}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger id="level3_category" className="w-full">
+                      <SelectValue placeholder="Selecciona una sub-subcategoría (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {level3Options.map((category) => (
+                        <SelectItem key={`level3-${categoryIdNum(category)}`} value={String(categoryIdNum(category))}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
 
@@ -459,18 +476,21 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
           {aplicaA === 'marca_especifica' && (
             <div className="space-y-2">
               <Label htmlFor="id_marca_aplica">Marca *</Label>
-              <select
-                id="id_marca_aplica"
-                {...form.register('id_marca_aplica')}
-                className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
+              <Select
+                value={form.watch('id_marca_aplica') || ''}
+                onValueChange={(value) => form.setValue('id_marca_aplica', value || '')}
               >
-                <option value="">Selecciona una marca</option>
-                {brands.map((brand, index) => (
-                  <option key={`brand-${brand.id_marca}-${index}`} value={brand.id_marca}>
-                    {brand.nom_marca}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="id_marca_aplica" className="w-full">
+                  <SelectValue placeholder="Selecciona una marca" />
+                </SelectTrigger>
+                <SelectContent>
+                  {brands.map((brand, index) => (
+                    <SelectItem key={`brand-${brand.id_marca}-${index}`} value={String(brand.id_marca)}>
+                      {brand.nom_marca}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
@@ -749,6 +769,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
             <Button 
               type="button" 
               variant="outline" 
+              className="min-w-[140px]"
               onClick={() => {
                 onOpenChange(false)
                 form.reset()
@@ -758,7 +779,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
             </Button>
             <Button 
               type="submit" 
-              className="bg-[#fec806] hover:bg-[#e6b800] text-black"
+              className="bg-[#fec806] hover:bg-[#e6b800] text-black min-w-[140px]"
               disabled={form.formState.isSubmitting}
             >
               {form.formState.isSubmitting ? 'Guardando...' : 'Guardar Cambios'}

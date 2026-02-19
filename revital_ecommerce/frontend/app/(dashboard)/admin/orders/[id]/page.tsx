@@ -158,28 +158,104 @@ const OrderDetailPage = () => {
 
         {/* Descuentos aplicados */}
         {descuentos_aplicados && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <IconDiscount className="h-5 w-5" />
+          <Card className="overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                  <IconDiscount className="h-5 w-5" />
+                </div>
                 Descuentos Aplicados
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {typeof descuentos_aplicados === 'object' ? (
-                  <div className="text-sm">
-                    <div className="font-medium">Descuentos:</div>
-                    <div className="text-muted-foreground">
-                      {JSON.stringify(descuentos_aplicados, null, 2)}
+            <CardContent className="space-y-4">
+              {(() => {
+                let discounts: any[] = []
+                if (typeof descuentos_aplicados === 'string') {
+                  try {
+                    discounts = JSON.parse(descuentos_aplicados)
+                  } catch {
+                    return (
+                      <div className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">
+                        Sin descuentos aplicados
+                      </div>
+                    )
+                  }
+                } else if (Array.isArray(descuentos_aplicados)) {
+                  discounts = descuentos_aplicados
+                } else if (typeof descuentos_aplicados === 'object' && descuentos_aplicados !== null) {
+                  discounts = [descuentos_aplicados]
+                }
+
+                if (!discounts || discounts.length === 0) {
+                  return (
+                    <div className="rounded-xl border border-dashed border-muted-foreground/25 bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">
+                      Sin descuentos aplicados
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">
-                    {descuentos_aplicados}
-                  </div>
-                )}
-              </div>
+                  )
+                }
+
+                const formatAplicaA = (s: string) =>
+                  s
+                    .replace(/_/g, ' ')
+                    .replace(/\b\w/g, (c) => c.toUpperCase())
+
+                return (
+                  <ul className="space-y-2">
+                      {discounts.map((discount: any, idx: number) => {
+                        const nombre = discount.nombre || discount.codigo || 'Descuento'
+                        const tipo = discount.tipo || discount.tipo_descuento || 'descuento'
+                        const valor = discount.valor ?? discount.monto ?? 0
+                        const descuentoAplicado = Number(discount.descuento_aplicado ?? discount.monto ?? valor)
+                        const aplicaA = discount.aplica_a || discount.tipo_aplicacion || ''
+
+                        let tipoLabel = ''
+                        if (tipo === 'porcentaje') {
+                          tipoLabel = `${valor}% OFF`
+                        } else if (tipo === 'fijo' || tipo === 'monto') {
+                          tipoLabel = `$${Number(valor).toLocaleString('es-CO')} OFF`
+                        } else if (tipo === 'automatico') {
+                          tipoLabel = 'Automático'
+                        } else if (tipo === 'canje_puntos' || tipo === 'canje') {
+                          tipoLabel = 'Canje de puntos'
+                        } else {
+                          tipoLabel = String(tipo).replace(/_/g, ' ')
+                        }
+
+                        return (
+                          <li
+                            key={idx}
+                            className="flex items-center gap-4 rounded-xl border border-border/80 bg-card p-4 shadow-sm transition-shadow hover:shadow-md"
+                          >
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400">
+                              <span className="text-sm font-bold">{tipo === 'porcentaje' ? `${valor}%` : '−'}</span>
+                            </div>
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <p className="font-semibold text-foreground">{nombre}</p>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                                  {tipoLabel}
+                                </span>
+                                {aplicaA && (
+                                  <span className="inline-flex items-center rounded-md border border-border/80 bg-background px-2 py-0.5 text-xs text-muted-foreground">
+                                    {formatAplicaA(aplicaA)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                                Ahorro
+                              </p>
+                              <p className="text-xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                                −${descuentoAplicado.toLocaleString('es-CO')}
+                              </p>
+                            </div>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                )
+              })()}
             </CardContent>
           </Card>
         )}

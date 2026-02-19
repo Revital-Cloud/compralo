@@ -494,21 +494,21 @@ def validate_discount_for_cart(db: Session, codigo_descuento: str, id_usuario: D
 
 def get_active_discounts(db: Session, limit: int = 50):
     """
-    Obtiene los descuentos activos disponibles para toda la tienda.
-    Excluye descuentos canjeables por puntos (ind_canjeable_puntos = TRUE), ya que esos
-    solo se muestran en la sección de canjes y solo aplican al usuario que los canjeó.
+    Obtiene los descuentos activos disponibles para la página pública de descuentos.
+    Solo se muestran descuentos que tienen "Descuento activo" y ningún otro selector
+    especial activado (canjeable por puntos, cumpleaños, primera compra, requiere código).
     
     Reglas:
-    - Activo + Canjeable: NO aparece aquí (solo en canjes del usuario que lo canjeó)
-    - Solo Activo: Sí aparece para toda la tienda
-    - Solo Canjeable (inactivo): No aparece en ningún lado
+    - ind_activo = TRUE y el resto de selectores en FALSE: SÍ aparece en la página.
+    - Si tiene canjeable por puntos, es para cumpleaños, solo primera compra o requiere
+      código: NO aparece en esta lista (se gestionan en otros flujos).
     
     Args:
         db (Session): Sesión de base de datos
         limit (int): Límite de resultados a retornar
         
     Returns:
-        list: Lista de descuentos activos disponibles para la tienda
+        list: Lista de descuentos activos "simples" para la tienda
     """
     try:
         query = text("""
@@ -537,6 +537,9 @@ def get_active_discounts(db: Session, limit: int = 50):
         FROM tab_descuentos
         WHERE ind_activo = TRUE
             AND COALESCE(ind_canjeable_puntos, FALSE) = FALSE
+            AND COALESCE(ind_es_para_cumpleanos, FALSE) = FALSE
+            AND COALESCE(solo_primera_compra, FALSE) = FALSE
+            AND COALESCE(requiere_codigo, FALSE) = FALSE
             AND (fec_inicio IS NULL OR fec_inicio <= CURRENT_DATE)
             AND (fec_fin IS NULL OR fec_fin >= CURRENT_DATE)
             AND (max_usos_total IS NULL OR usos_actuales_total IS NULL OR usos_actuales_total < max_usos_total)
@@ -556,3 +559,172 @@ def get_active_discounts(db: Session, limit: int = 50):
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener descuentos activos: {str(e)}")
+
+
+def get_birthday_discount(db: Session):
+    """
+    Obtiene el descuento activo para cumpleaños.
+    
+    Args:
+        db (Session): Sesión de base de datos
+        
+    Returns:
+        dict: Descuento de cumpleaños activo o None
+    """
+    try:
+        query = text("""
+        SELECT
+            id_descuento,
+            nom_descuento,
+            des_descuento,
+            tipo_calculo,
+            val_porce_descuento,
+            val_monto_descuento,
+            aplica_a,
+            category_id_aplica,
+            product_id_aplica,
+            id_marca_aplica,
+            min_valor_pedido,
+            fec_inicio,
+            fec_fin,
+            ind_activo,
+            codigo_descuento,
+            requiere_codigo
+        FROM tab_descuentos
+        WHERE ind_activo = TRUE
+            AND ind_es_para_cumpleanos = TRUE
+            AND (fec_inicio IS NULL OR fec_inicio <= CURRENT_DATE)
+            AND (fec_fin IS NULL OR fec_fin >= CURRENT_DATE)
+            AND (max_usos_total IS NULL OR usos_actuales_total IS NULL OR usos_actuales_total < max_usos_total)
+        ORDER BY fec_inicio DESC
+        LIMIT 1
+        """)
+        result = db.execute(query)
+        row = result.mappings().first()
+        if not row:
+            return None
+        mapped = dict(row)
+        mapped['id_categoria_aplica'] = mapped.get('category_id_aplica')
+        mapped['id_producto_aplica'] = mapped.get('product_id_aplica')
+        return mapped
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener descuento de cumpleaños: {str(e)}")
+
+
+def get_first_purchase_discount(db: Session):
+    """
+    Obtiene el descuento activo para primera compra.
+    
+    Args:
+        db (Session): Sesión de base de datos
+        
+    Returns:
+        dict: Descuento de primera compra activo o None
+    """
+    try:
+        query = text("""
+        SELECT
+            id_descuento,
+            nom_descuento,
+            des_descuento,
+            tipo_calculo,
+            val_porce_descuento,
+            val_monto_descuento,
+            aplica_a,
+            category_id_aplica,
+            product_id_aplica,
+            id_marca_aplica,
+            min_valor_pedido,
+            fec_inicio,
+            fec_fin,
+            ind_activo,
+            codigo_descuento,
+            requiere_codigo
+        FROM tab_descuentos
+        WHERE ind_activo = TRUE
+            AND solo_primera_compra = TRUE
+            AND (fec_inicio IS NULL OR fec_inicio <= CURRENT_DATE)
+            AND (fec_fin IS NULL OR fec_fin >= CURRENT_DATE)
+            AND (max_usos_total IS NULL OR usos_actuales_total IS NULL OR usos_actuales_total < max_usos_total)
+        ORDER BY fec_inicio DESC
+        LIMIT 1
+        """)
+        result = db.execute(query)
+        row = result.mappings().first()
+        if not row:
+            return None
+        mapped = dict(row)
+        mapped['id_categoria_aplica'] = mapped.get('category_id_aplica')
+        mapped['id_producto_aplica'] = mapped.get('product_id_aplica')
+        return mapped
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener descuento de primera compra: {str(e)}")
+
+
+def get_user_available_discounts(db: Session, id_usuario: Decimal, limit: int = 50):
+    """
+    Obtiene descuentos disponibles para un usuario específico, incluyendo:
+    - Descuentos activos generales (sin selectores especiales)
+    - Descuento de cumpleaños (si hoy es su cumpleaños)
+    - Descuento de primera compra (si es su primera compra)
+    
+    Args:
+        db (Session): Sesión de base de datos
+        id_usuario (Decimal): ID del usuario
+        limit (int): Límite de resultados a retornar
+        
+    Returns:
+        list: Lista de descuentos disponibles para el usuario
+    """
+    try:
+        discounts = []
+        
+        # 1. Obtener descuentos activos generales (sin selectores especiales)
+        general_discounts = get_active_discounts(db, limit)
+        discounts.extend(general_discounts)
+        
+        # 2. Verificar si hoy es cumpleaños del usuario y obtener descuento de cumpleaños
+        birthday_query = text("""
+        SELECT 1 FROM tab_usuarios 
+        WHERE id_usuario = :id_usuario 
+            AND fec_nacimiento IS NOT NULL
+            AND EXTRACT('MONTH' FROM fec_nacimiento) = EXTRACT('MONTH' FROM CURRENT_DATE)
+            AND EXTRACT('DAY' FROM fec_nacimiento) = EXTRACT('DAY' FROM CURRENT_DATE)
+        """)
+        birthday_result = db.execute(birthday_query, {'id_usuario': id_usuario})
+        is_birthday = birthday_result.fetchone() is not None
+        
+        if is_birthday:
+            birthday_discount = get_birthday_discount(db)
+            if birthday_discount:
+                # Marcar como descuento de cumpleaños para identificarlo en el frontend
+                birthday_discount['es_cumpleanos'] = True
+                # Evitar duplicados si ya está en general_discounts
+                if not any(d.get('id_descuento') == birthday_discount.get('id_descuento') for d in discounts):
+                    discounts.append(birthday_discount)
+        
+        # 3. Verificar si es primera compra y obtener descuento de primera compra
+        first_purchase_query = text("""
+        SELECT COUNT(*) as total_ordenes
+        FROM tab_ordenes
+        WHERE id_usuario = :id_usuario
+        """)
+        first_purchase_result = db.execute(first_purchase_query, {'id_usuario': id_usuario})
+        first_purchase_row = first_purchase_result.fetchone()
+        is_first_purchase = first_purchase_row and int(first_purchase_row[0]) == 0
+        
+        if is_first_purchase:
+            first_purchase_discount = get_first_purchase_discount(db)
+            if first_purchase_discount:
+                # Marcar como descuento de primera compra
+                first_purchase_discount['es_primera_compra'] = True
+                # Evitar duplicados
+                if not any(d.get('id_descuento') == first_purchase_discount.get('id_descuento') for d in discounts):
+                    discounts.append(first_purchase_discount)
+        
+        return discounts
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener descuentos disponibles para usuario: {str(e)}")
