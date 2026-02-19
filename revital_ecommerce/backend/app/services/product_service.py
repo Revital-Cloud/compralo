@@ -180,7 +180,7 @@ def get_products_admin(db: Session, params: dict):
         else:
             fetch_limit, fetch_offset = limit_val, offset_val
 
-        # Estadísticas globales de stock (todos los productos, sin filtros ni paginación)
+        # Estadísticas globales de stock: solo productos activos (los deshabilitados no cuentan como "sin stock")
         global_stock_q = text("""
             WITH product_stock AS (
                 SELECT p.id,
@@ -188,6 +188,7 @@ def get_products_admin(db: Session, params: dict):
                 FROM tab_products p
                 LEFT JOIN tab_product_variant_groups g ON g.product_id = p.id
                 LEFT JOIN tab_product_variant_combinations c ON c.group_id = g.id AND c.is_active = TRUE
+                WHERE p.is_active = TRUE
                 GROUP BY p.id
             )
             SELECT
