@@ -1,6 +1,7 @@
 import { Separator } from "@/components/ui"
 import { SidebarTrigger } from "@/components/ui"
 import { ThemeToggle } from "@/components/layout/shop/header/components/theme-toggle"
+import { AdminChatTrigger } from "@/components/admin/admin-chat-trigger"
 
 export default function AdminHeader() {
   return (
@@ -14,6 +15,7 @@ export default function AdminHeader() {
         <h1 className="text-base font-medium text-foreground transition-colors duration-300">Dashboard</h1>
       </div>
       <div className="ml-auto flex items-center gap-2 px-4">
+        <AdminChatTrigger />
         <ThemeToggle />
       </div>
     </header>

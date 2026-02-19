@@ -89,6 +89,8 @@ class Settings(BaseSettings):
     WOMPI_INTEGRITY_SECRET: str
     WOMPI_ENVIRONMENT: str = "sandbox"
 
+    # Groq: API key para IA (resumen, chat admin). Opcional: si no está, rutas /admin/ai devuelven 503
+    GROQ_API_KEY: Optional[str] = None
 
     class Config:
         env_file = _ENV_FILES

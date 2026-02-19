@@ -41,6 +41,7 @@ from routers.order_buy_provider_router import router as order_buy_provider_route
 from routers.movements_inventory_router import router as movements_inventory_router
 from routers.dashboard_router import router as dashboard_router
 from routers.analytics_router import router as analytics_router
+from routers.ai_router import router as ai_router
 from routers.attribute_router import router as attribute_router
 from routers.top_info_bar_router import router as top_info_bar_router
 from core.rate_limiter import limiter
@@ -205,6 +206,9 @@ app.include_router(dashboard_router, prefix=settings.API_STR)
 # Incluye el router de analytics ANTES del router de órdenes para evitar conflictos de rutas
 # La ruta /admin/analytics debe evaluarse antes de /admin/{id_orden}
 app.include_router(analytics_router, prefix=settings.API_STR)
+
+# Incluye el router de IA admin (/admin/ai/health, /admin/ai/summary, /admin/ai/chat)
+app.include_router(ai_router, prefix=settings.API_STR)
 
 # Incluye el router de órdenes con un prefijo de API.
 app.include_router(order_router, prefix=settings.API_STR)
