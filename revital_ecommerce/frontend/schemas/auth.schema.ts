@@ -1,15 +1,24 @@
 import { z } from "zod";
 
+// Misma regla que el backend: solo letras (incl. acentuadas), espacios, guión, apóstrofe, punto.
+const NAME_MAX_LENGTH = 150;
+const nameRegex = /^[a-zA-ZÀ-ÿ\u00f1\u00d1\s\-'.]+$/;
+const nameError = "Solo letras, espacios, guión o apóstrofe.";
+
 export const registerSchema = z.object({
   id_usuario: z.string().regex(/^[0-9]+$/, {
     message: "La identificación solo debe contener números.",
   }),
-  nom_usuario: z.string().min(2, {
-    message: "El nombre debe tener al menos 2 caracteres.",
-  }),
-  ape_usuario: z.string().min(2, {
-    message: "El apellido debe tener al menos 2 caracteres.",
-  }),
+  nom_usuario: z
+    .string()
+    .min(1, "El nombre es requerido.")
+    .max(NAME_MAX_LENGTH, `El nombre no puede superar ${NAME_MAX_LENGTH} caracteres.`)
+    .regex(nameRegex, nameError),
+  ape_usuario: z
+    .string()
+    .min(1, "El apellido es requerido.")
+    .max(NAME_MAX_LENGTH, `El apellido no puede superar ${NAME_MAX_LENGTH} caracteres.`)
+    .regex(nameRegex, nameError),
   email_usuario: z.string().email({
     message: "Por favor, introduce una dirección de correo válida.",
   }),

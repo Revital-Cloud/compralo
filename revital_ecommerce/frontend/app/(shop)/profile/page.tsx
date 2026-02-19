@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
+import { getApiErrorMessage } from "@/utils/apiWrapper";
 import {
   ProfileHeader,
   ProfileTab,
@@ -132,8 +133,8 @@ export default function ProfilePage() {
       await updateProfile(updatedValues);
       toast.success("¡Perfil actualizado con éxito!");
       setIsEditing(false);
-    } catch (error: any) {
-      const errorMessage = error?.response?.data?.detail || error?.message || "No se pudo actualizar el perfil. Inténtalo de nuevo.";
+    } catch (error: unknown) {
+      const errorMessage = getApiErrorMessage(error, "No se pudo actualizar el perfil. Inténtalo de nuevo.");
       toast.error(errorMessage);
       console.error("Error al actualizar perfil:", error);
     }
@@ -174,8 +175,7 @@ export default function ProfilePage() {
       toast.success("Avatar actualizado correctamente.");
       setAvatarModalOpen(false);
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } }; message?: string };
-      toast.error(err?.response?.data?.detail || err?.message || "No se pudo guardar el avatar.");
+      toast.error(getApiErrorMessage(error, "No se pudo guardar el avatar."));
     }
   };
 

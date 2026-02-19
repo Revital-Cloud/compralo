@@ -10,6 +10,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import authService from '@/services/auth.service';
+import { getApiErrorMessage } from '@/utils/apiWrapper';
 import * as userService from '@/services/user.service';
 import { isAuthenticated, clearTokens } from '@/utils/apiWrapper';
 import { useCookies } from './use-cookies';
@@ -106,7 +107,7 @@ export function useAuth() {
         return;
       }
       
-      const message = error?.response?.data?.detail || 'Error al iniciar sesión. Verifica tus credenciales.';
+      const message = getApiErrorMessage(error, 'Error al iniciar sesión. Verifica tus credenciales.');
       toast.error(message);
     },
   });
@@ -148,7 +149,7 @@ export function useAuth() {
         return;
       }
       
-      const message = error?.response?.data?.detail || 'Error al crear la cuenta. Inténtalo de nuevo.';
+      const message = getApiErrorMessage(error, 'Error al crear la cuenta. Inténtalo de nuevo.');
       toast.error(message);
       throw error; // Re-lanzar el error para que el componente lo pueda manejar
     },
@@ -269,7 +270,7 @@ export function useUpdateProfile() {
       toast.success('Perfil actualizado exitosamente');
     },
     onError: (error: any) => {
-      const message = error?.response?.data?.message || 'Error al actualizar el perfil';
+      const message = getApiErrorMessage(error, 'Error al actualizar el perfil. Inténtalo de nuevo.');
       toast.error(message);
     },
   });
