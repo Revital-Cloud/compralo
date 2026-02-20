@@ -1,11 +1,27 @@
-import createMiddleware from 'next-intl/middleware';
-import { routing } from './i18n/routing';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export default createMiddleware(routing);
+const LOCALE_PREFIXES = ['/en', '/es'];
+
+/**
+ * Redirects /en/* and /es/* to /* so URLs are always without locale segment.
+ * Locale is determined by cookie (NEXT_LOCALE) and i18n config.
+ */
+export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  for (const prefix of LOCALE_PREFIXES) {
+    if (pathname === prefix || pathname.startsWith(prefix + '/')) {
+      const pathWithoutLocale = pathname.slice(prefix.length) || '/';
+      const url = request.nextUrl.clone();
+      url.pathname = pathWithoutLocale;
+      return NextResponse.redirect(url);
+    }
+  }
+
+  return NextResponse.next();
+}
 
 export const config = {
-  // Match all pathnames except for
-  // - … if they start with `/api`, `/_next` or `/_vercel`
-  // - … the ones containing a dot (e.g. `favicon.ico`)
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)']
+  matcher: ['/en', '/en/:path*', '/es', '/es/:path*'],
 };

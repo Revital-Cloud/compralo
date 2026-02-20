@@ -25,7 +25,6 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     if (!token) {
-      // Sin token no tiene sentido mostrar el formulario
       router.replace('/login');
     }
   }, [token, router]);
@@ -59,7 +58,6 @@ export default function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
-      {/* Back to login */}
       <div className="absolute top-4 left-4">
         <Button variant="ghost" asChild>
           <Link href="/login">
@@ -138,7 +136,7 @@ export default function ResetPasswordPage() {
 
             <Button
               type="submit"
-              className="w-full bg-synkro-green hover:bg-synkro-green/90 text-synkro-black"
+              className="w-full bg-revital-green hover:bg-revital-green/90 text-revital-black"
               disabled={resetMutation.isPending}
             >
               {resetMutation.isPending ? (
@@ -156,4 +154,3 @@ export default function ResetPasswordPage() {
     </div>
   );
 }
-

@@ -23,7 +23,6 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-background">
-      {/* Back to login */}
       <div className="absolute top-4 left-4">
         <Button variant="ghost" asChild>
           <Link href="/login">
@@ -37,8 +36,7 @@ export default function ForgotPasswordPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Restablecer contraseña</CardTitle>
           <CardDescription>
-            Ingresa el correo asociado a tu cuenta y te enviaremos un enlace para
-            restablecer tu contraseña.
+            Ingresa el correo asociado a tu cuenta y te enviaremos un enlace para restablecer tu contraseña.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -63,7 +61,7 @@ export default function ForgotPasswordPage() {
 
             <Button
               type="submit"
-              className="w-full bg-synkro-green hover:bg-synkro-green/90 text-synkro-black"
+              className="w-full bg-revital-green hover:bg-revital-green/90 text-revital-black"
               disabled={resetMutation.isPending || !email.trim()}
             >
               {resetMutation.isPending ? (
@@ -78,12 +76,10 @@ export default function ForgotPasswordPage() {
           </form>
 
           <p className="mt-4 text-xs text-muted-foreground text-center">
-            Si existe una cuenta con ese correo, recibirás un email para
-            restablecer tu contraseña en unos minutos.
+            Si existe una cuenta con ese correo, recibirás un email para restablecer tu contraseña en unos minutos.
           </p>
         </CardContent>
       </Card>
     </div>
   );
 }
-

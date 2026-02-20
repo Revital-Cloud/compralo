@@ -11,7 +11,7 @@ interface AdminGuardProps {
 }
 
 /**
- * Route guard para rutas solo de admins Synkro.
+ * Route guard para rutas solo de admins Revital.
  *
  * - Redirige a /login si no está autenticado
  * - Redirige a /dashboard (cliente) si el usuario no es admin_synkro

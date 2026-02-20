@@ -228,7 +228,7 @@ export default function AdminInstanceEditPage() {
                   onChange={(e) =>
                     setForm((f) => ({ ...f, subdominio: e.target.value }))
                   }
-                  placeholder="ej. tienda.synkro.com"
+                  placeholder="ej. tienda.revital.cloud"
                 />
               </div>
               <div className="space-y-2">

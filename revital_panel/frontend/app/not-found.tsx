@@ -7,7 +7,7 @@ export default function NotFound() {
   return (
     <div className="min-h-svh flex flex-col items-center justify-center gap-6 px-4 bg-background">
       <div className="text-center space-y-2">
-        <p className="text-8xl font-bold text-synkro-green/20 select-none">404</p>
+        <p className="text-8xl font-bold text-revital-green/20 select-none">404</p>
         <h1 className="text-2xl font-semibold text-foreground">
           Página no encontrada
         </h1>
@@ -16,7 +16,7 @@ export default function NotFound() {
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <Button asChild size="lg" className="bg-synkro-green hover:bg-synkro-green/90 text-synkro-black font-medium">
+        <Button asChild size="lg" className="bg-revital-green hover:bg-revital-green/90 text-revital-black font-medium">
           <Link href="/">
             <Home className="mr-2 h-5 w-5" />
             Ir al inicio

@@ -55,7 +55,7 @@ export function AdminSidebar({ variant = 'inset' }: AdminSidebarProps) {
             <div className="relative">
               <Image
                 src="/logo.webp"
-                alt="Synkro Logo"
+                alt="Revital Logo"
                 width={40}
                 height={40}
                 className="h-8 w-8 sm:h-10 sm:w-10 object-contain transition-transform duration-200 group-hover:scale-110"
@@ -63,8 +63,8 @@ export function AdminSidebar({ variant = 'inset' }: AdminSidebarProps) {
               />
             </div>
             <div className="flex flex-col">
-              <span className="text-lg sm:text-xl font-bold text-synkro-green transition-colors duration-200">
-                Synkro
+              <span className="text-lg sm:text-xl font-bold text-revital-green transition-colors duration-200">
+                Revital
               </span>
               <span className="text-xs text-muted-foreground font-medium tracking-wide hidden sm:block">
                 {t('adminPortal')}
