@@ -19,40 +19,6 @@ import { getUsers } from '@/services/user.service'
 import { parseDateSafe, toLocalISOString, isPastDate } from '@/utils/date-helpers'
 import type { Category } from '@/types/category'
 
-const discountSchema = z.object({
-  nom_descuento: z.string().min(3, 'El nombre debe tener al menos 3 caracteres'),
-  des_descuento: z.string().min(3, 'La descripción debe tener al menos 3 caracteres'),
-  tipo_descuento: z.enum(['porcentaje', 'monto_fijo'], {
-    message: 'Seleccione un tipo de descuento'
-  }),
-  val_descuento: z.string().min(1, 'El valor es requerido'),
-  aplica_a: z.string().min(1, 'Seleccione a qué aplica el descuento'),
-  // IDs según tab_descuentos: product_id_aplica, category_id_aplica, id_marca_aplica
-  id_producto_aplica: z.string().optional(),
-  id_categoria_aplica: z.string().optional(),
-  id_marca_aplica: z.string().optional(),
-  // Resto de campos
-  monto_min_compra: z.string().optional(),
-  val_puntos_requeridos: z.string().optional(),
-  cod_cupon: z.string().optional(),
-  costo_envio: z.string().optional(),
-  compra_minima: z.string().optional(),
-  fec_inicio: z.string().optional(),
-  fec_fin: z.string().optional(),
-  max_usos: z.string().optional(),
-  max_usos_por_usuario: z.string().optional(),
-  ind_activo: z.boolean(),
-  ind_canjeable_puntos: z.boolean(),
-  ind_es_para_cumpleanos: z.boolean(),
-  solo_primera_compra: z.boolean(),
-  monto_minimo_producto: z.string().optional(),
-  cantidad_minima_producto: z.string().optional(),
-  requiere_codigo: z.boolean(),
-  id_usuario_destino: z.string().optional(),
-})
-
-type DiscountFormData = z.infer<typeof discountSchema>
-
 export interface CreateDiscountModalProps {
   open: boolean
   onOpenChange: (v: boolean) => void
@@ -187,7 +153,7 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
     }
   }, [selectedLevel1Id, selectedLevel2Id, selectedLevel3Id, aplicaA, form])
 
-  const handleSubmit = form.handleSubmit(async (values) => {
+  const handleSubmit = form.handleSubmit(async (values: DiscountModalFormData) => {
     await onSubmit(values)
     onOpenChange(false)
     setOpenStartDate(false)

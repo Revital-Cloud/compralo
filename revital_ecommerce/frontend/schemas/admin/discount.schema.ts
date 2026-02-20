@@ -34,6 +34,7 @@ export const discountModalSchema = z.object({
   monto_minimo_producto: z.string().optional(),
   cantidad_minima_producto: z.string().optional(),
   requiere_codigo: z.boolean(),
+  id_usuario_destino: z.string().optional(),
 });
 
 export type DiscountModalFormData = z.infer<typeof discountModalSchema>;
