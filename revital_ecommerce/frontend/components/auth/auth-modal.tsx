@@ -17,24 +17,29 @@ interface AuthModalProps {
   onClose: () => void;
   title?: string;
   description?: string;
+  /** After login, redirect to this path (e.g. "/checkout"). Appended as ?redirect= to login URL. */
+  redirectTo?: string;
 }
 
 export function AuthModal({ 
   isOpen, 
   onClose, 
   title = "Debes iniciar sesión para continuar",
-  description = "Para realizar esta acción necesitas iniciar sesión o registrarte."
+  description = "Para realizar esta acción necesitas iniciar sesión o registrarte.",
+  redirectTo,
 }: AuthModalProps) {
   const router = useRouter();
 
   const handleLogin = () => {
     onClose();
-    router.push("/login");
+    const loginPath = redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login";
+    router.push(loginPath);
   };
 
   const handleRegister = () => {
     onClose();
-    router.push("/register");
+    const registerPath = redirectTo ? `/register?redirect=${encodeURIComponent(redirectTo)}` : "/register";
+    router.push(registerPath);
   };
 
   return (

@@ -73,9 +73,18 @@ type PaymentFormData = z.infer<typeof paymentSchema>;
 
 const CheckoutPage = () => {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isHydrated, isLoadingUser } = useAuth();
   const { items, totals, total, hasItems, isLoading: cartLoading, id_carrito, selectedCanjeId, cartUser } = useCart();
   const queryClient = useQueryClient();
+
+  // Require login for checkout: redirect to login with return URL so after login user comes back to checkout
+  useEffect(() => {
+    if (!isHydrated || isLoadingUser) return;
+    if (!isAuthenticated) {
+      const redirect = encodeURIComponent("/checkout");
+      router.replace(`/login?redirect=${redirect}`);
+    }
+  }, [isHydrated, isLoadingUser, isAuthenticated, router]);
   
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState<string>("");
@@ -223,7 +232,7 @@ const CheckoutPage = () => {
     }
   };
 
-  if (cartLoading) {
+  if (cartLoading || (isHydrated && !isLoadingUser && !isAuthenticated)) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <Loading />
@@ -373,7 +382,7 @@ function InformationStep({
   user: any;
 }) {
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
-  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [isCreatingNewAddress, setIsCreatingNewAddress] = useState(false);
   
   // Dirección seleccionada
   const selectedAddress = addresses?.find(
@@ -463,20 +472,48 @@ function InformationStep({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setIsAddressModalOpen(true)}
+                    onClick={() => setIsCreatingNewAddress(true)}
                     className="flex items-center gap-2"
                   >
                     <Plus className="h-4 w-4" />
                     Nueva
                   </Button>
                 </div>
-                {!selectedAddressId && form.formState.errors.direccion && (
+                {!selectedAddressId && !isCreatingNewAddress && form.formState.errors.direccion && (
                   <p className="text-red-500 text-sm mt-1">
                     {form.formState.errors.direccion.message}
                   </p>
                 )}
               </div>
 
+              {/* Formulario solo visible al crear nueva dirección (inline) o al tener una dirección seleccionada */}
+              {isCreatingNewAddress ? (
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50 space-y-4">
+                  <h4 className="font-medium">Nueva dirección de envío</h4>
+                  <CreateAddressForm
+                    onSuccess={async (newAddress) => {
+                      setIsCreatingNewAddress(false);
+                      queryClient.invalidateQueries({ queryKey: ["addresses"] });
+                      const id = newAddress?.id_direccion ?? newAddress?.id;
+                      if (id != null) {
+                        setSelectedAddressId(String(id));
+                      } else {
+                        const list = await queryClient.fetchQuery({ queryKey: ["addresses"] }) as any[];
+                        if (Array.isArray(list) && list.length > 0) {
+                          const last = list[list.length - 1];
+                          setSelectedAddressId(String(last?.id_direccion ?? last?.id ?? ""));
+                        }
+                      }
+                      toast.success("Dirección creada. Selecciónala en el desplegable si no se eligió automáticamente.");
+                    }}
+                    onCancel={() => setIsCreatingNewAddress(false)}
+                    user={user}
+                    showCancel
+                    nested
+                  />
+                </div>
+              ) : selectedAddress ? (
+              <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="nombre">
@@ -661,6 +698,8 @@ function InformationStep({
                   </p>
                 )}
               </div>
+            </>
+              ) : null}
             </div>
           )}
 
@@ -679,40 +718,25 @@ function InformationStep({
           </div>
         </form>
 
-        {/* Modal para crear nueva dirección */}
-        <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Agregar nueva dirección</DialogTitle>
-            </DialogHeader>
-            <CreateAddressForm
-              onSuccess={(newAddress) => {
-                setIsAddressModalOpen(false);
-                queryClient.invalidateQueries({ queryKey: ["addresses"] });
-                const id = newAddress?.id_direccion ?? newAddress?.id;
-                if (id != null) {
-                  setTimeout(() => {
-                    setSelectedAddressId(String(id));
-                  }, 500);
-                }
-                toast.success("Dirección creada exitosamente");
-              }}
-              user={user}
-            />
-          </DialogContent>
-        </Dialog>
       </CardContent>
     </Card>
   );
 }
 
-// Componente para crear dirección
+// Componente para crear dirección (inline en checkout o en modal)
+// nested=true: renderiza div en lugar de form para evitar form dentro de form (checkout)
 function CreateAddressForm({
   onSuccess,
+  onCancel,
   user,
+  showCancel = false,
+  nested = false,
 }: {
   onSuccess: (address: any) => void;
+  onCancel?: () => void;
   user: any;
+  showCancel?: boolean;
+  nested?: boolean;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const addressForm = useForm({
@@ -766,8 +790,13 @@ function CreateAddressForm({
     }
   };
 
+  const Wrapper = nested ? "div" : "form";
+  const wrapperProps = nested
+    ? { className: "space-y-4" }
+    : { onSubmit: addressForm.handleSubmit(handleSubmit), className: "space-y-4" };
+
   return (
-    <form onSubmit={addressForm.handleSubmit(handleSubmit)} className="space-y-4">
+    <Wrapper {...wrapperProps}>
       <div>
         <Label htmlFor="modal-nombre_direccion">
           Nombre de la dirección <span className="text-red-500">*</span>
@@ -883,6 +912,11 @@ function CreateAddressForm({
       </div>
 
       <div className="flex justify-end gap-2 pt-4">
+        {showCancel && onCancel && (
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
         <Button
           type="button"
           variant="outline"
@@ -890,11 +924,15 @@ function CreateAddressForm({
         >
           Limpiar
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button
+          type={nested ? "button" : "submit"}
+          disabled={isSubmitting}
+          {...(nested ? { onClick: () => addressForm.handleSubmit(handleSubmit)() } : {})}
+        >
           {isSubmitting ? "Guardando..." : "Guardar dirección"}
         </Button>
       </div>
-    </form>
+    </Wrapper>
   );
 }
 

@@ -270,8 +270,8 @@ const CartPage = () => {
 
   // Obtener descuentos activos para calcular descuentos automáticos por producto
   const { data: activeDiscounts } = useActiveDiscounts();
-  // Obtener descuentos disponibles para el usuario (incluye cumpleaños y primera compra si aplican)
-  const { data: myAvailableDiscounts } = useMyAvailableDiscounts();
+  // Obtener descuentos disponibles para el usuario (solo si está autenticado; evita 401 en anónimo)
+  const { data: myAvailableDiscounts } = useMyAvailableDiscounts(50, { enabled: !!user?.id_usuario });
   const descuentoCanjeado = totals?.descuento_canjeado as { tipo?: string; valor?: number } | undefined;
   const totalDescCanjeado = Number(totals?.total_desc_canjeado ?? 0);
   
@@ -1491,12 +1491,13 @@ const CartPage = () => {
         )}
       </div>
 
-      {/* Modal de autenticación para botones protegidos */}
+      {/* Modal de autenticación para botones protegidos (Pagar / Ir a pagar): tras login redirige a checkout */}
       <AuthModal
         isOpen={isAuthDialogOpen}
         onClose={() => setIsAuthDialogOpen(false)}
         title="Debes iniciar sesión para continuar"
         description="Para agregar dirección, método de pago o finalizar tu compra necesitas iniciar sesión o registrarte."
+        redirectTo="/checkout"
       />
 
 

@@ -807,8 +807,10 @@ def get_product_by_id(db: Session, product_id: Decimal):
             _tc = _v.get("tipo_clasificacion") or (_v.get("attributes") or {}).get("Tipo/Clasificación")
             if _tc and str(_tc).strip():
                 _tipo_vals.add(str(_tc).strip())
+        is_tipo_clasificacion_dominant = False
         if colors_seen and _tipo_vals and set(colors_seen.keys()) == _tipo_vals:
             dominant_attr_name = "Tipo/Clasificación"
+            is_tipo_clasificacion_dominant = True
         # Fallback: if colors_seen is empty but we have groups, add at least one value from the first group so PDP shows color options
         if not colors_seen and result["variant_groups"]:
             first_g = result["variant_groups"][0]
@@ -905,6 +907,13 @@ def get_product_by_id(db: Session, product_id: Decimal):
             v["size"] = (v.get("attributes") or {}).get("talla") or (v.get("attributes") or {}).get("Talla") or ""
             attrs = dict(v.get("attributes") or {})
             attrs["dominant"] = v["color"]
+            # Si el atributo dominante es "Tipo/Clasificación", eliminar la clave duplicada "Tipo/Clasificación"
+            # porque el valor ya está en "dominant" y se mapeará al mismo nombre en el frontend
+            if is_tipo_clasificacion_dominant and "Tipo/Clasificación" in attrs:
+                tipo_val = str(attrs.get("Tipo/Clasificación", "")).strip()
+                dominant_val = str(v["color"]).strip()
+                if tipo_val.lower() == dominant_val.lower():
+                    del attrs["Tipo/Clasificación"]
             v["attributes"] = attrs
         # Imagen principal y galería: product_images primero (si hay), luego primera del primer grupo de color
         all_imgs = list(result.get("product_images") or [])

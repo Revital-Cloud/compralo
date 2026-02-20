@@ -57,6 +57,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if method == "OPTIONS":
             return await call_next(request)
 
+        # Carrito: rutas de carrito y totales son públicas (usuarios anónimos con session_id)
+        if "/carrito" in path or path.rstrip("/").endswith("carrito") or "/calcular-total" in path:
+            return await call_next(request)
+
         # Inicializar variables
         needs_auth = False
         needs_admin = False

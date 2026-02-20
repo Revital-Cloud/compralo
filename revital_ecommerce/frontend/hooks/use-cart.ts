@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCartStore, clearCartStorage } from "@/stores/cart-store";
 import { useAuth } from "@/hooks/use-auth";
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import * as cartService from "@/services/cart.service";
 import { formatPrice } from "@/utils/format-price";
 import { toast } from "sonner";
@@ -101,11 +101,18 @@ export function useCart() {
   // =============================================================================
   // INICIALIZACIÓN DEL USUARIO DEL CARRITO
   // =============================================================================
+  // Ref estable para session_id anónimo: evita que cada render genere un ID distinto
+  // y que la query del carrito cambie de key constantemente (bloqueando la vista).
+  const anonymousSessionIdRef = useRef<string | null>(null);
 
   const currentCartUser: cartService.CartUser = useMemo(() => {
-    return authUser?.id_usuario
-      ? { id_usuario: authUser.id_usuario }
-      : { session_id: cartUser.session_id || cartService.generateSessionId() };
+    if (authUser?.id_usuario) {
+      return { id_usuario: authUser.id_usuario };
+    }
+    const sid =
+      cartUser.session_id ??
+      (anonymousSessionIdRef.current ??= cartService.generateSessionId());
+    return { session_id: sid };
   }, [authUser?.id_usuario, cartUser.session_id]);
 
   // =============================================================================
@@ -279,13 +286,17 @@ export function useCart() {
     }
 
     if (!authUser?.id_usuario && !cartUser.session_id) {
-      // Usuario anónimo sin session_id - generar uno nuevo
-      const newSessionId = cartService.generateSessionId();
+      // Usuario anónimo sin session_id: usar el mismo ID estable del ref para persistir
+      const stableId =
+        anonymousSessionIdRef.current ?? cartService.generateSessionId();
+      if (!anonymousSessionIdRef.current) {
+        anonymousSessionIdRef.current = stableId;
+      }
       console.log(
-        "🛒 Generando session_id para usuario anónimo:",
-        newSessionId
+        "🛒 Persistiendo session_id para usuario anónimo:",
+        stableId
       );
-      setCartUser({ session_id: newSessionId });
+      setCartUser({ session_id: stableId });
     } else if (
       authUser?.id_usuario &&
       isAuthenticated &&

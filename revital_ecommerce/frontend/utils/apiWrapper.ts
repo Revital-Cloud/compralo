@@ -69,7 +69,8 @@ function setupInterceptors(instance: AxiosInstance): void {
         // Endpoints del carrito (soportan usuarios anónimos)
         '/carrito-usuario',
         '/carrito-productos',
-        '/carrito-productos-detalle', 
+        '/carrito-productos-detalle',
+        '/carrito-productos-basico',
         '/calcular-total',
         '/comentaries/testimonials',
         '/discounts/active',
@@ -124,7 +125,8 @@ function setupInterceptors(instance: AxiosInstance): void {
         // Endpoints del carrito (soportan usuarios anónimos)
         '/carrito-usuario',
         '/carrito-productos',
-        '/carrito-productos-detalle', 
+        '/carrito-productos-detalle',
+        '/carrito-productos-basico',
         '/calcular-total',
         '/comentaries/testimonials',
         '/discounts/active',
@@ -180,15 +182,14 @@ function setupInterceptors(instance: AxiosInstance): void {
         } catch (refreshError) {
           console.error('Refresh token failed:', refreshError);
           
-          // Si falla el refresh, limpiar tokens y marcar como no autenticado
-          clearTokens();
+          // Solo redirigir a login si el usuario tenía sesión (token/refresh) y expiró.
+          // Si no había token (usuario anónimo), no redirigir: solo rechazar el error.
+          const hadSession = !!(getStoredToken() || getStoredRefreshToken());
           
-          // Marcar esta instancia como no autenticada para evitar más intentos
+          clearTokens();
           instance.defaults.headers.common['Authorization'] = '';
           
-          // Solo redirigir si estamos en el browser y no es una petición de verificación
-          if (typeof window !== 'undefined' && !originalRequest.url?.includes('/verify-token')) {
-            // Evitar múltiples redirecciones
+          if (hadSession && typeof window !== 'undefined' && !originalRequest.url?.includes('/verify-token')) {
             if (!window.location.pathname.includes('/login')) {
               window.location.href = '/login?session=expired';
             }
