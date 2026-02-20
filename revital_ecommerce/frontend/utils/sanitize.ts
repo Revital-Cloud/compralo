@@ -16,8 +16,11 @@ export function sanitizeHtml(html: string | null | undefined): string {
   if (typeof window === 'undefined') {
     return '';
   }
-  const DOMPurify = require('dompurify') as { default: { sanitize: (d: string, o?: object) => string } };
-  return DOMPurify.default.sanitize(html, {
+  const dompurify = require('dompurify') as { default?: { sanitize: (d: string, o?: object) => string }; sanitize?: (d: string, o?: object) => string };
+  const raw = dompurify.default ?? dompurify;
+  const sanitizeFn = raw?.sanitize;
+  if (typeof sanitizeFn !== 'function') return '';
+  return sanitizeFn.call(raw, html, {
     ALLOWED_TAGS: [...ALLOWED_TAGS],
     ALLOWED_ATTR: [...ALLOWED_ATTR],
   });

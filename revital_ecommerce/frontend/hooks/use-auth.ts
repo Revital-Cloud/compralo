@@ -8,6 +8,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import authService from '@/services/auth.service';
 import { getApiErrorMessage } from '@/utils/apiWrapper';
@@ -38,6 +39,7 @@ export const AUTH_KEYS = {
  */
 export function useAuth() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { canUseCookie, isHydrated } = useCookies();
 
   // Query para obtener el usuario actual
@@ -93,8 +95,8 @@ export function useAuth() {
             // Si es admin, ir al panel de administración
             targetUrl = '/admin';
           }
-          
-          window.location.href = targetUrl;
+          // Navegación cliente (sin recarga) para no perder el token en memoria (SEC-001)
+          router.replace(targetUrl);
         }
         // En otros casos, no redirigir automáticamente
         // Los layouts se encargarán de la redirección según el contexto
@@ -112,18 +114,13 @@ export function useAuth() {
     },
   });
 
-  // Mutación para logout
+  // Mutación para logout (invalida cookie en backend y limpia token en memoria)
   const { mutate: logout, isPending: isLoggingOut } = useMutation({
-    mutationFn: async () => {
-      // Idealmente, aquí se podría llamar a un endpoint de /logout del backend si lo hubiera
-      // Por ahora, es una operación del lado del cliente
-      clearTokens();
-    },
+    mutationFn: () => authService.logout(),
     onSuccess: () => {
-      // Limpiar toda la cache de React Query para desloguear completamente
       queryClient.clear();
       if (typeof window !== 'undefined') {
-        window.location.href = '/login'; // Redirigir siempre al login
+        window.location.href = '/login';
       }
     },
     onError: () => {
