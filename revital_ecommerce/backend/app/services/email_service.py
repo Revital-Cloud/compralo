@@ -518,6 +518,46 @@ async def send_product_recommendations_email(recommendations_data: Dict[str, Any
         logger.error(f"Error al enviar recomendaciones: {str(e)}")
         return False
 
+
+async def send_coupon_to_user(
+    user_email: str,
+    user_name: str,
+    codigo: str,
+    nom_descuento: str,
+    tipo_calculo: bool,
+    val_porce_descuento: Optional[Any] = None,
+    val_monto_descuento: Optional[Any] = None,
+    fec_fin: Optional[date] = None,
+    min_valor_pedido: Optional[Any] = None,
+) -> bool:
+    """
+    Envía al usuario un email con su código de cupón personal.
+    """
+    try:
+        fec_fin_str = fec_fin.strftime("%d/%m/%Y") if fec_fin else None
+        min_val = float(min_valor_pedido) if min_valor_pedido is not None else None
+        html_content = email_templates.get_coupon_to_user_template(
+            user_name=user_name,
+            codigo=codigo,
+            nom_descuento=nom_descuento,
+            tipo_calculo=tipo_calculo,
+            val_porce_descuento=val_porce_descuento,
+            val_monto_descuento=val_monto_descuento,
+            fec_fin_str=fec_fin_str,
+            min_valor_pedido=min_val,
+        )
+        email_data = EmailSend(
+            to=user_email,
+            subject=f"Tu código de descuento: {codigo}",
+            html_content=html_content,
+        )
+        response = await send_basic_email(email_data)
+        return response.success
+    except Exception as e:
+        logger.error(f"Error al enviar cupón a usuario: {str(e)}")
+        return False
+
+
 # ==================== FUNCIONES ADMINISTRATIVAS ====================
 
 async def send_new_order_notification(order_data: Dict[str, Any], admin_emails: List[str]) -> bool:

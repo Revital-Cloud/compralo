@@ -15,6 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { getCategories } from '@/services/category.service'
 import { brandService } from '@/services/brand.service'
 import { getProducts } from '@/services/product.service'
+import { getUsers } from '@/services/user.service'
 import { parseDateSafe, toLocalISOString, isPastDate } from '@/utils/date-helpers'
 import type { Category } from '@/types/category'
 
@@ -47,6 +48,7 @@ const discountSchema = z.object({
   monto_minimo_producto: z.string().optional(),
   cantidad_minima_producto: z.string().optional(),
   requiere_codigo: z.boolean(),
+  id_usuario_destino: z.string().optional(),
 })
 
 type DiscountFormData = z.infer<typeof discountSchema>
@@ -66,6 +68,7 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [brands, setBrands] = useState<any[]>([])
+  const [users, setUsers] = useState<{ id_usuario: number; nom_usuario: string; ape_usuario?: string; email_usuario?: string }[]>([])
   
   // Estados para controlar los Popovers de fechas
   const [openStartDate, setOpenStartDate] = useState(false)
@@ -121,25 +124,29 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
       ind_es_para_cumpleanos: false,
       solo_primera_compra: false,
       requiere_codigo: false,
+      id_usuario_destino: '',
       cantidad_minima_producto: '1',
     }
   })
   
   const tipoDescuento = form.watch('tipo_descuento')
   const aplicaA = form.watch('aplica_a')
+  const requiereCodigo = form.watch('requiere_codigo')
 
   // Cargar datos al montar el componente
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [catsData, productsData, brandsData] = await Promise.all([
+        const [catsData, productsData, brandsData, usersData] = await Promise.all([
           getCategories(),
           getProducts(),
           brandService.getAllBrands(),
+          getUsers().then((r: any) => (Array.isArray(r) ? r : r?.data ?? [])),
         ])
         setCategories(catsData)
         setProducts(productsData as any)
         setBrands(brandsData)
+        setUsers(Array.isArray(usersData) ? usersData : [])
       } catch (error) {
         console.error('Error loading data:', error)
       }
@@ -200,6 +207,7 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
       id_producto_aplica: '',
       id_categoria_aplica: '',
       id_marca_aplica: '',
+      id_usuario_destino: '',
     })
   })
   
@@ -685,6 +693,27 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
               </div>
             </CardContent>
           </Card>
+
+          {requiereCodigo && (
+            <div className="space-y-2">
+              <Label htmlFor="id_usuario_destino">Enviar código a (solo este usuario podrá usarlo)</Label>
+              <select
+                id="id_usuario_destino"
+                {...form.register('id_usuario_destino')}
+                className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
+              >
+                <option value="">Selecciona un usuario (opcional)</option>
+                {users.map((u) => (
+                  <option key={u.id_usuario} value={u.id_usuario}>
+                    {u.nom_usuario} {u.ape_usuario || ''} {u.email_usuario ? `(${u.email_usuario})` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Si seleccionas un usuario, el código se restringirá solo a él y podrás enviarle el cupón por correo al guardar.
+              </p>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button 

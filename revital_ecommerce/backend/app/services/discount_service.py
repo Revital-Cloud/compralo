@@ -41,6 +41,7 @@ def get_discounts(db:Session):
             monto_minimo_producto,
             cantidad_minima_producto,
             requiere_codigo,
+            id_usuario_destino,
             usr_insert,
             usr_update,
             fec_insert,
@@ -130,6 +131,7 @@ def create_discount(db:Session, discount:DiscountCreate, usr_insert:Decimal):
             'cantidad_minima_producto': params.get('cantidad_minima_producto'),
             'requiere_codigo': params.get('requiere_codigo'),
             'usr_operacion': usr_insert,
+            'id_usuario_destino': params.get('id_usuario_destino'),
         }
         query = text("""
         SELECT fun_insert_descuento(
@@ -159,7 +161,8 @@ def create_discount(db:Session, discount:DiscountCreate, usr_insert:Decimal):
             :monto_minimo_producto,
             :cantidad_minima_producto,
             :requiere_codigo,
-            :usr_operacion
+            :usr_operacion,
+            :id_usuario_destino
         )
         """)
         result = db.execute(query, sql_params)
@@ -200,7 +203,8 @@ def update_discount(db:Session, id_descuento:Decimal, discount:DiscountUpdate, u
             min_valor_pedido, ind_es_para_cumpleanos,
             fec_inicio, fec_fin, max_usos_total, costo_puntos_canje, ind_canjeable_puntos,
             codigo_descuento, max_usos_por_usuario, dias_semana_aplica, horas_inicio, horas_fin,
-            solo_primera_compra, monto_minimo_producto, cantidad_minima_producto, requiere_codigo
+            solo_primera_compra, monto_minimo_producto, cantidad_minima_producto, requiere_codigo,
+            id_usuario_destino
         FROM tab_descuentos
         WHERE id_descuento = :id_descuento
         """)
@@ -246,7 +250,8 @@ def update_discount(db:Session, id_descuento:Decimal, discount:DiscountUpdate, u
             :monto_minimo_producto,
             :cantidad_minima_producto,
             :requiere_codigo,
-            :usr_update
+            :usr_update,
+            :id_usuario_destino
         )
         """)
         result = db.execute(query, params)
@@ -383,7 +388,8 @@ def get_discount_by_code(db: Session, codigo_descuento: str):
             ind_canjeable_puntos,
             codigo_descuento,
             max_usos_por_usuario,
-            requiere_codigo
+            requiere_codigo,
+            id_usuario_destino
         FROM tab_descuentos
         WHERE codigo_descuento = :codigo_descuento
             AND ind_activo = TRUE
@@ -728,3 +734,71 @@ def get_user_available_discounts(db: Session, id_usuario: Decimal, limit: int = 
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener descuentos disponibles para usuario: {str(e)}")
+
+
+def get_discount_by_id(db: Session, id_descuento: Decimal):
+    """Obtiene un descuento por ID. Retorna dict o None."""
+    try:
+        query = text("""
+        SELECT
+            id_descuento, nom_descuento, des_descuento, tipo_calculo,
+            val_porce_descuento, val_monto_descuento, aplica_a,
+            category_id_aplica, product_id_aplica, id_marca_aplica,
+            min_valor_pedido, fec_inicio, fec_fin, ind_activo,
+            max_usos_total, usos_actuales_total, costo_puntos_canje, ind_canjeable_puntos,
+            codigo_descuento, max_usos_por_usuario, requiere_codigo, id_usuario_destino
+        FROM tab_descuentos
+        WHERE id_descuento = :id_descuento
+        LIMIT 1
+        """)
+        result = db.execute(query, {"id_descuento": id_descuento})
+        row = result.mappings().first()
+        if not row:
+            return None
+        r = dict(row)
+        r["id_categoria_aplica"] = r.get("category_id_aplica")
+        r["id_producto_aplica"] = r.get("product_id_aplica")
+        return r
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al obtener descuento: {str(e)}")
+
+
+async def send_coupon_email_to_user(db: Session, id_descuento: Decimal, id_usuario: Decimal):
+    """
+    Envía por correo el código del descuento al usuario indicado.
+    Requiere que el descuento tenga codigo_descuento y que el usuario exista con email.
+    """
+    from services import user_service
+    from services import email_service as email_svc
+
+    discount = get_discount_by_id(db, id_descuento)
+    if not discount:
+        raise ValueError("Descuento no encontrado")
+    codigo = (discount.get("codigo_descuento") or "").strip()
+    if not codigo:
+        raise ValueError("El descuento no tiene código de cupón para enviar")
+
+    user = user_service.get_user(db, id_usuario)
+    if not user:
+        raise ValueError("Usuario no encontrado")
+    user_row = dict(user) if hasattr(user, "_mapping") else user
+    email_to = (user_row.get("email_usuario") or "").strip()
+    if not email_to:
+        raise ValueError("El usuario no tiene email registrado")
+
+    nom = (user_row.get("nom_usuario") or "").strip()
+    ape = (user_row.get("ape_usuario") or "").strip()
+    user_name = f"{nom} {ape}".strip() or email_to
+
+    return await email_svc.send_coupon_to_user(
+        user_email=email_to,
+        user_name=user_name,
+        codigo=codigo,
+        nom_descuento=discount.get("nom_descuento") or "Cupón",
+        tipo_calculo=bool(discount.get("tipo_calculo")),
+        val_porce_descuento=discount.get("val_porce_descuento"),
+        val_monto_descuento=discount.get("val_monto_descuento"),
+        fec_fin=discount.get("fec_fin"),
+        min_valor_pedido=discount.get("min_valor_pedido"),
+    )

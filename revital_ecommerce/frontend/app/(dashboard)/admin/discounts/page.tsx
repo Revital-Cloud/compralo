@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { useToggleDiscountStatus, useCreateDiscount, useUpdateDiscount, useDiscountStats } from '@/hooks/use-discounts'
-import { transformDiscountPayload } from '@/services/discount.service'
+import { transformDiscountPayload, discountService } from '@/services/discount.service'
 import { CreateDiscountModal } from '@/components/admin/discounts/create-discount-modal'
 import { EditDiscountModal } from '@/components/admin/discounts/edit-discount-modal'
 import { DiscountStatsCards } from '@/components/admin/discounts/discount-stats-cards'
@@ -78,8 +78,16 @@ const DiscountsPage = () => {
         return
       }
 
-      await createMutation.mutateAsync(values)
+      const response = await createMutation.mutateAsync(values) as { message?: string; id_descuento?: number }
       toast.success('Descuento creado exitosamente')
+      if (response?.id_descuento != null && values.id_usuario_destino && values.cod_cupon?.trim()) {
+        try {
+          await discountService.sendCouponToUser(response.id_descuento, Number(values.id_usuario_destino))
+          toast.success('Código enviado por correo al usuario seleccionado')
+        } catch (err: any) {
+          toast.error(err?.response?.data?.detail || 'Error al enviar el código por correo')
+        }
+      }
     } catch (error: any) {
       console.error('Error creating discount:', error)
       let errorMessage = 'Error al crear el descuento'

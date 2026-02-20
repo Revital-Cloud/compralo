@@ -71,6 +71,16 @@ BEGIN
         RETURN FALSE;
     END IF;
 
+    -- VALIDACIÓN 4b: Si el cupón es personal (id_usuario_destino), solo ese usuario puede usarlo
+    IF v_descuento.id_usuario_destino IS NOT NULL THEN
+        IF p_id_usuario IS NULL THEN
+            RETURN FALSE;  /* Usuario anónimo no puede usar cupón personal */
+        END IF;
+        IF p_id_usuario IS DISTINCT FROM v_descuento.id_usuario_destino THEN
+            RETURN FALSE;  /* Otro usuario no puede usar este cupón */
+        END IF;
+    END IF;
+
     -- VALIDACIÓN 5: Verificar límite de usos totales del descuento
     IF v_descuento.max_usos_total IS NOT NULL AND v_descuento.usos_actuales_total >= v_descuento.max_usos_total THEN
         RETURN FALSE;

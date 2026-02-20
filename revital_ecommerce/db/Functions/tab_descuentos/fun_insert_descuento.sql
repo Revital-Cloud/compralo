@@ -29,7 +29,8 @@ CREATE OR REPLACE FUNCTION fun_insert_descuento(
         p_monto_minimo_producto         DECIMAL(10,2),
         p_cantidad_minima_producto      INT,
         p_requiere_codigo               BOOLEAN,
-        p_usr_operacion                 DECIMAL(10)
+        p_usr_operacion                 DECIMAL(10),
+        p_id_usuario_destino            DECIMAL(10) DEFAULT NULL
 ) RETURNS JSON AS $$
 DECLARE
     v_nuevo_id DECIMAL(10);
@@ -85,6 +86,7 @@ BEGIN
         codigo_descuento, max_usos_por_usuario, dias_semana_aplica,
         horas_inicio, horas_fin,
         solo_primera_compra, monto_minimo_producto, cantidad_minima_producto, requiere_codigo,
+        id_usuario_destino,
         usr_insert, fec_insert
     ) VALUES (
         v_nuevo_id,
@@ -115,6 +117,7 @@ BEGIN
         COALESCE(p_cantidad_minima_producto, 1),
         COALESCE(p_requiere_codigo, FALSE),
         p_usr_operacion,
+        p_id_usuario_destino,
         NOW()
     );
 

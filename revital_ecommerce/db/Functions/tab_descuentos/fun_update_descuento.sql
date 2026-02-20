@@ -29,7 +29,8 @@ CREATE OR REPLACE FUNCTION fun_update_descuento(
     p_monto_minimo_producto         DECIMAL(10,2),
     p_cantidad_minima_producto      INT,
     p_requiere_codigo               BOOLEAN,
-    p_usr_operacion                 DECIMAL(10)
+    p_usr_operacion                 DECIMAL(10),
+    p_id_usuario_destino            DECIMAL(10) DEFAULT NULL
 ) RETURNS JSON AS $$
 DECLARE
     v_existe BOOLEAN := FALSE;
@@ -104,6 +105,7 @@ BEGIN
         monto_minimo_producto = COALESCE(p_monto_minimo_producto, monto_minimo_producto),
         cantidad_minima_producto = COALESCE(p_cantidad_minima_producto, cantidad_minima_producto),
         requiere_codigo = COALESCE(p_requiere_codigo, requiere_codigo),
+        id_usuario_destino = p_id_usuario_destino,
         usr_update = p_usr_operacion,
         fec_update = CURRENT_TIMESTAMP
     WHERE id_descuento = p_id_descuento;
