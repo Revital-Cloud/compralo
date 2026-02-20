@@ -1402,7 +1402,7 @@ export const initializeWompiPayment = async (
     console.log('🚀 Inicializando pago con Wompi...');
     
     let config: WompiWidgetConfig;
-    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const token = getStoredToken();
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
 

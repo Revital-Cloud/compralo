@@ -15,10 +15,8 @@ import type {
   ResetPasswordConfirm,
   VerifyEmailOtpRequest,
   ApiResponse,
-  RefreshTokenRequest,
   RegisterRequest,
 } from '@/types';
-import { getStoredRefreshToken } from '@/utils/apiWrapper';
 
 // =============================================================================
 // FUNCIONES DE AUTENTICACIÓN
@@ -29,11 +27,8 @@ import { getStoredRefreshToken } from '@/utils/apiWrapper';
  */
 export async function login(credentials: LoginRequest): Promise<TokenResponse> {
   const tokens = await post<TokenResponse>('/login', credentials);
-  
-  // Almacenar tokens automáticamente
-  storeTokens(tokens.access_token, tokens.refresh_token);
-  
-  return tokens;
+  storeTokens(tokens.access_token);
+  return { ...tokens, refresh_token: '' };
 }
 
 /**
@@ -44,28 +39,24 @@ export async function getCurrentUser(): Promise<UserPublic> {
 }
 
 /**
- * Logout del usuario
+ * Logout: invalida cookie en el backend y limpia token en memoria.
  */
-export function logout(): void {
+export async function logout(): Promise<void> {
+  try {
+    await post<{ message: string }>('/logout', {});
+  } catch {
+    // Ignorar error (ej. ya expirado); limpiar estado local igual
+  }
   clearTokens();
 }
 
 /**
- * Renovar el token de acceso
+ * Renovar el token de acceso. El refresh token se envía por cookie (HTTPOnly).
  */
 export async function refreshToken(): Promise<TokenResponse> {
-  const refreshTokenValue = getStoredRefreshToken();
-  if (!refreshTokenValue) {
-    throw new Error('No refresh token available');
-  }
-
-  const tokens = await post<TokenResponse>('/refresh', {
-    refresh_token: refreshTokenValue
-  } as RefreshTokenRequest);
-  
-  storeTokens(tokens.access_token, tokens.refresh_token);
-  
-  return tokens;
+  const tokens = await post<TokenResponse>('/refresh', {});
+  storeTokens(tokens.access_token);
+  return { ...tokens, refresh_token: '' };
 }
 
 /**
@@ -101,8 +92,8 @@ export async function confirmPasswordReset(confirmData: ResetPasswordConfirm): P
  */
 export async function verifyEmailOtp(data: VerifyEmailOtpRequest): Promise<TokenResponse> {
   const tokens = await post<TokenResponse>('/verify-email-otp', data);
-  storeTokens(tokens.access_token, tokens.refresh_token);
-  return tokens;
+  storeTokens(tokens.access_token);
+  return { ...tokens, refresh_token: '' };
 }
 
 /**

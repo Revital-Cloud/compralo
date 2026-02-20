@@ -18,7 +18,7 @@ import {
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { paymentCardSchema, type PaymentCardFormValues } from "@/schemas/shop/payment-card.schema";
 import { Input } from "@/components/ui";
 import { Label } from "@/components/ui";
 import { Loader2 } from "lucide-react";
@@ -198,16 +198,6 @@ const PaymentMethodsSkeleton = () => (
 );
 
 // Formulario rápido de método de pago (inline)
-const paymentSchema = z.object({
-    card_holder: z.string().min(1, "Nombre requerido"),
-    number: z.string().min(13).max(19),
-    exp_month: z.string().length(2),
-    exp_year: z.string().length(2),
-    cvc: z.string().min(3).max(4),
-});
-
-type QuickPaymentFormValues = z.infer<typeof paymentSchema>;
-
 function QuickPaymentForm({ 
     onSuccess, 
     onCancel 
@@ -215,8 +205,8 @@ function QuickPaymentForm({
     onSuccess: () => void; 
     onCancel: () => void; 
 }) {
-    const form = useForm<QuickPaymentFormValues>({
-        resolver: zodResolver(paymentSchema),
+    const form = useForm<PaymentCardFormValues>({
+        resolver: zodResolver(paymentCardSchema),
         defaultValues: {
             card_holder: "",
             number: "",
@@ -227,7 +217,7 @@ function QuickPaymentForm({
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmitPayment = async (data: QuickPaymentFormValues) => {
+    const handleSubmitPayment = async (data: PaymentCardFormValues) => {
         setIsSubmitting(true);
         try {
             await addPaymentMethod(data as any);

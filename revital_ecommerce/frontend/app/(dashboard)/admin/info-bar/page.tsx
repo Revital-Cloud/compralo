@@ -15,6 +15,7 @@ import { Calendar } from '@/components/ui'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui'
 import { IconCalendar } from '@tabler/icons-react'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 const MESSAGE_MAX_LENGTH = 100
 
@@ -194,7 +195,7 @@ const InfoBarPage = () => {
             <div
               className="flex-1 [&_strong]:font-semibold [&_em]:italic [&_a]:underline min-w-0"
               dangerouslySetInnerHTML={{
-                __html: formData.des_mensaje || 'Tu mensaje aquí…',
+                __html: sanitizeHtml(formData.des_mensaje || 'Tu mensaje aquí…'),
               }}
             />
             {formData.boton_url?.trim() && (

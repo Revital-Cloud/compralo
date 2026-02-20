@@ -34,21 +34,9 @@ import {
 } from '@/components/ui'
 import { Pencil, Trash2, ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
-import { z } from 'zod'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-
-const HEX_REGEX = /^#[0-9A-Fa-f]{6}$/
-const valueSchema = z.object({
-  value: z.string().min(1, 'El valor es obligatorio'),
-  hex_color: z
-    .string()
-    .optional()
-    .refine((v) => !v || v.trim() === '' || HEX_REGEX.test(v.trim()), 'Color debe ser #RRGGBB'),
-  sort_order: z.coerce.number().min(0).default(0),
-  is_active: z.boolean().default(true),
-})
-type ValueFormValues = z.infer<typeof valueSchema>
+import { attributeValueSchema, type AttributeValueFormValues } from '@/schemas/admin/attribute.schema'
 
 const AttributeValuesPage = () => {
   const params = useParams()
@@ -324,20 +312,20 @@ function ValueModal({
   onOpenChange: (v: boolean) => void
   title: string
   attributeName: string
-  defaultValues: ValueFormValues
-  onSubmit: (values: ValueFormValues) => void
+  defaultValues: AttributeValueFormValues
+  onSubmit: (values: AttributeValueFormValues) => void
   isSubmitting: boolean
 }) {
   const showHexField = isColorAttribute(attributeName)
-  const form = useForm<ValueFormValues>({
-    resolver: zodResolver(valueSchema) as Resolver<ValueFormValues>,
+  const form = useForm<AttributeValueFormValues>({
+    resolver: zodResolver(attributeValueSchema) as Resolver<AttributeValueFormValues>,
     defaultValues,
   })
   React.useEffect(() => {
     if (open) form.reset(defaultValues)
   }, [open, defaultValues.value, defaultValues.hex_color, defaultValues.sort_order, defaultValues.is_active, form])
 
-  const handleSubmit = (values: ValueFormValues) => {
+  const handleSubmit = (values: AttributeValueFormValues) => {
     onSubmit({
       ...values,
       hex_color: showHexField ? values.hex_color?.trim() || undefined : undefined,

@@ -11,22 +11,9 @@ import addressService from "@/services/address.service";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { addressSchema, type AddressFormValues } from "@/schemas/shop/address.schema";
 import { useState } from "react";
 import { toast } from "sonner";
-
-const addressSchema = z.object({
-  nombre_direccion: z.string().min(1, { message: "Nombre de la dirección requerido" }),
-  calle_direccion: z.string().min(1, { message: "Dirección requerida" }),
-  ciudad: z.string().min(1, { message: "Ciudad requerida" }),
-  departamento: z.string().min(1, { message: "Departamento requerido" }),
-  codigo_postal: z.string().min(1, { message: "Código postal requerido" }),
-  barrio: z.string().min(1, { message: "Barrio requerido" }),
-  referencias: z.string().optional(),
-  complemento: z.string().optional(),
-});
-
-type AddressFormValues = z.infer<typeof addressSchema>;
 
 export default function AddressesTab() {
   const { user } = useAuth();

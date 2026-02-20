@@ -3,7 +3,7 @@
 import React from 'react';
 import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { productFormSchema, type ProductFormData } from '@/schemas/admin/product.schema';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { Input } from "@/components/ui";
 import { Label } from "@/components/ui";
@@ -175,30 +175,6 @@ const getPresetByCategory = (categoryName: string) => {
   return null; // Sin preset específico
 };
 
-// Esquema de validación con Zod
-const productSchema = z.object({
-  nom_producto: z.string().min(1, 'El nombre del producto es requerido'),
-  des_producto: z.string().min(1, 'La descripción es requerida'),
-  val_precio: z.string().min(1, 'El precio es requerido').refine(
-    (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
-    'El precio debe ser un número válido mayor a 0'
-  ),
-  num_stock: z.string().min(1, 'El stock es requerido').refine(
-    (val) => !isNaN(parseInt(val)) && parseInt(val) >= 0,
-    'El stock debe ser un número válido mayor o igual a 0'
-  ),
-  id_categoria: z.string().min(1, 'La categoría es requerida'),
-  id_marca: z.string().min(1, 'La marca es requerida'),
-  id_proveedor: z.string().min(1, 'El proveedor es requerido'),
-  tags: z.array(z.string()).default([]),
-  spcf_producto: z.record(z.string(), z.unknown()).default({}),
-});
-
-type ProductFormData = z.input<typeof productSchema> & {
-  tags: string[];
-  spcf_producto: Record<string, unknown>;
-};
-
 export interface ProductFormRef {
   reset: () => void;
 }
@@ -234,7 +210,7 @@ export const ProductForm = React.forwardRef<ProductFormRef, ProductFormProps>(fu
   const { validateForm } = useFormXSSValidation('product-form');
 
   const resolver = React.useMemo(
-    () => zodResolver(productSchema) as Resolver<ProductFormData>,
+    () => zodResolver(productFormSchema) as Resolver<ProductFormData>,
     []
   );
 

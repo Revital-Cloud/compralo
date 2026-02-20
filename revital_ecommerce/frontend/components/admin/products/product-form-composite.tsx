@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { productFormCompositeSchema, type ProductFormCompositeFields } from '@/schemas/admin/product.schema'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 import { Input, Label, Button, Textarea, Checkbox } from '@/components/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui'
@@ -21,17 +21,6 @@ import { cn } from '@/lib/utils'
 import { VariantImageUpload } from './variant-image-upload'
 import type { Category } from '@/types/category'
 import { formatNumberWithDots, parseFormattedNumber } from '@/utils/format-price'
-
-const schema = z.object({
-  name: z.string().min(2, 'Mínimo 2 caracteres'),
-  category_id: z.coerce.number().min(1, 'Seleccione al menos Línea (o Línea y Sublínea)'),
-  id_marca: z.union([z.coerce.number(), z.null()]).optional(),
-  id_proveedor: z.union([z.coerce.number(), z.null()]).optional(),
-  description: z.string().optional(),
-  is_active: z.boolean().optional().default(true),
-})
-
-type ProductFields = z.output<typeof schema>
 
 function isCategoryActive(c: Category): boolean {
   return (c.ind_activo ?? c.is_active) !== false
@@ -109,8 +98,8 @@ export function ProductFormComposite({
   )
   const lineHasChildren = sublineOptions.length > 0
 
-  const form = useForm<ProductFields>({
-    resolver: zodResolver(schema) as Resolver<ProductFields>,
+  const form = useForm<ProductFormCompositeFields>({
+    resolver: zodResolver(productFormCompositeSchema) as Resolver<ProductFormCompositeFields>,
     defaultValues: {
       name: '',
       category_id: 0,

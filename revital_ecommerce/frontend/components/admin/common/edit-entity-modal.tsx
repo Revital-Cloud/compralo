@@ -4,26 +4,12 @@ import React, { useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui"
 import { Button, Input, Label } from "@/components/ui"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useCategories } from '@/hooks/use-categories'
 import { PHONE_COUNTRY_CODES, parsePhoneForEdit } from '@/lib/phone-country-codes'
 import { Checkbox } from "@/components/ui"
-
-type EntityType = 'category' | 'brand' | 'provider'
-
-const schemas: Record<EntityType, z.ZodSchema<any>> = {
-  category: z.object({ name: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
-  brand: z.object({ nom_marca: z.string().min(2), ind_activo: z.boolean().optional().default(true) }),
-  provider: z.object({ 
-    nom_proveedor: z.string().min(2).optional(), 
-    email: z.string().email('Email inválido').optional().or(z.literal('')),
-    tel_country_code: z.string().optional(),
-    tel_numero: z.string().optional(),
-    ind_activo: z.boolean().optional().default(true) 
-  }),
-}
+import { getEntitySchemas, type EntityType } from '@/schemas/admin/entity.schema'
 
 export interface EditEntityModalProps {
   open: boolean
@@ -36,7 +22,7 @@ export interface EditEntityModalProps {
 
 export const EditEntityModal: React.FC<EditEntityModalProps> = ({ open, onOpenChange, type, title, initialValues, onSubmit }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const form = useForm<any>({ resolver: zodResolver(schemas[type] as any), defaultValues: initialValues })
+  const form = useForm<any>({ resolver: zodResolver(getEntitySchemas('edit')[type] as any), defaultValues: initialValues })
 
   useEffect(() => {
     if (type === 'provider' && initialValues?.tel_proveedor != null) {

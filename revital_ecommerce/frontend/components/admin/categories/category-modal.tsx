@@ -7,7 +7,7 @@ import { Button, Input, Label, Checkbox } from '@/components/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { categoryModalSchema, type CategoryModalFormValues } from '@/schemas/admin/category.schema'
 import { useQuery } from '@tanstack/react-query'
 import { attributeService, type Attribute } from '@/services/attribute.service'
 import {
@@ -29,17 +29,6 @@ function parentIdNum(c: Category): number | null {
   if (c.parent_id == null) return null
   return typeof c.parent_id === 'number' ? c.parent_id : Number(c.parent_id)
 }
-
-const schema = z.object({
-  name: z.string().min(2, 'Mínimo 2 caracteres'),
-  parent_id: z
-    .union([z.number(), z.null(), z.string()])
-    .optional()
-    .transform((v) => (v == null || v === '' || v === 'none' ? null : Number(v))),
-  ind_activo: z.boolean().optional().default(true),
-})
-
-type FormValues = z.output<typeof schema>
 
 export interface CategoryModalProps {
   open: boolean
@@ -74,8 +63,8 @@ export function CategoryModal({
   const [selectedLevel2Id, setSelectedLevel2Id] = useState<number | null>(null)
   const [selectedLevel3Id, setSelectedLevel3Id] = useState<number | null>(null)
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(schema) as Resolver<FormValues>,
+  const form = useForm<CategoryModalFormValues>({
+    resolver: zodResolver(categoryModalSchema) as Resolver<CategoryModalFormValues>,
     defaultValues: { name: '', parent_id: null, ind_activo: true },
   })
 
@@ -235,7 +224,7 @@ export function CategoryModal({
         ? 'Atributos subcategoría'
         : 'Atributos categoría'
 
-  const doSubmit = async (values: FormValues) => {
+  const doSubmit = async (values: CategoryModalFormValues) => {
     if (duplicateAttr) {
       toast.error('No puede haber atributos repetidos. Elimina duplicados en la lista.')
       return

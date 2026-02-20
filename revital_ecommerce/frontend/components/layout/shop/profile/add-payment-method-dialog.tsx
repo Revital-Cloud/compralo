@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { paymentCardSchema, type PaymentCardFormValues } from "@/schemas/shop/payment-card.schema";
 import { useToastActions } from "@/hooks/use-toast-actions";
 
 import {
@@ -21,20 +21,9 @@ import { Input } from "@/components/ui";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui";
 import { PlusCircle, Loader2 } from "lucide-react";
 
-// Define el schema del formulario con Zod
-const formSchema = z.object({
-    card_holder: z.string().min(1, "El nombre es requerido."),
-    number: z.string().min(13, "Número de tarjeta inválido.").max(19, "Número de tarjeta inválido."),
-    exp_month: z.string().length(2, "Mes inválido."),
-    exp_year: z.string().length(2, "Año inválido"),
-    cvc: z.string().min(3, "CVC inválido").max(4, "CVC inválido"),
-});
-
-type FormData = z.infer<typeof formSchema>;
-
 interface AddPaymentMethodDialogProps {
     onAddPaymentMethod: (
-        data: FormData,
+        data: PaymentCardFormValues,
         options?: {
             onSuccess?: (result: any) => void;
             onError?: (error: any) => void;
@@ -46,8 +35,8 @@ interface AddPaymentMethodDialogProps {
 export const AddPaymentMethodDialog: React.FC<AddPaymentMethodDialogProps> = ({ onAddPaymentMethod, isPending }) => {
     const [isOpen, setIsOpen] = useState(false);
     const { showSuccess, showError } = useToastActions();
-    const form = useForm<FormData>({
-        resolver: zodResolver(formSchema),
+    const form = useForm<PaymentCardFormValues>({
+        resolver: zodResolver(paymentCardSchema),
         defaultValues: {
             card_holder: "",
             number: "",
@@ -57,7 +46,7 @@ export const AddPaymentMethodDialog: React.FC<AddPaymentMethodDialogProps> = ({ 
         },
     });
 
-    const onSubmit = async (data: FormData) => {
+    const onSubmit = async (data: PaymentCardFormValues) => {
         try {
             onAddPaymentMethod(data, {
                 onSuccess: (result: any) => {
