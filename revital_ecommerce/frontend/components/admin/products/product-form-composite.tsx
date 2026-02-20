@@ -161,11 +161,19 @@ export function ProductFormComposite({
                 if (single === undefined || single === null) return
                 attributes[key] = single as string | number | boolean
               })
+              // tipo_clasificacion: columna directa o fallback desde attributes (dominant / "Tipo/Clasificación")
+              let tipoClasificacion = v.tipo_clasificacion ?? null
+              if (!tipoClasificacion || !String(tipoClasificacion).trim()) {
+                const fromAttr = (rawAttrs as Record<string, unknown>)['Tipo/Clasificación'] ?? (rawAttrs as Record<string, unknown>)['dominant']
+                if (fromAttr != null && String(fromAttr).trim()) {
+                  tipoClasificacion = String(fromAttr).trim()
+                }
+              }
               return {
                 price: Number(v.price),
                 stock: Number(v.stock),
                 is_active: v.is_active ?? true,
-                tipo_clasificacion: (v as { tipo_clasificacion?: string | null }).tipo_clasificacion ?? null,
+                tipo_clasificacion: tipoClasificacion,
                 attributes,
                 image_urls,
                 main_index,

@@ -64,31 +64,25 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
   
   React.useEffect(() => {
     loadAppliedDiscount();
-    
-    // Escuchar cambios en sessionStorage para actualizar cuando se aplique/remueva un código
+
+    // Escuchar cambios en sessionStorage (otra pestaña aplica/quita código)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "checkout_codigo_descuento") {
         loadAppliedDiscount();
       }
     };
-    
-    // También escuchar eventos personalizados (por si el cambio viene de la misma pestaña)
+
+    // Misma pestaña: la página del carrito dispara este evento al aplicar/quitar código
     const handleCustomStorageChange = () => {
       loadAppliedDiscount();
     };
-    
+
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("discountCodeChanged", handleCustomStorageChange);
-    
-    // Polling cada 2 segundos para detectar cambios en sessionStorage (fallback)
-    const interval = setInterval(() => {
-      loadAppliedDiscount();
-    }, 2000);
-    
+
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("discountCodeChanged", handleCustomStorageChange);
-      clearInterval(interval);
     };
   }, [loadAppliedDiscount])
   

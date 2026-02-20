@@ -239,6 +239,7 @@ const CartPage = () => {
         });
         if (typeof window !== "undefined") {
           sessionStorage.setItem("checkout_codigo_descuento", codigo);
+          window.dispatchEvent(new CustomEvent("discountCodeChanged"));
         }
         toast.success(`Código "${codigo}" aplicado correctamente`);
       }
@@ -253,6 +254,7 @@ const CartPage = () => {
       setAppliedDiscount(null);
       if (typeof window !== "undefined") {
         sessionStorage.removeItem("checkout_codigo_descuento");
+        window.dispatchEvent(new CustomEvent("discountCodeChanged"));
       }
     } finally {
       setIsApplyingCode(false);
@@ -265,6 +267,7 @@ const CartPage = () => {
     setPromoCode("");
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("checkout_codigo_descuento");
+      window.dispatchEvent(new CustomEvent("discountCodeChanged"));
     }
     toast.success("Código de descuento removido");
   };
