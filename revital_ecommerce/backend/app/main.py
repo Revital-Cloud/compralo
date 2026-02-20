@@ -5,12 +5,15 @@ Este módulo inicializa la aplicación FastAPI, define rutas básicas
 y registra los routers de la aplicación, como el router de productos.
 También puede incluir configuraciones globales de la aplicación y middlewares.
 """
+from urllib.parse import urlparse
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from starlette.middleware.gzip import GZipMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
-import logging
 
 from slowapi.errors import RateLimitExceeded
 
@@ -141,6 +144,13 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)
 app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
 app.add_exception_handler(Exception, generic_exception_handler)
+
+# TrustedHost en producción: valida el header Host para evitar URLs con host malicioso (SEC-004)
+if is_production():
+    _parsed = urlparse(settings.FRONTEND_URL)
+    _frontend_host = _parsed.hostname or "localhost"
+    _allowed_hosts = list({_frontend_host, "localhost", "46.225.94.64"})
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=_allowed_hosts)
 
 # Compresión de respuestas (mejora Lighthouse uses-text-compression)
 app.add_middleware(GZipMiddleware, minimum_size=500)

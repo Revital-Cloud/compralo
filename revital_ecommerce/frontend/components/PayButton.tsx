@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { getStoredToken } from "@/utils/apiWrapper";
 
 interface PayButtonProps {
   orderId: number;
@@ -68,10 +69,12 @@ export function PayButton({
       
       console.log("🔍 [FRONTEND] Payload a enviar:", JSON.stringify(attachPayload, null, 2));
       
+      const token = getStoredToken();
       const attachResponse = await fetch("/api/payments/attach-transaction", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(attachPayload),
       });
@@ -100,6 +103,7 @@ export function PayButton({
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
 
@@ -175,10 +179,12 @@ export function PayButton({
 
     try {
       // 1. Crear pago en backend
+      const token = getStoredToken();
       const createResponse = await fetch("/api/payments/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ order_id: orderId }),
       });
@@ -436,10 +442,12 @@ export function PayButton({
     setIsProcessing(true);
 
     try {
+      const token = getStoredToken();
       const reattemptResponse = await fetch("/api/payments/reattempt", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({ order_id: orderId }),
       });

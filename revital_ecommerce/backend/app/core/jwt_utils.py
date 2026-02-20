@@ -69,7 +69,7 @@ def verify_token(token: str, token_type: str = "access") -> dict:
         HTTPException: Si el token es inválido o ha expirado
     """
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         
         # Verificar que el tipo de token sea correcto
         if payload.get("type") != token_type:
@@ -124,13 +124,13 @@ def create_verification_token(user_id: int, email: str, expires_hours: int = 24)
     Returns:
         str: Token de verificación JWT
     """
-    expire = datetime.utcnow() + timedelta(hours=expires_hours)
+    expire = datetime.now(timezone.utc) + timedelta(hours=expires_hours)
     to_encode = {
         "sub": str(user_id),
         "email": email,
         "type": "email_verification",
         "exp": expire,
-        "iat": datetime.utcnow()
+        "iat": datetime.now(timezone.utc)
     }
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
@@ -147,13 +147,13 @@ def create_password_reset_token(user_id: int, email: str, expires_hours: int = 1
     Returns:
         str: Token de reset JWT
     """
-    expire = datetime.utcnow() + timedelta(hours=expires_hours)
+    expire = datetime.now(timezone.utc) + timedelta(hours=expires_hours)
     to_encode = {
         "sub": str(user_id),
         "email": email,
         "type": "password_reset",
         "exp": expire,
-        "iat": datetime.utcnow()
+        "iat": datetime.now(timezone.utc)
     }
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
@@ -172,7 +172,7 @@ def verify_verification_token(token: str) -> dict:
         HTTPException: Si el token es inválido, ha expirado o no es del tipo correcto
     """
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         
         # Verificar que sea token de verificación
         if payload.get("type") != "email_verification":
@@ -202,7 +202,7 @@ def verify_password_reset_token(token: str) -> dict:
         HTTPException: Si el token es inválido, ha expirado o no es del tipo correcto
     """
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         
         # Verificar que sea token de reset
         if payload.get("type") != "password_reset":

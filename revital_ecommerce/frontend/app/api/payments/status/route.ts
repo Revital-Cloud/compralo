@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStoredToken } from '@/utils/apiWrapper';
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -15,18 +14,11 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    // Obtener token de autenticación
-    const token = getStoredToken();
-    
-    // Headers a preservar
+    const authHeader = request.headers.get('authorization');
     const headers: HeadersInit = {
       'Content-Type': 'application/json',
     };
-    
-    // Agregar token si existe
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
+    if (authHeader) headers['Authorization'] = authHeader;
     
     // Preservar header x-store-id si existe (multi-tenant)
     const storeId = request.headers.get('x-store-id');

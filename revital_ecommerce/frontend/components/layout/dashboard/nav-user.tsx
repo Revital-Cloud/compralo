@@ -39,9 +39,9 @@ export function NavUser() {
     setOpen(true)
   }
 
-  const confirmLogout = () => {
+  const confirmLogout = async () => {
     toast.info('Cerrando sesión...')
-    logout()
+    await logout()
   }
 
   // Si no hay usuario, no mostrar nada

@@ -16,6 +16,9 @@ let apiInstance: AxiosInstance | null = null;
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 
+/** Access token en memoria (SEC-001). No usar localStorage para reducir impacto de XSS. */
+let inMemoryAccessToken: string | null = null;
+
 /**
  * Crear y configurar la instancia de Axios
  */
@@ -31,6 +34,7 @@ function createApiInstance(): AxiosInstance {
   const instance = axios.create({
     baseURL,
     timeout: 30000, // 30 segundos para operaciones complejas como pagos
+    withCredentials: true, // Enviar cookies (refresh_token HTTPOnly) en refresh y logout
     headers: {
       'Content-Type': 'application/json',
     },
@@ -154,13 +158,11 @@ function setupInterceptors(instance: AxiosInstance): void {
           const { refreshToken } = await import('@/services/auth.service');
           const tokens = await refreshToken();
           
-          console.log('Token refreshed successfully');
-          
-          // Actualizar el header del request original con el nuevo token
-          originalRequest.headers.Authorization = `Bearer ${tokens.access_token}`;
-          
-          // Actualizar también el header por defecto de la instancia
-          instance.defaults.headers.common['Authorization'] = `Bearer ${tokens.access_token}`;
+          if (tokens?.access_token) {
+            setAccessToken(tokens.access_token);
+            originalRequest.headers.Authorization = `Bearer ${tokens.access_token}`;
+            instance.defaults.headers.common['Authorization'] = `Bearer ${tokens.access_token}`;
+          }
           
           // Procesar la cola de requests fallidos
           failedQueue.forEach(({ resolve }) => {
@@ -206,47 +208,42 @@ function setupInterceptors(instance: AxiosInstance): void {
 }
 
 // =============================================================================
-// FUNCIONES DE MANEJO DE TOKENS (Solo Storage)
+// FUNCIONES DE MANEJO DE TOKENS (memoria + cookie HTTPOnly, SEC-001)
 // =============================================================================
 
 /**
- * Obtener el token almacenado en localStorage
+ * Obtener el access token desde memoria (no localStorage).
  */
 export function getStoredToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('access_token');
-  }
-  return null;
+  return inMemoryAccessToken;
 }
 
 /**
- * Obtener el refresh token almacenado
+ * Establecer solo el access token en memoria (refresh va en cookie HTTPOnly).
+ */
+export function setAccessToken(accessToken: string): void {
+  inMemoryAccessToken = accessToken;
+}
+
+/**
+ * @deprecated Refresh token está en cookie HTTPOnly; no se expone al JS.
  */
 export function getStoredRefreshToken(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('refresh_token');
-  }
   return null;
 }
 
 /**
- * Almacenar tokens en localStorage
+ * Almacenar access token en memoria; refresh_token lo gestiona el backend vía cookie.
  */
-export function storeTokens(accessToken: string, refreshToken: string): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
-  }
+export function storeTokens(accessToken: string, _refreshToken?: string): void {
+  inMemoryAccessToken = accessToken;
 }
 
 /**
- * Limpiar tokens del localStorage
+ * Limpiar access token de memoria. Llamar a logout del backend para borrar la cookie.
  */
 export function clearTokens(): void {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-  }
+  inMemoryAccessToken = null;
 }
 
 /**
@@ -362,6 +359,7 @@ const apiWrapper = {
   
   // Token Management
   getStoredToken,
+  setAccessToken,
   getStoredRefreshToken,
   storeTokens,
   clearTokens,
