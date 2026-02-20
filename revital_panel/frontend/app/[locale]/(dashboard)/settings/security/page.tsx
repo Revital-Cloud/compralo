@@ -224,45 +224,24 @@ export default function SecurityPage() {
         <CardContent>
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/settings/security/page.tsx
-              <span className="text-synkro-green">•</span>
+              <span className="text-revital-green">•</span>
               {t('settings.security.tips.unique')}
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-synkro-green">•</span>
+              <span className="text-revital-green">•</span>
               {t('settings.security.tips.mix')}
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-synkro-green">•</span>
+              <span className="text-revital-green">•</span>
               {t('settings.security.tips.avoid')}
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-synkro-green">•</span>
+              <span className="text-revital-green">•</span>
               {t('settings.security.tips.change')}
             </li>
             <li className="flex items-start gap-2">
-              <span className="text-synkro-green">•</span>
+              <span className="text-revital-green">•</span>
               {t('settings.security.tips.share')}
-========
-              <span className="text-revital-green">•</span>
-              Use a unique password that you don&apos;t use for other accounts
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-revital-green">•</span>
-              Include a mix of uppercase, lowercase, numbers, and symbols
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-revital-green">•</span>
-              Avoid using easily guessable information like birthdays or names
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-revital-green">•</span>
-              Change your password regularly to maintain security
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-revital-green">•</span>
-              Never share your password with anyone
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/settings/security/page.tsx
             </li>
           </ul>
         </CardContent>

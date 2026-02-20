@@ -77,13 +77,10 @@ export default function AdminPlansNewPage() {
       estado_plan: form.estado_plan ?? 'activo',
     };
     if (form.desc_plan?.trim()) payload.desc_plan = form.desc_plan.trim();
-    if (form.precio_anual !== '' && form.precio_anual != null)
-      payload.precio_anual = Number(form.precio_anual);
-    if (form.max_productos != null && form.max_productos !== '')
-      payload.max_productos = Number(form.max_productos);
-    if (form.max_usuarios != null && form.max_usuarios !== '')
-      payload.max_usuarios = Number(form.max_usuarios);
-    if (form.max_almacenamiento_gb != null && form.max_almacenamiento_gb !== '')
+    if (form.precio_anual != null) payload.precio_anual = Number(form.precio_anual);
+    if (form.max_productos != null) payload.max_productos = Number(form.max_productos);
+    if (form.max_usuarios != null) payload.max_usuarios = Number(form.max_usuarios);
+    if (form.max_almacenamiento_gb != null)
       payload.max_almacenamiento_gb = Number(form.max_almacenamiento_gb);
     if (form.features_json) payload.features_json = form.features_json;
     mutation.mutate(payload);
@@ -185,7 +182,7 @@ export default function AdminPlansNewPage() {
                   type="number"
                   min={0}
                   step="0.01"
-                  value={form.precio_anual === '' ? '' : form.precio_anual}
+                  value={form.precio_anual ?? ''}
                   onChange={(e) =>
                     setForm((f) => ({
                       ...f,

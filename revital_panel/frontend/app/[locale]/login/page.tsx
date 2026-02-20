@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -15,7 +15,7 @@ import { useRouter } from '@/i18n/routing';
 import { useLogin, useAuth } from '@/hooks/use-auth';
 import { isAuthenticated } from '@/utils/apiWrapper';
 
-export default function LoginPage() {
+function LoginContent() {
   const t = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -118,17 +118,10 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/login/page.tsx
                 <Label htmlFor="password">{t('auth.login.passwordLabel')}</Label>
                 <Link
                   href="/forgot-password"
-                  className="text-xs text-synkro-green hover:underline"
-========
-                <Label htmlFor="password">Password</Label>
-                <Link 
-                  href="/forgot-password" 
                   className="text-xs text-revital-green hover:underline"
->>>>>>>> main:revital_panel/frontend/app/login/page.tsx
                 >
                   {t('auth.login.forgotPassword')}
                 </Link>
@@ -162,15 +155,9 @@ export default function LoginPage() {
               </div>
             </div>
 
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/login/page.tsx
             <Button
               type="submit"
-              className="w-full bg-synkro-green hover:bg-synkro-green/90 text-synkro-black"
-========
-            <Button 
-              type="submit" 
               className="w-full bg-revital-green hover:bg-revital-green/90 text-revital-black"
->>>>>>>> main:revital_panel/frontend/app/login/page.tsx
               disabled={loginMutation.isPending}
             >
               {loginMutation.isPending ? (
@@ -185,17 +172,10 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/login/page.tsx
             {t('auth.login.noAccount')}{' '}
             <Link
               href="/register"
-              className="text-synkro-green hover:underline font-medium"
-========
-            Don&apos;t have an account?{' '}
-            <Link 
-              href="/register" 
               className="text-revital-green hover:underline font-medium"
->>>>>>>> main:revital_panel/frontend/app/login/page.tsx
             >
               {t('auth.login.registerLink')}
             </Link>
@@ -205,13 +185,23 @@ export default function LoginPage() {
 
       {/* Footer */}
       <p className="mt-8 text-center text-sm text-muted-foreground">
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/login/page.tsx
-        {t('footer.copyright', { year: new Date().getFullYear() })}
-========
-        © {new Date().getFullYear()} Revital. All rights reserved.
->>>>>>>> main:revital_panel/frontend/app/login/page.tsx
+        © {new Date().getFullYear()} Revital. {t('common.rightsReserved')}
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <RefreshCw className="h-8 w-8 animate-spin text-revital-green" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }
 

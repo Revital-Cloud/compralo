@@ -74,13 +74,8 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-2">
                         <h3 className="font-semibold">{section.title}</h3>
                         {section.comingSoon && (
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/settings/page.tsx
-                          <span className="text-xs bg-synkro-green/10 text-synkro-green px-2 py-0.5 rounded-full">
-                            {t('settings.comingSoon')}
-========
                           <span className="text-xs bg-revital-green/10 text-revital-green px-2 py-0.5 rounded-full">
-                            Coming Soon
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/settings/page.tsx
+                            {t('settings.comingSoon')}
                           </span>
                         )}
                       </div>
@@ -111,13 +106,8 @@ export default function SettingsPage() {
               <span className="text-sm">{t('settings.companyProfile')}</span>
             </div>
             <Link 
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/settings/page.tsx
               href={`${localePrefix}/settings/profile`} 
-              className="text-sm text-synkro-green hover:underline"
-========
-              href="/settings/profile" 
               className="text-sm text-revital-green hover:underline"
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/settings/page.tsx
             >
               {t('common.edit')}
             </Link>
@@ -128,13 +118,8 @@ export default function SettingsPage() {
               <span className="text-sm">{t('settings.password')}</span>
             </div>
             <Link 
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/settings/page.tsx
               href={`${localePrefix}/settings/security`} 
-              className="text-sm text-synkro-green hover:underline"
-========
-              href="/settings/security" 
               className="text-sm text-revital-green hover:underline"
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/settings/page.tsx
             >
               {t('common.edit')}
             </Link>

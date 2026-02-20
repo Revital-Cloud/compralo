@@ -24,6 +24,7 @@
     "success": "Success",
     "warning": "Warning",
     "info": "Info",
+    "rightsReserved": "All rights reserved.",
     "settings": "Settings"
   },
   "sidebar": {
@@ -51,6 +52,14 @@
     "subtitle": "Create, manage and scale your online store with our comprehensive platform. Real-time statistics dashboard, product manager with automatic SEO, headless CMS and marketing tools.",
     "primaryButton": "Create My Store",
     "secondaryButton": "Request Demo",
+    "badge": "Introducing Revital: Your All-in-One E-commerce Platform",
+    "goToDashboard": "Go to Dashboard",
+    "exploreFeatures": "Explore Features",
+    "getStartedFree": "Get Started Free",
+    "viewPricing": "View Pricing",
+    "noCreditCard": "No credit card required",
+    "freeForever": "Free forever plan",
+    "setupInMinutes": "Setup in minutes",
     "features": [
       "Native Wompi integration for Colombia",
       "Detailed real-time statistics dashboard",
@@ -60,6 +69,7 @@
   },
   "navigation": {
     "logo": "Synkro",
+    "platformSubtitle": "E-commerce Platform",
     "menuItems": {
       "features": "Features",
       "security": "Security",
@@ -67,6 +77,47 @@
       "faq": "FAQ"
     },
     "ctaButton": "Get Started Free"
+  },
+  "processFlow": {
+    "badge": "Implementation Process",
+    "title": "Your Path to Digital Success",
+    "subtitle": "A step-by-step process designed to take your business from concept to digital reality.",
+    "steps": [
+      { "phase": "Phase 1", "title": "Plan Your Vision", "description": "Define your goals, target audience and e-commerce strategy. We help you map the path to success.", "duration": "1-2 days", "features": ["Market analysis", "Goal definition", "Brand strategy"] },
+      { "phase": "Phase 2", "title": "Design Your Store", "description": "Create an attractive, personalized shopping experience. Choose templates, customize the design and reflect your brand.", "duration": "2-3 days", "features": ["Custom design", "Unique branding", "Optimized UX"] },
+      { "phase": "Phase 3", "title": "Develop Functionality", "description": "Integrate payment gateways, configure shipping, and add the tools you need to run your store efficiently.", "duration": "3-5 days", "features": ["Payment integration", "Shipping system", "Custom APIs"] },
+      { "phase": "Phase 4", "title": "Optimize and Test", "description": "We ensure everything works perfectly. Performance, security and usability testing before the big launch.", "duration": "1-2 days", "features": ["Full testing", "SEO optimization", "Security guaranteed"] },
+      { "phase": "Phase 5", "title": "Launch and Grow", "description": "Your store is ready! Launch to the market and use our marketing and analytics tools to grow continuously.", "duration": "Ongoing", "features": ["Official launch", "Marketing tools", "Advanced analytics"] }
+    ]
+  },
+  "getStarted": {
+    "badge": "Start Your E-commerce Journey",
+    "title": "Get Started with Revital",
+    "subtitle": "Create your free account and start building your online store today. No credit card required.",
+    "whyChoose": "Why Choose Revital?",
+    "benefit1Title": "Launch in Minutes",
+    "benefit1Description": "Get your store up and running with our guided setup",
+    "benefit2Title": "Enterprise Security",
+    "benefit2Description": "PCI DSS compliant with SSL encryption",
+    "benefit3Title": "Instant Payments",
+    "benefit3Description": "Native integration with Wompi and more",
+    "trustBy": "Trusted by businesses across Colombia",
+    "feature1": "Free setup assistance",
+    "feature2": "No credit card required",
+    "feature3": "14-day free trial",
+    "feature4": "Cancel anytime",
+    "welcomeBack": "Welcome back, {name}!",
+    "continueManaging": "Continue managing your e-commerce from your dashboard.",
+    "goToDashboard": "Go to Dashboard",
+    "createAccount": "Create Your Free Account",
+    "joinThousands": "Join thousands of businesses using Revital to power their online stores.",
+    "signUpFree": "Sign Up Free",
+    "or": "or",
+    "signInExisting": "Sign In to Existing Account",
+    "termsAgree": "By signing up, you agree to our",
+    "and": "and",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy"
   },
   "features": {
     "title": "Everything you need to sell online",
@@ -162,6 +213,15 @@
   "pricing": {
     "title": "Plans that adapt to your business",
     "subtitle": "Start free and scale as you grow",
+    "badge": "Pricing Plans",
+    "flexibleTitle": "Flexible Plans for Your Growth",
+    "flexibleSubtitle": "Choose the Revital plan that best fits your business size and needs. Start free, upgrade as you grow.",
+    "mostPopular": "Most Popular",
+    "saveWithAnnual": "with annual billing",
+    "managePlan": "Manage Plan",
+    "allPlansTrial": "All plans include a 14-day free trial. No credit card required.",
+    "viewComparison": "View Full Plan Comparison",
+    "signUpNow": "Sign Up Now",
     "plans": {
       "starter": {
         "name": "Starter",
@@ -279,13 +339,20 @@
     },
     "sections": {
       "platform": {
-        "label": "Platform"
+        "label": "Platform",
+        "links": {
+          "dashboard": "Dashboard",
+          "login": "Login",
+          "signUp": "Sign Up"
+        }
       },
       "product": {
         "label": "Product",
         "links": {
           "features": "Features",
           "pricing": "Pricing",
+          "security": "Security",
+          "faq": "FAQ",
           "testimonials": "Testimonials",
           "integrations": "Integrations"
         }
@@ -346,7 +413,11 @@
       "submitButton": "Create account",
       "submitting": "Creating account...",
       "hasAccount": "Already have an account?",
-      "loginLink": "Sign in"
+      "loginLink": "Sign in",
+      "termsPrefix": "I agree to the",
+      "termsLink": "Terms of Service",
+      "and": "and",
+      "privacyLink": "Privacy Policy"
     },
     "forgotPassword": {
       "title": "Forgot password",

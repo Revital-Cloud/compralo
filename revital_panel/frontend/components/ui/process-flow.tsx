@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import {
   Clock,
@@ -11,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 interface ProcessStep {
   id: number;
@@ -25,89 +27,42 @@ interface ProcessStep {
   gradient: string;
 }
 
-const processSteps: ProcessStep[] = [
-  {
-    id: 1,
-    title: "Planifica Tu Visión",
-    phase: "Fase 1",
-    description:
-      "Define tus objetivos, público objetivo y estrategia de e-commerce. Te ayudamos a trazar el camino hacia el éxito.",
-    icon: ClipboardList,
-    status: "pending",
-    duration: "1-2 días",
-    features: [
-      "Análisis de mercado",
-      "Definición de objetivos",
-      "Estrategia de marca",
-    ],
-    color: "blue",
-    gradient: "from-blue-500 to-blue-600",
-  },
-  {
-    id: 2,
-    title: "Diseña Tu Tienda",
-    phase: "Fase 2",
-    description:
-      "Crea una experiencia de compra atractiva y personalizada. Elige plantillas, personaliza el diseño y refleja tu marca.",
-    icon: Palette,
-    status: "pending",
-    duration: "2-3 días",
-    features: ["Diseño personalizado", "Branding único", "UX optimizada"],
-    color: "purple",
-    gradient: "from-purple-500 to-purple-600",
-  },
-  {
-    id: 3,
-    title: "Desarrolla Funcionalidades",
-    phase: "Fase 3",
-    description:
-      "Integra pasarelas de pago, configura envíos, y añade las herramientas que necesitas para operar tu tienda eficientemente.",
-    icon: Code,
-    status: "pending",
-    duration: "3-5 días",
-    features: [
-      "Integración de pagos",
-      "Sistema de envíos",
-      "APIs personalizadas",
-    ],
-    color: "green",
-    gradient: "from-green-500 to-green-600",
-  },
-  {
-    id: 4,
-    title: "Optimiza y Prueba",
-    phase: "Fase 4",
-    description:
-      "Aseguramos que todo funcione a la perfección. Pruebas de rendimiento, seguridad y usabilidad antes del gran lanzamiento.",
-    icon: SearchCheck,
-    status: "pending",
-    duration: "1-2 días",
-    features: ["Testing completo", "Optimización SEO", "Seguridad garantizada"],
-    color: "orange",
-    gradient: "from-orange-500 to-orange-600",
-  },
-  {
-    id: 5,
-    title: "Lanza y Crece",
-    phase: "Fase 5",
-    description:
-      "¡Tu tienda está lista! Lanza al mercado y utiliza nuestras herramientas de marketing y análisis para crecer continuamente.",
-    icon: Rocket,
-    status: "pending",
-    duration: "Ongoing",
-    features: ["Lanzamiento oficial", "Marketing tools", "Analytics avanzados"],
-    color: "pink",
-    gradient: "from-pink-500 to-pink-600",
-  },
-];
+const ICONS = [ClipboardList, Palette, Code, SearchCheck, Rocket] as const;
+const COLORS = ["blue", "purple", "green", "orange", "pink"] as const;
+const GRADIENTS = [
+  "from-blue-500 to-blue-600",
+  "from-purple-500 to-purple-600",
+  "from-green-500 to-green-600",
+  "from-orange-500 to-orange-600",
+  "from-pink-500 to-pink-600",
+] as const;
 
 interface ProcessFlowProps {
   steps?: ProcessStep[];
 }
 
-export default function ProcessFlow({
-  steps = processSteps,
-}: ProcessFlowProps) {
+export default function ProcessFlow({ steps: stepsProp }: ProcessFlowProps) {
+  const t = useTranslations("processFlow");
+  const stepsData = t.raw("steps") as Array<{
+    phase: string;
+    title: string;
+    description: string;
+    duration: string;
+    features: string[];
+  }>;
+  const defaultSteps: ProcessStep[] = (stepsData ?? []).map((step, i) => ({
+    id: i + 1,
+    title: step.title,
+    phase: step.phase,
+    description: step.description,
+    icon: ICONS[i] ?? Rocket,
+    status: "pending" as const,
+    duration: step.duration,
+    features: step.features ?? [],
+    color: COLORS[i] ?? "blue",
+    gradient: GRADIENTS[i] ?? "from-blue-500 to-blue-600",
+  }));
+  const steps = stepsProp ?? defaultSteps;
   const [currentStep, setCurrentStep] = useState(0);
 
   const handleStepClick = (stepIndex: number) => {
@@ -136,14 +91,13 @@ export default function ProcessFlow({
       <div className="container mx-auto max-w-7xl px-4 lg:px-8">
         <div className="text-center mb-12 lg:mb-16">
           <Badge variant="revital" className="mb-4">
-            Proceso de Implementación
+            {t("badge")}
           </Badge>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-regular tracking-tighter mb-4 text-gray-900 dark:text-white">
-            Tu Camino al Éxito Digital
+            {t("title")}
           </h2>
           <p className="text-base lg:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Un proceso paso a paso diseñado para llevar tu negocio del concepto
-            a la realidad digital.
+            {t("subtitle")}
           </p>
         </div>
 

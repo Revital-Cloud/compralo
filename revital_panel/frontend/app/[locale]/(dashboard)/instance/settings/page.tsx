@@ -147,11 +147,7 @@ export default function InstanceSettingsPage() {
                     disabled={updateInstance.isPending}
                   />
                   <span className="text-sm text-muted-foreground whitespace-nowrap">
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/instance/settings/page.tsx
                     {t('instance.settings.subdomainSuffix')}
-========
-                    .revital.store
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/instance/settings/page.tsx
                   </span>
                 </div>
               </div>

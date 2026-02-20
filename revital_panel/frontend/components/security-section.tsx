@@ -3,65 +3,31 @@
 import React from "react";
 import { Shield, Lock, Database, Zap, CheckCircle, Globe } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useTranslations } from "next-intl";
 
-interface SecurityFeature {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  status: string;
-}
-
-const securityFeatures: SecurityFeature[] = [
-  {
-    icon: <Shield className="w-6 h-6 text-revital-green" />,
-    title: "Certificación PCI DSS",
-    description:
-      "Cumplimiento total con estándares de seguridad para procesamiento de pagos.",
-    status: "Certificado",
-  },
-  {
-    icon: <Lock className="w-6 h-6 text-revital-green" />,
-    title: "Encriptación SSL/TLS",
-    description:
-      "Todas las comunicaciones protegidas con encriptación de grado militar.",
-    status: "Activo",
-  },
-  {
-    icon: <Database className="w-6 h-6 text-revital-green" />,
-    title: "Backups Automáticos",
-    description:
-      "Respaldos diarios automáticos con recuperación en menos de 4 horas.",
-    status: "Diario",
-  },
-  {
-    icon: <Zap className="w-6 h-6 text-revital-green" />,
-    title: "Uptime 99.9%",
-    description: "Infraestructura redundante con garantía de disponibilidad.",
-    status: "SLA",
-  },
-  {
-    icon: <CheckCircle className="w-6 h-6 text-revital-green" />,
-    title: "Auditorías de Seguridad",
-    description: "Revisiones mensuales de seguridad y pruebas de penetración.",
-    status: "Mensual",
-  },
-  {
-    icon: <Globe className="w-6 h-6 text-revital-green" />,
-    title: "GDPR Compliance",
-    description:
-      "Cumplimiento con regulaciones de protección de datos internacionales.",
-    status: "Compliant",
-  },
-];
-
-const stats = [
-  { value: "99.9%", label: "Uptime Garantizado" },
-  { value: "<4h", label: "Tiempo de Recuperación" },
-  { value: "256-bit", label: "Encriptación SSL" },
-  { value: "24h", label: "Monitoreo de Seguridad" },
-];
+const ICONS = [Shield, Lock, Database, Zap, CheckCircle, Globe] as const;
+const ITEM_KEYS = ["pci", "ssl", "backups", "uptime", "audits", "gdpr"] as const;
+const STAT_KEYS = ["uptime", "recovery", "encryption", "monitoring"] as const;
+const STAT_VALUES = ["99.9%", "<4h", "256-bit", "24h"] as const;
 
 export function SecuritySection() {
+  const t = useTranslations("security");
+
+  const securityFeatures = ITEM_KEYS.map((key, index) => {
+    const Icon = ICONS[index];
+    return {
+      icon: <Icon className="w-6 h-6 text-revital-green" />,
+      title: t(`items.${key}.title`),
+      description: t(`items.${key}.description`),
+      status: t(`items.${key}.status`),
+    };
+  });
+
+  const stats = STAT_KEYS.map((key, index) => ({
+    value: STAT_VALUES[index],
+    label: t(`stats.${key}`),
+  }));
+
   return (
     <section
       id="security"
@@ -70,18 +36,16 @@ export function SecuritySection() {
       <div className="container mx-auto max-w-7xl px-6">
         <div className="text-center mb-16">
           <Badge variant="revital" className="mb-4">
-            Seguridad y Confiabilidad
+            {t("badge")}
           </Badge>
           <h2 className="text-3xl md:text-5xl font-regular tracking-tighter mb-4 dark:text-white">
-            Tu Negocio, Protegido
+            {t("heading")}
           </h2>
           <p className="text-lg text-muted-foreground dark:text-gray-400 max-w-2xl mx-auto">
-            Infraestructura de nivel empresarial con las más altas
-            certificaciones de seguridad para que te enfoques en vender.
+            {t("subheading")}
           </p>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
           {stats.map((stat, index) => (
             <div key={index} className="text-center">
@@ -95,7 +59,6 @@ export function SecuritySection() {
           ))}
         </div>
 
-        {/* Security Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {securityFeatures.map((feature, index) => (
             <div
@@ -120,10 +83,9 @@ export function SecuritySection() {
           ))}
         </div>
 
-        {/* Trust Indicators */}
         <div className="mt-16 text-center">
           <p className="text-muted-foreground dark:text-gray-400 mb-6">
-            Confían en nuestra seguridad empresas como:
+            {t("trustIndicators")}
           </p>
           <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
             <div className="text-2xl font-bold text-gray-400 dark:text-gray-500">

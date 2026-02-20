@@ -114,7 +114,6 @@ function CreateInstanceForm({ onSuccess }: { onSuccess: () => void }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/instance/page.tsx
         {!hasActiveSubscription ? (
           <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
             <div className="flex items-start gap-3">
@@ -137,35 +136,6 @@ function CreateInstanceForm({ onSuccess }: { onSuccess: () => void }) {
                   </Link>
                 </Button>
               </div>
-========
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="nom_instancia">Store Name</Label>
-            <Input
-              id="nom_instancia"
-              placeholder="My Awesome Store"
-              value={formData.nom_instancia}
-              onChange={(e) => setFormData(prev => ({ ...prev, nom_instancia: e.target.value }))}
-              disabled={createInstance.isPending}
-            />
-            <p className="text-xs text-muted-foreground">
-              This is the display name for your store.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="slug_instancia">Store URL Slug</Label>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">revital.store/</span>
-              <Input
-                id="slug_instancia"
-                placeholder="my-store"
-                value={formData.slug_instancia}
-                onChange={(e) => handleSlugChange(e.target.value)}
-                disabled={createInstance.isPending}
-                className="flex-1"
-              />
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/instance/page.tsx
             </div>
           </div>
         ) : (
@@ -184,11 +154,10 @@ function CreateInstanceForm({ onSuccess }: { onSuccess: () => void }) {
               </p>
             </div>
 
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/instance/page.tsx
             <div className="space-y-2">
               <Label htmlFor="slug_instancia">{t('instance.create.storeSlug')}</Label>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">synkro.store/</span>
+                <span className="text-sm text-muted-foreground">revital.store/</span>
                 <Input
                   id="slug_instancia"
                   placeholder="my-store"
@@ -205,7 +174,7 @@ function CreateInstanceForm({ onSuccess }: { onSuccess: () => void }) {
 
             <Button 
               type="submit" 
-              className="w-full bg-synkro-green hover:bg-synkro-green/90 text-synkro-black"
+              className="w-full bg-revital-green hover:bg-revital-green/90 text-revital-black"
               disabled={createInstance.isPending}
             >
               {createInstance.isPending ? (
@@ -222,26 +191,6 @@ function CreateInstanceForm({ onSuccess }: { onSuccess: () => void }) {
             </Button>
           </form>
         )}
-========
-          <Button 
-            type="submit" 
-            className="w-full bg-revital-green hover:bg-revital-green/90 text-revital-black"
-            disabled={createInstance.isPending}
-          >
-            {createInstance.isPending ? (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <Plus className="mr-2 h-4 w-4" />
-                Create my e-commerce
-              </>
-            )}
-          </Button>
-        </form>
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/instance/page.tsx
       </CardContent>
     </Card>
   );

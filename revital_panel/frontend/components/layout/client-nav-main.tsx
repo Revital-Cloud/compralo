@@ -110,3 +110,5 @@ export function AdminNavMain({ items }: AdminNavMainProps) {
     </>
   );
 }
+
+export { AdminNavMain as ClientNavMain };

@@ -290,37 +290,21 @@ function ResourcesPageContent() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/resources/page.tsx
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
             <div className="p-3 sm:p-4 rounded-lg bg-muted/50">
-              <p className="text-2xl sm:text-3xl font-bold text-synkro-green">
-========
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-            <div className="p-4 rounded-lg bg-muted/50">
-              <p className="text-3xl font-bold text-revital-green">
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/resources/page.tsx
+              <p className="text-2xl sm:text-3xl font-bold text-revital-green">
                 {currentPlan?.max_productos || '∞'}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">{t('resources.planLimits.maxProducts')}</p>
             </div>
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/resources/page.tsx
             <div className="p-3 sm:p-4 rounded-lg bg-muted/50">
-              <p className="text-2xl sm:text-3xl font-bold text-synkro-green">
-========
-            <div className="p-4 rounded-lg bg-muted/50">
-              <p className="text-3xl font-bold text-revital-green">
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/resources/page.tsx
+              <p className="text-2xl sm:text-3xl font-bold text-revital-green">
                 {currentPlan?.max_usuarios || '∞'}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">{t('resources.planLimits.maxUsers')}</p>
             </div>
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/resources/page.tsx
             <div className="p-3 sm:p-4 rounded-lg bg-muted/50">
-              <p className="text-2xl sm:text-3xl font-bold text-synkro-green">
-========
-            <div className="p-4 rounded-lg bg-muted/50">
-              <p className="text-3xl font-bold text-revital-green">
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/resources/page.tsx
+              <p className="text-2xl sm:text-3xl font-bold text-revital-green">
                 {currentPlan?.max_almacenamiento_gb || '∞'}
               </p>
               <p className="text-xs sm:text-sm text-muted-foreground">{t('resources.planLimits.gbStorage')}</p>

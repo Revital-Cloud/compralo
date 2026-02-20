@@ -317,9 +317,8 @@ export default function InvoiceDetailPage({
           {invoice.estado_pago === 'pendiente' && (
             <Card>
               <CardContent className="pt-6">
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/(dashboard)/billing/[id]/page.tsx
                 <Button 
-                  className="w-full bg-synkro-green hover:bg-synkro-green/90 text-synkro-black"
+                  className="w-full bg-revital-green hover:bg-revital-green/90 text-revital-black"
                   onClick={handlePayNow}
                   disabled={isProcessingPayment}
                 >
@@ -331,10 +330,6 @@ export default function InvoiceDetailPage({
                   ) : (
                     t('billing.invoice.payNow')
                   )}
-========
-                <Button className="w-full bg-revital-green hover:bg-revital-green/90 text-revital-black">
-                  Pay Now
->>>>>>>> main:revital_panel/frontend/app/(dashboard)/billing/[id]/page.tsx
                 </Button>
               </CardContent>
             </Card>

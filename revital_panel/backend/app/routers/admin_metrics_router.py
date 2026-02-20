@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from core.database import get_db
-from core.dependencies import require_admin_synkro
+from core.dependencies import require_admin_revital
 from schemas.auth_schema import UserInToken
 from schemas.admin_metrics_schema import (
     AdminOverviewMetrics,
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api/admin/metrics", tags=["Admin Metrics"])
 @router.get("/overview", response_model=AdminOverviewMetrics)
 def get_admin_overview(
     db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(require_admin_synkro),
+    current_user: UserInToken = Depends(require_admin_revital),
 ):
     """
     Devuelve un resumen general de métricas para el dashboard admin.
@@ -44,7 +44,7 @@ def get_revenue_timeseries(
         description="Fecha final del rango (por defecto, hoy)",
     ),
     db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(require_admin_synkro),
+    current_user: UserInToken = Depends(require_admin_revital),
 ):
     """
     Devuelve la serie temporal de ingresos diarios en el rango indicado.
@@ -75,7 +75,7 @@ def get_clients_timeseries(
         description="Fecha final del rango (por defecto, hoy)",
     ),
     db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(require_admin_synkro),
+    current_user: UserInToken = Depends(require_admin_revital),
 ):
     """
     Devuelve la serie temporal mensual de registros / trials / activos.
@@ -98,7 +98,7 @@ def get_clients_timeseries(
 @router.get("/instances-by-plan", response_model=InstancesByPlanResponse)
 def get_instances_by_plan(
     db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(require_admin_synkro),
+    current_user: UserInToken = Depends(require_admin_revital),
 ):
     """
     Devuelve la distribución de instancias por plan y estado.

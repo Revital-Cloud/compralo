@@ -3,10 +3,13 @@
 import React from "react";
 import { ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { faqContent } from "@/content";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
+
+const FAQ_KEYS = ["wompi", "cms", "support", "customization", "security"] as const;
 
 export function FAQSection() {
+  const t = useTranslations("faq");
   const [openItems, setOpenItems] = React.useState<number[]>([]);
 
   const toggleItem = (index: number) => {
@@ -20,20 +23,20 @@ export function FAQSection() {
       <div className="container mx-auto max-w-4xl px-6">
         <div className="text-center mb-16">
           <Badge variant="revital" className="mb-4">
-            Preguntas Frecuentes
+            {t("title")}
           </Badge>
           <h2 className="text-3xl md:text-5xl font-regular tracking-tighter mb-4 dark:text-white">
-            {faqContent.title}
+            {t("title")}
           </h2>
           <p className="text-lg text-muted-foreground dark:text-gray-400 max-w-2xl mx-auto">
-            {faqContent.subtitle}
+            {t("subtitle")}
           </p>
         </div>
 
         <div className="space-y-4">
-          {faqContent.questions.map((item, index) => (
+          {FAQ_KEYS.map((key, index) => (
             <div
-              key={index}
+              key={key}
               className="border border-gray-200 dark:border-revital-green/20 rounded-lg overflow-hidden bg-white dark:bg-revital-black"
             >
               <button
@@ -41,7 +44,7 @@ export function FAQSection() {
                 className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 dark:hover:bg-revital-black/80 transition-colors"
               >
                 <span className="font-medium text-gray-900 dark:text-white pr-4">
-                  {item.question}
+                  {t(`questions.${key}.question`)}
                 </span>
                 <ChevronDown
                   className={cn(
@@ -60,7 +63,7 @@ export function FAQSection() {
                 )}
               >
                 <div className="px-6 pb-4 text-gray-600 dark:text-gray-300 leading-relaxed">
-                  {item.answer}
+                  {t(`questions.${key}.answer`)}
                 </div>
               </div>
             </div>
@@ -69,13 +72,13 @@ export function FAQSection() {
 
         <div className="text-center mt-12">
           <p className="text-muted-foreground dark:text-gray-400 mb-4">
-            ¿No encuentras la respuesta que buscas?
+            {t("notFound")}
           </p>
           <a
             href="#contact"
             className="inline-flex items-center text-revital-green hover:underline font-medium"
           >
-            Contáctanos directamente →
+            {t("contactUs")} →
           </a>
         </div>
       </div>

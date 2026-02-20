@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
@@ -56,6 +57,7 @@ const COUNTRIES: { value: CountryCode; label: string }[] = [
 
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useTranslations();
   const { user, isLoading: authLoading } = useAuth();
   const registerMutation = useRegister();
 
@@ -187,15 +189,8 @@ export default function RegisterPage() {
               <span className="text-2xl font-bold text-revital-green">Revital</span>
             </div>
           </Link>
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/register/page.tsx
-          <CardTitle className="text-xl">Crea tu cuenta</CardTitle>
-          <CardDescription>Comienza tu experiencia e‑commerce con Synkro</CardDescription>
-========
-          <CardTitle className="text-xl">Create your account</CardTitle>
-          <CardDescription>
-            Start your e-commerce journey with Revital
-          </CardDescription>
->>>>>>>> main:revital_panel/frontend/app/register/page.tsx
+          <CardTitle className="text-xl">{t('auth.register.title')}</CardTitle>
+          <CardDescription>{t('auth.register.description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -466,47 +461,26 @@ export default function RegisterPage() {
                     disabled={registerMutation.isPending}
                     className="sr-only peer"
                   />
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/register/page.tsx
                   <div
                     className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
                       acceptTerms
-                        ? 'bg-synkro-green border-synkro-green'
+                        ? 'bg-revital-green border-revital-green'
                         : errors.acceptTerms
                           ? 'border-red-500'
                           : 'border-muted-foreground'
                     }`}
                   >
-                    {acceptTerms && <Check className="h-3 w-3 text-synkro-black" />}
-                  </div>
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  Acepto los{' '}
-                  <Link href="/terms" className="text-synkro-green hover:underline">
-                    Términos y Condiciones
-                  </Link>{' '}
-                  y la{' '}
-                  <Link href="/privacy" className="text-synkro-green hover:underline">
-                    Política de Privacidad
-========
-                  <div className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
-                    acceptTerms 
-                      ? 'bg-revital-green border-revital-green' 
-                      : errors.acceptTerms 
-                        ? 'border-red-500' 
-                        : 'border-muted-foreground'
-                  }`}>
                     {acceptTerms && <Check className="h-3 w-3 text-revital-black" />}
                   </div>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  I agree to the{' '}
+                  {t('auth.register.termsPrefix')}{' '}
                   <Link href="/terms" className="text-revital-green hover:underline">
-                    Terms of Service
+                    {t('auth.register.termsLink')}
                   </Link>{' '}
-                  and{' '}
+                  {t('auth.register.and')}{' '}
                   <Link href="/privacy" className="text-revital-green hover:underline">
-                    Privacy Policy
->>>>>>>> main:revital_panel/frontend/app/register/page.tsx
+                    {t('auth.register.privacyLink')}
                   </Link>
                 </span>
               </label>
@@ -516,41 +490,26 @@ export default function RegisterPage() {
             </div>
 
             {/* Submit Button */}
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/register/page.tsx
             <Button
               type="submit"
-              className="w-full bg-synkro-green hover:bg-synkro-green/90 text-synkro-black font-medium h-12"
-========
-            <Button 
-              type="submit" 
               className="w-full bg-revital-green hover:bg-revital-green/90 text-revital-black font-medium h-12"
->>>>>>>> main:revital_panel/frontend/app/register/page.tsx
               disabled={registerMutation.isPending}
             >
               {registerMutation.isPending ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Creando cuenta...
+                  {t('auth.register.submitting')}
                 </>
               ) : (
-                'Crear cuenta'
+                t('auth.register.submitButton')
               )}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/register/page.tsx
-            ¿Ya tienes una cuenta?{' '}
-            <Link href="/login" className="text-synkro-green hover:underline font-medium">
-              Inicia sesión
-========
-            Already have an account?{' '}
-            <Link 
-              href="/login" 
-              className="text-revital-green hover:underline font-medium"
-            >
-              Sign in
->>>>>>>> main:revital_panel/frontend/app/register/page.tsx
+            {t('auth.register.hasAccount')}{' '}
+            <Link href="/login" className="text-revital-green hover:underline font-medium">
+              {t('auth.register.loginLink')}
             </Link>
           </div>
         </CardContent>
@@ -558,11 +517,7 @@ export default function RegisterPage() {
 
       {/* Footer */}
       <p className="mt-8 text-center text-sm text-muted-foreground">
-<<<<<<<< HEAD:revital_panel/frontend/app/[locale]/register/page.tsx
-        © {new Date().getFullYear()} Synkro. Todos los derechos reservados.
-========
-        © {new Date().getFullYear()} Revital. All rights reserved.
->>>>>>>> main:revital_panel/frontend/app/register/page.tsx
+        © {new Date().getFullYear()} Revital. {t('common.rightsReserved')}
       </p>
     </div>
   );

@@ -24,6 +24,7 @@
     "success": "Éxito",
     "warning": "Advertencia",
     "info": "Información",
+    "rightsReserved": "Todos los derechos reservados.",
     "settings": "Configuración"
   },
   "sidebar": {
@@ -51,6 +52,14 @@
     "subtitle": "Crea, gestiona y escala tu tienda online con nuestra plataforma integral. Panel de estadísticas en tiempo real, gestor de productos con SEO automático, CMS headless y herramientas de marketing.",
     "primaryButton": "Crear Mi Tienda",
     "secondaryButton": "Solicitar Demo",
+    "badge": "Presentando Revital: tu plataforma e-commerce todo-en-uno",
+    "goToDashboard": "Ir al panel",
+    "exploreFeatures": "Explorar características",
+    "getStartedFree": "Comenzar gratis",
+    "viewPricing": "Ver precios",
+    "noCreditCard": "Sin tarjeta de crédito",
+    "freeForever": "Plan gratis siempre",
+    "setupInMinutes": "Configura en minutos",
     "features": [
       "Integración nativa con Wompi para Colombia",
       "Panel de estadísticas detallado en tiempo real",
@@ -60,6 +69,7 @@
   },
   "navigation": {
     "logo": "Synkro",
+    "platformSubtitle": "Plataforma E-commerce",
     "menuItems": {
       "features": "Características",
       "security": "Seguridad",
@@ -67,6 +77,47 @@
       "faq": "FAQ"
     },
     "ctaButton": "Comenzar Gratis"
+  },
+  "processFlow": {
+    "badge": "Proceso de Implementación",
+    "title": "Tu Camino al Éxito Digital",
+    "subtitle": "Un proceso paso a paso diseñado para llevar tu negocio del concepto a la realidad digital.",
+    "steps": [
+      { "phase": "Fase 1", "title": "Planifica Tu Visión", "description": "Define tus objetivos, público objetivo y estrategia de e-commerce. Te ayudamos a trazar el camino hacia el éxito.", "duration": "1-2 días", "features": ["Análisis de mercado", "Definición de objetivos", "Estrategia de marca"] },
+      { "phase": "Fase 2", "title": "Diseña Tu Tienda", "description": "Crea una experiencia de compra atractiva y personalizada. Elige plantillas, personaliza el diseño y refleja tu marca.", "duration": "2-3 días", "features": ["Diseño personalizado", "Branding único", "UX optimizada"] },
+      { "phase": "Fase 3", "title": "Desarrolla Funcionalidades", "description": "Integra pasarelas de pago, configura envíos, y añade las herramientas que necesitas para operar tu tienda eficientemente.", "duration": "3-5 días", "features": ["Integración de pagos", "Sistema de envíos", "APIs personalizadas"] },
+      { "phase": "Fase 4", "title": "Optimiza y Prueba", "description": "Aseguramos que todo funcione a la perfección. Pruebas de rendimiento, seguridad y usabilidad antes del gran lanzamiento.", "duration": "1-2 días", "features": ["Testing completo", "Optimización SEO", "Seguridad garantizada"] },
+      { "phase": "Fase 5", "title": "Lanza y Crece", "description": "¡Tu tienda está lista! Lanza al mercado y utiliza nuestras herramientas de marketing y análisis para crecer continuamente.", "duration": "Ongoing", "features": ["Lanzamiento oficial", "Marketing tools", "Analytics avanzados"] }
+    ]
+  },
+  "getStarted": {
+    "badge": "Comienza tu camino e-commerce",
+    "title": "Comienza con Revital",
+    "subtitle": "Crea tu cuenta gratis y empieza a construir tu tienda online hoy. No necesitas tarjeta de crédito.",
+    "whyChoose": "¿Por qué elegir Revital?",
+    "benefit1Title": "Lanza en minutos",
+    "benefit1Description": "Pon tu tienda en marcha con nuestra guía de configuración",
+    "benefit2Title": "Seguridad empresarial",
+    "benefit2Description": "Cumplimiento PCI DSS con encriptación SSL",
+    "benefit3Title": "Pagos al instante",
+    "benefit3Description": "Integración nativa con Wompi y más",
+    "trustBy": "Con la confianza de negocios en Colombia",
+    "feature1": "Asistencia gratuita de configuración",
+    "feature2": "Sin tarjeta de crédito",
+    "feature3": "Prueba gratis de 14 días",
+    "feature4": "Cancela cuando quieras",
+    "welcomeBack": "Bienvenido de nuevo, {name}!",
+    "continueManaging": "Sigue gestionando tu e-commerce desde tu panel.",
+    "goToDashboard": "Ir al panel",
+    "createAccount": "Crea tu cuenta gratis",
+    "joinThousands": "Únete a miles de negocios que usan Revital para su tienda online.",
+    "signUpFree": "Registrarse gratis",
+    "or": "o",
+    "signInExisting": "Iniciar sesión en cuenta existente",
+    "termsAgree": "Al registrarte aceptas nuestros",
+    "and": "y",
+    "termsOfService": "Términos de Servicio",
+    "privacyPolicy": "Política de Privacidad"
   },
   "features": {
     "title": "Todo lo que necesitas para vender online",
@@ -162,6 +213,15 @@
   "pricing": {
     "title": "Planes que se adaptan a tu negocio",
     "subtitle": "Comienza gratis y escala según crezcas",
+    "badge": "Planes y precios",
+    "flexibleTitle": "Planes flexibles para tu crecimiento",
+    "flexibleSubtitle": "Elige el plan Revital que mejor se adapte al tamaño y necesidades de tu negocio. Empieza gratis, actualiza cuando crezcas.",
+    "mostPopular": "Más popular",
+    "saveWithAnnual": "con facturación anual",
+    "managePlan": "Gestionar plan",
+    "allPlansTrial": "Todos los planes incluyen 14 días de prueba gratis. No se requiere tarjeta de crédito.",
+    "viewComparison": "Ver comparativa de planes",
+    "signUpNow": "Registrarse ahora",
     "plans": {
       "starter": {
         "name": "Emprendedor",
@@ -279,13 +339,20 @@
     },
     "sections": {
       "platform": {
-        "label": "Plataforma"
+        "label": "Plataforma",
+        "links": {
+          "dashboard": "Panel",
+          "login": "Iniciar sesión",
+          "signUp": "Registrarse"
+        }
       },
       "product": {
         "label": "Producto",
         "links": {
           "features": "Características",
           "pricing": "Precios",
+          "security": "Seguridad",
+          "faq": "FAQ",
           "testimonials": "Testimonios",
           "integrations": "Integraciones"
         }
@@ -346,7 +413,11 @@
       "submitButton": "Crear cuenta",
       "submitting": "Creando cuenta...",
       "hasAccount": "¿Ya tienes una cuenta?",
-      "loginLink": "Iniciar sesión"
+      "loginLink": "Iniciar sesión",
+      "termsPrefix": "Acepto los",
+      "termsLink": "Términos y Condiciones",
+      "and": "y la",
+      "privacyLink": "Política de Privacidad"
     },
     "forgotPassword": {
       "title": "Olvidé mi contraseña",

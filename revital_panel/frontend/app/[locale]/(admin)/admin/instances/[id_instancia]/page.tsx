@@ -101,9 +101,7 @@ export default function AdminInstanceEditPage() {
       region_deployment: form.region_deployment,
       db_host: form.db_host === '' ? null : form.db_host?.trim() || null,
       db_puerto:
-        form.db_puerto !== undefined && form.db_puerto !== null && form.db_puerto !== ''
-          ? Number(form.db_puerto)
-          : undefined,
+        form.db_puerto != null ? Number(form.db_puerto) : undefined,
       db_usuario: form.db_usuario === '' ? null : form.db_usuario?.trim() || null,
       config_json: form.config_json ?? undefined,
     };

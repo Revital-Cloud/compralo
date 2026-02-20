@@ -21,7 +21,7 @@ export function LandingGuard({ children }: LandingGuardProps) {
   useEffect(() => {
     if (isLoading) return;
     if (isAuthenticated && user) {
-      if (user.user_type === 'admin_synkro') {
+      if (user.user_type === 'admin_revital') {
         router.replace('/admin');
       } else {
         router.replace('/dashboard');

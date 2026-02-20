@@ -38,7 +38,7 @@ export function AdminGuard({ children }: AdminGuardProps) {
       return;
     }
 
-    if (user && user.user_type !== 'admin_synkro') {
+    if (user && user.user_type !== 'admin_revital') {
       const localePrefix = `/${locale}`;
       router.push(`${localePrefix}/dashboard`);
       return;
@@ -56,7 +56,7 @@ export function AdminGuard({ children }: AdminGuardProps) {
     );
   }
 
-  if (!isAuthenticated || (user && user.user_type !== 'admin_synkro')) {
+  if (!isAuthenticated || (user && user.user_type !== 'admin_revital')) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">

@@ -91,21 +91,14 @@ export default function AdminPlanEditPage() {
           ? Number(form.precio_mensual)
           : undefined,
       precio_anual:
-        form.precio_anual !== undefined && form.precio_anual !== ''
-          ? Number(form.precio_anual)
-          : null,
+        form.precio_anual != null ? Number(form.precio_anual) : null,
       moneda: form.moneda,
       max_productos:
-        form.max_productos !== undefined && form.max_productos !== ''
-          ? Number(form.max_productos)
-          : undefined,
+        form.max_productos != null ? Number(form.max_productos) : undefined,
       max_usuarios:
-        form.max_usuarios !== undefined && form.max_usuarios !== ''
-          ? Number(form.max_usuarios)
-          : undefined,
+        form.max_usuarios != null ? Number(form.max_usuarios) : undefined,
       max_almacenamiento_gb:
-        form.max_almacenamiento_gb !== undefined &&
-        form.max_almacenamiento_gb !== ''
+        form.max_almacenamiento_gb != null
           ? Number(form.max_almacenamiento_gb)
           : undefined,
       features_json: form.features_json ?? undefined,
@@ -236,7 +229,7 @@ export default function AdminPlanEditPage() {
                   type="number"
                   min={0}
                   step="0.01"
-                  value={form.precio_anual === '' ? '' : form.precio_anual}
+                  value={form.precio_anual ?? ''}
                   onChange={(e) =>
                     setForm((f) => ({
                       ...f,
