@@ -97,6 +97,7 @@ export const transformDiscountPayload = (values: any): any => {
     monto_minimo_producto: safeParseFloat(values.monto_minimo_producto, 0),
     cantidad_minima_producto: safeParseInt(values.cantidad_minima_producto, 1),
     requiere_codigo: values.requiere_codigo || false,
+    id_usuario_destino: values.id_usuario_destino ? Number(values.id_usuario_destino) : undefined,
     // IDs según tab_descuentos: solo category_id_aplica, product_id_aplica, id_marca_aplica
     ...(aplicaA === 'producto_especifico' && {
       id_producto_aplica: parseInt(values.id_producto_aplica),
@@ -150,9 +151,13 @@ export const discountService = {
     })
   },
 
-  async createDiscount(values: any): Promise<{ message: string }> {
+  async createDiscount(values: any): Promise<{ message: string; id_descuento?: number }> {
     const payload = transformDiscountPayload(values)
-    return post<{ message: string }>('/discounts', payload)
+    return post<{ message: string; id_descuento?: number }>('/discounts', payload)
+  },
+
+  async sendCouponToUser(id_descuento: number | string, id_usuario: number): Promise<{ message: string }> {
+    return post<{ message: string }>(`/discounts/${id_descuento}/send-coupon`, { id_usuario })
   },
 
   async updateDiscount(id: string, data: any): Promise<{ message: string }> {

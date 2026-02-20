@@ -41,6 +41,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useActiveDiscounts } from "@/hooks/use-discounts";
+import { discountService } from "@/services/discount.service";
 import { 
   getApplicableDiscount, 
   calculateDiscountedPrice, 
@@ -49,9 +50,18 @@ import {
 
 const CheckoutPage = () => {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isHydrated, isLoadingUser } = useAuth();
   const { items, totals, total, hasItems, isLoading: cartLoading, id_carrito, selectedCanjeId, cartUser } = useCart();
   const queryClient = useQueryClient();
+
+  // Require login for checkout: redirect to login with return URL so after login user comes back to checkout
+  useEffect(() => {
+    if (!isHydrated || isLoadingUser) return;
+    if (!isAuthenticated) {
+      const redirect = encodeURIComponent("/checkout");
+      router.replace(`/login?redirect=${redirect}`);
+    }
+  }, [isHydrated, isLoadingUser, isAuthenticated, router]);
   
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
   const [selectedShippingMethod, setSelectedShippingMethod] = useState<string>("");
@@ -117,8 +127,32 @@ const CheckoutPage = () => {
     ? shippingMethods.find((m) => m.id === selectedShippingMethod)?.price || 0
     : 0;
   const totalConDescuentos = Number(totals?.total_final) ?? subtotal;
-  const finalTotal = totalConDescuentos + shipping;
   const totalDescCanjeado = Number(totals?.total_desc_canjeado ?? 0);
+
+  // Código de descuento aplicado en el carrito: validar y obtener total con descuento para mostrarlo en el resumen
+  const codigoDescuentoStored =
+    typeof window !== "undefined" ? sessionStorage.getItem("checkout_codigo_descuento") : null;
+  const { data: appliedCodeValidation } = useQuery({
+    queryKey: ["discount-validate-checkout", id_carrito, codigoDescuentoStored],
+    queryFn: () =>
+      discountService.validateDiscountForCart(
+        codigoDescuentoStored!.trim(),
+        id_carrito ?? undefined
+      ),
+    enabled:
+      !!id_carrito &&
+      !!codigoDescuentoStored?.trim() &&
+      !!user?.id_usuario,
+    staleTime: 2 * 60 * 1000,
+    retry: false,
+  });
+
+  // Total con descuento de código: partir del total del carrito (ya con 50% Celulares, etc.) y restar el cupón
+  const descuentoCodigoAmount =
+    appliedCodeValidation?.es_aplicable && appliedCodeValidation?.descuento_calculado != null
+      ? Number(appliedCodeValidation.descuento_calculado)
+      : 0;
+  const finalTotal = totalConDescuentos - descuentoCodigoAmount + shipping;
 
   // Handlers
   const handleInformationSubmit = (data: InformationFormData) => {
@@ -199,7 +233,7 @@ const CheckoutPage = () => {
     }
   };
 
-  if (cartLoading) {
+  if (cartLoading || (isHydrated && !isLoadingUser && !isAuthenticated)) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <Loading />
@@ -290,6 +324,12 @@ const CheckoutPage = () => {
               shipping={shipping}
               total={finalTotal}
               discountCanjeAmount={totalDescCanjeado}
+              discountCodeAmount={descuentoCodigoAmount}
+              discountCodeLabel={
+                appliedCodeValidation?.descuento?.nom_descuento ||
+                (codigoDescuentoStored ? `Código ${codigoDescuentoStored}` : undefined)
+              }
+              descuentosAutomaticos={totals?.descuentos_automaticos}
             />
           </div>
         </div>
@@ -349,7 +389,7 @@ function InformationStep({
   user: any;
 }) {
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
-  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [isCreatingNewAddress, setIsCreatingNewAddress] = useState(false);
   
   // Dirección seleccionada
   const selectedAddress = addresses?.find(
@@ -439,20 +479,48 @@ function InformationStep({
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => setIsAddressModalOpen(true)}
+                    onClick={() => setIsCreatingNewAddress(true)}
                     className="flex items-center gap-2"
                   >
                     <Plus className="h-4 w-4" />
                     Nueva
                   </Button>
                 </div>
-                {!selectedAddressId && form.formState.errors.direccion && (
+                {!selectedAddressId && !isCreatingNewAddress && form.formState.errors.direccion && (
                   <p className="text-red-500 text-sm mt-1">
                     {form.formState.errors.direccion.message}
                   </p>
                 )}
               </div>
 
+              {/* Formulario solo visible al crear nueva dirección (inline) o al tener una dirección seleccionada */}
+              {isCreatingNewAddress ? (
+                <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-800/50 space-y-4">
+                  <h4 className="font-medium">Nueva dirección de envío</h4>
+                  <CreateAddressForm
+                    onSuccess={async (newAddress) => {
+                      setIsCreatingNewAddress(false);
+                      queryClient.invalidateQueries({ queryKey: ["addresses"] });
+                      const id = newAddress?.id_direccion ?? newAddress?.id;
+                      if (id != null) {
+                        setSelectedAddressId(String(id));
+                      } else {
+                        const list = await queryClient.fetchQuery({ queryKey: ["addresses"] }) as any[];
+                        if (Array.isArray(list) && list.length > 0) {
+                          const last = list[list.length - 1];
+                          setSelectedAddressId(String(last?.id_direccion ?? last?.id ?? ""));
+                        }
+                      }
+                      toast.success("Dirección creada. Selecciónala en el desplegable si no se eligió automáticamente.");
+                    }}
+                    onCancel={() => setIsCreatingNewAddress(false)}
+                    user={user}
+                    showCancel
+                    nested
+                  />
+                </div>
+              ) : selectedAddress ? (
+              <>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="nombre">
@@ -637,6 +705,8 @@ function InformationStep({
                   </p>
                 )}
               </div>
+            </>
+              ) : null}
             </div>
           )}
 
@@ -655,40 +725,25 @@ function InformationStep({
           </div>
         </form>
 
-        {/* Modal para crear nueva dirección */}
-        <Dialog open={isAddressModalOpen} onOpenChange={setIsAddressModalOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Agregar nueva dirección</DialogTitle>
-            </DialogHeader>
-            <CreateAddressForm
-              onSuccess={(newAddress) => {
-                setIsAddressModalOpen(false);
-                queryClient.invalidateQueries({ queryKey: ["addresses"] });
-                const id = newAddress?.id_direccion ?? newAddress?.id;
-                if (id != null) {
-                  setTimeout(() => {
-                    setSelectedAddressId(String(id));
-                  }, 500);
-                }
-                toast.success("Dirección creada exitosamente");
-              }}
-              user={user}
-            />
-          </DialogContent>
-        </Dialog>
       </CardContent>
     </Card>
   );
 }
 
-// Componente para crear dirección
+// Componente para crear dirección (inline en checkout o en modal)
+// nested=true: renderiza div en lugar de form para evitar form dentro de form (checkout)
 function CreateAddressForm({
   onSuccess,
+  onCancel,
   user,
+  showCancel = false,
+  nested = false,
 }: {
   onSuccess: (address: any) => void;
+  onCancel?: () => void;
   user: any;
+  showCancel?: boolean;
+  nested?: boolean;
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const addressForm = useForm({
@@ -731,8 +786,13 @@ function CreateAddressForm({
     }
   };
 
+  const Wrapper = nested ? "div" : "form";
+  const wrapperProps = nested
+    ? { className: "space-y-4" }
+    : { onSubmit: addressForm.handleSubmit(handleSubmit), className: "space-y-4" };
+
   return (
-    <form onSubmit={addressForm.handleSubmit(handleSubmit)} className="space-y-4">
+    <Wrapper {...wrapperProps}>
       <div>
         <Label htmlFor="modal-nombre_direccion">
           Nombre de la dirección <span className="text-red-500">*</span>
@@ -848,6 +908,11 @@ function CreateAddressForm({
       </div>
 
       <div className="flex justify-end gap-2 pt-4">
+        {showCancel && onCancel && (
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancelar
+          </Button>
+        )}
         <Button
           type="button"
           variant="outline"
@@ -855,11 +920,15 @@ function CreateAddressForm({
         >
           Limpiar
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button
+          type={nested ? "button" : "submit"}
+          disabled={isSubmitting}
+          {...(nested ? { onClick: () => addressForm.handleSubmit(handleSubmit)() } : {})}
+        >
           {isSubmitting ? "Guardando..." : "Guardar dirección"}
         </Button>
       </div>
-    </form>
+    </Wrapper>
   );
 }
 
@@ -1114,19 +1183,25 @@ function PaymentStep({
   );
 }
 
-// Componente Resumen del pedido
+// Componente Resumen del pedido (descuentos automáticos + código aplicado en el carrito)
 function OrderSummary({
   items,
   subtotal,
   shipping,
   total,
   discountCanjeAmount = 0,
+  discountCodeAmount = 0,
+  discountCodeLabel,
+  descuentosAutomaticos,
 }: {
   items: any[];
   subtotal: number;
   shipping: number;
   total: number;
   discountCanjeAmount?: number;
+  discountCodeAmount?: number;
+  discountCodeLabel?: string;
+  descuentosAutomaticos?: Array<{ nombre?: string; descuento_aplicado?: number }>;
 }) {
   const { data: discounts } = useActiveDiscounts()
   return (
@@ -1205,10 +1280,23 @@ function OrderSummary({
             <span>Subtotal</span>
             <span>{formatPrice(subtotal)}</span>
           </div>
+          {Array.isArray(descuentosAutomaticos) && descuentosAutomaticos.length > 0 &&
+            descuentosAutomaticos.map((d: { nombre?: string; descuento_aplicado?: number }, i: number) => (
+              <div key={i} className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                <span>{d.nombre ?? "Descuento"}</span>
+                <span>-{formatPrice(Number(d.descuento_aplicado ?? 0))}</span>
+              </div>
+            ))}
           {discountCanjeAmount > 0 && (
             <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
               <span>Descuento por puntos</span>
               <span>-{formatPrice(discountCanjeAmount)}</span>
+            </div>
+          )}
+          {discountCodeAmount > 0 && (
+            <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+              <span>{discountCodeLabel || "Descuento (código)"}</span>
+              <span>-{formatPrice(discountCodeAmount)}</span>
             </div>
           )}
           <div className="flex justify-between text-sm">
@@ -1219,13 +1307,6 @@ function OrderSummary({
             <span>Total</span>
             <span>{formatPrice(total)}</span>
           </div>
-        </div>
-
-        <div className="mt-6">
-          <Input placeholder="Introduzca el código de promoción" className="mb-2" />
-          <Button variant="outline" className="w-full">
-            Aplicar
-          </Button>
         </div>
       </CardContent>
     </Card>

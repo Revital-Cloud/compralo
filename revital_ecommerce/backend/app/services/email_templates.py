@@ -342,6 +342,34 @@ class EmailTemplates:
             'marketing/abandoned_cart.html',
             **cart_data
         )
+
+    def get_coupon_to_user_template(
+        self,
+        user_name: str,
+        codigo: str,
+        nom_descuento: str,
+        tipo_calculo: bool,
+        val_porce_descuento: Optional[Any] = None,
+        val_monto_descuento: Optional[Any] = None,
+        fec_inicio_str: Optional[str] = None,
+        fec_fin_str: Optional[str] = None,
+        min_valor_pedido: Optional[Any] = None,
+    ) -> str:
+        """
+        Genera el template de envío de código de cupón a un usuario.
+        """
+        return self.render_template(
+            'marketing/coupon_to_user.html',
+            user_name=user_name,
+            codigo=codigo,
+            nom_descuento=nom_descuento,
+            tipo_calculo=tipo_calculo,
+            val_porce_descuento=val_porce_descuento,
+            val_monto_descuento=val_monto_descuento,
+            fec_inicio_str=fec_inicio_str,
+            fec_fin_str=fec_fin_str,
+            min_valor_pedido=min_valor_pedido,
+        )
     
     def get_product_recommendations_template(self, recommendations_data: Dict[str, Any]) -> str:
         """

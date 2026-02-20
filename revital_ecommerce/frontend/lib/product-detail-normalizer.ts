@@ -115,12 +115,56 @@ export function normalizeProductDetail(apiProduct: ApiProductResponse | null | u
     const attrsByKey = v.attributes ?? {}
     const attributesByName: Record<string, string> = {}
     const variantId = Number(v.id)
+    // Track which attribute names (normalized) we've already added to avoid duplicates
+    const addedNames = new Set<string>()
+    // Priorizar atributos que vienen de attributeDefinitions (mapeados desde attribute_id)
+    // sobre claves literales que no están en el mapa
+    const prioritizedEntries: Array<[string, string]> = []
+    const literalEntries: Array<[string, string]> = []
+    
     for (const [attrId, rawValue] of Object.entries(attrsByKey)) {
+      if (rawValue == null || String(rawValue).trim() === "") continue
       const name = attrIdToName[attrId] ?? attrId
-      if (rawValue != null && rawValue !== "") {
-        const displayValue = resolveDisplayValue(apiAttributes, attrId, String(rawValue), variantId)
-        attributesByName[name] = displayValue
+      const displayValue = resolveDisplayValue(apiAttributes, attrId, String(rawValue), variantId)
+      // Si el attrId está en el mapa (viene de attributeDefinitions), tiene prioridad
+      if (attrIdToName[attrId]) {
+        prioritizedEntries.push([name, displayValue])
+      } else {
+        literalEntries.push([name, displayValue])
       }
+    }
+    
+    // Procesar primero los prioritarios (mapeados desde attributeDefinitions)
+    for (const [name, displayValue] of prioritizedEntries) {
+      const normalizedName = name.trim().toLowerCase()
+      if (!addedNames.has(normalizedName)) {
+        attributesByName[name] = displayValue
+        addedNames.add(normalizedName)
+      }
+    }
+    
+    // Luego procesar los literales, saltando duplicados
+    for (const [name, displayValue] of literalEntries) {
+      const normalizedName = name.trim().toLowerCase()
+      const normalizedValue = displayValue.trim().toLowerCase()
+      
+      if (addedNames.has(normalizedName)) {
+        // Ya existe un atributo con este nombre normalizado - verificar si el valor es el mismo
+        const existingEntry = Object.entries(attributesByName).find(
+          ([k]) => k.trim().toLowerCase() === normalizedName
+        )
+        if (existingEntry) {
+          const existingValueNorm = String(existingEntry[1]).trim().toLowerCase()
+          // Si el nombre normalizado coincide y el valor también, es un duplicado - saltar
+          if (existingValueNorm === normalizedValue) {
+            continue // Mismo nombre y mismo valor - saltar duplicado
+          }
+          // Si el nombre coincide pero el valor es diferente, mantener ambos (caso raro pero posible)
+        }
+      }
+      
+      attributesByName[name] = displayValue
+      addedNames.add(normalizedName)
     }
     return {
       id: variantId,

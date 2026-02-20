@@ -3,6 +3,8 @@
  * Usa DOMPurify con allowlist restrictiva para contenido de barra informativa y CMS.
  */
 
+import DOMPurify from 'dompurify';
+
 const ALLOWED_TAGS = ['strong', 'em', 'a', 'br', 'p', 'span'] as const;
 const ALLOWED_ATTR = ['href'] as const;
 
@@ -16,11 +18,9 @@ export function sanitizeHtml(html: string | null | undefined): string {
   if (typeof window === 'undefined') {
     return '';
   }
-  const dompurify = require('dompurify') as { default?: { sanitize: (d: string, o?: object) => string }; sanitize?: (d: string, o?: object) => string };
-  const raw = dompurify.default ?? dompurify;
-  const sanitizeFn = raw?.sanitize;
-  if (typeof sanitizeFn !== 'function') return '';
-  return sanitizeFn.call(raw, html, {
+  
+  if (!DOMPurify || typeof DOMPurify.sanitize !== 'function') return '';
+  return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [...ALLOWED_TAGS],
     ALLOWED_ATTR: [...ALLOWED_ATTR],
   });

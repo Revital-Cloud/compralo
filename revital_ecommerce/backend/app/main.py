@@ -166,7 +166,7 @@ app.add_middleware(
         "/api/auth/change-password", 
         "/api/auth/logout",
         "/api/favorites",
-        "/api/cart",
+        # Cart (/api/carrito-*) is intentionally NOT protected: anonymous users can view and add to cart; login required only at checkout
         "/api/orders",
         "/api/profile",
         "/api/user-discounts",
@@ -183,7 +183,7 @@ app.add_middleware(
         "/api/admin",        # Todo requiere admin
         "/api/email",        # Todo requiere admin
         "/api/points",       # Todo requiere admin
-        "/api/discounts",     # Todo requiere admin
+        # /api/discounts: no está aquí; validate-for-cart y by-code son para clientes. Admin solo en create/update/send-coupon/stats (router)
         "/api/top-info-bar",  # GET/PUT requieren admin; GET /top-info-bar/active es público (protegido en router)
         "/api/attributes",   # CRUD admin
     ]

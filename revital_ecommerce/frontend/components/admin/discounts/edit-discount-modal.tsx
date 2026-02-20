@@ -16,6 +16,9 @@ import { discountModalSchema, type DiscountModalFormData } from '@/schemas/admin
 import { getCategories } from '@/services/category.service'
 import { brandService } from '@/services/brand.service'
 import { getProductsAdmin } from '@/services/product.service'
+import { getUsers } from '@/services/user.service'
+import { discountService } from '@/services/discount.service'
+import { toast } from 'sonner'
 import { parseDateSafe, toLocalISOString, isPastDate } from '@/utils/date-helpers'
 import type { Category } from '@/types/category'
 
@@ -36,6 +39,8 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [brands, setBrands] = useState<any[]>([])
+  const [users, setUsers] = useState<{ id_usuario: number; nom_usuario: string; ape_usuario?: string; email_usuario?: string }[]>([])
+  const [sendingCoupon, setSendingCoupon] = useState(false)
   
   // Estados para controlar los Popovers de fechas
   const [openStartDate, setOpenStartDate] = useState(false)
@@ -101,8 +106,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
   }, [list])
 
   const form = useForm<DiscountModalFormData>({ 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(discountModalSchema as any),
+    resolver: zodResolver(discountModalSchema),
     defaultValues: {
       tipo_descuento: 'porcentaje',
       aplica_a: 'total_pedido',
@@ -111,25 +115,31 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
       ind_es_para_cumpleanos: false,
       solo_primera_compra: false,
       requiere_codigo: false,
+      id_usuario_destino: '',
       cantidad_minima_producto: '1',
     }
   })
   
   const tipoDescuento = form.watch('tipo_descuento')
   const aplicaA = form.watch('aplica_a')
+  const requiereCodigo = form.watch('requiere_codigo')
+  const idUsuarioDestino = form.watch('id_usuario_destino')
+  const codCupon = form.watch('cod_cupon')
 
   // Cargar datos al montar el componente
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [catsData, productsData, brandsData] = await Promise.all([
+        const [catsData, productsData, brandsData, usersData] = await Promise.all([
           getCategories(),
           getProductsAdmin({ limit: 1000, offset: 0 }),
           brandService.getAllBrands(),
+          getUsers().then((r: any) => (Array.isArray(r) ? r : r?.data ?? [])),
         ])
         setCategories(catsData)
         setProducts(productsData as any)
         setBrands(brandsData)
+        setUsers(Array.isArray(usersData) ? usersData : [])
       } catch (error) {
         console.error('Error loading data:', error)
       }
@@ -202,6 +212,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
       monto_minimo_producto: toStr(v.monto_minimo_producto),
       cantidad_minima_producto: toStr(v.cantidad_minima_producto) || '1',
       requiere_codigo: v.requiere_codigo ?? false,
+      id_usuario_destino: toStr(v.id_usuario_destino),
     }
     if (v.aplica_a === 'costo_envio') {
       formattedValues.costo_envio = toStr(v.min_valor_pedido)
@@ -225,7 +236,7 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
     }
   }, [initialValues, open, form, list, findCategoryPath])
 
-  const handleSubmit = form.handleSubmit(async (values) => {
+  const handleSubmit = form.handleSubmit(async (values: DiscountModalFormData) => {
     await onSubmit(values)
     onOpenChange(false)
     setOpenStartDate(false)
@@ -733,6 +744,45 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
               </div>
             </CardContent>
           </Card>
+
+          {requiereCodigo && (
+            <div className="space-y-2">
+              <Label htmlFor="id_usuario_destino">Usuario destinatario (solo él podrá usar el código)</Label>
+              <select
+                id="id_usuario_destino"
+                {...form.register('id_usuario_destino')}
+                className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
+              >
+                <option value="">Ninguno</option>
+                {users.map((u) => (
+                  <option key={u.id_usuario} value={u.id_usuario}>
+                    {u.nom_usuario} {u.ape_usuario || ''} {u.email_usuario ? `(${u.email_usuario})` : ''}
+                  </option>
+                ))}
+              </select>
+              {idUsuarioDestino && codCupon?.trim() && initialValues?.id_descuento && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={sendingCoupon}
+                  onClick={async () => {
+                    setSendingCoupon(true)
+                    try {
+                      await discountService.sendCouponToUser(initialValues.id_descuento, Number(idUsuarioDestino))
+                      toast.success('Código enviado por correo')
+                    } catch (err: any) {
+                      toast.error(err?.response?.data?.detail || 'Error al enviar el código por correo')
+                    } finally {
+                      setSendingCoupon(false)
+                    }
+                  }}
+                >
+                  {sendingCoupon ? 'Enviando...' : 'Enviar código por correo a este usuario'}
+                </Button>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button 

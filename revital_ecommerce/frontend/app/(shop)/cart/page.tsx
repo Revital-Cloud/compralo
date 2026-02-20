@@ -271,8 +271,8 @@ const CartPage = () => {
 
   // Obtener descuentos activos para calcular descuentos automáticos por producto
   const { data: activeDiscounts } = useActiveDiscounts();
-  // Obtener descuentos disponibles para el usuario (incluye cumpleaños y primera compra si aplican)
-  const { data: myAvailableDiscounts } = useMyAvailableDiscounts();
+  // Obtener descuentos disponibles para el usuario (solo si está autenticado; evita 401 en anónimo)
+  const { data: myAvailableDiscounts } = useMyAvailableDiscounts(50, { enabled: !!user?.id_usuario });
   const descuentoCanjeado = totals?.descuento_canjeado as { tipo?: string; valor?: number } | undefined;
   const totalDescCanjeado = Number(totals?.total_desc_canjeado ?? 0);
   
@@ -762,6 +762,65 @@ const CartPage = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Código promocional - Visible en responsive (sin abrir resumen) */}
+            <div className="lg:hidden mb-6">
+              <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <CardContent className="p-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium">
+                    {texts.promoCode}
+                  </p>
+                  {appliedDiscount ? (
+                    <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                          {appliedDiscount.codigo}
+                        </p>
+                        <p className="text-xs text-green-600 dark:text-green-400">
+                          {appliedDiscount.descuento.nom_descuento}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemovePromoCode}
+                        className="text-green-600 hover:text-green-700 dark:text-green-400 shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        placeholder="Código promocional"
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleApplyPromoCode();
+                        }}
+                        className="flex-1 uppercase"
+                        disabled={isApplyingCode}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleApplyPromoCode}
+                        disabled={isApplyingCode || !promoCode.trim()}
+                      >
+                        {isApplyingCode ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          </>
+                        ) : (
+                          "Aplicar"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
             {/* También te puede gustar: productos de las categorías del carrito */}
             <div className="mb-8">
@@ -1410,6 +1469,63 @@ const CartPage = () => {
                     </p>
                   )}
                 </div>
+
+                {/* Código promocional - Mobile sidebar */}
+                <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    {texts.promoCode}
+                  </p>
+                  {appliedDiscount ? (
+                    <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-green-800 dark:text-green-200 truncate">
+                          {appliedDiscount.codigo}
+                        </p>
+                        <p className="text-xs text-green-600 dark:text-green-400 truncate">
+                          {appliedDiscount.descuento.nom_descuento}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemovePromoCode}
+                        className="text-green-600 hover:text-green-700 dark:text-green-400 shrink-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Input
+                        type="text"
+                        placeholder="Código promocional"
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleApplyPromoCode();
+                        }}
+                        className="flex-1 uppercase"
+                        disabled={isApplyingCode}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleApplyPromoCode}
+                        disabled={isApplyingCode || !promoCode.trim()}
+                        className="shrink-0"
+                      >
+                        {isApplyingCode ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Aplicando...
+                          </>
+                        ) : (
+                          "Aplicar"
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="p-6 border-t border-gray-200 dark:border-gray-700">
@@ -1492,12 +1608,13 @@ const CartPage = () => {
         )}
       </div>
 
-      {/* Modal de autenticación para botones protegidos */}
+      {/* Modal de autenticación para botones protegidos (Pagar / Ir a pagar): tras login redirige a checkout */}
       <AuthModal
         isOpen={isAuthDialogOpen}
         onClose={() => setIsAuthDialogOpen(false)}
         title="Debes iniciar sesión para continuar"
         description="Para agregar dirección, método de pago o finalizar tu compra necesitas iniciar sesión o registrarte."
+        redirectTo="/checkout"
       />
 
 

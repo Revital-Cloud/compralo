@@ -6,21 +6,29 @@ incluyendo la creación, actualización, visualización y canje de descuentos.
 """
 from decimal import Decimal
 from fastapi import APIRouter, Body, Depends, HTTPException, status, Request
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from core.database import get_db
 from core.dependencies import get_current_user, require_admin
 from schemas.auth_schema import UserInToken
-from schemas.discount_schema import DiscountCreate, DiscountExchangeableResponse, DiscountUpdate, Discount, ResponseMessage
+from schemas.discount_schema import DiscountCreate, DiscountExchangeableResponse, DiscountUpdate, Discount, ResponseMessage, CreateDiscountResponse
 from services import discount_service
 from schemas.user_discounts_schema import ValidateDiscountRequest, ValidateDiscountResponse
 from core.rate_limiter import limiter
 
 router = APIRouter(tags=["Descuentos"])
 
+
+class SendCouponBody(BaseModel):
+    id_usuario: int
+
 @router.get("/discounts")
-async def get_discounts(db:Session = Depends(get_db)):
+async def get_discounts(
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin()),
+):
     """
-    Obtiene todos los descuentos registrados en la base de datos.
+    Obtiene todos los descuentos registrados en la base de datos (solo admin).
     """
     try:
         discounts = discount_service.get_discounts(db)
@@ -95,9 +103,10 @@ async def validate_discount_for_cart(
                 detail="Código de descuento no encontrado o no válido"
             )
         if not result['es_aplicable']:
+            detail = result.get('motivo_rechazo') or "El código de descuento no es aplicable a tu carrito actual"
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El código de descuento no es aplicable a tu carrito actual"
+                detail=detail
             )
         return result
     except HTTPException:
@@ -189,7 +198,7 @@ async def get_discount_exchangeable(
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error: {str(e)}")
 
-@router.post("/discounts", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
+@router.post("/discounts", response_model=CreateDiscountResponse, status_code=status.HTTP_201_CREATED)
 async def create_discount(
     db:Session = Depends(get_db),
     discount_data: DiscountCreate = Body(...),
@@ -204,11 +213,11 @@ async def create_discount(
         current_user (UserInToken): El usuario autenticado.
         
     Returns:
-        ResponseMessage: Mensaje de confirmación.
+        CreateDiscountResponse: Mensaje e id_descuento (para enviar cupón por correo).
     """
     try:
-        result = discount_service.create_discount(db, discount_data, current_user.id_usuario)
-        return ResponseMessage(message="Descuento creado exitosamente")
+        id_descuento = discount_service.create_discount(db, discount_data, current_user.id_usuario)
+        return CreateDiscountResponse(message="Descuento creado exitosamente", id_descuento=id_descuento)
     except HTTPException:
         raise
     except Exception as e:
@@ -276,6 +285,27 @@ async def deactivate_activate_discount(
             return ResponseMessage(message="Descuento desactivado exitosamente")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/discounts/{id_descuento}/send-coupon", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def send_coupon_to_user(
+    id_descuento: Decimal,
+    payload: SendCouponBody = Body(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin()),
+):
+    """
+    Envía por correo el código del descuento al usuario indicado (solo admin).
+    El cupón queda restringido a ese usuario si el descuento tiene id_usuario_destino.
+    """
+    try:
+        await discount_service.send_coupon_email_to_user(db, id_descuento, Decimal(payload.id_usuario))
+        return ResponseMessage(message="Código enviado por correo correctamente")
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 
 @router.post("/discounts/validate", response_model=ValidateDiscountResponse)
 @limiter.limit("30/minute")

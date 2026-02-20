@@ -65,6 +65,7 @@ class DiscountBase(BaseModel):
     monto_minimo_producto: Optional[Decimal] = Field(None, description="Monto mínimo de producto para aplicar el descuento.")
     cantidad_minima_producto: Optional[int] = Field(None, description="Cantidad mínima de producto para aplicar el descuento.")
     requiere_codigo: Optional[bool] = Field(None, description="Indica si el descuento requiere un código.")
+    id_usuario_destino: Optional[Decimal] = Field(None, description="Si no es NULL, solo este usuario puede usar el código (cupón personal).")
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el descuento.")
     fec_insert: Optional[datetime] = Field(None, description="Fecha de inserción del descuento.")
     usr_update: Optional[Decimal] = Field(None, description="Usuario que actualizó el descuento.")
@@ -148,6 +149,7 @@ class DiscountUpdate(BaseModel):
     monto_minimo_producto: Optional[Decimal] = Field(None, description = "Monto mínimo de producto para aplicar el descuento.")
     cantidad_minima_producto: Optional[int] = Field(None, description = "Cantidad mínima de producto para aplicar el descuento.")
     requiere_codigo: Optional[bool] = Field(None, description = "Indica si el descuento requiere un código.")
+    id_usuario_destino: Optional[Decimal] = Field(None, description="Si no es NULL, solo este usuario puede usar el código (cupón personal).")
     usr_update: Optional[Decimal] = Field(None, description = "Usuario que actualizó el descuento.")
     
 class ResponseMessage(BaseModel):
@@ -158,4 +160,10 @@ class ResponseMessage(BaseModel):
     desde la API.
     """
     message: str
+
+
+class CreateDiscountResponse(BaseModel):
+    """Respuesta al crear descuento; incluye id_descuento para enviar cupón por correo."""
+    message: str
+    id_descuento: Optional[Decimal] = None
     

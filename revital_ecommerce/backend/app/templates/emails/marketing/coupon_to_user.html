@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Tu código de descuento - {{ app_name }}{% endblock %}
+
+{% block preheader %}{{ user_name }}, tienes un código de descuento exclusivo: {{ codigo }}.{% endblock %}
+
+{% block content %}
+<div class="greeting">Hola {{ user_name }},</div>
+
+<div class="content-block">
+    <p>Te enviamos tu código de descuento personal. Úsalo en el checkout al realizar tu compra.</p>
+</div>
+
+<div class="highlight-box" style="background-color:#fef2f2; border:2px solid #dc2626;">
+    <h2 style="margin:0 0 12px; font-size:22px; color:#991b1b;">{{ nom_descuento }}</h2>
+    <p style="margin:0 0 16px; font-size:18px; color:#7f1d1d; font-weight:600;">
+        {% if tipo_calculo %}
+            {{ val_porce_descuento or 0 }}% de descuento
+        {% else %}
+            ${{ "{:,.0f}".format(val_monto_descuento or 0) }} de descuento
+        {% endif %}
+    </p>
+    <div style="background-color:#fff; padding:16px; border-radius:8px; margin:16px 0;">
+        <p style="margin:0 0 8px; font-size:14px; color:#7f1d1d; font-weight:600;">Tu código:</p>
+        <p style="margin:0; font-size:24px; font-family:monospace; font-weight:bold; color:#dc2626; text-align:center; letter-spacing:3px;">
+            {{ codigo }}
+        </p>
+    </div>
+    {% if min_valor_pedido %}
+    <p style="margin:12px 0 0; font-size:13px; color:#7f1d1d;">
+        * Válido en compras superiores a ${{ "{:,.0f}".format(min_valor_pedido) }}
+    </p>
+    {% endif %}
+    {% if fec_inicio_str and fec_fin_str %}
+    <p style="margin:8px 0 0; font-size:13px; color:#7f1d1d; font-weight:600;">
+        📅 Válido del {{ fec_inicio_str }} al {{ fec_fin_str }}
+    </p>
+    {% elif fec_fin_str %}
+    <p style="margin:8px 0 0; font-size:13px; color:#7f1d1d; font-weight:600;">
+        📅 Válido hasta el {{ fec_fin_str }}
+    </p>
+    {% elif fec_inicio_str %}
+    <p style="margin:8px 0 0; font-size:13px; color:#7f1d1d; font-weight:600;">
+        📅 Válido desde el {{ fec_inicio_str }}
+    </p>
+    {% endif %}
+</div>
+
+<div class="text-center" style="margin:30px 0;">
+    {% set shop_url = frontend_url ~ '/productos' %}
+    {% set url = shop_url %}
+    {% set label = "Ir a la tienda" %}
+    {% set variant = "success" %}
+    {% include "_button.html" %}
+</div>
+
+<div class="divider"></div>
+
+<div class="content-block">
+    <p>Ingresa el código en la sección "Código de promoción" en el carrito o en el checkout.</p>
+    <p>¿Necesitas ayuda? <a href="mailto:{{ support_email }}" style="color:#dc2626;">{{ support_email }}</a></p>
+    <p class="text-muted">El equipo de {{ app_name }}.</p>
+</div>
+{% endblock %}
