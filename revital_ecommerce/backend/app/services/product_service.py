@@ -1115,6 +1115,13 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
             dominant_attr_id = name_to_attr_id.get(dom_attr_name) if dom_attr_name else None
             if dominant_attr_id is not None:
                 v["attributes"][str(dominant_attr_id)] = dom_val
+        # Si tipo_clasificacion está vacío en BD, usar el valor dominante del grupo (ej. "Luz Blanca") para el formulario de edición
+        if not (v.get("tipo_clasificacion") or str(v.get("tipo_clasificacion") or "").strip()):
+            dominant_val = group_id_to_dominant_value.get(gid)
+            if dominant_val is not None and str(dominant_val).strip() and str(dominant_val).strip().lower() != "sin color":
+                v["tipo_clasificacion"] = str(dominant_val).strip()
+            elif isinstance(v.get("attributes"), dict) and (v["attributes"] or {}).get("Tipo/Clasificación"):
+                v["tipo_clasificacion"] = str((v["attributes"] or {}).get("Tipo/Clasificación") or "").strip() or None
     variant_groups = []
     for g in group_rows:
         gid = int(g["id"])
