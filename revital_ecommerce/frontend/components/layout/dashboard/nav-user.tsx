@@ -1,11 +1,10 @@
 "use client"
 
 import React from 'react'
+import Link from 'next/link'
 import {
-  IconCreditCard,
   IconDotsVertical,
   IconLogout,
-  IconNotification,
   IconUserCircle,
 } from "@tabler/icons-react"
 
@@ -39,9 +38,9 @@ export function NavUser() {
     setOpen(true)
   }
 
-  const confirmLogout = () => {
+  const confirmLogout = async () => {
     toast.info('Cerrando sesión...')
-    logout()
+    await logout()
   }
 
   // Si no hay usuario, no mostrar nada
@@ -91,17 +90,11 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
             <DropdownMenuGroup>
-              <DropdownMenuItem className="cursor-pointer hover:bg-sidebar-accent hover:text-[#fec806] transition-colors duration-300">
-                <IconUserCircle />
-                Account
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer hover:bg-sidebar-accent hover:text-[#fec806] transition-colors duration-300">
-                <IconCreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer hover:bg-sidebar-accent hover:text-[#fec806] transition-colors duration-300">
-                <IconNotification />
-                Notifications
+              <DropdownMenuItem asChild className="cursor-pointer hover:bg-sidebar-accent hover:text-[#fec806] transition-colors duration-300">
+                <Link href="/admin/account" className="flex items-center gap-2">
+                  <IconUserCircle />
+                  Cuenta
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />

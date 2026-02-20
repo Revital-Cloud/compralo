@@ -15,6 +15,7 @@ import Link from 'next/link'
 import { parseDateSafe } from '@/utils/date-helpers'
 import type { Order, OrderFilters as OrderFiltersType } from '@/types/order'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
+import { searchMatches } from '@/utils/search-helpers'
 
 /** Devuelve el timestamp de inicio del día en hora local para una fecha (para comparar solo por día). */
 function getLocalDayStart(d: Date): number {
@@ -58,16 +59,16 @@ const OrdersPage = () => {
   const filteredOrders = useMemo(() => {
     let filtered = orders
 
-    // Filtrar por búsqueda (campos pueden venir como número del API)
-    if (filters.search) {
-      const q = String(filters.search).toLowerCase()
-      filtered = filtered.filter(order => {
-        const id = String(order.id_orden ?? '').toLowerCase()
-        const nom = String(order.nom_usuario ?? '').toLowerCase()
-        const ape = String(order.ape_usuario ?? '').toLowerCase()
-        const email = String(order.email_usuario ?? '').toLowerCase()
-        return id.includes(q) || nom.includes(q) || ape.includes(q) || email.includes(q)
-      })
+    // Filtrar por búsqueda (sin importar tildes: "jose" encuentra "José")
+    if (filters.search?.trim()) {
+      const q = String(filters.search).trim()
+      filtered = filtered.filter(
+        (order) =>
+          searchMatches(q, String(order.id_orden ?? '')) ||
+          searchMatches(q, order.nom_usuario) ||
+          searchMatches(q, order.ape_usuario) ||
+          searchMatches(q, order.email_usuario)
+      )
     }
 
     // Filtrar por estado

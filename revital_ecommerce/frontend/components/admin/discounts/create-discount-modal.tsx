@@ -9,9 +9,9 @@ import { Switch } from "@/components/ui"
 import { Calendar } from "@/components/ui"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
-import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { discountModalSchema, type DiscountModalFormData } from '@/schemas/admin/discount.schema'
 import { getCategories } from '@/services/category.service'
 import { brandService } from '@/services/brand.service'
 import { getProducts } from '@/services/product.service'
@@ -56,7 +56,7 @@ type DiscountFormData = z.infer<typeof discountSchema>
 export interface CreateDiscountModalProps {
   open: boolean
   onOpenChange: (v: boolean) => void
-  onSubmit: (values: DiscountFormData) => Promise<void> | void
+  onSubmit: (values: DiscountModalFormData) => Promise<void> | void
 }
 
 export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({ 
@@ -114,8 +114,8 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
     [list, selectedLevel2Id]
   )
 
-  const form = useForm<DiscountFormData>({ 
-    resolver: zodResolver(discountSchema),
+  const form = useForm<DiscountModalFormData>({ 
+    resolver: zodResolver(discountModalSchema),
     defaultValues: {
       tipo_descuento: 'porcentaje',
       aplica_a: 'total_pedido',

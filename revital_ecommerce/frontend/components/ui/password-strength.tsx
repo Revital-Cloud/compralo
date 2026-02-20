@@ -69,6 +69,7 @@ export function PasswordStrength({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           disabled={disabled}
+          className={showToggle ? "pr-10" : undefined}
         />
         {showToggle && (
           <Button

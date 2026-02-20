@@ -8,8 +8,10 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import authService from '@/services/auth.service';
+import { getApiErrorMessage } from '@/utils/apiWrapper';
 import * as userService from '@/services/user.service';
 import { isAuthenticated, clearTokens } from '@/utils/apiWrapper';
 import { useCookies } from './use-cookies';
@@ -37,6 +39,7 @@ export const AUTH_KEYS = {
  */
 export function useAuth() {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { canUseCookie, isHydrated } = useCookies();
 
   // Query para obtener el usuario actual
@@ -92,8 +95,8 @@ export function useAuth() {
             // Si es admin, ir al panel de administración
             targetUrl = '/admin';
           }
-          
-          window.location.href = targetUrl;
+          // Navegación cliente (sin recarga) para no perder el token en memoria (SEC-001)
+          router.replace(targetUrl);
         }
         // En otros casos, no redirigir automáticamente
         // Los layouts se encargarán de la redirección según el contexto
@@ -106,23 +109,18 @@ export function useAuth() {
         return;
       }
       
-      const message = error?.response?.data?.detail || 'Error al iniciar sesión. Verifica tus credenciales.';
+      const message = getApiErrorMessage(error, 'Error al iniciar sesión. Verifica tus credenciales.');
       toast.error(message);
     },
   });
 
-  // Mutación para logout
+  // Mutación para logout (invalida cookie en backend y limpia token en memoria)
   const { mutate: logout, isPending: isLoggingOut } = useMutation({
-    mutationFn: async () => {
-      // Idealmente, aquí se podría llamar a un endpoint de /logout del backend si lo hubiera
-      // Por ahora, es una operación del lado del cliente
-      clearTokens();
-    },
+    mutationFn: () => authService.logout(),
     onSuccess: () => {
-      // Limpiar toda la cache de React Query para desloguear completamente
       queryClient.clear();
       if (typeof window !== 'undefined') {
-        window.location.href = '/login'; // Redirigir siempre al login
+        window.location.href = '/login';
       }
     },
     onError: () => {
@@ -148,7 +146,7 @@ export function useAuth() {
         return;
       }
       
-      const message = error?.response?.data?.detail || 'Error al crear la cuenta. Inténtalo de nuevo.';
+      const message = getApiErrorMessage(error, 'Error al crear la cuenta. Inténtalo de nuevo.');
       toast.error(message);
       throw error; // Re-lanzar el error para que el componente lo pueda manejar
     },
@@ -269,7 +267,7 @@ export function useUpdateProfile() {
       toast.success('Perfil actualizado exitosamente');
     },
     onError: (error: any) => {
-      const message = error?.response?.data?.message || 'Error al actualizar el perfil';
+      const message = getApiErrorMessage(error, 'Error al actualizar el perfil. Inténtalo de nuevo.');
       toast.error(message);
     },
   });

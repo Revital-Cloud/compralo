@@ -22,11 +22,19 @@ from services import attribute_service
 router = APIRouter(tags=["Atributos"])
 
 
+def _row_to_attribute(r) -> Attribute | None:
+    """Build Attribute from DB row; skip rows with invalid name (e.g. empty string)."""
+    d = dict(r)
+    if not (d.get("name") or "").strip():
+        return None
+    return Attribute(**d)
+
+
 @router.get("/attributes", response_model=list[Attribute])
 async def get_attributes(db: Session = Depends(get_db)):
-    """List all attributes (id, name, data_type)."""
+    """List all attributes (id, name, data_type). Invalid rows (e.g. empty name) are excluded."""
     rows = attribute_service.get_all(db)
-    return [Attribute(**dict(r)) for r in rows]
+    return [a for r in rows if (a := _row_to_attribute(r)) is not None]
 
 
 @router.get("/attributes/{id_attr}", response_model=Attribute)
@@ -35,7 +43,10 @@ async def get_attribute(id_attr: Decimal, db: Session = Depends(get_db)):
     row = attribute_service.get_by_id(db, id_attr)
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Atributo no encontrado")
-    return Attribute(**dict(row))
+    att = _row_to_attribute(row)
+    if att is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Atributo no encontrado")
+    return att
 
 
 @router.post("/attributes", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)

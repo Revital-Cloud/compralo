@@ -14,17 +14,16 @@
  *   - wid_rol: ID del rol asignado al usuario
  *   - wind_genero: Indicador de género (boolean: true/false)
  *   - wcel_usuario: Número de celular (mínimo 3 caracteres)
- *   - wfec_nacimiento: Fecha de nacimiento
+ *   - wfec_nacimiento: Fecha de nacimiento (opcional, puede ser NULL)
  *   - wind_activo: Estado activo del usuario (opcional, default TRUE)
  * 
  * RETORNA: VARCHAR - Mensaje indicando éxito o error específico
  * 
  * VALIDACIONES:
- *   - Todos los campos son obligatorios
+ *   - Campos obligatorios: nombre, apellido, email, contraseña, género, celular
  *   - Campos de texto deben tener mínimo 3 caracteres
- *   - ID de rol debe ser válido (> 0)
  *   - Género debe estar definido
- *   - Fecha de nacimiento es obligatoria
+ *   - Fecha de nacimiento es opcional
  * 
  * AUTOR: Sistema DB_Revital
  * FECHA: 2024
@@ -72,10 +71,7 @@ $$
             RETURN 'Error: El número de celular es obligatorio y debe tener al menos 3 caracteres.';
         END IF;
 
-        -- VALIDACIÓN 7: Fecha de nacimiento
-        IF wfec_nacimiento IS NULL THEN
-            RETURN 'Error: La fecha de nacimiento es obligatoria.';
-        END IF;
+        -- fec_nacimiento es opcional (puede ser NULL)
 
         -- INSERCIÓN: Crear nuevo usuario en la base de datos
         INSERT INTO tab_usuarios (

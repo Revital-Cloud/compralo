@@ -10,9 +10,9 @@ import { Calendar } from "@/components/ui"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui"
-import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { discountModalSchema, type DiscountModalFormData } from '@/schemas/admin/discount.schema'
 import { getCategories } from '@/services/category.service'
 import { brandService } from '@/services/brand.service'
 import { getProductsAdmin } from '@/services/product.service'
@@ -58,7 +58,7 @@ export interface EditDiscountModalProps {
   open: boolean
   onOpenChange: (v: boolean) => void
   initialValues: any
-  onSubmit: (values: DiscountFormData) => Promise<void> | void
+  onSubmit: (values: DiscountModalFormData) => Promise<void> | void
 }
 
 export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({ 
@@ -137,9 +137,9 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
     return path
   }, [list])
 
-  const form = useForm<DiscountFormData>({ 
+  const form = useForm<DiscountModalFormData>({ 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(discountSchema as any),
+    resolver: zodResolver(discountModalSchema as any),
     defaultValues: {
       tipo_descuento: 'porcentaje',
       aplica_a: 'total_pedido',

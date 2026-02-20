@@ -117,53 +117,48 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 
             {/* Información del producto */}
             <div className="space-y-1 w-full min-w-0">
-              {/* Precio: rango (Desde min – max) o precio único */}
-              {showPriceRange ? (
-                <div className="space-y-1">
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                      Desde
-                    </span>
-                    <span className="font-bold text-xl text-gray-900 dark:text-white">
-                      {formatPrice(rangeHasDiscount ? rangeDiscountedMin : priceMin)}
-                      <span className="mx-1 font-normal text-gray-500 dark:text-gray-400">–</span>
-                      {formatPrice(rangeHasDiscount ? rangeDiscountedMax : priceMax)}
-                    </span>
+              {/* Precio: rango (min – max) o precio único; misma altura para alinear cards */}
+              <div className="min-h-[3.25rem] flex flex-col justify-center">
+                {showPriceRange ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-xl text-gray-900 dark:text-white">
+                        {formatPrice(rangeHasDiscount ? rangeDiscountedMin : priceMin)}
+                        <span className="mx-1 font-normal text-gray-500 dark:text-gray-400">–</span>
+                        {formatPrice(rangeHasDiscount ? rangeDiscountedMax : priceMax)}
+                      </span>
+                      {rangeHasDiscount && (
+                        <Badge variant="destructive" className="text-xs font-semibold px-2 py-0.5">
+                          -{discountPercentage}%
+                        </Badge>
+                      )}
+                    </div>
                     {rangeHasDiscount && (
+                      <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
+                        {formatPrice(priceMin)} – {formatPrice(priceMax)}
+                      </span>
+                    )}
+                  </div>
+                ) : hasDiscount ? (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-xl text-gray-900 dark:text-white">
+                        {formatPrice(discountedPrice)}
+                      </span>
                       <Badge variant="destructive" className="text-xs font-semibold px-2 py-0.5">
                         -{discountPercentage}%
                       </Badge>
-                    )}
-                  </div>
-                  {rangeHasDiscount && (
-                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
-                      Desde {formatPrice(priceMin)} – {formatPrice(priceMax)}
-                    </span>
-                  )}
-                </div>
-              ) : hasDiscount ? (
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-xl text-gray-900 dark:text-white">
-                      {formatPrice(discountedPrice)}
-                    </span>
-                    <Badge variant="destructive" className="text-xs font-semibold px-2 py-0.5">
-                      -{discountPercentage}%
-                    </Badge>
-                  </div>
-                  <div className="flex items-center gap-1.5">
+                    </div>
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400 line-through">
                       {formatPrice(originalPrice)}
                     </span>
                   </div>
-                </div>
-              ) : (
-                <div>
+                ) : (
                   <span className="font-bold text-xl text-gray-900 dark:text-white">
                     {formatPrice(discountedPrice)}
                   </span>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Nombre del producto */}
               <h3 className="font-medium text-sm text-gray-900 dark:text-white line-clamp-2">

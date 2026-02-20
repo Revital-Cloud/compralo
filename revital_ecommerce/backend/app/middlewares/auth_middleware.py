@@ -143,7 +143,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     # Agregar información del usuario a la request
                     request.state.current_user = current_user
                     
-                    logger.info(f"Usuario {current_user.id_usuario} (rol: {current_user.id_rol}) accediendo a {method} {path} - needs_admin: {needs_admin}, needs_auth: {needs_auth}")
+                    logger.debug("Authenticated request: method=%s path=%s needs_admin=%s needs_auth=%s", method, path, needs_admin, needs_auth)
                     
                 finally:
                     db.close()

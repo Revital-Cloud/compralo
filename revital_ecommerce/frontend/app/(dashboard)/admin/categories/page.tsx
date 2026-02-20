@@ -15,6 +15,7 @@ import { CategoriesFilters } from '@/components/admin/categories/categories-filt
 import type { Category } from '@/types/category'
 import { toast } from 'sonner'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
+import { searchMatches } from '@/utils/search-helpers'
 
 const TAB_VALUES = ['categoria', 'linea', 'sublinea'] as const
 type CategoryTab = (typeof TAB_VALUES)[number]
@@ -130,9 +131,8 @@ const CategoriesPage = () => {
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
     let rows = data as unknown as Category[]
-    if (search) {
-      const q = search.toLowerCase()
-      rows = rows.filter(r => r.name?.toLowerCase().includes(q))
+    if (search.trim()) {
+      rows = rows.filter((r) => searchMatches(search, r.name ?? r.nom_categoria))
     }
     return sortCategoriesHierarchically([...rows])
   }, [data, search])

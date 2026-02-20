@@ -18,19 +18,8 @@ import { getUsers, toggleUserStatus, updateUser } from '@/services/user.service'
 import type { User } from '@/types'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { editUserSchema, type EditUserFormData } from '@/schemas/admin/user-edit.schema'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
-
-const editUserSchema = z.object({
-  nom_usuario: z.string().min(1, 'Nombre requerido'),
-  ape_usuario: z.string().optional(),
-  email_usuario: z.string().email('Email inválido'),
-  cel_usuario: z.string().optional(),
-  ind_genero: z.boolean().optional(),
-  fec_nacimiento: z.string().optional(),
-})
-
-type EditUserForm = z.infer<typeof editUserSchema>
 
 const getRoleBadge = (roleId: number) => {
   switch (roleId) {
@@ -88,7 +77,7 @@ const UsersPage = () => {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: EditUserForm }) => {
+    mutationFn: ({ id, data }: { id: number; data: EditUserFormData }) => {
       const payload: Record<string, unknown> = {
         nom_usuario: data.nom_usuario,
         ape_usuario: data.ape_usuario ?? '',
@@ -111,7 +100,7 @@ const UsersPage = () => {
     },
   })
 
-  const form = useForm<EditUserForm>({
+  const form = useForm<EditUserFormData>({
     resolver: zodResolver(editUserSchema),
     defaultValues: {
       nom_usuario: '',

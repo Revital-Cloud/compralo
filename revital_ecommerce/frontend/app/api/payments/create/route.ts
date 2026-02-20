@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getStoredToken } from '@/utils/apiWrapper';
 
 // Usar BACKEND_URL sin /api, ya que el endpoint es /api/payments/create
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';

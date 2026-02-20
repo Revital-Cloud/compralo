@@ -107,7 +107,7 @@ export function RegisterForm() {
                 name="id_usuario"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Identificación (Cédula)</FormLabel>
+                    <FormLabel>Identificación (Cédula) <span className="text-destructive">*</span></FormLabel>
                     <FormControl>
                       <Input
                         placeholder="Tu número de identificación"
@@ -130,7 +130,7 @@ export function RegisterForm() {
                   name="nom_usuario"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nombre</FormLabel>
+                      <FormLabel>Nombre <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input placeholder="John" {...field} disabled={isLoading} type="text"/>
                       </FormControl>
@@ -143,7 +143,7 @@ export function RegisterForm() {
                   name="ape_usuario"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Apellido</FormLabel>
+                      <FormLabel>Apellido <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input placeholder="Doe" {...field} disabled={isLoading} type="text"/>
                       </FormControl>
@@ -157,7 +157,7 @@ export function RegisterForm() {
                 name="email_usuario"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Email <span className="text-destructive">*</span></FormLabel>
                     <FormControl>
                       <Input
                         placeholder="john.doe@example.com"
@@ -175,7 +175,7 @@ export function RegisterForm() {
                 name="password_usuario"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Contraseña</FormLabel>
+                    <FormLabel>Contraseña <span className="text-destructive">*</span></FormLabel>
                     <FormControl>
                       <PasswordStrength
                         value={field.value}
@@ -197,7 +197,7 @@ export function RegisterForm() {
                   name="cel_usuario"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Teléfono</FormLabel>
+                      <FormLabel>Teléfono <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Input
                           placeholder="+57 300 123 4567"
@@ -215,7 +215,7 @@ export function RegisterForm() {
                   name="ind_genero"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Género</FormLabel>
+                      <FormLabel>Género <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Select
                           disabled={isLoading}
@@ -228,7 +228,6 @@ export function RegisterForm() {
                           <SelectContent>
                             <SelectItem value="masculino">Masculino</SelectItem>
                             <SelectItem value="femenino">Femenino</SelectItem>
-                            <SelectItem value="otro">Otro</SelectItem>
                           </SelectContent>
                         </Select>
                       </FormControl>

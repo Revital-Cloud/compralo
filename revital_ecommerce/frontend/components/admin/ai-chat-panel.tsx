@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Sheet,
   SheetContent,
@@ -14,6 +15,7 @@ import { Input } from '@/components/ui'
 import { IconSend, IconRobot, IconUser, IconTrash } from '@tabler/icons-react'
 import { Streamdown } from 'streamdown'
 import { aiService } from '@/services/ai.service'
+import { PRODUCT_KEYS } from '@/hooks/use-products'
 
 interface Message {
   id: string
@@ -28,12 +30,44 @@ interface AiChatPanelProps {
 }
 
 export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps) {
+  const queryClient = useQueryClient()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  /**
+   * Invalida queries de React Query basado en las entidades afectadas por acciones del AI
+   */
+  const invalidateAffectedQueries = (affectedEntities: string[]) => {
+    affectedEntities.forEach((entity) => {
+      switch (entity) {
+        case 'brands':
+          queryClient.invalidateQueries({ queryKey: ['brands'] })
+          break
+        case 'providers':
+          queryClient.invalidateQueries({ queryKey: ['providers'] })
+          break
+        case 'categories':
+          queryClient.invalidateQueries({ queryKey: ['categories'] })
+          break
+        case 'discounts':
+          queryClient.invalidateQueries({ queryKey: ['discounts'] })
+          break
+        case 'products':
+          queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.all })
+          break
+        case 'filter-options':
+          queryClient.invalidateQueries({ queryKey: ['filter-options'] })
+          break
+        default:
+          // Invalidar todas las queries si no reconocemos la entidad
+          console.warn(`Entidad desconocida para invalidar: ${entity}`)
+      }
+    })
+  }
 
   useEffect(() => {
     if (open && messages.length > 0) {
@@ -83,6 +117,12 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
         setMessages((prev) =>
           prev.map((m) => (m.id === assistantId ? { ...m, content: msg } : m))
         )
+      },
+      onMetadata(metadata) {
+        // Invalidar queries automáticamente cuando el AI ejecuta acciones
+        if (metadata.affected_entities && metadata.affected_entities.length > 0) {
+          invalidateAffectedQueries(metadata.affected_entities)
+        }
       },
     })
   }

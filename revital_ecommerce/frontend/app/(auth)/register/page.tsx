@@ -1,30 +1,41 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingCart, Loader2 } from 'lucide-react'
-import React from 'react'
-import { RegisterForm } from '@/components/forms/register-form'
-import { useAuth } from '@/hooks/use-auth'
+import { Loader2 } from 'lucide-react';
+import React from 'react';
+import { RegisterForm } from '@/components/forms/register-form';
+import { useAuth } from '@/hooks/use-auth';
 
 const RegisterPage = () => {
-  const { isAuthenticated, isLoadingUser, user } = useAuth();
+  const [mounted, setMounted] = useState(false);
+  const { isAuthenticated, isLoadingUser, user, isHydrated } = useAuth();
   const router = useRouter();
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    // Si está cargando, no hacer nada
-    if (isLoadingUser) return;
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    // Solo redirigir una vez cuando todo esté listo y el usuario esté autenticado
+    if (!mounted || !isHydrated || isLoadingUser || hasRedirected.current) return;
     
-    // Si ya está autenticado, redirigir según el rol
     if (isAuthenticated && user) {
+      hasRedirected.current = true;
       const userRole = Number(user.id_rol);
       const redirectUrl = userRole === 1 ? '/admin' : '/';
       router.replace(redirectUrl);
     }
-  }, [isAuthenticated, isLoadingUser, user, router]);
+  }, [mounted, isAuthenticated, isLoadingUser, user, router, isHydrated]);
 
-  // Si está cargando o ya está autenticado, mostrar loader
-  if (isLoadingUser || isAuthenticated) {
+  // Mostrar loader durante la inicialización o mientras se verifica autenticación
+  // Solo mostrar formulario cuando esté listo Y no esté autenticado
+  const isInitializing = !mounted || !isHydrated;
+  const isReady = mounted && isHydrated && !isLoadingUser;
+  const shouldShowLoader = isInitializing || (isReady && isAuthenticated);
+  
+  if (shouldShowLoader) {
     return (
       <div className="bg-[#F5F5F5] dark:bg-gray-950 flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10 transition-colors duration-300">
         <div className="flex h-screen w-full items-center justify-center">

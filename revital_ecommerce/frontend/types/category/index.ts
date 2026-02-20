@@ -1,6 +1,8 @@
 export interface Category {
   id: number;
   name: string; // tab_categories.name
+  /** Alias desde API (tab_categories.name como nom_categoria) */
+  nom_categoria?: string;
   description?: string; // descripción para UI (tab_categories.description si existe)
   is_active?: boolean; // tab_categories.is_active
   ind_activo?: boolean; // legacy alias

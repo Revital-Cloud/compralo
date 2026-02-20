@@ -18,8 +18,9 @@ import { toast } from "sonner";
 import { formatPrice } from "@/utils/format-price";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { addressSchema, type AddressFormValues } from "@/schemas/shop/address.schema";
+import { paymentCardSchema, type PaymentCardFormValues } from "@/schemas/shop/payment-card.schema";
 import addressService from "@/services/address.service";
 import { listPaymentMethods, addPaymentMethod } from "@/services/payment.service";
 import { payCartAndCreateOrder } from "@/services/order.service";
@@ -1967,22 +1968,9 @@ const CartPage = () => {
 export default CartPage;
 
 // Formulario rápido de dirección (inline)
-const addressSchema = z.object({
-  nombre_direccion: z.string().min(1, "Nombre requerido"),
-  calle_direccion: z.string().min(1, "Dirección requerida"),
-  ciudad: z.string().min(1, "Ciudad requerida"),
-  departamento: z.string().min(1, "Departamento requerido"),
-  codigo_postal: z.string().min(1, "Código postal requerido"),
-  barrio: z.string().min(1, "Barrio requerido"),
-  referencias: z.string().optional(),
-  complemento: z.string().optional(),
-});
-
-type QuickAddressFormValues = z.infer<typeof addressSchema>;
-
 function QuickAddressForm({ onSuccess }: { onSuccess: () => void }) {
   const { user } = useAuth();
-  const form = useForm<QuickAddressFormValues>({
+  const form = useForm<AddressFormValues>({
     resolver: zodResolver(addressSchema),
     defaultValues: {
       nombre_direccion: "",
@@ -1998,7 +1986,7 @@ function QuickAddressForm({ onSuccess }: { onSuccess: () => void }) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmitAddress = async (data: QuickAddressFormValues) => {
+  const handleSubmitAddress = async (data: AddressFormValues) => {
     if (!user?.id_usuario) return;
     setIsSubmitting(true);
     try {
@@ -2048,19 +2036,9 @@ function QuickAddressForm({ onSuccess }: { onSuccess: () => void }) {
 }
 
 // Formulario rápido de método de pago (inline)
-const paymentSchema = z.object({
-  card_holder: z.string().min(1, "Nombre requerido"),
-  number: z.string().min(13).max(19),
-  exp_month: z.string().length(2),
-  exp_year: z.string().length(2),
-  cvc: z.string().min(3).max(4),
-});
-
-type QuickPaymentValues = z.infer<typeof paymentSchema>;
-
 function QuickPaymentForm({ onSuccess }: { onSuccess: () => void }) {
-  const form = useForm<QuickPaymentValues>({
-    resolver: zodResolver(paymentSchema),
+  const form = useForm<PaymentCardFormValues>({
+    resolver: zodResolver(paymentCardSchema),
     defaultValues: {
       card_holder: "",
       number: "",
@@ -2072,7 +2050,7 @@ function QuickPaymentForm({ onSuccess }: { onSuccess: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
-  const handleSubmitPayment = async (data: QuickPaymentValues) => {
+  const handleSubmitPayment = async (data: PaymentCardFormValues) => {
     setIsSubmitting(true);
     try {
       const result = await addPaymentMethod(data as any);

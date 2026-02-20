@@ -3,6 +3,7 @@
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { get } from '@/utils/apiWrapper'
+import { sanitizeHtml } from '@/utils/sanitize'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui'
 
@@ -52,7 +53,7 @@ export function TopInfoBar() {
     >
       <div
         className="flex-1 min-w-0 [&_strong]:font-semibold [&_em]:italic [&_a]:underline"
-        dangerouslySetInnerHTML={{ __html: barData.des_mensaje }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(barData.des_mensaje) }}
       />
       {barData.boton_url?.trim() && (
         <Button asChild size="sm" className="flex-shrink-0 whitespace-nowrap">

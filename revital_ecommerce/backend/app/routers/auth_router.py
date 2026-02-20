@@ -5,12 +5,15 @@ Define los endpoints relacionados con la autenticación de usuarios,
 incluyendo login, refresh de tokens, cambio de contraseña y obtención
 de información del usuario actual.
 """
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request, Body
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
 
 from core.database import get_db
+from core.config import settings, is_production
 from core.dependencies import get_current_user
 from schemas.auth_schema import (
     LoginRequest,
@@ -53,7 +56,8 @@ async def login(
     Raises:
         HTTPException: Si las credenciales son inválidas
     """
-    return auth_service.login_user(db, login_data)
+    tokens = auth_service.login_user(db, login_data)
+    return _token_response(tokens.access_token, tokens.refresh_token)
 
 
 @router.post("/verify-email-otp", response_model=TokenResponse)
@@ -67,30 +71,55 @@ async def verify_email_otp(
     Verifica el código OTP enviado al email y activa la cuenta.
     Devuelve tokens para iniciar sesión automáticamente.
     """
-    return auth_service.verify_email_otp(db, body.email, body.code)
+    tokens = auth_service.verify_email_otp(db, body.email, body.code)
+    return _token_response(tokens.access_token, tokens.refresh_token)
 
 
-@router.post("/refresh", response_model=TokenResponse)
+REFRESH_COOKIE_NAME = "refresh_token"
+REFRESH_COOKIE_PATH = "/api"
+REFRESH_COOKIE_MAX_AGE = 60 * 60 * 24 * settings.REFRESH_TOKEN_EXPIRE_DAYS  # seconds
+
+
+def _token_response(access_token: str, refresh_token: str) -> JSONResponse:
+    """Build JSON response with access_token in body and refresh_token in HTTPOnly cookie (SEC-001)."""
+    response = JSONResponse(
+        content={"access_token": access_token, "token_type": "bearer"}
+    )
+    response.set_cookie(
+        key=REFRESH_COOKIE_NAME,
+        value=refresh_token,
+        httponly=True,
+        secure=is_production(),
+        samesite="lax",
+        path=REFRESH_COOKIE_PATH,
+        max_age=REFRESH_COOKIE_MAX_AGE,
+    )
+    return response
+
+
+@router.post("/refresh")
 @limiter.limit("30/minute")
 async def refresh_token(
     request: Request,
-    refresh_data: RefreshTokenRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    refresh_data: Optional[RefreshTokenRequest] = Body(default=None),
 ):
     """
     Endpoint para refrescar el token de acceso.
-    
-    Args:
-        refresh_data (RefreshTokenRequest): Token de refresco
-        db (Session): Sesión de la base de datos
-        
-    Returns:
-        TokenResponse: Nuevos tokens de acceso y refresco
-        
-    Raises:
-        HTTPException: Si el refresh token es inválido
+    Lee el refresh token de la cookie (prioridad) o del body (migración).
+    Devuelve access_token en el body y refresh_token en cookie HTTPOnly.
     """
-    return auth_service.refresh_access_token(db, refresh_data.refresh_token)
+    refresh_value = request.cookies.get(REFRESH_COOKIE_NAME) or (
+        refresh_data.refresh_token if refresh_data else None
+    )
+    if not refresh_value:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token no proporcionado (cookie o body)",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    tokens = auth_service.refresh_access_token(db, refresh_value)
+    return _token_response(tokens.access_token, tokens.refresh_token)
 
 @router.get("/me", response_model=UserPublic)
 async def get_current_user_info(
@@ -138,7 +167,9 @@ async def get_current_user_info(
     )
 
 @router.post("/change-password", response_model=ResponseMessage)
+@limiter.limit("10/minute")
 async def change_password(
+    request: Request,
     password_data: ChangePasswordRequest,
     current_user: UserInToken = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -165,25 +196,19 @@ async def change_password(
     )
     return ResponseMessage(message="Contraseña cambiada exitosamente")
 
-@router.post("/logout", response_model=ResponseMessage)
+@router.post("/logout")
 async def logout(
     current_user: UserInToken = Depends(get_current_user)
 ):
     """
-    Endpoint para cerrar sesión.
-    
-    Nota: En una implementación JWT stateless, el logout se maneja en el cliente
-    eliminando los tokens. Este endpoint existe para consistencia de API.
-    
-    Args:
-        current_user (UserInToken): Usuario autenticado
-        
-    Returns:
-        ResponseMessage: Mensaje de confirmación
+    Endpoint para cerrar sesión. Invalida la cookie de refresh token (SEC-001).
+    El cliente debe limpiar el access token en memoria.
     """
-    return ResponseMessage(
-        message="Sesión cerrada exitosamente. Elimina los tokens del cliente."
+    response = JSONResponse(
+        content={"message": "Sesión cerrada exitosamente."}
     )
+    response.delete_cookie(key=REFRESH_COOKIE_NAME, path=REFRESH_COOKIE_PATH)
+    return response
 
 @router.get("/verify-token")
 async def verify_token(
@@ -266,9 +291,10 @@ async def send_verification_email(
         
     except Exception as e:
         logger.error(f"Error en send_verification_email: {str(e)}")
+        from core.exceptions import get_safe_message
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error interno: {str(e)}"
+            detail=get_safe_message(e),
         )
 
 @router.post("/verify-email")

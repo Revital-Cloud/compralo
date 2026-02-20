@@ -25,8 +25,8 @@ class TokenData(BaseModel):
     email: Optional[str] = None
 
 class RefreshTokenRequest(BaseModel):
-    """Schema para solicitud de refresh token."""
-    refresh_token: str
+    """Schema para solicitud de refresh token (opcional cuando se usa cookie HTTPOnly)."""
+    refresh_token: Optional[str] = None
 
 class UserInToken(BaseModel):
     """Schema para información del usuario en el token."""

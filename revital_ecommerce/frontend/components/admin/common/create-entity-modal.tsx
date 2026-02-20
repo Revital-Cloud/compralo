@@ -4,27 +4,13 @@ import React from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui"
 import { Button, Input, Label } from "@/components/ui"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { PHONE_COUNTRY_CODES } from '@/lib/phone-country-codes'
 import { Checkbox } from "@/components/ui"
+import { getEntitySchemas, type EntityType } from '@/schemas/admin/entity.schema'
 
 const COUNTRY_PHONE_CODES = PHONE_COUNTRY_CODES
-
-type EntityType = 'category' | 'brand' | 'provider'
-
-const schemas: Record<EntityType, z.ZodSchema<any>> = {
-  category: z.object({ name: z.string().min(2, 'Requerido'), ind_activo: z.boolean().optional().default(true) }),
-  brand: z.object({ nom_marca: z.string().min(2, 'Requerido'), ind_activo: z.boolean().optional().default(true) }),
-  provider: z.object({ 
-    nom_proveedor: z.string().min(2, 'Requerido'), 
-    email: z.string().email('Email inválido').min(1, 'Requerido'),
-    tel_country_code: z.string().min(1, 'Seleccione país'),
-    tel_numero: z.string().min(7, 'Mínimo 7 dígitos').regex(/^\d+$/, 'Solo números'),
-    ind_activo: z.boolean().optional().default(true) 
-  }),
-}
 
 export interface CreateEntityModalProps {
   open: boolean
@@ -38,7 +24,7 @@ export interface CreateEntityModalProps {
 export const CreateEntityModal: React.FC<CreateEntityModalProps> = ({ open, onOpenChange, type, title, onSubmit, extraFields }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const form = useForm<any>({
-    resolver: zodResolver(schemas[type] as any),
+    resolver: zodResolver(getEntitySchemas('create')[type] as any),
     defaultValues: { ind_activo: true, tel_country_code: '57', tel_numero: '' }
   })
   const handleSubmit = form.handleSubmit(async (values) => {
