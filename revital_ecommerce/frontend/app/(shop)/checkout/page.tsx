@@ -3,8 +3,16 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  informationSchema,
+  shippingSchema,
+  paymentSchema,
+  type InformationFormData,
+  type ShippingFormData,
+  type PaymentFormData,
+} from "@/schemas/shop/checkout.schema";
+import { addressSchema } from "@/schemas/shop/address.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -38,38 +46,6 @@ import {
   calculateDiscountedPrice, 
   calculateDiscountPercentage 
 } from "@/utils/discount-utils";
-
-// Esquemas de validación
-const informationSchema = z.object({
-  deliveryMethod: z.enum(["ship", "pickup"]).optional(),
-  nombre: z.string().min(1, "Nombre requerido"),
-  apellidos: z.string().min(1, "Apellidos requeridos"),
-  direccion: z.string().min(1, "Debes seleccionar o crear una dirección"),
-  complemento: z.string().optional(),
-  pais: z.string().min(1, "País requerido"),
-  departamento: z.string().min(1, "Departamento requerido"),
-  ciudad: z.string().min(1, "Ciudad requerida"),
-  codigo_postal: z.string().optional(),
-  barrio: z.string().optional(),
-  referencias: z.string().optional(),
-  celular: z.string().min(10, "Celular inválido"),
-});
-
-const shippingSchema = z.object({
-  shippingMethod: z.string().min(1, "Debes seleccionar un método de envío"),
-});
-
-const paymentSchema = z.object({
-  paymentMethod: z.string().min(1, "Debes seleccionar un método de pago"),
-  useShippingAddress: z.boolean(),
-  tipoIdentificacion: z.string().optional(),
-  numeroIdentificacion: z.string().optional(),
-  notas: z.string().optional(),
-});
-
-type InformationFormData = z.infer<typeof informationSchema>;
-type ShippingFormData = z.infer<typeof shippingSchema>;
-type PaymentFormData = z.infer<typeof paymentSchema>;
 
 const CheckoutPage = () => {
   const router = useRouter();
@@ -716,18 +692,7 @@ function CreateAddressForm({
 }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const addressForm = useForm({
-    resolver: zodResolver(
-      z.object({
-        nombre_direccion: z.string().min(1, "Nombre requerido"),
-        calle_direccion: z.string().min(1, "Dirección requerida"),
-        ciudad: z.string().min(1, "Ciudad requerida"),
-        departamento: z.string().min(1, "Departamento requerido"),
-        codigo_postal: z.string().min(1, "Código postal requerido"),
-        barrio: z.string().min(1, "Barrio requerido"),
-        referencias: z.string().optional(),
-        complemento: z.string().optional(),
-      })
-    ),
+    resolver: zodResolver(addressSchema),
     defaultValues: {
       nombre_direccion: "",
       calle_direccion: "",

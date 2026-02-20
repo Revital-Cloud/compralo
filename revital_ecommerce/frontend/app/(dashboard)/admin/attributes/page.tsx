@@ -9,7 +9,6 @@ import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
 import {
   Button,
-  Checkbox,
   Dialog,
   DialogContent,
   DialogHeader,
@@ -21,6 +20,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Switch,
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -34,20 +34,13 @@ import { Pencil, Trash2, List } from 'lucide-react'
 import Link from 'next/link'
 import { UniversalFilters } from '@/components/ui'
 import { toast } from 'sonner'
-import { z } from 'zod'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
 import { searchMatches } from '@/utils/search-helpers'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { attributeSchema, type AttributeFormValues } from '@/schemas/admin/attribute.schema'
 
 const DATA_TYPES = ['text', 'number', 'boolean'] as const
-const schema = z.object({
-  name: z.string().min(1, 'El nombre es obligatorio'),
-  data_type: z.enum(['text', 'number', 'boolean'], { message: 'Seleccione un tipo de dato' }),
-  has_predefined_values: z.boolean().optional().default(false),
-})
-
-type FormValues = z.infer<typeof schema>
 
 const AttributesPage = () => {
   const queryClient = useQueryClient()
@@ -345,11 +338,12 @@ function AttributeModal({
   onOpenChange: (v: boolean) => void
   title: string
   defaultValues: { name: string; data_type?: 'text' | 'number' | 'boolean'; has_predefined_values?: boolean }
-  onSubmit: (values: FormValues) => void
+  onSubmit: (values: AttributeFormValues) => void
   isSubmitting: boolean
 }) {
-  const form = useForm<FormValues>({
-    resolver: zodResolver(schema) as Resolver<FormValues>,
+  const form = useForm<AttributeFormValues>({
+    resolver: zodResolver(attributeSchema) as Resolver<AttributeFormValues>,
+    mode: 'onTouched',
     defaultValues: {
       name: defaultValues.name,
       data_type: defaultValues.data_type,
@@ -365,7 +359,7 @@ function AttributeModal({
       })
   }, [open, defaultValues.name, defaultValues.data_type, defaultValues.has_predefined_values, form])
 
-  const handleSubmit = form.handleSubmit((values) => onSubmit(values as FormValues))
+  const handleSubmit = form.handleSubmit((values) => onSubmit(values as AttributeFormValues))
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -375,10 +369,22 @@ function AttributeModal({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="attr-name">Nombre</Label>
-            <Input id="attr-name" {...form.register('name')} placeholder="Ej. Color" />
+            <Label htmlFor="attr-name">
+              Nombre <span className="text-red-500" aria-hidden>*</span>
+            </Label>
+            <Input
+              id="attr-name"
+              {...form.register('name')}
+              placeholder="Ej. Color"
+              required
+              aria-required="true"
+              aria-invalid={!!form.formState.errors.name}
+              aria-describedby={form.formState.errors.name ? 'attr-name-error' : undefined}
+            />
             {form.formState.errors.name && (
-              <p className="text-sm text-red-600">{form.formState.errors.name.message}</p>
+              <p id="attr-name-error" className="text-sm text-red-600" role="alert">
+                {form.formState.errors.name.message}
+              </p>
             )}
           </div>
           <div className="space-y-2">
@@ -402,13 +408,13 @@ function AttributeModal({
               <p className="text-sm text-red-600">{form.formState.errors.data_type.message}</p>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <Checkbox
+          <div className="flex items-center gap-3">
+            <Switch
               id="attr-has-predefined"
               checked={form.watch('has_predefined_values') ?? false}
               onCheckedChange={(checked) => form.setValue('has_predefined_values', !!checked)}
             />
-            <Label htmlFor="attr-has-predefined" className="cursor-pointer">
+            <Label htmlFor="attr-has-predefined" className="cursor-pointer font-normal">
               Usa valores predefinidos
             </Label>
           </div>

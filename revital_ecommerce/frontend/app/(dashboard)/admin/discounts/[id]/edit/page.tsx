@@ -11,24 +11,8 @@ import { Checkbox } from "@/components/ui"
 import { useDiscounts, useUpdateDiscount } from '@/hooks/use-discounts'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { discountPageEditSchema, type DiscountPageEditFormData } from '@/schemas/admin/discount.schema'
 import { toast } from 'sonner'
-
-const discountSchema = z.object({
-  des_descuento: z.string().min(3, 'La descripción debe tener al menos 3 caracteres'),
-  tipo_calculo: z.string(),
-  val_porce_descuento: z.number().optional(),
-  val_monto_descuento: z.number().optional(),
-  min_valor_pedido: z.number().optional(),
-  costo_puntos_canje: z.number().optional(),
-  codigo_descuento: z.string().optional(),
-  fec_inicio: z.string().optional(),
-  fec_fin: z.string().optional(),
-  max_usos_total: z.number().optional(),
-  ind_activo: z.boolean(),
-})
-
-type DiscountFormData = z.infer<typeof discountSchema>
 
 const EditDiscountPage = () => {
   const router = useRouter()
@@ -40,8 +24,8 @@ const EditDiscountPage = () => {
 
   const discount = discounts?.find((d: any) => d.id_descuento === discountId)
 
-  const form = useForm<DiscountFormData>({
-    resolver: zodResolver(discountSchema),
+  const form = useForm<DiscountPageEditFormData>({
+    resolver: zodResolver(discountPageEditSchema),
     defaultValues: discount ? {
       des_descuento: discount.des_descuento,
       tipo_calculo: discount.tipo_calculo ? 'true' : 'false',
