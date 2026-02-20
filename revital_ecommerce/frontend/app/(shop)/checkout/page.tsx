@@ -33,6 +33,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useActiveDiscounts } from "@/hooks/use-discounts";
+import { discountService } from "@/services/discount.service";
 import { 
   getApplicableDiscount, 
   calculateDiscountedPrice, 
@@ -150,8 +151,32 @@ const CheckoutPage = () => {
     ? shippingMethods.find((m) => m.id === selectedShippingMethod)?.price || 0
     : 0;
   const totalConDescuentos = Number(totals?.total_final) ?? subtotal;
-  const finalTotal = totalConDescuentos + shipping;
   const totalDescCanjeado = Number(totals?.total_desc_canjeado ?? 0);
+
+  // Código de descuento aplicado en el carrito: validar y obtener total con descuento para mostrarlo en el resumen
+  const codigoDescuentoStored =
+    typeof window !== "undefined" ? sessionStorage.getItem("checkout_codigo_descuento") : null;
+  const { data: appliedCodeValidation } = useQuery({
+    queryKey: ["discount-validate-checkout", id_carrito, codigoDescuentoStored],
+    queryFn: () =>
+      discountService.validateDiscountForCart(
+        codigoDescuentoStored!.trim(),
+        id_carrito ?? undefined
+      ),
+    enabled:
+      !!id_carrito &&
+      !!codigoDescuentoStored?.trim() &&
+      !!user?.id_usuario,
+    staleTime: 2 * 60 * 1000,
+    retry: false,
+  });
+
+  // Total con descuento de código: partir del total del carrito (ya con 50% Celulares, etc.) y restar el cupón
+  const descuentoCodigoAmount =
+    appliedCodeValidation?.es_aplicable && appliedCodeValidation?.descuento_calculado != null
+      ? Number(appliedCodeValidation.descuento_calculado)
+      : 0;
+  const finalTotal = totalConDescuentos - descuentoCodigoAmount + shipping;
 
   // Handlers
   const handleInformationSubmit = (data: InformationFormData) => {
@@ -323,6 +348,12 @@ const CheckoutPage = () => {
               shipping={shipping}
               total={finalTotal}
               discountCanjeAmount={totalDescCanjeado}
+              discountCodeAmount={descuentoCodigoAmount}
+              discountCodeLabel={
+                appliedCodeValidation?.descuento?.nom_descuento ||
+                (codigoDescuentoStored ? `Código ${codigoDescuentoStored}` : undefined)
+              }
+              descuentosAutomaticos={totals?.descuentos_automaticos}
             />
           </div>
         </div>
@@ -1187,19 +1218,25 @@ function PaymentStep({
   );
 }
 
-// Componente Resumen del pedido
+// Componente Resumen del pedido (descuentos automáticos + código aplicado en el carrito)
 function OrderSummary({
   items,
   subtotal,
   shipping,
   total,
   discountCanjeAmount = 0,
+  discountCodeAmount = 0,
+  discountCodeLabel,
+  descuentosAutomaticos,
 }: {
   items: any[];
   subtotal: number;
   shipping: number;
   total: number;
   discountCanjeAmount?: number;
+  discountCodeAmount?: number;
+  discountCodeLabel?: string;
+  descuentosAutomaticos?: Array<{ nombre?: string; descuento_aplicado?: number }>;
 }) {
   const { data: discounts } = useActiveDiscounts()
   return (
@@ -1278,10 +1315,23 @@ function OrderSummary({
             <span>Subtotal</span>
             <span>{formatPrice(subtotal)}</span>
           </div>
+          {Array.isArray(descuentosAutomaticos) && descuentosAutomaticos.length > 0 &&
+            descuentosAutomaticos.map((d: { nombre?: string; descuento_aplicado?: number }, i: number) => (
+              <div key={i} className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                <span>{d.nombre ?? "Descuento"}</span>
+                <span>-{formatPrice(Number(d.descuento_aplicado ?? 0))}</span>
+              </div>
+            ))}
           {discountCanjeAmount > 0 && (
             <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
               <span>Descuento por puntos</span>
               <span>-{formatPrice(discountCanjeAmount)}</span>
+            </div>
+          )}
+          {discountCodeAmount > 0 && (
+            <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+              <span>{discountCodeLabel || "Descuento (código)"}</span>
+              <span>-{formatPrice(discountCodeAmount)}</span>
             </div>
           )}
           <div className="flex justify-between text-sm">
@@ -1292,13 +1342,6 @@ function OrderSummary({
             <span>Total</span>
             <span>{formatPrice(total)}</span>
           </div>
-        </div>
-
-        <div className="mt-6">
-          <Input placeholder="Introduzca el código de promoción" className="mb-2" />
-          <Button variant="outline" className="w-full">
-            Aplicar
-          </Button>
         </div>
       </CardContent>
     </Card>

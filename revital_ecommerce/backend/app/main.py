@@ -126,7 +126,7 @@ app.add_middleware(
         "/api/admin",        # Todo requiere admin
         "/api/email",        # Todo requiere admin
         "/api/points",       # Todo requiere admin
-        "/api/discounts",     # Todo requiere admin
+        # /api/discounts: no está aquí; validate-for-cart y by-code son para clientes. Admin solo en create/update/send-coupon/stats (router)
         "/api/top-info-bar",  # GET/PUT requieren admin; GET /top-info-bar/active es público (protegido en router)
         "/api/attributes",   # CRUD admin
     ]

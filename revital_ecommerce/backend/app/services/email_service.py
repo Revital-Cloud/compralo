@@ -527,6 +527,7 @@ async def send_coupon_to_user(
     tipo_calculo: bool,
     val_porce_descuento: Optional[Any] = None,
     val_monto_descuento: Optional[Any] = None,
+    fec_inicio: Optional[date] = None,
     fec_fin: Optional[date] = None,
     min_valor_pedido: Optional[Any] = None,
 ) -> bool:
@@ -534,6 +535,7 @@ async def send_coupon_to_user(
     Envía al usuario un email con su código de cupón personal.
     """
     try:
+        fec_inicio_str = fec_inicio.strftime("%d/%m/%Y") if fec_inicio else None
         fec_fin_str = fec_fin.strftime("%d/%m/%Y") if fec_fin else None
         min_val = float(min_valor_pedido) if min_valor_pedido is not None else None
         html_content = email_templates.get_coupon_to_user_template(
@@ -543,6 +545,7 @@ async def send_coupon_to_user(
             tipo_calculo=tipo_calculo,
             val_porce_descuento=val_porce_descuento,
             val_monto_descuento=val_monto_descuento,
+            fec_inicio_str=fec_inicio_str,
             fec_fin_str=fec_fin_str,
             min_valor_pedido=min_val,
         )

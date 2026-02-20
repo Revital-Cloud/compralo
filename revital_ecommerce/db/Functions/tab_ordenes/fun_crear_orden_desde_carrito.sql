@@ -231,7 +231,7 @@ BEGIN
                 END AS descuento_calculado
         INTO v_descuento
         FROM tab_descuentos d
-        WHERE d.codigo_descuento = p_codigo_descuento
+        WHERE UPPER(TRIM(d.codigo_descuento)) = UPPER(TRIM(p_codigo_descuento))
             AND d.ind_activo = TRUE
             AND CURRENT_DATE BETWEEN d.fec_inicio AND d.fec_fin
             AND (d.requiere_codigo = TRUE OR d.codigo_descuento IS NOT NULL);

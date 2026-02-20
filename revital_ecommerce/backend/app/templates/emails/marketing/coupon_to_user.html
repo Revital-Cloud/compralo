@@ -31,9 +31,17 @@
         * Válido en compras superiores a ${{ "{:,.0f}".format(min_valor_pedido) }}
     </p>
     {% endif %}
-    {% if fec_fin_str %}
-    <p style="margin:8px 0 0; font-size:13px; color:#7f1d1d;">
-        Válido hasta el {{ fec_fin_str }}
+    {% if fec_inicio_str and fec_fin_str %}
+    <p style="margin:8px 0 0; font-size:13px; color:#7f1d1d; font-weight:600;">
+        📅 Válido del {{ fec_inicio_str }} al {{ fec_fin_str }}
+    </p>
+    {% elif fec_fin_str %}
+    <p style="margin:8px 0 0; font-size:13px; color:#7f1d1d; font-weight:600;">
+        📅 Válido hasta el {{ fec_fin_str }}
+    </p>
+    {% elif fec_inicio_str %}
+    <p style="margin:8px 0 0; font-size:13px; color:#7f1d1d; font-weight:600;">
+        📅 Válido desde el {{ fec_inicio_str }}
     </p>
     {% endif %}
 </div>

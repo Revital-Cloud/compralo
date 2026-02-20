@@ -66,8 +66,11 @@ BEGIN
         RETURN FALSE;
     END IF;
 
-    -- VALIDACIÓN 4: Verificar código de cupón si es requerido
-    IF v_descuento.requiere_codigo AND (p_codigo_ingresado IS NULL OR p_codigo_ingresado != v_descuento.codigo_descuento) THEN
+    -- VALIDACIÓN 4: Verificar código de cupón si es requerido (comparación sin distinguir mayúsculas)
+    IF v_descuento.requiere_codigo AND (
+        p_codigo_ingresado IS NULL OR TRIM(COALESCE(p_codigo_ingresado, '')) = ''
+        OR UPPER(TRIM(p_codigo_ingresado)) != UPPER(TRIM(COALESCE(v_descuento.codigo_descuento, '')))
+    ) THEN
         RETURN FALSE;
     END IF;
 

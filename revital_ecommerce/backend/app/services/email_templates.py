@@ -351,6 +351,7 @@ class EmailTemplates:
         tipo_calculo: bool,
         val_porce_descuento: Optional[Any] = None,
         val_monto_descuento: Optional[Any] = None,
+        fec_inicio_str: Optional[str] = None,
         fec_fin_str: Optional[str] = None,
         min_valor_pedido: Optional[Any] = None,
     ) -> str:
@@ -365,6 +366,7 @@ class EmailTemplates:
             tipo_calculo=tipo_calculo,
             val_porce_descuento=val_porce_descuento,
             val_monto_descuento=val_monto_descuento,
+            fec_inicio_str=fec_inicio_str,
             fec_fin_str=fec_fin_str,
             min_valor_pedido=min_valor_pedido,
         )

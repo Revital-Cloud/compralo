@@ -23,9 +23,12 @@ class SendCouponBody(BaseModel):
     id_usuario: int
 
 @router.get("/discounts")
-async def get_discounts(db:Session = Depends(get_db)):
+async def get_discounts(
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin()),
+):
     """
-    Obtiene todos los descuentos registrados en la base de datos.
+    Obtiene todos los descuentos registrados en la base de datos (solo admin).
     """
     try:
         discounts = discount_service.get_discounts(db)
@@ -100,9 +103,10 @@ async def validate_discount_for_cart(
                 detail="Código de descuento no encontrado o no válido"
             )
         if not result['es_aplicable']:
+            detail = result.get('motivo_rechazo') or "El código de descuento no es aplicable a tu carrito actual"
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El código de descuento no es aplicable a tu carrito actual"
+                detail=detail
             )
         return result
     except HTTPException:

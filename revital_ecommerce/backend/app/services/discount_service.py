@@ -391,13 +391,13 @@ def get_discount_by_code(db: Session, codigo_descuento: str):
             requiere_codigo,
             id_usuario_destino
         FROM tab_descuentos
-        WHERE codigo_descuento = :codigo_descuento
+        WHERE UPPER(TRIM(codigo_descuento)) = UPPER(TRIM(:codigo_descuento))
             AND ind_activo = TRUE
             AND (fec_inicio IS NULL OR fec_inicio <= CURRENT_DATE)
             AND (fec_fin IS NULL OR fec_fin >= CURRENT_DATE)
         LIMIT 1
         """)
-        result = db.execute(query, {'codigo_descuento': codigo_descuento.upper()})
+        result = db.execute(query, {'codigo_descuento': (codigo_descuento or '').strip()})
         row = result.mappings().first()
         if not row:
             return None
@@ -456,26 +456,37 @@ def validate_discount_for_cart(db: Session, codigo_descuento: str, id_usuario: D
         total_carrito = float(total_row[0]) if total_row and total_row[0] else 0.0
         
         # Verificar si el descuento es aplicable usando la función de validación
+        # Enviar id_usuario como int para evitar fallos de comparación con id_usuario_destino (DECIMAL) en la BD
+        id_usuario_int = int(id_usuario) if id_usuario is not None else None
         validation_query = text("""
         SELECT fun_validar_descuento_aplicable(
-            :id_descuento, 
-            :id_usuario, 
-            :codigo_ingresado, 
+            :id_descuento,
+            :id_usuario,
+            :codigo_ingresado,
             :usr_insert
         ) as es_aplicable
         """)
         validation_result = db.execute(validation_query, {
-            'id_descuento': discount['id_descuento'],
-            'id_usuario': id_usuario,
-            'codigo_ingresado': codigo_descuento.upper(),
-            'usr_insert': id_usuario
+            'id_descuento': int(discount['id_descuento']),
+            'id_usuario': id_usuario_int,
+            'codigo_ingresado': (codigo_descuento or '').strip(),
+            'usr_insert': id_usuario_int
         })
         validation_row = validation_result.fetchone()
         es_aplicable = validation_row[0] if validation_row else False
-        
+
+        # Mensaje específico cuando el cupón es personal y no coincide el usuario
+        motivo_rechazo = None
+        if not es_aplicable and discount.get('id_usuario_destino') is not None:
+            dest = discount['id_usuario_destino']
+            if id_usuario_int is not None and int(dest) != id_usuario_int:
+                motivo_rechazo = "Este cupón es personal y solo puede usarlo el destinatario."
+
         # Verificar monto mínimo del pedido
         if discount.get('min_valor_pedido') and total_carrito < float(discount['min_valor_pedido']):
             es_aplicable = False
+            if motivo_rechazo is None:
+                motivo_rechazo = f"El pedido no alcanza el monto mínimo para este cupón (mín. {discount['min_valor_pedido']})."
         
         # Calcular el descuento que se aplicaría
         descuento_calculado = 0.0
@@ -491,7 +502,8 @@ def validate_discount_for_cart(db: Session, codigo_descuento: str, id_usuario: D
             'es_aplicable': es_aplicable,
             'total_carrito': total_carrito,
             'descuento_calculado': descuento_calculado,
-            'total_con_descuento': max(0, total_carrito - descuento_calculado)
+            'total_con_descuento': max(0, total_carrito - descuento_calculado),
+            'motivo_rechazo': motivo_rechazo
         }
     except Exception as e:
         db.rollback()
@@ -799,6 +811,7 @@ async def send_coupon_email_to_user(db: Session, id_descuento: Decimal, id_usuar
         tipo_calculo=bool(discount.get("tipo_calculo")),
         val_porce_descuento=discount.get("val_porce_descuento"),
         val_monto_descuento=discount.get("val_monto_descuento"),
+        fec_inicio=discount.get("fec_inicio"),
         fec_fin=discount.get("fec_fin"),
         min_valor_pedido=discount.get("min_valor_pedido"),
     )
