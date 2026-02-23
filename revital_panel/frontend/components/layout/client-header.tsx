@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { ThemeSwitcherButton } from '@/components/ui/theme-switcher-button';
-import { Bell } from 'lucide-react';
+import { LanguageSwitcherButton } from '@/components/ui/language-switcher-button';
 import { useTranslations } from 'next-intl';
 
 function pathWithoutLocale(path: string): string {
@@ -45,15 +45,7 @@ export function ClientHeader() {
         <h1 className="text-lg sm:text-xl font-medium text-foreground leading-tight">{pageTitle}</h1>
       </div>
       <div className="ml-auto flex items-center gap-3 px-6 lg:px-8">
-        {/* Notifications button (placeholder for future functionality) */}
-        <button 
-          className="relative p-2 rounded-lg hover:bg-muted transition-colors"
-          aria-label="Notifications"
-        >
-          <Bell className="h-5 w-5 text-muted-foreground" />
-          {/* Notification badge - uncomment when notifications are implemented */}
-          {/* <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500" /> */}
-        </button>
+        <LanguageSwitcherButton className="rounded-lg hover:bg-muted" />
         <ThemeSwitcherButton />
       </div>
     </header>

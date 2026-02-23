@@ -102,29 +102,42 @@ cp .env.production.example .env.production     # producción
 - **Desarrollo:** se usa `.env.development` por defecto (no hace falta exportar nada).
 - **Producción:** en el servidor, exportar `ENVIRONMENT=production` para cargar `.env.production`.
 
-### 3. Iniciar Servidor de Desarrollo
+### 3. Esquema de base de datos
+
+La API espera que existan las tablas del panel (p. ej. `tab_usuarios_revital`). Si ves `relation "tab_usuarios_revital" does not exist`, aplica el script de esquema una vez contra la base indicada en `DATABASE_URL`:
+
+```bash
+# Desde la raíz del repo, con DATABASE_URL en .env.development
+cd revital_panel/backend
+set -a && source .env.development && set +a
+psql "$DATABASE_URL" -f ../db/db_revitalsaas.sql
+```
+
+**Atención:** El script hace `DROP TABLE IF EXISTS` de todas las tablas del esquema; úsalo solo en una base vacía o de desarrollo donde no importe perder datos.
+
+### 4. Iniciar Servidor de Desarrollo
 
 ```bash
 # Método recomendado (Script con PYTHONPATH configurado)
 ./run_dev.sh
 
 # Método alternativo (FastAPI CLI con PYTHONPATH)
-PYTHONPATH=./app fastapi dev app/main.py --port 8001
+PYTHONPATH=./app fastapi dev app/main.py --port 8080
 
 # Método alternativo (Uvicorn)
-PYTHONPATH=./app uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
+PYTHONPATH=./app uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
 ```
 
 **Nota importante**: El proyecto requiere que el directorio `app/` esté en el PYTHONPATH para que las importaciones funcionen correctamente. El script `run_dev.sh` configura esto automáticamente.
 
-### 4. Verificar Instalación
+### 5. Verificar Instalación
 
 ```bash
 # Verificar que el servidor esté funcionando
-curl http://localhost:8000/
+curl http://localhost:8080/
 
 # Verificar documentación de la API
-# Abrir en navegador: http://localhost:8000/docs
+# Abrir en navegador: http://localhost:8080/docs
 ```
 
 ## 🚧 Estado del Proyecto
@@ -148,12 +161,12 @@ Este backend está en **desarrollo activo**. Las funcionalidades principales inc
 
 ### Swagger UI Automático
 
-- **Desarrollo**: http://localhost:8001/docs (puerto diferente al e-commerce)
+- **Desarrollo**: http://localhost:8080/docs (puerto diferente al e-commerce)
 - **Producción**: https://api.revital.com/docs
 
 ### ReDoc
 
-- **Desarrollo**: http://localhost:8001/redoc
+- **Desarrollo**: http://localhost:8080/redoc
 
 ## 🔧 Comandos Útiles
 
@@ -164,7 +177,7 @@ Este backend está en **desarrollo activo**. Las funcionalidades principales inc
 fastapi dev app/main.py
 
 # Ejecutar con uvicorn
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
 ```
 
 ### Verificar Configuración

@@ -43,12 +43,13 @@ export function MRRByPlanChart({ data, loading }: MRRByPlanChartProps) {
           <XAxis dataKey="name" tickLine={false} axisLine={false} />
           <YAxis tickLine={false} axisLine={false} />
           <Tooltip
-            formatter={(value: number | undefined) => {
-              if (value === undefined) return '';
+            formatter={(value: unknown) => {
+              const num = typeof value === 'number' ? value : Number(value);
+              if (Number.isNaN(num)) return '';
               return new Intl.NumberFormat('es-CO', {
                 style: 'currency',
                 currency: 'USD',
-              }).format(value);
+              }).format(num);
             }}
           />
           <Bar dataKey="value" fill="#16a34a" radius={[4, 4, 0, 0]} name="MRR" />

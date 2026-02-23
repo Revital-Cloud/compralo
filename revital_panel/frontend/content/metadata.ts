@@ -17,7 +17,7 @@ export const defaultMetadata: Metadata = {
     "pagos online",
     "plataforma ecommerce",
     "venta online",
-    "cms headless",
+    "integraciones",
     "analytics",
     "stripe",
     "paypal",
@@ -83,7 +83,7 @@ export const pageMetadata = {
   home: {
     title: "Revital - Plataforma E-commerce Todo-en-Uno para Colombia",
     description:
-      "Crea y gestiona tu tienda online con Revital. Integración nativa con Wompi, panel de estadísticas en tiempo real, CMS headless y más. Comienza gratis.",
+      "Crea y gestiona tu tienda online con Revital. Integración nativa con Wompi, panel de estadísticas en tiempo real e integraciones con otras herramientas de tu negocio. Comienza gratis.",
     keywords: [
       "ecommerce colombia",
       "tienda online",
@@ -94,13 +94,13 @@ export const pageMetadata = {
   pricing: {
     title: "Precios - Planes que se adaptan a tu negocio",
     description:
-      "Descubre nuestros planes de precios. Comienza gratis con el plan Emprendedor o escala con nuestros planes Profesional y Enterprise.",
+      "Descubre nuestros planes de precios. Plan Emprendedor, Profesional y Enterprise. Prueba el plan Profesional 14 días gratis.",
     keywords: ["precios revital", "planes ecommerce", "costo tienda online"],
   },
   features: {
     title: "Características - Todo lo que necesitas para vender online",
     description:
-      "Panel de estadísticas, gestor de productos, integración Wompi, CMS headless y más características diseñadas para el mercado colombiano.",
+      "Panel de estadísticas, gestor de productos, integración Wompi e integraciones avanzadas con otros sistemas, diseñadas para el mercado colombiano.",
     keywords: [
       "características ecommerce",
       "funcionalidades tienda online",
@@ -170,10 +170,10 @@ export const structuredData = {
       },
       {
         "@type": "Question",
-        name: "¿Cómo funciona el CMS?",
+        name: "¿Puedo conectar Revital con otros sistemas?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Nuestro CMS visual básico te permite crear páginas personalizadas, blog posts, landing pages y conectar con cualquier frontend. Ideal para desarrolladores que quieren flexibilidad total.",
+          text: "Sí, contamos con una capa de integraciones que permite sincronizar productos, pedidos e inventario con otros sistemas (ERP, contabilidad, CRM o herramientas internas). Para equipos técnicos, también ofrecemos una API REST con más de 24 endpoints para construir integraciones a medida.",
         },
       },
     ],

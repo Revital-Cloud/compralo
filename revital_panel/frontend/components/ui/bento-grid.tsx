@@ -20,7 +20,6 @@ interface BentoGridProps {
   items?: BentoItem[];
 }
 
-<<<<<<< HEAD:synkro_panel/frontend/components/ui/bento-grid.tsx
 function BentoGrid({ items }: BentoGridProps) {
   const t = useTranslations();
   
@@ -29,7 +28,7 @@ function BentoGrid({ items }: BentoGridProps) {
       title: t('features.items.statistics.title'),
       meta: t('features.items.statistics.meta'),
       description: t('features.items.statistics.description'),
-      icon: <TrendingUp className="w-4 h-4 text-synkro-green" />,
+      icon: <TrendingUp className="w-4 h-4 text-revital-green" />,
       status: t('features.items.statistics.status'),
       tags: t.raw('features.items.statistics.tags') as string[],
       colSpan: 2,
@@ -39,69 +38,27 @@ function BentoGrid({ items }: BentoGridProps) {
       title: t('features.items.products.title'),
       meta: t('features.items.products.meta'),
       description: t('features.items.products.description'),
-      icon: <ShoppingCart className="w-4 h-4 text-synkro-green" />,
+      icon: <ShoppingCart className="w-4 h-4 text-revital-green" />,
       status: t('features.items.products.status'),
       tags: t.raw('features.items.products.tags') as string[],
     },
     {
-      title: t('features.items.cms.title'),
-      meta: t('features.items.cms.meta'),
-      description: t('features.items.cms.description'),
-      icon: <LayoutGrid className="w-4 h-4 text-synkro-green" />,
-      tags: t.raw('features.items.cms.tags') as string[],
+      title: t('features.items.api.title'),
+      meta: t('features.items.api.meta'),
+      description: t('features.items.api.description'),
+      icon: <LayoutGrid className="w-4 h-4 text-revital-green" />,
+      tags: t.raw('features.items.api.tags') as string[],
       colSpan: 2,
     },
     {
       title: t('features.items.wompi.title'),
       meta: t('features.items.wompi.meta'),
       description: t('features.items.wompi.description'),
-      icon: <Settings className="w-4 h-4 text-synkro-green" />,
+      icon: <Settings className="w-4 h-4 text-revital-green" />,
       status: t('features.items.wompi.status'),
       tags: t.raw('features.items.wompi.tags') as string[],
     },
   ];
-=======
-const itemsSample: BentoItem[] = [
-  {
-    title: "Panel de Estadísticas Detallado",
-    meta: "En tiempo real",
-    description:
-      "Visualiza ventas, conversiones, productos más vendidos y comportamiento de clientes con dashboards interactivos y reportes exportables.",
-    icon: <TrendingUp className="w-4 h-4 text-revital-green" />,
-    status: "Activo",
-    tags: ["Analytics", "Reportes", "KPIs"],
-    colSpan: 2,
-    hasPersistentHover: true,
-  },
-  {
-    title: "Gestor de Productos Avanzado",
-    meta: "Carga masiva + SEO",
-    description:
-      "Administra inventario, variantes, precios dinámicos, categorías y optimización SEO automática para cada producto.",
-    icon: <ShoppingCart className="w-4 h-4 text-revital-green" />,
-    status: "Optimizado",
-    tags: ["Inventario", "SEO", "Catálogo"],
-  },
-  {
-    title: "CMS Headless + Blog Integrado",
-    meta: "API-First",
-    description:
-      "Gestiona contenido, páginas personalizadas, blog para SEO y landing pages sin limitaciones técnicas.",
-    icon: <LayoutGrid className="w-4 h-4 text-revital-green" />,
-    tags: ["CMS", "Blog", "API"],
-    colSpan: 2,
-  },
-  {
-    title: "Pagos con Wompi",
-    meta: "Pasarela principal",
-    description:
-      "Integración nativa con Wompi para Colombia. Configuración de descuentos, cupones y programas de puntos.",
-    icon: <Settings className="w-4 h-4 text-revital-green" />,
-    status: "Integrado",
-    tags: ["Wompi", "Pagos", "Descuentos"],
-  },
-];
->>>>>>> main:revital_panel/frontend/components/ui/bento-grid.tsx
 
   const displayItems = items || itemsSample;
   return (

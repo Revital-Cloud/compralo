@@ -30,7 +30,7 @@ import {
 
 import { useInvoices, usePendingInvoices } from '@/hooks/use-billing';
 import { MetricCard } from '@/components/dashboard';
-import type { InvoicePublic } from '@/types';
+import type { InvoicePublic, InvoicePending } from '@/types';
 
 // Format price
 const formatPrice = (price: number | string, currency: string = 'USD') => {
@@ -93,9 +93,10 @@ const getStatusConfig = (status: string) => {
 };
 
 // Invoice Row Component
-function InvoiceRow({ invoice }: { invoice: InvoicePublic }) {
+function InvoiceRow({ invoice }: { invoice: InvoicePublic | InvoicePending }) {
   const statusConfig = getStatusConfig(invoice.estado_pago);
   const StatusIcon = statusConfig.icon;
+  const hasPeriodo = 'periodo_facturado_desde' in invoice && 'periodo_facturado_hasta' in invoice;
   
   const isOverdue = invoice.estado_pago === 'pendiente' && 
     invoice.fecha_vencimiento && 
@@ -116,7 +117,7 @@ function InvoiceRow({ invoice }: { invoice: InvoicePublic }) {
           </div>
           <p className="text-sm text-muted-foreground">
             {formatDate(invoice.fecha_emision)}
-            {invoice.periodo_facturado_desde && invoice.periodo_facturado_hasta && (
+            {hasPeriodo && invoice.periodo_facturado_desde && invoice.periodo_facturado_hasta && (
               <span className="ml-2">
                 ({formatDate(invoice.periodo_facturado_desde)} - {formatDate(invoice.periodo_facturado_hasta)})
               </span>
@@ -153,7 +154,7 @@ function InvoicesList({
   loading, 
   emptyMessage 
 }: { 
-  invoices: InvoicePublic[];
+  invoices: (InvoicePublic | InvoicePending)[];
   loading: boolean;
   emptyMessage: string;
 }) {

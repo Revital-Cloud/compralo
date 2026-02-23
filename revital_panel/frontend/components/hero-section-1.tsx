@@ -7,7 +7,7 @@ import { ArrowRight, LayoutDashboard, Sparkles, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AnimatedGroup } from "@/components/ui/animated-group";
 import { Header } from "./header";
-import { heroContent } from "@/content";
+import { useTranslations } from "next-intl";
 import { useAuth } from "@/hooks/use-auth";
 import { isAuthenticated } from "@/utils/apiWrapper";
 
@@ -23,7 +23,7 @@ const transitionVariants = {
       filter: "blur(0px)",
       y: 0,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         bounce: 0.3,
         duration: 1.5,
       },
@@ -32,6 +32,7 @@ const transitionVariants = {
 };
 
 export function HeroSection() {
+  const t = useTranslations("hero");
   const { user, isLoading } = useAuth();
   const isLoggedIn = isAuthenticated() && !!user;
 
@@ -73,7 +74,7 @@ export function HeroSection() {
                   >
                     <span className="text-foreground text-sm flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-revital-green" />
-                      Introducing Revital: Your All-in-One E-commerce Platform
+                      {t("badge")}
                     </span>
                     <span className="dark:border-background block h-4 w-0.5 border-l bg-revital-green dark:bg-revital-green"></span>
 
@@ -90,10 +91,10 @@ export function HeroSection() {
                   </a>
 
                   <h1 className="mt-8 max-w-4xl mx-auto text-balance text-5xl md:text-6xl lg:mt-16 xl:text-7xl animate-float">
-                    {heroContent.title}
+                    {t("title")}
                   </h1>
                   <p className="mx-auto mt-8 max-w-2xl text-balance text-lg text-muted-foreground">
-                    {heroContent.subtitle}
+                    {t("subtitle")}
                   </p>
                 </AnimatedGroup>
 
@@ -110,7 +111,7 @@ export function HeroSection() {
                     },
                     ...transitionVariants,
                   }}
-                  className="mt-12 flex flex-col items-center justify-center gap-3 md:flex-row"
+                  className="mt-12 flex flex-col items-center justify-center gap-12 md:flex-row md:gap-8"
                 >
                   {isLoading ? (
                     // Loading state
@@ -129,7 +130,7 @@ export function HeroSection() {
                         >
                           <Link href="/dashboard">
                             <LayoutDashboard className="mr-2 h-5 w-5" />
-                            <span>Go to Dashboard</span>
+                            <span>{t("goToDashboard")}</span>
                           </Link>
                         </Button>
                       </div>
@@ -139,7 +140,7 @@ export function HeroSection() {
                         className="h-10.5 rounded-xl px-5 hover:bg-revital-green/10 hover:text-revital-green"
                         onClick={() => scrollToSection("#features")}
                       >
-                        <span>Explore Features</span>
+                        <span>{t("exploreFeatures")}</span>
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </>
@@ -153,7 +154,7 @@ export function HeroSection() {
                           className="rounded-xl px-6 text-base bg-revital-green hover:bg-revital-green/90 text-revital-black font-medium"
                         >
                           <Link href="/register">
-                            <span>Get Started Free</span>
+                            <span>{t("getStartedFree")}</span>
                             <ArrowRight className="ml-2 h-5 w-5" />
                           </Link>
                         </Button>
@@ -165,7 +166,7 @@ export function HeroSection() {
                         onClick={() => scrollToSection("#pricing")}
                       >
                         <Play className="mr-2 h-4 w-4" />
-                        <span>View Pricing</span>
+                        <span>{t("viewPricing")}</span>
                       </Button>
                     </>
                   )}
@@ -188,17 +189,17 @@ export function HeroSection() {
                 >
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-revital-green animate-pulse" />
-                    <span>No credit card required</span>
+                    <span>{t("noCreditCard")}</span>
                   </div>
                   <div className="hidden sm:block h-4 w-px bg-border" />
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-revital-green animate-pulse" />
-                    <span>Free forever plan</span>
+                    <span>{t("freeForever")}</span>
                   </div>
                   <div className="hidden sm:block h-4 w-px bg-border" />
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-2 rounded-full bg-revital-green animate-pulse" />
-                    <span>Setup in minutes</span>
+                    <span>{t("setupInMinutes")}</span>
                   </div>
                 </AnimatedGroup>
               </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import {
   CreditCard,
   Check,
@@ -9,6 +10,7 @@ import {
   Clock,
   Calendar,
   Sparkles,
+  PhoneCall,
 } from 'lucide-react';
 import {
   Card,
@@ -25,32 +27,21 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  Tabs,
+  TabsList,
+  TabsTrigger,
 } from "@/components/ui";
 
 import { useActiveSubscriptions } from '@/hooks/use-subscriptions';
 import { usePlans, usePlan } from '@/hooks/use-planes';
 import { usePlanHistory } from '@/hooks/use-plan-history';
+import { useFormatters } from '@/hooks/use-formatters';
 import { StatusBadge } from '@/components/dashboard';
+import { appConfig } from '@/content/config';
 import type { SubscriptionPublic, PlanPublic, PlanHistoryPublic } from '@/types';
 
-// Format price
-const formatPrice = (price: number | string, currency: string = 'USD') => {
-  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-  }).format(numPrice);
-};
-
-// Format date
-const formatDate = (dateString: string | null | undefined) => {
-  if (!dateString) return 'N/A';
-  return new Date(dateString).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-};
+const isEnterprisePlan = (plan: PlanPublic) =>
+  plan.nom_plan?.toLowerCase() === 'enterprise';
 
 // Current Subscription Card
 function CurrentSubscriptionCard({ 
@@ -62,6 +53,9 @@ function CurrentSubscriptionCard({
   plan?: PlanPublic | null;
   loading?: boolean;
 }) {
+  const t = useTranslations('subscription');
+  const { formatPrice, formatDate } = useFormatters();
+
   if (loading) {
     return (
       <Card>
@@ -82,9 +76,9 @@ function CurrentSubscriptionCard({
       <Card className="border-dashed">
         <CardContent className="py-12 text-center">
           <CreditCard className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold mb-2">No Active Subscription</h3>
+          <h3 className="text-lg font-semibold mb-2">{t('currentPlan.noSubscription.title')}</h3>
           <p className="text-muted-foreground mb-4">
-            Choose a plan below to get started with Revital.
+            {t('currentPlan.noSubscription.description')}
           </p>
         </CardContent>
       </Card>
@@ -95,8 +89,8 @@ function CurrentSubscriptionCard({
     <Card className="bg-linear-to-br from-revital-green/5 to-revital-green/10 border-revital-green/20">
       <CardHeader className="flex flex-row items-start justify-between">
         <div>
-          <CardTitle className="text-lg">Current Plan</CardTitle>
-          <CardDescription>Your active subscription</CardDescription>
+          <CardTitle className="text-lg">{t('currentPlan.title')}</CardTitle>
+          <CardDescription>{t('currentPlan.description')}</CardDescription>
         </div>
         <StatusBadge status={subscription.estado_suscripcion} size="lg" />
       </CardHeader>
@@ -106,7 +100,7 @@ function CurrentSubscriptionCard({
           <p className="text-2xl font-bold mt-1">
             {formatPrice(subscription.precio_actual)}
             <span className="text-base font-normal text-muted-foreground">
-              /{subscription.tipo_facturacion === 'anual' ? 'year' : 'month'}
+              {subscription.tipo_facturacion === 'anual' ? t('availablePlans.perYear') : t('availablePlans.perMonth')}
             </span>
           </p>
           {plan.desc_plan && (
@@ -118,7 +112,7 @@ function CurrentSubscriptionCard({
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-muted-foreground" />
             <div>
-              <p className="text-xs text-muted-foreground">Started</p>
+              <p className="text-xs text-muted-foreground">{t('currentPlan.started')}</p>
               <p className="text-sm font-medium">{formatDate(subscription.fecha_inicio)}</p>
             </div>
           </div>
@@ -126,17 +120,16 @@ function CurrentSubscriptionCard({
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <div>
-                <p className="text-xs text-muted-foreground">Next Payment</p>
+                <p className="text-xs text-muted-foreground">{t('currentPlan.nextPayment')}</p>
                 <p className="text-sm font-medium">{formatDate(subscription.fecha_proximo_pago)}</p>
               </div>
             </div>
           )}
         </div>
 
-        {/* Plan Features */}
         {plan.features_json && Object.keys(plan.features_json).length > 0 && (
           <div className="pt-4 border-t">
-            <p className="text-sm font-medium mb-2">Plan Features:</p>
+            <p className="text-sm font-medium mb-2">{t('currentPlan.planFeatures')}</p>
             <ul className="space-y-1">
               {Object.entries(plan.features_json).slice(0, 5).map(([key, value]) => (
                 <li key={key} className="flex items-center gap-2 text-sm">
@@ -148,21 +141,20 @@ function CurrentSubscriptionCard({
           </div>
         )}
 
-        {/* Plan Limits */}
         <div className="pt-4 border-t">
-          <p className="text-sm font-medium mb-2">Plan Limits:</p>
+          <p className="text-sm font-medium mb-2">{t('currentPlan.planLimits')}</p>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <p className="text-2xl font-bold">{plan.max_productos || '∞'}</p>
-              <p className="text-xs text-muted-foreground">Products</p>
+              <p className="text-xs text-muted-foreground">{t('currentPlan.products')}</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{plan.max_usuarios || '∞'}</p>
-              <p className="text-xs text-muted-foreground">Users</p>
+              <p className="text-xs text-muted-foreground">{t('currentPlan.users')}</p>
             </div>
             <div>
               <p className="text-2xl font-bold">{plan.max_almacenamiento_gb || '∞'}</p>
-              <p className="text-xs text-muted-foreground">GB Storage</p>
+              <p className="text-xs text-muted-foreground">{t('currentPlan.storage')}</p>
             </div>
           </div>
         </div>
@@ -172,90 +164,134 @@ function CurrentSubscriptionCard({
 }
 
 // Plan Card Component
-function PlanCard({ 
-  plan, 
+function PlanCard({
+  plan,
   isCurrentPlan,
   currentPlanPrice,
+  billingPeriod,
   onSelect,
-}: { 
+}: {
   plan: PlanPublic;
   isCurrentPlan: boolean;
   currentPlanPrice?: number;
+  billingPeriod: 'mensual' | 'anual';
   onSelect: (plan: PlanPublic) => void;
 }) {
-  const planPrice = typeof plan.precio_mensual === 'string' 
-    ? parseFloat(plan.precio_mensual) 
-    : plan.precio_mensual;
-  
-  const isUpgrade = currentPlanPrice !== undefined && planPrice > currentPlanPrice;
-  const isDowngrade = currentPlanPrice !== undefined && planPrice < currentPlanPrice;
+  const t = useTranslations('subscription');
+  const { formatPrice } = useFormatters();
+
+  const isEnterprise = isEnterprisePlan(plan);
+  const price = billingPeriod === 'anual' && plan.precio_anual != null
+    ? (typeof plan.precio_anual === 'string' ? parseFloat(plan.precio_anual) : plan.precio_anual)
+    : (typeof plan.precio_mensual === 'string' ? parseFloat(plan.precio_mensual) : plan.precio_mensual);
+  const planPrice = isEnterprise ? 0 : price;
+
+  const isUpgrade = !isEnterprise && currentPlanPrice !== undefined && planPrice > currentPlanPrice;
+  const isDowngrade = !isEnterprise && currentPlanPrice !== undefined && planPrice < currentPlanPrice;
+
+  const productsText = plan.max_productos
+    ? t('availablePlans.upTo', { count: plan.max_productos })
+    : t('availablePlans.unlimitedProducts');
+  const usersText = plan.max_usuarios
+    ? t('availablePlans.upToUsers', { count: plan.max_usuarios })
+    : t('availablePlans.unlimitedUsers');
+  const storageText = plan.max_almacenamiento_gb
+    ? `${plan.max_almacenamiento_gb} ${t('currentPlan.storage')}`
+    : `${t('availablePlans.unlimited')} ${t('currentPlan.storage')}`;
+
+  const contactSalesUrl = appConfig.registerWithPlan?.enterprise ?? `${appConfig.appUrl}/#contact`;
 
   return (
     <Card className={`relative transition-all hover:shadow-lg ${isCurrentPlan ? 'ring-2 ring-revital-green' : ''}`}>
       {isCurrentPlan && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
           <Badge className="bg-revital-green text-revital-black">
-            Current Plan
+            {t('availablePlans.currentPlanBadge')}
           </Badge>
         </div>
       )}
       <CardHeader className="text-center pt-8">
         <CardTitle className="text-xl">{plan.nom_plan}</CardTitle>
         <div className="mt-4">
-          <span className="text-4xl font-bold">{formatPrice(plan.precio_mensual)}</span>
-          <span className="text-muted-foreground">/month</span>
+          {isEnterprise ? (
+            <span className="text-2xl font-bold">{t('availablePlans.contactUs')}</span>
+          ) : (
+            <>
+              <span className="text-4xl font-bold">
+                {formatPrice(billingPeriod === 'anual' && plan.precio_anual != null ? plan.precio_anual : plan.precio_mensual)}
+              </span>
+              <span className="text-muted-foreground">
+                {billingPeriod === 'anual' ? t('availablePlans.perYear') : t('availablePlans.perMonth')}
+              </span>
+            </>
+          )}
         </div>
-        {plan.precio_anual && (
+        {!isEnterprise && billingPeriod === 'mensual' && plan.precio_anual != null && (
           <p className="text-sm text-muted-foreground">
-            or {formatPrice(plan.precio_anual)}/year (save 20%)
+            {t('availablePlans.or')} {formatPrice(plan.precio_anual)}{t('availablePlans.perYear')}{t('availablePlans.save20')}
           </p>
+        )}
+        {!isEnterprise && billingPeriod === 'anual' && plan.precio_anual != null && (
+          <p className="text-sm text-muted-foreground">{t('availablePlans.save20')}</p>
         )}
         {plan.desc_plan && (
           <CardDescription className="mt-2">{plan.desc_plan}</CardDescription>
         )}
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Limits */}
         <ul className="space-y-2">
           <li className="flex items-center gap-2 text-sm">
             <Check className="h-4 w-4 text-revital-green" />
-            <span>Up to {plan.max_productos || 'unlimited'} products</span>
+            <span>{productsText}</span>
           </li>
           <li className="flex items-center gap-2 text-sm">
             <Check className="h-4 w-4 text-revital-green" />
-            <span>Up to {plan.max_usuarios || 'unlimited'} users</span>
+            <span>{usersText}</span>
           </li>
           <li className="flex items-center gap-2 text-sm">
             <Check className="h-4 w-4 text-revital-green" />
-            <span>{plan.max_almacenamiento_gb || 'Unlimited'} GB storage</span>
+            <span>{storageText}</span>
           </li>
         </ul>
 
-        <Button 
-          className="w-full"
-          variant={isCurrentPlan ? 'outline' : 'default'}
-          disabled={isCurrentPlan}
-          onClick={() => onSelect(plan)}
-        >
-          {isCurrentPlan ? (
-            'Current Plan'
-          ) : isUpgrade ? (
-            <>
-              <ArrowUp className="h-4 w-4 mr-2" />
-              Upgrade
-            </>
-          ) : isDowngrade ? (
-            <>
-              <ArrowDown className="h-4 w-4 mr-2" />
-              Downgrade
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4 mr-2" />
-              Select Plan
-            </>
-          )}
-        </Button>
+        {isEnterprise ? (
+          <Button
+            className="w-full"
+            variant="default"
+            asChild
+          >
+            <a href={contactSalesUrl} target="_blank" rel="noopener noreferrer">
+              <PhoneCall className="h-4 w-4 mr-2" />
+              {t('availablePlans.contactSales')}
+            </a>
+          </Button>
+        ) : (
+          <Button
+            className="w-full"
+            variant={isCurrentPlan ? 'outline' : 'default'}
+            disabled={isCurrentPlan}
+            onClick={() => onSelect(plan)}
+          >
+            {isCurrentPlan ? (
+              t('availablePlans.currentPlanBadge')
+            ) : isUpgrade ? (
+              <>
+                <ArrowUp className="h-4 w-4 mr-2" />
+                {t('availablePlans.upgrade')}
+              </>
+            ) : isDowngrade ? (
+              <>
+                <ArrowDown className="h-4 w-4 mr-2" />
+                {t('availablePlans.downgrade')}
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-2" />
+                {t('availablePlans.selectPlan')}
+              </>
+            )}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
@@ -269,6 +305,9 @@ function PlanHistoryTimeline({
   history: PlanHistoryPublic[];
   loading: boolean;
 }) {
+  const t = useTranslations('subscription');
+  const { formatPrice, formatDate } = useFormatters();
+
   const getChangeIcon = (tipo: string) => {
     switch (tipo) {
       case 'upgrade':
@@ -293,7 +332,7 @@ function PlanHistoryTimeline({
     return (
       <div className="text-center py-8 text-muted-foreground">
         <Clock className="h-8 w-8 mx-auto mb-2" />
-        <p>No plan changes recorded yet.</p>
+        <p>{t('planHistory.noHistory')}</p>
       </div>
     );
   }
@@ -314,11 +353,14 @@ function PlanHistoryTimeline({
               </p>
             </div>
             <p className="text-sm text-muted-foreground">
-              Price changed: {formatPrice(record.precio_anterior || 0)} → {formatPrice(record.precio_nuevo)}
+              {t('planHistory.priceChanged', {
+                oldPrice: formatPrice(record.precio_anterior || 0),
+                newPrice: formatPrice(record.precio_nuevo),
+              })}
             </p>
             {record.motivo_cambio && (
               <p className="text-sm text-muted-foreground mt-1">
-                Reason: {record.motivo_cambio}
+                {t('planHistory.reason', { reason: record.motivo_cambio })}
               </p>
             )}
           </div>
@@ -330,8 +372,12 @@ function PlanHistoryTimeline({
 
 // Main Subscription Page
 export default function SubscriptionPage() {
+  const t = useTranslations('subscription');
+  const { formatPrice } = useFormatters();
+
   const [selectedPlan, setSelectedPlan] = useState<PlanPublic | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [billingPeriod, setBillingPeriod] = useState<'mensual' | 'anual'>('mensual');
 
   const { data: subscriptions, isLoading: loadingSubscription } = useActiveSubscriptions();
   const { data: plans, isLoading: loadingPlans } = usePlans(true);
@@ -353,6 +399,7 @@ export default function SubscriptionPage() {
     : undefined;
 
   const handlePlanSelect = (plan: PlanPublic) => {
+    if (isEnterprisePlan(plan)) return;
     setSelectedPlan(plan);
     setShowConfirmDialog(true);
   };
@@ -366,30 +413,35 @@ export default function SubscriptionPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">Subscription</h1>
+        <h1 className="text-2xl font-bold">{t('title')}</h1>
         <p className="text-muted-foreground mt-1">
-          Manage your subscription and billing preferences.
+          {t('subtitle')}
         </p>
       </div>
 
-      {/* Current Subscription */}
       <CurrentSubscriptionCard 
         subscription={activeSubscription}
         plan={currentPlan}
         loading={loadingSubscription || loadingCurrentPlan}
       />
 
-      {/* Available Plans */}
       <div className="space-y-4">
-        <div>
-          <h2 className="text-xl font-semibold">Available Plans</h2>
-          <p className="text-sm text-muted-foreground">
-            {activeSubscription 
-              ? 'Upgrade or downgrade your plan at any time.' 
-              : 'Choose the plan that best fits your needs.'}
-          </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">{t('availablePlans.title')}</h2>
+            <p className="text-sm text-muted-foreground">
+              {activeSubscription
+                ? t('availablePlans.subtitle')
+                : t('availablePlans.subtitleNoSubscription')}
+            </p>
+          </div>
+          <Tabs value={billingPeriod} onValueChange={(v) => setBillingPeriod(v as 'mensual' | 'anual')}>
+            <TabsList className="grid w-full grid-cols-2 sm:w-auto">
+              <TabsTrigger value="mensual">{t('availablePlans.billingMonthly')}</TabsTrigger>
+              <TabsTrigger value="anual">{t('availablePlans.billingAnnual')}</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         {loadingPlans ? (
@@ -406,6 +458,7 @@ export default function SubscriptionPage() {
                 plan={plan}
                 isCurrentPlan={currentPlan?.id_plan === plan.id_plan}
                 currentPlanPrice={currentPlanPrice}
+                billingPeriod={billingPeriod}
                 onSelect={handlePlanSelect}
               />
             ))}
@@ -413,10 +466,9 @@ export default function SubscriptionPage() {
         )}
       </div>
 
-      {/* Plan History */}
       {activeSubscription && (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Plan History</h2>
+          <h2 className="text-xl font-semibold">{t('planHistory.title')}</h2>
           <Card>
             <CardContent className="pt-6">
               <PlanHistoryTimeline 
@@ -428,27 +480,49 @@ export default function SubscriptionPage() {
         </div>
       )}
 
-      {/* Confirm Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Change Plan</DialogTitle>
+            <DialogTitle>{t('changePlan.title')}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to change to the {selectedPlan?.nom_plan} plan?
-              {selectedPlan && currentPlanPrice && (
-                <span className="block mt-2">
-                  Your new price will be {formatPrice(selectedPlan.precio_mensual)}/month.
-                </span>
+              {selectedPlan && isEnterprisePlan(selectedPlan) ? (
+                t('changePlan.descriptionEnterprise')
+              ) : (
+                <>
+                  {t('changePlan.description', { planName: selectedPlan?.nom_plan ?? '' })}
+                  {selectedPlan && currentPlanPrice != null && (
+                    <span className="block mt-2">
+                      {billingPeriod === 'anual' && selectedPlan.precio_anual != null
+                        ? t('changePlan.newPriceAnnual', {
+                            price: formatPrice(selectedPlan.precio_anual),
+                          })
+                        : t('changePlan.newPrice', {
+                            price: formatPrice(selectedPlan.precio_mensual),
+                          })}
+                    </span>
+                  )}
+                </>
               )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowConfirmDialog(false)}>
-              Cancel
+              {t('changePlan.cancel')}
             </Button>
-            <Button onClick={handleConfirmChange}>
-              Confirm Change
-            </Button>
+            {selectedPlan && isEnterprisePlan(selectedPlan) ? (
+              <Button asChild>
+                <a
+                  href={appConfig.registerWithPlan?.enterprise ?? `${appConfig.appUrl}/#contact`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <PhoneCall className="h-4 w-4 mr-2" />
+                  {t('availablePlans.contactSales')}
+                </a>
+              </Button>
+            ) : (
+              <Button onClick={handleConfirmChange}>{t('changePlan.confirm')}</Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

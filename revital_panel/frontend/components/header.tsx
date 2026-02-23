@@ -7,11 +7,13 @@ import { Menu, X, LogIn, LayoutDashboard, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeSwitcherButton } from "@/components/ui/theme-switcher-button";
+import { LanguageSwitcherButton } from "@/components/ui/language-switcher-button";
 import { useTranslations } from 'next-intl';
 import { useAuth } from "@/hooks/use-auth";
 import { isAuthenticated } from "@/utils/apiWrapper";
 
-const Logo = ({ className }: { className?: string }) => {
+function Logo({ className }: { className?: string }) {
+  const t = useTranslations("navigation");
   return (
     <Link
       href="/"
@@ -21,7 +23,6 @@ const Logo = ({ className }: { className?: string }) => {
       )}
       aria-label="Revital - Go to home"
     >
-      {/* Logo Image */}
       <div className="relative">
         <Image
           src="/logo.webp"
@@ -31,22 +32,19 @@ const Logo = ({ className }: { className?: string }) => {
           className="h-10 w-10 object-contain transition-transform duration-300 group-hover:scale-110"
           priority
         />
-        {/* Subtle glow effect on hover */}
         <div className="absolute inset-0 rounded-full bg-revital-green/20 opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100" />
       </div>
-
-      {/* Brand Text */}
       <div className="flex flex-col">
         <span className="text-xl font-bold text-revital-green transition-colors duration-300 group-hover:text-revital-green/80">
           Revital
         </span>
         <span className="text-xs text-muted-foreground font-medium tracking-wide">
-          E-commerce Platform
+          {t("platformSubtitle")}
         </span>
       </div>
     </Link>
   );
-};
+}
 
 export const Header = () => {
   const t = useTranslations();
@@ -127,7 +125,7 @@ export const Header = () => {
             {/* Desktop & Mobile Menu */}
             <div className="bg-background group-data-[state=active]:block lg:group-data-[state=active]:flex mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border p-6 shadow-2xl shadow-zinc-300/20 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none dark:shadow-none dark:lg:bg-transparent">
               {/* Mobile Menu */}
-              <div className="lg:hidden">
+              <div className="lg:hidden w-full">
                 <ul className="space-y-6 text-base">
                   {menuItems.map((item, index) => (
                     <li key={index}>
@@ -146,6 +144,10 @@ export const Header = () => {
                       </a>
                     </li>
                   ))}
+                  <li className="flex items-center gap-2">
+                    <span className="text-muted-foreground">Idioma</span>
+                    <LanguageSwitcherButton onSwitch={() => setMenuState(false)} />
+                  </li>
                   <li className="flex items-center">
                     <span className="text-muted-foreground mr-2">Theme</span>
                     <ThemeSwitcherButton />
@@ -153,54 +155,53 @@ export const Header = () => {
                 </ul>
               </div>
 
-              {/* Action Buttons: theme + login/register */}
-              <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit lg:items-center lg:gap-2 lg:border-l lg:border-border/60 lg:pl-6">
-                <ThemeSwitcherButton className="hidden lg:flex lg:shrink-0" />
-                
-                {!isMounted || isLoading ? (
-                  // Loading state - only show during SSR or while loading
-                  <div className="h-9 w-24 animate-pulse rounded-md bg-muted" />
-                ) : isLoggedIn ? (
-                  // Authenticated user
-                  <Button
-                    asChild
-                    size="sm"
-                    className="bg-revital-green hover:bg-revital-green/90 text-revital-black font-medium"
-                  >
-                    <Link href="/dashboard">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      <span>{t('dashboard.title')}</span>
-                    </Link>
-                  </Button>
-                ) : (
-                  // Not authenticated
-                  <>
-                    {/* Login Button */}
-                    <Button
-                      asChild
-                      variant="ghost"
-                      size="sm"
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <Link href="/login">
-                        <LogIn className="mr-2 h-4 w-4" />
-                        <span>{t('auth.login.submitButton')}</span>
-                      </Link>
-                    </Button>
-
-                    {/* Sign Up Button */}
+              {/* Desktop: login/registro primero, al final bandera + tema */}
+              <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-end md:w-auto lg:flex-row lg:items-center lg:gap-0">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
+                  {!isMounted || isLoading ? (
+                    <div className="h-9 w-24 animate-pulse rounded-md bg-muted" />
+                  ) : isLoggedIn ? (
                     <Button
                       asChild
                       size="sm"
                       className="bg-revital-green hover:bg-revital-green/90 text-revital-black font-medium"
                     >
-                      <Link href="/register">
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        <span>{t('auth.register.submitButton')}</span>
+                      <Link href="/dashboard">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>{t('dashboard.title')}</span>
                       </Link>
                     </Button>
-                  </>
-                )}
+                  ) : (
+                    <>
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <Link href="/login">
+                          <LogIn className="mr-2 h-4 w-4" />
+                          <span>{t('auth.login.submitButton')}</span>
+                        </Link>
+                      </Button>
+                      <Button
+                        asChild
+                        size="sm"
+                        className="bg-revital-green hover:bg-revital-green/90 text-revital-black font-medium"
+                      >
+                        <Link href="/register">
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          <span>{t('auth.register.submitButton')}</span>
+                        </Link>
+                      </Button>
+                    </>
+                  )}
+                </div>
+                <div className="h-px w-full bg-border/60 lg:hidden" aria-hidden />
+                <div className="flex items-center lg:border-l lg:border-border/60 lg:pl-3">
+                  <LanguageSwitcherButton className="hidden lg:inline-flex" />
+                  <ThemeSwitcherButton className="hidden lg:inline-flex" />
+                </div>
               </div>
             </div>
           </div>

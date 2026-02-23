@@ -1,70 +1,16 @@
 'use client';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import React, { useState } from 'react';
-import { toast } from 'sonner';
-import { getErrorMessage } from '@/types/errors';
-import type { ApiError } from '@/types/errors';
+import React from 'react';
+import { getQueryClient } from '@/lib/query-client';
 
 /**
- * Provider de React Query con configuración optimizada
- * 
- * Configura el cliente de React Query con manejo de errores,
- * políticas de retry y cache management.
+ * Provider de React Query con configuración optimizada.
+ * Usa un QueryClient compartido para que hooks (p. ej. useAuth) tengan contexto en todos los layouts.
  */
 const QueryProvider = ({ children }: { children: React.ReactNode }) => {
-  // Crear el QueryClient con configuración optimizada
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            // Tiempo que los datos se consideran frescos (sin refetch automático)
-            staleTime: 1000 * 60 * 5, // 5 minutos
-            
-            // Tiempo que los datos permanecen en cache
-            gcTime: 1000 * 60 * 30, // 30 minutos (antes era cacheTime)
-            
-            // Política de retry para queries
-            retry: (failureCount, error: any) => {
-              // No reintentar para errores 4xx (problemas del cliente)
-              if (error?.response?.status >= 400 && error?.response?.status < 500) {
-                return false;
-              }
-              
-              // Reintentar máximo 3 veces para otros errores
-              return failureCount < 3;
-            },
-            
-            // Delay entre reintentos (exponential backoff)
-            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-            
-            // No refetch automático al enfocar la ventana
-            refetchOnWindowFocus: false,
-
-            // Usar caché al montar; no bloquear navegación con refetch (datos se consideran frescos según staleTime)
-            refetchOnMount: false,
-
-            // Refetch al reconectar la red
-            refetchOnReconnect: true,
-          },
-          mutations: {
-            // Configuración global para mutations
-            retry: false, // No reintentar mutations por defecto
-            
-            // Manejo global de errores en mutations
-            onError: (error: unknown) => {
-              const apiError = error as ApiError & { handled?: boolean };
-              // Solo mostrar toast si la mutation no maneja el error específicamente
-              if (!apiError?.handled) {
-                toast.error(getErrorMessage(error, 'Ha ocurrido un error inesperado'));
-              }
-            },
-          },
-        },
-      })
-  );
+  const queryClient = getQueryClient();
 
   return (
     <QueryClientProvider client={queryClient}>

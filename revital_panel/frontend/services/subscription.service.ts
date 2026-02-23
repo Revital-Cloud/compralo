@@ -8,6 +8,7 @@ import type {
   SubscriptionCreate,
   SubscriptionUpdate,
   ResponseMessage,
+  CrearPrimeraSuscripcionResponse,
 } from '@/types';
 
 const SUBSCRIPTIONS_BASE = '/subscriptions';
@@ -24,8 +25,8 @@ export async function getSubscription(idSubscription: number | string): Promise<
   return await get<SubscriptionPublic>(`${SUBSCRIPTIONS_BASE}/${idSubscription}`);
 }
 
-export async function createSubscription(data: SubscriptionCreate): Promise<ResponseMessage> {
-  return await post<ResponseMessage>(SUBSCRIPTIONS_BASE, data);
+export async function createSubscription(data: SubscriptionCreate): Promise<CrearPrimeraSuscripcionResponse> {
+  return await post<CrearPrimeraSuscripcionResponse>(SUBSCRIPTIONS_BASE, data);
 }
 
 export async function updateSubscription(

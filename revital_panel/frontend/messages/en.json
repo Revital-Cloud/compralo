@@ -24,6 +24,7 @@
     "success": "Success",
     "warning": "Warning",
     "info": "Info",
+    "rightsReserved": "All rights reserved.",
     "settings": "Settings"
   },
   "sidebar": {
@@ -48,56 +49,106 @@
   },
   "hero": {
     "title": "The All-in-One E-commerce Platform for Colombia",
-    "subtitle": "Create, manage and scale your online store with our comprehensive platform. Real-time statistics dashboard, product manager with automatic SEO, headless CMS and marketing tools.",
+    "subtitle": "Create, manage and scale your online store with our comprehensive platform. Real-time dashboard and analytics, full catalog with categories and inventory, Wompi payments, discounts and loyalty points.",
     "primaryButton": "Create My Store",
     "secondaryButton": "Request Demo",
+    "badge": "Introducing Revital: Your All-in-One E-commerce Platform",
+    "goToDashboard": "Go to Dashboard",
+    "exploreFeatures": "Explore Features",
+    "getStartedFree": "Get Started",
+    "viewPricing": "View Pricing",
+    "noCreditCard": "No credit card required",
+    "freeForever": "14-day free trial",
+    "setupInMinutes": "Setup in minutes",
     "features": [
       "Native Wompi integration for Colombia",
-      "Detailed real-time statistics dashboard",
-      "Simplified product manager with automatic SEO",
-      "Integrated, flexible and powerful headless CMS"
+      "Real-time dashboard and statistics",
+      "Product catalog with inventory and SEO",
+      "AI assistant to review your store"
     ]
   },
   "navigation": {
-    "logo": "Synkro",
+    "logo": "Revital",
+    "platformSubtitle": "E-commerce Platform",
     "menuItems": {
       "features": "Features",
       "security": "Security",
       "pricing": "Pricing",
       "faq": "FAQ"
     },
-    "ctaButton": "Get Started Free"
+    "ctaButton": "View Plans"
+  },
+  "processFlow": {
+    "badge": "Implementation Process",
+    "title": "Your Path to Digital Success",
+    "subtitle": "A step-by-step process designed to take your business from concept to digital reality.",
+    "steps": [
+      { "phase": "Phase 1", "title": "Plan Your Vision", "description": "Define your goals, target audience and e-commerce strategy. We help you map the path to success.", "duration": "1-2 days", "features": ["Market analysis", "Goal definition", "Brand strategy"] },
+      { "phase": "Phase 2", "title": "Design Your Store", "description": "Create an attractive, personalized shopping experience. Choose templates, customize the design and reflect your brand.", "duration": "2-3 days", "features": ["Custom design", "Unique branding", "Optimized UX"] },
+      { "phase": "Phase 3", "title": "Develop Functionality", "description": "Integrate payment gateways, configure shipping, and add the tools you need to run your store efficiently.", "duration": "3-5 days", "features": ["Wompi integration", "Shipping setup", "Core operational tools"] },
+      { "phase": "Phase 4", "title": "Optimize and Test", "description": "We ensure everything works perfectly. Performance, security and usability testing before the big launch.", "duration": "1-2 days", "features": ["Full testing", "SEO optimization", "Security guaranteed"] },
+      { "phase": "Phase 5", "title": "Launch and Grow", "description": "Your store is ready! Launch to the market and use our marketing and analytics tools to grow continuously.", "duration": "Ongoing", "features": ["Official launch", "Marketing tools", "Advanced analytics"] }
+    ]
+  },
+  "getStarted": {
+    "badge": "Start Your E-commerce Journey",
+    "title": "Get Started with Revital",
+    "subtitle": "Create your free account and start building your online store today. No credit card required.",
+    "whyChoose": "Why Choose Revital?",
+    "benefit1Title": "Launch in Minutes",
+    "benefit1Description": "Get your store up and running with our guided setup",
+    "benefit2Title": "Enterprise Security",
+    "benefit2Description": "SSL encryption and secure infrastructure",
+    "benefit3Title": "Instant Payments",
+    "benefit3Description": "Native integration with Wompi and more",
+    "trustBy": "Trusted by businesses across Colombia",
+    "feature1": "Free setup assistance",
+    "feature2": "No credit card required",
+    "feature3": "14-day free trial",
+    "feature4": "Cancel anytime",
+    "welcomeBack": "Welcome back, {name}!",
+    "continueManaging": "Continue managing your e-commerce from your dashboard.",
+    "goToDashboard": "Go to Dashboard",
+    "createAccount": "Create Your Free Account",
+    "joinThousands": "Join thousands of businesses using Revital to power their online stores.",
+    "signUpFree": "Sign Up Free",
+    "or": "or",
+    "signInExisting": "Sign In to Existing Account",
+    "termsAgree": "By signing up, you agree to our",
+    "and": "and",
+    "termsOfService": "Terms of Service",
+    "privacyPolicy": "Privacy Policy"
   },
   "features": {
     "title": "Everything you need to sell online",
     "subtitle": "A complete platform designed specifically for the Colombian market",
     "items": {
       "statistics": {
-        "title": "Detailed Statistics Dashboard",
+        "title": "Statistics & Analytics Dashboard",
         "meta": "Real-time",
-        "description": "Visualize sales, conversions, best-selling products and customer behavior with interactive dashboards and exportable reports.",
+        "description": "Visualize sales, orders, best-selling products and customer behavior with interactive dashboards and exportable reports.",
         "status": "Active",
-        "tags": ["Analytics", "Reports", "KPIs"]
+        "tags": ["Analytics", "KPIs", "Reports"]
       },
       "products": {
-        "title": "Advanced Product Manager",
-        "meta": "Bulk upload + SEO",
-        "description": "Manage inventory, variants, dynamic pricing, categories and automatic SEO optimization for each product.",
+        "title": "Full Catalog & Inventory",
+        "meta": "Categories, brands, variants",
+        "description": "Manage products with categories (lines/sublines), brands, attributes, variants, stock movements and automatic SEO for each product.",
         "status": "Optimized",
-        "tags": ["Inventory", "SEO", "Catalog"]
+        "tags": ["Catalog", "Inventory", "SEO"]
       },
       "wompi": {
-        "title": "Wompi Payments",
+        "title": "Wompi Payments & Loyalty",
         "meta": "Main gateway",
-        "description": "Native Wompi integration for Colombia. Discount configuration, coupons and points programs.",
+        "description": "Native Wompi integration for Colombia. Discounts, coupons and loyalty points with redemption.",
         "status": "Integrated",
-        "tags": ["Wompi", "Payments", "Discounts"]
+        "tags": ["Payments", "Discounts", "Loyalty"]
       },
-      "cms": {
-        "title": "Headless CMS + Integrated Blog",
-        "meta": "API-First",
-        "description": "Manage content, custom pages, SEO blog and landing pages without technical limitations.",
-        "tags": ["CMS", "Blog", "API"]
+      "api": {
+        "title": "AI assistant in your panel",
+        "meta": "Helps you manage",
+        "description": "Ask the AI about sales, products and orders. Request a store summary, see pending orders or low-stock products, and create brands, categories or discounts directly from the chat.",
+        "tags": ["AI", "Productivity"]
       },
       "marketing": {
         "title": "Marketing Tools",
@@ -110,50 +161,50 @@
     }
   },
   "security": {
-    "title": "Enterprise-Level Security",
-    "subtitle": "Your store and data are protected with the highest security standards",
+    "title": "Security and Reliability",
+    "subtitle": "Your store and data are protected with secure infrastructure and best practices",
     "badge": "Security and Reliability",
     "heading": "Your Business, Protected",
-    "subheading": "Enterprise-level infrastructure with the highest security certifications so you can focus on selling.",
-    "trustIndicators": "Companies trust our security:",
+    "subheading": "Secure infrastructure: isolated data per instance, encryption in transit, and security best practices so you can focus on selling.",
+    "trustIndicators": "We rely on: SSL encryption, isolated data per instance, privacy compliance (GDPR), and payments via Wompi.",
     "items": {
       "ssl": {
         "title": "SSL/TLS Encryption",
-        "description": "All communications protected with military-grade encryption.",
+        "description": "All communications protected with encryption in transit.",
         "status": "Active"
       },
       "pci": {
-        "title": "PCI DSS Certification",
-        "description": "Full compliance with security standards for payment processing.",
-        "status": "Certified"
+        "title": "Secure Payments with Wompi",
+        "description": "Payment processing through Wompi's certified gateway for Colombia.",
+        "status": "Integrated"
       },
       "backups": {
         "title": "Automatic Backups",
-        "description": "Daily automatic backups with recovery in less than 4 hours.",
-        "status": "Daily"
+        "description": "Automatic backups with fast recovery when available in your plan.",
+        "status": "Available"
       },
       "monitoring": {
         "title": "Continuous Monitoring",
-        "description": "Infrastructure supervision to ensure maximum availability"
+        "description": "Infrastructure supervision to ensure maximum availability."
       },
       "uptime": {
-        "title": "99.9% Uptime",
-        "description": "Redundant infrastructure with availability guarantee.",
+        "title": "High Availability",
+        "description": "Infrastructure designed for reliability and availability.",
         "status": "SLA"
       },
       "audits": {
-        "title": "Security Audits",
-        "description": "Monthly security reviews and penetration testing.",
-        "status": "Monthly"
+        "title": "Secure Development",
+        "description": "Validation, JWT auth, Argon2 passwords, and isolated data per instance.",
+        "status": "Active"
       },
       "gdpr": {
         "title": "GDPR Compliance",
-        "description": "Compliance with international data protection regulations.",
+        "description": "Compliance with international data protection and cookie consent.",
         "status": "Compliant"
       }
     },
     "stats": {
-      "uptime": "Guaranteed Uptime",
+      "uptime": "High Availability",
       "recovery": "Recovery Time",
       "encryption": "SSL Encryption",
       "monitoring": "Security Monitoring"
@@ -161,11 +212,26 @@
   },
   "pricing": {
     "title": "Plans that adapt to your business",
-    "subtitle": "Start free and scale as you grow",
+    "subtitle": "Scale as your business grows",
+    "badge": "Pricing Plans",
+    "flexibleTitle": "Flexible Plans for Your Growth",
+    "flexibleSubtitle": "Choose the Revital plan that best fits your business size and needs. Try the Professional plan free for 14 days.",
+    "mostPopular": "Most Popular",
+    "billingMonthly": "Monthly",
+    "billingAnnual": "Annual",
+    "perMonth": "/month",
+    "perYear": "/year",
+    "save20": "(save 20%)",
+    "saveWithAnnual": "with annual billing",
+    "managePlan": "Manage Plan",
+    "allPlansTrial": "The Professional plan includes a 14-day free trial. No credit card required.",
+    "viewComparison": "View Full Plan Comparison",
+    "signUpNow": "Sign Up Now",
     "plans": {
       "starter": {
         "name": "Starter",
-        "price": "$0",
+        "price": "US$ 29.99",
+        "priceAnnual": "US$ 299.90",
         "period": "/month",
         "description": "Perfect to start your online store",
         "features": [
@@ -174,20 +240,22 @@
           "Basic statistics dashboard",
           "Email support",
           "SSL included",
-          ".synkro.com domain"
+          ".revital.cloud domain"
         ],
         "cta": "Start Now"
       },
       "professional": {
         "name": "Professional",
-        "price": "$49",
+        "price": "US$ 79.99",
+        "priceAnnual": "US$ 799.90",
         "period": "/month",
         "description": "For growing businesses",
         "features": [
+          "Everything in Starter plus:",
           "Unlimited products",
           "All payment integrations",
           "Advanced dashboard + analytics",
-          "Complete headless CMS",
+          "AI assistant in the admin panel",
           "Priority support",
           "Custom domain",
           "Marketing automation",
@@ -198,11 +266,11 @@
       "enterprise": {
         "name": "Enterprise",
         "price": "Custom",
+        "priceAnnual": "Custom",
         "period": "",
         "description": "Custom solutions for large companies",
         "features": [
-          "Everything from Professional plan",
-          "Priority support",
+          "Everything in Professional plus:",
           "Custom integrations",
           "Guaranteed SLA",
           "Specialized consulting",
@@ -214,7 +282,7 @@
   },
   "faq": {
     "title": "Frequently Asked Questions",
-    "subtitle": "We answer the most common questions about Synkro",
+    "subtitle": "We answer the most common questions about Revital",
     "notFound": "Can't find the answer you're looking for?",
     "contactUs": "Contact us directly",
     "questions": {
@@ -222,9 +290,9 @@
         "question": "What does the Wompi integration include?",
         "answer": "Our Wompi integration includes payment processing with credit/debit cards, PSE, Nequi and other popular methods in Colombia. Automatic webhook configuration, payment status handling and automatic reconciliation."
       },
-      "cms": {
-        "question": "How does the CMS work?",
-        "answer": "Our CMS allows you to create basic pages, blog posts and content for your store visually and easily. Perfect to start without technical complications."
+      "api": {
+        "question": "What does the AI assistant do?",
+        "answer": "The admin panel AI assistant helps you see how your store is doing: it can give you sales summaries, show pending or recent orders, best-selling products and stock alerts. It can also help you create brands, categories and discounts from the chat, without hunting through every screen."
       },
       "support": {
         "question": "What kind of technical support do you offer?",
@@ -236,13 +304,13 @@
       },
       "security": {
         "question": "How do you handle security and compliance?",
-        "answer": "We comply with PCI DSS standards for payments, use SSL/TLS encryption, daily automatic backups, and follow security best practices. All data is protected and stored on certified servers."
+        "answer": "We use SSL/TLS encryption, secure development practices (JWT, validation, isolated data per instance), and payment processing through Wompi's certified gateway. We follow privacy best practices and support GDPR compliance."
       }
     }
   },
   "contact": {
     "title": "Ready to get started?",
-    "subtitle": "We're available to answer your questions, provide technical support or discuss how Synkro can boost your online business.",
+    "subtitle": "We're available to answer your questions, provide technical support or discuss how Revital can boost your online business.",
     "contactInfo": "Contact Information",
     "phone": "Phone",
     "email": "Email",
@@ -274,18 +342,25 @@
   },
   "footer": {
     "company": {
-      "name": "Synkro",
+      "name": "Revital",
       "description": "The all-in-one e-commerce platform designed for the Colombian market. Build, manage, and scale your online store with ease."
     },
     "sections": {
       "platform": {
-        "label": "Platform"
+        "label": "Platform",
+        "links": {
+          "dashboard": "Dashboard",
+          "login": "Login",
+          "signUp": "Sign Up"
+        }
       },
       "product": {
         "label": "Product",
         "links": {
           "features": "Features",
           "pricing": "Pricing",
+          "security": "Security",
+          "faq": "FAQ",
           "testimonials": "Testimonials",
           "integrations": "Integrations"
         }
@@ -319,7 +394,7 @@
         }
       }
     },
-    "copyright": "© {year} Synkro. All rights reserved."
+    "copyright": "© {year} Revital. All rights reserved."
   },
   "auth": {
     "login": {
@@ -338,7 +413,7 @@
     },
     "register": {
       "title": "Create your account",
-      "description": "Start your e-commerce journey with Synkro",
+      "description": "Start your e-commerce journey with Revital",
       "nameLabel": "Full name",
       "emailLabel": "Email address",
       "passwordLabel": "Password",
@@ -346,7 +421,77 @@
       "submitButton": "Create account",
       "submitting": "Creating account...",
       "hasAccount": "Already have an account?",
-      "loginLink": "Sign in"
+      "loginLink": "Sign in",
+      "termsPrefix": "I agree to the",
+      "termsLink": "Terms of Service",
+      "and": "and",
+      "privacyLink": "Privacy Policy",
+      "backToHome": "Back to home",
+      "companyInfo": "Company information",
+      "contactInfo": "Contact information",
+      "accountSecurity": "Account security",
+      "companyName": "Company name",
+      "companyNamePlaceholder": "Acme Inc.",
+      "taxId": "Tax ID / Fiscal identification",
+      "taxIdPlaceholder": "900123456-1",
+      "idType": "Identification type",
+      "country": "Country",
+      "city": "City",
+      "cityPlaceholder": "Bogotá",
+      "contactName": "Contact name",
+      "contactNamePlaceholder": "John Doe",
+      "phone": "Phone",
+      "phonePlaceholder": "+57 300 123 4567",
+      "email": "Email",
+      "emailPlaceholder": "john@company.com",
+      "password": "Password",
+      "confirmPassword": "Confirm password",
+      "passwordMinHint": "Minimum 8 characters",
+      "passwordStrengthLabel": "Password strength",
+      "passwordStrength": {
+        "veryWeak": "Very weak",
+        "weak": "Weak",
+        "medium": "Medium",
+        "strong": "Strong",
+        "veryStrong": "Very strong"
+      },
+      "errors": {
+        "companyRequired": "Company name is required",
+        "taxIdRequired": "Tax ID is required",
+        "taxIdMinLength": "Tax ID must be at least 5 characters",
+        "contactNameRequired": "Contact name is required",
+        "emailRequired": "Email is required",
+        "emailInvalid": "Please enter a valid email address",
+        "passwordRequired": "Password is required",
+        "passwordMinLength": "Password must be at least 8 characters",
+        "passwordsDontMatch": "Passwords do not match",
+        "termsRequired": "You must accept the terms and conditions"
+      },
+      "idTypes": {
+        "NIT": "NIT (Colombia)",
+        "EIN": "EIN (USA)",
+        "RFC": "RFC (Mexico)",
+        "CUIT": "CUIT (Argentina)",
+        "RUT": "RUT (Chile)",
+        "RUC": "RUC (Peru/Ecuador)",
+        "CNPJ": "CNPJ (Brazil)",
+        "NIF": "NIF (Spain)",
+        "OTRO": "Other"
+      },
+      "countries": {
+        "CO": "Colombia",
+        "US": "United States",
+        "MX": "Mexico",
+        "AR": "Argentina",
+        "CL": "Chile",
+        "PE": "Peru",
+        "EC": "Ecuador",
+        "PA": "Panama",
+        "UY": "Uruguay",
+        "BR": "Brazil",
+        "ES": "Spain",
+        "OTRO": "Other"
+      }
     },
     "forgotPassword": {
       "title": "Forgot password",
@@ -367,7 +512,7 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "welcome": "Welcome back, {name}!",
+    "welcome": "Welcome back{name}!",
     "subtitle": "Here's a summary of your e-commerce platform status.",
     "metrics": {
       "instanceStatus": "Instance Status",
@@ -395,7 +540,17 @@
       "title": "Current Plan",
       "started": "Started",
       "nextPayment": "Next payment",
-      "manageSubscription": "Manage Subscription"
+      "manageSubscription": "Manage Subscription",
+      "noActive": "No active subscription",
+      "noActiveDescription": "You don't have an active subscription yet. Choose a plan to get started.",
+      "viewPlans": "View Plans",
+      "year": "year",
+      "month": "month"
+    },
+    "instanceEmpty": {
+      "title": "No instance yet",
+      "description": "Create your e-commerce instance to start selling online. It only takes a few minutes to set up.",
+      "createButton": "Create my e-commerce"
     }
   },
   "subscription": {
@@ -406,7 +561,7 @@
       "description": "Your active subscription",
       "noSubscription": {
         "title": "No Active Subscription",
-        "description": "Choose a plan below to get started with Synkro."
+        "description": "Choose a plan below to get started with Revital."
       },
       "started": "Started",
       "nextPayment": "Next payment",
@@ -420,10 +575,15 @@
       "title": "Available Plans",
       "subtitle": "Upgrade or downgrade your plan at any time.",
       "subtitleNoSubscription": "Choose the plan that best fits your needs.",
+      "billingMonthly": "Monthly",
+      "billingAnnual": "Annual",
       "currentPlanBadge": "Current Plan",
       "upgrade": "Upgrade",
       "downgrade": "Downgrade",
       "selectPlan": "Select Plan",
+      "contactSales": "Contact Sales",
+      "contactUs": "Contact Us",
+      "enterprisePriceLabel": "Custom pricing",
       "perMonth": "/month",
       "perYear": "/year",
       "or": "or",
@@ -446,7 +606,9 @@
     "changePlan": {
       "title": "Change Plan",
       "description": "Are you sure you want to change to the {planName} plan?",
+      "descriptionEnterprise": "For the Enterprise plan contact us and we will send you a custom quote.",
       "newPrice": "Your new price will be {price}/month.",
+      "newPriceAnnual": "Your new price will be {price}/year.",
       "payWithStripe": "You will be redirected to Stripe to complete payment for the new plan.",
       "reasonLabel": "Reason for change",
       "reasonPlaceholder": "e.g. Need more products or users",
@@ -611,7 +773,7 @@
       "generalDescription": "Update your instance's basic information",
       "storeName": "Store Name",
       "subdomain": "Subdomain",
-      "subdomainSuffix": ".synkro.store",
+      "subdomainSuffix": ".revital.cloud",
       "customDomain": "Custom Domain",
       "customDomainPlaceholder": "www.mystore.com",
       "customDomainHelp": "Configure DNS to point to your store",
@@ -635,6 +797,7 @@
   "resources": {
     "title": "Resource Usage",
     "subtitle": "Monitor your e-commerce resource consumption.",
+    "noData": "No resource usage data available yet.",
     "noInstance": {
       "title": "No Instance Yet",
       "description": "Create your e-commerce instance to start tracking resource usage.",
@@ -746,7 +909,7 @@
   },
   "admin": {
     "title": "Admin Panel",
-    "subtitle": "Global view of clients, instances and Synkro billing.",
+    "subtitle": "Global view of clients, instances and Revital billing.",
     "dateRange": {
       "30d": "Last 30 days",
       "90d": "Last 90 days",

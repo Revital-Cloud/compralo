@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -19,7 +19,7 @@ import {
 import { useLogin, useAuth } from '@/hooks/use-auth';
 import { isAuthenticated } from '@/utils/apiWrapper';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
@@ -189,5 +189,19 @@ export default function LoginPage() {
         © {new Date().getFullYear()} Revital. All rights reserved.
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <RefreshCw className="h-8 w-8 animate-spin text-revital-green" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }

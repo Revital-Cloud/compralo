@@ -19,6 +19,8 @@ const badgeVariants = cva(
           "text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground",
         synkro:
           "border-transparent bg-synkro-green text-synkro-black [a&]:hover:bg-synkro-green/90",
+        revital:
+          "border-transparent bg-revital-green text-revital-black [a&]:hover:bg-revital-green/90",
       },
     },
     defaultVariants: {

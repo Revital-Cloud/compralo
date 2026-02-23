@@ -1,5 +1,6 @@
-import React from "react";
+"use client";
 
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,46 +12,48 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslations } from "next-intl";
 
 interface Contact2Props {
-  title?: string;
-  description?: string;
   phone?: string;
   email?: string;
   web?: { label: string; url: string };
 }
 
+const INTEREST_OPTIONS = ["store", "migrate", "integration", "demo", "support", "other"] as const;
+
 export const Contact2 = ({
-  title = "Contáctanos",
-  description = "Estamos disponibles para responder tus preguntas, brindarte soporte técnico o discutir cómo Revital puede impulsar tu negocio online.",
   phone = "+34 912 345 678",
   email = "info@revital.com",
-  web = { label: "revital.com", url: "https://revital.com" },
+  web = { label: "panel.revital.cloud", url: "https://panel.revital.cloud" },
 }: Contact2Props) => {
+  const t = useTranslations("contact");
+  const tForm = useTranslations("contact.form");
+
   return (
     <section id="contact" className="py-32 bg-white dark:bg-revital-black">
-      <div className="container">
-        <div className="mx-auto flex max-w-(--breakpoint-xl) flex-col justify-between gap-10 lg:flex-row lg:gap-20">
-          <div className="mx-auto flex max-w-sm flex-col justify-between gap-10">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-5xl flex-col gap-10 lg:flex-row lg:items-start lg:gap-20">
+          <div className="flex flex-1 flex-col justify-between gap-10">
             <div className="text-center lg:text-left">
               <h1 className="mb-2 text-5xl font-semibold lg:mb-1 lg:text-6xl text-revital-green">
-                {title}
+                {t("title")}
               </h1>
-              <p className="text-muted-foreground">{description}</p>
+              <p className="text-muted-foreground">{t("subtitle")}</p>
             </div>
             <div className="mx-auto w-fit lg:mx-0">
               <h3 className="mb-6 text-center text-2xl font-semibold lg:text-left text-revital-green">
-                Datos de Contacto
+                {t("contactInfo")}
               </h3>
               <ul className="ml-4 list-disc space-y-2">
                 <li>
                   <span className="font-bold text-revital-green">
-                    Teléfono:{" "}
+                    {t("phone")}:{" "}
                   </span>
                   <span className="text-muted-foreground">{phone}</span>
                 </li>
                 <li>
-                  <span className="font-bold text-revital-green">Email: </span>
+                  <span className="font-bold text-revital-green">{t("email")}: </span>
                   <a
                     href={`mailto:${email}`}
                     className="underline text-revital-green hover:text-revital-green/80"
@@ -59,10 +62,11 @@ export const Contact2 = ({
                   </a>
                 </li>
                 <li>
-                  <span className="font-bold text-revital-green">Web: </span>
+                  <span className="font-bold text-revital-green">{t("web")}: </span>
                   <a
                     href={web.url}
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="underline text-revital-green hover:text-revital-green/80"
                   >
                     {web.label}
@@ -71,107 +75,82 @@ export const Contact2 = ({
               </ul>
             </div>
           </div>
-          <div className="mx-auto flex max-w-(--breakpoint-md) flex-col gap-6 rounded-lg border border-revital-green/20 p-10 bg-gray-50 dark:bg-revital-black backdrop-blur-xs">
+          <div className="flex w-full flex-1 flex-col gap-6 rounded-lg border border-revital-green/20 p-10 bg-gray-50 dark:bg-revital-black backdrop-blur-xs lg:max-w-md">
             <div className="flex gap-4">
               <div className="grid w-full items-center gap-1.5">
-                <Label
-                  htmlFor="firstname"
-                  className="text-revital-green font-semibold"
-                >
-                  Nombre
+                <Label htmlFor="firstname" className="text-revital-green font-semibold">
+                  {tForm("firstName")}
                 </Label>
                 <Input
                   type="text"
                   id="firstname"
-                  placeholder="Tu nombre"
+                  placeholder={tForm("firstNamePlaceholder")}
                   className="border-revital-green/20 focus:border-revital-green focus:ring-revital-green/20 bg-white dark:bg-revital-black"
                 />
               </div>
               <div className="grid w-full items-center gap-1.5">
-                <Label
-                  htmlFor="lastname"
-                  className="text-revital-green font-semibold"
-                >
-                  Apellidos
+                <Label htmlFor="lastname" className="text-revital-green font-semibold">
+                  {tForm("lastName")}
                 </Label>
                 <Input
                   type="text"
                   id="lastname"
-                  placeholder="Tus apellidos"
+                  placeholder={tForm("lastNamePlaceholder")}
                   className="border-revital-green/20 focus:border-revital-green focus:ring-revital-green/20 bg-white dark:bg-revital-black"
                 />
               </div>
             </div>
             <div className="grid w-full items-center gap-1.5">
-              <Label
-                htmlFor="email"
-                className="text-revital-green font-semibold"
-              >
-                Email
+              <Label htmlFor="email" className="text-revital-green font-semibold">
+                {tForm("emailLabel")}
               </Label>
               <Input
                 type="email"
                 id="email"
-                placeholder="tu@email.com"
+                placeholder={tForm("emailPlaceholder")}
                 className="border-revital-green/20 focus:border-revital-green focus:ring-revital-green/20 bg-white dark:bg-revital-black"
               />
             </div>
             <div className="grid w-full items-center gap-1.5">
-              <Label
-                htmlFor="company"
-                className="text-revital-green font-semibold"
-              >
-                Empresa
+              <Label htmlFor="company" className="text-revital-green font-semibold">
+                {tForm("companyLabel")}
               </Label>
               <Input
                 type="text"
                 id="company"
-                placeholder="Nombre de tu empresa"
+                placeholder={tForm("companyPlaceholder")}
                 className="border-revital-green/20 focus:border-revital-green focus:ring-revital-green/20 bg-white dark:bg-revital-black"
               />
             </div>
             <div className="grid w-full items-center gap-1.5">
-              <Label
-                htmlFor="interest"
-                className="text-revital-green font-semibold"
-              >
-                ¿Qué te interesa?
+              <Label htmlFor="interest" className="text-revital-green font-semibold">
+                {tForm("interest")}
               </Label>
               <Select>
                 <SelectTrigger className="border-revital-green/20 focus:border-revital-green focus:ring-revital-green/20 bg-white dark:bg-revital-black">
-                  <SelectValue placeholder="Selecciona una opción" />
+                  <SelectValue placeholder={tForm("selectOption")} />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-revital-black border-revital-green/20">
-                  <SelectItem value="tienda">
-                    Crear una tienda online
-                  </SelectItem>
-                  <SelectItem value="migrar">
-                    Migrar mi tienda actual
-                  </SelectItem>
-                  <SelectItem value="integracion">
-                    Integraciones con otras plataformas
-                  </SelectItem>
-                  <SelectItem value="demo">Solicitar una demo</SelectItem>
-                  <SelectItem value="soporte">Soporte técnico</SelectItem>
-                  <SelectItem value="otro">Otro motivo</SelectItem>
+                  {INTEREST_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>
+                      {tForm(`options.${opt}`)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="grid w-full gap-1.5">
-              <Label
-                htmlFor="message"
-                className="text-revital-green font-semibold"
-              >
-                Mensaje
+              <Label htmlFor="message" className="text-revital-green font-semibold">
+                {tForm("messageLabel")}
               </Label>
               <Textarea
-                placeholder="Escribe tu mensaje aquí..."
+                placeholder={tForm("messagePlaceholder")}
                 id="message"
                 className="border-revital-green/20 focus:border-revital-green focus:ring-revital-green/20 min-h-[120px] bg-white dark:bg-revital-black"
               />
             </div>
             <Button variant="revital" className="w-full">
-              Enviar Mensaje
+              {tForm("submitButton")}
             </Button>
           </div>
         </div>

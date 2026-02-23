@@ -5,9 +5,9 @@ import type { ComponentProps, ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useReducedMotion } from "motion/react";
-import { 
-  LayoutDashboard, 
-  LogIn, 
+import {
+  LayoutDashboard,
+  LogIn,
   UserPlus,
   Mail,
   Facebook,
@@ -17,44 +17,65 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { isAuthenticated } from "@/utils/apiWrapper";
+import { useTranslations } from "next-intl";
 
-const platformLinks = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard, authRequired: true },
-  { title: "Login", href: "/login", icon: LogIn, authRequired: false, hideWhenAuth: true },
-  { title: "Sign Up", href: "/register", icon: UserPlus, authRequired: false, hideWhenAuth: true },
-];
-
-const productLinks = [
-  { title: "Features", href: "#features" },
-  { title: "Pricing", href: "#pricing" },
-  { title: "Security", href: "#security" },
-  { title: "FAQ", href: "#faq" },
-];
-
-const companyLinks = [
-  { title: "About Us", href: "/about" },
-  { title: "Privacy Policy", href: "/privacy" },
-  { title: "Terms of Service", href: "/terms" },
-  { title: "Contact", href: "#contact" },
-];
-
-const resourceLinks = [
-  { title: "Documentation", href: "/docs" },
-  { title: "Blog", href: "/blog" },
-  { title: "Support", href: "/help" },
-  { title: "Changelog", href: "/changelog" },
-];
-
-const socialLinks = [
-  { title: "Facebook", href: "https://facebook.com/revital", icon: Facebook },
-  { title: "Instagram", href: "https://instagram.com/revital", icon: Instagram },
-  { title: "Twitter", href: "https://twitter.com/revital", icon: Twitter },
-  { title: "LinkedIn", href: "https://linkedin.com/company/revital", icon: Linkedin },
-];
+const PRODUCT_LINK_KEYS = ["features", "pricing", "security", "faq"] as const;
+const PRODUCT_HREFS: Record<(typeof PRODUCT_LINK_KEYS)[number], string> = {
+  features: "#features",
+  pricing: "#pricing",
+  security: "#security",
+  faq: "#faq",
+};
+const COMPANY_LINK_KEYS = ["about", "privacy", "terms", "contact"] as const;
+const COMPANY_HREFS: Record<(typeof COMPANY_LINK_KEYS)[number], string> = {
+  about: "/about",
+  privacy: "/privacy",
+  terms: "/terms",
+  contact: "#contact",
+};
+const RESOURCE_LINK_KEYS = ["docs", "blog", "support", "changelog"] as const;
+const RESOURCE_HREFS: Record<(typeof RESOURCE_LINK_KEYS)[number], string> = {
+  docs: "/docs",
+  blog: "/blog",
+  support: "/help",
+  changelog: "/changelog",
+};
+const SOCIAL_KEYS = ["facebook", "instagram", "twitter", "linkedin"] as const;
+const SOCIAL_ICONS = [Facebook, Instagram, Twitter, Linkedin] as const;
 
 export function Footer() {
+  const t = useTranslations("footer");
   const { user } = useAuth();
   const isLoggedIn = isAuthenticated() && !!user;
+
+  const platformLinks = [
+    { title: t("sections.platform.links.dashboard"), href: "/dashboard", icon: LayoutDashboard, authRequired: true as const },
+    { title: t("sections.platform.links.login"), href: "/login", icon: LogIn, authRequired: false as const, hideWhenAuth: true as const },
+    { title: t("sections.platform.links.signUp"), href: "/register", icon: UserPlus, authRequired: false as const, hideWhenAuth: true as const },
+  ];
+  const productLinks = PRODUCT_LINK_KEYS.map((key) => ({
+    title: t(`sections.product.links.${key}`),
+    href: PRODUCT_HREFS[key],
+  }));
+  const companyLinks = COMPANY_LINK_KEYS.map((key) => ({
+    title: t(`sections.company.links.${key}`),
+    href: COMPANY_HREFS[key],
+  }));
+  const resourceLinks = RESOURCE_LINK_KEYS.map((key) => ({
+    title: t(`sections.resources.links.${key}`),
+    href: RESOURCE_HREFS[key],
+  }));
+  const socialHrefs: Record<(typeof SOCIAL_KEYS)[number], string> = {
+    facebook: "https://facebook.com/revital",
+    instagram: "https://instagram.com/revital",
+    twitter: "https://twitter.com/revital",
+    linkedin: "https://linkedin.com/company/revital",
+  };
+  const socialLinks = SOCIAL_KEYS.map((key, i) => ({
+    title: t(`sections.social.links.${key}`),
+    href: socialHrefs[key],
+    icon: SOCIAL_ICONS[i],
+  }));
 
   const handleScrollLink = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     if (href.startsWith("#")) {
@@ -84,8 +105,7 @@ export function Footer() {
               <span className="text-2xl font-bold text-revital-green">Revital</span>
             </Link>
             <p className="text-sm text-muted-foreground max-w-xs">
-              The all-in-one e-commerce platform designed for the Colombian market. 
-              Build, manage, and scale your online store with ease.
+              {t("company.description")}
             </p>
             {/* Social Links */}
             <div className="flex gap-4 pt-4">
@@ -113,7 +133,7 @@ export function Footer() {
               {/* Platform */}
               <div>
                 <h3 className="text-sm font-semibold text-revital-green mb-4">
-                  Platform
+                  {t("sections.platform.label")}
                 </h3>
                 <ul className="space-y-3">
                   {platformLinks.map((link) => {
@@ -141,10 +161,9 @@ export function Footer() {
                 </ul>
               </div>
 
-              {/* Product */}
               <div>
                 <h3 className="text-sm font-semibold text-revital-green mb-4">
-                  Product
+                  {t("sections.product.label")}
                 </h3>
                 <ul className="space-y-3">
                   {productLinks.map((link) => (
@@ -161,10 +180,9 @@ export function Footer() {
                 </ul>
               </div>
 
-              {/* Company */}
               <div>
                 <h3 className="text-sm font-semibold text-revital-green mb-4">
-                  Company
+                  {t("sections.company.label")}
                 </h3>
                 <ul className="space-y-3">
                   {companyLinks.map((link) => (
@@ -190,10 +208,9 @@ export function Footer() {
                 </ul>
               </div>
 
-              {/* Resources */}
               <div>
                 <h3 className="text-sm font-semibold text-revital-green mb-4">
-                  Resources
+                  {t("sections.resources.label")}
                 </h3>
                 <ul className="space-y-3">
                   {resourceLinks.map((link) => (
@@ -218,7 +235,7 @@ export function Footer() {
         <div className="mx-auto max-w-7xl px-6 py-6">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Revital. All rights reserved.
+              {t("copyright", { year: new Date().getFullYear() })}
             </p>
             <div className="flex items-center gap-4">
               <a

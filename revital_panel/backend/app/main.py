@@ -4,6 +4,14 @@ Archivo Principal de la Aplicacion FastAPI - Revital SaaS.
 Este modulo inicializa la aplicacion FastAPI, define rutas basicas,
 configura middlewares y registra todos los routers del sistema.
 """
+import sys
+from pathlib import Path
+
+# Asegurar que el directorio app esté en el path para imports (middlewares, core, routers)
+_app_dir = Path(__file__).resolve().parent
+if str(_app_dir) not in sys.path:
+    sys.path.insert(0, str(_app_dir))
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse

@@ -2,79 +2,84 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import Link from 'next/link';
-import { 
-  Eye, 
-  EyeOff, 
-  RefreshCw, 
-  ArrowLeft, 
-  Building2, 
-  User, 
+import {
+  Eye,
+  EyeOff,
+  RefreshCw,
+  ArrowLeft,
+  Building2,
+  User,
   Mail,
   Phone,
   MapPin,
   Lock,
   Check,
 } from 'lucide-react';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  Button,
-  Input,
-  Label,
-} from "@/components/ui";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { useRegister, useAuth } from '@/hooks/use-auth';
 import { isAuthenticated } from '@/utils/apiWrapper';
 import type { RegisterRequest, IdentificationType, CountryCode } from '@/types';
 
-const IDENTIFICATION_TYPES: { value: IdentificationType; label: string }[] = [
-  { value: 'NIT', label: 'NIT (Colombia)' },
-  { value: 'EIN', label: 'EIN (USA)' },
-  { value: 'RFC', label: 'RFC (Mexico)' },
-  { value: 'CUIT', label: 'CUIT (Argentina)' },
-  { value: 'RUT', label: 'RUT (Chile)' },
-  { value: 'RUC', label: 'RUC (Peru/Ecuador)' },
-  { value: 'CNPJ', label: 'CNPJ (Brazil)' },
-  { value: 'NIF', label: 'NIF (Spain)' },
-  { value: 'OTRO', label: 'Other' },
+const ID_TYPE_KEYS: IdentificationType[] = ['NIT', 'EIN', 'RFC', 'CUIT', 'RUT', 'RUC', 'CNPJ', 'NIF', 'OTRO'];
+const COUNTRY_CODES: CountryCode[] = ['CO', 'US', 'MX', 'AR', 'CL', 'PE', 'EC', 'PA', 'UY', 'BR', 'ES', 'OTRO'];
+
+type PasswordStrengthKey = 'veryWeak' | 'weak' | 'medium' | 'strong' | 'veryStrong';
+
+const PASSWORD_STRENGTH_ORDER: PasswordStrengthKey[] = [
+  'veryWeak',
+  'weak',
+  'medium',
+  'strong',
+  'veryStrong',
 ];
 
-const COUNTRIES: { value: CountryCode; label: string }[] = [
-  { value: 'CO', label: 'Colombia' },
-  { value: 'US', label: 'United States' },
-  { value: 'MX', label: 'Mexico' },
-  { value: 'AR', label: 'Argentina' },
-  { value: 'CL', label: 'Chile' },
-  { value: 'PE', label: 'Peru' },
-  { value: 'EC', label: 'Ecuador' },
-  { value: 'PA', label: 'Panama' },
-  { value: 'UY', label: 'Uruguay' },
-  { value: 'BR', label: 'Brazil' },
-  { value: 'ES', label: 'Spain' },
-  { value: 'OTRO', label: 'Other' },
-];
+const PASSWORD_STRENGTH_STYLES: Record<
+  PasswordStrengthKey,
+  { width: string; barClass: string; textClass: string }
+> = {
+  veryWeak: { width: '20%', barClass: 'bg-red-500', textClass: 'text-red-500' },
+  weak: { width: '40%', barClass: 'bg-orange-500', textClass: 'text-orange-500' },
+  medium: { width: '60%', barClass: 'bg-yellow-400', textClass: 'text-yellow-500' },
+  strong: { width: '80%', barClass: 'bg-emerald-500', textClass: 'text-emerald-500' },
+  veryStrong: { width: '100%', barClass: 'bg-emerald-600', textClass: 'text-emerald-600' },
+};
+
+const calculatePasswordStrength = (password: string): PasswordStrengthKey | null => {
+  if (!password) return null;
+
+  let score = 0;
+
+  if (password.length >= 8) score += 1;
+  if (password.length >= 12) score += 1;
+  if (/[A-Z]/.test(password)) score += 1;
+  if (/[0-9]/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+
+  const index = Math.min(PASSWORD_STRENGTH_ORDER.length - 1, score);
+  return PASSWORD_STRENGTH_ORDER[index];
+};
 
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useTranslations('auth.register');
+  const tCommon = useTranslations('common');
   const { user, isLoading: authLoading } = useAuth();
   const registerMutation = useRegister();
-  
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [formData, setFormData] = useState<RegisterRequest & { confirmPassword: string }>({
+  const [formData, setFormData] = useState<
+    RegisterRequest & { confirmPassword: string }
+  >({
     nom_empresa: '',
     identificacion_fiscal: '',
     tipo_identificacion: 'NIT',
@@ -88,6 +93,16 @@ export default function RegisterPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const passwordStrengthKey = calculatePasswordStrength(formData.password);
+  const passwordStrengthConfig = passwordStrengthKey
+    ? PASSWORD_STRENGTH_STYLES[passwordStrengthKey]
+    : null;
+
+  const showPasswordMismatchHint =
+    formData.password.length > 0 &&
+    formData.confirmPassword.length > 0 &&
+    formData.password !== formData.confirmPassword;
+
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && isAuthenticated() && user) {
@@ -99,37 +114,39 @@ export default function RegisterPage() {
     const newErrors: Record<string, string> = {};
 
     if (!formData.nom_empresa.trim()) {
-      newErrors.nom_empresa = 'Company name is required';
+      newErrors.nom_empresa = t('errors.companyRequired');
     }
 
     if (!formData.identificacion_fiscal.trim()) {
-      newErrors.identificacion_fiscal = 'Tax ID is required';
+      newErrors.identificacion_fiscal = t('errors.taxIdRequired');
     } else if (formData.identificacion_fiscal.length < 5) {
-      newErrors.identificacion_fiscal = 'Tax ID must be at least 5 characters';
+      newErrors.identificacion_fiscal = t('errors.taxIdMinLength');
     }
 
     if (!formData.nom_contacto_principal.trim()) {
-      newErrors.nom_contacto_principal = 'Contact name is required';
+      newErrors.nom_contacto_principal = t('errors.contactNameRequired');
     }
 
     if (!formData.email_contacto_principal.trim()) {
-      newErrors.email_contacto_principal = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email_contacto_principal)) {
-      newErrors.email_contacto_principal = 'Please enter a valid email';
+      newErrors.email_contacto_principal = t('errors.emailRequired');
+    } else if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email_contacto_principal)
+    ) {
+      newErrors.email_contacto_principal = t('errors.emailInvalid');
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = t('errors.passwordRequired');
     } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
+      newErrors.password = t('errors.passwordMinLength');
     }
 
     if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = t('errors.passwordsDontMatch');
     }
 
     if (!acceptTerms) {
-      newErrors.acceptTerms = 'You must accept the terms and conditions';
+      newErrors.acceptTerms = t('errors.termsRequired');
     }
 
     setErrors(newErrors);
@@ -138,7 +155,7 @@ export default function RegisterPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -149,10 +166,10 @@ export default function RegisterPage() {
   };
 
   const updateField = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: '' }));
     }
   };
 
@@ -172,7 +189,7 @@ export default function RegisterPage() {
         <Button variant="ghost" asChild>
           <Link href="/">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
+            {t('backToHome')}
           </Link>
         </Button>
       </div>
@@ -193,28 +210,25 @@ export default function RegisterPage() {
               <span className="text-2xl font-bold text-revital-green">Revital</span>
             </div>
           </Link>
-          <CardTitle className="text-xl">Create your account</CardTitle>
-          <CardDescription>
-            Start your e-commerce journey with Revital
-          </CardDescription>
+          <CardTitle className="text-xl">{t('title')}</CardTitle>
+          <CardDescription>{t('description')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Company Information */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <Building2 className="h-4 w-4" />
-                Company Information
+                {t('companyInfo')}
               </div>
-              
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="nom_empresa">
-                    Company Name <span className="text-red-500">*</span>
+                    {t('companyName')} <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="nom_empresa"
-                    placeholder="Acme Inc."
+                    placeholder={t('companyNamePlaceholder')}
                     value={formData.nom_empresa}
                     onChange={(e) => updateField('nom_empresa', e.target.value)}
                     disabled={registerMutation.isPending}
@@ -227,23 +241,27 @@ export default function RegisterPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="identificacion_fiscal">
-                    Tax ID <span className="text-red-500">*</span>
+                    {t('taxId')} <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="identificacion_fiscal"
-                    placeholder="900123456-1"
+                    placeholder={t('taxIdPlaceholder')}
                     value={formData.identificacion_fiscal}
-                    onChange={(e) => updateField('identificacion_fiscal', e.target.value)}
+                    onChange={(e) =>
+                      updateField('identificacion_fiscal', e.target.value)
+                    }
                     disabled={registerMutation.isPending}
                     className={errors.identificacion_fiscal ? 'border-red-500' : ''}
                   />
                   {errors.identificacion_fiscal && (
-                    <p className="text-xs text-red-500">{errors.identificacion_fiscal}</p>
+                    <p className="text-xs text-red-500">
+                      {errors.identificacion_fiscal}
+                    </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="tipo_identificacion">ID Type</Label>
+                  <Label htmlFor="tipo_identificacion">{t('idType')}</Label>
                   <Select
                     value={formData.tipo_identificacion}
                     onValueChange={(value) => updateField('tipo_identificacion', value)}
@@ -253,9 +271,9 @@ export default function RegisterPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {IDENTIFICATION_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
+                      {ID_TYPE_KEYS.map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {t(`idTypes.${value}`)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -263,7 +281,7 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="pais">Country</Label>
+                  <Label htmlFor="pais">{t('country')}</Label>
                   <Select
                     value={formData.pais}
                     onValueChange={(value) => updateField('pais', value)}
@@ -273,9 +291,9 @@ export default function RegisterPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {COUNTRIES.map((country) => (
-                        <SelectItem key={country.value} value={country.value}>
-                          {country.label}
+                      {COUNTRY_CODES.map((code) => (
+                        <SelectItem key={code} value={code}>
+                          {t(`countries.${code}`)}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -283,12 +301,12 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="space-y-2 sm:col-span-2">
-                  <Label htmlFor="ciudad">City</Label>
+                  <Label htmlFor="ciudad">{t('city')}</Label>
                   <div className="relative">
                     <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="ciudad"
-                      placeholder="Bogotá"
+                      placeholder={t('cityPlaceholder')}
                       className="pl-10"
                       value={formData.ciudad}
                       onChange={(e) => updateField('ciudad', e.target.value)}
@@ -299,39 +317,42 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            {/* Contact Information */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <User className="h-4 w-4" />
-                Contact Information
+                {t('contactInfo')}
               </div>
-              
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="nom_contacto_principal">
-                    Contact Name <span className="text-red-500">*</span>
+                    {t('contactName')} <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="nom_contacto_principal"
-                    placeholder="John Doe"
+                    placeholder={t('contactNamePlaceholder')}
                     value={formData.nom_contacto_principal}
-                    onChange={(e) => updateField('nom_contacto_principal', e.target.value)}
+                    onChange={(e) =>
+                      updateField('nom_contacto_principal', e.target.value)
+                    }
                     disabled={registerMutation.isPending}
                     className={errors.nom_contacto_principal ? 'border-red-500' : ''}
                   />
                   {errors.nom_contacto_principal && (
-                    <p className="text-xs text-red-500">{errors.nom_contacto_principal}</p>
+                    <p className="text-xs text-red-500">
+                      {errors.nom_contacto_principal}
+                    </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="telefono_contacto">Phone</Label>
+                  <Label htmlFor="telefono_contacto">{t('phone')}</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="telefono_contacto"
                       type="tel"
-                      placeholder="+57 300 123 4567"
+                      placeholder={t('phonePlaceholder')}
                       className="pl-10"
                       value={formData.telefono_contacto}
                       onChange={(e) => updateField('telefono_contacto', e.target.value)}
@@ -342,39 +363,44 @@ export default function RegisterPage() {
 
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="email_contacto_principal">
-                    Email <span className="text-red-500">*</span>
+                    {t('email')} <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="email_contacto_principal"
                       type="email"
-                      placeholder="john@company.com"
-                      className={`pl-10 ${errors.email_contacto_principal ? 'border-red-500' : ''}`}
+                      placeholder={t('emailPlaceholder')}
+                      className={`pl-10 ${
+                        errors.email_contacto_principal ? 'border-red-500' : ''
+                      }`}
                       value={formData.email_contacto_principal}
-                      onChange={(e) => updateField('email_contacto_principal', e.target.value)}
+                      onChange={(e) =>
+                        updateField('email_contacto_principal', e.target.value)
+                      }
                       disabled={registerMutation.isPending}
                       autoComplete="email"
                     />
                   </div>
                   {errors.email_contacto_principal && (
-                    <p className="text-xs text-red-500">{errors.email_contacto_principal}</p>
+                    <p className="text-xs text-red-500">
+                      {errors.email_contacto_principal}
+                    </p>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Account Security */}
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <Lock className="h-4 w-4" />
-                Account Security
+                {t('accountSecurity')}
               </div>
-              
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="password">
-                    Password <span className="text-red-500">*</span>
+                    {t('password')} <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
                     <Input
@@ -399,17 +425,29 @@ export default function RegisterPage() {
                       )}
                     </button>
                   </div>
-                  {errors.password && (
-                    <p className="text-xs text-red-500">{errors.password}</p>
+                  {errors.password && <p className="text-xs text-red-500">{errors.password}</p>}
+                  <p className="text-xs text-muted-foreground">{t('passwordMinHint')}</p>
+                  {passwordStrengthConfig && passwordStrengthKey && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>{t('passwordStrengthLabel')}</span>
+                        <span className={`font-medium ${passwordStrengthConfig.textClass}`}>
+                          {t(`passwordStrength.${passwordStrengthKey}`)}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${passwordStrengthConfig.barClass}`}
+                          style={{ width: passwordStrengthConfig.width }}
+                        />
+                      </div>
+                    </div>
                   )}
-                  <p className="text-xs text-muted-foreground">
-                    Minimum 8 characters
-                  </p>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">
-                    Confirm Password <span className="text-red-500">*</span>
+                    {t('confirmPassword')} <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
                     <Input
@@ -437,6 +475,11 @@ export default function RegisterPage() {
                   {errors.confirmPassword && (
                     <p className="text-xs text-red-500">{errors.confirmPassword}</p>
                   )}
+                  {showPasswordMismatchHint && !errors.confirmPassword && (
+                    <p className="text-xs text-red-500">
+                      {t('errors.passwordsDontMatch')}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -451,30 +494,32 @@ export default function RegisterPage() {
                     onChange={(e) => {
                       setAcceptTerms(e.target.checked);
                       if (errors.acceptTerms) {
-                        setErrors(prev => ({ ...prev, acceptTerms: '' }));
+                        setErrors((prev) => ({ ...prev, acceptTerms: '' }));
                       }
                     }}
                     disabled={registerMutation.isPending}
                     className="sr-only peer"
                   />
-                  <div className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
-                    acceptTerms 
-                      ? 'bg-revital-green border-revital-green' 
-                      : errors.acceptTerms 
-                        ? 'border-red-500' 
-                        : 'border-muted-foreground'
-                  }`}>
+                  <div
+                    className={`h-5 w-5 rounded border-2 flex items-center justify-center transition-colors ${
+                      acceptTerms
+                        ? 'bg-revital-green border-revital-green'
+                        : errors.acceptTerms
+                          ? 'border-red-500'
+                          : 'border-muted-foreground'
+                    }`}
+                  >
                     {acceptTerms && <Check className="h-3 w-3 text-revital-black" />}
                   </div>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  I agree to the{' '}
+                  {t('termsPrefix')}{' '}
                   <Link href="/terms" className="text-revital-green hover:underline">
-                    Terms of Service
+                    {t('termsLink')}
                   </Link>{' '}
-                  and{' '}
+                  {t('and')}{' '}
                   <Link href="/privacy" className="text-revital-green hover:underline">
-                    Privacy Policy
+                    {t('privacyLink')}
                   </Link>
                 </span>
               </label>
@@ -484,29 +529,26 @@ export default function RegisterPage() {
             </div>
 
             {/* Submit Button */}
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full bg-revital-green hover:bg-revital-green/90 text-revital-black font-medium h-12"
               disabled={registerMutation.isPending}
             >
               {registerMutation.isPending ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Creating account...
+                  {t('submitting')}
                 </>
               ) : (
-                'Create Account'
+                t('submitButton')
               )}
             </Button>
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            Already have an account?{' '}
-            <Link 
-              href="/login" 
-              className="text-revital-green hover:underline font-medium"
-            >
-              Sign in
+            {t('hasAccount')}{' '}
+            <Link href="/login" className="text-revital-green hover:underline font-medium">
+              {t('loginLink')}
             </Link>
           </div>
         </CardContent>
@@ -514,7 +556,7 @@ export default function RegisterPage() {
 
       {/* Footer */}
       <p className="mt-8 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Revital. All rights reserved.
+        © {new Date().getFullYear()} Revital. {tCommon('rightsReserved')}
       </p>
     </div>
   );

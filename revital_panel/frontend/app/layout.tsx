@@ -4,6 +4,9 @@ import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { defaultMetadata } from "@/content/metadata";
 import QueryProvider from "@/providers/query-provider";
+import { getLocale, getMessages } from "next-intl/server";
+import { NextIntlClientProvider } from "next-intl";
+import { routing } from "@/i18n/routing";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,13 +20,19 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = defaultMetadata;
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const resolvedLocale = routing.locales.includes(locale as "en" | "es")
+    ? locale
+    : routing.defaultLocale;
+  const messages = await getMessages();
+
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang={resolvedLocale} suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white dark:bg-revital-black text-black dark:text-white transition-colors overflow-x-hidden`}
       >
@@ -34,6 +43,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryProvider>
+            <NextIntlClientProvider locale={resolvedLocale} messages={messages}>
             {/* Overlay con el patrón de puntos - estará controlado por las clases dark de Tailwind */}
             <div
               className="fixed inset-0 pointer-events-none z-[-1]"
@@ -56,6 +66,7 @@ export default function RootLayout({
               }}
             />
             {children}
+            </NextIntlClientProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>

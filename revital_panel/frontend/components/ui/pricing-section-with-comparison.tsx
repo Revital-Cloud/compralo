@@ -45,7 +45,7 @@ function Pricing() {
                 necesitan lo esencial para vender.
               </p>
               <p className="flex flex-col lg:flex-row lg:items-center gap-2 text-xl mt-8">
-                <span className="text-4xl dark:text-white">$29</span>
+                <span className="text-4xl dark:text-white">US$ 29.99</span>
                 <span className="text-sm text-muted-foreground dark:text-gray-400">
                   {" "}
                   / mes
@@ -56,7 +56,7 @@ function Pricing() {
                 className="gap-4 mt-8"
                 onClick={() => {
                   window.open(
-                    "https://app.revital.com/register?plan=emprendedor",
+                    "https://panel.revital.cloud/register?plan=emprendedor",
                     "_blank"
                   );
                 }}
@@ -75,11 +75,10 @@ function Pricing() {
                 <Zap className="w-6 h-6 text-revital-green" /> Profesional
               </p>
               <p className="text-sm text-muted-foreground dark:text-gray-400">
-                Perfecto para negocios en crecimiento que buscan más
-                herramientas y personalización.
+                Todo lo incluido en Emprendedor y más herramientas para crecer.
               </p>
               <p className="flex flex-col lg:flex-row lg:items-center gap-2 text-xl mt-8">
-                <span className="text-4xl dark:text-white">$79</span>
+                <span className="text-4xl dark:text-white">US$ 79.99</span>
                 <span className="text-sm text-muted-foreground dark:text-gray-400">
                   {" "}
                   / mes
@@ -90,7 +89,7 @@ function Pricing() {
                 className="gap-4 mt-8"
                 onClick={() => {
                   window.open(
-                    "https://app.revital.com/register?plan=profesional",
+                    "https://panel.revital.cloud/register?plan=profesional",
                     "_blank"
                   );
                 }}
@@ -100,14 +99,13 @@ function Pricing() {
             </div>
             <div className="px-3 py-1 md:px-6 md:py-4 gap-2 flex flex-col dark:bg-revital-black">
               <p className="text-2xl font-semibold flex items-center gap-2">
-                <Building className="w-6 h-6 text-revital-green" /> Corporativo
+                <Building className="w-6 h-6 text-revital-green" /> Enterprise
               </p>
               <p className="text-sm text-muted-foreground dark:text-gray-400">
-                Soluciones a medida para grandes empresas con volumen alto de
-                ventas y requerimientos específicos.
+                Todo lo incluido en Profesional y soluciones a medida para grandes empresas.
               </p>
               <p className="flex flex-col lg:flex-row lg:items-center gap-2 text-xl mt-8">
-                <span className="text-4xl dark:text-white">Custom</span>
+                <span className="text-4xl dark:text-white">Personalizado</span>
               </p>
               <Button
                 variant="revitalOutline"
@@ -146,7 +144,7 @@ function Pricing() {
               <Check className="w-5 h-5 text-revital-green" />
             </div>
             <div className="px-3 lg:px-6 col-span-3 lg:col-span-1 py-4 font-medium dark:text-white">
-              CMS Headless
+              Asistente de IA
             </div>
             <div className="px-3 py-1 md:px-6 md:py-4 flex justify-center dark:bg-revital-black">
               <Minus className="w-5 h-5 text-muted-foreground dark:text-gray-500" />
