@@ -241,22 +241,74 @@ def create_order_from_checkout_reference(
         logger.warning(f"create_order_from_checkout_reference: referencia no parseada: {reference}")
         return None
     cart_id, id_direccion, id_canje, codigo_descuento = parsed
-    logger.info(f"create_order_from_checkout_reference: reference={reference} -> cart_id={cart_id}, id_direccion={id_direccion}, id_canje={id_canje}, codigo_descuento={codigo_descuento}")
+    logger.info(
+        "create_order_from_checkout_reference: reference=%s -> cart_id=%s, id_direccion=%s, id_canje=%s, codigo_descuento=%s",
+        reference,
+        cart_id,
+        id_direccion,
+        id_canje,
+        codigo_descuento,
+    )
     status_tx = tx.get("status")
     # Sin pago exitoso en Wompi no se crea ninguna orden
     if status_tx != "APPROVED":
         logger.info(f"create_order_from_checkout_reference: no se crea orden (status={status_tx}, no APPROVED)")
         return None
+
+    # Buscar el carrito de la referencia. NO usar fallback a otro carrito: si el carrito
+    # fue eliminado (p. ej. por delete_usuario_por_email.sql o migración), el carrito
+    # "más reciente" podría estar vacío o tener ítems distintos a lo que el usuario pagó.
     cart_row = db.execute(
-        text("SELECT id_usuario FROM tab_carritos WHERE id_carrito = :cid"),
-        {"cid": cart_id}
+        text("SELECT id_carrito, id_usuario FROM tab_carritos WHERE id_carrito = :cid"),
+        {"cid": cart_id},
     ).fetchone()
+
     if not cart_row or cart_row.id_usuario is None:
-        logger.warning(f"Carrito no encontrado o sin usuario: cart_id={cart_id}")
+        # Logs de diagnóstico para depurar por qué el carrito no existe en confirm-checkout
+        logger.warning(
+            "Carrito %s de la referencia no encontrado o sin usuario. Causa habitual: el carrito fue eliminado antes de confirmar el pago (p. ej. ejecutando delete_usuario_por_email.sql durante el flujo).",
+            cart_id,
+        )
+        # Diagnóstico: estado real de la BD para comparar con create-checkout
+        items_count = db.execute(
+            text("SELECT COUNT(*) FROM tab_carrito_productos WHERE id_carrito = :cid"),
+            {"cid": cart_id},
+        ).scalar() or 0
+        cart_id_usuario = cart_row.id_usuario if cart_row else None
+        cart_session_id = getattr(cart_row, "session_id", None) if cart_row else None
+        if id_usuario is not None:
+            user_carts_count = db.execute(
+                text("SELECT COUNT(*) FROM tab_carritos WHERE id_usuario = :uid"),
+                {"uid": id_usuario},
+            ).scalar() or 0
+            logger.info(
+                "[CHECKOUT_DEBUG] confirm-checkout fallido: cart_id=%s, cart_row_exists=%s, cart_id_usuario=%s, cart_session_id=%s, cart_items_count=%s, id_usuario_token=%s, user_total_carts=%s",
+                cart_id,
+                cart_row is not None,
+                cart_id_usuario,
+                cart_session_id,
+                items_count,
+                id_usuario,
+                user_carts_count,
+            )
+        else:
+            logger.info(
+                "[CHECKOUT_DEBUG] confirm-checkout fallido (webhook): cart_id=%s, cart_row_exists=%s, cart_id_usuario=%s, cart_items_count=%s",
+                cart_id,
+                cart_row is not None,
+                cart_id_usuario,
+                items_count,
+            )
         return None
+
     cart_user_id = int(cart_row.id_usuario)
     if id_usuario is not None and cart_user_id != id_usuario:
-        logger.warning(f"Carrito no pertenece al usuario: cart_id={cart_id}, id_usuario={id_usuario}")
+        logger.warning(
+            "Carrito no pertenece al usuario: cart_id=%s, id_usuario_token=%s, id_usuario_carrito=%s",
+            cart_id,
+            id_usuario,
+            cart_user_id,
+        )
         return None
     id_usuario = cart_user_id
 

@@ -35,7 +35,10 @@ def update_active_config(db: Session, id_config_puntos: Decimal, config_update: 
         params = config_update.model_dump(exclude_unset=True)
         params['id_config_puntos'] = id_config_puntos
         params['usr_update'] = user_id
-        
+        # La función SQL exige el bind descripcion; si no viene en el body, enviar None
+        if 'descripcion' not in params:
+            params['descripcion'] = None
+
         query = text("""
             SELECT fun_actualizar_config_puntos_empresa(
                 :id_config_puntos,

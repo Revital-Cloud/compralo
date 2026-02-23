@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { formatPrice } from "@/utils/format-price";
 import Loading from "@/components/ui/loading";
-import { getStoredToken } from "@/utils/apiWrapper";
+import { getTokenForPaymentCallback, clearPaymentCallbackToken } from "@/utils/apiWrapper";
 
 type PaymentStatus = 'success' | 'pending' | 'declined' | 'error' | 'unknown';
 
@@ -78,7 +78,8 @@ const PaymentResultPage = () => {
 
     setPollingOrderId("pending");
 
-    const token = getStoredToken();
+    // Tras redirect de Wompi la página se recarga y el token en memoria se pierde; usar token guardado para este flujo
+    const token = getTokenForPaymentCallback();
     const headers: HeadersInit = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
@@ -221,7 +222,7 @@ const PaymentResultPage = () => {
   useEffect(() => {
     if (paymentData?.status !== "success" || !resolvedOrderId) return;
     if (!paymentData.reference?.startsWith("revital_cart_")) return;
-    // Refrescar carrito y órdenes antes de ir al detalle (el backend ya vació el carrito vía trigger)
+    clearPaymentCallbackToken();
     queryClient.invalidateQueries({ queryKey: ["cart"] });
     queryClient.invalidateQueries({ queryKey: ["orders"] });
     router.replace(`/profile/orders/${resolvedOrderId}`);
@@ -378,6 +379,14 @@ const PaymentResultPage = () => {
               pollingOrderId === 'pending' && (
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                   Obteniendo tu pedido...
+                </p>
+            )}
+            {/* Pago exitoso pero no se pudo obtener order_id (timeout/error): invitar a revisar Mis Órdenes */}
+            {paymentData.status === 'success' &&
+              paymentData.reference?.startsWith('revital_cart_') &&
+              pollingOrderId === null && (
+                <p className="text-sm text-amber-700 dark:text-amber-300 mb-4">
+                  Si tu pago fue exitoso, tu pedido puede tardar un momento en aparecer. Revisa en Mis Órdenes.
                 </p>
             )}
 

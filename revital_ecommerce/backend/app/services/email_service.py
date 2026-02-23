@@ -351,19 +351,23 @@ async def send_order_confirmation_for_order_id(order_id: int) -> None:
         fec = order_raw.get("fec_pedido")
         created_at = fec.strftime("%d/%m/%Y %H:%M") if fec and hasattr(fec, "strftime") else str(fec or "")
 
-        val_total = order_raw.get("val_total_pedido")
-        if val_total is not None:
+        def _fmt_money(v: Any) -> str:
+            if v is None:
+                return "0"
             try:
-                total_fmt = f"{int(float(val_total)):,}".replace(",", ".")
+                return f"{int(float(v)):,}".replace(",", ".")
             except (TypeError, ValueError):
-                total_fmt = str(val_total)
-        else:
-            total_fmt = "0"
+                return str(v)
+
+        subtotal_fmt = _fmt_money(order_raw.get("val_total_productos"))
+        discount_total_fmt = _fmt_money(order_raw.get("val_total_descuentos"))
+        total_fmt = _fmt_money(order_raw.get("val_total_pedido"))
 
         items = []
         for it in order_raw.get("items") or []:
             name = it.get("product_name") or it.get("nom_producto") or "Producto"
             qty = it.get("quantity") or it.get("cant_producto") or 0
+            image_url = it.get("imagen_url") or it.get("product_image") or None
             price_val = it.get("total_price") or it.get("subtotal") or it.get("unit_price") or 0
             try:
                 price_val = float(price_val) if price_val is not None else 0
@@ -386,14 +390,113 @@ async def send_order_confirmation_for_order_id(order_id: int) -> None:
                 "unit_price": unit_fmt,
                 "price": price_fmt,
                 "options": options_str,
+                "image_url": image_url,
             })
+
+        # Descuentos aplicados (detalle + tipo)
+        discounts_applied: list[dict[str, Any]] = []
+        raw_discounts = order_raw.get("detalle_descuentos_aplicados")
+        if raw_discounts:
+            try:
+                if isinstance(raw_discounts, str):
+                    import json
+                    raw_discounts = json.loads(raw_discounts)
+                if isinstance(raw_discounts, dict):
+                    raw_discounts = [raw_discounts]
+                if isinstance(raw_discounts, list):
+                    for d in raw_discounts:
+                        if not isinstance(d, dict):
+                            continue
+                        discounts_applied.append(
+                            {
+                                "nombre": d.get("nombre"),
+                                "codigo": d.get("codigo"),
+                                "tipo_descuento": d.get("tipo_descuento") or d.get("tipo"),
+                                "descuento_aplicado": d.get("descuento_aplicado") or d.get("monto") or d.get("valor") or 0,
+                                "descuento_aplicado_fmt": _fmt_money(d.get("descuento_aplicado") or d.get("monto") or d.get("valor") or 0),
+                            }
+                        )
+            except Exception:
+                discounts_applied = []
+
+        # Puntos ganados por esta orden
+        points_row = db.execute(
+            text(
+                """
+                SELECT COALESCE(SUM(cantidad_puntos), 0) AS puntos
+                FROM tab_movimientos_puntos
+                WHERE id_orden_origen = :id_orden AND tipo_movimiento = 1
+                """
+            ),
+            {"id_orden": order_id},
+        ).fetchone()
+        points_earned = 0
+        try:
+            points_earned = int(getattr(points_row, "puntos", 0) or (points_row[0] if points_row else 0))
+        except Exception:
+            points_earned = 0
+
+        # Dirección de envío: intentar obtener la dirección usada en el checkout (desde reference en tab_pagos)
+        shipping_address_str = "A confirmar"
+        try:
+            pay_row = db.execute(
+                text("SELECT reference FROM tab_pagos WHERE id_orden = :oid ORDER BY id_pago DESC LIMIT 1"),
+                {"oid": order_id},
+            ).fetchone()
+            reference = getattr(pay_row, "reference", None) if pay_row else None
+            if reference and isinstance(reference, str) and reference.startswith("revital_cart_"):
+                from services.payment_widget_service import parse_checkout_reference
+
+                parsed = parse_checkout_reference(reference)
+                if parsed:
+                    _cart_id, id_direccion, _id_canje, _codigo_desc = parsed
+                    addr_row = db.execute(
+                        text(
+                            """
+                            SELECT nombre_direccion, calle_direccion, complemento, barrio, ciudad, departamento, codigo_postal, referencias
+                            FROM tab_direcciones_usuario
+                            WHERE id_direccion = :id_direccion
+                            LIMIT 1
+                            """
+                        ),
+                        {"id_direccion": id_direccion},
+                    ).fetchone()
+                    if addr_row:
+                        parts = []
+                        calle = getattr(addr_row, "calle_direccion", None)
+                        complemento = getattr(addr_row, "complemento", None)
+                        barrio = getattr(addr_row, "barrio", None)
+                        ciudad = getattr(addr_row, "ciudad", None)
+                        depto = getattr(addr_row, "departamento", None)
+                        cp = getattr(addr_row, "codigo_postal", None)
+                        if calle:
+                            parts.append(str(calle))
+                        if complemento:
+                            parts.append(str(complemento))
+                        if barrio:
+                            parts.append(str(barrio))
+                        loc = ", ".join([p for p in [ciudad, depto] if p])
+                        if loc:
+                            parts.append(loc)
+                        if cp:
+                            parts.append(str(cp))
+                        refs = getattr(addr_row, "referencias", None)
+                        if refs:
+                            parts.append(f"Ref: {refs}")
+                        shipping_address_str = " · ".join(parts) if parts else "A confirmar"
+        except Exception:
+            shipping_address_str = "A confirmar"
 
         order_dict = {
             "id": order_id,
             "created_at": created_at,
+            "subtotal": subtotal_fmt,
+            "discount_total": discount_total_fmt,
             "total": total_fmt,
             "items": items,
-            "shipping_address": "A confirmar",
+            "discounts_applied": discounts_applied,
+            "points_earned": points_earned,
+            "shipping_address": shipping_address_str,
             "shipping_method": "A confirmar",
             "estimated_delivery": "3-7 días hábiles",
         }

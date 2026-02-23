@@ -254,6 +254,57 @@ export function isAuthenticated(): boolean {
   return !!getStoredToken();
 }
 
+/** Clave y TTL para token en sessionStorage solo durante redirect de pago (Wompi devuelve a payment-result y se pierde la memoria). */
+const PAYMENT_CALLBACK_TOKEN_KEY = "revital_payment_callback_token";
+const PAYMENT_CALLBACK_TOKEN_TTL_MS = 15 * 60 * 1000; // 15 minutos
+
+/**
+ * Guardar token en sessionStorage para recuperarlo tras el redirect de Wompi a payment-result.
+ * Llamar al abrir el modal de pago (el redirect recarga la página y se pierde inMemoryAccessToken).
+ */
+export function setPaymentCallbackToken(): void {
+  const token = inMemoryAccessToken;
+  if (typeof window === "undefined" || !token) return;
+  try {
+    sessionStorage.setItem(
+      PAYMENT_CALLBACK_TOKEN_KEY,
+      JSON.stringify({ token, ts: Date.now() })
+    );
+  } catch {
+    // sessionStorage no disponible
+  }
+}
+
+/**
+ * Obtener token para confirm-checkout/order-by-reference: primero memoria, luego sessionStorage.
+ * No se borra aquí para que confirm-checkout y el polling puedan reutilizarlo; borrar con clearPaymentCallbackToken() al redirigir.
+ */
+export function getTokenForPaymentCallback(): string | null {
+  const fromMemory = getStoredToken();
+  if (fromMemory) return fromMemory;
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(PAYMENT_CALLBACK_TOKEN_KEY);
+    if (!raw) return null;
+    const { token, ts } = JSON.parse(raw) as { token?: string; ts?: number };
+    if (!token || typeof token !== "string") return null;
+    if (ts != null && Date.now() - ts > PAYMENT_CALLBACK_TOKEN_TTL_MS) return null;
+    return token;
+  } catch {
+    return null;
+  }
+}
+
+/** Borrar token de callback de pago (llamar al redirigir a detalle de orden para no dejar token en sessionStorage). */
+export function clearPaymentCallbackToken(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(PAYMENT_CALLBACK_TOKEN_KEY);
+  } catch {
+    // ignore
+  }
+}
+
 // =============================================================================
 // MÉTODOS HTTP BÁSICOS
 // =============================================================================
@@ -281,7 +332,14 @@ export async function post<T>(endpoint: string, data?: any, config?: AxiosReques
     const data = error?.response?.data;
     const detail = data?.detail;
     const msg = typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map((e: any) => e?.msg ?? e).join(", ") : detail ?? error?.message ?? "Error en la petición";
-    console.error("❌ [API] POST error:", msg, data ?? error);
+    // Evitar ruido en consola para /refresh: fallos de refresh son casos esperados
+    // (usuario sin cookie, cookie rota, usuario borrado, etc.). La app simplemente
+    // tratará la sesión como no autenticada.
+    if (endpoint === "/refresh") {
+      console.log("ℹ️ [API] POST /refresh falló (sesión no válida o sin refresh):", msg);
+    } else {
+      console.error("❌ [API] POST error:", msg, data ?? error);
+    }
     throw error;
   }
 }
@@ -365,7 +423,10 @@ const apiWrapper = {
   storeTokens,
   clearTokens,
   isAuthenticated,
-  
+  setPaymentCallbackToken,
+  getTokenForPaymentCallback,
+  clearPaymentCallbackToken,
+
   // Utilities
   getApiConfig,
   validateApiResponse,

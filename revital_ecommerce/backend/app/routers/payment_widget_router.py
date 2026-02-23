@@ -148,7 +148,20 @@ async def create_checkout_session_endpoint(
         currency = "COP"
         codigo_descuento = getattr(payload, "codigo_descuento", None) or None
         reference = generate_checkout_reference_from_cart(cart_id, id_direccion, id_canje, codigo_descuento=codigo_descuento)
-        logger.info(f"create-checkout: cart_id={cart_id}, id_direccion={id_direccion}, id_canje={id_canje}, codigo_descuento={codigo_descuento} -> reference={reference}, amount={amount_in_cents}")
+        # Log de diagnóstico: estado del carrito al crear checkout (para comparar con confirm-checkout)
+        cart_items_at_create = db.execute(
+            text("SELECT COUNT(*) FROM tab_carrito_productos WHERE id_carrito = :cid"),
+            {"cid": cart_id},
+        ).scalar() or 0
+        logger.info(
+            "[CHECKOUT_DEBUG] create-checkout: cart_id=%s, id_usuario=%s, id_direccion=%s, cart_items=%s -> reference=%s, amount=%s",
+            cart_id,
+            int(cart_user_id),
+            id_direccion,
+            cart_items_at_create,
+            reference,
+            amount_in_cents,
+        )
         wompi_config = get_store_from_request(request, db)
         if not wompi_config.wompi_public_key or not wompi_config.wompi_integrity_secret:
             raise HTTPException(
@@ -259,7 +272,11 @@ async def confirm_checkout(
     if order_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No se pudo crear la orden (carrito no encontrado o no pertenece al usuario)",
+            detail=(
+                "No se pudo crear la orden (carrito no encontrado o no pertenece al usuario). "
+                "Si el pago fue exitoso, revisa que no se haya ejecutado ningún script de borrado "
+                "de usuario durante el proceso."
+            ),
         )
     try:
         from services.email_service import send_order_confirmation_for_order_id

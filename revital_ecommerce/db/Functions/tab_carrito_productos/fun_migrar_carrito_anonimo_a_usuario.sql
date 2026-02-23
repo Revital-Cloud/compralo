@@ -1,6 +1,10 @@
 /*
  * Migra el carrito anónimo al carrito del usuario registrado.
  * Usa variant_id en tab_carrito_productos; actualiza precio desde tab_product_variant_combinations.
+ *
+ * IMPORTANTE: Solo migra y elimina si el carrito origen es anónimo (id_usuario IS NULL).
+ * Si el carrito ya pertenece al usuario (p. ej. checkout en curso), no se elimina para evitar
+ * que confirm-checkout falle al no encontrar el carrito de la referencia.
  */
 CREATE OR REPLACE FUNCTION fun_migrar_carrito_anonimo_a_usuario(
     p_id_carrito_anonimo tab_carritos.id_carrito%TYPE,
@@ -11,7 +15,18 @@ DECLARE
     v_id_carrito_usuario tab_carritos.id_carrito%TYPE;
     v_item RECORD;
     v_precio DECIMAL(12,2);
+    v_carrito_es_anonimo BOOLEAN;
 BEGIN
+    -- Verificar que el carrito origen sea anónimo (id_usuario IS NULL).
+    -- Si ya es del usuario, no migrar ni eliminar (evita borrar carrito de checkout en curso).
+    SELECT (c.id_usuario IS NULL) INTO v_carrito_es_anonimo
+    FROM tab_carritos c
+    WHERE c.id_carrito = p_id_carrito_anonimo;
+
+    IF NOT FOUND OR NOT v_carrito_es_anonimo THEN
+        RETURN json_build_object('success', true, 'message', 'Carrito ya pertenece al usuario o no existe');
+    END IF;
+
     v_id_carrito_usuario := fun_obtener_carrito_usuario(p_id_usuario, NULL);
 
     FOR v_item IN

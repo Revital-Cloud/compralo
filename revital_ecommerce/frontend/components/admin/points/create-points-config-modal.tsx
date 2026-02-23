@@ -40,8 +40,21 @@ export const CreatePointsConfigModal: React.FC<Props> = ({ open, onOpenChange })
     })
   }, [activeRate])
 
+  const clampNonNegative = (value: string): string => {
+    if (value === '') return value
+    if (value === '-') return ''
+    const n = parseFloat(value.replace(',', '.'))
+    if (Number.isNaN(n)) return value
+    return n < 0 ? '0' : value
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    const pp = parseFloat(String(formData.pesos_por_punto).replace(',', '.'))
+    const pps = parseFloat(String(formData.puntos_por_peso).replace(',', '.'))
+    if (Number.isNaN(pp) || pp < 0 || Number.isNaN(pps) || pps < 0) {
+      return
+    }
     if (activeRate) {
       await updateMutation.mutateAsync({ id: activeRate.id_config_puntos, data: formData })
     } else {
@@ -65,12 +78,13 @@ export const CreatePointsConfigModal: React.FC<Props> = ({ open, onOpenChange })
                 id="pesos_por_punto"
                 type="number"
                 step="0.01"
+                min={0}
                 placeholder="Ej: 100"
                 value={formData.pesos_por_punto}
-                onChange={(e) => setFormData({ ...formData, pesos_por_punto: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, pesos_por_punto: clampNonNegative(e.target.value) })}
                 required
               />
-              <p className="text-xs text-muted-foreground">Cuántos pesos se necesitan para ganar 1 punto</p>
+              <p className="text-xs text-muted-foreground">Cuántos pesos se necesitan para ganar 1 punto (no negativo)</p>
             </div>
 
             <div className="space-y-2">
@@ -79,12 +93,13 @@ export const CreatePointsConfigModal: React.FC<Props> = ({ open, onOpenChange })
                 id="puntos_por_peso"
                 type="number"
                 step="0.01"
+                min={0}
                 placeholder="Ej: 0.01"
                 value={formData.puntos_por_peso}
-                onChange={(e) => setFormData({ ...formData, puntos_por_peso: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, puntos_por_peso: clampNonNegative(e.target.value) })}
                 required
               />
-              <p className="text-xs text-muted-foreground">Cuántos puntos se ganan por cada peso gastado</p>
+              <p className="text-xs text-muted-foreground">Cuántos puntos se ganan por cada peso gastado (no negativo)</p>
             </div>
 
             <div className="space-y-2">

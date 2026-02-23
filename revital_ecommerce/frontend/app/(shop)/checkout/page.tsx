@@ -51,7 +51,7 @@ import {
 const CheckoutPage = () => {
   const router = useRouter();
   const { user, isAuthenticated, isHydrated, isLoadingUser } = useAuth();
-  const { items, totals, total, hasItems, isLoading: cartLoading, id_carrito, selectedCanjeId, cartUser } = useCart();
+  const { items, totals, total, hasItems, isLoading: cartLoading, id_carrito, selectedCanjeId, cartUser, isMigratingCart } = useCart();
   const queryClient = useQueryClient();
 
   // Require login for checkout: redirect to login with return URL so after login user comes back to checkout
@@ -166,6 +166,16 @@ const CheckoutPage = () => {
   };
 
   const handlePaymentSubmit = async (data: PaymentFormData) => {
+    // Evitar crear referencia de checkout con carrito anónimo (puede ser borrado al migrar y romper confirm-checkout)
+    if (isMigratingCart) {
+      toast.info("Estamos sincronizando tu carrito. Espera un momento e intenta de nuevo.");
+      return;
+    }
+    if (!user?.id_usuario) {
+      toast.error("No se pudo identificar tu usuario. Recarga la página e intenta de nuevo.");
+      return;
+    }
+
     // Obtener dirección seleccionada
     const selectedAddress = addresses?.find(
       (addr) => addr.id_direccion?.toString() === informationForm.getValues().direccion
@@ -176,10 +186,11 @@ const CheckoutPage = () => {
       return;
     }
 
-    // Obtener el carrito actual del servidor para evitar enviar un id_carrito obsoleto (p. ej. persistido)
+    // Obtener el carrito actual del servidor para evitar enviar un id_carrito obsoleto.
+    // IMPORTANTE: usar id_usuario (no session_id) para evitar referencias a carritos anónimos.
     let cartId: number;
     try {
-      const cartRes = await cartService.getOrCreateCart(cartUser);
+      const cartRes = await cartService.getOrCreateCart({ id_usuario: user.id_usuario });
       cartId = cartRes.id_carrito;
     } catch (e) {
       console.error('Error al obtener el carrito:', e);
