@@ -85,9 +85,9 @@
     "steps": [
       { "phase": "Fase 1", "title": "Planifica Tu Visión", "description": "Define tus objetivos, público objetivo y estrategia de e-commerce. Te ayudamos a trazar el camino hacia el éxito.", "duration": "1-2 días", "features": ["Análisis de mercado", "Definición de objetivos", "Estrategia de marca"] },
       { "phase": "Fase 2", "title": "Diseña Tu Tienda", "description": "Crea una experiencia de compra atractiva y personalizada. Elige plantillas, personaliza el diseño y refleja tu marca.", "duration": "2-3 días", "features": ["Diseño personalizado", "Branding único", "UX optimizada"] },
-      { "phase": "Fase 3", "title": "Desarrolla Funcionalidades", "description": "Integra pasarelas de pago, configura envíos, y añade las herramientas que necesitas para operar tu tienda eficientemente.", "duration": "3-5 días", "features": ["Integración de pagos", "Sistema de envíos", "APIs personalizadas"] },
+      { "phase": "Fase 3", "title": "Desarrolla Funcionalidades", "description": "Integra pasarelas de pago, configura envíos, y añade las herramientas que necesitas para operar tu tienda eficientemente.", "duration": "3-5 días", "features": ["Integración con Wompi", "Configuración de envíos", "Herramientas operativas clave"] },
       { "phase": "Fase 4", "title": "Optimiza y Prueba", "description": "Aseguramos que todo funcione a la perfección. Pruebas de rendimiento, seguridad y usabilidad antes del gran lanzamiento.", "duration": "1-2 días", "features": ["Testing completo", "Optimización SEO", "Seguridad garantizada"] },
-      { "phase": "Fase 5", "title": "Lanza y Crece", "description": "¡Tu tienda está lista! Lanza al mercado y utiliza nuestras herramientas de marketing y análisis para crecer continuamente.", "duration": "Ongoing", "features": ["Lanzamiento oficial", "Marketing tools", "Analytics avanzados"] }
+      { "phase": "Fase 5", "title": "Lanza y Crece", "description": "¡Tu tienda está lista! Lanza al mercado y utiliza nuestras herramientas de marketing y análisis para crecer continuamente.", "duration": "Ongoing", "features": ["Lanzamiento oficial", "Herramientas de marketing", "Analytics avanzados"] }
     ]
   },
   "getStarted": {
@@ -427,6 +427,14 @@
       "password": "Contraseña",
       "confirmPassword": "Confirmar contraseña",
       "passwordMinHint": "Mínimo 8 caracteres",
+      "passwordStrengthLabel": "Seguridad de la contraseña",
+      "passwordStrength": {
+        "veryWeak": "Muy débil",
+        "weak": "Débil",
+        "medium": "Media",
+        "strong": "Fuerte",
+        "veryStrong": "Muy fuerte"
+      },
       "nameLabel": "Nombre completo",
       "emailLabel": "Correo electrónico",
       "passwordLabel": "Contraseña",

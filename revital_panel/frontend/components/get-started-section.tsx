@@ -36,8 +36,8 @@ export function GetStartedSection() {
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-revital-green/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="container">
-        <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="w-full">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-2 rounded-full bg-revital-green/10 px-4 py-1.5 text-sm text-revital-green mb-4">
               <Sparkles className="h-4 w-4" />
@@ -47,7 +47,12 @@ export function GetStartedSection() {
               {t("title").split(" Revital").map((part, i, arr) => (
                 <React.Fragment key={i}>
                   {part}
-                  {i < arr.length - 1 ? <span className="text-revital-green">Revital</span> : null}
+                  {i < arr.length - 1 ? (
+                    <>
+                      {" "}
+                      <span className="text-revital-green">Revital</span>
+                    </>
+                  ) : null}
                 </React.Fragment>
               ))}
             </h2>

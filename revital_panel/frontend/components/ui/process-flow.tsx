@@ -1,5 +1,6 @@
 "use client";
 
+import type React from "react";
 import { useState } from "react";
 import {
   Clock,
@@ -101,8 +102,8 @@ export default function ProcessFlow({ steps: stepsProp }: ProcessFlowProps) {
           </p>
         </div>
 
-        {/* Timeline principal */}
-        <div className="relative">
+        {/* Timeline principal: área solo de las 5 cards, sin solapamiento */}
+        <div className="relative min-h-[380px] lg:min-h-[320px] pb-8">
           {/* Línea de progreso - Posicionada arriba de las cards */}
           <div className="absolute -top-8 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 rounded-full hidden lg:block">
             <div
@@ -146,7 +147,7 @@ export default function ProcessFlow({ steps: stepsProp }: ProcessFlowProps) {
                   {/* Card del paso */}
                   <Card
                     className={cn(
-                      "relative transition-all duration-500 transform hover:scale-105",
+                      "relative h-full flex flex-col transition-all duration-500 transform hover:scale-105",
                       isActive
                         ? "scale-105 shadow-xl shadow-revital-green/20"
                         : "hover:shadow-lg",
@@ -195,13 +196,13 @@ export default function ProcessFlow({ steps: stepsProp }: ProcessFlowProps) {
                       </CardTitle>
                     </CardHeader>
 
-                    <CardContent className="pt-0">
+                    <CardContent className="pt-0 flex-1 flex flex-col">
                       <p className="text-xs text-gray-600 dark:text-gray-400 text-center mb-4 leading-relaxed">
                         {step.description}
                       </p>
 
                       {/* Features del paso */}
-                      <div className="space-y-1">
+                      <div className="space-y-1 mt-auto">
                         {step.features.map((feature, featureIndex) => (
                           <div
                             key={featureIndex}
@@ -234,8 +235,8 @@ export default function ProcessFlow({ steps: stepsProp }: ProcessFlowProps) {
           </div>
         </div>
 
-        {/* Información del paso actual */}
-        <div className="mt-12 lg:mt-16">
+        {/* Información del paso actual: separado para no tapar las cards de fases */}
+        <div className="mt-24 lg:mt-32">
           <Card className="bg-linear-to-r from-revital-green/5 to-revital-green/10 dark:from-revital-green/10 dark:to-revital-green/5 border-revital-green/20">
             <CardContent className="p-6 lg:p-8">
               <div className="flex items-center gap-4 mb-4">

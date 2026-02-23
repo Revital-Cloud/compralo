@@ -85,7 +85,7 @@
     "steps": [
       { "phase": "Phase 1", "title": "Plan Your Vision", "description": "Define your goals, target audience and e-commerce strategy. We help you map the path to success.", "duration": "1-2 days", "features": ["Market analysis", "Goal definition", "Brand strategy"] },
       { "phase": "Phase 2", "title": "Design Your Store", "description": "Create an attractive, personalized shopping experience. Choose templates, customize the design and reflect your brand.", "duration": "2-3 days", "features": ["Custom design", "Unique branding", "Optimized UX"] },
-      { "phase": "Phase 3", "title": "Develop Functionality", "description": "Integrate payment gateways, configure shipping, and add the tools you need to run your store efficiently.", "duration": "3-5 days", "features": ["Payment integration", "Shipping system", "Custom APIs"] },
+      { "phase": "Phase 3", "title": "Develop Functionality", "description": "Integrate payment gateways, configure shipping, and add the tools you need to run your store efficiently.", "duration": "3-5 days", "features": ["Wompi integration", "Shipping setup", "Core operational tools"] },
       { "phase": "Phase 4", "title": "Optimize and Test", "description": "We ensure everything works perfectly. Performance, security and usability testing before the big launch.", "duration": "1-2 days", "features": ["Full testing", "SEO optimization", "Security guaranteed"] },
       { "phase": "Phase 5", "title": "Launch and Grow", "description": "Your store is ready! Launch to the market and use our marketing and analytics tools to grow continuously.", "duration": "Ongoing", "features": ["Official launch", "Marketing tools", "Advanced analytics"] }
     ]
@@ -439,6 +439,14 @@
       "password": "Password",
       "confirmPassword": "Confirm password",
       "passwordMinHint": "Minimum 8 characters",
+      "passwordStrengthLabel": "Password strength",
+      "passwordStrength": {
+        "veryWeak": "Very weak",
+        "weak": "Weak",
+        "medium": "Medium",
+        "strong": "Strong",
+        "veryStrong": "Very strong"
+      },
       "errors": {
         "companyRequired": "Company name is required",
         "taxIdRequired": "Tax ID is required",

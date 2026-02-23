@@ -31,6 +31,42 @@ import type { RegisterRequest, IdentificationType, CountryCode } from '@/types';
 const ID_TYPE_KEYS: IdentificationType[] = ['NIT', 'EIN', 'RFC', 'CUIT', 'RUT', 'RUC', 'CNPJ', 'NIF', 'OTRO'];
 const COUNTRY_CODES: CountryCode[] = ['CO', 'US', 'MX', 'AR', 'CL', 'PE', 'EC', 'PA', 'UY', 'BR', 'ES', 'OTRO'];
 
+type PasswordStrengthKey = 'veryWeak' | 'weak' | 'medium' | 'strong' | 'veryStrong';
+
+const PASSWORD_STRENGTH_ORDER: PasswordStrengthKey[] = [
+  'veryWeak',
+  'weak',
+  'medium',
+  'strong',
+  'veryStrong',
+];
+
+const PASSWORD_STRENGTH_STYLES: Record<
+  PasswordStrengthKey,
+  { width: string; barClass: string; textClass: string }
+> = {
+  veryWeak: { width: '20%', barClass: 'bg-red-500', textClass: 'text-red-500' },
+  weak: { width: '40%', barClass: 'bg-orange-500', textClass: 'text-orange-500' },
+  medium: { width: '60%', barClass: 'bg-yellow-400', textClass: 'text-yellow-500' },
+  strong: { width: '80%', barClass: 'bg-emerald-500', textClass: 'text-emerald-500' },
+  veryStrong: { width: '100%', barClass: 'bg-emerald-600', textClass: 'text-emerald-600' },
+};
+
+const calculatePasswordStrength = (password: string): PasswordStrengthKey | null => {
+  if (!password) return null;
+
+  let score = 0;
+
+  if (password.length >= 8) score += 1;
+  if (password.length >= 12) score += 1;
+  if (/[A-Z]/.test(password)) score += 1;
+  if (/[0-9]/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+
+  const index = Math.min(PASSWORD_STRENGTH_ORDER.length - 1, score);
+  return PASSWORD_STRENGTH_ORDER[index];
+};
+
 export default function RegisterPage() {
   const router = useRouter();
   const t = useTranslations('auth.register');
@@ -56,6 +92,16 @@ export default function RegisterPage() {
     confirmPassword: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const passwordStrengthKey = calculatePasswordStrength(formData.password);
+  const passwordStrengthConfig = passwordStrengthKey
+    ? PASSWORD_STRENGTH_STYLES[passwordStrengthKey]
+    : null;
+
+  const showPasswordMismatchHint =
+    formData.password.length > 0 &&
+    formData.confirmPassword.length > 0 &&
+    formData.password !== formData.confirmPassword;
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -381,6 +427,22 @@ export default function RegisterPage() {
                   </div>
                   {errors.password && <p className="text-xs text-red-500">{errors.password}</p>}
                   <p className="text-xs text-muted-foreground">{t('passwordMinHint')}</p>
+                  {passwordStrengthConfig && passwordStrengthKey && (
+                    <div className="mt-2 space-y-1">
+                      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                        <span>{t('passwordStrengthLabel')}</span>
+                        <span className={`font-medium ${passwordStrengthConfig.textClass}`}>
+                          {t(`passwordStrength.${passwordStrengthKey}`)}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${passwordStrengthConfig.barClass}`}
+                          style={{ width: passwordStrengthConfig.width }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -412,6 +474,11 @@ export default function RegisterPage() {
                   </div>
                   {errors.confirmPassword && (
                     <p className="text-xs text-red-500">{errors.confirmPassword}</p>
+                  )}
+                  {showPasswordMismatchHint && !errors.confirmPassword && (
+                    <p className="text-xs text-red-500">
+                      {t('errors.passwordsDontMatch')}
+                    </p>
                   )}
                 </div>
               </div>

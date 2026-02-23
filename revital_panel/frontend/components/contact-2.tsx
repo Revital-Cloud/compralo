@@ -32,9 +32,9 @@ export const Contact2 = ({
 
   return (
     <section id="contact" className="py-32 bg-white dark:bg-revital-black">
-      <div className="container">
-        <div className="mx-auto flex max-w-(--breakpoint-xl) flex-col justify-between gap-10 lg:flex-row lg:gap-20">
-          <div className="mx-auto flex max-w-sm flex-col justify-between gap-10">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-5xl flex-col gap-10 lg:flex-row lg:items-start lg:gap-20">
+          <div className="flex flex-1 flex-col justify-between gap-10">
             <div className="text-center lg:text-left">
               <h1 className="mb-2 text-5xl font-semibold lg:mb-1 lg:text-6xl text-revital-green">
                 {t("title")}
@@ -75,7 +75,7 @@ export const Contact2 = ({
               </ul>
             </div>
           </div>
-          <div className="mx-auto flex max-w-(--breakpoint-md) flex-col gap-6 rounded-lg border border-revital-green/20 p-10 bg-gray-50 dark:bg-revital-black backdrop-blur-xs">
+          <div className="flex w-full flex-1 flex-col gap-6 rounded-lg border border-revital-green/20 p-10 bg-gray-50 dark:bg-revital-black backdrop-blur-xs lg:max-w-md">
             <div className="flex gap-4">
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="firstname" className="text-revital-green font-semibold">
