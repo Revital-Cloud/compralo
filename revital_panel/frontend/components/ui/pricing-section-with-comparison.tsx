@@ -56,7 +56,7 @@ function Pricing() {
                 className="gap-4 mt-8"
                 onClick={() => {
                   window.open(
-                    "https://app.revital.com/register?plan=emprendedor",
+                    "https://panel.revital.cloud/register?plan=emprendedor",
                     "_blank"
                   );
                 }}
@@ -90,7 +90,7 @@ function Pricing() {
                 className="gap-4 mt-8"
                 onClick={() => {
                   window.open(
-                    "https://app.revital.com/register?plan=profesional",
+                    "https://panel.revital.cloud/register?plan=profesional",
                     "_blank"
                   );
                 }}
@@ -146,7 +146,7 @@ function Pricing() {
               <Check className="w-5 h-5 text-revital-green" />
             </div>
             <div className="px-3 lg:px-6 col-span-3 lg:col-span-1 py-4 font-medium dark:text-white">
-              CMS Headless
+              Asistente de IA
             </div>
             <div className="px-3 py-1 md:px-6 md:py-4 flex justify-center dark:bg-revital-black">
               <Minus className="w-5 h-5 text-muted-foreground dark:text-gray-500" />

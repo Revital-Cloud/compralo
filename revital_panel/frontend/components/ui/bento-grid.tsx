@@ -43,11 +43,11 @@ function BentoGrid({ items }: BentoGridProps) {
       tags: t.raw('features.items.products.tags') as string[],
     },
     {
-      title: t('features.items.cms.title'),
-      meta: t('features.items.cms.meta'),
-      description: t('features.items.cms.description'),
+      title: t('features.items.api.title'),
+      meta: t('features.items.api.meta'),
+      description: t('features.items.api.description'),
       icon: <LayoutGrid className="w-4 h-4 text-revital-green" />,
-      tags: t.raw('features.items.cms.tags') as string[],
+      tags: t.raw('features.items.api.tags') as string[],
       colSpan: 2,
     },
     {

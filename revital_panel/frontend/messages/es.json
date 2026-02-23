@@ -49,7 +49,7 @@
   },
   "hero": {
     "title": "La Plataforma E-commerce Todo-en-Uno para Colombia",
-    "subtitle": "Crea, gestiona y escala tu tienda online con nuestra plataforma integral. Dashboard y analytics en tiempo real, catálogo completo con categorías e inventario, pagos con Wompi, descuentos y puntos de fidelidad, y CMS headless con blog.",
+    "subtitle": "Crea, gestiona y escala tu tienda online con nuestra plataforma integral. Dashboard y analytics en tiempo real, catálogo completo con categorías e inventario, pagos con Wompi, descuentos y puntos de fidelidad.",
     "primaryButton": "Crear Mi Tienda",
     "secondaryButton": "Solicitar Demo",
     "badge": "Presentando Revital: tu plataforma e-commerce todo-en-uno",
@@ -64,7 +64,7 @@
       "Integración nativa con Wompi para Colombia",
       "Dashboard y estadísticas en tiempo real",
       "Catálogo de productos con inventario y SEO",
-      "CMS headless y blog integrado"
+      "Asistente de IA para revisar tu tienda"
     ]
   },
   "navigation": {
@@ -144,11 +144,11 @@
         "status": "Integrado",
         "tags": ["Pagos", "Descuentos", "Fidelidad"]
       },
-      "cms": {
-        "title": "CMS Headless + Blog Integrado",
-        "meta": "API-First",
-        "description": "Gestiona contenido, páginas personalizadas, blog para SEO y landing pages vía API. Sin límites técnicos para el contenido de tu tienda.",
-        "tags": ["CMS", "Blog", "API"]
+      "api": {
+        "title": "Asistente de IA en tu panel",
+        "meta": "Te ayuda a gestionar",
+        "description": "Hazle preguntas a la IA sobre ventas, productos y pedidos. Pídele un resumen de la tienda, revisa órdenes pendientes o productos con poco stock y crea marcas, categorías o descuentos directamente desde el chat.",
+        "tags": ["IA", "Productividad"]
       },
       "marketing": {
         "title": "Herramientas de marketing",
@@ -247,7 +247,7 @@
           "Productos ilimitados",
           "Todas las integraciones de pago",
           "Panel avanzado + analytics",
-          "CMS headless completo",
+          "Asistente de IA en el panel admin",
           "Soporte prioritario",
           "Dominio personalizado",
           "Marketing automation",
@@ -282,9 +282,9 @@
         "question": "¿Qué incluye la integración con Wompi?",
         "answer": "Nuestra integración con Wompi incluye procesamiento de pagos con tarjetas de crédito/débito, PSE, Nequi y otros métodos populares en Colombia. Configuración automática de webhooks, manejo de estados de pago y reconciliación automática."
       },
-      "cms": {
-        "question": "¿Cómo funciona el CMS?",
-        "answer": "Nuestro CMS te permite crear páginas básicas, blog posts y contenido para tu tienda de forma visual y sencilla. Perfecto para empezar sin complicaciones técnicas."
+      "api": {
+        "question": "¿Qué hace el asistente de IA?",
+        "answer": "El asistente de IA del panel te ayuda a revisar cómo va tu tienda: puede darte resúmenes de ventas, mostrar órdenes pendientes o recientes, productos más vendidos y alertas de stock. También puede ayudarte a crear marcas, categorías y descuentos desde el chat, sin que tengas que buscar cada pantalla."
       },
       "support": {
         "question": "¿Qué tipo de soporte técnico ofrecen?",

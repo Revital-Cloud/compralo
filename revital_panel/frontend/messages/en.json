@@ -49,7 +49,7 @@
   },
   "hero": {
     "title": "The All-in-One E-commerce Platform for Colombia",
-    "subtitle": "Create, manage and scale your online store with our comprehensive platform. Real-time dashboard and analytics, full catalog with categories and inventory, Wompi payments, discounts and loyalty points, and headless CMS with blog.",
+    "subtitle": "Create, manage and scale your online store with our comprehensive platform. Real-time dashboard and analytics, full catalog with categories and inventory, Wompi payments, discounts and loyalty points.",
     "primaryButton": "Create My Store",
     "secondaryButton": "Request Demo",
     "badge": "Introducing Revital: Your All-in-One E-commerce Platform",
@@ -64,7 +64,7 @@
       "Native Wompi integration for Colombia",
       "Real-time dashboard and statistics",
       "Product catalog with inventory and SEO",
-      "Headless CMS and integrated blog"
+      "AI assistant to review your store"
     ]
   },
   "navigation": {
@@ -144,11 +144,11 @@
         "status": "Integrated",
         "tags": ["Payments", "Discounts", "Loyalty"]
       },
-      "cms": {
-        "title": "Headless CMS + Integrated Blog",
-        "meta": "API-First",
-        "description": "Manage content, custom pages, SEO blog and landing pages via API. Perfect for store content without technical limits.",
-        "tags": ["CMS", "Blog", "API"]
+      "api": {
+        "title": "AI assistant in your panel",
+        "meta": "Helps you manage",
+        "description": "Ask the AI about sales, products and orders. Request a store summary, see pending orders or low-stock products, and create brands, categories or discounts directly from the chat.",
+        "tags": ["AI", "Productivity"]
       },
       "marketing": {
         "title": "Marketing Tools",
@@ -247,7 +247,7 @@
           "Unlimited products",
           "All payment integrations",
           "Advanced dashboard + analytics",
-          "Complete headless CMS",
+          "AI assistant in the admin panel",
           "Priority support",
           "Custom domain",
           "Marketing automation",
@@ -282,9 +282,9 @@
         "question": "What does the Wompi integration include?",
         "answer": "Our Wompi integration includes payment processing with credit/debit cards, PSE, Nequi and other popular methods in Colombia. Automatic webhook configuration, payment status handling and automatic reconciliation."
       },
-      "cms": {
-        "question": "How does the CMS work?",
-        "answer": "Our CMS allows you to create basic pages, blog posts and content for your store visually and easily. Perfect to start without technical complications."
+      "api": {
+        "question": "What does the AI assistant do?",
+        "answer": "The admin panel AI assistant helps you see how your store is doing: it can give you sales summaries, show pending or recent orders, best-selling products and stock alerts. It can also help you create brands, categories and discounts from the chat, without hunting through every screen."
       },
       "support": {
         "question": "What kind of technical support do you offer?",

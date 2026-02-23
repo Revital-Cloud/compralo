@@ -3,14 +3,14 @@
 export const heroContent = {
   title: "La Plataforma E-commerce Todo-en-Uno para Colombia",
   subtitle:
-    "Crea, gestiona y escala tu tienda online con nuestra plataforma integral. Panel de estadísticas en tiempo real, gestor de productos con SEO automático, CMS headless y herramientas de marketing.",
+    "Crea, gestiona y escala tu tienda online con nuestra plataforma integral. Panel de estadísticas en tiempo real, gestor de productos con SEO automático y herramientas de marketing.",
   primaryButton: "Crear Mi Tienda",
   secondaryButton: "Solicitar Demo",
   features: [
     "Integración nativa con Wompi para Colombia",
     "Panel de estadísticas detallado en tiempo real",
     "Gestor de productos simplificado con SEO automático",
-    "CMS headless integrado, flexible y potente",
+    "Asistente de IA para revisar tu tienda",
   ],
 };
 
@@ -49,10 +49,10 @@ export const featuresContent = {
       icon: "💳",
     },
     {
-      title: "CMS Headless",
+      title: "Asistente de IA en tu panel",
       description:
-        "Crea páginas personalizadas, blog y contenido con total flexibilidad",
-      icon: "📝",
+        "Pregunta a la IA por resúmenes de ventas, órdenes pendientes, productos más vendidos o stock bajo y realiza acciones desde el chat.",
+      icon: "🤖",
     },
     {
       title: "Marketing Tools",
@@ -115,7 +115,7 @@ export const pricingContent = {
         "Panel de estadísticas básico",
         "Soporte por email",
         "SSL incluido",
-        "Dominio .revital.com",
+        "Dominio .revital.cloud",
       ],
       cta: "Comenzar Ahora",
       popular: false,
@@ -129,7 +129,7 @@ export const pricingContent = {
         "Productos ilimitados",
         "Todas las integraciones de pago",
         "Panel avanzado + analytics",
-        "CMS headless completo",
+        "Asistente de IA en el panel admin",
         "Soporte prioritario",
         "Dominio personalizado",
         "Marketing automation",
@@ -167,9 +167,9 @@ export const faqContent = {
         "Nuestra integración con Wompi incluye procesamiento de pagos con tarjetas de crédito/débito, PSE, Nequi y otros métodos populares en Colombia. Configuración automática de webhooks, manejo de estados de pago y reconciliación automática.",
     },
     {
-      question: "¿Cómo funciona el CMS?",
+      question: "¿Qué hace el asistente de IA?",
       answer:
-        "Nuestro CMS te permite crear páginas básicas, blog posts y contenido para tu tienda de forma visual y sencilla. Perfecto para empezar sin complicaciones técnicas.",
+        "El asistente de IA del panel te ayuda a revisar cómo va tu tienda: puede darte resúmenes de ventas, mostrar órdenes pendientes o recientes, productos más vendidos y alertas de stock. También puede ayudarte a crear marcas, categorías y descuentos desde el chat, sin que tengas que buscar cada pantalla.",
     },
     {
       question: "¿Qué tipo de soporte técnico ofrecen?",

@@ -4,8 +4,8 @@ export const siteConfig = {
   name: "Revital",
   description:
     "La plataforma e-commerce todo-en-uno diseñada para el mercado colombiano",
-  url: "https://revital.com",
-  ogImage: "https://revital.com/og.jpg",
+  url: "https://panel.revital.cloud",
+  ogImage: "https://panel.revital.cloud/og.jpg",
   links: {
     twitter: "https://twitter.com/revital",
     github: "https://github.com/revital",
@@ -15,22 +15,22 @@ export const siteConfig = {
 
 export const appConfig = {
   // URLs de la aplicación principal
-  appUrl: "https://app.revital.com",
-  registerUrl: "https://app.revital.com/register",
-  loginUrl: "https://app.revital.com/login",
-  dashboardUrl: "https://app.revital.com/dashboard",
+  appUrl: "https://panel.revital.cloud",
+  registerUrl: "https://panel.revital.cloud/register",
+  loginUrl: "https://panel.revital.cloud/login",
+  dashboardUrl: "https://panel.revital.cloud/dashboard",
 
   // URLs con planes específicos
   registerWithPlan: {
-    emprendedor: "https://app.revital.com/register?plan=emprendedor",
-    profesional: "https://app.revital.com/register?plan=profesional",
-    enterprise: "https://app.revital.com/contact?plan=enterprise",
+    emprendedor: "https://panel.revital.cloud/register?plan=emprendedor",
+    profesional: "https://panel.revital.cloud/register?plan=profesional",
+    enterprise: "https://panel.revital.cloud/contact?plan=enterprise",
   },
 
   // URLs de documentación y soporte
-  docsUrl: "https://docs.revital.com",
-  supportUrl: "https://support.revital.com",
-  statusUrl: "https://status.revital.com",
+  docsUrl: "https://panel.revital.cloud/docs",
+  supportUrl: "https://panel.revital.cloud/support",
+  statusUrl: "https://status.panel.revital.cloud",
 };
 
 export const contactConfig = {
@@ -87,7 +87,7 @@ export const featureFlags = {
     basicAnalytics: true,
     productManagement: true,
     wompiIntegration: true,
-    basicCMS: true,
+    basicCMS: false,
     emailSupport: true,
     sslIncluded: true,
   },

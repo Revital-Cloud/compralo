@@ -9,7 +9,7 @@ Frontend de Revital que incluye:
 - 🌐 **Landing page pública** - Marketing y conversión
 - 📊 **Panel de control SaaS** (futuro) - Gestión de instancias de clientes
 - 🎯 **Páginas de marketing** - Features, pricing, testimonios
-- 📝 **CMS headless** - Contenido gestionable
+- 🔌 **API REST** - 24+ endpoints para integraciones
 - 🎨 **Diseño moderno** - Responsive con dark mode
 
 ## 🛠️ Stack Tecnológico
@@ -151,11 +151,10 @@ import { heroContent, appConfig } from '@/content';
 
 ## 🔗 Enlaces Importantes
 
-- **Landing Page**: https://revital.com
-- **App Principal (E-commerce)**: https://app.revital.com
-- **Registro**: https://app.revital.com/register
-- **Documentación**: https://docs.revital.com
-- **Soporte**: https://support.revital.com
+- **Panel / Landing**: https://panel.revital.cloud
+- **Registro**: https://panel.revital.cloud/register
+- **Documentación**: https://panel.revital.cloud/docs
+- **Soporte**: https://panel.revital.cloud/support
 
 ## 📋 Roadmap
 

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 
-const FAQ_KEYS = ["wompi", "cms", "support", "customization", "security"] as const;
+const FAQ_KEYS = ["wompi", "api", "support", "customization", "security"] as const;
 
 export function FAQSection() {
   const t = useTranslations("faq");
