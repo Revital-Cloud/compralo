@@ -44,16 +44,27 @@
     </style>
 </head>
 <body style="margin:0; padding:20px 0; background:#f0f0f0;">
-    <div style="display:none; max-height:0; overflow:hidden; mso-hide:all;">{% block preheader %}{% endblock %}</div>
+    <!-- Preheader oculto para la mayoría de clientes (sin mso-hide para evitar warnings de lint) -->
+    <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+        {% block preheader %}{% endblock %}
+    </div>
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0f0f0;">
         <tr>
             <td align="center" style="padding:20px 0;">
                 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; width:100%;">
                     <!-- Header -->
                     <tr>
-                        <td bgcolor="#dc2626" style="padding:24px 32px; text-align:center;">
-                            <div style="font-size:28px; font-weight:800; color:#ffffff; margin-bottom:8px;">{{ app_name }}</div>
-                            <div style="font-size:32px; color:#ffffff; margin-top:4px;">🛒</div>
+                        <td bgcolor="#ffffff" style="padding:20px 32px; text-align:center; border-bottom:4px solid #dc2626;">
+                            <div style="font-size:26px; font-weight:800; color:#dc2626; margin-bottom:6px;">{{ app_name }}</div>
+                            <div style="margin-top:4px;">
+                                <!-- Logo carrito.svg inline para que se vea en clientes de correo sin depender de rutas externas -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 680" width="40" height="40" aria-hidden="true" style="display:inline-block; vertical-align:middle;">
+                                    <circle fill="#ec2538" cx="280.42" cy="568.76" r="43.83"/>
+                                    <circle fill="#ec2538" cx="495.94" cy="568.76" r="43.83"/>
+                                    <path fill="#ec2538" d="M53.48,164.04h82.2c3.44,0,6.42,2.37,7.2,5.73l67.48,292.67c4.66,20.22,22.67,34.55,43.42,34.55h267.95c34.64,0,64.96-23.25,73.96-56.7l57.12-212.33c4.52-16.79-8.13-33.28-25.51-33.28h-61.44c4.92,71.77-21.63,132.81-63.82,188.53,19.19,12.32,33.63,26.23,32.64,45.31,1.55,34.12-48.73,38.39-108.03,37.47h-119.7c-17.42,0-31.54-14.12-31.54-31.54v-145.6c0-22.14,23.66-36.25,43.14-25.72l27.7,14.97c23.19-21.34,40.1-48.75,49.78-83.14h-190.56c-3.24,0-6.04-2.25-6.75-5.41l-8.66-38.78c-4.94-22.13-24.58-37.87-47.26-37.87H53.47c-5.82,0-11.59,1.55-16.4,4.82-7.04,4.79-10.7,11.74-10.71,21.02-.71,10.34,3.81,17.17,11.9,21.61,4.64,2.55,9.93,3.69,15.22,3.69Z"/>
+                                    <path fill="#fec806" d="M441.83,75.06c-4.32,118.31-38.28,185.28-84.47,231.11-3.22,3.2-8.23,3.71-12.07,1.3l-35.57-22.4c-4.62-2.91-10.64.41-10.64,5.87v140.38c0,5.26,4.25,9.53,9.51,9.56,78.36.44,153.52.47,192.25-4.16,9.85-1.18,13.22-13.75,5.29-19.7l-35.17-26.37c-3.1-2.33-3.57-6.8-1.02-9.72,103.04-118.15,93.62-227.41-15.41-311.86-5.07-3.93-12.48-.42-12.71,5.99Z"/>
+                                </svg>
+                            </div>
                         </td>
                     </tr>
                     <!-- Body -->
@@ -65,22 +76,42 @@
                     </tr>
                     <!-- Footer -->
                     <tr>
-                        <td bgcolor="#1f2937" style="padding:32px 40px; text-align:center;">
-                            <div style="color:#ffffff; font-weight:600; margin-bottom:8px;">{{ company_name }}</div>
-                            <div style="color:rgba(255,255,255,0.8); font-size:14px; margin-bottom:20px;">{{ company_tagline }}</div>
-                            <div style="margin:16px 0;">
-                                <a href="{{ frontend_url }}" style="color:#f97316; text-decoration:none; margin:0 12px; font-size:14px;">Inicio</a>
-                                <a href="{{ frontend_url }}/productos" style="color:#f97316; text-decoration:none; margin:0 12px; font-size:14px;">Productos</a>
-                                <a href="{{ frontend_url }}/ofertas" style="color:#f97316; text-decoration:none; margin:0 12px; font-size:14px;">Ofertas</a>
-                                <a href="{{ frontend_url }}/contacto" style="color:#f97316; text-decoration:none; margin:0 12px; font-size:14px;">Contacto</a>
+                        <td bgcolor="#1f2937" style="padding:28px 40px; text-align:center;">
+                            <div style="color:#ffffff; font-weight:600; margin-bottom:6px;">{{ company_name }}</div>
+                            <div style="margin-bottom:14px;">
+                                <!-- Mismo logo debajo del nombre de la marca -->
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 680" width="32" height="32" aria-hidden="true" style="display:inline-block; vertical-align:middle;">
+                                    <circle fill="#ec2538" cx="280.42" cy="568.76" r="43.83"/>
+                                    <circle fill="#ec2538" cx="495.94" cy="568.76" r="43.83"/>
+                                    <path fill="#ec2538" d="M53.48,164.04h82.2c3.44,0,6.42,2.37,7.2,5.73l67.48,292.67c4.66,20.22,22.67,34.55,43.42,34.55h267.95c34.64,0,64.96-23.25,73.96-56.7l57.12-212.33c4.52-16.79-8.13-33.28-25.51-33.28h-61.44c4.92,71.77-21.63,132.81-63.82,188.53,19.19,12.32,33.63,26.23,32.64,45.31,1.55,34.12-48.73,38.39-108.03,37.47h-119.7c-17.42,0-31.54-14.12-31.54-31.54v-145.6c0-22.14,23.66-36.25,43.14-25.72l27.7,14.97c23.19-21.34,40.1-48.75,49.78-83.14h-190.56c-3.24,0-6.04-2.25-6.75-5.41l-8.66-38.78c-4.94-22.13-24.58-37.87-47.26-37.87H53.47c-5.82,0-11.59,1.55-16.4,4.82-7.04,4.79-10.7,11.74-10.71,21.02-.71,10.34,3.81,17.17,11.9,21.61,4.64,2.55,9.93,3.69,15.22,3.69Z"/>
+                                    <path fill="#fec806" d="M441.83,75.06c-4.32,118.31-38.28,185.28-84.47,231.11-3.22,3.2-8.23,3.71-12.07,1.3l-35.57-22.4c-4.62-2.91-10.64.41-10.64,5.87v140.38c0,5.26,4.25,9.53,9.51,9.56,78.36.44,153.52.47,192.25-4.16,9.85-1.18,13.22-13.75,5.29-19.7l-35.17-26.37c-3.1-2.33-3.57-6.8-1.02-9.72,103.04-118.15,93.62-227.41-15.41-311.86-5.07-3.93-12.48-.42-12.71,5.99Z"/>
+                                </svg>
                             </div>
-                            <div style="font-size:12px; color:rgba(255,255,255,0.7); line-height:1.6;">
-                                <p style="margin:8px 0;">© {{ current_year }} {{ company_name }}. Todos los derechos reservados.</p>
-                                <p style="margin:8px 0;">
+                            {% if company_tagline and company_tagline != company_name %}
+                            <div style="color:rgba(255,255,255,0.8); font-size:14px; margin-bottom:16px;">{{ company_tagline }}</div>
+                            {% endif %}
+
+                            <div style="font-size:13px; color:rgba(255,255,255,0.85); margin:10px 0 18px; line-height:1.6;">
+                                ¿Necesitas ayuda?
+                                <a href="mailto:{{ support_email }}" style="color:#f97316; text-decoration:none;">{{ support_email }}</a>
+                                <span style="color:rgba(255,255,255,0.35); padding:0 8px;">·</span>
+                                <a href="{{ frontend_url }}/contacto" style="color:#f97316; text-decoration:none;">Contacto</a>
+                            </div>
+
+                            <div style="margin:12px 0 16px;">
+                                <a href="{{ frontend_url }}" style="color:#f97316; text-decoration:none; margin:0 10px; font-size:14px;">Inicio</a>
+                                <a href="{{ frontend_url }}/productos" style="color:#f97316; text-decoration:none; margin:0 10px; font-size:14px;">Productos</a>
+                                <a href="{{ frontend_url }}/ofertas" style="color:#f97316; text-decoration:none; margin:0 10px; font-size:14px;">Ofertas</a>
+                                <a href="{{ frontend_url }}/contacto" style="color:#f97316; text-decoration:none; margin:0 10px; font-size:14px;">Contacto</a>
+                            </div>
+
+                            <div style="font-size:12px; color:rgba(255,255,255,0.7); line-height:1.7;">
+                                <div style="margin:8px 0;">© {{ current_year }} {{ company_name }}. Todos los derechos reservados.</div>
+                                <div style="margin:8px 0;">
                                     <a href="{{ frontend_url }}/unsubscribe" style="color:#f97316; text-decoration:none;">Cancelar suscripción</a>
-                                    &nbsp;|&nbsp;
+                                    <span style="color:rgba(255,255,255,0.35); padding:0 8px;">|</span>
                                     <a href="{{ frontend_url }}/privacidad" style="color:#f97316; text-decoration:none;">Política de Privacidad</a>
-                                </p>
+                                </div>
                             </div>
                         </td>
                     </tr>

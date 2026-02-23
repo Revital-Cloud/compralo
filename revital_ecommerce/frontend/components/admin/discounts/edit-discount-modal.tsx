@@ -22,6 +22,9 @@ import { toast } from 'sonner'
 import { parseDateSafe, toLocalISOString, isPastDate } from '@/utils/date-helpers'
 import type { Category } from '@/types/category'
 
+/** Evita que el scroll del ratón cambie el valor en inputs number */
+const blockScrollOnNumberInput = (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur()
+
 export interface EditDiscountModalProps {
   open: boolean
   onOpenChange: (v: boolean) => void
@@ -107,6 +110,8 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
 
   const form = useForm<DiscountModalFormData>({ 
     resolver: zodResolver(discountModalSchema),
+    mode: 'onChange',
+    reValidateMode: 'onChange',
     defaultValues: {
       tipo_descuento: 'porcentaje',
       aplica_a: 'total_pedido',
@@ -220,6 +225,8 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
       formattedValues.compra_minima = toStr(v.min_valor_pedido)
     }
     form.reset(formattedValues)
+    // Validar vigencia inmediatamente al cargar valores iniciales
+    void form.trigger(['fec_inicio', 'fec_fin'])
 
     // Inicializar estados de cascada si hay id_categoria_aplica (cuando categorías están cargadas)
     if (list.length > 0 && v.aplica_a === 'categoria_especifica' && (idCategoria || v.id_categoria_aplica)) {
@@ -314,6 +321,8 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                 id="val_descuento"
                 type="number"
                 step="0.01"
+                min={0}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('val_descuento')}
                 placeholder={tipoDescuento === 'porcentaje' ? 'Ej: 15' : 'Ej: 50000'}
               />
@@ -482,6 +491,8 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                 id="costo_envio"
                 type="number"
                 step="0.01"
+                min={0}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('costo_envio')}
                 placeholder="Ej: 10000"
               />
@@ -498,6 +509,8 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                 id="compra_minima"
                 type="number"
                 step="0.01"
+                min={0}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('compra_minima')}
                 placeholder="Ej: 200000"
               />
@@ -521,28 +534,43 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
             </p>
           </div>
 
-          {/* Restricciones */}
+          {/* Restricciones: no mostrar "Monto Mínimo de Compra" si ya se definió con Compra Mínima o Costo de Envío */}
           <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="monto_min_compra">Monto Mínimo de Compra ($)</Label>
-              <Input
-                id="monto_min_compra"
-                type="number"
-                step="0.01"
-                {...form.register('monto_min_compra')}
-                placeholder="Ej: 100000"
-              />
-              <p className="text-xs text-muted-foreground">Opcional</p>
-            </div>
+            {aplicaA !== 'compra_minima' && aplicaA !== 'costo_envio' && (
+              <div className="space-y-2">
+                <Label htmlFor="monto_min_compra">Monto Mínimo de Compra ($)</Label>
+                <Input
+                  id="monto_min_compra"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  onWheel={blockScrollOnNumberInput}
+                  {...form.register('monto_min_compra')}
+                  placeholder="Ej: 100000"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Opcional. El descuento solo aplica si el total del pedido es al menos este monto.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
-              <Label htmlFor="val_puntos_requeridos">Puntos Requeridos</Label>
+              <Label htmlFor="val_puntos_requeridos">
+                Puntos Requeridos {form.watch('ind_canjeable_puntos') ? '*' : '(opcional)'}
+              </Label>
               <Input
                 id="val_puntos_requeridos"
                 type="number"
+                min={0}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('val_puntos_requeridos')}
                 placeholder="Ej: 500"
               />
+              {form.formState.errors.val_puntos_requeridos && (
+                <p className="text-sm text-red-600">
+                  {form.formState.errors.val_puntos_requeridos.message}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">Para canje con puntos</p>
             </div>
           </div>
@@ -566,10 +594,12 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                     selected={parseDateSafe(form.watch('fec_inicio'))}
                     onSelect={(date) => {
                       if (date) {
-                        form.setValue('fec_inicio', toLocalISOString(date))
+                        form.setValue('fec_inicio', toLocalISOString(date), { shouldValidate: true, shouldDirty: true })
                         setOpenStartDate(false)
+                        void form.trigger(['fec_inicio', 'fec_fin'])
                       } else {
-                        form.setValue('fec_inicio', '')
+                        form.setValue('fec_inicio', '', { shouldValidate: true, shouldDirty: true })
+                        void form.trigger(['fec_inicio', 'fec_fin'])
                       }
                     }}
                   />
@@ -597,10 +627,12 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                     selected={parseDateSafe(form.watch('fec_fin'))}
                     onSelect={(date) => {
                       if (date) {
-                        form.setValue('fec_fin', toLocalISOString(date))
+                        form.setValue('fec_fin', toLocalISOString(date), { shouldValidate: true, shouldDirty: true })
                         setOpenEndDate(false)
+                        void form.trigger(['fec_inicio', 'fec_fin'])
                       } else {
-                        form.setValue('fec_fin', '')
+                        form.setValue('fec_fin', '', { shouldValidate: true, shouldDirty: true })
+                        void form.trigger(['fec_inicio', 'fec_fin'])
                       }
                     }}
                   />
@@ -619,6 +651,8 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
               <Input
                 id="max_usos"
                 type="number"
+                min={0}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('max_usos')}
                 placeholder="Ej: 100 (dejar vacío para ilimitado)"
               />
@@ -632,6 +666,8 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
               <Input
                 id="max_usos_por_usuario"
                 type="number"
+                min={0}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('max_usos_por_usuario')}
                 placeholder="Ej: 5 (dejar vacío para ilimitado)"
               />
@@ -644,15 +680,19 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
           {/* Campos adicionales */}
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="monto_minimo_producto">Monto Mínimo por Producto ($)</Label>
+              <Label htmlFor="monto_minimo_producto">Monto Mínimo por Línea ($)</Label>
               <Input
                 id="monto_minimo_producto"
                 type="number"
                 step="0.01"
+                min={0}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('monto_minimo_producto')}
                 placeholder="Ej: 50000"
               />
-              <p className="text-xs text-muted-foreground">Opcional</p>
+              <p className="text-xs text-muted-foreground">
+                Opcional. Cada línea del carrito (cantidad × precio) debe ser al menos este valor para que el descuento aplique a esa línea.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -660,9 +700,14 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
               <Input
                 id="cantidad_minima_producto"
                 type="number"
+                min={1}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('cantidad_minima_producto')}
                 placeholder="Ej: 2"
               />
+              {form.formState.errors.cantidad_minima_producto && (
+                <p className="text-sm text-red-600">{form.formState.errors.cantidad_minima_producto.message}</p>
+              )}
               <p className="text-xs text-muted-foreground">Mínimo 1</p>
             </div>
           </div>
@@ -697,7 +742,10 @@ export const EditDiscountModal: React.FC<EditDiscountModalProps> = ({
                 <Switch
                   id="ind_canjeable_puntos"
                   checked={!!form.watch('ind_canjeable_puntos')}
-                  onCheckedChange={(v: boolean) => form.setValue('ind_canjeable_puntos', v)}
+                  onCheckedChange={(v: boolean) => {
+                  form.setValue('ind_canjeable_puntos', v)
+                  void form.trigger('val_puntos_requeridos')
+                }}
                 />
               </div>
 

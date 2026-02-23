@@ -14,10 +14,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { discountModalSchema, type DiscountModalFormData } from '@/schemas/admin/discount.schema'
 import { getCategories } from '@/services/category.service'
 import { brandService } from '@/services/brand.service'
-import { getProducts } from '@/services/product.service'
+import { getProductsAdmin } from '@/services/product.service'
 import { getUsers } from '@/services/user.service'
 import { parseDateSafe, toLocalISOString, isPastDate } from '@/utils/date-helpers'
 import type { Category } from '@/types/category'
+
+/** Evita que el scroll del ratón cambie el valor en inputs number */
+const blockScrollOnNumberInput = (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur()
 
 export interface CreateDiscountModalProps {
   open: boolean
@@ -44,6 +47,11 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
   const [selectedLevel1Id, setSelectedLevel1Id] = useState<number | null>(null)
   const [selectedLevel2Id, setSelectedLevel2Id] = useState<number | null>(null)
   const [selectedLevel3Id, setSelectedLevel3Id] = useState<number | null>(null)
+
+  // Estados para selects en cascada (filtro de productos) cuando aplica_a = producto_especifico
+  const [productLevel1Id, setProductLevel1Id] = useState<number | null>(null)
+  const [productLevel2Id, setProductLevel2Id] = useState<number | null>(null)
+  const [productLevel3Id, setProductLevel3Id] = useState<number | null>(null)
 
   // Helper functions para trabajar con categorías
   const categoryIdNum = (c: Category): number => {
@@ -80,8 +88,30 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
     [list, selectedLevel2Id]
   )
 
+  // Filtrar categorías por nivel para filtro de productos
+  const productLevel1Options = useMemo(
+    () => list.filter((c) => parentIdNum(c) == null && isCategoryActive(c)),
+    [list]
+  )
+  const productLevel2Options = useMemo(
+    () =>
+      productLevel1Id == null
+        ? []
+        : list.filter((c) => parentIdNum(c) === productLevel1Id && isCategoryActive(c)),
+    [list, productLevel1Id]
+  )
+  const productLevel3Options = useMemo(
+    () =>
+      productLevel2Id == null
+        ? []
+        : list.filter((c) => parentIdNum(c) === productLevel2Id && isCategoryActive(c)),
+    [list, productLevel2Id]
+  )
+
   const form = useForm<DiscountModalFormData>({ 
     resolver: zodResolver(discountModalSchema),
+    mode: 'onChange',
+    reValidateMode: 'onChange',
     defaultValues: {
       tipo_descuento: 'porcentaje',
       aplica_a: 'total_pedido',
@@ -105,7 +135,7 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
       try {
         const [catsData, productsData, brandsData, usersData] = await Promise.all([
           getCategories(),
-          getProducts(),
+          getProductsAdmin({ limit: 1000, offset: 0 }),
           brandService.getAllBrands(),
           getUsers().then((r: any) => (Array.isArray(r) ? r : r?.data ?? [])),
         ])
@@ -131,6 +161,12 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
       setSelectedLevel3Id(null)
       form.setValue('id_categoria_aplica', '')
     }
+    if (aplicaA !== 'producto_especifico') {
+      setProductLevel1Id(null)
+      setProductLevel2Id(null)
+      setProductLevel3Id(null)
+      form.setValue('id_producto_aplica', '')
+    }
   }, [aplicaA, form])
 
   useEffect(() => {
@@ -138,8 +174,59 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
       setSelectedLevel1Id(null)
       setSelectedLevel2Id(null)
       setSelectedLevel3Id(null)
+      setProductLevel1Id(null)
+      setProductLevel2Id(null)
+      setProductLevel3Id(null)
     }
   }, [open])
+
+  // Cuando cambie el filtro de categoría para productos, resetear producto seleccionado
+  useEffect(() => {
+    if (aplicaA === 'producto_especifico') {
+      form.setValue('id_producto_aplica', '')
+    }
+  }, [productLevel1Id, productLevel2Id, productLevel3Id, aplicaA, form])
+
+  // Obtener IDs descendientes para filtrar productos por árbol de categorías
+  const categoryChildrenMap = useMemo(() => {
+    const map = new Map<number, number[]>()
+    for (const c of list) {
+      const pid = parentIdNum(c)
+      if (pid == null) continue
+      const id = categoryIdNum(c)
+      const arr = map.get(pid) ?? []
+      arr.push(id)
+      map.set(pid, arr)
+    }
+    return map
+  }, [list])
+
+  const getDescendantCategoryIds = useMemo(() => {
+    return (rootId: number): number[] => {
+      const out: number[] = []
+      const stack: number[] = [rootId]
+      while (stack.length) {
+        const cur = stack.pop()!
+        const kids = categoryChildrenMap.get(cur) ?? []
+        for (const k of kids) {
+          out.push(k)
+          stack.push(k)
+        }
+      }
+      return out
+    }
+  }, [categoryChildrenMap])
+
+  const filteredProducts = useMemo(() => {
+    if (aplicaA !== 'producto_especifico') return []
+    const selectedCat = productLevel3Id ?? productLevel2Id ?? productLevel1Id
+    if (selectedCat == null) return []
+    const allowed = new Set<number>([selectedCat, ...getDescendantCategoryIds(selectedCat)])
+    return (Array.isArray(products) ? products : []).filter((p: any) => {
+      const cid = Number(p.category_id ?? p.id_categoria ?? p.categoryId)
+      return !Number.isNaN(cid) && allowed.has(cid)
+    })
+  }, [aplicaA, products, productLevel1Id, productLevel2Id, productLevel3Id, getDescendantCategoryIds])
 
   // Actualizar id_categoria_aplica cuando cambia cualquier nivel
   useEffect(() => {
@@ -241,6 +328,8 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                 id="val_descuento"
                 type="number"
                 step="0.01"
+                min={0}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('val_descuento')}
                 placeholder={tipoDescuento === 'porcentaje' ? 'Ej: 15' : 'Ej: 50000'}
               />
@@ -271,28 +360,97 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
 
           {/* SELECTS CONDICIONALES */}
           {aplicaA === 'producto_especifico' && (
-            <div className="space-y-2">
-              <Label htmlFor="id_producto_aplica">Producto *</Label>
-              <select
-                id="id_producto_aplica"
-                {...form.register('id_producto_aplica')}
-                onChange={(e) => {
-                  const selectedProductId = e.target.value
-                  if (selectedProductId) {
-                    form.setValue('id_producto_aplica', selectedProductId)
-                  } else {
-                    form.setValue('id_producto_aplica', '')
-                  }
-                }}
-                className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
-              >
-                <option value="">Selecciona un producto</option>
-                {products.map((product, index) => (
-                  <option key={`product-${product.id_producto}-${index}`} value={product.id_producto}>
-                    {product.nom_producto}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="product_level1_category">Categoría *</Label>
+                <select
+                  id="product_level1_category"
+                  value={productLevel1Id ?? ''}
+                  onChange={(e) => {
+                    const value = e.target.value ? Number(e.target.value) : null
+                    setProductLevel1Id(value)
+                    setProductLevel2Id(null)
+                    setProductLevel3Id(null)
+                  }}
+                  className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
+                >
+                  <option value="">Selecciona una categoría</option>
+                  {productLevel1Options.map((category) => (
+                    <option key={`prod-level1-${categoryIdNum(category)}`} value={categoryIdNum(category)}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {productLevel1Id != null && productLevel2Options.length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="product_level2_category">Línea {productLevel3Options.length > 0 ? '*' : '(Opcional)'}</Label>
+                  <select
+                    id="product_level2_category"
+                    value={productLevel2Id ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value ? Number(e.target.value) : null
+                      setProductLevel2Id(value)
+                      setProductLevel3Id(null)
+                    }}
+                    className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
+                  >
+                    <option value="">Selecciona una línea (opcional)</option>
+                    {productLevel2Options.map((category) => (
+                      <option key={`prod-level2-${categoryIdNum(category)}`} value={categoryIdNum(category)}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {productLevel2Id != null && productLevel3Options.length > 0 && (
+                <div className="space-y-2">
+                  <Label htmlFor="product_level3_category">Sublínea (Opcional)</Label>
+                  <select
+                    id="product_level3_category"
+                    value={productLevel3Id ?? ''}
+                    onChange={(e) => {
+                      const value = e.target.value ? Number(e.target.value) : null
+                      setProductLevel3Id(value)
+                    }}
+                    className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900"
+                  >
+                    <option value="">Selecciona una sublínea (opcional)</option>
+                    {productLevel3Options.map((category) => (
+                      <option key={`prod-level3-${categoryIdNum(category)}`} value={categoryIdNum(category)}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="id_producto_aplica">Producto *</Label>
+                <select
+                  id="id_producto_aplica"
+                  value={form.watch('id_producto_aplica') || ''}
+                  onChange={(e) => form.setValue('id_producto_aplica', e.target.value || '', { shouldValidate: true, shouldDirty: true })}
+                  disabled={filteredProducts.length === 0}
+                  className="w-full border rounded-md h-10 px-3 text-sm bg-white dark:bg-gray-900 disabled:opacity-60"
+                >
+                  <option value="">
+                    {filteredProducts.length === 0 ? 'Selecciona una categoría para filtrar' : 'Selecciona un producto'}
                   </option>
-                ))}
-              </select>
+                  {filteredProducts.map((product: any, index: number) => {
+                    const pid = String(product.id_producto ?? product.id ?? '')
+                    const pname = product.nom_producto ?? product.name ?? ''
+                    return (
+                      <option key={`product-${pid}-${index}`} value={pid}>
+                        {pname}
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
             </div>
           )}
 
@@ -397,6 +555,8 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                 id="costo_envio"
                 type="number"
                 step="0.01"
+                min={0}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('costo_envio')}
                 placeholder="Ej: 10000"
               />
@@ -413,6 +573,8 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                 id="compra_minima"
                 type="number"
                 step="0.01"
+                min={0}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('compra_minima')}
                 placeholder="Ej: 200000"
               />
@@ -436,28 +598,43 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
             </p>
           </div>
 
-          {/* Restricciones */}
+          {/* Restricciones: no mostrar "Monto Mínimo de Compra" si ya se definió con Compra Mínima o Costo de Envío */}
           <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="monto_min_compra">Monto Mínimo de Compra ($)</Label>
-              <Input
-                id="monto_min_compra"
-                type="number"
-                step="0.01"
-                {...form.register('monto_min_compra')}
-                placeholder="Ej: 100000"
-              />
-              <p className="text-xs text-muted-foreground">Opcional</p>
-            </div>
+            {aplicaA !== 'compra_minima' && aplicaA !== 'costo_envio' && (
+              <div className="space-y-2">
+                <Label htmlFor="monto_min_compra">Monto Mínimo de Compra ($)</Label>
+                <Input
+                  id="monto_min_compra"
+                  type="number"
+                  step="0.01"
+                  min={0}
+                  onWheel={blockScrollOnNumberInput}
+                  {...form.register('monto_min_compra')}
+                  placeholder="Ej: 100000"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Opcional. El descuento solo aplica si el total del pedido es al menos este monto.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
-              <Label htmlFor="val_puntos_requeridos">Puntos Requeridos</Label>
+              <Label htmlFor="val_puntos_requeridos">
+                Puntos Requeridos {form.watch('ind_canjeable_puntos') ? '*' : '(opcional)'}
+              </Label>
               <Input
                 id="val_puntos_requeridos"
                 type="number"
+                min={0}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('val_puntos_requeridos')}
                 placeholder="Ej: 500"
               />
+              {form.formState.errors.val_puntos_requeridos && (
+                <p className="text-sm text-red-600">
+                  {form.formState.errors.val_puntos_requeridos.message}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">Para canje con puntos</p>
             </div>
           </div>
@@ -465,7 +642,7 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
           {/* Vigencia */}
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="fec_inicio">Fecha de Inicio *</Label>
+              <Label htmlFor="fec_inicio">Fecha de Inicio {form.watch('ind_canjeable_puntos') ? '(opcional)' : '*'}</Label>
               <Popover open={openStartDate} onOpenChange={setOpenStartDate}>
                 <PopoverTrigger asChild>
                   <Button type="button" variant="outline" className="w-full justify-start">
@@ -481,10 +658,12 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                     selected={parseDateSafe(form.watch('fec_inicio'))}
                     onSelect={(date) => {
                       if (date) {
-                        form.setValue('fec_inicio', toLocalISOString(date))
+                        form.setValue('fec_inicio', toLocalISOString(date), { shouldValidate: true, shouldDirty: true })
                         setOpenStartDate(false)
+                        void form.trigger(['fec_inicio', 'fec_fin'])
                       } else {
-                        form.setValue('fec_inicio', '')
+                        form.setValue('fec_inicio', '', { shouldValidate: true, shouldDirty: true })
+                        void form.trigger(['fec_inicio', 'fec_fin'])
                       }
                     }}
                   />
@@ -512,10 +691,12 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                     selected={parseDateSafe(form.watch('fec_fin'))}
                     onSelect={(date) => {
                       if (date) {
-                        form.setValue('fec_fin', toLocalISOString(date))
+                        form.setValue('fec_fin', toLocalISOString(date), { shouldValidate: true, shouldDirty: true })
                         setOpenEndDate(false)
+                        void form.trigger(['fec_inicio', 'fec_fin'])
                       } else {
-                        form.setValue('fec_fin', '')
+                        form.setValue('fec_fin', '', { shouldValidate: true, shouldDirty: true })
+                        void form.trigger(['fec_inicio', 'fec_fin'])
                       }
                     }}
                   />
@@ -534,6 +715,8 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
               <Input
                 id="max_usos"
                 type="number"
+                min={0}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('max_usos')}
                 placeholder="Ej: 100 (dejar vacío para ilimitado)"
               />
@@ -547,6 +730,8 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
               <Input
                 id="max_usos_por_usuario"
                 type="number"
+                min={0}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('max_usos_por_usuario')}
                 placeholder="Ej: 5 (dejar vacío para ilimitado)"
               />
@@ -559,15 +744,19 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
           {/* Campos adicionales */}
           <div className="grid grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="monto_minimo_producto">Monto Mínimo por Producto ($)</Label>
+              <Label htmlFor="monto_minimo_producto">Monto Mínimo por Línea ($)</Label>
               <Input
                 id="monto_minimo_producto"
                 type="number"
                 step="0.01"
+                min={0}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('monto_minimo_producto')}
                 placeholder="Ej: 50000"
               />
-              <p className="text-xs text-muted-foreground">Opcional</p>
+              <p className="text-xs text-muted-foreground">
+                Opcional. Cada línea del carrito (cantidad × precio) debe ser al menos este valor para que el descuento aplique a esa línea.
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -575,9 +764,14 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
               <Input
                 id="cantidad_minima_producto"
                 type="number"
+                min={1}
+                onWheel={blockScrollOnNumberInput}
                 {...form.register('cantidad_minima_producto')}
                 placeholder="Ej: 2"
               />
+              {form.formState.errors.cantidad_minima_producto && (
+                <p className="text-sm text-red-600">{form.formState.errors.cantidad_minima_producto.message}</p>
+              )}
               <p className="text-xs text-muted-foreground">Mínimo 1</p>
             </div>
           </div>
@@ -612,7 +806,10 @@ export const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
                 <Switch
                   id="ind_canjeable_puntos"
                   checked={!!form.watch('ind_canjeable_puntos')}
-                  onCheckedChange={(v: boolean) => form.setValue('ind_canjeable_puntos', v)}
+                  onCheckedChange={(v: boolean) => {
+                  form.setValue('ind_canjeable_puntos', v)
+                  void form.trigger('val_puntos_requeridos')
+                }}
                 />
               </div>
 

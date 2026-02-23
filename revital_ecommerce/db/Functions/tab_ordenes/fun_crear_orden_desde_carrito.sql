@@ -155,16 +155,32 @@ BEGIN
         ) INTO v_es_primera_compra;
     END IF;
     
-    -- PASO 6: Calcular descuentos automáticos
+    -- PASO 6: Calcular descuentos automáticos (misma lógica que fun_calcular_total_carrito)
     FOR v_descuento IN
         SELECT d.*, 
                 CASE 
-                    WHEN d.aplica_a = 'total_pedido' AND v_total_productos >= d.min_valor_pedido THEN
-                        CASE WHEN d.tipo_calculo THEN 
+                    WHEN d.aplica_a IN ('total_pedido', 'todos') AND v_total_productos >= COALESCE(d.min_valor_pedido, 0) THEN
+                        CASE WHEN d.tipo_calculo THEN
                            v_total_productos * d.val_porce_descuento / 100
-                        ELSE 
+                        ELSE
                             LEAST(d.val_monto_descuento, v_total_productos)
                         END
+                    WHEN d.aplica_a = 'producto_especifico' THEN
+                        (SELECT COALESCE(SUM(
+                            CASE WHEN d.tipo_calculo THEN 
+                               (cp.cantidad * cp.precio_unitario_carrito * d.val_porce_descuento / 100)
+                            ELSE 
+                               LEAST(cp.cantidad, 1) * d.val_monto_descuento
+                            END
+                        ), 0)
+                        FROM tab_carrito_productos cp
+                        JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id
+                        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+                        JOIN tab_products p ON p.id = g.product_id
+                        WHERE cp.id_carrito = p_id_carrito
+                            AND p.id = d.product_id_aplica
+                            AND cp.cantidad >= d.cantidad_minima_producto
+                            AND (cp.cantidad * cp.precio_unitario_carrito) >= d.monto_minimo_producto)
                     WHEN d.aplica_a = 'categoria_especifica' THEN
                         (SELECT COALESCE(SUM(
                             CASE WHEN d.tipo_calculo THEN 
@@ -181,15 +197,33 @@ BEGIN
                             AND p.category_id = d.category_id_aplica
                             AND cp.cantidad >= d.cantidad_minima_producto
                             AND (cp.cantidad * cp.precio_unitario_carrito) >= d.monto_minimo_producto)
+                    WHEN d.aplica_a = 'marca_especifica' THEN
+                        (SELECT COALESCE(SUM(
+                            CASE WHEN d.tipo_calculo THEN 
+                               (cp.cantidad * cp.precio_unitario_carrito * d.val_porce_descuento / 100)
+                            ELSE 
+                               cp.cantidad * d.val_monto_descuento
+                            END
+                        ), 0)
+                        FROM tab_carrito_productos cp
+                        JOIN tab_product_variant_combinations pv ON pv.id = cp.variant_id
+                        JOIN tab_product_variant_groups g ON g.id = pv.group_id
+                        JOIN tab_products p ON p.id = g.product_id AND p.is_active = TRUE
+                        WHERE cp.id_carrito = p_id_carrito
+                            AND p.id_marca = d.id_marca_aplica
+                            AND cp.cantidad >= d.cantidad_minima_producto
+                            AND (cp.cantidad * cp.precio_unitario_carrito) >= d.monto_minimo_producto)
                     ELSE 0
                 END AS descuento_calculado
         FROM tab_descuentos d
         WHERE d.ind_activo = TRUE
-            AND CURRENT_DATE BETWEEN d.fec_inicio AND d.fec_fin
+            AND (d.fec_inicio IS NULL OR d.fec_inicio <= CURRENT_DATE)
+            AND (d.fec_fin IS NULL OR d.fec_fin >= CURRENT_DATE)
             AND d.ind_canjeable_puntos = FALSE
             AND d.requiere_codigo = FALSE
             AND (d.codigo_descuento IS NULL OR d.codigo_descuento = '')
-            -- Usar función completa de validación para descuentos automáticos
+            -- Usar función completa de validación para descuentos automáticos (incluye solo_primera_compra)
+            AND v_id_usuario IS NOT NULL
             AND fun_validar_descuento_aplicable(d.id_descuento, v_id_usuario, NULL::VARCHAR, p_usr_operacion) = TRUE
     LOOP
         -- Aplicar descuento automático si es aplicable

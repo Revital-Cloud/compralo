@@ -72,13 +72,14 @@ const DiscountsPage = () => {
         toast.error('Las fechas de inicio y fin son requeridas para descuentos generales')
         return
       }
-      // Si las fechas no son obligatorias pero se especifican, ambas deben estar presentes
+      // Si las fechas no son obligatorias y solo se llenó una, enviar ambas como vacías (el backend exige ambas o ninguna)
+      const valuesToSend = { ...values }
       if (fechasNoObligatorias && (!!values.fec_inicio !== !!values.fec_fin)) {
-        toast.error('Debe especificar ambas fechas o ninguna')
-        return
+        valuesToSend.fec_inicio = ''
+        valuesToSend.fec_fin = ''
       }
 
-      const response = await createMutation.mutateAsync(values) as { message?: string; id_descuento?: number }
+      const response = await createMutation.mutateAsync(valuesToSend) as { message?: string; id_descuento?: number }
       toast.success('Descuento creado exitosamente')
       if (response?.id_descuento != null && values.id_usuario_destino && values.cod_cupon?.trim()) {
         try {
@@ -122,13 +123,14 @@ const DiscountsPage = () => {
         toast.error('Las fechas de inicio y fin son requeridas para descuentos generales')
         return
       }
-      // Si las fechas no son obligatorias pero se especifican, ambas deben estar presentes
+      // Si las fechas no son obligatorias y solo se llenó una, enviar ambas como vacías (el backend exige ambas o ninguna)
+      const valuesToSend = { ...values }
       if (fechasNoObligatorias && (!!values.fec_inicio !== !!values.fec_fin)) {
-        toast.error('Debe especificar ambas fechas o ninguna')
-        return
+        valuesToSend.fec_inicio = ''
+        valuesToSend.fec_fin = ''
       }
 
-      const payload = transformDiscountPayload(values)
+      const payload = transformDiscountPayload(valuesToSend)
       await updateMutation.mutateAsync({ id: String(editing?.id_descuento) || '', data: payload })
       toast.success('Descuento actualizado exitosamente')
     } catch (error: any) {

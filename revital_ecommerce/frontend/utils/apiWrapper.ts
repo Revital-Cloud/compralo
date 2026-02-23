@@ -276,8 +276,8 @@ export function setPaymentCallbackToken(): void {
 }
 
 /**
- * Obtener token para confirm-checkout/order-by-reference: primero memoria, luego sessionStorage (y borrarlo).
- * Tras redirect de Wompi, la memoria está vacía; el token se leyó de sessionStorage y se elimina.
+ * Obtener token para confirm-checkout/order-by-reference: primero memoria, luego sessionStorage.
+ * No se borra aquí para que confirm-checkout y el polling puedan reutilizarlo; borrar con clearPaymentCallbackToken() al redirigir.
  */
 export function getTokenForPaymentCallback(): string | null {
   const fromMemory = getStoredToken();
@@ -287,12 +287,21 @@ export function getTokenForPaymentCallback(): string | null {
     const raw = sessionStorage.getItem(PAYMENT_CALLBACK_TOKEN_KEY);
     if (!raw) return null;
     const { token, ts } = JSON.parse(raw) as { token?: string; ts?: number };
-    sessionStorage.removeItem(PAYMENT_CALLBACK_TOKEN_KEY);
     if (!token || typeof token !== "string") return null;
     if (ts != null && Date.now() - ts > PAYMENT_CALLBACK_TOKEN_TTL_MS) return null;
     return token;
   } catch {
     return null;
+  }
+}
+
+/** Borrar token de callback de pago (llamar al redirigir a detalle de orden para no dejar token en sessionStorage). */
+export function clearPaymentCallbackToken(): void {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.removeItem(PAYMENT_CALLBACK_TOKEN_KEY);
+  } catch {
+    // ignore
   }
 }
 
@@ -323,7 +332,14 @@ export async function post<T>(endpoint: string, data?: any, config?: AxiosReques
     const data = error?.response?.data;
     const detail = data?.detail;
     const msg = typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map((e: any) => e?.msg ?? e).join(", ") : detail ?? error?.message ?? "Error en la petición";
-    console.error("❌ [API] POST error:", msg, data ?? error);
+    // Evitar ruido en consola para /refresh: fallos de refresh son casos esperados
+    // (usuario sin cookie, cookie rota, usuario borrado, etc.). La app simplemente
+    // tratará la sesión como no autenticada.
+    if (endpoint === "/refresh") {
+      console.log("ℹ️ [API] POST /refresh falló (sesión no válida o sin refresh):", msg);
+    } else {
+      console.error("❌ [API] POST error:", msg, data ?? error);
+    }
     throw error;
   }
 }
@@ -409,7 +425,8 @@ const apiWrapper = {
   isAuthenticated,
   setPaymentCallbackToken,
   getTokenForPaymentCallback,
-  
+  clearPaymentCallbackToken,
+
   // Utilities
   getApiConfig,
   validateApiResponse,

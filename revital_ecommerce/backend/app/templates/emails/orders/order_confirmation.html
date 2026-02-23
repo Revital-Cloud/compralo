@@ -17,9 +17,42 @@
         <tr><td><strong>N.º de orden</strong></td><td>#{{ order.id }}</td></tr>
         <tr><td><strong>Fecha</strong></td><td>{{ order.created_at }}</td></tr>
         <tr><td><strong>Estado</strong></td><td><span style="background:#16a34a; color:#fff; padding:4px 8px; border-radius:4px;">Confirmada</span></td></tr>
+        <tr><td><strong>Subtotal</strong></td><td>${{ order.subtotal or order.get('subtotal', '') }}</td></tr>
+        {% if (order.discount_total or order.get('discount_total')) and (order.discount_total or order.get('discount_total')) != '0' %}
+        <tr><td><strong>Descuentos</strong></td><td style="color:#16a34a; font-weight:700;">- ${{ order.discount_total or order.get('discount_total', '') }}</td></tr>
+        {% endif %}
         <tr><td><strong>Total</strong></td><td class="price">${{ order.total }}</td></tr>
     </table>
 </div>
+
+{% if order.points_earned is not none %}
+<div class="content-block">
+    <div class="alert alert-info" style="margin-top:0;">
+        <strong>Puntos ganados:</strong> +{{ order.points_earned }} pts
+    </div>
+</div>
+{% endif %}
+
+{% set discounts = order.discounts_applied or order.get('discounts_applied', []) %}
+{% if discounts and discounts|length > 0 %}
+<div class="content-block">
+    <h3>Descuentos aplicados</h3>
+    <table class="table">
+        <thead><tr><th>Descuento</th><th>Tipo</th><th>Ahorro</th></tr></thead>
+        <tbody>
+        {% for d in discounts %}
+        <tr>
+            <td>{{ d.nombre or d.codigo or 'Descuento' }}</td>
+            <td>
+                {% if d.tipo_descuento == 'codigo' %}Cupón{% elif d.tipo_descuento == 'automatico' %}Automático{% elif d.tipo_descuento == 'canje_puntos' %}Canje de puntos{% else %}{{ d.tipo_descuento or 'Descuento' }}{% endif %}
+            </td>
+            <td style="color:#16a34a; font-weight:700;">- ${{ d.descuento_aplicado_fmt or d.descuento_aplicado or d.monto or d.valor }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
 
 <div class="content-block">
     <h3>Productos</h3>
@@ -28,7 +61,22 @@
         <tbody>
         {% for item in (order['items'] if order is mapping else (order.items or [])) %}
         <tr>
-            <td>{{ item.product_name or item.get('product_name', '') }}</td>
+            <td>
+                {% if item.image_url or item.get('image_url') %}
+                <div style="display:flex; gap:12px; align-items:flex-start;">
+                    <img
+                        src="{{ item.image_url or item.get('image_url') }}"
+                        width="56"
+                        height="56"
+                        alt="{{ item.product_name or item.get('product_name', '') }}"
+                        style="display:block; width:56px; height:56px; object-fit:cover; border-radius:8px; border:1px solid #e5e7eb;"
+                    />
+                    <div style="font-weight:600; color:#111827;">{{ item.product_name or item.get('product_name', '') }}</div>
+                </div>
+                {% else %}
+                {{ item.product_name or item.get('product_name', '') }}
+                {% endif %}
+            </td>
             <td>{{ item.options or item.get('options', '') or '—' }}</td>
             <td>{{ item.quantity or item.get('quantity', '') }}</td>
             <td>${{ item.unit_price or item.get('unit_price', '') }}</td>
@@ -61,7 +109,12 @@
 </div>
 
 <div class="content-block text-center">
-    <p>¿Preguntas? <a href="mailto:{{ support_email }}" style="color:#dc2626;">{{ support_email }}</a></p>
-    <p class="text-muted">Gracias por elegir {{ app_name }}.</p>
+    <div style="font-size:14px; color:#6b7280; margin-top:14px;">
+        ¿Necesitas ayuda?
+        <a href="mailto:{{ support_email }}" style="color:#dc2626; text-decoration:none;">{{ support_email }}</a>
+        <span style="color:#d1d5db; padding:0 8px;">·</span>
+        <a href="{{ frontend_url }}/contacto" style="color:#dc2626; text-decoration:none;">Contacto</a>
+    </div>
+    <div class="text-muted" style="margin-top:10px;">Gracias por elegir {{ app_name }}.</div>
 </div>
 {% endblock %}

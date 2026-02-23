@@ -1,8 +1,10 @@
-'use client';
-import { useEffect, useRef } from 'react';
-import { useAuth } from './use-auth';
-import { verifyToken } from '@/services/auth.service';
-import { isAuthenticated } from '@/utils/apiWrapper';
+"use client";
+import { useEffect, useRef } from "react";
+import { useAuth, AUTH_KEYS } from "./use-auth";
+import { verifyToken, refreshToken, getCurrentUser } from "@/services/auth.service";
+import { isAuthenticated } from "@/utils/apiWrapper";
+import { useCookies } from "./use-cookies";
+import { useQueryClient } from "@tanstack/react-query";
 
 /**
  * Hook para mantener la sesión activa mediante verificaciones periódicas
@@ -62,4 +64,57 @@ export function useRefreshToken() {
       }
     };
   }, []);
-} 
+}
+
+/**
+ * Hook para restaurar la sesión al cargar la aplicación.
+ *
+ * - Si hay cookie de refresh y el usuario aceptó cookies necesarias,
+ *   intenta llamar a /refresh una sola vez para obtener un nuevo access token.
+ * - Si el refresh funciona, precarga el usuario actual en React Query para que
+ *   `useAuth` tenga datos y marque al usuario como autenticado sin pedir login.
+ */
+export function useSessionRestore() {
+  const triedRef = useRef(false);
+  const { canUseCookie, isHydrated } = useCookies();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    // Solo intentar una vez por ciclo de vida
+    if (triedRef.current) return;
+    if (!isHydrated) return;
+
+    triedRef.current = true;
+
+    // Si no se permiten cookies necesarias, no intentamos refresh
+    if (!canUseCookie("necessary")) {
+      return;
+    }
+
+    // Si ya hay token en memoria, no hay nada que restaurar
+    if (isAuthenticated()) {
+      return;
+    }
+
+    (async () => {
+      try {
+        const tokens = await refreshToken();
+        if (!tokens?.access_token) {
+          return;
+        }
+
+        // Prefetch de usuario actual para hidratar la cache de auth
+        await queryClient.fetchQuery({
+          queryKey: AUTH_KEYS.currentUser,
+          queryFn: getCurrentUser,
+        });
+      } catch (error) {
+        // Sin cookie de refresh o error al refrescar: simplemente no restaurar sesión
+        if (process.env.NODE_ENV === "development") {
+          // eslint-disable-next-line no-console
+          console.debug("Session restore failed (likely no refresh cookie):", error);
+        }
+      }
+    })();
+  }, [canUseCookie, isHydrated, queryClient]);
+}
