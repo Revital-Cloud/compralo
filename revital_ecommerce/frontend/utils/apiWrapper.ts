@@ -254,6 +254,48 @@ export function isAuthenticated(): boolean {
   return !!getStoredToken();
 }
 
+/** Clave y TTL para token en sessionStorage solo durante redirect de pago (Wompi devuelve a payment-result y se pierde la memoria). */
+const PAYMENT_CALLBACK_TOKEN_KEY = "revital_payment_callback_token";
+const PAYMENT_CALLBACK_TOKEN_TTL_MS = 15 * 60 * 1000; // 15 minutos
+
+/**
+ * Guardar token en sessionStorage para recuperarlo tras el redirect de Wompi a payment-result.
+ * Llamar al abrir el modal de pago (el redirect recarga la página y se pierde inMemoryAccessToken).
+ */
+export function setPaymentCallbackToken(): void {
+  const token = inMemoryAccessToken;
+  if (typeof window === "undefined" || !token) return;
+  try {
+    sessionStorage.setItem(
+      PAYMENT_CALLBACK_TOKEN_KEY,
+      JSON.stringify({ token, ts: Date.now() })
+    );
+  } catch {
+    // sessionStorage no disponible
+  }
+}
+
+/**
+ * Obtener token para confirm-checkout/order-by-reference: primero memoria, luego sessionStorage (y borrarlo).
+ * Tras redirect de Wompi, la memoria está vacía; el token se leyó de sessionStorage y se elimina.
+ */
+export function getTokenForPaymentCallback(): string | null {
+  const fromMemory = getStoredToken();
+  if (fromMemory) return fromMemory;
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(PAYMENT_CALLBACK_TOKEN_KEY);
+    if (!raw) return null;
+    const { token, ts } = JSON.parse(raw) as { token?: string; ts?: number };
+    sessionStorage.removeItem(PAYMENT_CALLBACK_TOKEN_KEY);
+    if (!token || typeof token !== "string") return null;
+    if (ts != null && Date.now() - ts > PAYMENT_CALLBACK_TOKEN_TTL_MS) return null;
+    return token;
+  } catch {
+    return null;
+  }
+}
+
 // =============================================================================
 // MÉTODOS HTTP BÁSICOS
 // =============================================================================
@@ -365,6 +407,8 @@ const apiWrapper = {
   storeTokens,
   clearTokens,
   isAuthenticated,
+  setPaymentCallbackToken,
+  getTokenForPaymentCallback,
   
   // Utilities
   getApiConfig,

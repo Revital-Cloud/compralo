@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { formatPrice } from "@/utils/format-price";
 import Loading from "@/components/ui/loading";
-import { getStoredToken } from "@/utils/apiWrapper";
+import { getTokenForPaymentCallback } from "@/utils/apiWrapper";
 
 type PaymentStatus = 'success' | 'pending' | 'declined' | 'error' | 'unknown';
 
@@ -78,7 +78,8 @@ const PaymentResultPage = () => {
 
     setPollingOrderId("pending");
 
-    const token = getStoredToken();
+    // Tras redirect de Wompi la página se recarga y el token en memoria se pierde; usar token guardado para este flujo
+    const token = getTokenForPaymentCallback();
     const headers: HeadersInit = { "Content-Type": "application/json" };
     if (token) headers["Authorization"] = `Bearer ${token}`;
 

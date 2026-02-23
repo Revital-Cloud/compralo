@@ -21,6 +21,7 @@ import {
   type CheckoutData
 } from "@/services/wompi-widget.service";
 import { toast } from "sonner";
+import { setPaymentCallbackToken } from "@/utils/apiWrapper";
 
 interface WompiModalProps {
   isOpen: boolean;
@@ -64,6 +65,8 @@ export function WompiModal({
   // Abrir el widget cuando el modal se abre
   useEffect(() => {
     if (isOpen) {
+      // Guardar token para recuperarlo en payment-result (Wompi puede redirigir y se pierde la memoria)
+      setPaymentCallbackToken();
       openWompiWidget();
     }
   }, [isOpen]);
