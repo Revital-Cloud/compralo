@@ -93,3 +93,83 @@ jobs:
 
       - name: Run tests
         run: pytest --cov=app --cov-report=term-missing tests/
+
+  panel-frontend:
+    name: Panel frontend build (Next.js)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: revital_panel/frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          cache-dependency-path: revital_panel/frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build panel frontend
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8080/api
+        run: pnpm run build
+
+  panel-backend:
+    name: Panel backend (FastAPI)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: revital_panel/backend
+
+    env:
+      PYTHONPATH: app
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci_panel
+      SECRET_KEY: ci-panel-secret-key-min-32-chars
+      ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+      ALGORITHM: HS256
+      REFRESH_TOKEN_EXPIRE_DAYS: "7"
+      CLOUDINARY_CLOUD_NAME: ci-panel-cloud
+      CLOUDINARY_API_KEY: ci-panel-key
+      CLOUDINARY_API_SECRET: ci-panel-secret
+      RESEND_API_KEY: re_ci_panel_fake_key
+      RESEND_FROM_EMAIL: panel-ci@example.com
+      RESEND_FROM_NAME: "Panel CI Sender"
+      FRONTEND_URL: http://localhost:3001
+      VERIFY_EMAIL_URL: http://localhost:3001/verify-email
+      RESET_PASSWORD_URL: http://localhost:3001/reset-password
+      WOMPI_PUBLIC_KEY: TEST_panel_ci_public_key
+      WOMPI_PRIVATE_KEY: TEST_panel_ci_private_key
+      WOMPI_EVENTS_SECRET: panel_ci_events_secret
+      WOMPI_INTEGRITY_SECRET: panel_ci_integrity_secret
+      STRIPE_SECRET_KEY: sk_test_panel_ci
+      STRIPE_PUBLISHABLE_KEY: pk_test_panel_ci
+      STRIPE_WEBHOOK_SECRET: whsec_panel_ci
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify app loads
+        run: python -c "from app.main import app; print('OK')"

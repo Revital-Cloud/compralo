@@ -39,12 +39,12 @@ jobs:
         env:
           SSH_OPTS: -o StrictHostKeyChecking=no -o UserKnownHostsFile=~/.ssh/known_hosts -i ~/.ssh/id_ed25519
         run: |
-          # Copy systemd unit to server (use -i so this key is used)
+          # Copy systemd units to server
           scp $SSH_OPTS .github/systemd/compralo-api.service ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/compralo-api.service
+          scp $SSH_OPTS .github/systemd/panel-api.service ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/tmp/panel-api.service
 
           ssh $SSH_OPTS ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'REMOTE_EOF'
           set -e
-          # Load nvm so pnpm, node, pm2 are in PATH
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
           nvm use default 2>/dev/null || true
@@ -53,18 +53,30 @@ jobs:
           cd /home/revital/revital
           git pull origin main
 
-          # Backend: install unit if changed, then restart
           sudo cp /tmp/compralo-api.service /etc/systemd/system/compralo-api.service
+          sudo cp /tmp/panel-api.service /etc/systemd/system/panel-api.service
           sudo systemctl daemon-reload
 
+          # --- Compralo (e-commerce) ---
           cd revital_ecommerce/backend
           source venv/bin/activate
           pip install -r requirements.txt
           sudo systemctl restart compralo-api
 
-          # Frontend (revital_ecommerce/frontend)
           cd ../frontend
           pnpm install
           pnpm build
           pm2 restart compralo || pm2 start pnpm --name compralo -- start
+
+          # --- Panel (SaaS) - backend on 8080, frontend pm2 ---
+          cd /home/revital/revital/revital_panel/backend
+          [ -d venv ] || python3 -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+          sudo systemctl restart panel-api
+
+          cd ../frontend
+          pnpm install
+          pnpm build
+          pm2 restart panel || pm2 start pnpm --name panel -- start
           REMOTE_EOF
