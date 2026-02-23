@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,17 +15,18 @@ interface ResourceItemProps {
   icon: typeof Package;
   unit?: string;
   hasAlert?: boolean;
+  alertText?: string;
 }
 
-function ResourceItem({ label, current, max, icon: Icon, unit = '', hasAlert = false }: ResourceItemProps) {
+function ResourceItem({ label, current, max, icon: Icon, unit = '', hasAlert = false, alertText }: ResourceItemProps) {
   const percentage = max ? Math.min((current / max) * 100, 100) : 0;
   const isNearLimit = percentage >= 80;
   const isAtLimit = percentage >= 95;
-  
-  const progressColor = isAtLimit 
-    ? 'bg-red-500' 
-    : isNearLimit 
-      ? 'bg-amber-500' 
+
+  const progressColor = isAtLimit
+    ? 'bg-red-500'
+    : isNearLimit
+      ? 'bg-amber-500'
       : 'bg-revital-green';
 
   return (
@@ -40,23 +42,23 @@ function ResourceItem({ label, current, max, icon: Icon, unit = '', hasAlert = f
       </div>
       {max !== null && (
         <div className="relative">
-          <Progress 
-            value={percentage} 
+          <Progress
+            value={percentage}
             className="h-2"
           />
-          <div 
+          <div
             className={cn(
               'absolute inset-0 h-2 rounded-full transition-colors',
               progressColor
-            )} 
+            )}
             style={{ width: `${percentage}%` }}
           />
         </div>
       )}
-      {hasAlert && (
+      {hasAlert && alertText && (
         <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
           <AlertTriangle className="h-3 w-3" />
-          <span>Near limit - consider upgrading your plan</span>
+          <span>{alertText}</span>
         </div>
       )}
     </div>
@@ -71,13 +73,15 @@ interface ResourceCardProps {
   compact?: boolean;
 }
 
-export function ResourceCard({ 
-  resourceUsage, 
-  loading = false, 
+export function ResourceCard({
+  resourceUsage,
+  loading = false,
   className,
   showTitle = true,
   compact = false,
 }: ResourceCardProps) {
+  const t = useTranslations('resources');
+
   if (loading) {
     return (
       <Card className={cn(
@@ -117,12 +121,12 @@ export function ResourceCard({
       )}>
         {showTitle && (
           <CardHeader>
-            <CardTitle className="text-lg">Resource Usage</CardTitle>
+            <CardTitle className="text-lg">{t('title')}</CardTitle>
           </CardHeader>
         )}
         <CardContent className={cn(!showTitle && 'pt-6')}>
           <p className="text-sm text-muted-foreground">
-            No resource usage data available yet.
+            {t('noData')}
           </p>
         </CardContent>
       </Card>
@@ -155,31 +159,34 @@ export function ResourceCard({
     )}>
       {showTitle && (
         <CardHeader>
-          <CardTitle className="text-lg">Resource Usage</CardTitle>
+          <CardTitle className="text-lg">{t('title')}</CardTitle>
         </CardHeader>
       )}
       <CardContent className={cn('space-y-4', !showTitle && 'pt-6', compact && 'space-y-3')}>
-        <ResourceItem 
-          label="Products" 
-          current={products.current} 
+        <ResourceItem
+          label={t('products')}
+          current={products.current}
           max={products.max ?? null}
           icon={Package}
           hasAlert={products.hasAlert}
+          alertText={t('approachingLimit')}
         />
-        <ResourceItem 
-          label="Users" 
-          current={users.current} 
+        <ResourceItem
+          label={t('users')}
+          current={users.current}
           max={users.max ?? null}
           icon={Users}
           hasAlert={users.hasAlert}
+          alertText={t('approachingLimit')}
         />
-        <ResourceItem 
-          label="Storage" 
-          current={storage.current} 
+        <ResourceItem
+          label={t('storage')}
+          current={storage.current}
           max={storage.max}
           icon={HardDrive}
           unit=" GB"
           hasAlert={storage.hasAlert}
+          alertText={t('approachingLimit')}
         />
       </CardContent>
     </Card>

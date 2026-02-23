@@ -102,7 +102,20 @@ cp .env.production.example .env.production     # producción
 - **Desarrollo:** se usa `.env.development` por defecto (no hace falta exportar nada).
 - **Producción:** en el servidor, exportar `ENVIRONMENT=production` para cargar `.env.production`.
 
-### 3. Iniciar Servidor de Desarrollo
+### 3. Esquema de base de datos
+
+La API espera que existan las tablas del panel (p. ej. `tab_usuarios_revital`). Si ves `relation "tab_usuarios_revital" does not exist`, aplica el script de esquema una vez contra la base indicada en `DATABASE_URL`:
+
+```bash
+# Desde la raíz del repo, con DATABASE_URL en .env.development
+cd revital_panel/backend
+set -a && source .env.development && set +a
+psql "$DATABASE_URL" -f ../db/db_revitalsaas.sql
+```
+
+**Atención:** El script hace `DROP TABLE IF EXISTS` de todas las tablas del esquema; úsalo solo en una base vacía o de desarrollo donde no importe perder datos.
+
+### 4. Iniciar Servidor de Desarrollo
 
 ```bash
 # Método recomendado (Script con PYTHONPATH configurado)
@@ -117,7 +130,7 @@ PYTHONPATH=./app uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
 
 **Nota importante**: El proyecto requiere que el directorio `app/` esté en el PYTHONPATH para que las importaciones funcionen correctamente. El script `run_dev.sh` configura esto automáticamente.
 
-### 4. Verificar Instalación
+### 5. Verificar Instalación
 
 ```bash
 # Verificar que el servidor esté funcionando

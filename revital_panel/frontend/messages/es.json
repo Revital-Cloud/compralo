@@ -55,10 +55,10 @@
     "badge": "Presentando Revital: tu plataforma e-commerce todo-en-uno",
     "goToDashboard": "Ir al panel",
     "exploreFeatures": "Explorar características",
-    "getStartedFree": "Comenzar gratis",
+    "getStartedFree": "Comenzar ahora",
     "viewPricing": "Ver precios",
     "noCreditCard": "Sin tarjeta de crédito",
-    "freeForever": "Plan gratis siempre",
+    "freeForever": "Prueba 14 días gratis",
     "setupInMinutes": "Configura en minutos",
     "features": [
       "Integración nativa con Wompi para Colombia",
@@ -76,7 +76,7 @@
       "pricing": "Precios",
       "faq": "FAQ"
     },
-    "ctaButton": "Comenzar Gratis"
+    "ctaButton": "Ver planes"
   },
   "processFlow": {
     "badge": "Proceso de Implementación",
@@ -212,20 +212,26 @@
   },
   "pricing": {
     "title": "Planes que se adaptan a tu negocio",
-    "subtitle": "Comienza gratis y escala según crezcas",
+    "subtitle": "Escale según crezca tu negocio",
     "badge": "Planes y precios",
     "flexibleTitle": "Planes flexibles para tu crecimiento",
-    "flexibleSubtitle": "Elige el plan Revital que mejor se adapte al tamaño y necesidades de tu negocio. Empieza gratis, actualiza cuando crezcas.",
+    "flexibleSubtitle": "Elige el plan Revital que mejor se adapte al tamaño y necesidades de tu negocio. Prueba el plan Profesional 14 días gratis.",
     "mostPopular": "Más popular",
+    "billingMonthly": "Mensual",
+    "billingAnnual": "Anual",
+    "perMonth": "/mes",
+    "perYear": "/año",
+    "save20": "(ahorra 20%)",
     "saveWithAnnual": "con facturación anual",
     "managePlan": "Gestionar plan",
-    "allPlansTrial": "Todos los planes incluyen 14 días de prueba gratis. No se requiere tarjeta de crédito.",
+    "allPlansTrial": "El plan Profesional incluye 14 días de prueba gratis. No se requiere tarjeta de crédito.",
     "viewComparison": "Ver comparativa de planes",
     "signUpNow": "Registrarse ahora",
     "plans": {
       "starter": {
         "name": "Emprendedor",
-        "price": "$0",
+        "price": "US$ 29.99",
+        "priceAnnual": "US$ 299.90",
         "period": "/mes",
         "description": "Perfecto para comenzar tu tienda online",
         "features": [
@@ -240,10 +246,12 @@
       },
       "professional": {
         "name": "Profesional",
-        "price": "$49",
+        "price": "US$ 79.99",
+        "priceAnnual": "US$ 799.90",
         "period": "/mes",
         "description": "Para negocios en crecimiento",
         "features": [
+          "Todo lo incluido en Emprendedor más:",
           "Productos ilimitados",
           "Todas las integraciones de pago",
           "Panel avanzado + analytics",
@@ -258,11 +266,11 @@
       "enterprise": {
         "name": "Enterprise",
         "price": "Personalizado",
+        "priceAnnual": "Personalizado",
         "period": "",
         "description": "Soluciones a medida para grandes empresas",
         "features": [
-          "Todo del plan Profesional",
-          "Soporte prioritario",
+          "Todo lo incluido en Profesional más:",
           "Integraciones personalizadas",
           "SLA garantizado",
           "Consultoría especializada",
@@ -504,7 +512,7 @@
   },
   "dashboard": {
     "title": "Dashboard",
-    "welcome": "Bienvenido de nuevo, {name}!",
+    "welcome": "Bienvenido de nuevo{name}!",
     "subtitle": "Aquí tienes un resumen del estado de tu plataforma e‑commerce.",
     "metrics": {
       "instanceStatus": "Estado de la instancia",
@@ -532,7 +540,17 @@
       "title": "Plan Actual",
       "started": "Iniciado",
       "nextPayment": "Próximo pago",
-      "manageSubscription": "Gestionar Suscripción"
+      "manageSubscription": "Gestionar Suscripción",
+      "noActive": "Sin suscripción activa",
+      "noActiveDescription": "Aún no tienes una suscripción activa. Elige un plan para comenzar.",
+      "viewPlans": "Ver Planes",
+      "year": "año",
+      "month": "mes"
+    },
+    "instanceEmpty": {
+      "title": "Aún no hay instancia",
+      "description": "Crea tu instancia de e-commerce para empezar a vender online. Solo toma unos minutos configurarla.",
+      "createButton": "Crear mi e-commerce"
     }
   },
   "subscription": {
@@ -557,10 +575,15 @@
       "title": "Planes Disponibles",
       "subtitle": "Actualiza o reduce tu plan en cualquier momento.",
       "subtitleNoSubscription": "Elige el plan que mejor se adapte a tus necesidades.",
+      "billingMonthly": "Mensual",
+      "billingAnnual": "Anual",
       "currentPlanBadge": "Plan Actual",
       "upgrade": "Actualizar",
       "downgrade": "Reducir",
       "selectPlan": "Seleccionar Plan",
+      "contactSales": "Contactar ventas",
+      "contactUs": "Contáctanos",
+      "enterprisePriceLabel": "Precio a medida",
       "perMonth": "/mes",
       "perYear": "/año",
       "or": "o",
@@ -583,7 +606,9 @@
     "changePlan": {
       "title": "Cambiar Plan",
       "description": "¿Estás seguro de que quieres cambiar al plan {planName}?",
+      "descriptionEnterprise": "Para el plan Enterprise contáctanos y te enviamos una cotización a medida.",
       "newPrice": "Tu nuevo precio será {price}/mes.",
+      "newPriceAnnual": "Tu nuevo precio será {price}/año.",
       "payWithStripe": "Serás redirigido a Stripe para completar el pago del nuevo plan.",
       "reasonLabel": "Motivo del cambio",
       "reasonPlaceholder": "ej. Necesito más productos o usuarios",
@@ -771,6 +796,7 @@
   "resources": {
     "title": "Uso de Recursos",
     "subtitle": "Monitorea el consumo de recursos de tu e-commerce.",
+    "noData": "Aún no hay datos de uso de recursos.",
     "noInstance": {
       "title": "Sin Instancia Aún",
       "description": "Crea tu instancia de e-commerce para comenzar a rastrear el uso de recursos.",

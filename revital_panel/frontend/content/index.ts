@@ -102,11 +102,11 @@ export const securityContent = {
 
 export const pricingContent = {
   title: "Planes que se adaptan a tu negocio",
-  subtitle: "Comienza gratis y escala según crezcas",
+  subtitle: "Escale según crezca tu negocio",
   plans: [
     {
       name: "Emprendedor",
-      price: "$0",
+      price: "US$ 29.99",
       period: "/mes",
       description: "Perfecto para comenzar tu tienda online",
       features: [
@@ -122,10 +122,11 @@ export const pricingContent = {
     },
     {
       name: "Profesional",
-      price: "$49",
+      price: "US$ 79.99",
       period: "/mes",
       description: "Para negocios en crecimiento",
       features: [
+        "Todo lo incluido en Emprendedor más:",
         "Productos ilimitados",
         "Todas las integraciones de pago",
         "Panel avanzado + analytics",
@@ -144,8 +145,7 @@ export const pricingContent = {
       period: "",
       description: "Soluciones a medida para grandes empresas",
       features: [
-        "Todo del plan Profesional",
-        "Soporte prioritario",
+        "Todo lo incluido en Profesional más:",
         "Integraciones personalizadas",
         "SLA garantizado",
         "Consultoría especializada",

@@ -1,17 +1,22 @@
 'use client';
 
+import { QueryClientProvider } from '@tanstack/react-query';
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { ClientSidebar } from '@/components/layout/client-sidebar';
 import { ClientHeader } from '@/components/layout/client-header';
 import { ClientGuard } from '@/components/auth/client-guard';
 import { PrefetchOnMount } from '@/components/layout/prefetch-on-mount';
+import { getQueryClient } from '@/lib/query-client';
 
 export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const queryClient = getQueryClient();
+
   return (
+    <QueryClientProvider client={queryClient}>
     <ClientGuard>
       <PrefetchOnMount />
       <SidebarProvider
@@ -35,6 +40,7 @@ export default function DashboardLayout({
         </SidebarInset>
       </SidebarProvider>
     </ClientGuard>
+    </QueryClientProvider>
   );
 }
 

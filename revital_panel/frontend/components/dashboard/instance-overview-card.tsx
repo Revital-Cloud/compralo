@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,12 +17,16 @@ interface InstanceOverviewCardProps {
   onCreateClick?: () => void;
 }
 
-export function InstanceOverviewCard({ 
-  instance, 
-  loading = false, 
+export function InstanceOverviewCard({
+  instance,
+  loading = false,
   className,
   onCreateClick,
 }: InstanceOverviewCardProps) {
+  const tEmpty = useTranslations('dashboard.instanceEmpty');
+  const tInfo = useTranslations('instance.info');
+  const tCommon = useTranslations('common');
+
   if (loading) {
     return (
       <Card className={cn(
@@ -60,17 +65,16 @@ export function InstanceOverviewCard({
           <div className="rounded-full bg-muted/50 dark:bg-muted/30 p-4 mb-4 border border-border/50">
             <Server className="h-8 w-8 text-muted-foreground" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">No instance yet</h3>
+          <h3 className="text-lg font-semibold mb-2">{tEmpty('title')}</h3>
           <p className="text-sm text-muted-foreground mb-4 max-w-sm">
-            Create your e-commerce instance to start selling online. 
-            It only takes a few minutes to set up.
+            {tEmpty('description')}
           </p>
           <Button 
             onClick={onCreateClick}
             className="bg-revital-green hover:bg-revital-green/90 text-revital-black"
           >
             <Plus className="h-4 w-4 mr-2" />
-            Create my e-commerce
+            {tEmpty('createButton')}
           </Button>
         </CardContent>
       </Card>
@@ -94,7 +98,7 @@ export function InstanceOverviewCard({
         <div className="space-y-2 text-sm">
           {instance.frontend_url && (
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Store URL:</span>
+              <span className="text-muted-foreground">{tInfo('storeUrl')}:</span>
               <a
                 href={instance.frontend_url}
                 target="_blank"
@@ -108,7 +112,7 @@ export function InstanceOverviewCard({
           )}
           {instance.version_instancia && (
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Version:</span>
+              <span className="text-muted-foreground">{tInfo('version')}:</span>
               <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">
                 {instance.version_instancia}
               </span>
@@ -116,13 +120,13 @@ export function InstanceOverviewCard({
           )}
           {instance.region_deployment && (
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Region:</span>
+              <span className="text-muted-foreground">{tInfo('region')}:</span>
               <span>{instance.region_deployment}</span>
             </div>
           )}
           {instance.fecha_ultimo_deploy && (
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Last deploy:</span>
+              <span className="text-muted-foreground">{tInfo('lastDeploy')}:</span>
               <span>
                 {new Date(instance.fecha_ultimo_deploy).toLocaleDateString()}
               </span>
@@ -139,14 +143,14 @@ export function InstanceOverviewCard({
                 rel="noopener noreferrer"
               >
                 <ExternalLink className="h-4 w-4 mr-2" />
-                View Store
+                {tInfo('viewStore')}
               </a>
             </Button>
           )}
           <Button asChild variant="outline" size="sm" className="flex-1">
             <Link href="/instance/settings">
               <Settings className="h-4 w-4 mr-2" />
-              Settings
+              {tCommon('settings')}
             </Link>
           </Button>
         </div>

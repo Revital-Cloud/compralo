@@ -94,7 +94,7 @@ export const pageMetadata = {
   pricing: {
     title: "Precios - Planes que se adaptan a tu negocio",
     description:
-      "Descubre nuestros planes de precios. Comienza gratis con el plan Emprendedor o escala con nuestros planes Profesional y Enterprise.",
+      "Descubre nuestros planes de precios. Plan Emprendedor, Profesional y Enterprise. Prueba el plan Profesional 14 días gratis.",
     keywords: ["precios revital", "planes ecommerce", "costo tienda online"],
   },
   features: {

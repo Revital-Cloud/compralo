@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Check, Star, Zap, Building, ShoppingBag, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { isAuthenticated } from "@/utils/apiWrapper";
@@ -18,16 +20,21 @@ export function PricingCards() {
   const t = useTranslations("pricing");
   const { user, isLoading } = useAuth();
   const isLoggedIn = isAuthenticated() && !!user;
+  const [billingPeriod, setBillingPeriod] = useState<"mensual" | "anual">("mensual");
 
   const pricingPlans = PLAN_IDS.map((id, index) => {
     const planKey = `plans.${id}`;
     const features = t.raw(`${planKey}.features`) as string[];
+    const isAnnual = billingPeriod === "anual";
+    const price = isAnnual ? t(`${planKey}.priceAnnual`) : t(`${planKey}.price`);
+    const period = isAnnual ? t("perYear") : t("perMonth");
     return {
       id,
       name: t(`${planKey}.name`),
       description: t(`${planKey}.description`),
-      price: t(`${planKey}.price`),
-      period: t(`${planKey}.period`),
+      price,
+      period: id === "enterprise" ? "" : period,
+      showSave20: isAnnual && id !== "enterprise",
       icon: PLAN_ICONS[index],
       features: features ?? [],
       cta: t(`${planKey}.cta`),
@@ -56,16 +63,26 @@ export function PricingCards() {
       className="py-20 lg:py-32 bg-white dark:bg-revital-black"
     >
       <div className="container mx-auto max-w-7xl px-4 sm:px-6">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10">
           <Badge variant="revital" className="mb-4">
             {t("badge")}
           </Badge>
           <h2 className="text-3xl md:text-5xl font-regular tracking-tighter mb-4 text-gray-900 dark:text-white">
             {t("flexibleTitle")}
           </h2>
-          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-6">
             {t("flexibleSubtitle")}
           </p>
+          <Tabs
+            value={billingPeriod}
+            onValueChange={(v) => setBillingPeriod(v as "mensual" | "anual")}
+            className="inline-flex"
+          >
+            <TabsList className="grid w-full grid-cols-2 sm:w-auto">
+              <TabsTrigger value="mensual">{t("billingMonthly")}</TabsTrigger>
+              <TabsTrigger value="anual">{t("billingAnnual")}</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
@@ -109,16 +126,21 @@ export function PricingCards() {
                 <CardContent className="pt-0">
                   {/* Price */}
                   <div className="text-center mb-6">
-                    <div className="flex items-baseline justify-center">
+                    <div className="flex flex-wrap items-baseline justify-center gap-x-1">
                       <span className="text-4xl font-bold text-gray-900 dark:text-white">
                         {plan.price}
                       </span>
                       {plan.period && (
-                        <span className="text-gray-600 dark:text-gray-400 ml-1">
+                        <span className="text-gray-600 dark:text-gray-400">
                           {plan.period}
                         </span>
                       )}
                     </div>
+                    {plan.showSave20 && (
+                      <p className="text-sm text-revital-green mt-1">
+                        {t("save20")}
+                      </p>
+                    )}
                   </div>
 
                   {/* Features */}
