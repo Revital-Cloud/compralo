@@ -35,6 +35,7 @@ export interface GeoData {
 
 export interface ProductMetrics {
   productosActivos: number
+  productosInactivos: number
   sinStock: number
   precioPromedio: number
   ratingPromedio: number

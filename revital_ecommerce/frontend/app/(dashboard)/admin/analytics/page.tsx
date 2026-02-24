@@ -181,7 +181,9 @@ const CHART_COLORS = [
 
 // Componente para performance de productos (barras + gráfico dona)
 const ProductPerformance = ({ performance }: { performance: ProductPerformanceData[] }) => {
-  if (performance.length === 0) {
+  const visiblePerformance = performance.filter((p) => p.percentage > 0)
+
+  if (performance.length === 0 || visiblePerformance.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -190,15 +192,15 @@ const ProductPerformance = ({ performance }: { performance: ProductPerformanceDa
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            <p className="text-sm">No hay datos de categorías disponibles</p>
+            <p className="text-sm">No hay categorías con ventas en el período seleccionado</p>
           </div>
         </CardContent>
       </Card>
     )
   }
 
-  const totalSales = performance.reduce((sum, p) => sum + p.sales, 0)
-  const maxSales = Math.max(...performance.map((p) => p.sales), 1)
+  const totalSales = visiblePerformance.reduce((sum, p) => sum + p.sales, 0)
+  const maxSales = Math.max(...visiblePerformance.map((p) => p.sales), 1)
   const circumference = 2 * Math.PI * 42
   let offset = 0
   const chartHeight = 200
@@ -226,7 +228,7 @@ const ProductPerformance = ({ performance }: { performance: ProductPerformanceDa
                   stroke="hsl(var(--muted))"
                   strokeWidth={14}
                 />
-                {performance.map((product, index) => {
+                {visiblePerformance.map((product, index) => {
                   const segment = (product.percentage / 100) * circumference
                   const color = CHART_COLORS[index % CHART_COLORS.length]
                   const el = (
@@ -250,14 +252,14 @@ const ProductPerformance = ({ performance }: { performance: ProductPerformanceDa
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-lg font-bold text-muted-foreground">
-                  {totalSales > 0 ? `${performance.length} cat.` : '—'}
+                  {totalSales > 0 ? `${visiblePerformance.length} cat.` : '—'}
                 </span>
               </div>
             </div>
             <div className="flex-1 min-w-0 space-y-2">
               <p className="text-sm font-medium text-muted-foreground">Participación por categoría</p>
               <ul className="space-y-1.5">
-                {performance.map((product, index) => (
+                {visiblePerformance.map((product, index) => (
                   <li key={`${product.category}-${index}`} className="flex items-center gap-2 text-sm">
                     <span
                       className="inline-block w-3 h-3 rounded-full flex-shrink-0"
@@ -281,7 +283,7 @@ const ProductPerformance = ({ performance }: { performance: ProductPerformanceDa
               role="img"
               aria-label="Gráfico de barras de ventas por categoría"
             >
-              {performance.map((product, index) => {
+              {visiblePerformance.map((product, index) => {
                 const heightRatio = maxSales > 0 ? product.sales / maxSales : 0
                 const barHeight = Math.max(barMinHeight, heightRatio * (chartHeight - 24))
                 const color = CHART_COLORS[index % CHART_COLORS.length]
@@ -319,7 +321,7 @@ const ProductPerformance = ({ performance }: { performance: ProductPerformanceDa
 
         {/* Barras horizontales: ventas y crecimiento */}
         <div className="space-y-4">
-          {performance.map((product, index) => (
+          {visiblePerformance.map((product, index) => (
             <div key={`${product.category}-${index}`} className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-medium">{product.category}</span>
@@ -496,6 +498,7 @@ const AnalyticsPage = () => {
     })),
     productMetrics: {
       productosActivos: 0,
+      productosInactivos: 0,
       sinStock: 0,
       precioPromedio: 0,
       ratingPromedio: 0
@@ -585,10 +588,14 @@ const AnalyticsPage = () => {
                 <CardTitle>Métricas de Productos</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="text-center">
                     <p className="text-2xl font-bold">{(data.productMetrics?.productosActivos || 0).toLocaleString()}</p>
                     <p className="text-sm text-muted-foreground">Productos Activos</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold">{(data.productMetrics?.productosInactivos || 0).toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground">Productos Inactivos</p>
                   </div>
                   <div className="text-center">
                     <p className="text-2xl font-bold">{(data.productMetrics?.sinStock || 0).toLocaleString()}</p>

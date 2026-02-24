@@ -3,15 +3,23 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { useActivePointsRate, useAllUsersWithPoints } from '@/hooks/use-points'
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
-import { Badge } from "@/components/ui"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Badge,
+  Button,
+  Input,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui"
 import { IconCoins, IconCalendar, IconCheck } from '@tabler/icons-react'
 import DataTable from '@/components/tables/table'
 import { ColumnDef } from '@tanstack/react-table'
-import { Button } from "@/components/ui"
 import { CreatePointsConfigModal } from '@/components/admin/points/create-points-config-modal'
 import { PointsStatsCards } from '@/components/admin/points/points-stats-cards'
-import { Input } from "@/components/ui"
 import type { UserWithPoints } from '@/types/points'
 import Link from 'next/link'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
@@ -42,11 +50,21 @@ const PointsPage = () => {
     { 
       accessorKey: 'nom_usuario', 
       header: 'Nombre', 
-      cell: ({ row }) => (
-        <span className="font-medium">
-          {row.original.nom_usuario} {row.original.ape_usuario}
-        </span>
-      ) 
+      cell: ({ row }) => {
+        const fullName = `${row.original.nom_usuario} ${row.original.ape_usuario}`.trim()
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="font-medium max-w-[220px] truncate block">
+                {fullName}
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              {fullName}
+            </TooltipContent>
+          </Tooltip>
+        )
+      } 
     },
     { 
       accessorKey: 'email_usuario', 
@@ -130,6 +148,12 @@ const PointsPage = () => {
 
   const activeRate = Array.isArray(activeRates) && activeRates.length > 0 ? activeRates[0] : null
 
+  const formatDateSafe = (value: string | null | undefined): string => {
+    if (value == null || value === '') return 'Sin fecha'
+    const d = new Date(value)
+    return Number.isNaN(d.getTime()) ? 'Sin fecha' : d.toLocaleDateString('es-CO')
+  }
+
   const { startPointsTour } = useAdminTour()
 
   useEffect(() => {
@@ -152,6 +176,7 @@ const PointsPage = () => {
           description="Gestiona el programa de lealtad y consulta los puntos de tus usuarios"
           onCreateClick={() => setOpenConfig(true)}
           createLabel={activeRate ? 'Actualizar Configuración' : 'Nueva Configuración'}
+          showImportButton={false}
         />
       </div>
       <CreatePointsConfigModal open={openConfig} onOpenChange={setOpenConfig} />
@@ -181,11 +206,11 @@ const PointsPage = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {new Date(activeRate.fec_inicio).toLocaleDateString('es-CO')}
+                {formatDateSafe(activeRate.fec_inicio)}
               </div>
               <p className="text-xs text-muted-foreground mt-1">
-                {activeRate.fec_fin 
-                  ? `Hasta: ${new Date(activeRate.fec_fin).toLocaleDateString('es-CO')}`
+                {activeRate.fec_fin
+                  ? `Hasta: ${formatDateSafe(activeRate.fec_fin)}`
                   : 'Sin fecha de fin'
                 }
               </p>
@@ -202,7 +227,7 @@ const PointsPage = () => {
                 {activeRate.ind_activo ? 'Activo' : 'Inactivo'}
               </Badge>
               <p className="text-xs text-muted-foreground mt-2">
-                Creado: {new Date(activeRate.fec_insert || '').toLocaleDateString('es-CO')}
+                Creado: {formatDateSafe(activeRate.fec_insert)}
               </p>
             </CardContent>
           </Card>
