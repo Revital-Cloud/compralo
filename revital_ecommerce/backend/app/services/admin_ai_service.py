@@ -32,6 +32,8 @@ from services.admin_ai_instructions import (
     INTENT_ALERTS,
     INTENT_RECENT_ORDERS,
     INTENT_GENERAL,
+    INTENT_TOP_CATEGORIES,
+    INTENT_TOP_STOCK,
     FALLBACK_REPLY,
     CHAT_SYSTEM_PROMPT,
     SUMMARY_SYSTEM_PROMPT,
@@ -329,7 +331,7 @@ def chat_with_admin_ai(
     recent_convs = get_recent_conversations(db, user_id, limit=5, days_back=7)
     conversation_context = build_conversation_context(recent_convs, max_tokens=1500)
 
-    # 3) Detectar si es una pregunta de resumen y ejecutar automáticamente get_store_summary
+    # 3) Detectar preguntas específicas y ejecutar la tool correspondiente directamente
     msg_lower = message.strip().lower()
     is_summary_request = any(
         kw in msg_lower 
@@ -338,6 +340,8 @@ def chat_with_admin_ai(
                    "cómo estamos", "como estamos", "panorama", "visión general", "vision general", 
                    "overview", "resumen general", "información general"]
     )
+    is_top_categories_request = any(kw in msg_lower for kw in INTENT_TOP_CATEGORIES)
+    is_top_stock_request = any(kw in msg_lower for kw in INTENT_TOP_STOCK)
     
     # Si es una pregunta de resumen, ejecutar automáticamente get_store_summary
     enhanced_message = message.strip()
@@ -404,6 +408,74 @@ Sé claro, directo y útil. No repitas toda la información, solo destaca lo má
             print(f"Error al obtener resumen automático: {str(e)}")
             pass
 
+    # 3b) Si es pregunta de categoría más vendida, ejecutar get_top_categories_by_revenue directamente
+    if is_top_categories_request and not is_summary_request:
+        try:
+            categories_result = admin_ai_actions.execute_action(
+                db, "get_top_categories_by_revenue", {"limit": 10}, user_id
+            )
+            user_content = f"""El usuario pregunta: {message}
+
+He obtenido los siguientes datos de categorías más vendidas:
+{categories_result}
+
+Genera una respuesta natural y conversacional en español (1-3 frases) basándote en esta información.
+Sé claro, directo y útil. Destaca la categoría que más vende si hay datos."""
+            try:
+                natural_reply = chat_completion(
+                    user_content=user_content,
+                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara, seria pero cercana, usando solo los datos proporcionados.",
+                    temperature=0.3,
+                )
+                save_conversation(
+                    db, user_id, message, natural_reply,
+                    tool_calls=[{"name": "get_top_categories_by_revenue", "params": {"limit": 10}, "status": "executed"}],
+                )
+                return natural_reply
+            except Exception:
+                save_conversation(
+                    db, user_id, message, categories_result,
+                    tool_calls=[{"name": "get_top_categories_by_revenue", "params": {"limit": 10}, "status": "executed"}],
+                )
+                return categories_result
+        except Exception as e:
+            print(f"Error al obtener top categorías: {str(e)}")
+            pass
+
+    # 3c) Si es pregunta de producto con mayor stock, ejecutar get_top_stock_products directamente
+    if is_top_stock_request and not is_summary_request and not is_top_categories_request:
+        try:
+            stock_result = admin_ai_actions.execute_action(
+                db, "get_top_stock_products", {"limit": 10}, user_id
+            )
+            user_content = f"""El usuario pregunta: {message}
+
+He obtenido los siguientes datos de productos con mayor stock:
+{stock_result}
+
+Genera una respuesta natural y conversacional en español (1-3 frases) basándote en esta información.
+Sé claro y directo. Menciona el producto con mayor stock."""
+            try:
+                natural_reply = chat_completion(
+                    user_content=user_content,
+                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara, seria pero cercana, usando solo los datos proporcionados.",
+                    temperature=0.3,
+                )
+                save_conversation(
+                    db, user_id, message, natural_reply,
+                    tool_calls=[{"name": "get_top_stock_products", "params": {"limit": 10}, "status": "executed"}],
+                )
+                return natural_reply
+            except Exception:
+                save_conversation(
+                    db, user_id, message, stock_result,
+                    tool_calls=[{"name": "get_top_stock_products", "params": {"limit": 10}, "status": "executed"}],
+                )
+                return stock_result
+        except Exception as e:
+            print(f"Error al obtener top stock: {str(e)}")
+            pass
+
     # 4) Preparar mensajes para el LLM con tools y contexto histórico
     system_prompt = SYSTEM_PROMPT_ADMIN_AI.strip()
     if conversation_context:
@@ -422,8 +494,12 @@ Sé claro, directo y útil. No repitas toda la información, solo destaca lo má
         save_conversation(db, user_id, message, error_msg)
         return error_msg
 
-    except RuntimeError as e:
-        error_msg = f"Ocurrió un error al usar la IA: {str(e)}"
+    except RuntimeError:
+        # Mensaje no técnico (el detalle se registra en logs).
+        error_msg = (
+            "Tuve un problema momentáneo al consultar esa información. "
+            "¿Puedes intentar de nuevo en unos segundos?"
+        )
         save_conversation(db, user_id, message, error_msg)
         return error_msg
 
@@ -466,11 +542,12 @@ Sé claro, directo y útil. No repitas toda la información, solo destaca lo má
     except json.JSONDecodeError:
         params = {}
 
-    if not name or not params:
+    if not name:
         error_reply = (
             "He intentado preparar una acción, pero no pude extraer parámetros válidos. "
-            "Dime de nuevo qué quieres hacer, por ejemplo: 'crea la marca Nike' o "
-            "'actualiza la barra con: Envíos gratis hoy'."
+            "Dime de nuevo qué quieres hacer. Ejemplos:\n"
+            "- Consultas: 'cuál es la categoría más vendida', 'de dónde vienen más ventas', 'resumen de la tienda'\n"
+            "- Acciones: 'crea la marca Nike', 'actualiza la barra con: Envíos gratis hoy'"
         )
         save_conversation(db, user_id, message, error_reply)
         return error_reply
@@ -494,6 +571,9 @@ Sé claro, directo y útil. No repitas toda la información, solo destaca lo má
         "get_store_summary", "list_categories",
         "list_products", "get_product", "list_orders", "get_order",
         "check_low_stock", "list_users", "get_user", "list_discounts",
+        "get_top_stock_products",
+        "get_top_categories_by_revenue", "get_conversion_metrics",
+        "get_geographic_sales", "get_hourly_traffic", "get_customer_demographics",
     )
     if name in READ_ONLY_TOOLS:
         reply = admin_ai_actions.execute_action(db, name, params, user_id)

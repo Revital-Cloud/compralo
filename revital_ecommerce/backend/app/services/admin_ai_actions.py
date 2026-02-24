@@ -35,10 +35,17 @@ ACTION_LIST_ORDERS = "list_orders"
 ACTION_GET_ORDER = "get_order"
 ACTION_UPDATE_ORDER_STATUS = "update_order_status"
 ACTION_CHECK_LOW_STOCK = "check_low_stock"
+ACTION_GET_TOP_STOCK_PRODUCTS = "get_top_stock_products"
 ACTION_LIST_USERS = "list_users"
 ACTION_GET_USER = "get_user"
 ACTION_LIST_DISCOUNTS = "list_discounts"
 ACTION_TOGGLE_DISCOUNT_STATUS = "toggle_discount_status"
+# Analytics avanzados
+ACTION_GET_TOP_CATEGORIES_BY_REVENUE = "get_top_categories_by_revenue"
+ACTION_GET_CONVERSION_METRICS = "get_conversion_metrics"
+ACTION_GET_GEOGRAPHIC_SALES = "get_geographic_sales"
+ACTION_GET_HOURLY_TRAFFIC = "get_hourly_traffic"
+ACTION_GET_CUSTOMER_DEMOGRAPHICS = "get_customer_demographics"
 
 
 def _sanitize_string(value: Any, max_len: int = 500) -> str:
@@ -673,6 +680,44 @@ def _execute_check_low_stock(db: Session, params: dict, user_id: str | Decimal) 
         return f"Error al verificar stock: {str(e)}"
 
 
+def _execute_get_top_stock_products(db: Session, params: dict, user_id: str | Decimal) -> str:
+    """Lista los productos con mayor stock total (variantes activas)."""
+    limit = min(int(params.get("limit", 10)), 25)
+    if limit <= 0:
+        limit = 10
+    try:
+        q = text("""
+            WITH product_stock AS (
+                SELECT p.id, p.name,
+                    COALESCE(SUM(c.stock), 0)::BIGINT AS stock_total
+                FROM tab_products p
+                LEFT JOIN tab_product_variant_groups g ON g.product_id = p.id
+                LEFT JOIN tab_product_variant_combinations c ON c.group_id = g.id AND c.is_active = TRUE
+                WHERE p.is_active = TRUE
+                GROUP BY p.id, p.name
+            )
+            SELECT id, name, stock_total
+            FROM product_stock
+            ORDER BY stock_total DESC, name ASC
+            LIMIT :limit
+        """)
+        rows = db.execute(q, {"limit": limit}).mappings().all()
+        if not rows:
+            return "No hay productos activos con stock registrado."
+        lines = []
+        for r in rows:
+            lines.append(f"- {r.get('name', 'N/A')} (ID: {r.get('id')}, stock: {int(r.get('stock_total', 0) or 0)})")
+        top = rows[0]
+        top_name = top.get("name", "N/A")
+        top_stock = int(top.get("stock_total", 0) or 0)
+        return (
+            f"El producto con mayor stock ahora es «{top_name}» ({top_stock} unidades). "
+            "Top por stock:\n" + "\n".join(lines)
+        )
+    except Exception as e:
+        return f"Error al obtener productos con mayor stock: {str(e)}"
+
+
 def _execute_list_users(db: Session, params: dict, user_id: str | Decimal) -> str:
     """Lista usuarios con puntos de fidelización."""
     from services import points_per_user_service
@@ -762,6 +807,107 @@ def _execute_toggle_discount_status(db: Session, params: dict, user_id: str | De
         return f"No se pudo cambiar el estado del descuento: {str(e)}"
 
 
+def _execute_get_top_categories_by_revenue(db: Session, params: dict, user_id: str | Decimal) -> str:
+    """Obtiene categorías más vendidas por ingresos usando analytics_service."""
+    from services import analytics_service
+
+    limit = min(int(params.get("limit", 10)), 20)
+    try:
+        data = analytics_service.get_analytics_data(db)
+        perf = data.get("productPerformance") or []
+        if not perf:
+            return "No hay datos de ventas por categoría aún."
+        lines = []
+        for i, row in enumerate(perf[:limit], 1):
+            cat = row.get("category", "N/A")
+            sales = float(row.get("sales", 0) or 0)
+            pct = float(row.get("percentage", 0) or 0)
+            growth = float(row.get("growth", 0) or 0)
+            lines.append(f"{i}. {cat}: ${sales:,.0f} ({pct:.1f}% del total, crecimiento: {growth:+.1f}%)")
+        return "Categorías más vendidas por ingresos (últimos 30 días):\n" + "\n".join(lines)
+    except Exception as e:
+        return f"Error al obtener categorías: {str(e)}"
+
+
+def _execute_get_conversion_metrics(db: Session, params: dict, user_id: str | Decimal) -> str:
+    """Obtiene métricas de conversión."""
+    from services import analytics_service
+
+    try:
+        data = analytics_service.get_analytics_data(db)
+        metrics = data.get("conversionMetrics") or []
+        if not metrics:
+            return "No hay métricas de conversión disponibles."
+        lines = []
+        for m in metrics:
+            title = m.get("title", "N/A")
+            value = m.get("value", "0")
+            change = m.get("change", "0%")
+            lines.append(f"• {title}: {value} ({change} vs período anterior)")
+        return "Métricas de conversión (últimos 30 días):\n" + "\n".join(lines)
+    except Exception as e:
+        return f"Error al obtener métricas: {str(e)}"
+
+
+def _execute_get_geographic_sales(db: Session, params: dict, user_id: str | Decimal) -> str:
+    """Obtiene ventas por región geográfica."""
+    from services import analytics_service
+
+    limit = min(int(params.get("limit", 10)), 15)
+    try:
+        data = analytics_service.get_analytics_data(db)
+        geo = data.get("geoData") or []
+        if not geo:
+            return "No hay datos de ventas por región aún."
+        lines = []
+        for row in geo[:limit]:
+            region = row.get("region", "Sin especificar")
+            orders = int(row.get("orders", 0) or 0)
+            revenue = float(row.get("revenue", 0) or 0)
+            lines.append(f"• {region}: {orders} órdenes, ${revenue:,.0f}")
+        return "Ventas por región (últimos 30 días):\n" + "\n".join(lines)
+    except Exception as e:
+        return f"Error al obtener datos geográficos: {str(e)}"
+
+
+def _execute_get_hourly_traffic(db: Session, params: dict, user_id: str | Decimal) -> str:
+    """Obtiene tráfico/órdenes por hora."""
+    from services import analytics_service
+
+    try:
+        data = analytics_service.get_analytics_data(db)
+        hourly = data.get("hourlyTraffic") or []
+        if not hourly:
+            return "No hay datos de tráfico por hora aún."
+        # Encontrar las horas con más órdenes
+        sorted_hours = sorted(hourly, key=lambda x: int(x.get("visitors", 0) or 0), reverse=True)
+        top = sorted_hours[:5]
+        lines = [f"• {h.get('hour', '?')}:00 - {h.get('visitors', 0)} órdenes" for h in top]
+        return "Horas con más órdenes (últimos 30 días):\n" + "\n".join(lines)
+    except Exception as e:
+        return f"Error al obtener tráfico por hora: {str(e)}"
+
+
+def _execute_get_customer_demographics(db: Session, params: dict, user_id: str | Decimal) -> str:
+    """Obtiene demografía de clientes por edad."""
+    from services import analytics_service
+
+    try:
+        data = analytics_service.get_analytics_data(db)
+        demo = data.get("customerDemographics") or []
+        if not demo:
+            return "No hay datos demográficos de clientes aún."
+        lines = []
+        for row in demo:
+            age = row.get("ageGroup", "N/A")
+            pct = float(row.get("percentage", 0) or 0)
+            revenue = float(row.get("revenue", 0) or 0)
+            lines.append(f"• {age} años: {pct:.1f}% de ingresos (${revenue:,.0f})")
+        return "Demografía de clientes por grupo de edad:\n" + "\n".join(lines)
+    except Exception as e:
+        return f"Error al obtener demografía: {str(e)}"
+
+
 def _get_affected_entities(action_id: str) -> list[str]:
     """
     Devuelve la lista de entidades afectadas por una acción.
@@ -819,6 +965,8 @@ def execute_action(
         return _execute_update_order_status(db, params, user_id)
     if action_id == ACTION_CHECK_LOW_STOCK:
         return _execute_check_low_stock(db, params, user_id)
+    if action_id == ACTION_GET_TOP_STOCK_PRODUCTS:
+        return _execute_get_top_stock_products(db, params, user_id)
     if action_id == ACTION_LIST_USERS:
         return _execute_list_users(db, params, user_id)
     if action_id == ACTION_GET_USER:
@@ -827,6 +975,16 @@ def execute_action(
         return _execute_list_discounts(db, params, user_id)
     if action_id == ACTION_TOGGLE_DISCOUNT_STATUS:
         return _execute_toggle_discount_status(db, params, user_id)
+    if action_id == ACTION_GET_TOP_CATEGORIES_BY_REVENUE:
+        return _execute_get_top_categories_by_revenue(db, params, user_id)
+    if action_id == ACTION_GET_CONVERSION_METRICS:
+        return _execute_get_conversion_metrics(db, params, user_id)
+    if action_id == ACTION_GET_GEOGRAPHIC_SALES:
+        return _execute_get_geographic_sales(db, params, user_id)
+    if action_id == ACTION_GET_HOURLY_TRAFFIC:
+        return _execute_get_hourly_traffic(db, params, user_id)
+    if action_id == ACTION_GET_CUSTOMER_DEMOGRAPHICS:
+        return _execute_get_customer_demographics(db, params, user_id)
     return "Acción no permitida o no implementada."
 
 
