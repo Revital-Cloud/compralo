@@ -14,11 +14,11 @@
 
 Los archivos se guardan en `backups/YYYY-MM-DD_HH-MM-SS/` (por ejemplo `revital_ecommerce.dump`, `revital_panel.dump`). La carpeta `backups/` está en `.gitignore`.
 
-- **revital_ecommerce:** usa `DATABASE_URL` de `revital_ecommerce/backend/.env`.
-- **revital_panel:** usa `DATABASE_URL` de `revital_panel/backend/.env`. Si no existe ese `.env`, puedes pasar la URL por variable de entorno:
+- **revital_ecommerce:** usa `DATABASE_URL` de `revital_ecommerce/backend/.env` (o `DATABASE_URL_ECOM` por entorno).
+- **revital_panel:** usa `DATABASE_URL` de `revital_panel/backend/.env` (o `DATABASE_URL_PANEL` por entorno). Si no existe ese `.env`, puedes pasar la URL por variable de entorno:
 
 ```bash
-DATABASE_URL_PANEL='postgresql://user:pass@host:5432/revital_panel' ./scripts/backup-databases.sh
+DATABASE_URL_PANEL='postgresql://user:pass@host:5432/revital_saas' ./scripts/backup-databases.sh
 ```
 
 Para restaurar un dump:
@@ -38,8 +38,8 @@ sudo -u postgres psql -c "ALTER USER postgres PASSWORD 'tu_password';"
 2. **Restaura las bases** (usa la misma contraseña que pusiste):
 
 ```bash
-DATABASE_URL_ECOM='postgresql://postgres:tu_password@localhost/synkro_ecommerce' \
-DATABASE_URL_PANEL='postgresql://postgres:tu_password@localhost/synkro_panel' \
+DATABASE_URL_ECOM='postgresql://postgres:tu_password@localhost/revital_ecommerce' \
+DATABASE_URL_PANEL='postgresql://postgres:tu_password@localhost/revital_saas' \
 ./scripts/restore-databases.sh backups/YYYY-MM-DD_HH-MM-SS
 ```
 

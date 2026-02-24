@@ -7,8 +7,8 @@ Revital es una plataforma SaaS de comercio electrónico diseñada para venderse 
 ## 🎯 Estado Actual del Proyecto
 
 **Versión**: V1.0 - Funcionalidades Core Implementadas  
-**Progreso**: 85% completado  
-**Última actualización**: Enero 2026
+**Estado**: En desarrollo activo (V1 funcional en clientes piloto)  
+**Última actualización**: Febrero 2026
 
 ### ✅ Funcionalidades Implementadas
 
@@ -30,7 +30,7 @@ Revital es una plataforma SaaS de comercio electrónico diseñada para venderse 
 - ✅ **Middleware de autenticación** y autorización por roles
 - ✅ **Analytics y dashboards** con KPIs
 
-**Frontend (Next.js 15)**:
+**Frontend (Next.js 16)**:
 - ✅ **Interfaz de tienda** completa con catálogo de productos
 - ✅ **Sistema de filtros** avanzado con búsqueda en tiempo real
 - ✅ **Carrito de compras** funcional con persistencia
@@ -65,7 +65,7 @@ Revital es una plataforma SaaS de comercio electrónico diseñada para venderse 
 - ✅ **Historial de planes** (cambios de plan)
 - ✅ **Rate limiting** y seguridad
 
-**Frontend (Next.js 15)**:
+**Frontend (Next.js 16)**:
 - ✅ **Landing page** de marketing con secciones:
   - Hero section con CTA
   - Sección de características
@@ -91,11 +91,8 @@ Revital es una plataforma SaaS de comercio electrónico diseñada para venderse 
 ### 🚧 En Desarrollo
 
 #### revital_ecommerce:
-- ⏳ **Proceso de checkout** completo (parcialmente implementado)
-- ⏳ **Gestión de órdenes** del lado del usuario (historial completo)
-- ⏳ **Dashboard de analytics** avanzado con más métricas
-- ⏳ **Sistema de notificaciones** en tiempo real
-- ⏳ **Sistema de reviews** y comentarios de productos
+- ⏳ **Optimización de experiencia de checkout** (copias, pasos y estados vacíos)
+- ⏳ **Ampliación de analytics** con más métricas de negocio
 
 #### revital_panel:
 - ⏳ **Panel administrativo** completo para Revital (gestión de todas las instancias)
@@ -133,7 +130,7 @@ Revital es una plataforma SaaS de comercio electrónico diseñada para venderse 
 
 ### Frontend
 
-- **Next.js 15+** - Framework React con App Router
+- **Next.js 16+** - Framework React con App Router
 - **TypeScript** - Tipado estático
 - **Tailwind CSS** - Styling utilitario
 - **shadcn/ui** - Componentes UI
@@ -162,7 +159,7 @@ revital/                          # Repositorio GitHub (solo código fuente)
 │   │   │   └── main.py          # Punto de entrada FastAPI
 │   │   ├── requirements.txt
 │   │   └── README.md
-│   ├── frontend/                # Next.js 15 - Tienda del cliente
+│   ├── frontend/                # Next.js 16 - Tienda del cliente
 │   │   ├── app/
 │   │   │   ├── (auth)/          # Login, registro, recuperación contraseña
 │   │   │   ├── (shop)/          # Catálogo, productos, carrito, checkout
@@ -196,7 +193,7 @@ revital/                          # Repositorio GitHub (solo código fuente)
 │   │   │   └── main.py          # Punto de entrada FastAPI
 │   │   ├── requirements.txt
 │   │   └── README.md
-│   ├── frontend/                # Next.js 15 - Landing + Panel SaaS
+│   ├── frontend/                # Next.js 16 - Landing + Panel SaaS
 │   │   ├── app/
 │   │   │   ├── page.tsx         # Landing page (marketing)
 │   │   │   ├── login/           # Login para clientes SaaS
@@ -247,10 +244,11 @@ revital/                          # Repositorio GitHub (solo código fuente)
   - Gestión de inventario y movimientos de stock
   - Emails transaccionales con Resend
   - Analytics y dashboards
+  - Asistente de administración con IA (Groq) para resúmenes, analytics y acciones guiadas (`/api/admin/ai/*`)
 - **Base de datos**: PostgreSQL dedicada por cliente (`db_revital.sql`)
 
 **Frontend (`revital_ecommerce/frontend`)**:
-- **Next.js 15** con App Router
+- **Next.js 16** con App Router
 - **Interfaz de tienda** completa para clientes finales:
   - Catálogo de productos con filtros avanzados
   - Carrito de compras con persistencia
@@ -286,7 +284,7 @@ revital/                          # Repositorio GitHub (solo código fuente)
 - **Base de datos**: PostgreSQL centralizada (`db_revitalsaas.sql`) que almacena metadatos de todas las instancias
 
 **Frontend (`revital_panel/frontend`)**:
-- **Next.js 15** con App Router
+- **Next.js 16** con App Router
 - **Landing page** de marketing para atraer nuevos clientes
 - **Panel de control** para clientes SaaS que incluye:
   - Dashboard con overview de su instancia
@@ -338,12 +336,6 @@ revital/                          # Repositorio GitHub (solo código fuente)
 6. El cliente gestiona su suscripción desde **revital_panel**
 
 ---
-
-> **Nota**: 
-> - Cada proyecto (`revital_ecommerce` y `revital_panel`) funciona de forma **independiente** sin necesidad de workspaces o monorepo tools.
-> - Los componentes UI están copiados localmente en cada `frontend/components/ui/` siguiendo el estándar de [shadcn/ui](https://ui.shadcn.com/).
-> - Cada frontend tiene su propio `package.json` y se gestiona independientemente.
-> - Este repositorio contiene solo el código fuente. La configuración de deployment (Docker, Traefik, etc.) se gestiona en `/srv/revital/containers/`.
 
 ## 🚀 Inicio Rápido (Desarrollo)
 
@@ -457,7 +449,7 @@ pnpm dev
 ```
 
 **URLs**:
-- Frontend: http://localhost:3000
+- Frontend: http://localhost:3001
 - Backend API: http://localhost:8000
 - API Docs: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
@@ -529,7 +521,7 @@ pnpm dev
 ```
 
 **URLs**:
-- Frontend (Landing + Panel): http://localhost:3001
+- Frontend (Landing + Panel): http://localhost:4001
 - Backend API: http://localhost:8001
 - API Docs: http://localhost:8001/docs
 
@@ -571,34 +563,6 @@ pnpm dev
 6. **Personalización** - Branding y configuración específica
 7. **Configuración de dominio** - Dominio personalizado del cliente
 8. **Go-live** - Activación de la instancia
-
-### Ejemplo de Deployment por Cliente
-
-```yaml
-# docker-compose.yml para cliente "empresa-abc"
-version: "3.8"
-services:
-  backend:
-    image: revital-backend:latest
-    environment:
-      - DATABASE_URL=postgresql://user:pass@postgres:5432/empresa_abc_db
-      - CLIENT_NAME=empresa_abc
-      - JWT_SECRET=unique_secret_for_empresa_abc
-      - WOMPI_ACCESS_TOKEN=client_specific_token
-
-  frontend:
-    image: revital-frontend:latest
-    environment:
-      - NEXT_PUBLIC_API_URL=https://api.empresa-abc.com
-      - NEXT_PUBLIC_BRAND_COLOR=#1a56db
-
-  postgres:
-    image: postgres:15
-    environment:
-      - POSTGRES_DB=empresa_abc_db
-    volumes:
-      - ./empresa_abc_data:/var/lib/postgresql/data
-```
 
 ## 🎯 Características SaaS
 

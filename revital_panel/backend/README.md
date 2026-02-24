@@ -118,26 +118,24 @@ psql "$DATABASE_URL" -f ../db/db_revitalsaas.sql
 ### 4. Iniciar Servidor de Desarrollo
 
 ```bash
-# Método recomendado (Script con PYTHONPATH configurado)
-./run_dev.sh
+# Recomendado (FastAPI CLI)
+# Nota: usa un puerto distinto al e-commerce para evitar colisión (ej. 8001)
+fastapi dev app/main.py --host 0.0.0.0 --port 8001
 
-# Método alternativo (FastAPI CLI con PYTHONPATH)
-PYTHONPATH=./app fastapi dev app/main.py --port 8080
-
-# Método alternativo (Uvicorn)
-PYTHONPATH=./app uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+# Alternativo (Uvicorn)
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 ```
 
-**Nota importante**: El proyecto requiere que el directorio `app/` esté en el PYTHONPATH para que las importaciones funcionen correctamente. El script `run_dev.sh` configura esto automáticamente.
+**Nota**: `app/main.py` agrega el directorio `app/` al `sys.path` para que los imports funcionen sin configurar `PYTHONPATH`.
 
 ### 5. Verificar Instalación
 
 ```bash
 # Verificar que el servidor esté funcionando
-curl http://localhost:8080/
+curl http://localhost:8001/
 
 # Verificar documentación de la API
-# Abrir en navegador: http://localhost:8080/docs
+# Abrir en navegador: http://localhost:8001/docs
 ```
 
 ## 🚧 Estado del Proyecto
@@ -161,12 +159,12 @@ Este backend está en **desarrollo activo**. Las funcionalidades principales inc
 
 ### Swagger UI Automático
 
-- **Desarrollo**: http://localhost:8080/docs (puerto diferente al e-commerce)
+- **Desarrollo**: http://localhost:8001/docs (puerto diferente al e-commerce)
 - **Producción**: https://api.revital.com/docs
 
 ### ReDoc
 
-- **Desarrollo**: http://localhost:8080/redoc
+- **Desarrollo**: http://localhost:8001/redoc
 
 ## 🔧 Comandos Útiles
 
@@ -177,7 +175,7 @@ Este backend está en **desarrollo activo**. Las funcionalidades principales inc
 fastapi dev app/main.py
 
 # Ejecutar con uvicorn
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 ```
 
 ### Verificar Configuración

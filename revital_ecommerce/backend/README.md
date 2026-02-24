@@ -22,7 +22,7 @@ El backend de Revital está diseñado para funcionar como una API independiente 
 - **Roles simples**: Admin, Employee, Customer
 - **API personalizable** por plan de suscripción
 - **Límites configurables** según el plan del cliente
-- **Integraciones específicas** (Mercado Pago, emails)
+- **Integraciones específicas** (Wompi, emails)
 
 ## 📁 Estructura del Proyecto
 
@@ -50,7 +50,7 @@ backend/
 │   │   ├── provider_router.py # Gestión de proveedores
 │   │   ├── cart_product_router.py # Sistema de carrito
 │   │   ├── order_router.py    # Gestión de pedidos
-│   │   ├── payment_router.py  # Integración con Mercado Pago
+│   │   ├── payment_router.py  # Integración con Wompi
 │   │   ├── address_router.py  # Gestión de direcciones
 │   │   ├── favorites_router.py # Sistema de favoritos
 │   │   ├── discount_router.py # Sistema de descuentos
@@ -121,6 +121,7 @@ backend/
 
 - **Wompi SDK** - Procesamiento de pagos por cliente
 - **Resend** - Emails transaccionales con branding
+- **Groq (LLM)** - Asistente de administración conectado al panel (`/api/admin/ai/*`)
 - **Redis** (opcional) - Cache por instancia
 
 ## 🚀 Instalación y Configuración
@@ -132,18 +133,13 @@ backend/
 Python 3.13+
 PostgreSQL 15+
 Git
-pnpm (para el monorepo)
 ```
 
 ### 1. Preparar Entorno
 
 ```bash
-# Desde la raíz del monorepo (code/)
-# Las dependencias del frontend se instalan con:
-pnpm install
-
-# Para el backend, navega a la carpeta:
-cd apps/ecommerce/backend
+# Navega al backend del e-commerce:
+cd revital_ecommerce/backend
 
 # Crear entorno virtual
 python -m venv venv
@@ -228,16 +224,13 @@ REDIS_URL=redis://localhost:6379/0
 ### 4. Iniciar Servidor de Desarrollo
 
 ```bash
-# Desde apps/ecommerce/backend/
+# Desde revital_ecommerce/backend/
 # Método recomendado (FastAPI CLI)
 # Nota: usa --host 0.0.0.0 para que sea accesible por IP (LAN) y no solo por localhost
-fastapi dev app/main.py --host 0.0.0.0 --port 8001
+fastapi dev app/main.py --host 0.0.0.0 --port 8000
 
 # Método alternativo (Uvicorn)
-python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
-
-# O desde el directorio del backend:
-# pnpm dev
+python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### 5. Verificar Instalación
@@ -408,6 +401,10 @@ class Product(Base):
 
 - **Resend** para emails transaccionales
 - **Wompi** para procesamiento de pagos
+- **Groq** para el asistente de administración que:
+  - Resume el estado de la tienda (ventas, órdenes, productos, alertas de stock)
+  - Responde preguntas de analytics (categorías top, conversión, regiones, horas pico, demografía)
+  - Sugiere y ejecuta acciones administrativas tras confirmación (crear marcas, proveedores, descuentos, actualizar barra superior)
 - **Sistema de templates** de email personalizables
 - **Cloudinary** para gestión de imágenes (opcional)
 

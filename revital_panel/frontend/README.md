@@ -18,7 +18,7 @@ Frontend de Revital que incluye:
 - **React**: 19+
 - **TypeScript**: Tipado estático completo
 - **UI Components**: shadcn/ui
-- **Styling**: Tailwind CSS 3
+- **Styling**: Tailwind CSS 4
 - **Animations**: Framer Motion
 - **State Management**: React Query, Zustand
 - **Package Manager**: pnpm 10.28.0 (requerido)
@@ -74,7 +74,9 @@ cp .env.production.example .env.production 2>/dev/null || true
 pnpm dev
 ```
 
-La aplicación estará disponible en: **http://localhost:3000**
+Antes de levantar el frontend, revisa `.env.development` y apunta `NEXT_PUBLIC_API_URL` al backend local (recomendado): `http://localhost:8001/api`.
+
+La aplicación estará disponible en: **http://localhost:4001**
 
 > **Nota:** Este proyecto usa `pnpm@10.28.0` como gestor de paquetes. El archivo `.npmrc` y `packageManager` en `package.json` garantizan el uso correcto de pnpm. Si intentas usar `npm` o `yarn`, recibirás una advertencia.
 

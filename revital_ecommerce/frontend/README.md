@@ -1,8 +1,8 @@
 # Revital Frontend - Interfaz SaaS de E-Commerce 🎨
 
-**Aplicación Next.js 15 para instancias de cliente personalizadas**
+**Aplicación Next.js 16 para instancias de cliente personalizadas**
 
-El frontend de Revital está construido con Next.js 15+ y diseñado para ofrecer una experiencia completamente personalizada para cada cliente SaaS. Cada instancia puede tener su propio branding, dominio y configuración específica.
+El frontend de Revital está construido con Next.js 16+ y diseñado para ofrecer una experiencia completamente personalizada para cada cliente SaaS. Cada instancia puede tener su propio branding, dominio y configuración específica.
 
 **Requisitos y trazabilidad:** La especificación de requisitos de software (SRS) de revital_ecommerce, según IEEE 830-1998, está en [revital_ecommerce/docs/SRS_REVITAL_ECOMMERCE_IEEE830.md](../docs/SRS_REVITAL_ECOMMERCE_IEEE830.md). Los requisitos funcionales (RF-xx) y no funcionales (RNF-xx) definidos allí son la referencia para diseño, implementación y pruebas.
 
@@ -62,10 +62,10 @@ El frontend de Revital está construido con Next.js 15+ y diseñado para ofrecer
 ## 🛠️ Stack Tecnológico
 
 ### Core Framework
-- **Next.js 15+** - Framework React con App Router
+- **Next.js 16+** - Framework React con App Router
 - **TypeScript** - Tipado estático completo
-- **React 18+** - Últimas características de React
-- **Tailwind CSS 3** - Styling utilitario responsive
+- **React 19** - UI
+- **Tailwind CSS 4** - Styling utilitario responsive
 
 ### UI/UX
 - **shadcn/ui** - Componentes accesibles y modernos
@@ -89,7 +89,7 @@ El frontend de Revital está construido con Next.js 15+ y diseñado para ofrecer
 
 ```
 frontend/
-├── app/                          # App Router (Next.js 15+)
+├── app/                          # App Router (Next.js 16+)
 │   ├── (auth)/                  # Grupo de rutas de autenticación
 │   │   ├── login/               # Página de login
 │   │   └── register/            # Página de registro
@@ -238,7 +238,8 @@ frontend/
 │   ├── PRODUCT_FILTERS_GUIDE.md # Guía de filtros
 │   └── ...                      # Más documentación
 │
-├── .env.local.example           # Plantilla de configuración
+├── .env.development.example     # Plantilla (dev)
+├── .env.production.example      # Plantilla (prod)
 ├── next.config.ts               # Configuración de Next.js
 ├── tailwind.config.ts           # Configuración de Tailwind
 ├── tsconfig.json                # Configuración de TypeScript
@@ -280,49 +281,17 @@ pnpm install
 
 ### 2. Configurar Variables de Entorno
 ```bash
-# Copiar plantilla de configuración
-cp .env.local.example .env.local
+# Copiar plantilla de desarrollo (recomendado)
+cp .env.development.example .env.development
+
+# (Opcional) plantilla de producción para builds locales
+# cp .env.production.example .env.production
 ```
 
 ```env
-# .env.local - Configuración específica de esta instancia de cliente
-
-# API Backend de esta instancia
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_API_VERSION=v1
-
-# Identificación del cliente
-NEXT_PUBLIC_CLIENT_NAME=empresa_abc
-NEXT_PUBLIC_CLIENT_DOMAIN=empresa-abc.com
-NEXT_PUBLIC_INSTANCE_ID=abc_001
-
-# Personalización del cliente
-NEXT_PUBLIC_BRAND_NAME="Empresa ABC"
-NEXT_PUBLIC_BRAND_PRIMARY_COLOR=#1a56db
-NEXT_PUBLIC_BRAND_SECONDARY_COLOR=#64748b
-NEXT_PUBLIC_BRAND_LOGO_URL=/logos/empresa-abc-logo.png
-NEXT_PUBLIC_FAVICON_URL=/favicon/empresa-abc-favicon.ico
-
-# Plan y características
-NEXT_PUBLIC_SUBSCRIPTION_PLAN=business
-NEXT_PUBLIC_MAX_PRODUCTS=1000
-NEXT_PUBLIC_FEATURES_ENABLED=analytics,inventory,marketing,advanced_ui
-
-# Configuración de negocio
-NEXT_PUBLIC_BUSINESS_TYPE=fashion
-NEXT_PUBLIC_CURRENCY=ARS
-NEXT_PUBLIC_LANGUAGE=es
-
-# Wompi (público)
-NEXT_PUBLIC_WOMPI_PUBLIC_KEY=TEST-client_specific_public_key
-
-# Analytics y tracking (opcional)
-NEXT_PUBLIC_GOOGLE_ANALYTICS_ID=GA-CLIENT-123
-NEXT_PUBLIC_FACEBOOK_PIXEL_ID=CLIENT-FB-PIXEL
-
-# Configuración de producción
-NEXT_PUBLIC_ENVIRONMENT=development
-NEXT_PUBLIC_CUSTOM_DOMAIN=https://tienda.empresa-abc.com
+# Variables mínimas (ver `.env.development.example` para el set completo)
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+NEXT_PUBLIC_WOMPI_PUBLIC_KEY=pub_test_xxxx
 ```
 
 ### 3. Iniciar Desarrollo
@@ -335,245 +304,31 @@ cd revital_ecommerce/frontend
 pnpm dev
 ```
 
-La aplicación estará disponible en: **http://localhost:3000**
+La aplicación estará disponible en: **http://localhost:3001**
 
 > **Nota:** El proyecto está configurado para usar `pnpm` automáticamente. Si intentas usar `npm` o `yarn`, recibirás una advertencia gracias a la configuración de `packageManager` en `package.json`.
 
 ## 🎨 Personalización por Cliente
 
-### Sistema de Temas Dinámicos
-```typescript
-// types/client-config.ts
-export interface ClientConfig {
-  name: string;
-  domain: string;
-  branding: {
-    primaryColor: string;
-    secondaryColor: string;
-    accentColor: string;
-    logo: string;
-    favicon: string;
-    font: 'inter' | 'roboto' | 'poppins';
-  };
-  features: {
-    analytics: boolean;
-    inventory: boolean;
-    marketing: boolean;
-    multiLanguage: boolean;
-    advancedUI: boolean;
-  };
-  businessType: 'fashion' | 'electronics' | 'home_garden' | 'general';
-  plan: 'starter' | 'business' | 'enterprise';
-}
-```
+El frontend está preparado para funcionar como **white-label** por instancia:
 
-### Hook de Configuración del Cliente
-```typescript
-// hooks/use-client-config.ts
-export const useClientConfig = () => {
-  const config: ClientConfig = {
-    name: process.env.NEXT_PUBLIC_CLIENT_NAME || 'Default Store',
-    domain: process.env.NEXT_PUBLIC_CLIENT_DOMAIN || 'localhost',
-    branding: {
-      primaryColor: process.env.NEXT_PUBLIC_BRAND_PRIMARY_COLOR || '#1a56db',
-      secondaryColor: process.env.NEXT_PUBLIC_BRAND_SECONDARY_COLOR || '#64748b',
-      accentColor: process.env.NEXT_PUBLIC_BRAND_ACCENT_COLOR || '#f59e0b',
-      logo: process.env.NEXT_PUBLIC_BRAND_LOGO_URL || '/logos/default-logo.png',
-      favicon: process.env.NEXT_PUBLIC_FAVICON_URL || '/favicon.ico',
-      font: 'inter'
-    },
-    features: {
-      analytics: process.env.NEXT_PUBLIC_FEATURES_ENABLED?.includes('analytics') || false,
-      inventory: process.env.NEXT_PUBLIC_FEATURES_ENABLED?.includes('inventory') || false,
-      marketing: process.env.NEXT_PUBLIC_FEATURES_ENABLED?.includes('marketing') || false,
-      multiLanguage: process.env.NEXT_PUBLIC_FEATURES_ENABLED?.includes('multi_language') || false,
-      advancedUI: process.env.NEXT_PUBLIC_FEATURES_ENABLED?.includes('advanced_ui') || false
-    },
-    businessType: (process.env.NEXT_PUBLIC_BUSINESS_TYPE as any) || 'general',
-    plan: (process.env.NEXT_PUBLIC_SUBSCRIPTION_PLAN as any) || 'starter'
-  };
+- Configuración por variables `NEXT_PUBLIC_*` (nombre de tienda, dominio, colores, logo, moneda, idioma).
+- Soporta distintos **tipos de negocio** (`fashion`, `electronics`, `home_garden`, `general`) para ajustar atributos mostrados (talla, color, etc.).
+- Permite **activar features por plan** (`analytics`, `inventory`, `marketing`, `advanced_ui`) para adaptar la UI según el plan contratado.
 
-  return config;
-};
-```
+## 🔐 Autenticación y Planes
 
-### Componente de Header Personalizable
-```typescript
-// components/common/header.tsx
-'use client';
+- Autenticación basada en JWT (roles: **admin**, **employee**, **customer**) integrada con el backend.
+- Protección de rutas sensibles (dashboard, analytics, etc.) según rol y plan.
 
-import { useClientConfig } from '@/hooks/use-client-config';
-import { useAuth } from '@/hooks/use-auth';
+## 🧰 Scripts principales
 
-export const Header = () => {
-  const config = useClientConfig();
-  const { user, logout } = useAuth();
-
-  return (
-    <header 
-      className="border-b bg-white"
-      style={{ borderColor: config.branding.primaryColor }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo personalizado del cliente */}
-          <div className="flex items-center">
-            <img 
-              src={config.branding.logo} 
-              alt={`${config.name} Logo`}
-              className="h-8 w-auto"
-            />
-            <span 
-              className="ml-2 text-xl font-bold"
-              style={{ color: config.branding.primaryColor }}
-            >
-              {config.name}
-            </span>
-          </div>
-
-          {/* Navegación adaptada por plan */}
-          <nav className="hidden md:flex space-x-8">
-            <a href="/" className="text-gray-900 hover:text-gray-700">
-              Inicio
-            </a>
-            <a href="/products" className="text-gray-900 hover:text-gray-700">
-              Productos
-            </a>
-            
-            {/* Mostrar Analytics solo si está habilitado */}
-            {config.features.analytics && user?.role === 'admin' && (
-              <a href="/analytics" className="text-gray-900 hover:text-gray-700">
-                Analytics
-              </a>
-            )}
-          </nav>
-
-          {/* Acciones de usuario */}
-          <div className="flex items-center space-x-4">
-            {user ? (
-              <button 
-                onClick={logout}
-                className="bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700"
-              >
-                Cerrar Sesión
-              </button>
-            ) : (
-              <a 
-                href="/login"
-                className="text-white px-4 py-2 rounded-md"
-                style={{ backgroundColor: config.branding.primaryColor }}
-              >
-                Iniciar Sesión
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
-    </header>
-  );
-};
-```
-
-## 🔐 Autenticación sin Tenant Complexity
-
-### Hook de Autenticación Simplificado
-```typescript
-// hooks/use-auth.ts
-'use client';
-
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
-
-interface User {
-  id: number;
-  email: string;
-  name: string;
-  role: 'admin' | 'employee' | 'customer';
-}
-
-export const useAuth = () => {
-  const queryClient = useQueryClient();
-
-  // Obtener usuario actual (sin tenant_id)
-  const { data: user, isLoading } = useQuery({
-    queryKey: ['auth', 'me'],
-    queryFn: () => api.get('/auth/me'),
-    retry: false,
-  });
-
-  // Login
-  const loginMutation = useMutation({
-    mutationFn: (credentials: { email: string; password: string }) =>
-      api.post('/auth/login', credentials),
-    onSuccess: (data) => {
-      localStorage.setItem('token', data.access_token);
-      queryClient.invalidateQueries({ queryKey: ['auth'] });
-    },
-  });
-
-  // Logout
-  const logout = () => {
-    localStorage.removeItem('token');
-    queryClient.clear();
-    window.location.href = '/login';
-  };
-
-  return {
-    user,
-    isLoading,
-    isAuthenticated: !!user,
-    isAdmin: user?.role === 'admin',
-    login: loginMutation.mutate,
-    logout,
-    isLoginPending: loginMutation.isPending,
-  };
-};
-```
-
-### Protección de Rutas por Plan
-```typescript
-// components/auth/plan-guard.tsx
-'use client';
-
-import { useClientConfig } from '@/hooks/use-client-config';
-import { useAuth } from '@/hooks/use-auth';
-
-interface PlanGuardProps {
-  requiredPlan: 'starter' | 'business' | 'enterprise';
-  requiredFeature?: string;
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-}
-
-export const PlanGuard: React.FC<PlanGuardProps> = ({
-  requiredPlan,
-  requiredFeature,
-  children,
-  fallback
-}) => {
-  const config = useClientConfig();
-  const { user } = useAuth();
-
-  const planLevels = { starter: 1, business: 2, enterprise: 3 };
-  const currentLevel = planLevels[config.plan];
-  const requiredLevel = planLevels[requiredPlan];
-
-  const hasAccess = currentLevel >= requiredLevel;
-  const hasFeature = !requiredFeature || config.features[requiredFeature as keyof typeof config.features];
-
-  if (!hasAccess || !hasFeature) {
-    return fallback || (
-      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-        <p className="text-yellow-800">
-          Esta funcionalidad requiere el plan {requiredPlan} o superior.
-          {requiredFeature && ` Feature requerida: ${requiredFeature}`}
-        </p>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-};
+```bash
+pnpm dev        # Servidor de desarrollo
+pnpm build      # Build de producción
+pnpm start      # Servidor de producción
+pnpm lint       # Lint
+pnpm type-check # Verificación de tipos
 ```
 
 ## 🛒 Componentes de E-Commerce

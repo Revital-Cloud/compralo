@@ -34,7 +34,7 @@ get_db_url() {
 }
 
 # Devuelve la URL de conexión a la base 'postgres' (para CREATE DATABASE)
-# postgresql://user:pass@host:5432/synkro_ecommerce -> postgresql://user:pass@host:5432/postgres
+# postgresql://user:pass@host:5432/revital_ecommerce -> postgresql://user:pass@host:5432/postgres
 maintenance_url() {
   local url="$1"
   if [[ -z "$url" ]]; then
@@ -67,8 +67,8 @@ restore_one() {
     url="$(get_db_url "$env_path")"
   fi
   if [[ -z "$url" ]]; then
-    url="postgresql://46.225.94.64:5432/${name}"
-    echo "[INFO] $name: usando URL por defecto postgresql://46.225.94.64:5432/${name}"
+    echo "[SKIP] $name: no .env o $override_var (ruta: $env_path)"
+    return 0
   fi
   local dump_file="$BACKUP_DIR/${name}.dump"
   if [[ ! -f "$dump_file" ]]; then
@@ -77,8 +77,10 @@ restore_one() {
   fi
   local maint_url
   maint_url="$(maintenance_url "$url")"
-  echo "[CREATE] $name (si no existe)"
-  if ! create_db_if_not_exists "$name" "$maint_url"; then
+  local db_name="${url##*/}"
+  db_name="${db_name%%\?*}"
+  echo "[CREATE] $db_name (si no existe)"
+  if ! create_db_if_not_exists "$db_name" "$maint_url"; then
     echo "[WARN] $name: no se pudo crear la base (¿psql disponible?). Intentando restaurar igual..."
   fi
   echo "[RESTORE] $name <- $dump_file"
@@ -87,6 +89,6 @@ restore_one() {
 }
 
 echo "Restaurando desde: $BACKUP_DIR"
-restore_one "synkro_ecommerce" "synkro_ecommerce/backend/.env" "DATABASE_URL_ECOM"
-restore_one "synkro_panel"     "synkro_panel/backend/.env"    "DATABASE_URL_PANEL"
+restore_one "revital_ecommerce" "revital_ecommerce/backend/.env" "DATABASE_URL_ECOM"
+restore_one "revital_panel"     "revital_panel/backend/.env"    "DATABASE_URL_PANEL"
 echo "Listo."
