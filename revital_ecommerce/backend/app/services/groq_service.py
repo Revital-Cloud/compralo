@@ -1,10 +1,15 @@
 """
-Servicio para integraci?n con Groq API (LLM).
+Servicio para integración con Groq API (LLM).
 Usa el SDK oficial groq para chat completions.
+Incluye:
+- Manejo de tools (function calling)
+- parseErrorManager para reparar tool-calls inválidas
+- Backoff con reintentos en caso de rate limiting.
 """
 import logging
 import json
 import re
+import time
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from groq import Groq
@@ -33,6 +38,22 @@ def _build_client() -> Groq:
     return Groq(api_key=settings.GROQ_API_KEY)
 
 
+def _is_rate_limit_error(exc: Exception) -> bool:
+    """
+    Detecta errores de rate limiting a partir del mensaje del SDK.
+
+    Groq suele devolver:
+    - código HTTP 429
+    - error.code = 'rate_limit_exceeded'
+    """
+    text = str(exc).lower()
+    if "rate_limit_exceeded" in text:
+        return True
+    if "status code: 429" in text or "code: 429" in text:
+        return True
+    return False
+
+
 def chat_completion_stream(
     user_content: str,
     system_content: Optional[str] = None,
@@ -50,20 +71,37 @@ def chat_completion_stream(
         messages.append({"role": "system", "content": system_content})
     messages.append({"role": "user", "content": user_content})
 
-    try:
-        client = _build_client()
-        stream = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            stream=True,
-        )
-        for chunk in stream:
-            if chunk.choices and chunk.choices[0].delta.content:
-                yield chunk.choices[0].delta.content
-    except Exception as e:
-        logger.exception("Unexpected error calling Groq (stream)")
-        raise RuntimeError(f"Error inesperado al usar Groq: {str(e)}") from e
+    max_retries = 2
+    base_delay = 0.5  # segundos
+    attempt = 0
+
+    while True:
+        try:
+            client = _build_client()
+            stream = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                stream=True,
+            )
+            for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+            return
+        except Exception as e:
+            if _is_rate_limit_error(e) and attempt < max_retries:
+                delay = base_delay * (2**attempt)
+                logger.warning(
+                    "Groq stream rate limited (intentando de nuevo %s/%s en %.2fs)",
+                    attempt + 1,
+                    max_retries,
+                    delay,
+                )
+                time.sleep(delay)
+                attempt += 1
+                continue
+            logger.exception("Unexpected error calling Groq (stream)")
+            raise RuntimeError(f"Error inesperado al usar Groq: {str(e)}") from e
 
 
 def chat_completion(
@@ -96,18 +134,34 @@ def chat_completion(
         messages.append({"role": "system", "content": system_content})
     messages.append({"role": "user", "content": user_content})
 
-    try:
-        client = _build_client()
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-        )
-        content = response.choices[0].message.content
-        return content or ""
-    except Exception as e:
-        logger.exception("Unexpected error calling Groq")
-        raise RuntimeError(f"Error inesperado al usar Groq: {str(e)}") from e
+    max_retries = 2
+    base_delay = 0.5
+    attempt = 0
+
+    while True:
+        try:
+            client = _build_client()
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+            )
+            content = response.choices[0].message.content
+            return content or ""
+        except Exception as e:
+            if _is_rate_limit_error(e) and attempt < max_retries:
+                delay = base_delay * (2**attempt)
+                logger.warning(
+                    "Groq chat_completion rate limited (intentando de nuevo %s/%s en %.2fs)",
+                    attempt + 1,
+                    max_retries,
+                    delay,
+                )
+                time.sleep(delay)
+                attempt += 1
+                continue
+            logger.exception("Unexpected error calling Groq")
+            raise RuntimeError(f"Error inesperado al usar Groq: {str(e)}") from e
 
 
 def chat_with_tools(
@@ -127,27 +181,45 @@ def chat_with_tools(
     if not is_groq_available():
         raise ValueError("GROQ_API_KEY no est? configurada. Las funciones de IA no est?n disponibles.")
 
-    try:
-        client = _build_client()
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            tools=tools,
-            tool_choice=tool_choice,
-            temperature=temperature,
-        )
-        # Convertimos a dict para desacoplar de la clase del SDK.
-        return response.to_dict() if hasattr(response, "to_dict") else dict(response)  # type: ignore[arg-type]
-    except Exception as e:
-        # parseErrorManager: si Groq rechaza una tool-call por schema,
-        # intentamos reparar la llamada a partir de failed_generation y el schema local.
-        repaired = _parse_error_manager_repair_tool_call(e, tools)
-        if repaired is not None:
-            logger.warning("Groq tool-call validation failed; repaired locally and continued.")
-            return repaired
+    max_retries = 2
+    base_delay = 0.5
+    attempt = 0
 
-        logger.exception("Unexpected error calling Groq with tools")
-        raise RuntimeError(f"Error inesperado al usar Groq (tools): {str(e)}") from e
+    while True:
+        try:
+            client = _build_client()
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                tools=tools,
+                tool_choice=tool_choice,
+                temperature=temperature,
+            )
+            # Convertimos a dict para desacoplar de la clase del SDK.
+            return response.to_dict() if hasattr(response, "to_dict") else dict(response)  # type: ignore[arg-type]
+        except Exception as e:
+            # Si es rate limit, aplicamos backoff y reintentamos.
+            if _is_rate_limit_error(e) and attempt < max_retries:
+                delay = base_delay * (2**attempt)
+                logger.warning(
+                    "Groq chat_with_tools rate limited (intentando de nuevo %s/%s en %.2fs)",
+                    attempt + 1,
+                    max_retries,
+                    delay,
+                )
+                time.sleep(delay)
+                attempt += 1
+                continue
+
+            # parseErrorManager: si Groq rechaza una tool-call por schema,
+            # intentamos reparar la llamada a partir de failed_generation y el schema local.
+            repaired = _parse_error_manager_repair_tool_call(e, tools)
+            if repaired is not None:
+                logger.warning("Groq tool-call validation failed; repaired locally and continued.")
+                return repaired
+
+            logger.exception("Unexpected error calling Groq with tools")
+            raise RuntimeError(f"Error inesperado al usar Groq (tools): {str(e)}") from e
 
 
 def _parse_error_manager_repair_tool_call(exc: Exception, tools: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
