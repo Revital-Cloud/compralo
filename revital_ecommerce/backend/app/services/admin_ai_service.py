@@ -16,7 +16,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from services.dashboard_service import get_dashboard_data
-from services.groq_service import chat_completion, chat_completion_stream, chat_with_tools
+from services.groq_service import (
+    chat_completion,
+    chat_completion_stream,
+    chat_with_tools,
+    LIGHT_MODEL,
+    HEAVY_MODEL,
+)
 from services import admin_ai_actions
 from services import admin_ai_state
 from services.admin_ai_tools import ADMIN_AI_TOOLS
@@ -303,6 +309,39 @@ def _maybe_handle_pending_action_confirmation(
     )
 
 
+def _select_model_for_admin_ai(message: str) -> str:
+    """
+    Selecciona el modelo de Groq a usar para el chat admin.
+
+    Patrón:
+    - Por defecto, usar el modelo ligero (Scout 17B) para casi todo.
+    - Usar el modelo pesado (70B) solo si el mensaje es muy largo o explícitamente
+      pide un análisis/profundidad inusual.
+    """
+    msg = message.strip()
+    msg_lower = msg.lower()
+
+    # Heurística simple: mensajes muy largos -> modelo pesado.
+    if len(msg) > 1000:
+        return HEAVY_MODEL
+
+    # Palabras clave de "análisis profundo".
+    deep_keywords = (
+        "analiza en detalle",
+        "explica en detalle",
+        "informe completo",
+        "análisis completo",
+        "analisis completo",
+        "haz un análisis",
+        "haz un analisis",
+    )
+    if any(kw in msg_lower for kw in deep_keywords):
+        return HEAVY_MODEL
+
+    # Resto de casos: modelo ligero.
+    return LIGHT_MODEL
+
+
 def chat_with_admin_ai(
     message: str, db: Session, user_id: str | int
 ) -> str | dict[str, any]:
@@ -486,8 +525,11 @@ Sé claro y directo. Menciona el producto con mayor stock."""
         {"role": "user", "content": enhanced_message},
     ]
 
+    # Seleccionar modelo según el mensaje (router ligero/pesado).
+    model_name = _select_model_for_admin_ai(message)
+
     try:
-        response = chat_with_tools(messages=messages, tools=ADMIN_AI_TOOLS)
+        response = chat_with_tools(messages=messages, tools=ADMIN_AI_TOOLS, model=model_name)
     except ValueError:
         # IA no disponible -> mensaje claro al usuario.
         error_msg = "La IA no está configurada actualmente. Pídele al administrador que configure GROQ_API_KEY."
