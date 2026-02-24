@@ -18,7 +18,12 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "llama-3.3-70b-versatile"
+# Modelos recomendados en Groq:
+# - LIGHT_MODEL: más rápido y barato, ideal para la mayoría de tareas de asistente/admin.
+# - HEAVY_MODEL: más potente, usar solo para análisis muy complejos o cuando se necesite explícitamente.
+LIGHT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+HEAVY_MODEL = "llama-3.3-70b-versatile"
+DEFAULT_MODEL = LIGHT_MODEL
 
 _FAILED_GENERATION_RE = re.compile(
     r"^<function=(?P<name>[a-zA-Z0-9_:-]+)>(?P<args>\{.*\})(?:</function>)?$",
@@ -308,7 +313,24 @@ def _try_extract_groq_error_payload(text: str) -> Optional[Dict[str, Any]]:
 
 
 def _parse_failed_generation(s: str) -> Optional[Tuple[str, Dict[str, Any]]]:
-    m = _FAILED_GENERATION_RE.match(s.strip())
+    s = s.strip()
+    # Nuevo formato: JSON array de llamadas [{"name": ..., "parameters": {...}}]
+    if s.startswith("["):
+        try:
+            arr = json.loads(s)
+            if isinstance(arr, list) and arr:
+                first = arr[0]
+                if isinstance(first, dict):
+                    name = first.get("name")
+                    params = first.get("parameters") or {}
+                    if isinstance(name, str) and isinstance(params, dict):
+                        return name, params
+        except Exception:
+            # Si falla, seguimos con el formato antiguo
+            pass
+
+    # Formato antiguo: <function=name>{...}</function>
+    m = _FAILED_GENERATION_RE.match(s)
     if not m:
         return None
     name = m.group("name")
