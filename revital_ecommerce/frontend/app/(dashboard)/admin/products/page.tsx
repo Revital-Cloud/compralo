@@ -74,7 +74,7 @@ const ProductsPage = () => {
   // Estado de orden (la página actual viene de la URL)
   const [sortBy, setSortBy] = useState<'nombre' | 'precio' | 'stock' | 'fecha' | 'categoria' | 'marca'>('nombre');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
-  const itemsPerPage = 10;
+  const [pageSize, setPageSize] = useState<number>(10);
   
   // Obtener parámetros de búsqueda de la URL
   const search = searchParams.get('search') || '';
@@ -156,8 +156,8 @@ const ProductsPage = () => {
   const filters = {
     ordenar_por: sortBy,
     orden: sortOrder,
-    limit: itemsPerPage,
-    offset: (currentPage - 1) * itemsPerPage,
+    limit: pageSize,
+    offset: (currentPage - 1) * pageSize,
     search: search || undefined,
     category_id: category ? Number(category) : undefined,
     line_id: line ? Number(line) : undefined,
@@ -290,7 +290,7 @@ const ProductsPage = () => {
   // Extraer datos de la respuesta (todos los productos de la consulta; el DataTable pagina en cliente)
   const adminProducts = Array.isArray(productsResponse) ? productsResponse : [];
   const totalItems = adminProducts.length > 0 ? adminProducts[0].total_registros : 0;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const totalPages = Math.ceil(totalItems / (pageSize || 1));
 
   // Estadísticas globales de stock (todo el inventario, no solo la tabla filtrada)
   const first = adminProducts[0];
@@ -760,11 +760,15 @@ const ProductsPage = () => {
           <DataTable
             columns={[...columns, ...actions]}
             data={products}
-            pageSize={itemsPerPage}
+            pageSize={pageSize}
             manualPagination
             pageCount={totalPages}
             pageIndex={currentPage - 1}
             onPageChange={(pageIndex) => handlePageChange(pageIndex + 1)}
+            onPageSizeChange={(newSize) => {
+              setPageSize(newSize);
+              handlePageChange(1);
+            }}
           />
         </div>
       ) : (

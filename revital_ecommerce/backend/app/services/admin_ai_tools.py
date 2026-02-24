@@ -421,6 +421,21 @@ ADMIN_AI_TOOLS: List[Tool] = [
     {
         "type": "function",
         "function": {
+            "name": "get_top_stock_products",
+            "description": "Obtiene los productos con mayor stock total (sumando variantes activas). Úsala cuando el usuario pregunte por el producto con mayor stock, productos con más inventario, o ranking de stock.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "number", "description": "Límite de resultados (opcional, default 10)."},
+                },
+                "required": [],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "list_users",
             "description": "Lista usuarios/clientes con sus puntos de fidelización. Útil para buscar clientes.",
             "parameters": {
@@ -475,6 +490,76 @@ ADMIN_AI_TOOLS: List[Tool] = [
                     "activar": {"type": "boolean", "description": "true para activar, false para desactivar (requerido)."},
                 },
                 "required": ["discount_id", "activar"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    # --- Analytics avanzados ---
+    {
+        "type": "function",
+        "function": {
+            "name": "get_top_categories_by_revenue",
+            "description": "Obtiene las categorías de producto más vendidas por ingresos. Úsala cuando el usuario pregunte por categoría más vendida, categorías con más ventas, ranking de categorías, o qué categoría vende más.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "number", "description": "Número máximo de categorías a devolver (opcional, default 10)."},
+                },
+                "required": [],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_conversion_metrics",
+            "description": "Obtiene métricas de conversión: tasa de conversión, valor promedio de orden, total de órdenes e ingresos totales con comparación vs período anterior.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_geographic_sales",
+            "description": "Obtiene ventas por región geográfica (departamento o ciudad). Úsala cuando el usuario pregunte de dónde vienen más ventas, ventas por región, o distribución geográfica.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "number", "description": "Número máximo de regiones (opcional, default 10)."},
+                },
+                "required": [],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_hourly_traffic",
+            "description": "Obtiene el tráfico/órdenes por hora del día. Úsala cuando el usuario pregunte por horarios de más ventas, a qué hora venden más, o distribución por hora.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_customer_demographics",
+            "description": "Obtiene demografía de clientes por grupos de edad (0-17, 18-24, 25-34, etc.) con ingresos y porcentaje. Úsala cuando el usuario pregunte por perfil de clientes, edad de compradores, o demografía.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
                 "additionalProperties": False,
             },
         },

@@ -155,6 +155,7 @@ const DiscountsPage = () => {
           description="Gestiona los descuentos y cupones de tu tienda"
           onCreateClick={() => setOpenCreate(true)}
           createLabel="Crear Descuento"
+          showImportButton={false}
         />
       </div>
 

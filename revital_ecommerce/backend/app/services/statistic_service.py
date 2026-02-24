@@ -4,15 +4,12 @@ from sqlalchemy import text
 
 def get_products_stadistics(db:Session):
     """
-    Obtiene las estadísticas de los productos.
+    Obtiene las estadísticas de los productos (tab_estadisticas_productos, modelo products/variants).
     """
     try:
         query = text("""
         SELECT
-            id_categoria,
-            id_linea,
-            id_sublinea,
-            id_producto,
+            product_id AS id_producto,
             nom_producto,
             precio_actual,
             stock_actual,
@@ -45,12 +42,12 @@ def get_products_stadistics(db:Session):
     
 def get_categories_stadistics(db:Session):
     """
-    Obtiene las estadísticas de las categorías.
+    Obtiene las estadísticas de las categorías (tab_estadisticas_categorias, modelo tab_categories).
     """
     try:
         query = text("""
         SELECT
-            id_categoria,
+            category_id AS id_categoria,
             nom_categoria,
             categoria_activa,
             total_productos,

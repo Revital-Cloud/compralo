@@ -170,10 +170,14 @@ def _get_conversion_metrics(db: Session) -> List[Dict[str, Any]]:
 
 
 def _get_product_performance_by_category(db: Session) -> List[Dict[str, Any]]:
-    """Obtiene performance por categoría desde estadísticas o calcula directamente."""
+    """Obtiene performance por categoría desde estadísticas o calcula directamente (tab_categories + órdenes/variantes)."""
     try:
-        categories_stats = get_categories_stadistics(db)
-        
+        categories_stats = None
+        try:
+            categories_stats = get_categories_stadistics(db)
+        except Exception:
+            categories_stats = None
+
         # Si hay estadísticas pre-calculadas con ventas > 0, usarlas
         if categories_stats and len(categories_stats) > 0:
             total_revenue = sum(
@@ -343,7 +347,7 @@ def _get_product_metrics(db: Session) -> Dict[str, Any]:
         SELECT 
             COUNT(*) FILTER (WHERE is_active = TRUE) as productos_activos,
             COUNT(*) FILTER (WHERE is_active = FALSE) as productos_inactivos,
-            COUNT(*) FILTER (WHERE stock_total = 0) as sin_stock,
+            COUNT(*) FILTER (WHERE stock_total = 0 AND is_active = TRUE) as sin_stock,
             AVG(price_min) FILTER (WHERE is_active = TRUE) as precio_promedio
         FROM product_data
     """)
@@ -376,6 +380,7 @@ def _get_product_metrics(db: Session) -> Dict[str, Any]:
     
     return {
         'productosActivos': safe_int(row.get('productos_activos', 0)),
+        'productosInactivos': safe_int(row.get('productos_inactivos', 0)),
         'sinStock': safe_int(row.get('sin_stock', 0)),
         'precioPromedio': safe_float(row.get('precio_promedio', 0)),
         'ratingPromedio': avg_rating
