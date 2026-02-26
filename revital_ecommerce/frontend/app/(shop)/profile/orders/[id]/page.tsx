@@ -114,44 +114,68 @@ export default function OrderDetailPage() {
                   </div>
                   <div className="text-right">
                     {(() => {
-                      // Calcular precio original si hay descuentos aplicados
                       const unitPrice = Number(it.unit_price)
                       const totalPrice = Number(it.total_price)
-                      // Si hay descuentos en el item o en la orden, intentar calcular el precio original
-                      const hasItemDiscounts = it.item_discounts && Array.isArray(it.item_discounts) && it.item_discounts.length > 0
-                      const orderDiscounts = order.detalle_descuentos_aplicados || []
-                      
-                      // Si hay descuentos, calcular precio original aproximado
-                      let originalUnitPrice: number | undefined
-                      let discountPercentage: number | undefined
-                      
-                      if (hasItemDiscounts || orderDiscounts.length > 0) {
-                        // Calcular descuento aproximado basado en el total de descuentos de la orden
-                        const totalDiscounts = Number(order.val_total_descuentos || 0)
-                        const totalProducts = Number(order.val_total_productos || 0)
-                        if (totalProducts > 0 && totalDiscounts > 0) {
-                          // Aproximación: distribuir el descuento proporcionalmente
-                          const discountRatio = totalDiscounts / totalProducts
-                          originalUnitPrice = unitPrice / (1 - discountRatio)
-                          discountPercentage = Math.round((discountRatio * 100))
+
+                      // Solo mostrar descuento por producto si el backend lo envía explícitamente en `item_discounts`.
+                      // No se debe "inventar" un precio original distribuyendo el descuento total del pedido.
+                      const itemDiscounts = Array.isArray(it.item_discounts) ? it.item_discounts : []
+
+                      const pickNumber = (obj: any, keys: string[]) => {
+                        for (const k of keys) {
+                          const v = obj?.[k]
+                          const n = typeof v === 'string' ? Number(v) : typeof v === 'number' ? v : NaN
+                          if (Number.isFinite(n)) return n
                         }
+                        return undefined
                       }
-                      
-                      const originalTotalPrice = originalUnitPrice ? originalUnitPrice * it.quantity : undefined
-                      const showDiscount = originalUnitPrice && originalUnitPrice > unitPrice
+
+                      // Heurística: si existe precio original o porcentaje en item_discounts, lo mostramos.
+                      const originalUnitPrice =
+                        itemDiscounts
+                          .map((d: any) =>
+                            pickNumber(d, [
+                              'original_unit_price',
+                              'unit_price_original',
+                              'precio_unitario_original',
+                              'precio_original',
+                              'val_precio_original',
+                            ])
+                          )
+                          .find((n: any) => typeof n === 'number' && Number.isFinite(n))
+
+                      const discountPercentage =
+                        itemDiscounts
+                          .map((d: any) =>
+                            pickNumber(d, [
+                              'discount_percentage',
+                              'percentage',
+                              'porcentaje',
+                              'porcentaje_descuento',
+                              'val_porce_descuento',
+                            ])
+                          )
+                          .find((n: any) => typeof n === 'number' && Number.isFinite(n))
+
+                      const showDiscount =
+                        typeof originalUnitPrice === 'number' &&
+                        Number.isFinite(originalUnitPrice) &&
+                        originalUnitPrice > unitPrice
+
+                      const originalTotalPrice = showDiscount ? originalUnitPrice * it.quantity : undefined
                       
                       return (
                         <>
                           <div className="flex items-center gap-2 justify-end flex-wrap">
                             <p className="text-sm">{formatPrice(unitPrice)} c/u</p>
-                            {showDiscount && originalUnitPrice && (
+                            {showDiscount && (
                               <>
                                 <span className="text-xs text-muted-foreground line-through">
                                   {formatPrice(originalUnitPrice)} c/u
                                 </span>
-                                {discountPercentage && discountPercentage > 0 && (
+                                {typeof discountPercentage === 'number' && discountPercentage > 0 && (
                                   <span className="text-xs bg-red-500 text-white px-1.5 py-0.5 rounded">
-                                    -{discountPercentage}%
+                                    -{Math.round(discountPercentage)}%
                                   </span>
                                 )}
                               </>
@@ -159,7 +183,7 @@ export default function OrderDetailPage() {
                           </div>
                           <div className="flex items-center gap-2 justify-end flex-wrap mt-1">
                             <p className="font-semibold">{formatPrice(totalPrice)}</p>
-                            {showDiscount && originalTotalPrice && originalTotalPrice > totalPrice && (
+                            {showDiscount && typeof originalTotalPrice === 'number' && originalTotalPrice > totalPrice && (
                               <span className="text-xs text-muted-foreground line-through">
                                 {formatPrice(originalTotalPrice)}
                               </span>

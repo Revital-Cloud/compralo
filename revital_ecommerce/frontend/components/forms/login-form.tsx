@@ -207,11 +207,11 @@ export function LoginForm({
       {/* Términos y condiciones */}
       <div className="text-muted-foreground text-center text-xs text-balance">
         Al hacer clic en continuar, aceptas nuestros{" "}
-        <Link href="#" className="underline underline-offset-4 hover:text-primary">
+        <Link href="/terminos" className="underline underline-offset-4 hover:text-primary">
           Términos de Servicio
         </Link>{" "}
         y{" "}
-        <Link href="#" className="underline underline-offset-4 hover:text-primary">
+        <Link href="/privacidad" className="underline underline-offset-4 hover:text-primary">
           Política de Privacidad
         </Link>
         .
