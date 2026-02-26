@@ -321,41 +321,22 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
                 const totalDescAutomaticos = Number(totals?.total_desc_automaticos ?? 0);
                 const totalDescCanjeado = Number(totals?.total_desc_canjeado ?? 0);
                 const hasDiscounts = totalDescAutomaticos > 0 || totalDescCanjeado > 0 || appliedDiscountData;
-                
-                // Calcular subtotal con descuentos por código aplicados
-                const subtotalConDescuentos = Array.isArray(items) && items.length > 0
-                  ? items.reduce((acc, item) => {
-                      if (appliedDiscountData && appliedDiscountData.descuento) {
-                        const discountApplies = doesDiscountApplyToProduct(
-                          appliedDiscountData,
-                          {
-                            id_producto: item.id_producto,
-                            id_categoria: (item as any).id_categoria_producto ?? (item as any).category_id,
-                            category_id: (item as any).category_id ?? (item as any).id_categoria_producto,
-                            id_marca: (item as any).id_marca,
-                            marca_id: (item as any).marca_id,
-                          }
-                        );
-                        if (appliedDiscountData.descuento.aplica_a === 'total_pedido') {
-                          return acc + (Number(item.subtotal) || 0);
-                        } else if (discountApplies) {
-                          const { unitPrice } = getItemPriceWithDiscounts(item);
-                          return acc + (unitPrice * item.cantidad);
-                        }
-                      }
-                      return acc + (Number(item.subtotal) || 0);
-                    }, 0)
-                  : 0;
-                
-                // Calcular descuento total por código
+
+                // Subtotal original (suma de subtotales de ítems)
                 const subtotalOriginal = Array.isArray(items) && items.length > 0
                   ? items.reduce((acc, item) => acc + (Number(item.subtotal) || 0), 0)
                   : 0;
+
+                // Descuento por código aplicado (si existe)
                 const descuentoCodigo = appliedDiscountData && appliedDiscountData.descuento_calculado
                   ? Number(appliedDiscountData.descuento_calculado)
                   : 0;
-                
-                const totalDescuentos = totalDescAutomaticos + totalDescCanjeado + descuentoCodigo;
+
+                // Total final = subtotal menos todos los descuentos mostrados (siempre coherente con las líneas)
+                const finalTotal = Math.max(
+                  0,
+                  subtotalOriginal - totalDescAutomaticos - totalDescCanjeado - descuentoCodigo
+                );
                 
                 return (
                   <>
@@ -392,7 +373,7 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-gray-600 dark:text-gray-300">Total</span>
                       <span className="font-semibold text-gray-900 dark:text-white text-right min-w-[100px] whitespace-nowrap">
-                        {formatPrice(Number(total ?? 0))}
+                        {formatPrice(finalTotal)}
                       </span>
                     </div>
                   </>

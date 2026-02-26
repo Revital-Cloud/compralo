@@ -183,13 +183,15 @@ const AttributeValuesPage = () => {
             <ArrowLeft className="w-4 h-4" />
           </Link>
         </Button>
-        <CatalogHeader
-          title={`Valores: ${attribute?.name ?? '…'}`}
-          description="Valores predefinidos del atributo para variantes y swatches"
-          onCreateClick={hasPredefined ? () => setOpenCreate(true) : undefined}
-          createLabel="Agregar valor"
-          showImportButton={false}
-        />
+        <div className="flex-1 min-w-0">
+          <CatalogHeader
+            title={`Valores: ${attribute?.name ?? '…'}`}
+            description="Valores predefinidos del atributo para variantes y swatches"
+            onCreateClick={hasPredefined ? () => setOpenCreate(true) : undefined}
+            createLabel="Agregar valor"
+            showImportButton={false}
+          />
+        </div>
       </div>
 
       {!hasPredefined && (
