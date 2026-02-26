@@ -172,7 +172,8 @@ const CHART_COLORS = [
   'var(--chart-1, #3b82f6)',
   'var(--chart-2, #10b981)',
   'var(--chart-3, #f59e0b)',
-  'var(--chart-4, #8b5cf6)',
+  // Color de la cuarta barra ajustado para mejor contraste en temas claro/oscuro
+  '#22c55e',
   'var(--chart-5, #ec4899)',
   '#0ea5e9',
   '#6366f1',
