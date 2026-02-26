@@ -127,4 +127,15 @@ $$ LANGUAGE plpgsql;
 -- SELECT fun_crear_config_puntos_empresa(500.00, 'Promoción especial: 1 punto por cada $500 pesos', 1000000000);
 
 -- Verificar configuración creada
--- SELECT * FROM tab_config_puntos_empresa WHERE ind_activo = TRUE; 
+-- SELECT 
+--   id_config_puntos,
+--   pesos_por_punto,
+--   ind_activo,
+--   descripcion,
+--   fec_inicio_vigencia,
+--   fec_fin_vigencia,
+--   usr_insert,
+--   fec_insert,
+--   usr_update,
+--   fec_update
+-- FROM tab_config_puntos_empresa WHERE ind_activo = TRUE; 

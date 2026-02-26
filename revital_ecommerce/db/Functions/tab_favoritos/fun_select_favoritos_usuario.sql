@@ -39,6 +39,14 @@ RETURNS TABLE (
     precio_min DECIMAL
 ) AS $$
 BEGIN
-    RETURN QUERY SELECT * FROM fun_select_favoritos_usuario_con_detalles(p_id_usuario);
+    RETURN QUERY
+    SELECT 
+        id_usuario,
+        product_id,
+        fec_insert,
+        nom_producto,
+        img_principal,
+        precio_min
+    FROM fun_select_favoritos_usuario_con_detalles(p_id_usuario);
 END;
 $$ LANGUAGE plpgsql;

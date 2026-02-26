@@ -127,7 +127,7 @@ def get_user_orders(
 ):
     """
     Obtiene el historial de órdenes del usuario autenticado usando la función
-    `fun_obtener_ordenes_usuario`. Se evita `SELECT *` para mantener un contrato
+    `fun_obtener_ordenes_usuario`. Se evita `SELECT id_orden, fecha_pedido, total_productos, total_descuentos, total_pedido, estado_orden, metodo_pago, cantidad_productos, descuentos_aplicados` para mantener un contrato
     explícito de columnas.
     """
     query = text(

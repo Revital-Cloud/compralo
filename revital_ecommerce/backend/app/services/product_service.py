@@ -352,7 +352,20 @@ def get_products(db: Session):
     Usa fun_get_productos_activos y ratings desde tab_comentarios por product_id.
     """
     try:
-        products_query = text("SELECT * FROM fun_get_productos_activos()")
+        products_query = text("""
+            SELECT
+                product_id,
+                category_id,
+                nom_categoria,
+                nom_producto,
+                slug_producto,
+                description,
+                id_marca,
+                precio_min,
+                stock_total,
+                img_principal
+            FROM fun_get_productos_activos()
+        """)
         products_result = db.execute(products_query)
         products_data = list(products_result.mappings().all())
         if not products_data:
@@ -2078,7 +2091,17 @@ def get_filter_options(db: Session, category_id: Optional[int] = None) -> dict:
     """
     try:
         # Árbol de categorías (solo activas): lista con id, name, slug, parent_id, level, children opcional
-        tree_query = text("SELECT * FROM fun_get_categories_tree(NULL, TRUE)")
+        tree_query = text("""
+            SELECT
+                id,
+                name,
+                slug,
+                parent_id,
+                is_active,
+                level,
+                path_ids
+            FROM fun_get_categories_tree(NULL, TRUE)
+        """)
         tree_rows = db.execute(tree_query).mappings().all()
         # Construir árbol: raíz (level=0) -> hijos (level=1) -> nietos (level=2)
         by_id = {r["id"]: dict(r) for r in tree_rows}

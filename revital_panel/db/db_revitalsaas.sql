@@ -1125,8 +1125,24 @@ BEGIN
         RAISE EXCEPTION 'Suscripción no encontrada o no activa: %', p_id_suscripcion;
     END IF;
     
-    -- Obtener información del plan
-    SELECT * INTO v_plan
+    -- Obtener información del plan (evitar SELECT *)
+    SELECT 
+        id_plan,
+        nom_plan,
+        desc_plan,
+        precio_mensual,
+        precio_anual,
+        moneda,
+        max_productos,
+        max_usuarios,
+        max_almacenamiento_gb,
+        features_json,
+        estado_plan,
+        usr_insert,
+        fec_insert,
+        usr_update,
+        fec_update
+    INTO v_plan
     FROM tab_planes
     WHERE id_plan = v_suscripcion.id_plan;
     

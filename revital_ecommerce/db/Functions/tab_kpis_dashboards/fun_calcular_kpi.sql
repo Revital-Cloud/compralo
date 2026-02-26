@@ -70,7 +70,19 @@ BEGIN
     
     -- VERIFICAR: Cache existente y válido
     IF NOT p_forzar_recalculo THEN
-        SELECT *
+        SELECT
+            id_cache,
+            id_kpi,
+            parametros_hash,
+            valor_actual,
+            valor_anterior,
+            porcentaje_cambio,
+            tendencia,
+            datos_extra,
+            metadata_calculo,
+            fecha_calculo,
+            fecha_expiracion,
+            numero_accesos
         INTO v_cache_record
         FROM tab_valores_kpi_cache
         WHERE id_kpi = p_id_kpi 
@@ -108,7 +120,8 @@ BEGIN
             param_key TEXT;
             param_value TEXT;
         BEGIN
-            FOR param_key, param_value IN SELECT * FROM jsonb_each_text(p_parametros)
+            FOR param_key, param_value IN 
+                SELECT key, value FROM jsonb_each_text(p_parametros)
             LOOP
                 v_sql_formula := REPLACE(v_sql_formula, '${' || param_key || '}', param_value);
             END LOOP;
@@ -148,7 +161,8 @@ BEGIN
             param_key TEXT;
             param_value TEXT;
         BEGIN
-            FOR param_key, param_value IN SELECT * FROM jsonb_each_text(p_parametros)
+            FOR param_key, param_value IN 
+                SELECT key, value FROM jsonb_each_text(p_parametros)
             LOOP
                 v_sql_anterior := REPLACE(v_sql_anterior, '${' || param_key || '}', param_value);
             END LOOP;
