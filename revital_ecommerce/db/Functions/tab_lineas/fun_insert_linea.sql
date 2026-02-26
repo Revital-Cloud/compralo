@@ -91,7 +91,16 @@ $$
 LANGUAGE plpgsql;
 
 -- Ejemplos de uso corregidos (ahora con IDs numéricos)
-SELECT * FROM tab_lineas;
+SELECT 
+    id_categoria,
+    id_linea,
+    nom_linea,
+    ind_activo,
+    usr_insert,
+    fec_insert,
+    usr_update,
+    fec_update
+FROM tab_lineas;
 SELECT fun_insert_linea(1, 'Electrodomesticos', TRUE, 1234567890);
 SELECT fun_insert_linea(1, 'Telefonia', TRUE, 1234567890);
 SELECT fun_insert_linea(1, 'Computacion', TRUE, 1234567890);

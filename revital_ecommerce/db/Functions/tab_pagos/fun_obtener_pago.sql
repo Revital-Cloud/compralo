@@ -27,8 +27,33 @@ BEGIN
         RETURN json_build_object('success', false, 'message', 'El ID de la orden es obligatorio.');
     END IF;
 
-    -- CONSULTA
-    SELECT * INTO v_pago_info
+    -- CONSULTA (evitar SELECT *; traer columnas explícitas)
+    SELECT 
+        id_pago,
+        id_orden,
+        reference,
+        provider_transaction_id,
+        provider_name,
+        status,
+        status_detail,
+        amount,
+        currency_id,
+        installments,
+        payment_method_type,
+        payment_method_extra,
+        fee_amount,
+        net_received_amount,
+        provider_date_created,
+        provider_date_approved,
+        raw_response,
+        raw_last_event,
+        parent_payment_id,
+        estado_procesamiento,
+        usr_insert,
+        fec_insert,
+        usr_update,
+        fec_update
+    INTO v_pago_info
     FROM tab_pagos
     WHERE id_orden = p_id_orden
     ORDER BY fec_insert DESC

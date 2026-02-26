@@ -359,9 +359,19 @@ DECLARE
     v_alertas_activadas INT := 0;
     v_inicio_proceso TIMESTAMP := NOW();
 BEGIN
-    -- PROCESAR: Todas las alertas que requieren verificación
+    -- PROCESAR: Todas las alertas que requieren verificación (evitar SELECT * sobre la vista)
     FOR v_alerta_record IN 
-        SELECT * FROM vw_alertas_kpi_activas 
+        SELECT 
+            id_alerta,
+            id_kpi,
+            nom_alerta,
+            valor_umbral_min,
+            valor_umbral_max,
+            porcentaje_cambio_umbral,
+            tipo_condicion,
+            nom_usuario,
+            nom_kpi
+        FROM vw_alertas_kpi_activas 
         WHERE estado_verificacion IN ('PENDIENTE', 'REQUIERE_VERIFICACION')
     LOOP
         -- CALCULAR: Valor actual del KPI

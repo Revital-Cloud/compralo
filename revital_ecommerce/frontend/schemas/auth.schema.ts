@@ -43,7 +43,31 @@ export const changePasswordSchema = z.object({
   current_password: z.string().min(1, {
     message: "La contraseña actual es requerida.",
   }),
-  new_password: z.string().min(8, {
-    message: "La nueva contraseña debe tener al menos 8 caracteres.",
+  new_password: z
+    .string()
+    .min(8, { message: "La nueva contraseña debe tener al menos 8 caracteres." })
+    .refine((val) => /[a-z]/.test(val), {
+      message: "La contraseña debe incluir al menos una letra minúscula.",
+    })
+    .refine((val) => /[A-Z]/.test(val), {
+      message: "La contraseña debe incluir al menos una letra mayúscula.",
+    })
+    .refine((val) => /\d/.test(val), {
+      message: "La contraseña debe incluir al menos un número.",
+    })
+    .refine((val) => /[^A-Za-z0-9]/.test(val), {
+      message: "La contraseña debe incluir al menos un carácter especial.",
+    }),
+  confirm_new_password: z.string().min(1, {
+    message: "Confirma tu nueva contraseña.",
   }),
-}).required(); 
+})
+  .refine((data) => data.new_password === data.confirm_new_password, {
+    message: "Las contraseñas no coinciden.",
+    path: ["confirm_new_password"],
+  })
+  .refine((data) => data.current_password !== data.new_password, {
+    message: "La nueva contraseña no puede ser igual a la contraseña actual.",
+    path: ["new_password"],
+  })
+  .required();

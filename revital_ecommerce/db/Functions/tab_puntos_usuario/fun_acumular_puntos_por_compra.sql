@@ -208,7 +208,9 @@ $$ LANGUAGE plpgsql;
 -- SELECT fun_acumular_puntos_compra(1000000001, 1, 5000.00, 1000000000);
 
 -- Verificar resultado en tabla de puntos del usuario
--- SELECT * FROM tab_puntos_usuario WHERE id_usuario = 1000000001;
+-- SELECT id_usuario, puntos_disponibles, puntos_totales_ganados, puntos_totales_canjeados, fec_ultimo_canje
+-- FROM tab_puntos_usuario WHERE id_usuario = 1000000001;
 
 -- Verificar movimiento en historial
--- SELECT * FROM tab_movimientos_puntos WHERE id_usuario = 1000000001 ORDER BY fec_insert DESC;
+-- SELECT id_usuario, tipo_movimiento, cantidad_puntos, puntos_disponibles_anterior, puntos_disponibles_actual, id_orden_origen, id_descuento_canjeado, descripcion, fec_insert
+-- FROM tab_movimientos_puntos WHERE id_usuario = 1000000001 ORDER BY fec_insert DESC;

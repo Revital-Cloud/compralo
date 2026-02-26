@@ -94,7 +94,17 @@ $$
 LANGUAGE plpgsql;
 
 -- Ejemplos de uso corregidos (ahora con IDs numéricos)
-SELECT * FROM tab_sublineas;
+SELECT 
+    id_categoria,
+    id_linea,
+    id_sublinea,
+    nom_sublinea,
+    ind_activo,
+    usr_insert,
+    fec_insert,
+    usr_update,
+    fec_update
+FROM tab_sublineas;
 SELECT fun_insert_sublinea(1, 1, 'Neveras', TRUE, 1234567890);
 SELECT fun_insert_sublinea(1, 1, 'Lavadoras', TRUE, 1234567890);
 SELECT fun_insert_sublinea(1, 1, 'Secadoras', TRUE, 1234567890);

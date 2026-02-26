@@ -48,8 +48,26 @@ DECLARE
     v_hora_actual TIME;                     -- Hora actual del sistema
     v_es_primera_compra BOOLEAN;            -- Indicador si es primera compra del usuario
 BEGIN
-    -- PASO 1: Obtener información completa del descuento
-    SELECT * INTO v_descuento FROM tab_descuentos WHERE id_descuento = p_id_descuento;
+    -- PASO 1: Obtener información relevante del descuento (evitar SELECT *)
+    SELECT 
+        id_descuento,
+        ind_activo,
+        fec_inicio,
+        fec_fin,
+        requiere_codigo,
+        codigo_descuento,
+        id_usuario_destino,
+        max_usos_total,
+        usos_actuales_total,
+        max_usos_por_usuario,
+        dias_semana_aplica,
+        horas_inicio,
+        horas_fin,
+        solo_primera_compra,
+        ind_es_para_cumpleanos
+    INTO v_descuento
+    FROM tab_descuentos 
+    WHERE id_descuento = p_id_descuento;
 
     -- VALIDACIÓN 1: Verificar existencia del descuento
     IF v_descuento IS NULL THEN
