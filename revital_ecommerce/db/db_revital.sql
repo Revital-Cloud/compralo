@@ -123,7 +123,7 @@ CREATE TABLE IF NOT EXISTS tab_attributes (
 -- Tabla tab_attribute_values (valores predefinidos por atributo; hex_color para swatches)
 CREATE TABLE IF NOT EXISTS tab_attribute_values (
     id              DECIMAL(10)                 PRIMARY KEY,
-    attribute_id    DECIMAL(10)                 NOT NULL REFERENCES tab_attributes(id) ON DELETE CASCADE,
+    attribute_id    DECIMAL(10)                 NOT NULL REFERENCES tab_attributes(id),
     value           VARCHAR                     NOT NULL,
     hex_color       VARCHAR                     NULL,
     sort_order      INT                         DEFAULT 0,
@@ -173,7 +173,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_tab_products_slug ON tab_products(slug);
 -- Tablas modelo variant_groups (atributo dominante: un grupo = una galería; combinaciones = stock/SKU)
 CREATE TABLE IF NOT EXISTS tab_product_variant_groups (
     id                  BIGSERIAL PRIMARY KEY,
-    product_id          DECIMAL(10) NOT NULL REFERENCES tab_products(id) ON DELETE CASCADE,
+    product_id          DECIMAL(10) NOT NULL REFERENCES tab_products(id),
     dominant_attribute  VARCHAR(100) NOT NULL,
     dominant_value     VARCHAR(255) NOT NULL,
     is_active          BOOLEAN NOT NULL DEFAULT TRUE,
@@ -188,7 +188,7 @@ CREATE INDEX IF NOT EXISTS idx_tab_product_variant_groups_product_active ON tab_
 
 CREATE TABLE IF NOT EXISTS tab_product_variant_combinations (
     id              DECIMAL(10) PRIMARY KEY,
-    group_id        BIGINT NOT NULL REFERENCES tab_product_variant_groups(id) ON DELETE CASCADE,
+    group_id        BIGINT NOT NULL REFERENCES tab_product_variant_groups(id),
     sku             VARCHAR(120) NOT NULL UNIQUE,
     price           DECIMAL(12,2) NOT NULL CHECK (price >= 0),
     stock           INT NOT NULL DEFAULT 0 CHECK (stock >= 0),
@@ -206,7 +206,7 @@ CREATE INDEX IF NOT EXISTS idx_tab_product_variant_combinations_attributes_gin O
 
 CREATE TABLE IF NOT EXISTS tab_product_variant_images (
     id               BIGSERIAL PRIMARY KEY,
-    variant_group_id BIGINT NOT NULL REFERENCES tab_product_variant_groups(id) ON DELETE CASCADE,
+    variant_group_id BIGINT NOT NULL REFERENCES tab_product_variant_groups(id),
     image_url        VARCHAR NOT NULL,
     is_primary       BOOLEAN NOT NULL DEFAULT FALSE,
     sort_order       INT NOT NULL DEFAULT 0,
