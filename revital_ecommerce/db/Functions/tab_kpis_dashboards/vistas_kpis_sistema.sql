@@ -57,10 +57,10 @@ SELECT
 FROM tab_kpis_maestros k
 JOIN tab_tipos_kpi t ON k.id_tipo_kpi = t.id_tipo_kpi
 LEFT JOIN tab_usuarios u ON k.creado_por = u.id_usuario
-LEFT JOIN (
+    LEFT JOIN (
     SELECT 
         w.id_kpi,
-        COUNT(*) as widgets_activos,
+        COUNT(1) as widgets_activos,
         COUNT(DISTINCT w.id_dashboard) as dashboards_usando
     FROM tab_widgets_dashboard w
     JOIN tab_dashboards_usuarios d ON w.id_dashboard = d.id_dashboard
@@ -127,7 +127,7 @@ JOIN tab_usuarios u ON d.id_usuario = u.id_usuario
 LEFT JOIN (
     SELECT 
         w.id_dashboard,
-        COUNT(*) as total_widgets,
+        COUNT(1) as total_widgets,
         COUNT(CASE WHEN w.ind_activo THEN 1 END) as widgets_activos,
         COUNT(DISTINCT k.id_tipo_kpi) as tipos_kpi_usados
     FROM tab_widgets_dashboard w
@@ -137,7 +137,7 @@ LEFT JOIN (
 LEFT JOIN (
     SELECT 
         id_dashboard,
-        COUNT(*) as dashboards_compartidos
+        COUNT(1) as dashboards_compartidos
     FROM tab_compartir_dashboards
     WHERE ind_activo = TRUE
     GROUP BY id_dashboard

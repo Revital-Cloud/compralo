@@ -15,7 +15,7 @@ BEGIN
     END IF;
 
     -- Verificar si la sublínea tiene productos asociados
-    SELECT COUNT(*) INTO v_count_productos 
+    SELECT COUNT(1) INTO v_count_productos 
     FROM tab_productos 
     WHERE id_sublinea = v_id_sublinea AND ind_activo = true;
 

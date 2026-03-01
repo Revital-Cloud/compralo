@@ -115,7 +115,7 @@ BEGIN
     
     -- PASO 2: Verificar si el usuario ya tiene registro de puntos
     SELECT 
-        CASE WHEN COUNT(*) > 0 THEN TRUE ELSE FALSE END,
+        CASE WHEN COUNT(1) > 0 THEN TRUE ELSE FALSE END,
         COALESCE(MAX(puntos_disponibles), 0)
     INTO v_usuario_existe, v_saldo_anterior
     FROM tab_puntos_usuario

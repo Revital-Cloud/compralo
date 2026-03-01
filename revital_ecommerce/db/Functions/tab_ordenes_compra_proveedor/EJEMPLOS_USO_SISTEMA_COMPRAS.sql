@@ -236,7 +236,7 @@ SELECT
         WHEN 3 THEN 'Recibido'
         WHEN 4 THEN 'Cancelado'
     END as estado_descripcion,
-    COUNT(*) as cantidad_productos,
+    COUNT(1) as cantidad_productos,
     SUM(cantidad_solicitada) as total_solicitado,
     SUM(cantidad_recibida) as total_recibido,
     SUM(subtotal_producto) as valor_total
@@ -247,7 +247,7 @@ ORDER BY ind_estado_producto;
 -- 2. Órdenes pendientes por proveedor
 SELECT 
     p.nom_proveedor,
-    COUNT(*) as ordenes_pendientes,
+    COUNT(1) as ordenes_pendientes,
     SUM(ocp.subtotal_producto) as valor_pendiente,
     STRING_AGG(ocp.id_orden_compra::text, ', ') as ids_ordenes
 FROM tab_orden_compra_proveedor ocp
@@ -260,7 +260,7 @@ ORDER BY valor_pendiente DESC;
 SELECT 
     ocp.id_categoria, ocp.id_linea, ocp.id_sublinea, ocp.id_producto,
     pr.nom_producto,
-    COUNT(*) as ordenes_compra,
+    COUNT(1) as ordenes_compra,
     SUM(ocp.cantidad_solicitada) as total_solicitado,
     SUM(ocp.cantidad_recibida) as total_recibido,
     SUM(ocp.subtotal_producto) as inversion_total

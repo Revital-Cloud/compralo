@@ -48,7 +48,31 @@ DECLARE
     v_inicio_calculo TIMESTAMP := NOW();
 BEGIN
     -- OBTENER: Configuración del KPI
-    SELECT k.*, t.nom_tipo_kpi
+    SELECT 
+        k.id_kpi,
+        k.id_tipo_kpi,
+        k.nom_kpi,
+        k.descripcion_kpi,
+        k.formula_sql,
+        k.unidad_medida,
+        k.formato_numero,
+        k.rango_esperado_min,
+        k.rango_esperado_max,
+        k.frecuencia_actualizacion,
+        k.ultima_actualizacion,
+        k.duracion_cache_minutos,
+        k.tipo_grafico_sugerido,
+        k.color_primario,
+        k.mostrar_tendencia,
+        k.mostrar_comparacion,
+        k.solo_administradores,
+        k.requiere_parametros,
+        k.parametros_permitidos,
+        k.creado_por,
+        k.ind_activo,
+        k.fec_creacion,
+        k.fec_update,
+        t.nom_tipo_kpi
     INTO v_kpi_config
     FROM tab_kpis_maestros k
     JOIN tab_tipos_kpi t ON k.id_tipo_kpi = t.id_tipo_kpi

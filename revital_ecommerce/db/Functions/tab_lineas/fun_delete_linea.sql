@@ -15,7 +15,7 @@ BEGIN
     END IF;
 
     -- Verificar si la línea tiene sublíneas asociadas
-    SELECT COUNT(*) INTO v_count_sublineas 
+    SELECT COUNT(1) INTO v_count_sublineas 
     FROM tab_sublineas 
     WHERE id_linea = v_id_linea AND ind_activo = true;
 

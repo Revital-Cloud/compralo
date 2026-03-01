@@ -16,7 +16,7 @@ BEGIN
     END IF;
 
     -- Verificar si el proveedor tiene productos asociados
-    SELECT COUNT(*) INTO v_count_productos 
+    SELECT COUNT(1) INTO v_count_productos 
     FROM tab_productos 
     WHERE id_proveedor = v_id_proveedor AND ind_activo = true;
 
@@ -30,7 +30,7 @@ BEGIN
     END IF;
 
     -- Verificar si el proveedor tiene órdenes de compra asociadas
-    SELECT COUNT(*) INTO v_count_ordenes_compra 
+    SELECT COUNT(1) INTO v_count_ordenes_compra 
     FROM tab_orden_compra_proveedor 
     WHERE id_proveedor = v_id_proveedor;
 
