@@ -70,7 +70,7 @@ BEGIN
         LEFT JOIN tab_marcas m ON m.id_marca = p.id_marca
         LEFT JOIN tab_proveedores pr ON pr.id_proveedor = p.id_proveedor
     ),
-    total AS (SELECT COUNT(*) AS n FROM agg)
+    total AS (SELECT COUNT(1) AS n FROM agg)
     SELECT
         a.product_id,
         a.category_id,

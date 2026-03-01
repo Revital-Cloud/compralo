@@ -78,13 +78,24 @@ BEGIN
         AND (p_nombre_producto IS NULL OR trim(p_nombre_producto) = '' OR unaccent(lower(p.name)) LIKE '%' || unaccent(lower(trim(p_nombre_producto))) || '%')
     ),
     filt AS (
-        SELECT agg.*
+        SELECT 
+            agg.product_id,
+            agg.category_id,
+            agg.nom_categoria,
+            agg.nom_producto,
+            agg.slug_producto,
+            agg.description,
+            agg.id_marca,
+            agg.precio_min,
+            agg.precio_max,
+            agg.stock_total,
+            agg.img_principal
         FROM agg
         WHERE (p_precio_min IS NULL OR agg.precio_min >= p_precio_min)
         AND (p_precio_max IS NULL OR agg.precio_min <= p_precio_max)
         AND (NOT p_solo_con_stock OR (agg.stock_total > 0))
     ),
-    total AS (SELECT COUNT(*) AS n FROM filt)
+    total AS (SELECT COUNT(1) AS n FROM filt)
     SELECT
         f.product_id,
         f.category_id,

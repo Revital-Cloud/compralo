@@ -277,7 +277,23 @@ DECLARE
 BEGIN
     -- VERIFICAR: Acceso al dashboard
     SELECT 
-        d.*,
+        d.id_dashboard,
+        d.id_usuario,
+        d.nom_dashboard,
+        d.descripcion,
+        d.tipo_layout,
+        d.columnas_grid,
+        d.tema_color,
+        d.mostrar_filtros,
+        d.es_publico,
+        d.es_dashboard_principal,
+        d.auto_refresh_segundos,
+        d.notificaciones_cambios,
+        d.fecha_ultimo_acceso,
+        d.numero_accesos,
+        d.ind_activo,
+        d.fec_creacion,
+        d.fec_update,
         u.nom_usuario as propietario,
         EXISTS(
             SELECT 1 FROM tab_compartir_dashboards cd
@@ -316,10 +332,36 @@ BEGIN
     -- OBTENER: Todos los widgets del dashboard
     FOR v_widget_record IN 
         SELECT 
-            w.*, 
-            k.nom_kpi, k.descripcion_kpi, k.unidad_medida, k.formato_numero,
-            k.tipo_grafico_sugerido, k.color_primario, k.mostrar_tendencia,
-            t.nom_tipo_kpi, t.color_categoria, t.icono
+            w.id_widget,
+            w.id_dashboard,
+            w.id_kpi,
+            w.posicion_x,
+            w.posicion_y,
+            w.ancho_columnas,
+            w.alto_filas,
+            w.orden_z,
+            w.titulo_personalizado,
+            w.mostrar_titulo,
+            w.tipo_grafico,
+            w.color_personalizado,
+            w.mostrar_valor_anterior,
+            w.mostrar_porcentaje_cambio,
+            w.parametros_kpi,
+            w.periodo_comparacion,
+            w.filtros_adicionales,
+            w.ind_activo,
+            w.fec_creacion,
+            w.fec_update,
+            k.nom_kpi,
+            k.descripcion_kpi,
+            k.unidad_medida,
+            k.formato_numero,
+            k.tipo_grafico_sugerido,
+            k.color_primario,
+            k.mostrar_tendencia,
+            t.nom_tipo_kpi,
+            t.color_categoria,
+            t.icono
         FROM tab_widgets_dashboard w
         JOIN tab_kpis_maestros k ON w.id_kpi = k.id_kpi
         JOIN tab_tipos_kpi t ON k.id_tipo_kpi = t.id_tipo_kpi

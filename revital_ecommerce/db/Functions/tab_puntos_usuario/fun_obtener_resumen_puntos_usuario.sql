@@ -33,7 +33,18 @@ DECLARE
     v_config_puntos DECIMAL(10,2);
 BEGIN
     -- CONSULTA: Obtener información completa de puntos del usuario
-    SELECT pu.*, u.nom_usuario, u.ape_usuario
+    SELECT 
+        pu.id_usuario,
+        pu.puntos_disponibles,
+        pu.puntos_totales_ganados,
+        pu.puntos_totales_canjeados,
+        pu.fec_ultimo_canje,
+        pu.usr_insert,
+        pu.fec_insert,
+        pu.usr_update,
+        pu.fec_update,
+        u.nom_usuario,
+        u.ape_usuario
     INTO v_puntos_usuario
     FROM tab_puntos_usuario pu
     JOIN tab_usuarios u ON pu.id_usuario = u.id_usuario                -- JOIN para obtener nombre
@@ -46,7 +57,18 @@ BEGIN
         ON CONFLICT (id_usuario) DO NOTHING;                           -- No duplicar si ya existe
         
         -- Re-consultar información después de crear registro
-        SELECT pu.*, u.nom_usuario, u.ape_usuario
+        SELECT 
+            pu.id_usuario,
+            pu.puntos_disponibles,
+            pu.puntos_totales_ganados,
+            pu.puntos_totales_canjeados,
+            pu.fec_ultimo_canje,
+            pu.usr_insert,
+            pu.fec_insert,
+            pu.usr_update,
+            pu.fec_update,
+            u.nom_usuario,
+            u.ape_usuario
         INTO v_puntos_usuario
         FROM tab_puntos_usuario pu
         JOIN tab_usuarios u ON pu.id_usuario = u.id_usuario
@@ -54,7 +76,7 @@ BEGIN
     END IF;
     
     -- CONSULTA: Contar canjes disponibles (no utilizados y no vencidos)
-    SELECT COUNT(*) INTO v_canjes_disponibles
+    SELECT COUNT(1) INTO v_canjes_disponibles
     FROM tab_canjes_puntos_descuentos
     WHERE id_usuario = p_id_usuario                                    -- Del usuario específico
       AND ind_utilizado = FALSE                                        -- No utilizados
@@ -92,7 +114,7 @@ BEGIN
         ),
         'canjes_disponibles', v_canjes_disponibles,                    -- Canjes no utilizados
         'configuracion', json_build_object(                            -- Configuración del sistema
-            'pesos_por_punto', v_config_puntos.pesos_por_punto
+            'pesos_por_punto', v_config_puntos
         )
     );
 END;

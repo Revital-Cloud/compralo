@@ -12,7 +12,7 @@ BEGIN
         RETURN json_build_object('success', false, 'message', 'La categoría no existe', 'id_categoria', p_id);
     END IF;
 
-    SELECT COUNT(*) INTO v_children FROM tab_categories WHERE parent_id = p_id;
+    SELECT COUNT(1) INTO v_children FROM tab_categories WHERE parent_id = p_id;
     IF v_children > 0 THEN
         RETURN json_build_object(
             'success', false,
@@ -22,7 +22,7 @@ BEGIN
         );
     END IF;
 
-    SELECT COUNT(*) INTO v_products FROM tab_products WHERE category_id = p_id;
+    SELECT COUNT(1) INTO v_products FROM tab_products WHERE category_id = p_id;
     IF v_products > 0 THEN
         RETURN json_build_object(
             'success', false,

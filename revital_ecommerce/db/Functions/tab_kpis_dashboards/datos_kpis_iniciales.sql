@@ -50,7 +50,7 @@ INSERT INTO tab_kpis_maestros (
 ((SELECT id_tipo_kpi FROM tab_tipos_kpi WHERE nom_tipo_kpi = 'Ventas y Facturación'),
 'Órdenes Completadas del Mes',
 'Número total de órdenes completadas en el mes actual',
-'SELECT COUNT(*) FROM tab_ordenes WHERE ind_estado = 3 AND TO_CHAR(fec_pedido, ''YYYY-MM'') = ${MES_ACTUAL}',
+'SELECT COUNT(1) FROM tab_ordenes WHERE ind_estado = 3 AND TO_CHAR(fec_pedido, ''YYYY-MM'') = ${MES_ACTUAL}',
 'órdenes', 'INTEGER', 0, 1000, 'TIEMPO_REAL', 15, 'NUMERO', '#E74C3C', TRUE, TRUE, FALSE, FALSE, NULL),
 
 -- KPI 3: Ticket Promedio
@@ -97,14 +97,14 @@ INSERT INTO tab_kpis_maestros (
 ((SELECT id_tipo_kpi FROM tab_tipos_kpi WHERE nom_tipo_kpi = 'Productos e Inventario'),
 'Productos Activos en Catálogo',
 'Número total de productos activos disponibles para venta',
-'SELECT COUNT(*) FROM tab_productos WHERE ind_activo = TRUE',
+'SELECT COUNT(1) FROM tab_productos WHERE ind_activo = TRUE',
 'productos', 'INTEGER', 10, 10000, 'DIARIA', 120, 'NUMERO', '#3498DB', FALSE, FALSE, FALSE, FALSE, NULL),
 
 -- KPI 7: Productos con Stock Bajo
 ((SELECT id_tipo_kpi FROM tab_tipos_kpi WHERE nom_tipo_kpi = 'Productos e Inventario'),
 'Productos con Stock Bajo',
 'Número de productos con stock menor a 10 unidades',
-'SELECT COUNT(*) FROM tab_productos WHERE ind_activo = TRUE AND num_stock < 10',
+'SELECT COUNT(1) FROM tab_productos WHERE ind_activo = TRUE AND num_stock < 10',
 'productos', 'INTEGER', 0, 50, 'TIEMPO_REAL', 15, 'NUMERO', '#E67E22', TRUE, FALSE, TRUE, FALSE, NULL),
 
 -- KPI 8: Productos Más Vendidos del Mes
@@ -127,7 +127,7 @@ INSERT INTO tab_kpis_maestros (
 ((SELECT id_tipo_kpi FROM tab_tipos_kpi WHERE nom_tipo_kpi = 'Productos e Inventario'),
 'Productos Sin Ventas',
 'Productos activos que no han registrado ventas',
-'SELECT COUNT(*) FROM tab_productos p 
+'SELECT COUNT(1) FROM tab_productos p 
  LEFT JOIN tab_estadisticas_productos ep ON (p.id_categoria = ep.id_categoria AND p.id_linea = ep.id_linea AND p.id_sublinea = ep.id_sublinea AND p.id_producto = ep.id_producto)
  WHERE p.ind_activo = TRUE AND (ep.total_unidades_vendidas IS NULL OR ep.total_unidades_vendidas = 0)',
 'productos', 'INTEGER', 0, 100, 'DIARIA', 60, 'NUMERO', '#E67E22', TRUE, FALSE, TRUE, FALSE, NULL);
@@ -147,14 +147,14 @@ INSERT INTO tab_kpis_maestros (
 ((SELECT id_tipo_kpi FROM tab_tipos_kpi WHERE nom_tipo_kpi = 'Usuarios y Clientes'),
 'Usuarios Registrados',
 'Total de usuarios registrados en el sistema',
-'SELECT COUNT(*) FROM tab_usuarios WHERE ind_activo = TRUE',
+'SELECT COUNT(1) FROM tab_usuarios WHERE ind_activo = TRUE',
 'usuarios', 'INTEGER', 0, 100000, 'TIEMPO_REAL', 60, 'NUMERO', '#9B59B6', TRUE, TRUE, FALSE, FALSE, NULL),
 
 -- KPI 12: Nuevos Usuarios del Mes
 ((SELECT id_tipo_kpi FROM tab_tipos_kpi WHERE nom_tipo_kpi = 'Usuarios y Clientes'),
 'Nuevos Usuarios del Mes',
 'Usuarios registrados en el mes actual',
-'SELECT COUNT(*) FROM tab_usuarios WHERE ind_activo = TRUE AND TO_CHAR(fec_creacion, ''YYYY-MM'') = ${MES_ACTUAL}',
+'SELECT COUNT(1) FROM tab_usuarios WHERE ind_activo = TRUE AND TO_CHAR(fec_creacion, ''YYYY-MM'') = ${MES_ACTUAL}',
 'usuarios', 'INTEGER', 0, 1000, 'TIEMPO_REAL', 30, 'NUMERO', '#9B59B6', TRUE, TRUE, FALSE, FALSE, NULL),
 
 -- KPI 13: Usuarios con Compras
@@ -190,14 +190,14 @@ INSERT INTO tab_kpis_maestros (
 ((SELECT id_tipo_kpi FROM tab_tipos_kpi WHERE nom_tipo_kpi = 'Rendimiento Operacional'),
 'Órdenes Pendientes',
 'Número de órdenes en estado pendiente de pago',
-'SELECT COUNT(*) FROM tab_ordenes WHERE ind_estado = 1',
+'SELECT COUNT(1) FROM tab_ordenes WHERE ind_estado = 1',
 'órdenes', 'INTEGER', 0, 100, 'TIEMPO_REAL', 5, 'NUMERO', '#F39C12', TRUE, FALSE, FALSE, FALSE, NULL),
 
 -- KPI 16: Órdenes en Proceso
 ((SELECT id_tipo_kpi FROM tab_tipos_kpi WHERE nom_tipo_kpi = 'Rendimiento Operacional'),
 'Órdenes en Proceso',
 'Número de órdenes pagadas en preparación',
-'SELECT COUNT(*) FROM tab_ordenes WHERE ind_estado = 2',
+'SELECT COUNT(1) FROM tab_ordenes WHERE ind_estado = 2',
 'órdenes', 'INTEGER', 0, 200, 'TIEMPO_REAL', 5, 'NUMERO', '#F39C12', TRUE, FALSE, FALSE, FALSE, NULL),
 
 -- KPI 17: Tiempo Promedio de Procesamiento
@@ -213,7 +213,7 @@ INSERT INTO tab_kpis_maestros (
 ((SELECT id_tipo_kpi FROM tab_tipos_kpi WHERE nom_tipo_kpi = 'Rendimiento Operacional'),
 'Órdenes Diarias Promedio',
 'Promedio de órdenes procesadas por día en el mes',
-'SELECT ROUND(COUNT(*)::DECIMAL / EXTRACT(DAY FROM NOW()), 1) 
+'SELECT ROUND(COUNT(1)::DECIMAL / EXTRACT(DAY FROM NOW()), 1) 
  FROM tab_ordenes WHERE ind_estado = 3 
  AND TO_CHAR(fec_pedido, ''YYYY-MM'') = ${MES_ACTUAL}',
 'órdenes/día', 'DECIMAL', 0, 100, 'DIARIA', 30, 'LINEA', '#F39C12', TRUE, TRUE, FALSE, FALSE, NULL);
@@ -240,21 +240,21 @@ INSERT INTO tab_kpis_maestros (
 ((SELECT id_tipo_kpi FROM tab_tipos_kpi WHERE nom_tipo_kpi = 'Puntos y Descuentos'),
 'Canjes Realizados del Mes',
 'Número de canjes de puntos realizados en el mes actual',
-'SELECT COUNT(*) FROM tab_canjes_puntos_descuentos WHERE TO_CHAR(fec_canje, ''YYYY-MM'') = ${MES_ACTUAL}',
+'SELECT COUNT(1) FROM tab_canjes_puntos_descuentos WHERE TO_CHAR(fec_canje, ''YYYY-MM'') = ${MES_ACTUAL}',
 'canjes', 'INTEGER', 0, 500, 'TIEMPO_REAL', 15, 'NUMERO', '#E67E22', TRUE, TRUE, FALSE, FALSE, NULL),
 
 -- KPI 21: Descuentos Activos
 ((SELECT id_tipo_kpi FROM tab_tipos_kpi WHERE nom_tipo_kpi = 'Puntos y Descuentos'),
 'Descuentos Activos',
 'Número de descuentos disponibles para canje',
-'SELECT COUNT(*) FROM tab_descuentos WHERE ind_activo = TRUE AND fecha_fin >= CURRENT_DATE',
+'SELECT COUNT(1) FROM tab_descuentos WHERE ind_activo = TRUE AND fecha_fin >= CURRENT_DATE',
 'descuentos', 'INTEGER', 0, 50, 'DIARIA', 60, 'NUMERO', '#E67E22', FALSE, FALSE, FALSE, FALSE, NULL),
 
 -- KPI 22: Usuarios con Puntos
 ((SELECT id_tipo_kpi FROM tab_tipos_kpi WHERE nom_tipo_kpi = 'Puntos y Descuentos'),
 'Usuarios con Puntos',
 'Usuarios que tienen puntos disponibles para canjear',
-'SELECT COUNT(*) FROM tab_puntos_usuario WHERE puntos_disponibles > 0',
+'SELECT COUNT(1) FROM tab_puntos_usuario WHERE puntos_disponibles > 0',
 'usuarios', 'INTEGER', 0, 10000, 'TIEMPO_REAL', 30, 'NUMERO', '#E67E22', TRUE, TRUE, FALSE, FALSE, NULL);
 
 -- =====================================================

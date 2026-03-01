@@ -36,7 +36,7 @@ DECLARE
     v_descripcion_final VARCHAR;
 BEGIN
     -- VALIDACIÓN 1: Verificar si ya existe una configuración activa
-    SELECT COUNT(*) INTO v_config_existente 
+    SELECT COUNT(1) INTO v_config_existente 
     FROM tab_config_puntos_empresa 
     WHERE ind_activo = TRUE;
     

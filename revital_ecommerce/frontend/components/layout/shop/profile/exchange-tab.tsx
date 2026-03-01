@@ -74,13 +74,13 @@ export default function ExchangeTab() {
   return (
     <div className="space-y-6">
       {/* Saldo de puntos */}
-      <Card className="bg-gray-900/80 border-white/10">
+      <Card className="border border-amber-100 bg-gradient-to-r from-amber-50 to-amber-100 dark:from-gray-900 dark:to-gray-900 dark:border-white/10">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Coins className="h-5 w-5 text-amber-400" />
+          <CardTitle className="flex items-center gap-2 text-amber-900 dark:text-amber-100">
+            <Coins className="h-5 w-5 text-amber-500 dark:text-amber-300" />
             Puntos de fidelidad
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-amber-900/80 dark:text-muted-foreground">
             Canjea tus puntos por descuentos exclusivos para ti.
           </CardDescription>
         </CardHeader>
@@ -88,7 +88,7 @@ export default function ExchangeTab() {
           {isLoadingPoints ? (
             <Skeleton className="h-10 w-32" />
           ) : (
-            <p className="text-2xl font-semibold text-amber-400">
+            <p className="text-3xl font-semibold text-amber-700 dark:text-amber-300">
               {puntosDisponibles.toLocaleString()} puntos disponibles
             </p>
           )}
@@ -104,7 +104,10 @@ export default function ExchangeTab() {
         {isLoadingCanjes ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[1, 2].map((i) => (
-              <Card key={i} className="bg-gray-900/80 border-white/10 p-6">
+              <Card
+                key={i}
+                className="bg-card border border-border dark:bg-gray-900/80 dark:border-white/10 p-6"
+              >
                 <Skeleton className="h-5 w-3/4 mb-2" />
                 <Skeleton className="h-4 w-full mb-4" />
                 <Skeleton className="h-9 w-24" />
@@ -112,7 +115,7 @@ export default function ExchangeTab() {
             ))}
           </div>
         ) : availableCanjes.length === 0 ? (
-          <Card className="bg-gray-900/80 border-white/10 p-8 text-center">
+          <Card className="bg-muted border border-dashed border-border dark:bg-gray-900/80 dark:border-white/10 p-8 text-center">
             <p className="text-muted-foreground">
               No tienes canjes disponibles. Canjea puntos por un descuento más abajo.
             </p>
@@ -122,7 +125,7 @@ export default function ExchangeTab() {
             {availableCanjes.map((c) => (
               <Card
                 key={c.id_canje}
-                className="bg-gray-900/80 border-white/10 hover:border-violet-500/50 transition-colors"
+                className="bg-card border border-border hover:border-violet-500/50 transition-colors dark:bg-gray-900/80 dark:border-white/10"
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">{c.nom_descuento}</CardTitle>
@@ -160,7 +163,10 @@ export default function ExchangeTab() {
         {isLoadingDiscounts ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="bg-gray-900/80 border-white/10 p-6">
+              <Card
+                key={i}
+                className="bg-card border border-border dark:bg-gray-900/80 dark:border-white/10 p-6"
+              >
                 <Skeleton className="h-5 w-3/4 mb-2" />
                 <Skeleton className="h-4 w-full mb-4" />
                 <Skeleton className="h-9 w-24" />
@@ -168,7 +174,7 @@ export default function ExchangeTab() {
             ))}
           </div>
         ) : exchangeableDiscounts.length === 0 ? (
-          <Card className="bg-gray-900/80 border-white/10 p-8 text-center">
+          <Card className="bg-muted border border-dashed border-border dark:bg-gray-900/80 dark:border-white/10 p-8 text-center">
             <p className="text-muted-foreground">
               No hay descuentos canjeables por puntos en este momento.
             </p>
@@ -178,7 +184,7 @@ export default function ExchangeTab() {
             {exchangeableDiscounts.map((d) => (
               <Card
                 key={d.id_descuento}
-                className="bg-gray-900/80 border-white/10 hover:border-violet-500/50 transition-colors"
+                className="bg-card border border-border hover:border-violet-500/50 transition-colors dark:bg-gray-900/80 dark:border-white/10"
               >
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">{d.nom_descuento}</CardTitle>

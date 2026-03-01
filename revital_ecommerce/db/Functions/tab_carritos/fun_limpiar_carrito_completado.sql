@@ -70,7 +70,7 @@ BEGIN
         WHERE id_usuario = NEW.id_usuario
     LOOP
         -- PASO 2: Contar productos antes de eliminar (para log)
-        SELECT COUNT(*) INTO v_count_productos_eliminados
+        SELECT COUNT(1) INTO v_count_productos_eliminados
         FROM tab_carrito_productos 
         WHERE id_carrito = v_carrito_record.id_carrito;
         

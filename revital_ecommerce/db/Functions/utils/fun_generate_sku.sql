@@ -15,7 +15,7 @@ BEGIN
             RETURN trim(p_custom);
         END IF;
     END IF;
-    SELECT COUNT(*) + 1 INTO v_seq
+    SELECT COUNT(1) + 1 INTO v_seq
     FROM tab_product_variant_combinations c
     JOIN tab_product_variant_groups g ON g.id = c.group_id
     WHERE g.product_id = p_product_id;

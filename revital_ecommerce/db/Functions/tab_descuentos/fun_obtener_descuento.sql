@@ -31,7 +31,42 @@ DECLARE
 BEGIN
     -- CONSULTA: Obtener descuento completo con información calculada
     SELECT 
-        d.*,                                                    -- Todos los campos del descuento
+        d.id_descuento,
+        d.nom_descuento,
+        d.des_descuento,
+        d.id_categoria,
+        d.id_linea,
+        d.id_sublinea,
+        d.id_producto,
+        d.tipo_calculo,
+        d.val_porce_descuento,
+        d.val_monto_descuento,
+        d.aplica_a,
+        d.category_id_aplica,
+        d.product_id_aplica,
+        d.id_marca_aplica,
+        d.min_valor_pedido,
+        d.ind_es_para_cumpleanos,
+        d.fec_inicio,
+        d.fec_fin,
+        d.ind_activo,
+        d.max_usos_total,
+        d.usos_actuales_total,
+        d.costo_puntos_canje,
+        d.ind_canjeable_puntos,
+        d.codigo_descuento,
+        d.max_usos_por_usuario,
+        d.dias_semana_aplica,
+        d.horas_inicio,
+        d.horas_fin,
+        d.solo_primera_compra,
+        d.monto_minimo_producto,
+        d.cantidad_minima_producto,
+        d.requiere_codigo,
+        d.usr_insert,
+        d.fec_insert,
+        d.usr_update,
+        d.fec_update,
         CASE 
             WHEN d.tipo_calculo THEN 'Porcentaje'
             ELSE 'Monto Fijo'

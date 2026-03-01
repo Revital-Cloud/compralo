@@ -147,12 +147,13 @@ const OrdersPage = () => {
     { 
       id: 'monto', 
       header: 'Monto',
+      minSize: 130,
       cell: ({ row }) => {
         const valTotal = row.original.val_total_pedido ?? 0
         const valDescuentos = row.original.val_total_descuentos ?? 0
         
         return (
-          <div className="tabular-nums">
+          <div className="tabular-nums min-w-[8rem] shrink-0">
             <div className="font-semibold">${valTotal.toLocaleString('es-CO')}</div>
             {valDescuentos > 0 && (
               <div className="text-sm text-green-600">
