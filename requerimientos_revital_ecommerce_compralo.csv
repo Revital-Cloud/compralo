@@ -1,0 +1,377 @@
+PROYECTO;;revital_ecommerce (Compralo);;;;;;;;;;
+FORMATO;;Por VISTAS (rutas Next.js);;;;;;;;;;
+SEPARADOR;;punto y coma (;);;;;;;;;;;
+FUENTE_PRINCIPAL;;revital_ecommerce/docs/SRS_REVITAL_ECOMMERCE_IEEE830.md;;;;;;;;;;
+FUENTES_COMPLEMENTARIAS;;revital_ecommerce/db/docs/Inventario_Transacciones_CRUD.csv | docs/MANUAL_TECNICO.md | revital_ecommerce/frontend/Docs/COOKIE_SYSTEM.md;;;;;;;;;;
+
+VISTA;;(global);;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-03;;Funcional;;Refresh de token (renovar sesión);;Alta;;Hecho;;SRS(RF-03) | Frontend: revital_ecommerce/frontend/hooks/use-refresh-token.ts
+RF-29;;Funcional;;Envío de emails transaccionales (registro, órdenes, recuperación);;Alta;;Hecho;;SRS(RF-29) | Backend: revital_ecommerce/backend/app/routers/email_router.py | Docs: docs/MANUAL_TECNICO.md
+RF-32;;Funcional;;Protección de rutas por autenticación y rol (401/403);;Alta;;Hecho;;SRS(RF-32) | Backend: revital_ecommerce/backend/app/core/dependencies.py | Frontend: route guards/layouts
+RF-33;;Funcional;;Consentimiento de cookies (banner, preferencias, revocar);;Alta;;Hecho;;Docs: revital_ecommerce/frontend/Docs/COOKIE_SYSTEM.md | UI: components/ui/cookie-banner.tsx + cookie-settings.tsx
+RF-35;;Funcional;;Asistente IA para administración (chat + resumen dashboard);;Media;;Hecho;;Backend: backend/app/routers/ai_router.py | Frontend: frontend/components/admin/ai-chat-panel.tsx
+
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-01;;No Funcional;;Tiempo de respuesta API (P95 < 500ms bajo carga normal);;N/A;;Pendiente_de_verificacion;;SRS(RNF-01)
+RNF-02;;No Funcional;;Contraseñas con Argon2 y sesión con JWT firmado; secret configurable por instancia;;N/A;;Hecho;;SRS(RNF-02) | Backend: requirements(argon2-cffi, PyJWT) + core/jwt_utils
+RNF-03;;No Funcional;;Validación de entradas con Pydantic (422 ante inválidos);;N/A;;Hecho;;SRS(RNF-03) | Backend: schemas/*
+RNF-04;;No Funcional;;CORS y middleware de seguridad/cabeceras según config;;N/A;;Hecho;;SRS(RNF-04) | Backend: app/main.py
+RNF-05;;No Funcional;;Disponibilidad: endpoint de salud (ej. GET /) responde 200;;N/A;;Pendiente_de_verificacion;;SRS(RNF-05)
+RNF-06;;No Funcional;;Transacciones atómicas en operaciones críticas (carrito/stock/orden);;N/A;;Hecho;;SRS(RNF-06) | BD: Functions/* (fun_crear_orden_desde_carrito, etc.)
+RNF-07;;No Funcional;;Compatibilidad con navegadores modernos (Chrome/Firefox/Safari/Edge);;N/A;;Pendiente_de_verificacion;;SRS(RNF-07)
+RNF-08;;No Funcional;;Manejo de estados de carga/errores en pantallas que consumen API;;N/A;;Hecho;;SRS(RNF-08) | Frontend: hooks/* + toast/empty-states
+RNF-09;;No Funcional;;Carrito anónimo con session_id UUID v4 persistido (localStorage) y migración a usuario;;N/A;;Hecho;;SRS(RNF-09) | Backend: backend/app/routers/cart_product_router.py
+RNF-10;;No Funcional;;Trazabilidad/auditoría (usr_insert/usr_update + timestamps en operaciones críticas);;N/A;;Hecho;;SRS(RNF-10) | BD: db/db_revital.sql + triggers/functions
+RNF-11;;No Funcional;;Cumplimiento cookies (GDPR/CCPA): consentimiento granular y revocable, persistencia de preferencias;;N/A;;Hecho;;Docs: revital_ecommerce/frontend/Docs/COOKIE_SYSTEM.md
+
+VISTA;;(auth)/login;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-02;;Funcional;;Inicio de sesión (login) con validación y tokens;;Alta;;Hecho;;SRS(RF-02) | View: frontend/app/(auth)/login/page.tsx | Hook: frontend/hooks/use-auth.ts
+RF-32;;Funcional;;Acceso solo a usuarios no autenticados / redirección post-login por rol;;Alta;;Hecho;;SRS(RF-32) | Hook: frontend/hooks/use-auth.ts
+RF-33;;Funcional;;Bloquear login si no se aceptan cookies necesarias;;Alta;;Hecho;;Docs: COOKIE_SYSTEM.md | Hook: frontend/hooks/use-auth.ts
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-02;;No Funcional;;JWT + almacenamiento seguro de credenciales (sin password en claro);;N/A;;Hecho;;SRS(RNF-02)
+RNF-03;;No Funcional;;Validación de entrada (email/contraseña);;N/A;;Hecho;;SRS(RNF-03) | Frontend schemas: frontend/schemas/auth.schema.ts
+RNF-08;;No Funcional;;Estados de carga y errores en login;;N/A;;Hecho;;SRS(RNF-08) | Frontend: components/forms/login-form.tsx
+
+VISTA;;(auth)/register;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-01;;Funcional;;Registro de usuarios (alta de cuenta);;Alta;;Hecho;;SRS(RF-01) | View: frontend/app/(auth)/register/page.tsx
+RF-29;;Funcional;;Email transaccional asociado a registro/verificación (si aplica);;Alta;;Hecho;;SRS(RF-29) | Backend: backend/app/routers/email_router.py
+RF-36;;Funcional;;Verificación de email (pantalla y flujo de confirmación);;Media;;Pendiente_de_verificacion;;View: frontend/app/(auth)/verify-email/page.tsx
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-03;;No Funcional;;Validación de datos de registro;;N/A;;Hecho;;SRS(RNF-03) | Frontend schemas: frontend/schemas/auth.schema.ts
+RNF-08;;No Funcional;;Manejo de errores y estados de carga en registro;;N/A;;Hecho;;SRS(RNF-08)
+
+VISTA;;(auth)/forgot-password;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-04;;Funcional;;Recuperación de contraseña (solicitud de email);;Media;;Hecho;;SRS(RF-04) | View: frontend/app/(auth)/forgot-password/page.tsx
+RF-29;;Funcional;;Envío de email con enlace de recuperación;;Alta;;Hecho;;SRS(RF-29) | Backend: backend/app/routers/email_router.py
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-08;;No Funcional;;Estados de carga y errores en recuperación;;N/A;;Hecho;;SRS(RNF-08)
+
+VISTA;;(auth)/reset-password;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-05;;Funcional;;Restablecimiento de contraseña con token;;Media;;Hecho;;SRS(RF-05) | View: frontend/app/(auth)/reset-password/page.tsx
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-02;;No Funcional;;Hash seguro de contraseña (Argon2) en backend;;N/A;;Hecho;;SRS(RNF-02)
+RNF-08;;No Funcional;;Estados de carga y errores en reset;;N/A;;Hecho;;SRS(RNF-08)
+
+VISTA;;(auth)/verify-email;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-36;;Funcional;;Confirmación/verificación de email (UI + confirmación);;Media;;Pendiente_de_verificacion;;View: frontend/app/(auth)/verify-email/page.tsx
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-08;;No Funcional;;Mensajes claros ante verificación válida/expirada;;N/A;;Pendiente_de_verificacion;;SRS(RNF-08)
+
+VISTA;;(shop)/page;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-09;;Funcional;;Explorar catálogo (destacados, categorías destacadas);;Alta;;Hecho;;SRS(RF-09) | View: frontend/app/(shop)/page.tsx
+RF-33;;Funcional;;Mostrar banner de cookies en primera visita;;Alta;;Hecho;;View: frontend/app/(shop)/page.tsx + UI cookie-banner.tsx
+RF-34;;Funcional;;Chatbot informativo legal/comercial en Home;;Media;;Hecho;;View: frontend/app/(shop)/page.tsx | Component: frontend/components/chatbot-widget/informative-chatbot-widget.tsx
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-07;;No Funcional;;Compatibilidad navegadores;;N/A;;Pendiente_de_verificacion;;SRS(RNF-07)
+RNF-08;;No Funcional;;Estados de carga/errores en secciones con datos;;N/A;;Hecho;;SRS(RNF-08)
+RNF-11;;No Funcional;;Consentimiento cookies revocable y granular;;N/A;;Hecho;;COOKIE_SYSTEM.md
+
+VISTA;;(shop)/products;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-09;;Funcional;;Filtros, búsqueda, paginación y ordenamiento de productos;;Alta;;Hecho;;SRS(RF-09) | View: frontend/app/(shop)/products/page.tsx | Backend: backend/app/routers/product_router.py
+RF-24;;Funcional;;Visualización de descuentos aplicables (si corresponde);;Alta;;Hecho;;SRS(RF-24) | Frontend: hooks/use-discounts.ts
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-08;;No Funcional;;Estados vacíos/carga/errores en listado;;N/A;;Hecho;;SRS(RNF-08)
+
+VISTA;;(shop)/products/[id];;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-09;;Funcional;;Ver detalle de producto (por id) y disponibilidad;;Alta;;Hecho;;SRS(RF-09) | View: frontend/app/(shop)/products/[id]/page.tsx
+RF-13;;Funcional;;Agregar producto al carrito desde detalle;;Alta;;Hecho;;SRS(RF-13) | Backend: backend/app/routers/cart_product_router.py
+RF-27;;Funcional;;Agregar/Quitar de favoritos desde detalle;;Media;;Hecho;;SRS(RF-27) | Backend: backend/app/routers/favorites_router.py
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-08;;No Funcional;;Manejo de errores (producto no encontrado, sin stock);;N/A;;Hecho;;SRS(RNF-08)
+
+VISTA;;(shop)/categories;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-10;;Funcional;;Listado de categorías/líneas/sublíneas para navegación;;Alta;;Hecho;;SRS(RF-10) | View: frontend/app/(shop)/categories/page.tsx
+RF-09;;Funcional;;Filtrar productos por categoría (navegación);;Alta;;Hecho;;SRS(RF-09)
+
+VISTA;;(shop)/categories/[id_category];;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-10;;Funcional;;Navegación por categoría específica;;Alta;;Hecho;;SRS(RF-10) | View: frontend/app/(shop)/categories/[id_category]/page.tsx
+RF-09;;Funcional;;Filtro/búsqueda dentro de categoría;;Alta;;Hecho;;SRS(RF-09)
+
+VISTA;;(shop)/cart;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-12;;Funcional;;Obtener o crear carrito (anónimo o autenticado);;Alta;;Hecho;;SRS(RF-12) | View: frontend/app/(shop)/cart/page.tsx
+RF-13;;Funcional;;Agregar producto al carrito;;Alta;;Hecho;;SRS(RF-13) | Backend: backend/app/routers/cart_product_router.py
+RF-14;;Funcional;;Actualizar cantidad / eliminar ítem;;Alta;;Hecho;;SRS(RF-14) | Backend: backend/app/routers/cart_product_router.py
+RF-15;;Funcional;;Migración carrito anónimo → usuario;;Alta;;Hecho;;SRS(RF-15) | Backend: backend/app/routers/cart_product_router.py
+RF-16;;Funcional;;Calcular total del carrito;;Alta;;Hecho;;SRS(RF-16) | BD: db/Functions/tab_carritos/fun_calcular_total_carrito.sql
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-06;;No Funcional;;Transacción/consistencia en cambios de carrito;;N/A;;Hecho;;SRS(RNF-06)
+RNF-08;;No Funcional;;Errores/carga (stock insuficiente, red);;N/A;;Hecho;;SRS(RNF-08)
+RNF-09;;No Funcional;;session_id UUID v4 para carrito anónimo;;N/A;;Hecho;;SRS(RNF-09)
+
+VISTA;;(shop)/checkout;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-17;;Funcional;;Creación de orden desde carrito (checkout);;Alta;;Hecho;;SRS(RF-17) | View: frontend/app/(shop)/checkout/page.tsx | Backend: backend/app/routers/order_router.py
+RF-20;;Funcional;;Integración Wompi: token/checkout widget (si aplica);;Alta;;Hecho;;SRS(RF-20) | Frontend: components/payment/wompi-modal.tsx
+RF-21;;Funcional;;Integración Wompi: métodos de pago y transacciones;;Alta;;Hecho;;SRS(RF-21) | Backend: backend/app/routers/order_router.py
+RF-24;;Funcional;;Aplicación de descuentos en checkout;;Alta;;Hecho;;SRS(RF-24) | Backend: backend/app/routers/discount_router.py + user_discounts_router.py
+RF-26;;Funcional;;Canje de puntos por descuento en orden;;Media;;Hecho;;SRS(RF-26) | Backend: backend/app/routers/exchange_router.py
+RF-28;;Funcional;;Direcciones de envío (selección/gestión desde perfil/checkout);;Alta;;Hecho;;SRS(RF-28) | Backend: backend/app/routers/address_router.py
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-06;;No Funcional;;Operación atómica al crear orden/actualizar stock;;N/A;;Hecho;;SRS(RNF-06)
+RNF-08;;No Funcional;;Estados de carga/errores en pago/checkout;;N/A;;Hecho;;SRS(RNF-08)
+
+VISTA;;(shop)/checkout/payment-result;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-21;;Funcional;;Mostrar resultado de pago/transacción (estado Wompi);;Alta;;Hecho;;SRS(RF-21) | View: frontend/app/(shop)/checkout/payment-result/page.tsx
+RF-22;;Funcional;;Confirmación por webhook Wompi (backend) reflejada en estado;;Alta;;Hecho;;SRS(RF-22) | Backend: backend/app/routers/payment_router.py
+
+VISTA;;(shop)/favorites;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-27;;Funcional;;Listado y gestión de favoritos del usuario;;Media;;Hecho;;SRS(RF-27) | View: frontend/app/(shop)/favorites/page.tsx | Backend: backend/app/routers/favorites_router.py
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-08;;No Funcional;;Estados de carga/errores en favoritos;;N/A;;Hecho;;SRS(RNF-08)
+
+VISTA;;(shop)/discounts;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-24;;Funcional;;Consulta de descuentos activos y reglas de aplicación;;Alta;;Hecho;;SRS(RF-24) | View: frontend/app/(shop)/discounts/page.tsx | Frontend: services/discount.service.ts
+
+VISTA;;(shop)/profile;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-06;;Funcional;;Ver perfil del usuario autenticado (me);;Alta;;Hecho;;SRS(RF-06) | View: frontend/app/(shop)/profile/page.tsx
+RF-07;;Funcional;;Cerrar sesión (logout);;Media;;Hecho;;SRS(RF-07) | Hook: frontend/hooks/use-auth.ts
+RF-18;;Funcional;;Consultar órdenes del usuario (historial);;Alta;;Hecho;;SRS(RF-18) | Backend: backend/app/routers/order_router.py
+RF-25;;Funcional;;Consultar resumen/movimientos de puntos;;Media;;Hecho;;SRS(RF-25) | Backend: backend/app/routers/points_per_user_router.py
+RF-26;;Funcional;;Canje de puntos por descuento;;Media;;Hecho;;SRS(RF-26) | UI: components/layout/shop/profile/exchange-tab.tsx
+RF-28;;Funcional;;Gestión de direcciones de envío;;Alta;;Hecho;;SRS(RF-28) | UI: components/layout/shop/profile/addresses-tab.tsx
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-08;;No Funcional;;Estados de carga/errores en perfil;;N/A;;Hecho;;SRS(RNF-08)
+
+VISTA;;(shop)/profile/orders/[id];;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-18;;Funcional;;Detalle de orden del usuario (solo si pertenece al usuario);;Alta;;Hecho;;SRS(RF-18) | View: frontend/app/(shop)/profile/orders/[id]/page.tsx | Backend: backend/app/routers/order_router.py
+
+VISTA;;(shop)/seguimiento;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-UI-01;;Funcional;;Seguimiento de pedido por número + email (formulario);;Media;;Falta;;View: frontend/app/(shop)/seguimiento/page.tsx (indica “Formulario ... en desarrollo”)
+
+VISTA;;(shop)/privacidad;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-UI-LEGAL-01;;Funcional;;Mostrar política de privacidad;;Baja;;Hecho;;View: frontend/app/(shop)/privacidad/page.tsx
+
+VISTA;;(shop)/terminos;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-UI-LEGAL-02;;Funcional;;Mostrar términos y condiciones;;Baja;;Hecho;;View: frontend/app/(shop)/terminos/page.tsx
+
+VISTA;;(shop)/cookies;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-33;;Funcional;;Configurar y revocar consentimiento de cookies;;Alta;;Hecho;;Docs: COOKIE_SYSTEM.md | UI: components/ui/cookie-settings.tsx
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-11;;No Funcional;;Cumplimiento GDPR/CCPA (preferencias persistentes y revocables);;N/A;;Hecho;;COOKIE_SYSTEM.md
+
+VISTA;;(shop)/devoluciones;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-UI-INFO-01;;Funcional;;Mostrar política de devoluciones;;Baja;;Hecho;;View: frontend/app/(shop)/devoluciones/page.tsx
+
+VISTA;;(shop)/accesibilidad;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-UI-INFO-02;;Funcional;;Mostrar información de accesibilidad;;Baja;;Hecho;;View: frontend/app/(shop)/accesibilidad/page.tsx
+
+VISTA;;(shop)/ayuda;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-UI-INFO-03;;Funcional;;Mostrar página de ayuda/FAQ;;Baja;;Hecho;;View: frontend/app/(shop)/ayuda/page.tsx
+
+VISTA;;(shop)/contacto;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-UI-INFO-04;;Funcional;;Mostrar página de contacto (y formulario si aplica);;Baja;;Pendiente_de_verificacion;;View: frontend/app/(shop)/contacto/page.tsx
+
+VISTA;;(shop)/blog;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-UI-CMS-01;;Funcional;;Mostrar blog (listado de entradas) si aplica;;Baja;;Pendiente_de_verificacion;;View: frontend/app/(shop)/blog/page.tsx | Backend: backend/app/routers/cms_router.py
+
+VISTA;;(shop)/nosotros;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-UI-INFO-05;;Funcional;;Mostrar página “Nosotros”;;Baja;;Hecho;;View: frontend/app/(shop)/nosotros/page.tsx
+
+VISTA;;(shop)/prensa;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-UI-INFO-06;;Funcional;;Mostrar página de prensa;;Baja;;Hecho;;View: frontend/app/(shop)/prensa/page.tsx
+
+VISTA;;(shop)/inversionistas;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-UI-INFO-07;;Funcional;;Mostrar página de inversionistas;;Baja;;Hecho;;View: frontend/app/(shop)/inversionistas/page.tsx
+
+VISTA;;(dashboard)/admin/page;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-30;;Funcional;;Dashboard y analytics (resumen) para admin;;Media;;Hecho;;SRS(RF-30) | View: frontend/app/(dashboard)/admin/page.tsx | Backend: backend/app/routers/dashboard_router.py
+RF-32;;Funcional;;Acceso restringido por rol admin;;Alta;;Hecho;;SRS(RF-32) | Backend: require_admin()
+RF-35;;Funcional;;Chat IA de administración (panel lateral);;Media;;Hecho;;Frontend: components/admin/ai-chat-panel.tsx | Backend: backend/app/routers/ai_router.py
+Requerimientos;No Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RNF-10;;No Funcional;;Auditoría en operaciones críticas (admin);;N/A;;Hecho;;SRS(RNF-10)
+
+VISTA;;(dashboard)/admin/account;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-06;;Funcional;;Consultar usuario actual (me) para perfil admin;;Alta;;Hecho;;SRS(RF-06) | View: frontend/app/(dashboard)/admin/account/page.tsx
+RF-07;;Funcional;;Logout desde dashboard;;Media;;Hecho;;SRS(RF-07) | UI: components/layout/dashboard/nav-user.tsx
+
+VISTA;;(dashboard)/admin/products;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-08;;Funcional;;CRUD de productos (admin);;Alta;;Hecho;;SRS(RF-08) | View: frontend/app/(dashboard)/admin/products/page.tsx | Backend: backend/app/routers/product_router.py
+RF-23;;Funcional;;Movimientos de inventario (admin / gestión stock);;Alta;;Hecho;;SRS(RF-23) | Backend: backend/app/routers/movements_inventory_router.py
+
+VISTA;;(dashboard)/admin/products/create;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-08;;Funcional;;Crear producto;;Alta;;Hecho;;SRS(RF-08) | View: frontend/app/(dashboard)/admin/products/create/page.tsx
+
+VISTA;;(dashboard)/admin/products/[id];;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-08;;Funcional;;Ver detalle de producto en admin;;Alta;;Hecho;;SRS(RF-08) | View: frontend/app/(dashboard)/admin/products/[id]/page.tsx
+
+VISTA;;(dashboard)/admin/products/[id]/edit;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-08;;Funcional;;Editar producto en admin;;Alta;;Hecho;;SRS(RF-08) | View: frontend/app/(dashboard)/admin/products/[id]/edit/page.tsx
+
+VISTA;;(dashboard)/admin/categories;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-10;;Funcional;;Gestión de categorías/líneas/sublíneas (admin);;Alta;;Hecho;;SRS(RF-10) | View: frontend/app/(dashboard)/admin/categories/page.tsx
+
+VISTA;;(dashboard)/admin/lines;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-10;;Funcional;;Gestión de líneas (admin);;Alta;;Hecho;;SRS(RF-10) | View: frontend/app/(dashboard)/admin/lines/page.tsx
+
+VISTA;;(dashboard)/admin/sublines;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-10;;Funcional;;Gestión de sublíneas (admin);;Alta;;Hecho;;SRS(RF-10) | View: frontend/app/(dashboard)/admin/sublines/page.tsx
+
+VISTA;;(dashboard)/admin/brands;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-11;;Funcional;;Gestión de marcas (admin);;Media;;Hecho;;SRS(RF-11) | View: frontend/app/(dashboard)/admin/brands/page.tsx | Backend: backend/app/routers/brand_router.py
+
+VISTA;;(dashboard)/admin/providers;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-11;;Funcional;;Gestión de proveedores (admin);;Media;;Hecho;;SRS(RF-11) | View: frontend/app/(dashboard)/admin/providers/page.tsx | Backend: backend/app/routers/provider_router.py
+
+VISTA;;(dashboard)/admin/users;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-31;;Funcional;;Gestión de usuarios (admin);;Alta;;Hecho;;SRS(RF-31) | View: frontend/app/(dashboard)/admin/users/page.tsx | Backend: backend/app/routers/user_router.py
+
+VISTA;;(dashboard)/admin/orders;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-19;;Funcional;;Actualizar estado de orden (admin);;Alta;;Hecho;;SRS(RF-19) | View: frontend/app/(dashboard)/admin/orders/page.tsx | Backend: backend/app/routers/order_router.py
+RF-18;;Funcional;;Consulta de órdenes (listado para gestión);;Alta;;Hecho;;SRS(RF-18) | Backend: backend/app/routers/order_router.py
+
+VISTA;;(dashboard)/admin/orders/[id];;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-19;;Funcional;;Ver/gestionar detalle de orden (admin);;Alta;;Hecho;;SRS(RF-19) | View: frontend/app/(dashboard)/admin/orders/[id]/page.tsx
+
+VISTA;;(dashboard)/admin/discounts;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-24;;Funcional;;CRUD de descuentos + activación/desactivación;;Alta;;Hecho;;SRS(RF-24) | View: frontend/app/(dashboard)/admin/discounts/page.tsx | Backend: backend/app/routers/discount_router.py
+
+VISTA;;(dashboard)/admin/discounts/create;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-24;;Funcional;;Crear descuento;;Alta;;Hecho;;SRS(RF-24) | View: frontend/app/(dashboard)/admin/discounts/create/page.tsx
+
+VISTA;;(dashboard)/admin/discounts/[id]/edit;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-24;;Funcional;;Editar descuento;;Alta;;Hecho;;SRS(RF-24) | View: frontend/app/(dashboard)/admin/discounts/[id]/edit/page.tsx
+
+VISTA;;(dashboard)/admin/points;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-25;;Funcional;;Configurar/consultar sistema de puntos (admin);;Media;;Hecho;;SRS(RF-25) | View: frontend/app/(dashboard)/admin/points/page.tsx | Backend: backend/app/routers/points_router.py
+RF-26;;Funcional;;Gestión de canjes (admin / reglas);;Media;;Hecho;;SRS(RF-26) | Backend: backend/app/routers/exchange_router.py
+
+VISTA;;(dashboard)/admin/points/[id];;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-25;;Funcional;;Detalle/configuración de puntos (admin);;Media;;Hecho;;SRS(RF-25) | View: frontend/app/(dashboard)/admin/points/[id]/page.tsx
+
+VISTA;;(dashboard)/admin/analytics;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-30;;Funcional;;KPIs/analytics para administradores;;Media;;Hecho;;SRS(RF-30) | View: frontend/app/(dashboard)/admin/analytics/page.tsx | Backend: backend/app/routers/analytics_router.py
+
+VISTA;;(dashboard)/admin/attributes;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-37;;Funcional;;Gestión de atributos/valores para variantes de producto (color, talla, etc.);;Alta;;Hecho;;Manual: docs/MANUAL_TECNICO.md (variantes) | Backend: backend/app/routers/attribute_router.py | View: frontend/app/(dashboard)/admin/attributes/page.tsx
+
+VISTA;;(dashboard)/admin/attributes/[id]/values;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-37;;Funcional;;CRUD de valores de atributo (admin);;Alta;;Hecho;;Backend: backend/app/routers/attribute_router.py | View: frontend/app/(dashboard)/admin/attributes/[id]/values/page.tsx
+
+VISTA;;(dashboard)/admin/info-bar;;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-38;;Funcional;;Gestión de barra informativa superior (mensajes/avisos);;Media;;Hecho;;Backend: backend/app/routers/top_info_bar_router.py | View: frontend/app/(dashboard)/admin/info-bar/page.tsx
+
+VISTA;;(backend_only);;;;;;;;;;
+Requerimientos;Funcionales;;;;;;;;;;
+ID;;TIPO;;REQUERIMIENTO;;PRIORIDAD;;ESTADO;;FUENTE/EVIDENCIA
+RF-22;;Funcional;;Webhook Wompi (validar firma, actualizar estado transacción/orden);;Alta;;Hecho;;SRS(RF-22) | Backend: backend/app/routers/payment_router.py
