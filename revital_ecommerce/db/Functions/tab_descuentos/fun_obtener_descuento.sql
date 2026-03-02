@@ -34,15 +34,11 @@ BEGIN
         d.id_descuento,
         d.nom_descuento,
         d.des_descuento,
-        d.id_categoria,
-        d.id_linea,
-        d.id_sublinea,
-        d.id_producto,
         d.tipo_calculo,
         d.val_porce_descuento,
         d.val_monto_descuento,
         d.aplica_a,
-        d.category_id_aplica,
+        d.category_id_aplica AS id_categoria_aplica,
         d.product_id_aplica,
         d.id_marca_aplica,
         d.min_valor_pedido,
@@ -92,16 +88,13 @@ BEGIN
         -- RESOLUCIÓN: Nombres de entidades relacionadas según tipo de aplicación
         CASE 
             WHEN d.aplica_a = 'producto_especifico' THEN
-                (SELECT p.nom_producto FROM tab_productos p 
-                 WHERE p.id_categoria = d.id_categoria 
-                   AND p.id_linea = d.id_linea 
-                   AND p.id_sublinea = d.id_sublinea 
-                   AND p.id_producto = d.id_producto_aplica)
+                (SELECT p.name FROM tab_products p 
+                 WHERE p.id = d.product_id_aplica)
             ELSE NULL
         END AS nombre_producto_aplica,                          -- Nombre del producto específico
         CASE 
             WHEN d.aplica_a = 'categoria_especifica' THEN
-                (SELECT c.nom_categoria FROM tab_categorias c WHERE c.id_categoria = d.id_categoria_aplica)
+                (SELECT c.name FROM tab_categories c WHERE c.id = d.category_id_aplica)
             ELSE NULL
         END AS nombre_categoria_aplica,                         -- Nombre de categoría específica
         CASE 
@@ -155,10 +148,7 @@ BEGIN
             'cantidad_minima_producto', v_descuento.cantidad_minima_producto,
             'requiere_codigo', v_descuento.requiere_codigo,
             -- Referencias de aplicación
-            'id_categoria', v_descuento.id_categoria,
-            'id_linea', v_descuento.id_linea,
-            'id_sublinea', v_descuento.id_sublinea,
-            'id_producto_aplica', v_descuento.id_producto_aplica,
+            'id_producto_aplica', v_descuento.product_id_aplica,
             'nombre_producto_aplica', v_descuento.nombre_producto_aplica,
             'id_categoria_aplica', v_descuento.id_categoria_aplica,
             'nombre_categoria_aplica', v_descuento.nombre_categoria_aplica,

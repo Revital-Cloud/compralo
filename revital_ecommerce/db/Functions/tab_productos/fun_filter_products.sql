@@ -108,7 +108,7 @@ BEGIN
         f.precio_max,
         f.stock_total::BIGINT,
         f.img_principal,
-        (SELECT n FROM total)
+        (SELECT n FROM total) AS total_registros
     FROM filt f
     ORDER BY
         CASE WHEN p_ordenar_por = 'precio' AND UPPER(p_orden) = 'ASC' THEN f.precio_min END ASC NULLS LAST,

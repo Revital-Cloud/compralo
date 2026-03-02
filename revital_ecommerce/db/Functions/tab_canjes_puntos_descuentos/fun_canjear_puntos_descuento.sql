@@ -65,10 +65,6 @@ BEGIN
         d.val_porce_descuento,
         d.val_monto_descuento,
         d.aplica_a,
-        d.id_categoria,
-        d.id_linea,
-        d.id_sublinea,
-        d.id_producto,
         d.product_id_aplica,
         d.id_marca_aplica,
         d.min_valor_pedido,
@@ -93,7 +89,12 @@ BEGIN
         d.fec_insert,
         d.usr_update,
         d.fec_update,
-        CASE WHEN (d.fec_inicio IS NULL AND d.fec_fin IS NULL) OR (d.fec_inicio IS NOT NULL AND d.fec_fin IS NOT NULL AND CURRENT_DATE BETWEEN d.fec_inicio AND d.fec_fin) THEN TRUE ELSE FALSE END as vigente
+        CASE 
+            WHEN (d.fec_inicio IS NULL AND d.fec_fin IS NULL) 
+                 OR (d.fec_inicio IS NOT NULL AND d.fec_fin IS NOT NULL AND CURRENT_DATE BETWEEN d.fec_inicio AND d.fec_fin) 
+            THEN TRUE 
+            ELSE FALSE 
+        END AS vigente
     INTO v_descuento
     FROM tab_descuentos d
     WHERE d.id_descuento = p_id_descuento;
