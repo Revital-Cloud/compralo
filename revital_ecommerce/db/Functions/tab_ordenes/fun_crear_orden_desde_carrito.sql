@@ -155,7 +155,8 @@ BEGIN
         ) INTO v_es_primera_compra;
     END IF;
     
-    -- PASO 6: Calcular descuentos automáticos (misma lógica que fun_calcular_total_carrito)
+    -- PASO 6: Calcular descuentos automáticos (misma lógica que fun_calcular_total_carrito,
+    -- usando el nuevo esquema de descuentos basado en categorías/productos modernos)
     FOR v_descuento IN
         SELECT 
             d.id_descuento,
@@ -165,10 +166,6 @@ BEGIN
             d.val_porce_descuento,
             d.val_monto_descuento,
             d.aplica_a,
-            d.id_categoria,
-            d.id_linea,
-            d.id_sublinea,
-            d.id_producto,
             d.product_id_aplica,
             d.id_marca_aplica,
             d.min_valor_pedido,
@@ -287,7 +284,7 @@ BEGIN
     
     -- PASO 7: Aplicar código de descuento (si se especifica)
     IF p_codigo_descuento IS NOT NULL THEN
-        -- Buscar descuento por código
+        -- Buscar descuento por código (mismas columnas relevantes que en descuentos automáticos)
         SELECT 
             d.id_descuento,
             d.nom_descuento,
@@ -296,10 +293,6 @@ BEGIN
             d.val_porce_descuento,
             d.val_monto_descuento,
             d.aplica_a,
-            d.id_categoria,
-            d.id_linea,
-            d.id_sublinea,
-            d.id_producto,
             d.product_id_aplica,
             d.id_marca_aplica,
             d.min_valor_pedido,

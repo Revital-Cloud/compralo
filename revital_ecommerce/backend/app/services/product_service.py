@@ -1991,6 +1991,8 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
             offset=filters.offset,
         )
     except Exception as e:
+        # Log detallado para depuración en entorno de desarrollo
+        print(f"[ERROR] Error al filtrar productos: {e}")
         db.rollback()
         raise Exception(f"Error al filtrar productos: {str(e)}")
 
@@ -2080,6 +2082,8 @@ def get_filter_stats(db: Session, filters: ProductFilterParams) -> ProductFilter
             marcas_disponibles=len(set(r.get("id_marca") for r in rows if r.get("id_marca") is not None)),
         )
     except Exception as e:
+        # Log detallado para depuración en entorno de desarrollo
+        print(f"[ERROR] Error al obtener estadísticas de filtros: {e}")
         db.rollback()
         raise Exception(f"Error al obtener estadísticas de filtros: {str(e)}")
 
