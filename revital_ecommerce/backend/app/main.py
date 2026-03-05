@@ -149,7 +149,17 @@ app.add_exception_handler(Exception, generic_exception_handler)
 if is_production():
     _parsed = urlparse(settings.FRONTEND_URL)
     _frontend_host = _parsed.hostname or "localhost"
-    _allowed_hosts = list({_frontend_host, "localhost", "46.225.94.64"})
+
+    # Permitimos tanto el host del frontend como los hosts del backend (api.*) y la IP del servidor.
+    _allowed_hosts = list(
+        {
+            _frontend_host,                  # compralo.revital.cloud
+            f"api.{_frontend_host}",        # api.compralo.revital.cloud
+            ".revital.cloud",               # cualquier subdominio de revital.cloud
+            "localhost",
+            "46.225.94.64",
+        }
+    )
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=_allowed_hosts)
 
 # Compresión de respuestas (mejora Lighthouse uses-text-compression)
