@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -23,10 +24,17 @@ def _create_client() -> TestClient:
     return TestClient(app)
 
 
-def test_csp_script_src_does_not_allow_unsafe_directives_in_development(monkeypatch):
-    monkeypatch.setenv("ENVIRONMENT", "development")
+@pytest.mark.parametrize(
+    ("environment", "expects_localhost_connect_src"),
+    [("development", True), ("production", False)],
+)
+def test_csp_script_src_does_not_allow_unsafe_directives(
+    monkeypatch: pytest.MonkeyPatch,
+    environment: str,
+    expects_localhost_connect_src: bool,
+):
+    monkeypatch.setenv("ENVIRONMENT", environment)
     client = _create_client()
-
     response = client.get("/")
     csp = response.headers.get("Content-Security-Policy", "")
     script_src = next(
@@ -41,25 +49,7 @@ def test_csp_script_src_does_not_allow_unsafe_directives_in_development(monkeypa
     assert script_src
     assert "'unsafe-inline'" not in script_src
     assert "'unsafe-eval'" not in script_src
-    assert "http://localhost:3000" in csp
-
-
-def test_csp_script_src_does_not_allow_unsafe_directives_in_production(monkeypatch):
-    monkeypatch.setenv("ENVIRONMENT", "production")
-    client = _create_client()
-
-    response = client.get("/")
-    csp = response.headers.get("Content-Security-Policy", "")
-    script_src = next(
-        (
-            directive.strip()
-            for directive in csp.split(";")
-            if directive.strip().startswith("script-src ")
-        ),
-        "",
-    )
-
-    assert script_src
-    assert "'unsafe-inline'" not in script_src
-    assert "'unsafe-eval'" not in script_src
-    assert "http://localhost:3000" not in csp
+    if expects_localhost_connect_src:
+        assert "http://localhost:3000" in csp
+    else:
+        assert "http://localhost:3000" not in csp
