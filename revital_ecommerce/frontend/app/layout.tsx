@@ -7,6 +7,7 @@ import { AuthProvider } from "@/providers/auth-provider"
 import QueryProvider from "@/providers/query-provider"
 import { cn } from "@/lib/utils";
 import { RefreshTokenProvider } from "@/components/providers/refresh-token-provider";
+import { getPublicSiteOrigin } from "@/utils/url-helpers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,9 +25,25 @@ const geistMono = Geist_Mono({
   fallback: ["monospace"],
 });
 
+const siteOrigin = getPublicSiteOrigin();
+const siteName = "Compralo";
+const siteDescription = "Compralo - tienda online";
+
 export const metadata: Metadata = {
-  title: "Compralo",
-  description: "Compralo",
+  title: siteName,
+  description: siteDescription,
+  metadataBase: new URL(siteOrigin),
+  openGraph: {
+    title: siteName,
+    description: siteDescription,
+    type: "website",
+    url: siteOrigin,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteName,
+    description: siteDescription,
+  },
 };
 
 const apiOrigin = (() => {

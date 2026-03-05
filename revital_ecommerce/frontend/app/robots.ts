@@ -1,9 +1,7 @@
 import type { MetadataRoute } from "next";
+import { getPublicSiteOrigin } from "@/utils/url-helpers";
 
-const baseUrl =
-  process.env.NEXT_PUBLIC_CUSTOM_DOMAIN ||
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  "http://46.224.101.179:3000";
+const baseUrl = getPublicSiteOrigin();
 
 export default function robots(): MetadataRoute.Robots {
   return {
