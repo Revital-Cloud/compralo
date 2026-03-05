@@ -22,3 +22,7 @@ def test_csp_script_src_does_not_allow_unsafe_directives(
     assert script_src
     assert "'unsafe-inline'" not in script_src
     assert "'unsafe-eval'" not in script_src
+    if environment == "development":
+        assert "http://localhost:3000" in csp
+    else:
+        assert "http://localhost:3000" not in csp
