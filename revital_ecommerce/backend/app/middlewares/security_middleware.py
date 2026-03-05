@@ -86,8 +86,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             csp = (
                 "default-src 'self'; "
                 # Swagger UI (FastAPI /docs) suele cargar assets desde CDN (jsdelivr/unpkg)
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; "
-                "script-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; "
+                "script-src 'self' https://cdn.jsdelivr.net https://unpkg.com; "
+                "script-src-elem 'self' https://cdn.jsdelivr.net https://unpkg.com; "
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com; "
                 "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://unpkg.com; "
                 "font-src 'self' https://fonts.gstatic.com; "
@@ -102,7 +102,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         else:
             csp = (
                 "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+                "script-src 'self'; "
                 "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
                 "font-src 'self' https://fonts.gstatic.com; "
                 "img-src 'self' data: https: blob:; "
