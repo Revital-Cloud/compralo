@@ -7,7 +7,7 @@ Type=simple
 User=revital
 Group=revital
 WorkingDirectory=/home/revital/revital/revital_ecommerce/backend
-
+Environment=ENVIRONMENT=production
 ExecStart=/home/revital/revital/revital_ecommerce/backend/venv/bin/fastapi run app/main.py --host 0.0.0.0 --port 8000
 Restart=always
 RestartSec=5
