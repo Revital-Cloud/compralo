@@ -25,13 +25,13 @@ def _create_client() -> TestClient:
 
 
 @pytest.mark.parametrize(
-    ("environment", "expects_localhost_connect_src"),
+    ("environment", "expects_localhost_in_csp"),
     [("development", True), ("production", False)],
 )
 def test_csp_script_src_does_not_allow_unsafe_directives(
     monkeypatch: pytest.MonkeyPatch,
     environment: str,
-    expects_localhost_connect_src: bool,
+    expects_localhost_in_csp: bool,
 ):
     monkeypatch.setenv("ENVIRONMENT", environment)
     client = _create_client()
@@ -49,7 +49,7 @@ def test_csp_script_src_does_not_allow_unsafe_directives(
     assert script_src
     assert "'unsafe-inline'" not in script_src
     assert "'unsafe-eval'" not in script_src
-    if expects_localhost_connect_src:
+    if expects_localhost_in_csp:
         assert "http://localhost:3000" in csp
     else:
         assert "http://localhost:3000" not in csp
