@@ -1,20 +1,7 @@
 import type { MetadataRoute } from "next";
+import { getPublicSiteOrigin } from "@/utils/url-helpers";
 
-const baseUrl = (() => {
-  const rawUrl =
-    process.env.NEXT_PUBLIC_CUSTOM_DOMAIN ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "https://compralo.revital.cloud";
-
-  try {
-    const normalized = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
-    const parsed = new URL(normalized);
-    parsed.protocol = "https:";
-    return parsed.origin;
-  } catch {
-    return "https://compralo.com";
-  }
-})();
+const baseUrl = getPublicSiteOrigin();
 
 export default function robots(): MetadataRoute.Robots {
   return {

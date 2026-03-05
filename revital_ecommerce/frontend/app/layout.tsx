@@ -7,6 +7,7 @@ import { AuthProvider } from "@/providers/auth-provider"
 import QueryProvider from "@/providers/query-provider"
 import { cn } from "@/lib/utils";
 import { RefreshTokenProvider } from "@/components/providers/refresh-token-provider";
+import { getPublicSiteOrigin } from "@/utils/url-helpers";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -24,35 +25,24 @@ const geistMono = Geist_Mono({
   fallback: ["monospace"],
 });
 
-const siteOrigin = (() => {
-  const rawUrl =
-    process.env.NEXT_PUBLIC_CUSTOM_DOMAIN ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "https://compralo.revital.cloud";
-  try {
-    const normalized = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
-    const parsed = new URL(normalized);
-    parsed.protocol = "https:";
-    return parsed.origin;
-  } catch {
-    return "https://compralo.com";
-  }
-})();
+const siteOrigin = getPublicSiteOrigin();
+const siteName = "Compralo";
+const siteDescription = "Compralo - tienda online";
 
 export const metadata: Metadata = {
-  title: "Compralo",
-  description: "Compralo",
+  title: siteName,
+  description: siteDescription,
   metadataBase: new URL(siteOrigin),
   openGraph: {
-    title: "Compralo",
-    description: "Compralo",
+    title: siteName,
+    description: siteDescription,
     type: "website",
     url: siteOrigin,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Compralo",
-    description: "Compralo",
+    title: siteName,
+    description: siteDescription,
   },
 };
 
