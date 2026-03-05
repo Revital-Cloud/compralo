@@ -43,22 +43,22 @@ const nextConfig: NextConfig = {
       return `${u.protocol}//${u.host}`;
     })();
 
-    // En desarrollo, permitir conexiones a localhost y a la IP del servidor
     const connectSrc = [
       "'self'",
       apiOrigin,
-      "http://localhost:8000",
-      "http://localhost:8001",
-      "http://localhost:8002",
-      "http://46.225.94.64:8000",
-      "http://46.225.94.64:8001",
-      "http://46.225.94.64:8002",
       "https://api.revital.com",
       "https://*.cloudinary.com",
       "https://sandbox.wompi.co",
       "https://production.wompi.co",
       "https://checkout.wompi.co",
-      ...(isDevelopment ? ["ws://localhost:*", "ws://46.225.94.64:*"] : [])
+      ...(isDevelopment
+        ? [
+            "http://localhost:8000",
+            "http://localhost:8001",
+            "http://localhost:8002",
+            "ws://localhost:*",
+          ]
+        : []),
     ].join(' ');
 
     return [
@@ -73,6 +73,10 @@ const nextConfig: NextConfig = {
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff'
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains; preload'
           },
           {
             key: 'Referrer-Policy',

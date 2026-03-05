@@ -24,9 +24,36 @@ const geistMono = Geist_Mono({
   fallback: ["monospace"],
 });
 
+const siteOrigin = (() => {
+  const rawUrl =
+    process.env.NEXT_PUBLIC_CUSTOM_DOMAIN ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "https://compralo.com";
+  try {
+    const normalized = /^https?:\/\//i.test(rawUrl) ? rawUrl : `https://${rawUrl}`;
+    const parsed = new URL(normalized);
+    parsed.protocol = "https:";
+    return parsed.origin;
+  } catch {
+    return "https://compralo.com";
+  }
+})();
+
 export const metadata: Metadata = {
   title: "Compralo",
   description: "Compralo",
+  metadataBase: new URL(siteOrigin),
+  openGraph: {
+    title: "Compralo",
+    description: "Compralo",
+    type: "website",
+    url: siteOrigin,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Compralo",
+    description: "Compralo",
+  },
 };
 
 const apiOrigin = (() => {
