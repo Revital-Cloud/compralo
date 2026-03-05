@@ -2,28 +2,135 @@
 
 import { motion } from "framer-motion"
 import { ShoppingCart, Star, Eye } from "lucide-react"
-import { useProductsHomePage } from "@/hooks/use-products"
+import { useFilterProducts } from "@/hooks/use-products"
 import { formatPrice } from "@/utils/format-price"
 import { getProductImageUrl } from "@/utils/image-helpers"
 import { getProductDescription } from "@/utils/product-helpers"
 import Image from "next/image"
-import { Product } from "@/types/product"
+import type { ProductFiltered } from "@/types/product"
 import { useMemo } from "react"
 import { useRouter } from "next/navigation"
+import { useActiveDiscounts } from "@/hooks/use-discounts"
+import {
+  getApplicableDiscount,
+  calculateDiscountedPrice,
+  calculateDiscountPercentage,
+} from "@/utils/discount-utils"
+import type { Discount } from "@/types/discount"
+import { Badge } from "@/components/ui"
+
+function renderPrice(product: ProductFiltered, activeDiscounts?: Discount[]) {
+  const applicableDiscount = activeDiscounts
+    ? getApplicableDiscount(product, activeDiscounts)
+    : null
+
+  const priceMin = Number(product.price_min ?? 0)
+  const rawPriceMax = product.price_max
+  const priceMax =
+    rawPriceMax != null ? Number(rawPriceMax) || priceMin : priceMin
+
+  const showPriceRange =
+    !Number.isNaN(priceMin) && !Number.isNaN(priceMax) && priceMin !== priceMax
+
+  const originalPrice = priceMin
+  const discountedPrice =
+    applicableDiscount != null
+      ? calculateDiscountedPrice(originalPrice, applicableDiscount)
+      : originalPrice
+  const hasDiscount =
+    applicableDiscount != null && discountedPrice < originalPrice
+  const discountPercentage = hasDiscount
+    ? calculateDiscountPercentage(originalPrice, discountedPrice)
+    : 0
+
+  const rangeDiscountedMin =
+    showPriceRange && applicableDiscount
+      ? calculateDiscountedPrice(priceMin, applicableDiscount)
+      : priceMin
+  const rangeDiscountedMax =
+    showPriceRange && applicableDiscount
+      ? calculateDiscountedPrice(priceMax, applicableDiscount)
+      : priceMax
+  const rangeHasDiscount =
+    showPriceRange &&
+    applicableDiscount != null &&
+    (rangeDiscountedMin < priceMin || rangeDiscountedMax < priceMax)
+
+  if (showPriceRange) {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-bold text-xl text-[#ec2538] dark:text-red-400">
+            {formatPrice(rangeHasDiscount ? rangeDiscountedMin : priceMin)}
+            <span className="mx-1 font-normal text-gray-500 dark:text-gray-400">
+              –
+            </span>
+            {formatPrice(rangeHasDiscount ? rangeDiscountedMax : priceMax)}
+          </span>
+          {rangeHasDiscount && (
+            <Badge variant="destructive" className="text-[11px] px-2 py-0.5">
+              -{discountPercentage}%
+            </Badge>
+          )}
+        </div>
+        {rangeHasDiscount && (
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400 line-through">
+            {formatPrice(priceMin)} – {formatPrice(priceMax)}
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  if (hasDiscount) {
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-bold text-xl text-[#ec2538] dark:text-red-400">
+            {formatPrice(discountedPrice)}
+          </span>
+          <Badge variant="destructive" className="text-[11px] px-2 py-0.5">
+            -{discountPercentage}%
+          </Badge>
+        </div>
+        <span className="text-xs font-medium text-gray-500 dark:text-gray-400 line-through">
+          {formatPrice(originalPrice)}
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <span className="font-bold text-xl text-[#ec2538] dark:text-red-400">
+      {formatPrice(discountedPrice)}
+    </span>
+  )
+}
 
 const FeaturedProducts = () => {
   const router = useRouter()
-  
-  const { 
-    data: products, 
-    isLoading, 
-    error, 
+  const { data: activeDiscounts } = useActiveDiscounts()
+
+  const {
+    data: productsResponse,
+    isLoading,
+    error,
     refetch,
-    isError 
-  } = useProductsHomePage()
+    isError,
+  } = useFilterProducts(
+    {
+      limit: 8,
+      ordenar_por: "fecha",
+      orden: "DESC",
+      solo_con_stock: false,
+    },
+    { enabled: true },
+  )
+
+  const products: ProductFiltered[] = productsResponse?.products ?? []
 
   // Función para navegar a detalles del producto por slug o id
-  const handleViewDetails = (product: Product) => {
+  const handleViewDetails = (product: ProductFiltered) => {
     const path = product.slug ?? product.id
     router.push(`/products/${path}`)
   }
@@ -243,9 +350,8 @@ const FeaturedProducts = () => {
           viewport={{ once: true }}
         >
           {products
-            ?.filter((product: Product) => (product as { ind_activo?: boolean }).ind_activo !== false)
-            ?.slice(0, 4)
-            ?.map((product: Product) => (
+            .slice(0, 4)
+            .map((product: ProductFiltered) => (
             <motion.div
               key={product.slug ?? String(product.id)}
               variants={cardVariants}
@@ -266,7 +372,7 @@ const FeaturedProducts = () => {
                     onClick={() => handleViewDetails(product)}
                   >
                     <Image 
-                      src={getProductImageUrl((product as any).image_url ?? product.img_producto)}
+                      src={getProductImageUrl(product.image_url)}
                       alt={product.name}
                       className="w-full h-full object-cover"
                       width={300}
@@ -291,24 +397,23 @@ const FeaturedProducts = () => {
                       {product.name}
                     </h3>
                     <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2 transition-colors duration-300">
-                      {getProductDescription((product as any).description ?? product.spcf_producto)}
+                      {getProductDescription(undefined, product.description ?? "Descripción del producto disponible")}
                     </p>
                   </div>
 
-                  {/* Price and Rating */}
-                  <div className="flex items-center justify-between mb-4 flex-shrink-0">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-2xl font-bold text-[#ec2538] dark:text-red-400">
-                        {formatPrice((product as any).price_min ?? product.val_precio)}
-                      </span>
+                  {/* Price */}
+                  <div className="mb-3 flex-shrink-0">
+                    <div className="min-h-[2.5rem] flex flex-col justify-start">
+                      {renderPrice(product, activeDiscounts as Discount[] | undefined)}
                     </div>
-                    
-                    <div className="flex items-center space-x-1">
-                      <Star className="w-4 h-4 fill-[#fec806] text-[#fec806]" />
-                      <span className="text-sm text-gray-600 dark:text-gray-300 transition-colors duration-300">
-                        {product.rating && product.rating > 0 ? product.rating.toFixed(1) : '0.0'}
-                      </span>
-                    </div>
+                  </div>
+
+                  {/* Rating */}
+                  <div className="flex items-center gap-1 mb-2">
+                    <Star className="w-4 h-4 fill-[#fec806] text-[#fec806]" />
+                    <span className="text-sm text-gray-600 dark:text-gray-300 transition-colors duration-300">
+                      {product.rating && product.rating > 0 ? product.rating.toFixed(1) : "0.0"}
+                    </span>
                   </div>
 
                   {/* Action Buttons */}
