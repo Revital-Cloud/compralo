@@ -1,12 +1,11 @@
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from middlewares.security_middleware import SecurityMiddleware
 
 
 def _create_client() -> TestClient:
     app = FastAPI()
-    from middlewares.security_middleware import SecurityMiddleware
-
     app.add_middleware(SecurityMiddleware)
 
     @app.get("/")
