@@ -45,7 +45,7 @@ const CURRENT_USER_QUERY_KEY = ["auth", "currentUser"] as const;
 
 export default function ProfilePage() {
   const queryClient = useQueryClient();
-  const { user, isAuthenticated, updateProfile, isLoadingUser, isHydrated } = useAuth();
+  const { user, updateProfile, isLoadingUser, isHydrated, isRestoringSession } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isEditing, setIsEditing] = useState(false);
@@ -85,30 +85,27 @@ export default function ProfilePage() {
   }, [searchParams, router]);
 
   useEffect(() => {
-    // Esperar a que se complete la hidratación
-    if (!isHydrated) return;
-    
-    // Si no está autenticado después de la hidratación, redirigir
-    if (!isAuthenticated) {
-      router.push("/login");
+    // Esperar a que se complete la hidratación y cualquier restore desde refresh cookie
+    if (!isHydrated || isLoadingUser || isRestoringSession) return;
+
+    // Si no logramos resolver un usuario autenticado, redirigir a login
+    if (!user) {
+      router.replace("/login?redirect=%2Fprofile");
       return;
     }
-    
-    // Si está autenticado y hay usuario, cargar datos en el formulario
-    if (user) {
-      form.reset({
-        nom_usuario: user.nom_usuario || "",
-        ape_usuario: user.ape_usuario || "",
-        email_usuario: user.email_usuario || "",
-        cel_usuario: user.cel_usuario || "",
-        des_direccion: user.des_direccion || "",
-        fec_nacimiento: user.fec_nacimiento ? new Date(user.fec_nacimiento).toISOString().split('T')[0] : "",
-        avatar_seed: user.avatar_seed || null,
-        avatar_colors: user.avatar_colors ?? null,
-        password_usuario: "",
-      });
-    }
-  }, [isAuthenticated, isLoadingUser, user, router, form, isHydrated]);
+
+    form.reset({
+      nom_usuario: user.nom_usuario || "",
+      ape_usuario: user.ape_usuario || "",
+      email_usuario: user.email_usuario || "",
+      cel_usuario: user.cel_usuario || "",
+      des_direccion: user.des_direccion || "",
+      fec_nacimiento: user.fec_nacimiento ? new Date(user.fec_nacimiento).toISOString().split('T')[0] : "",
+      avatar_seed: user.avatar_seed || null,
+      avatar_colors: user.avatar_colors ?? null,
+      password_usuario: "",
+    });
+  }, [isLoadingUser, user, router, form, isHydrated, isRestoringSession]);
 
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
     // Filtrar valores vacíos y null, pero mantener los que realmente tienen datos
@@ -180,7 +177,7 @@ export default function ProfilePage() {
   };
 
   // Mostrar loading mientras se hidrata o carga el usuario
-  if (!isHydrated || isLoadingUser) {
+  if (!isHydrated || isLoadingUser || isRestoringSession) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -191,30 +188,12 @@ export default function ProfilePage() {
     );
   }
 
-  // Si no está autenticado después de la hidratación, mostrar mensaje
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">Redirigiendo al login...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Si no hay usuario, mostrar error
+  // Si no hay usuario resuelto, mostrar mensaje mientras ocurre la redirección
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <p className="text-destructive">Error al cargar el perfil del usuario</p>
-          
-          <button 
-            onClick={() => router.push('/login')}
-            className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-          >
-            Volver al login
-          </button>
+          <p className="text-muted-foreground">Redirigiendo al login...</p>
         </div>
       </div>
     );

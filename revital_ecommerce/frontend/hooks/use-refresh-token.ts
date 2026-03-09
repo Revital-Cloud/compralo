@@ -5,6 +5,7 @@ import { verifyToken, refreshToken, getCurrentUser } from "@/services/auth.servi
 import { isAuthenticated } from "@/utils/apiWrapper";
 import { useCookies } from "./use-cookies";
 import { useQueryClient } from "@tanstack/react-query";
+import { setSessionRestoreStatus } from "./session-restore-state";
 
 /**
  * Hook para mantener la sesión activa mediante verificaciones periódicas
@@ -88,13 +89,17 @@ export function useSessionRestore() {
 
     // Si no se permiten cookies necesarias, no intentamos refresh
     if (!canUseCookie("necessary")) {
+      setSessionRestoreStatus({ isRestoring: false, hasAttemptedRestore: true });
       return;
     }
 
     // Si ya hay token en memoria, no hay nada que restaurar
     if (isAuthenticated()) {
+      setSessionRestoreStatus({ isRestoring: false, hasAttemptedRestore: true });
       return;
     }
+
+    setSessionRestoreStatus({ isRestoring: true, hasAttemptedRestore: false });
 
     (async () => {
       try {
@@ -114,6 +119,8 @@ export function useSessionRestore() {
           // eslint-disable-next-line no-console
           console.debug("Session restore failed (likely no refresh cookie):", error);
         }
+      } finally {
+        setSessionRestoreStatus({ isRestoring: false, hasAttemptedRestore: true });
       }
     })();
   }, [canUseCookie, isHydrated, queryClient]);

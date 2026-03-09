@@ -234,14 +234,14 @@ export const ProductsFilters = ({
                     <input
                       type="number"
                       value={priceRange[0]}
-                      min={priceRangeOptions.min}
-                      max={priceRange[1]}
+                      min={0}
+                      max={priceRange[1] || priceRangeOptions.max}
                       step={Math.max(1000, Math.floor((priceRangeOptions.max - priceRangeOptions.min) / 100))}
                       onChange={(e) => {
                         const raw = Number(e.target.value)
                         const clamped = isNaN(raw)
-                          ? priceRangeOptions.min
-                          : Math.max(priceRangeOptions.min, Math.min(raw, priceRange[1]))
+                          ? 0
+                          : Math.max(0, Math.min(raw, priceRange[1] || priceRangeOptions.max))
                         if (clamped !== priceRange[0]) setPriceRange([clamped, priceRange[1]])
                       }}
                       className="w-full h-9 rounded-md border border-gray-200 dark:border-gray-700 bg-transparent px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring/50"
@@ -258,7 +258,7 @@ export const ProductsFilters = ({
                       onChange={(e) => {
                         const raw = Number(e.target.value)
                         const clamped = isNaN(raw)
-                          ? priceRangeOptions.max
+                          ? 0
                           : Math.min(priceRangeOptions.max, Math.max(raw, priceRange[0]))
                         if (clamped !== priceRange[1]) setPriceRange([priceRange[0], clamped])
                       }}

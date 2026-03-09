@@ -26,6 +26,7 @@ import type {
   RegisterRequest,
 } from '@/types';
 import { useEffect } from 'react';
+import { useSessionRestoreState } from './session-restore-state';
 
 // Keys para las queries (para cache management)
 export const AUTH_KEYS = {
@@ -41,6 +42,7 @@ export function useAuth() {
   const queryClient = useQueryClient();
   const router = useRouter();
   const { canUseCookie, isHydrated } = useCookies();
+  const { isRestoring: isRestoringSession } = useSessionRestoreState();
 
   // Query para obtener el usuario actual
   const {
@@ -184,6 +186,7 @@ export function useAuth() {
     user,
     isAuthenticated: isUserAuthenticated,
     isLoadingUser,
+    isRestoringSession,
     isLoggingIn,
     isLoggingOut,
     userError,
