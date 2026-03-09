@@ -18,13 +18,15 @@ interface ProductListProps {
   loading?: boolean
   onAddToCart?: (productId: string) => void
   onToggleFavorite?: (productId: string) => void
+  showAddToCartButton?: boolean
 }
 
 const ProductList: React.FC<ProductListProps> = ({
   products,
   loading = false,
   onAddToCart,
-  onToggleFavorite
+  onToggleFavorite,
+  showAddToCartButton = true,
 }) => {
   const { toggleFavorite, isProductFavorite } = useFavorites()
   const { data: discounts } = useActiveDiscounts()
@@ -172,29 +174,31 @@ const ProductList: React.FC<ProductListProps> = ({
                   
                   <div className="flex items-center gap-2">
                     <button
-onClick={(e) => handleToggleFavorite(e, product)}
-                    className={cn(
-                      "w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center transition-all",
-                      "cursor-pointer hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:scale-110",
-                      isProductFavorite(Number(product.id)) && "border-red-500 bg-red-50 dark:bg-red-900/20"
-                    )}
-                  >
-                    <Heart 
+                      onClick={(e) => handleToggleFavorite(e, product)}
                       className={cn(
-                        "w-3 h-3 transition-all",
-                        isProductFavorite(Number(product.id)) ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-500"
+                        "w-8 h-8 rounded-full border border-gray-300 dark:border-gray-600 flex items-center justify-center transition-all",
+                        "cursor-pointer hover:border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:scale-110",
+                        isProductFavorite(Number(product.id)) && "border-red-500 bg-red-50 dark:bg-red-900/20"
                       )}
+                    >
+                      <Heart 
+                        className={cn(
+                          "w-3 h-3 transition-all",
+                          isProductFavorite(Number(product.id)) ? "fill-red-500 text-red-500" : "text-gray-600 hover:text-red-500"
+                        )}
                       />
                     </button>
                     
-                    <Button
-                      onClick={(e) => handleAddToCart(e, product.slug ?? String(product.id))}
-                      size="sm"
-                      className="bg-black text-white hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-xs"
-                    >
-                      <ShoppingCart className="w-3 h-3 mr-1" />
-                      Agregar
-                    </Button>
+                    {showAddToCartButton && (
+                      <Button
+                        onClick={(e) => handleAddToCart(e, product.slug ?? String(product.id))}
+                        size="sm"
+                        className="bg-black text-white hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 text-xs"
+                      >
+                        <ShoppingCart className="w-3 h-3 mr-1" />
+                        Agregar
+                      </Button>
+                    )}
                   </div>
                 </div>
                 
@@ -312,13 +316,15 @@ onClick={(e) => handleToggleFavorite(e, product)}
                     />
                   </button>
                   
-                  <Button
-                    onClick={(e) => handleAddToCart(e, product.slug ?? String(product.id))}
-                    className="bg-black text-white hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 px-4 py-2 h-10"
-                  >
-                    <ShoppingCart className="w-4 h-4 mr-2" />
-                    Agregar
-                  </Button>
+                  {showAddToCartButton && (
+                    <Button
+                      onClick={(e) => handleAddToCart(e, product.slug ?? String(product.id))}
+                      className="bg-black text-white hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600 px-4 py-2 h-10"
+                    >
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Agregar
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

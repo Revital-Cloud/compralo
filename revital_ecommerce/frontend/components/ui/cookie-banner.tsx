@@ -29,9 +29,23 @@ export function CookieBanner({ className }: CookieBannerProps) {
   // Verificar cookies en tiempo real para mostrar/ocultar el banner
   const realTimeCookies = checkCookiesInRealTime()
   
-  // Si las cookies ya están aceptadas (en tiempo real), no mostrar el banner
-  if (realTimeCookies?.accepted) {
+  // Si las cookies ya están aceptadas y NO estamos en la vista expandida de configuración,
+  // ocultar el banner. Mientras esté expandido, permitimos seguir ajustando toggles sin cerrar.
+  if (!isExpanded && realTimeCookies?.accepted) {
     return null
+  }
+
+  const preferences = cookieConsent?.preferences ?? {
+    necessary: true,
+    functional: false,
+    analytics: false,
+    marketing: false,
+  }
+
+  const handleToggleOptional = (type: "functional" | "analytics" | "marketing") => {
+    updateCookiePreferences({
+      [type]: !preferences[type],
+    })
   }
 
   const handleAcceptAll = () => {
@@ -143,9 +157,19 @@ export function CookieBanner({ className }: CookieBannerProps) {
                 </div>
                 <div className="flex items-center">
                   <span className="text-gray-500 dark:text-gray-400 font-medium mr-3">Opcional</span>
-                  <div className="w-10 h-6 bg-gray-300 rounded-full flex items-center justify-start p-1 cursor-pointer hover:bg-gray-400">
-                    <div className="w-4 h-4 bg-white rounded-full"></div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleOptional("functional")}
+                    className={cn(
+                      "w-10 h-6 rounded-full flex items-center p-1 cursor-pointer transition-colors",
+                      preferences.functional
+                        ? "bg-blue-500 justify-end"
+                        : "bg-gray-300 justify-start hover:bg-gray-400"
+                    )}
+                    aria-label="Alternar cookies funcionales"
+                  >
+                    <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
+                  </button>
                 </div>
               </div>
 
@@ -159,9 +183,19 @@ export function CookieBanner({ className }: CookieBannerProps) {
                 </div>
                 <div className="flex items-center">
                   <span className="text-gray-500 dark:text-gray-400 font-medium mr-3">Opcional</span>
-                  <div className="w-10 h-6 bg-gray-300 rounded-full flex items-center justify-start p-1 cursor-pointer hover:bg-gray-400">
-                    <div className="w-4 h-4 bg-white rounded-full"></div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleOptional("analytics")}
+                    className={cn(
+                      "w-10 h-6 rounded-full flex items-center p-1 cursor-pointer transition-colors",
+                      preferences.analytics
+                        ? "bg-blue-500 justify-end"
+                        : "bg-gray-300 justify-start hover:bg-gray-400"
+                    )}
+                    aria-label="Alternar cookies analíticas"
+                  >
+                    <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
+                  </button>
                 </div>
               </div>
 
@@ -175,9 +209,19 @@ export function CookieBanner({ className }: CookieBannerProps) {
                 </div>
                 <div className="flex items-center">
                   <span className="text-gray-500 dark:text-gray-400 font-medium mr-3">Opcional</span>
-                  <div className="w-10 h-6 bg-gray-300 rounded-full flex items-center justify-start p-1 cursor-pointer hover:bg-gray-400">
-                    <div className="w-4 h-4 bg-white rounded-full"></div>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleOptional("marketing")}
+                    className={cn(
+                      "w-10 h-6 rounded-full flex items-center p-1 cursor-pointer transition-colors",
+                      preferences.marketing
+                        ? "bg-blue-500 justify-end"
+                        : "bg-gray-300 justify-start hover:bg-gray-400"
+                    )}
+                    aria-label="Alternar cookies de marketing"
+                  >
+                    <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
+                  </button>
                 </div>
               </div>
             </div>

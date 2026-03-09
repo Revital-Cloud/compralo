@@ -87,15 +87,22 @@ export function useCookies() {
   }
 
   const updateCookiePreferences = (newPreferences: Partial<CookiePreferences>) => {
-    if (!cookieConsent) return
-    
-    const updatedPreferences = { ...cookieConsent.preferences, ...newPreferences }
-    const updatedConsent: CookieConsent = {
-      ...cookieConsent,
-      preferences: updatedPreferences,
-      timestamp: Date.now()
+    // Base: si no hay consentimiento previo, partimos de solo necesarias activas
+    const basePreferences: CookiePreferences = cookieConsent?.preferences ?? {
+      necessary: true,
+      functional: false,
+      analytics: false,
+      marketing: false,
     }
-    
+
+    const updatedPreferences: CookiePreferences = { ...basePreferences, ...newPreferences }
+    const updatedConsent: CookieConsent = {
+      accepted: true,
+      preferences: updatedPreferences,
+      timestamp: Date.now(),
+    }
+
+    localStorage.setItem('cookies-accepted', 'true')
     localStorage.setItem('cookies-preferences', JSON.stringify(updatedPreferences))
     setCookieConsent(updatedConsent)
   }

@@ -81,8 +81,10 @@ function ProductsPageInner({
       ...(selectedCategoryId != null && { category_id: selectedCategoryId }),
       ...(selectedBrands.length > 0 && { id_marca: Number(selectedBrands[0]) }),
       ...(searchQuery.trim() && { nombre_producto: searchQuery.trim() }),
-      ...(priceRange[0] > dynamicPriceRange.min && { precio_min: priceRange[0] }),
-      ...(priceRange[1] < dynamicPriceRange.max && !(priceRange[0] === 0 && priceRange[1] === 0) && { precio_max: priceRange[1] }),
+      // Filtrar por mínimo solo si el usuario escribe un valor > 0
+      ...(priceRange[0] > 0 && { precio_min: priceRange[0] }),
+      // Filtrar por máximo solo si es > 0 y menor que el máximo disponible
+      ...(priceRange[1] > 0 && priceRange[1] < dynamicPriceRange.max && { precio_max: priceRange[1] }),
       ...(Object.keys(selectedAttributes).length > 0 && { atributos: selectedAttributes }),
     }
   }, [
@@ -101,10 +103,9 @@ function ProductsPageInner({
   ])
 
   const hasActiveFilters = useMemo(() => {
-    const priceRangeInitialized = !(priceRange[0] === 0 && priceRange[1] === 0)
-    const priceFilterActive = priceRangeInitialized && (
-      priceRange[0] > dynamicPriceRange.min || priceRange[1] < dynamicPriceRange.max
-    )
+    const priceFilterActive =
+      priceRange[0] > 0 ||
+      (priceRange[1] > 0 && priceRange[1] < dynamicPriceRange.max)
     const hasAttributeFilters = Object.values(selectedAttributes).some((arr) => arr.length > 0)
     return (
       selectedCategoryId != null ||
@@ -118,10 +119,9 @@ function ProductsPageInner({
     selectedCategoryId,
     selectedBrands.length,
     searchQuery,
-    priceRange[0],
-    priceRange[1],
-    dynamicPriceRange.min,
-    dynamicPriceRange.max,
+      priceRange[0],
+      priceRange[1],
+      dynamicPriceRange.max,
     inStockOnly,
     selectedAttributes,
   ])
@@ -146,7 +146,7 @@ function ProductsPageInner({
   useFilterStats(hasActiveFilters ? filterParams : emptyFilters)
 
   const clearAllFilters = useCallback(() => {
-    setPriceRange([dynamicPriceRange.min, dynamicPriceRange.max])
+    setPriceRange([0, 0])
     setSelectedCategoryId(null)
     setSelectedBrands([])
     setSelectedAttributes({})
@@ -160,8 +160,8 @@ function ProductsPageInner({
       const handlers: Record<string, () => void> = {
         category: () => setSelectedCategoryId(null),
         brands: () => setSelectedBrands((prev) => (value ? prev.filter((b) => b !== value) : [])),
-        priceMin: () => setPriceRange((prev) => [dynamicPriceRange.min, prev[1]]),
-        priceMax: () => setPriceRange((prev) => [prev[0], dynamicPriceRange.max]),
+        priceMin: () => setPriceRange([0, priceRange[1]]),
+        priceMax: () => setPriceRange([priceRange[0], 0]),
         inStockOnly: () => setInStockOnly(false),
         onSaleOnly: () => setOnSaleOnly(false),
         attribute: () =>
@@ -178,8 +178,9 @@ function ProductsPageInner({
     [dynamicPriceRange.min, dynamicPriceRange.max, setSelectedCategoryId, setSelectedBrands, setPriceRange, setInStockOnly, setOnSaleOnly]
   )
 
-  const priceRangeInitialized = !(priceRange[0] === 0 && priceRange[1] === 0)
-  const priceFilterActive = priceRangeInitialized && (priceRange[0] > dynamicPriceRange.min || priceRange[1] < dynamicPriceRange.max)
+  const priceFilterActive =
+    priceRange[0] > 0 ||
+    (priceRange[1] > 0 && priceRange[1] < dynamicPriceRange.max)
   const attributeFiltersCount = Object.values(selectedAttributes).reduce((acc, arr) => acc + arr.length, 0)
   const activeFiltersCount =
     (selectedCategoryId != null ? 1 : 0) +
@@ -270,14 +271,6 @@ const ProductsPage = () => {
     const range = filterOptions?.precio_rango ?? filterOptions?.price_range
     if (range) return { min: range.minimo, max: range.maximo }
     return { min: 0, max: 0 }
-  }, [filterOptions])
-
-  useEffect(() => {
-    const range = filterOptions?.precio_rango ?? filterOptions?.price_range
-    if (!range) return
-    if (priceRange[0] === 0 && priceRange[1] === 0) {
-      setPriceRange([range.minimo, range.maximo])
-    }
   }, [filterOptions])
 
   return (

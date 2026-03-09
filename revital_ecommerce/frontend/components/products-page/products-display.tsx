@@ -1,7 +1,6 @@
 import { Button, Loading } from "@/components/ui"
 import { ProductGrid, ProductList } from "@/components/product"
 import { EmptyProductsState } from "@/components/ui"
-import { FilterSuggestions } from "@/components/ui"
 import { ProductsPagination } from "./products-pagination"
 import { useCart } from "@/hooks/use-cart"
 import { toast } from "sonner"
@@ -181,22 +180,9 @@ export const ProductsDisplay = ({
           />
         ) : (
           <>
-            {/* Filtros activos info - Solo mostrar si hay productos */}
+            {/* Información de resultados (sin banner azul de filtros activos) */}
             {filteredProducts.length > 0 && (
-              <div className="mb-6 space-y-4">
-                <FilterSuggestions
-                  activeFilters={{
-                    priceRange: priceRange[0] > 0 || priceRange[1] < 10000000 ? [priceRange[0], priceRange[1]] as [number, number] : undefined,
-                    categoryId: selectedCategoryId ?? undefined,
-                    brands: selectedBrands,
-                    attributes: selectedAttributes,
-                    inStockOnly,
-                    onSaleOnly,
-                  }}
-                  onRemoveFilter={handleRemoveFilter}
-                  onClearAll={clearAllFilters}
-                  filterOptions={filterOptions}
-                />
+              <div className="mb-6">
                 <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
                   {totalPages > 1 && totalItems > 0
                     ? `Mostrando ${(currentPage - 1) * itemsPerPage + 1} a ${Math.min(currentPage * itemsPerPage, totalItems)} de ${totalItems} productos`
@@ -204,7 +190,6 @@ export const ProductsDisplay = ({
                 </p>
               </div>
             )}
-
             {/* Products Grid/List */}
             {viewMode === 'grid' ? (
               <ProductGrid
@@ -216,6 +201,7 @@ export const ProductsDisplay = ({
                 products={filteredProducts}
                 onAddToCart={handleAddToCart}
                 onToggleFavorite={handleToggleFavorite}
+                showAddToCartButton={false}
               />
             )}
 
