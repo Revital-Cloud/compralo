@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from "react"
 import { ProductsHeader, ProductsFilters, ProductsDisplay } from "@/components/products-page"
 import { useFilterProducts, useFilterOptions, useFilterStats } from "@/hooks"
 import type { ProductFilterParams } from "@/types/product"
+import { useSearchParams } from "next/navigation"
 
 const computeSort = (value: string): ['precio' | 'nombre' | 'stock' | 'fecha', 'ASC' | 'DESC'] => {
   const [campo, dir] = value.split('-')
@@ -254,12 +255,24 @@ function ProductsPageInner({
 }
 
 const ProductsPage = () => {
+  const searchParams = useSearchParams()
+
+  const initialCategoryId = useMemo(() => {
+    const value = searchParams.get("category_id")
+    return value ? Number(value) : null
+  }, [searchParams])
+
+  const initialBrandId = useMemo(() => {
+    const value = searchParams.get("brand_id")
+    return value ? String(value) : null
+  }, [searchParams])
+
   const [sortBy, setSortBy] = useState('nombre-asc')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 0])
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([])
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(initialCategoryId)
+  const [selectedBrands, setSelectedBrands] = useState<string[]>(initialBrandId ? [initialBrandId] : [])
   const [inStockOnly, setInStockOnly] = useState(false)
   const [onSaleOnly, setOnSaleOnly] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')

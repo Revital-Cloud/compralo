@@ -201,9 +201,16 @@ export function RegisterForm() {
                       <FormControl>
                         <Input
                           placeholder="+57 300 123 4567"
-                          {...field}
-                          disabled={isLoading}
-                          type="number"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const onlyDigits = e.target.value.replace(/\D/g, "").slice(0, 10)
+                          field.onChange(onlyDigits)
+                        }}
+                        disabled={isLoading}
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
                         />
                       </FormControl>
                       <FormMessage className="min-h-[1.25rem]" />

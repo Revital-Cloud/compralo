@@ -31,9 +31,17 @@ export const registerSchema = z.object({
     .refine((val) => /\d/.test(val), {
       message: "La contraseña debe incluir al menos un número.",
     }),
-  cel_usuario: z.string().min(9, {
-    message: "El número de celular debe tener al menos 9 dígitos.",
-  }),
+  cel_usuario: z
+    .string()
+    .regex(/^\d+$/, {
+      message: "El número de celular solo debe contener dígitos.",
+    })
+    .min(9, {
+      message: "El número de celular debe tener al menos 9 dígitos.",
+    })
+    .max(10, {
+      message: "El número de celular no puede tener más de 10 dígitos.",
+    }),
   ind_genero: z.enum(["masculino", "femenino"]),
   des_direccion: z.string().optional(),
   fec_nacimiento: z.string().optional(),
