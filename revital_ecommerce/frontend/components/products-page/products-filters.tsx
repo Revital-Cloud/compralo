@@ -133,6 +133,14 @@ export const ProductsFilters = ({
 
   // Estado para mantener las categorías expandidas (persiste entre selecciones)
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
+  const [minPriceInput, setMinPriceInput] = useState<string>("")
+  const [maxPriceInput, setMaxPriceInput] = useState<string>("")
+
+  useEffect(() => {
+    // Sin valor aplicado en filtros mostramos el input vacío
+    setMinPriceInput(priceRange[0] > 0 ? String(priceRange[0]) : "")
+    setMaxPriceInput(priceRange[1] > 0 ? String(priceRange[1]) : "")
+  }, [priceRange[0], priceRange[1]])
 
   const toggleExpanded = (categoryId: number) => {
     setExpandedCategories((prev) => {
@@ -174,6 +182,50 @@ export const ProductsFilters = ({
       })
     }
   }, [selectedCategoryId, tree])
+
+  // Aplicar filtro de precio mínimo tras una pequeña pausa sin escribir
+  useEffect(() => {
+    if (!priceRangeOptions) return
+
+    const timeoutId = setTimeout(() => {
+      if (!minPriceInput.trim()) {
+        if (priceRange[0] !== 0) {
+          setPriceRange([0, priceRange[1]])
+        }
+        return
+      }
+      const raw = Number(minPriceInput)
+      if (isNaN(raw)) return
+      const clamped = Math.max(0, Math.min(raw, priceRange[1] || priceRangeOptions.max))
+      if (clamped !== priceRange[0]) {
+        setPriceRange([clamped, priceRange[1]])
+      }
+    }, 800)
+
+    return () => clearTimeout(timeoutId)
+  }, [minPriceInput, priceRange, priceRangeOptions, setPriceRange])
+
+  // Aplicar filtro de precio máximo tras una pequeña pausa sin escribir
+  useEffect(() => {
+    if (!priceRangeOptions) return
+
+    const timeoutId = setTimeout(() => {
+      if (!maxPriceInput.trim()) {
+        if (priceRange[1] !== 0) {
+          setPriceRange([priceRange[0], 0])
+        }
+        return
+      }
+      const raw = Number(maxPriceInput)
+      if (isNaN(raw)) return
+      const clamped = Math.min(priceRangeOptions.max, Math.max(raw, priceRange[0] || 0))
+      if (clamped !== priceRange[1]) {
+        setPriceRange([priceRange[0], clamped])
+      }
+    }, 800)
+
+    return () => clearTimeout(timeoutId)
+  }, [maxPriceInput, priceRange, priceRangeOptions, setPriceRange])
 
   const toggleAttribute = (attrId: number, value: string) => {
     const idStr = String(attrId)
@@ -233,16 +285,35 @@ export const ProductsFilters = ({
                     <label className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">Mín.</label>
                     <input
                       type="number"
-                      value={priceRange[0]}
+                      value={minPriceInput}
+                      placeholder="0"
                       min={0}
                       max={priceRange[1] || priceRangeOptions.max}
                       step={Math.max(1000, Math.floor((priceRangeOptions.max - priceRangeOptions.min) / 100))}
                       onChange={(e) => {
-                        const raw = Number(e.target.value)
-                        const clamped = isNaN(raw)
-                          ? 0
-                          : Math.max(0, Math.min(raw, priceRange[1] || priceRangeOptions.max))
-                        if (clamped !== priceRange[0]) setPriceRange([clamped, priceRange[1]])
+                        setMinPriceInput(e.target.value)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          e.currentTarget.blur()
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!minPriceInput.trim()) {
+                          // Limpiar filtro mínimo
+                          if (priceRange[0] !== 0) setPriceRange([0, priceRange[1]])
+                          return
+                        }
+                        const raw = Number(minPriceInput)
+                        if (isNaN(raw)) return
+                        const clamped = Math.max(0, Math.min(raw, priceRange[1] || priceRangeOptions.max))
+                        if (clamped !== priceRange[0]) {
+                          setPriceRange([clamped, priceRange[1]])
+                        } else {
+                          // Normalizar visualmente el valor
+                          setMinPriceInput(String(clamped))
+                        }
                       }}
                       className="w-full h-9 rounded-md border border-gray-200 dark:border-gray-700 bg-transparent px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring/50"
                     />
@@ -251,16 +322,34 @@ export const ProductsFilters = ({
                     <label className="text-xs text-gray-600 dark:text-gray-400 whitespace-nowrap">Máx.</label>
                     <input
                       type="number"
-                      value={priceRange[1]}
+                      value={maxPriceInput}
+                      placeholder="0"
                       min={priceRange[0]}
                       max={priceRangeOptions.max}
                       step={Math.max(1000, Math.floor((priceRangeOptions.max - priceRangeOptions.min) / 100))}
                       onChange={(e) => {
-                        const raw = Number(e.target.value)
-                        const clamped = isNaN(raw)
-                          ? 0
-                          : Math.min(priceRangeOptions.max, Math.max(raw, priceRange[0]))
-                        if (clamped !== priceRange[1]) setPriceRange([priceRange[0], clamped])
+                        setMaxPriceInput(e.target.value)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          e.currentTarget.blur()
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!maxPriceInput.trim()) {
+                          // Limpiar filtro máximo
+                          if (priceRange[1] !== 0) setPriceRange([priceRange[0], 0])
+                          return
+                        }
+                        const raw = Number(maxPriceInput)
+                        if (isNaN(raw)) return
+                        const clamped = Math.min(priceRangeOptions.max, Math.max(raw, priceRange[0] || 0))
+                        if (clamped !== priceRange[1]) {
+                          setPriceRange([priceRange[0], clamped])
+                        } else {
+                          setMaxPriceInput(String(clamped))
+                        }
                       }}
                       className="w-full h-9 rounded-md border border-gray-200 dark:border-gray-700 bg-transparent px-3 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring/50"
                     />
