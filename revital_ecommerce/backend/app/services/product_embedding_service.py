@@ -19,7 +19,7 @@ Mantener esta lógica en un módulo separado nos permite reutilizarla desde:
 
 from typing import Optional
 
-from app.schemas.product_schema import Product, ProductFiltered
+from schemas.product_schema import Product, ProductFiltered
 
 
 def build_product_embedding_text(

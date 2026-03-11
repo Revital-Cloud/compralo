@@ -1,0 +1,188 @@
+"""
+Orquestador de búsqueda semántica de productos (AI Product Search).
+
+Este módulo conecta 3 conceptos:
+
+1) Producto -> texto (para embeddings)
+   - lo hace `product_embedding_service.build_embedding_text_from_filtered_product`
+
+2) Texto -> embedding (vector)
+   - lo hace un `EmbeddingProvider`
+   - por ahora usamos `HashingEmbeddingProvider` (NO semántico, solo para demostrar flujo)
+
+3) Embedding -> topK product_ids (pgvector)
+   - lo hace `pgvector_product_embeddings_service.semantic_search_product_ids`
+
+Luego, con esos product_ids, devolvemos objetos `ProductFiltered` para el frontend.
+
+Nota importante (MVP):
+- Para evitar reescribir SQL complejo de listado, reutilizamos `fun_filter_products`
+  para obtener un set grande de productos y luego filtramos por IDs preservando el orden
+  del ranking semántico.
+- Esto NO escala, pero es perfecto para aprender y para una primera integración.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from decimal import Decimal
+from typing import Dict, List, Sequence
+
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import text
+
+from schemas.product_schema import ProductFilterParams, ProductFilterResponse, ProductFiltered
+from services.fake_embedding_provider_service import HashingEmbeddingProvider
+from services.pgvector_product_embeddings_service import semantic_search_product_ids, count_embeddings
+
+
+DEFAULT_EMBEDDING_DIMENSIONS = 1536
+
+
+@dataclass(frozen=True)
+class SemanticSearchDebug:
+    embeddings_count: int
+    used_fallback: bool
+    reason: str | None = None
+
+
+def _fetch_products_for_listing(db: Session, *, limit: int = 10000) -> List[dict]:
+    """
+    Trae productos activos con los campos que usa el listado (`ProductFiltered`)
+    reutilizando fun_filter_products.
+    """
+    # fun_filter_products no devuelve `nom_marca`; lo traemos por JOIN a tab_marcas.
+    q = text(
+        """
+        SELECT
+          f.product_id,
+          f.category_id,
+          f.nom_categoria,
+          f.nom_producto,
+          f.slug_producto,
+          f.description,
+          f.id_marca,
+          m.nom_marca,
+          f.precio_min,
+          f.precio_max,
+          f.stock_total,
+          f.img_principal,
+          f.total_registros
+        FROM fun_filter_products(
+          NULL, TRUE, NULL, NULL,
+          NULL, NULL, FALSE, 'nombre', 'ASC',
+          :p_limit, 0
+        ) f
+        LEFT JOIN tab_marcas m
+          ON m.id_marca = f.id_marca
+        """
+    )
+    rows = db.execute(q, {"p_limit": int(limit)}).mappings().all()
+    return list(rows)
+
+
+def _to_product_filtered(row: dict, *, total_registros: int) -> ProductFiltered:
+    return ProductFiltered(
+        category_id=int(row.get("category_id") or 0),
+        id=int(row.get("product_id") or 0),
+        slug=row.get("slug_producto"),
+        category_name=(row.get("nom_categoria") or "") or "",
+        name=(row.get("nom_producto") or "") or "",
+        description=row.get("description"),
+        image_url=row.get("img_principal"),
+        price_min=row.get("precio_min") or Decimal("0"),
+        price_max=row.get("precio_max") or row.get("precio_min") or Decimal("0"),
+        stock_total=int(row.get("stock_total") or 0),
+        total_registros=int(total_registros),
+        rating=None,
+        id_marca=int(row.get("id_marca")) if row.get("id_marca") is not None else None,
+        nom_marca=row.get("nom_marca"),
+        fec_insert=None,
+    )
+
+
+def semantic_search_products(
+    db: Session,
+    *,
+    query: str,
+    limit: int = 20,
+    offset: int = 0,
+) -> tuple[ProductFilterResponse, SemanticSearchDebug]:
+    """
+    Endpoint-level function:
+    - si hay embeddings, usa pgvector para ranking
+    - si no hay embeddings, hace fallback a búsqueda clásica por nombre
+    """
+    q = (query or "").strip()
+    if not q:
+        empty = ProductFilterResponse(products=[], total=0, page=1, total_pages=0, limit=limit, offset=offset)
+        return empty, SemanticSearchDebug(embeddings_count=count_embeddings(db), used_fallback=True, reason="empty_query")
+
+    embeddings_cnt = count_embeddings(db)
+    if embeddings_cnt <= 0:
+        # Fallback: usar búsqueda clásica por nombre (misma que /products/search).
+        filters = ProductFilterParams(
+            nombre_producto=q,
+            limit=limit,
+            offset=offset,
+            ordenar_por="nombre",
+            orden="ASC",
+        )
+        # Reusar servicio existente
+        from services import product_service
+
+        return product_service.filter_products(db, filters), SemanticSearchDebug(
+            embeddings_count=embeddings_cnt,
+            used_fallback=True,
+            reason="no_embeddings_indexed",
+        )
+
+    provider = HashingEmbeddingProvider(dimensions=DEFAULT_EMBEDDING_DIMENSIONS)
+    query_embedding = provider.embed_query(q)
+
+    # Pedimos más que `limit` para poder paginar con offset sin recalcular.
+    top_k = max(1, int(offset) + int(limit))
+    ranked = semantic_search_product_ids(db, query_embedding=query_embedding, top_k=top_k)
+    ranked_ids = [r.product_id for r in ranked]
+
+    if not ranked_ids:
+        filters = ProductFilterParams(
+            nombre_producto=q,
+            limit=limit,
+            offset=offset,
+            ordenar_por="nombre",
+            orden="ASC",
+        )
+        from services import product_service
+
+        return product_service.filter_products(db, filters), SemanticSearchDebug(
+            embeddings_count=embeddings_cnt,
+            used_fallback=True,
+            reason="no_ranked_results",
+        )
+
+    # MVP: obtenemos un set grande de productos y luego filtramos por IDs manteniendo orden.
+    listing_rows = _fetch_products_for_listing(db, limit=10000)
+    by_id: Dict[int, dict] = {int(r["product_id"]): dict(r) for r in listing_rows if r.get("product_id") is not None}
+
+    ordered_rows = [by_id[pid] for pid in ranked_ids if pid in by_id]
+    total = len(ordered_rows)
+
+    page = (offset // limit) + 1 if limit else 1
+    total_pages = (total + limit - 1) // limit if total and limit else 0
+
+    slice_rows = ordered_rows[int(offset) : int(offset) + int(limit)]
+    products = [_to_product_filtered(r, total_registros=total) for r in slice_rows]
+
+    return (
+        ProductFilterResponse(
+            products=products,
+            total=total,
+            page=page,
+            total_pages=total_pages,
+            limit=int(limit),
+            offset=int(offset),
+        ),
+        SemanticSearchDebug(embeddings_count=embeddings_cnt, used_fallback=False, reason=None),
+    )
+

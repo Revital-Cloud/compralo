@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from decimal import Decimal
 from typing import Optional, List, Union
 import json
+import logging
 
 from core.database import get_db
 from core.dependencies import require_admin, get_current_user, get_current_user_optional
@@ -31,8 +32,11 @@ from schemas.product_schema import (
 )
 from schemas.auth_schema import UserInToken
 from services import product_service
+from services import product_semantic_search_service
+from services import product_embeddings_index_service
 
 router = APIRouter(tags=["Productos"])
+logger = logging.getLogger(__name__)
 
 #todos los productos
 @router.get("/products", response_model=list[Product])
@@ -604,6 +608,62 @@ async def search_products(
         result = product_service.filter_products(db, search_filters)
         return result
     except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=get_safe_message(e))
+
+
+@router.get("/products/semantic-search", response_model=ProductFilterResponse)
+async def semantic_search_products(
+    q: str,
+    limit: int = 20,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user_optional),
+):
+    """
+    Búsqueda semántica (AI Product Search) basada en pgvector.
+
+    Qué hace (MVP):
+    - Convierte la query `q` a embedding (por ahora determinístico, para aprender el flujo).
+    - Busca los productos más similares en `tab_product_embeddings` usando pgvector.
+    - Devuelve un `ProductFilterResponse` compatible con el frontend.
+
+    Importante:
+    - Si todavía NO hay embeddings indexados, hace fallback a búsqueda clásica por nombre.
+    """
+    try:
+        if limit > 50:
+            limit = 50
+        if offset < 0:
+            offset = 0
+        result, _debug = product_semantic_search_service.semantic_search_products(
+            db,
+            query=q,
+            limit=limit,
+            offset=offset,
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=get_safe_message(e))
+
+
+@router.post("/admin/products/embeddings/reindex", status_code=status.HTTP_200_OK)
+async def reindex_product_embeddings(
+    limit: int = 10000,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin()),
+):
+    """
+    Reindexa embeddings de productos (admin).
+
+    Esto llena/actualiza `tab_product_embeddings`. Es seguro re-ejecutarlo:
+    usamos UPSERT por `product_id`.
+    """
+    try:
+        res = product_embeddings_index_service.reindex_all_products(db, limit=limit)
+        return {"indexed": res.indexed, "failed": res.failed}
+    except Exception as e:
+        # Log interno (stacktrace) sin exponerlo al cliente.
+        logger.exception("Error reindexing product embeddings (admin)")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=get_safe_message(e))
 
 
