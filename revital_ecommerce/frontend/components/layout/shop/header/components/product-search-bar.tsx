@@ -10,6 +10,7 @@ import { get } from "@/utils/apiWrapper"
 import { getProductImageUrl } from "@/utils/image-helpers"
 import type { ProductFiltered, ProductFilterResponse } from "@/types/product"
 import Image from "next/image"
+import { semanticSearchProducts } from "@/services/product.service"
 
 interface ProductSearchBarProps {
   placeholder?: string
@@ -30,6 +31,8 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
   const searchRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  const aiEnabled = process.env.NEXT_PUBLIC_AI_PRODUCT_SEARCH_ENABLED === "true"
+
   // Debounce para buscar productos
   useEffect(() => {
     if (!query.trim()) {
@@ -43,10 +46,26 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
       setIsLoading(true)
       setShowNoResultsMessage(false)
       try {
-        const response = await get<ProductFilterResponse>('/products/search', {
-          params: { q: query.trim(), limit: 5 }
-        })
-        const products = response?.products || []
+        const trimmed = query.trim()
+        let products: ProductFiltered[] = []
+
+        if (aiEnabled) {
+          // Semántico (con fallback en backend).
+          // En el header queremos ser un poco más tolerantes para no cortar matches buenos.
+          const response = await semanticSearchProducts(trimmed, {
+            limit: 5,
+            offset: 0,
+            min_score_ratio: 0.85,
+            max_score_drop: 0.15,
+          })
+          products = response?.products || []
+        } else {
+          const response = await get<ProductFilterResponse>("/products/search", {
+            params: { q: trimmed, limit: 5 },
+          })
+          products = response?.products || []
+        }
+
         setSuggestions(products)
         setIsOpen(products.length > 0)
       } catch (error) {
@@ -59,7 +78,7 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
     }, 300) // 300ms de debounce
 
     return () => clearTimeout(timeoutId)
-  }, [query])
+  }, [query, aiEnabled])
 
   // Cerrar sugerencias al hacer click fuera
   useEffect(() => {
@@ -90,9 +109,19 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
     setIsLoading(true)
     setShowNoResultsMessage(false)
     try {
-      const response = await get<ProductFilterResponse>('/products/search', {
-        params: { q: trimmed, limit: 5 }
-      })
+      // En submit, si AI está habilitado, igual usamos semántico para decidir si hay resultados.
+      // Si el backend hace fallback, el usuario igual verá productos.
+      const response = aiEnabled
+        ? await semanticSearchProducts(trimmed, {
+            limit: 5,
+            offset: 0,
+            min_score_ratio: 0.85,
+            max_score_drop: 0.15,
+          })
+        : await get<ProductFilterResponse>("/products/search", {
+            params: { q: trimmed, limit: 5 },
+          })
+
       const products = response?.products || []
       if (products.length === 0) {
         setSuggestions([])

@@ -616,6 +616,9 @@ async def semantic_search_products(
     q: str,
     limit: int = 20,
     offset: int = 0,
+    min_score: float | None = None,
+    min_score_ratio: float | None = None,
+    max_score_drop: float | None = None,
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user_optional),
 ):
@@ -635,13 +638,65 @@ async def semantic_search_products(
             limit = 50
         if offset < 0:
             offset = 0
-        result, _debug = product_semantic_search_service.semantic_search_products(
+        result, _debug_info, _matches = product_semantic_search_service.semantic_search_products(
             db,
             query=q,
             limit=limit,
             offset=offset,
+            min_score=min_score,
+            min_score_ratio=min_score_ratio,
+            max_score_drop=max_score_drop,
         )
         return result
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=get_safe_message(e))
+
+
+@router.get("/products/semantic-search/debug")
+async def semantic_search_products_debug(
+    q: str,
+    limit: int = 20,
+    offset: int = 0,
+    min_score: float | None = None,
+    min_score_ratio: float | None = None,
+    max_score_drop: float | None = None,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user_optional),
+):
+    """
+    Versión debug de la búsqueda semántica.
+
+    Devuelve:
+    - `result`: el mismo payload que /products/semantic-search
+    - `debug`: metadata (fallback, thresholds, etc.)
+    - `matches`: lista de {product_id, score} antes de aplicar filtros de catálogo
+    """
+    try:
+        if limit > 50:
+            limit = 50
+        if offset < 0:
+            offset = 0
+        result, debug_info, matches = product_semantic_search_service.semantic_search_products(
+            db,
+            query=q,
+            limit=limit,
+            offset=offset,
+            min_score=min_score,
+            min_score_ratio=min_score_ratio,
+            max_score_drop=max_score_drop,
+        )
+        return {
+            "result": result.model_dump(),
+            "debug": {
+                "embeddings_count": debug_info.embeddings_count,
+                "used_fallback": debug_info.used_fallback,
+                "reason": debug_info.reason,
+                "min_score": min_score,
+                "min_score_ratio": min_score_ratio,
+                "max_score_drop": max_score_drop,
+            },
+            "matches": matches,
+        }
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=get_safe_message(e))
 

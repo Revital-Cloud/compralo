@@ -20,6 +20,7 @@ El frontend de Revital está construido con Next.js 16+ y diseñado para ofrecer
 - **Sistema de filtros** con búsqueda en tiempo real
 - **Filtros jerárquicos** (Categorías → Líneas → Sublíneas)
 - **Búsqueda por nombre** con autocompletado
+- **AI Product Search** integrado en el buscador del header (cuando está habilitado)
 - **Filtros por precio, marca, proveedor**
 - **Paginación** y ordenamiento dinámico
 - **Estados vacíos** mejorados con ilustraciones
@@ -292,7 +293,16 @@ cp .env.development.example .env.development
 # Variables mínimas (ver `.env.development.example` para el set completo)
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
 NEXT_PUBLIC_WOMPI_PUBLIC_KEY=pub_test_xxxx
+NEXT_PUBLIC_AI_PRODUCT_SEARCH_ENABLED=true
 ```
+
+Cuando `NEXT_PUBLIC_AI_PRODUCT_SEARCH_ENABLED=true` y el backend tiene configurado Ollama/pgvector, el buscador del header (`ProductSearchBar`) usa el endpoint:
+
+- `GET /api/products/semantic-search`
+
+con fallback automático a búsqueda clásica cuando no hay embeddings o el proveedor no está disponible.*** End Patch```"/>
+```*** End Patch
+``` -->
 
 ### 3. Iniciar Desarrollo
 

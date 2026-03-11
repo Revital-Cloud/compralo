@@ -16,18 +16,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Iterable, List, Sequence
+from typing import List
 
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 
 from schemas.product_schema import ProductFiltered
-from services.fake_embedding_provider_service import HashingEmbeddingProvider
+from services.ollama_embedding_provider_service import OllamaEmbeddingProvider
 from services.pgvector_product_embeddings_service import upsert_product_embedding
 from services.product_embedding_service import build_embedding_text_from_filtered_product
+from services.embedding_provider_service import EmbeddingsNotConfiguredError
 
 
-DEFAULT_EMBEDDING_DIMENSIONS = 1536
+DEFAULT_EMBEDDING_DIMENSIONS = 768
+DEFAULT_EMBED_CONCURRENCY = 8
 
 
 @dataclass(frozen=True)
@@ -74,38 +76,51 @@ def reindex_all_products(db: Session, *, limit: int = 10000) -> ReindexResult:
     MVP: una sola transacción. Si se corta a mitad, puedes re-ejecutarlo:
     el upsert hace que sea idempotente.
     """
-    provider = HashingEmbeddingProvider(dimensions=DEFAULT_EMBEDDING_DIMENSIONS)
     rows = _fetch_products_for_indexing(db, limit=limit)
+
+    # 1) Construimos todos los textos primero (barato)
+    index_items: list[tuple[Decimal, str]] = []
+    for row in rows:
+        pid_raw = row.get("product_id")
+        if pid_raw is None:
+            continue
+        product_id = Decimal(str(pid_raw))
+        filtered = ProductFiltered(
+            category_id=int(row.get("category_id") or 0),
+            id=int(pid_raw),
+            slug=row.get("slug_producto"),
+            category_name=(row.get("nom_categoria") or "") or "",
+            name=(row.get("nom_producto") or "") or "",
+            description=row.get("description"),
+            image_url=None,
+            price_min=Decimal("0"),
+            price_max=Decimal("0"),
+            stock_total=0,
+            total_registros=0,
+            rating=None,
+            id_marca=int(row.get("id_marca")) if row.get("id_marca") is not None else None,
+            nom_marca=row.get("nom_marca"),
+            fec_insert=None,
+        )
+        source_text = build_embedding_text_from_filtered_product(filtered)
+        index_items.append((product_id, source_text))
+
+    # 2) Embeddings en batch (con concurrencia limitada)
+    provider = OllamaEmbeddingProvider()
+    try:
+        embeddings = provider.embed_many([t for (_pid, t) in index_items], concurrency=DEFAULT_EMBED_CONCURRENCY)
+    except EmbeddingsNotConfiguredError:
+        # Si Ollama no está disponible, no podemos indexar nada.
+        return ReindexResult(indexed=0, failed=len(index_items))
 
     indexed = 0
     failed = 0
-    for row in rows:
+    for (product_id, source_text), embedding in zip(index_items, embeddings):
         try:
-            pid_raw = row.get("product_id")
-            if pid_raw is None:
-                continue
-            product_id = Decimal(str(pid_raw))
-
-            filtered = ProductFiltered(
-                category_id=int(row.get("category_id") or 0),
-                id=int(pid_raw),
-                slug=row.get("slug_producto"),
-                category_name=(row.get("nom_categoria") or "") or "",
-                name=(row.get("nom_producto") or "") or "",
-                description=row.get("description"),
-                image_url=None,
-                price_min=Decimal("0"),
-                price_max=Decimal("0"),
-                stock_total=0,
-                total_registros=0,
-                rating=None,
-                id_marca=int(row.get("id_marca")) if row.get("id_marca") is not None else None,
-                nom_marca=row.get("nom_marca"),
-                fec_insert=None,
-            )
-
-            source_text = build_embedding_text_from_filtered_product(filtered)
-            embedding = provider.embed_product(source_text)
+            if len(embedding) != DEFAULT_EMBEDDING_DIMENSIONS:
+                raise ValueError(
+                    f"Dimensión de embedding inesperada: {len(embedding)} (esperada {DEFAULT_EMBEDDING_DIMENSIONS})"
+                )
 
             # IMPORTANT (PostgreSQL):
             # Si un INSERT/UPDATE falla dentro de una transacción, la transacción queda "abortada"

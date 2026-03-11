@@ -64,16 +64,51 @@ def build_product_embedding_text(
     parts.append(header)
 
     # Segunda parte: categoría.
-    if category_name:
-        category_clean = category_name.strip()
-        if category_clean:
-            parts.append(f"Categoría: {category_clean}")
+    category_clean = (category_name or "").strip()
+    if category_clean:
+        parts.append(f"Categoría: {category_clean}")
 
     # Tercera parte: descripción libre.
     if description:
         description_clean = description.strip()
         if description_clean:
             parts.append(f"Descripción: {description_clean}")
+
+    # Cuarta parte: palabras clave derivadas (sinónimos sencillos por categoría).
+    # Esto ayuda a queries genéricas en español como "celulares", "consolas", etc.
+    keywords: list[str] = []
+    cat_lower = category_clean.lower()
+
+    if "smartphone" in cat_lower or "celular" in cat_lower or "teléfono" in cat_lower:
+        keywords.extend(
+            [
+                "celular",
+                "celulares",
+                "teléfono móvil",
+                "telefono movil",
+                "smartphone",
+            ]
+        )
+    if "consola" in cat_lower:
+        keywords.extend(
+            [
+                "consola de videojuegos",
+                "videojuegos",
+                "juegos",
+                "gaming",
+            ]
+        )
+    if "maleta" in cat_lower:
+        keywords.extend(
+            [
+                "equipaje",
+                "viajes",
+                "bolso de viaje",
+            ]
+        )
+
+    if keywords:
+        parts.append("Palabras clave: " + ", ".join(sorted(set(keywords))))
 
     return " | ".join(parts)
 

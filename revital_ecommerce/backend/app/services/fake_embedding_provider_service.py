@@ -32,11 +32,12 @@ class HashingEmbeddingProvider(EmbeddingProvider):
     """
     Embeddings determinísticos basados en hashing.
 
-    - `dimensions`: tamaño del vector. Debe coincidir con `vector(1536)` en la DB.
+    - `dimensions`: tamaño del vector. Debe coincidir con el tamaño configurado en DB
+      (por ejemplo vector(768) si usas Ollama nomic-embed-text).
     - Los valores salen en rango aproximado [-1, 1].
     """
 
-    def __init__(self, *, dimensions: int = 1536) -> None:
+    def __init__(self, *, dimensions: int = 768) -> None:
         self._dimensions = int(dimensions)
         if self._dimensions <= 0:
             raise ValueError("dimensions debe ser > 0")

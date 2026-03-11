@@ -26,17 +26,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Dict, List, Sequence
+from typing import Dict, List, Sequence, TypedDict
 
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 
 from schemas.product_schema import ProductFilterParams, ProductFilterResponse, ProductFiltered
-from services.fake_embedding_provider_service import HashingEmbeddingProvider
+from services.ollama_embedding_provider_service import OllamaEmbeddingProvider
 from services.pgvector_product_embeddings_service import semantic_search_product_ids, count_embeddings
+from services.embedding_provider_service import EmbeddingsNotConfiguredError
 
 
-DEFAULT_EMBEDDING_DIMENSIONS = 1536
+DEFAULT_EMBEDDING_DIMENSIONS = 768
+# Gate por score absoluto del mejor match.
+#
+# Si el top-1 tiene score MUY bajo, es señal de que la query no "pega" con nada del
+# catálogo (o de que el embedding está siendo ruidoso). En ese caso es mejor
+# hacer fallback a búsqueda clásica que reordenar el catálogo con resultados flojos.
+# Con catálogo pequeño y queries en español, un umbral ~0.45 funciona mejor.
+MIN_BEST_SCORE_FOR_SEMANTIC = 0.45
 
 
 @dataclass(frozen=True)
@@ -44,6 +52,11 @@ class SemanticSearchDebug:
     embeddings_count: int
     used_fallback: bool
     reason: str | None = None
+
+
+class RankedMatch(TypedDict):
+    product_id: int
+    score: float
 
 
 def _fetch_products_for_listing(db: Session, *, limit: int = 10000) -> List[dict]:
@@ -107,7 +120,10 @@ def semantic_search_products(
     query: str,
     limit: int = 20,
     offset: int = 0,
-) -> tuple[ProductFilterResponse, SemanticSearchDebug]:
+    min_score: float | None = None,
+    min_score_ratio: float | None = None,
+    max_score_drop: float | None = None,
+) -> tuple[ProductFilterResponse, SemanticSearchDebug, List[RankedMatch] | None]:
     """
     Endpoint-level function:
     - si hay embeddings, usa pgvector para ranking
@@ -116,7 +132,11 @@ def semantic_search_products(
     q = (query or "").strip()
     if not q:
         empty = ProductFilterResponse(products=[], total=0, page=1, total_pages=0, limit=limit, offset=offset)
-        return empty, SemanticSearchDebug(embeddings_count=count_embeddings(db), used_fallback=True, reason="empty_query")
+        return (
+            empty,
+            SemanticSearchDebug(embeddings_count=count_embeddings(db), used_fallback=True, reason="empty_query"),
+            [],
+        )
 
     embeddings_cnt = count_embeddings(db)
     if embeddings_cnt <= 0:
@@ -131,18 +151,87 @@ def semantic_search_products(
         # Reusar servicio existente
         from services import product_service
 
-        return product_service.filter_products(db, filters), SemanticSearchDebug(
-            embeddings_count=embeddings_cnt,
-            used_fallback=True,
-            reason="no_embeddings_indexed",
+        return (
+            product_service.filter_products(db, filters),
+            SemanticSearchDebug(
+                embeddings_count=embeddings_cnt,
+                used_fallback=True,
+                reason="no_embeddings_indexed",
+            ),
+            None,
         )
 
-    provider = HashingEmbeddingProvider(dimensions=DEFAULT_EMBEDDING_DIMENSIONS)
-    query_embedding = provider.embed_query(q)
+    provider = OllamaEmbeddingProvider()
+    try:
+        query_embedding = provider.embed_query(q)
+    except EmbeddingsNotConfiguredError:
+        # Si Ollama no está disponible, caemos a búsqueda clásica.
+        filters = ProductFilterParams(
+            nombre_producto=q,
+            limit=limit,
+            offset=offset,
+            ordenar_por="nombre",
+            orden="ASC",
+        )
+        from services import product_service
+
+        return (
+            product_service.filter_products(db, filters),
+            SemanticSearchDebug(
+                embeddings_count=embeddings_cnt,
+                used_fallback=True,
+                reason="embedding_provider_unavailable",
+            ),
+            None,
+        )
+    if len(query_embedding) != DEFAULT_EMBEDDING_DIMENSIONS:
+        # Si esto pasa, tu DB/funciones están en una dimensión distinta del provider.
+        raise ValueError(
+            f"Dimensión de embedding inesperada: {len(query_embedding)} (esperada {DEFAULT_EMBEDDING_DIMENSIONS})"
+        )
 
     # Pedimos más que `limit` para poder paginar con offset sin recalcular.
     top_k = max(1, int(offset) + int(limit))
     ranked = semantic_search_product_ids(db, query_embedding=query_embedding, top_k=top_k)
+
+    matches: List[RankedMatch] = [{"product_id": r.product_id, "score": float(r.score)} for r in ranked]
+
+    if ranked and float(ranked[0].score) < MIN_BEST_SCORE_FOR_SEMANTIC:
+        filters = ProductFilterParams(
+            nombre_producto=q,
+            limit=limit,
+            offset=offset,
+            ordenar_por="nombre",
+            orden="ASC",
+        )
+        from services import product_service
+
+        return (
+            product_service.filter_products(db, filters),
+            SemanticSearchDebug(
+                embeddings_count=embeddings_cnt,
+                used_fallback=True,
+                reason="best_score_below_min_best_score",
+            ),
+            matches,
+        )
+
+    # 1) Corte relativo (recomendado): conserva resultados "cerca" del mejor.
+    # Esto evita que queries genéricas devuelvan "todo reordenado".
+    if ranked:
+        best = float(ranked[0].score)
+        cutoff_candidates: list[float] = []
+        if min_score_ratio is not None:
+            cutoff_candidates.append(best * float(min_score_ratio))
+        if max_score_drop is not None:
+            cutoff_candidates.append(best - float(max_score_drop))
+        if cutoff_candidates:
+            cutoff = max(cutoff_candidates)
+            ranked = [r for r in ranked if float(r.score) >= cutoff]
+
+    # 2) Umbral absoluto adicional (opcional)
+    if min_score is not None:
+        ranked = [r for r in ranked if float(r.score) >= float(min_score)]
     ranked_ids = [r.product_id for r in ranked]
 
     if not ranked_ids:
@@ -155,10 +244,14 @@ def semantic_search_products(
         )
         from services import product_service
 
-        return product_service.filter_products(db, filters), SemanticSearchDebug(
-            embeddings_count=embeddings_cnt,
-            used_fallback=True,
-            reason="no_ranked_results",
+        return (
+            product_service.filter_products(db, filters),
+            SemanticSearchDebug(
+                embeddings_count=embeddings_cnt,
+                used_fallback=True,
+                reason="no_ranked_results_or_below_threshold",
+            ),
+            matches,
         )
 
     # MVP: obtenemos un set grande de productos y luego filtramos por IDs manteniendo orden.
@@ -184,5 +277,6 @@ def semantic_search_products(
             offset=int(offset),
         ),
         SemanticSearchDebug(embeddings_count=embeddings_cnt, used_fallback=False, reason=None),
+        matches,
     )
 

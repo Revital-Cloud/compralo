@@ -124,6 +124,18 @@ backend/
 - **Groq (LLM)** - Asistente de administración conectado al panel (`/api/admin/ai/*`)
 - **Redis** (opcional) - Cache por instancia
 
+### AI Product Search (Embeddings)
+
+- **pgvector + PostgreSQL** para almacenar embeddings de productos en `tab_product_embeddings`.
+- **Ollama** como proveedor local de embeddings (`nomic-embed-text`):
+  - `OLLAMA_BASE_URL` (por defecto `http://127.0.0.1:11434`)
+  - `OLLAMA_EMBED_MODEL` (por defecto `nomic-embed-text`)
+- Endpoint admin para reindexar embeddings:
+  - `POST /api/admin/products/embeddings/reindex`
+- Endpoints de búsqueda semántica:
+  - `GET /api/products/semantic-search`
+  - `GET /api/products/semantic-search/debug` (incluye scores y metadata para calibrar).
+
 ## 🚀 Instalación y Configuración
 
 ### Prerrequisitos

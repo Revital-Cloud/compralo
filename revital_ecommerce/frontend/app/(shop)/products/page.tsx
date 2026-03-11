@@ -4,6 +4,7 @@ import { useState, useMemo, useCallback, useEffect } from "react"
 import { ProductsHeader, ProductsFilters, ProductsDisplay } from "@/components/products-page"
 import { useFilterProducts, useFilterOptions, useFilterStats } from "@/hooks"
 import type { ProductFilterParams } from "@/types/product"
+import { useSearchParams } from "next/navigation"
 
 const computeSort = (value: string): ['precio' | 'nombre' | 'stock' | 'fecha', 'ASC' | 'DESC'] => {
   const [campo, dir] = value.split('-')
@@ -254,6 +255,7 @@ function ProductsPageInner({
 }
 
 const ProductsPage = () => {
+  const searchParams = useSearchParams()
   const [sortBy, setSortBy] = useState('nombre-asc')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
@@ -272,6 +274,22 @@ const ProductsPage = () => {
     if (range) return { min: range.minimo, max: range.maximo }
     return { min: 0, max: 0 }
   }, [filterOptions])
+
+  // Sincronizar ?q= del URL con el buscador del catálogo.
+  // Esto permite que el buscador global del header navegue a /products?q=... y se aplique.
+  useEffect(() => {
+    const q = (searchParams?.get("q") ?? "").trim()
+    if (q && q !== searchQuery) {
+      setSearchQuery(q)
+      setCurrentPage(1)
+    }
+    if (!q && searchQuery) {
+      // Si se borra el query en el URL, limpiamos el estado.
+      setSearchQuery("")
+      setCurrentPage(1)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   return (
     <ProductsPageInner

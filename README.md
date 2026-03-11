@@ -29,6 +29,7 @@ Revital es una plataforma SaaS de comercio electrónico diseñada para venderse 
 - ✅ **API de inventario** y movimientos de stock
 - ✅ **Middleware de autenticación** y autorización por roles
 - ✅ **Analytics y dashboards** con KPIs
+- ✅ **AI Product Search** (búsqueda semántica con pgvector + Ollama)
 
 **Frontend (Next.js 16)**:
 - ✅ **Interfaz de tienda** completa con catálogo de productos
