@@ -59,39 +59,45 @@ class RankedMatch(TypedDict):
     score: float
 
 
-def _fetch_products_for_listing(db: Session, *, limit: int = 10000) -> List[dict]:
+def _fetch_products_by_ids(db: Session, product_ids: Sequence[int]) -> Dict[int, dict]:
     """
-    Trae productos activos con los campos que usa el listado (`ProductFiltered`)
-    reutilizando fun_filter_products.
+    Trae solo los productos necesarios para el listado, por `product_ids`.
+
+    Esto evita el patrón anterior de traer un bloque grande (ej. 10k) y reordenar
+    en memoria. Aquí el coste escala con el número de resultados, no con el
+    tamaño total del catálogo.
     """
-    # fun_filter_products no devuelve `nom_marca`; lo traemos por JOIN a tab_marcas.
+    if not product_ids:
+        return {}
+
+    # Eliminamos duplicados y normalizamos a enteros.
+    ids = [int(pid) for pid in dict.fromkeys(product_ids)]
+
     q = text(
         """
         SELECT
-          f.product_id,
-          f.category_id,
-          f.nom_categoria,
-          f.nom_producto,
-          f.slug_producto,
-          f.description,
-          f.id_marca,
-          m.nom_marca,
-          f.precio_min,
-          f.precio_max,
-          f.stock_total,
-          f.img_principal,
-          f.total_registros
-        FROM fun_filter_products(
-          NULL, TRUE, NULL, NULL,
-          NULL, NULL, FALSE, 'nombre', 'ASC',
-          :p_limit, 0
-        ) f
+          p.id              AS product_id,
+          p.category_id     AS category_id,
+          c.nom_categoria   AS nom_categoria,
+          p.nom_producto    AS nom_producto,
+          p.slug_producto   AS slug_producto,
+          p.description     AS description,
+          p.id_marca        AS id_marca,
+          m.nom_marca       AS nom_marca,
+          p.precio_min      AS precio_min,
+          p.precio_max      AS precio_max,
+          p.stock_total     AS stock_total,
+          p.img_principal   AS img_principal
+        FROM tab_products p
+        LEFT JOIN tab_categories c
+          ON c.id_categoria = p.category_id
         LEFT JOIN tab_marcas m
-          ON m.id_marca = f.id_marca
+          ON m.id_marca = p.id_marca
+        WHERE p.id = ANY(:ids)
         """
     )
-    rows = db.execute(q, {"p_limit": int(limit)}).mappings().all()
-    return list(rows)
+    rows = db.execute(q, {"ids": ids}).mappings().all()
+    return {int(r["product_id"]): dict(r) for r in rows}
 
 
 def _to_product_filtered(row: dict, *, total_registros: int) -> ProductFiltered:
@@ -254,10 +260,8 @@ def semantic_search_products(
             matches,
         )
 
-    # MVP: obtenemos un set grande de productos y luego filtramos por IDs manteniendo orden.
-    listing_rows = _fetch_products_for_listing(db, limit=10000)
-    by_id: Dict[int, dict] = {int(r["product_id"]): dict(r) for r in listing_rows if r.get("product_id") is not None}
-
+    # Traemos solo los productos necesarios para los IDs rankeados.
+    by_id = _fetch_products_by_ids(db, ranked_ids)
     ordered_rows = [by_id[pid] for pid in ranked_ids if pid in by_id]
     total = len(ordered_rows)
 
