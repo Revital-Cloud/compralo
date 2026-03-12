@@ -256,6 +256,7 @@ def delete_user(db: Session, id_usuario:Decimal):
 def get_user_by_email(db: Session, email: str):
     """
     Obtiene un usuario por su email con los campos mínimos necesarios para autenticación.
+    Incluye deleted_at para detectar cuentas soft-deleted en registro/reactivación.
 
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
@@ -273,7 +274,8 @@ def get_user_by_email(db: Session, email: str):
             email_usuario,
             password_usuario,
             id_rol,
-            ind_activo
+            ind_activo,
+            deleted_at
         FROM tab_usuarios 
         WHERE email_usuario = :email
         """)
@@ -382,7 +384,8 @@ def get_user_by_id(db: Session, id_usuario: Decimal):
             SELECT 
                 id_usuario, nom_usuario, ape_usuario, email_usuario, 
                 password_usuario, id_rol, ind_genero, cel_usuario, 
-                fec_nacimiento, usr_insert, fec_insert, usr_update, fec_update
+                fec_nacimiento, ind_activo, deleted_at,
+                usr_insert, fec_insert, usr_update, fec_update
             FROM tab_usuarios 
             WHERE id_usuario = :id_usuario
         """)
@@ -391,4 +394,90 @@ def get_user_by_id(db: Session, id_usuario: Decimal):
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener el usuario por ID: {str(e)}")
+
+
+def soft_delete_user(db: Session, id_usuario: Decimal, current_user_id: Decimal):
+    """
+    Desactiva la cuenta del usuario (soft delete) usando la función de BD
+    fun_soft_delete_usuario. No borra datos relacionados (órdenes, puntos, etc.),
+    solo marca la cuenta como eliminada.
+
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        id_usuario (Decimal): ID del usuario a desactivar.
+        current_user_id (Decimal): ID del usuario que realiza la operación (usr_update).
+
+    Returns:
+        str: Mensaje devuelto por la función de base de datos.
+    """
+    try:
+        existing = get_user(db, id_usuario)
+        if not existing:
+            raise Exception("Usuario no encontrado")
+
+        query = text("SELECT fun_soft_delete_usuario(:id_usuario, :usr_update)")
+        result = db.execute(
+            query,
+            {
+                "id_usuario": int(id_usuario),
+                "usr_update": int(current_user_id),
+            },
+        )
+        message = result.scalar_one_or_none()
+        db.commit()
+        return message
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al desactivar la cuenta: {e}")
+
+
+def reactivate_user(db: Session, id_usuario: Decimal):
+    """
+    Reactiva una cuenta soft-deleted usando la función de BD fun_reactivate_usuario.
+    Mantiene todos los datos del usuario (historial, órdenes, puntos, etc.).
+
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        id_usuario (Decimal): ID del usuario a reactivar.
+
+    Returns:
+        str: Mensaje devuelto por la función de base de datos.
+    """
+    try:
+        existing = get_user(db, id_usuario)
+        if not existing:
+            raise Exception("Usuario no encontrado")
+
+        # p_usr_update es opcional en la función; aquí no lo enviamos para que mantenga usr_update actual.
+        query = text("SELECT fun_reactivate_usuario(:id_usuario)")
+        result = db.execute(
+            query,
+            {
+                "id_usuario": int(id_usuario),
+            },
+        )
+        message = result.scalar_one_or_none()
+        db.commit()
+        return message
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al reactivar la cuenta: {e}")
+
+
+def reactivate_user_by_email(db: Session, email: str):
+    """
+    Reactiva un usuario por email (para flujo de registro con cuenta eliminada).
+
+    Args:
+        db (Session): La sesión de base de datos SQLAlchemy.
+        email (str): Email del usuario a reactivar.
+
+    Returns:
+        dict or None: El usuario reactivado o None si no se encuentra.
+    """
+    user = get_user_by_email(db, email)
+    if not user:
+        return None
+    reactivate_user(db, Decimal(str(user["id_usuario"])))
+    return get_user(db, Decimal(str(user["id_usuario"])))
         

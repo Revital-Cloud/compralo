@@ -291,6 +291,8 @@ CREATE TABLE IF NOT EXISTS tab_usuarios (
 -- Avatar (perfil: Facehash seed y colores hex)
     avatar_seed                 VARCHAR(255),
     avatar_colors               VARCHAR(500),
+-- Soft delete: timestamp cuando el usuario eliminó su cuenta
+    deleted_at                  TIMESTAMP WITHOUT TIME ZONE NULL,
 -- Campos de auditoría    
     usr_insert                  DECIMAL(10) 		NOT NULL,
     fec_insert                  TIMESTAMP WITHOUT TIME ZONE NOT NULL,

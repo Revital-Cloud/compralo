@@ -25,11 +25,17 @@ export const registerSchema = z.object({
   password_usuario: z
     .string()
     .min(8, { message: "La contraseña debe tener al menos 8 caracteres." })
+    .refine((val) => /[a-z]/.test(val), {
+      message: "La contraseña debe incluir al menos una letra minúscula.",
+    })
     .refine((val) => /[A-Z]/.test(val), {
       message: "La contraseña debe incluir al menos una letra mayúscula.",
     })
     .refine((val) => /\d/.test(val), {
       message: "La contraseña debe incluir al menos un número.",
+    })
+    .refine((val) => /[^A-Za-z0-9]/.test(val), {
+      message: "La contraseña debe incluir al menos un carácter especial.",
     }),
   cel_usuario: z
     .string()

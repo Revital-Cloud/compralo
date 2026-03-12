@@ -14,6 +14,9 @@ import {
 } from "@/components/ui";
 import { Input } from "@/components/ui";
 import { useAuth } from "@/hooks/use-auth";
+import authService from "@/services/auth.service";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui";
+import { toast } from "sonner";
 import { useState } from "react";
 import { ArrowLeft, Loader2, CalendarIcon } from 'lucide-react';
 import { Calendar } from "@/components/ui";
@@ -41,6 +44,9 @@ type FormValues = z.infer<typeof registerSchema>;
 export function RegisterForm() {
   const { register: registerUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [reactivateModalOpen, setReactivateModalOpen] = useState(false);
+  const [softDeletedEmail, setSoftDeletedEmail] = useState<string | null>(null);
+  const [isReactivating, setIsReactivating] = useState(false);
   const router = useRouter();
 
   const form = useForm<FormValues>({
@@ -74,9 +80,13 @@ export function RegisterForm() {
       // Redirigir a verificación de email (código OTP enviado al correo)
       router.push(`/verify-email?email=${encodeURIComponent(values.email_usuario)}`);
     } catch (error: any) {
-      console.error('Error en registro:', error);
-      // El error ya se maneja en el hook useAuth con toast
-      // Aquí podríamos agregar manejo adicional si es necesario
+      const status = error?.response?.status;
+      const detail = error?.response?.data?.detail;
+      const code = typeof detail === 'object' ? detail?.code : undefined;
+      if (status === 409 && code === 'ACCOUNT_SOFT_DELETED') {
+        setSoftDeletedEmail(values.email_usuario);
+        setReactivateModalOpen(true);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -318,6 +328,45 @@ export function RegisterForm() {
           </Form>
         </CardContent>
       </Card>
+
+      <Dialog open={reactivateModalOpen} onOpenChange={(open) => {
+        setReactivateModalOpen(open);
+        if (!open) setSoftDeletedEmail(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cuenta eliminada</DialogTitle>
+            <DialogDescription>
+              Este correo ya tenía una cuenta eliminada. ¿Deseas reactivarla?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReactivateModalOpen(false)} disabled={isReactivating}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!softDeletedEmail) return;
+                try {
+                  setIsReactivating(true);
+                  await authService.requestAccountReactivation(softDeletedEmail);
+                  toast.success("Te enviamos un correo para reactivar tu cuenta. Revisa tu bandeja de entrada.");
+                  setReactivateModalOpen(false);
+                  setSoftDeletedEmail(null);
+                } catch {
+                  toast.error("Error al solicitar reactivación. Inténtalo de nuevo.");
+                } finally {
+                  setIsReactivating(false);
+                }
+              }}
+              disabled={isReactivating}
+            >
+              {isReactivating ? "Enviando..." : "Reactivar cuenta"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="text-muted-foreground text-center text-xs text-balance">
         Al hacer clic en continuar, aceptas nuestros{" "}
         <Link href="/terminos" className="underline underline-offset-4 hover:text-primary">
