@@ -61,7 +61,7 @@ export function useAuth() {
   });
 
   // Mutación para login
-  const { mutate: login, isPending: isLoggingIn } = useMutation({
+  const { mutate: login, isPending: isLoggingIn } = useMutation<TokenResponse, unknown, LoginRequest>({
     mutationFn: (credentials: LoginRequest) => {
       // Validar cookies antes de permitir login
       if (!canUseCookie('necessary')) {
