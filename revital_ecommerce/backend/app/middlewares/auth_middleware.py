@@ -66,12 +66,17 @@ class AuthMiddleware(BaseHTTPMiddleware):
         needs_admin = False
         users_path_handled = False
 
-        # Caso especial: POST a /api/users es público (registro)
+        # Caso especial: POST a /api/users es público (registro y reactivate-request)
+        # POST a /api/users/me/deactivate requiere autenticación
         # PUT a /api/users/{id} permite que un usuario actualice su propio perfil
         if path.startswith("/api/users"):
             users_path_handled = True
             if method == "POST":
-                return await call_next(request)  # Permitir registro público
+                if "/me/deactivate" in path:
+                    needs_auth = True
+                    needs_admin = False
+                else:
+                    return await call_next(request)  # Registro y reactivate-request públicos
             elif method == "PUT":
                 # Para PUT, requerir autenticación pero no necesariamente admin
                 # El router verificará que sea el mismo usuario o admin

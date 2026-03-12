@@ -70,6 +70,7 @@ function setupInterceptors(instance: AxiosInstance): void {
         '/forgot-password',
         '/reset-password',
         '/verify-email-otp',
+        '/users/reactivate-request',
         // Endpoints del carrito (soportan usuarios anónimos)
         '/carrito-usuario',
         '/carrito-productos',

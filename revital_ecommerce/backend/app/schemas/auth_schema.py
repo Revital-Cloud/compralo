@@ -55,3 +55,13 @@ class VerifyEmailOtpRequest(BaseModel):
     """Schema para verificación de email con código OTP."""
     email: EmailStr
     code: str  # Código de 6 dígitos
+
+
+class ReactivateRequest(BaseModel):
+    """Schema para solicitud de reactivación de cuenta (email soft-deleted)."""
+    email: EmailStr
+
+
+class ResendEmailOtpRequest(BaseModel):
+    """Schema para reenviar el código OTP de verificación de email."""
+    email: EmailStr

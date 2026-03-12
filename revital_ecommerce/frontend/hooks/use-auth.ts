@@ -104,13 +104,31 @@ export function useAuth() {
         // Los layouts se encargarán de la redirección según el contexto
       }
     },
-    onError: (error: any) => {
+    // error: incluye las variables (credenciales) para poder iniciar flujo de reactivación
+    onError: async (error: any, variables?: LoginRequest) => {
       // Manejar errores específicos de cookies
       if (error.message?.includes('cookies')) {
         toast.error('Para iniciar sesión, debes aceptar las cookies necesarias');
         return;
       }
-      
+
+      const status = error?.response?.status;
+      const detail = error?.response?.data?.detail;
+      const code = typeof detail === 'object' ? detail?.code : undefined;
+
+      // Caso especial: cuenta desactivada (soft delete) → iniciar flujo de reactivación desde login
+      if (status === 403 && code === 'ACCOUNT_SOFT_DELETED' && variables?.email) {
+        try {
+          await authService.requestAccountReactivation(variables.email);
+          toast.error(
+            'Tu cuenta ha sido desactivada. Te enviamos un correo para reactivarla. Revisa tu bandeja de entrada.'
+          );
+        } catch {
+          toast.error('Tu cuenta está desactivada y hubo un error al enviar el correo de reactivación.');
+        }
+        return;
+      }
+
       const message = getApiErrorMessage(error, 'Error al iniciar sesión. Verifica tus credenciales.');
       toast.error(message);
     },
@@ -147,7 +165,13 @@ export function useAuth() {
         toast.error('Para crear una cuenta, debes aceptar las cookies necesarias');
         return;
       }
-      
+      // No mostrar toast para ACCOUNT_SOFT_DELETED: el RegisterForm mostrará el modal de reactivación
+      const status = error?.response?.status;
+      const detail = error?.response?.data?.detail;
+      const code = typeof detail === 'object' ? detail?.code : undefined;
+      if (status === 409 && code === 'ACCOUNT_SOFT_DELETED') {
+        throw error;
+      }
       const message = getApiErrorMessage(error, 'Error al crear la cuenta. Inténtalo de nuevo.');
       toast.error(message);
       throw error; // Re-lanzar el error para que el componente lo pueda manejar
@@ -176,6 +200,19 @@ export function useAuth() {
     await updateProfileMutation.mutateAsync(userData);
   };
 
+  /**
+   * Desactiva la cuenta del usuario (soft delete).
+   * Llama al backend, hace logout, limpia el estado y redirige al login.
+   */
+  const deactivateAccount = async () => {
+    await authService.deactivateAccount();
+    await authService.logout();
+    queryClient.clear();
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+  };
+
   // Función helper para verificar si se pueden usar cookies
   const canUseCookies = () => canUseCookie('necessary');
 
@@ -194,6 +231,7 @@ export function useAuth() {
     logout,
     register,
     updateProfile,
+    deactivateAccount,
     canUseCookies: () => canUseCookie('necessary'),
     isHydrated, // Exponer el estado de hidratación
   };
