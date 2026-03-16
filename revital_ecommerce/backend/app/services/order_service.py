@@ -201,28 +201,11 @@ def get_order_detail_admin(db: Session, id_orden: int):
             d = dict(row)
             return {k: _to_jsonable(v) for k, v in d.items()}
             
-        # Productos de la orden (variant_id = tab_product_variant_combinations.id; producto vía group)
-        products_query = text("""
-        SELECT 
-            op.variant_id,
-            p.id AS id_producto,
-            p.name AS nom_producto,
-            op.cant_producto AS cantidad,
-            op.precio_unitario_orden AS val_precio_unitario,
-            op.subtotal AS val_subtotal,
-            COALESCE(op.opciones_elegidas, pv.attributes, '{}'::JSONB) AS opciones_elegidas,
-            (SELECT pvi.image_url FROM tab_product_variant_images pvi
-             WHERE pvi.variant_group_id = pv.group_id
-             ORDER BY pvi.is_primary DESC, pvi.sort_order, pvi.id LIMIT 1) AS imagen_url
-        FROM tab_orden_productos op
-        JOIN tab_product_variant_combinations pv ON pv.id = op.variant_id
-        JOIN tab_product_variant_groups g ON g.id = pv.group_id
-        JOIN tab_products p ON p.id = g.product_id
-        WHERE op.id_orden = :id_orden
-        """)
-        products_result = db.execute(products_query, {"id_orden": id_orden})
-        products_data = products_result.mappings().all()
-        
+        # Productos de la orden: reutilizar la misma lógica que get_order_with_items
+        # para que el snapshot de ítems (incluida imagen_url) sea consistente con el frontend cliente.
+        items_snapshot = get_order_with_items(db, Decimal(id_orden))
+        raw_items = items_snapshot.get("items", []) if isinstance(items_snapshot, dict) else []
+
         # Puntos ganados por esta orden
         points_query = text("""
         SELECT SUM(cantidad_puntos) as puntos_ganados
@@ -259,32 +242,20 @@ def get_order_detail_admin(db: Session, id_orden: int):
         orden_dict = _row_to_dict(order_data)
         descuentos = order_data.get("detalle_descuentos_aplicados") if hasattr(order_data, "get") else orden_dict.get("detalle_descuentos_aplicados")
 
-        # Atributos de variante para rellenar opciones cuando opciones_elegidas viene vacío (órdenes antiguas)
-        variant_attrs_query = text("""
-        SELECT a.name, COALESCE(av.value, pva.value_text::VARCHAR, pva.value_number::VARCHAR, '') AS val
-        FROM tab_product_variant_attributes pva
-        JOIN tab_attributes a ON a.id = pva.attribute_id
-        LEFT JOIN tab_attribute_values av ON av.id = pva.attribute_value_id
-        WHERE pva.variant_id = :variant_id
-        """)
-        productos_list = []
-        for p in products_data:
-            d = _row_to_dict(p)
-            if not d.get("imagen_url"):
-                d.pop("imagen_url", None)
-            opts = d.get("opciones_elegidas")
-            if opts is None or (isinstance(opts, dict) and not opts) or opts == {}:
-                variant_id = d.get("variant_id")
-                if variant_id is not None:
-                    try:
-                        attrs_result = db.execute(variant_attrs_query, {"variant_id": variant_id})
-                        attrs_rows = attrs_result.mappings().all()
-                        if attrs_rows:
-                            d["opciones_elegidas"] = {str(row["name"]): str(row["val"] or "") for row in attrs_rows}
-                    except Exception:
-                        pass
-            d.pop("variant_id", None)
-            productos_list.append(d)
+        # Mapear ítems al formato esperado por el admin (manteniendo imagen_url del snapshot)
+        productos_list: list[dict[str, Any]] = []
+        for it in raw_items:
+            productos_list.append(
+                {
+                    "id_producto": it.get("id_producto"),
+                    "nom_producto": it.get("product_name"),
+                    "cantidad": it.get("quantity"),
+                    "val_precio_unitario": it.get("unit_price"),
+                    "val_subtotal": it.get("total_price"),
+                    "opciones_elegidas": it.get("opciones_elegidas") or {},
+                    "imagen_url": it.get("imagen_url"),
+                }
+            )
         
         return {
             "orden": orden_dict,
@@ -570,9 +541,19 @@ def get_order_with_items(db: Session, id_orden: Decimal):
                 op.cant_producto AS quantity,
                 op.precio_unitario_orden AS unit_price,
                 op.subtotal AS total_price,
-                (SELECT pvi.image_url FROM tab_product_variant_images pvi
-                 WHERE pvi.variant_group_id = pv.group_id
-                 ORDER BY pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id LIMIT 1) AS product_image,
+                COALESCE(
+                    (SELECT pvi.image_url
+                     FROM tab_product_variant_images pvi
+                     WHERE pvi.variant_group_id = pv.group_id
+                     ORDER BY pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
+                     LIMIT 1),
+                    (SELECT pvi.image_url
+                     FROM tab_product_variant_images pvi
+                     JOIN tab_product_variant_groups g2 ON g2.id = pvi.variant_group_id
+                     WHERE g2.product_id = p.id
+                     ORDER BY g2.id, pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
+                     LIMIT 1)
+                ) AS product_image,
                 COALESCE(op.opciones_elegidas, pv.attributes, '{}'::jsonb) AS opciones_elegidas
             FROM tab_orden_productos op
             LEFT JOIN tab_product_variant_combinations pv ON pv.id = op.variant_id

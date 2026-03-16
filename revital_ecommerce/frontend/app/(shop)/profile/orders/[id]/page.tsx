@@ -3,8 +3,10 @@
 import api from '@/utils/apiWrapper';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Package } from 'lucide-react';
 import { formatPrice } from '@/utils/format-price';
+import Image from 'next/image';
+import { getProductImageUrl } from '@/utils/image-helpers';
 
 interface OrderProductItem {
   id_item?: number;
@@ -103,9 +105,26 @@ export default function OrderDetailPage() {
                       .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
                       .join(', ')
                   : null
+                const imageUrl = getProductImageUrl(it.imagen_url || it.product_image, "/placeholder-product.jpg");
+
                 return (
-                <div key={idx} className="flex items-center justify-between">
-                  <div className="min-w-0">
+                <div key={idx} className="flex items-center justify-between gap-3">
+                  <div className="flex-shrink-0">
+                    {imageUrl ? (
+                      <Image
+                        src={imageUrl}
+                        alt={it.product_name}
+                        width={60}
+                        height={60}
+                        className="rounded-md object-cover border border-border"
+                      />
+                    ) : (
+                      <div className="w-15 h-15 bg-muted rounded-md flex items-center justify-center">
+                        <Package className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
                     <p className="truncate">{it.product_name}</p>
                     <p className="text-sm text-muted-foreground">Cantidad: {it.quantity}</p>
                     {optsText && (

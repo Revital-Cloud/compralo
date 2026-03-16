@@ -13,6 +13,7 @@ import { useActiveDiscounts } from "@/hooks/use-discounts"
 import { CART_LIMITS } from "@/services/cart.service"
 import { getApplicableDiscount, calculateDiscountedPrice, calculateDiscountPercentage } from "@/utils/discount-utils"
 import { formatPrice } from "@/utils/format-price"
+import { getProductImageUrl } from "@/utils/image-helpers"
 
 interface MiniCartHoverProps {
   trigger: React.ReactNode
@@ -230,7 +231,13 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
                     <li key={item.id_carrito_producto} className="flex items-center gap-3 p-3">
                       <div className="relative h-12 w-12 shrink-0 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800">
                         {item.imagen_url ? (
-                          <Image src={item.imagen_url} alt={item.nombre_producto} fill sizes="48px" className="object-cover" />
+                          <Image
+                            src={getProductImageUrl(item.imagen_url)}
+                            alt={item.nombre_producto}
+                            fill
+                            sizes="48px"
+                            className="object-cover"
+                          />
                         ) : (
                           <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">IMG</div>
                         )}
