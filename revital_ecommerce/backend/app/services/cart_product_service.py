@@ -414,9 +414,19 @@ def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
             (cp.cantidad * cp.precio_unitario_carrito) AS subtotal,
             pv.stock AS num_stock,
             COALESCE(cp.opciones_elegidas, '{}'::JSONB) AS opciones_elegidas,
-            (SELECT pvi.image_url FROM tab_product_variant_images pvi
-             WHERE pvi.variant_group_id = pv.group_id
-             ORDER BY pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id LIMIT 1) AS img_principal,
+            COALESCE(
+                (SELECT pvi.image_url
+                 FROM tab_product_variant_images pvi
+                 WHERE pvi.variant_group_id = pv.group_id
+                 ORDER BY pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
+                 LIMIT 1),
+                (SELECT pvi.image_url
+                 FROM tab_product_variant_images pvi
+                 JOIN tab_product_variant_groups g2 ON g2.id = pvi.variant_group_id
+                 WHERE g2.product_id = p.id
+                 ORDER BY g2.id, pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
+                 LIMIT 1)
+            ) AS img_principal,
             m.nom_marca,
             cat.name AS nom_categoria
         FROM tab_carrito_productos cp
@@ -581,9 +591,19 @@ def get_cart_with_basic_info(db: Session, get_cart_detail: GetCartDetail):
             cp.precio_unitario_carrito,
             (cp.cantidad * cp.precio_unitario_carrito) AS subtotal,
             p.name AS nom_producto,
-            (SELECT pvi.image_url FROM tab_product_variant_images pvi
-             WHERE pvi.variant_group_id = pv.group_id
-             ORDER BY pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id LIMIT 1) AS imagen_url,
+            COALESCE(
+                (SELECT pvi.image_url
+                 FROM tab_product_variant_images pvi
+                 WHERE pvi.variant_group_id = pv.group_id
+                 ORDER BY pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
+                 LIMIT 1),
+                (SELECT pvi.image_url
+                 FROM tab_product_variant_images pvi
+                 JOIN tab_product_variant_groups g2 ON g2.id = pvi.variant_group_id
+                 WHERE g2.product_id = p.id
+                 ORDER BY g2.id, pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
+                 LIMIT 1)
+            ) AS imagen_url,
             pv.stock AS num_stock,
             m.nom_marca,
             cp.variant_id

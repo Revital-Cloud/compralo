@@ -743,7 +743,7 @@ const CartPage = () => {
                           originalPrice={originalUnitPrice}
                           discountPercentage={discountPercentage}
                           quantity={item.cantidad}
-                          image={item.imagen_url || "/placeholder-product.jpg"}
+                          image={getProductImageUrl(item.imagen_url)}
                           stock_disponible={item.stock_disponible}
                           cartTotal={finalTotal}
                           onQuantityChange={handleQuantityChange}
