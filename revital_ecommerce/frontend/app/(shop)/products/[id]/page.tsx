@@ -145,9 +145,14 @@ const ProductPageContent = () => {
     [product]
   )
 
-  // Variantes que coinciden con la selección actual de atributos (filtrado dependiente)
+  // Variantes que coinciden con la selección actual de atributos (filtrado dependiente).
+  // Cuando hay atributos, exige que TODOS estén seleccionados; si falta alguno, no hay variante válida.
   const matchingVariantIds = useMemo(() => {
     if (attributesFromApi.length === 0) return new Set(variants.map((v: { id: number }) => v.id))
+    const allRequiredSelected = attributesFromApi.every(
+      (attr) => (selectedAttributes[String(attr.attribute_id)] ?? "").trim() !== ""
+    )
+    if (!allRequiredSelected) return new Set<number>()
     let ids: Set<number> | null = null
     for (const attr of attributesFromApi) {
       const selectedVal = selectedAttributes[String(attr.attribute_id)]
@@ -158,7 +163,7 @@ const ProductPageContent = () => {
       if (ids === null) ids = vids
       else ids = new Set<number>([...ids].filter((id: number) => vids.has(id)))
     }
-    return ids ?? new Set(variants.map((v: { id: number }) => v.id))
+    return ids ?? new Set<number>()
   }, [attributesFromApi, selectedAttributes, variants])
 
   // Por cada atributo, marcar qué valores están disponibles (existen en alguna variante que coincida con el resto de selección)
@@ -186,17 +191,15 @@ const ProductPageContent = () => {
 
   const variantGroups = (product as { variant_groups?: Array<{ id: number; dominant_attribute?: string; dominant_value: string; images: Array<{ image_url?: string; is_main?: boolean; sort_order?: number }> }> })?.variant_groups ?? []
 
-  // Preseleccionar primera variante/color o primeros atributos cuando cargan los datos (solo flujo legacy)
+  // Preseleccionar primera variante/color solo cuando NO hay atributos (flujo legacy simple).
+  // NUNCA preseleccionar atributos por attribute_id: el usuario debe elegir explícitamente.
   useEffect(() => {
     if (useVariantSelectorFlow || !product) return
     if (attributesFromApi.length > 0) {
-      const initial: Record<string, string> = {}
-      for (const attr of attributesFromApi) {
-        const firstVal = attr.values[0]?.value
-        if (firstVal) initial[String(attr.attribute_id)] = firstVal
-      }
-      setSelectedAttributes((prev) => (Object.keys(prev).length === 0 ? initial : prev))
-    } else if (colors.length > 0) {
+      // No preseleccionar: selectedAttributes queda vacío hasta que el usuario seleccione
+      return
+    }
+    if (colors.length > 0) {
       const firstColor = colors[0].value
       setSelectedColor(firstColor)
       const firstV = (product as any)?.variants?.find((v: { color?: string }) => (v.color ?? '').trim() === (firstColor ?? '').trim())
@@ -515,6 +518,18 @@ const ProductPageContent = () => {
       return
     }
 
+    // Validación: no permitir agregar si no hay una combinación/variante válida seleccionada.
+    // Este proyecto usa variant_id (combination id) en el carrito/órdenes.
+    const requiresVariantSelection =
+      useVariantSelectorFlow ||
+      attributesFromApi.length > 0 ||
+      (Array.isArray(variants) && variants.length > 0)
+
+    if (requiresVariantSelection && effectiveSelectedVariantId == null) {
+      toast.error('Selecciona todas las opciones antes de agregar al carrito')
+      return
+    }
+
     const opciones: Record<string, string> = {}
     if (useVariantSelectorFlow) {
       Object.entries(variantSelector.selectedAttributes).forEach(([attrName, val]) => {
@@ -685,7 +700,12 @@ const ProductPageContent = () => {
               }}
               description={product.description}
               canAddToCartOverride={useVariantSelectorFlow ? !!variantSelector.selectedVariant && productStock > 0 : (attributesWithAvailability.length > 0 ? !!selectedVariant && productStock > 0 : undefined)}
-              addToCartDisabledLabel={useVariantSelectorFlow && !variantSelector.selectedVariant ? "Selecciona todas las opciones" : undefined}
+              addToCartDisabledLabel={
+                (useVariantSelectorFlow && !variantSelector.selectedVariant) ||
+                (!useVariantSelectorFlow && attributesWithAvailability.length > 0 && !selectedVariant)
+                  ? "Selecciona todas las opciones"
+                  : undefined
+              }
               optionsSlot={useVariantSelectorFlow ? (
                 <ProductVariantSelector
                   attributeDefinitions={variantSelector.attributeDefinitions}

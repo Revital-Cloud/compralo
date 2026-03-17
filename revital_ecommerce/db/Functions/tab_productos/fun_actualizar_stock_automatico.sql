@@ -1,7 +1,9 @@
 /*
  * FUNCIÓN: fun_actualizar_stock_automatico
  *
- * DESCRIPCIÓN: Trigger que reduce el stock de variantes cuando una orden se marca PAGADA.
+ * DESCRIPCIÓN: Trigger que reduce el stock de variantes cuando una orden se marca
+ *              PROCESADA/PAGADA (estado 2) o cuando se marca directamente como
+ *              COMPLETADA (estado 3).
  *              Usa variant_id (combination id) en tab_orden_productos y tab_product_variant_combinations.
  *
  * EFECTOS: Reduce stock en tab_product_variant_combinations; inserta en tab_movimientos_inventario (variant_id).
@@ -17,11 +19,13 @@ DECLARE
     v_id_orden tab_ordenes.id_orden%TYPE;
     v_usr DECIMAL(10);
 BEGIN
-    IF NEW.ind_estado != 2 THEN
+    -- Disparar al entrar a "procesada/pagada" (2) o "completada" (3)
+    IF NEW.ind_estado NOT IN (2, 3) THEN
         RETURN NULL;
     END IF;
     -- En UPDATE, solo reducir stock si antes no estaba pagada (evitar doble descuento)
-    IF TG_OP = 'UPDATE' AND OLD.ind_estado = 2 THEN
+    -- (si pasa de 2 -> 3 no debe volver a descontar)
+    IF TG_OP = 'UPDATE' AND OLD.ind_estado IN (2, 3) THEN
         RETURN NULL;
     END IF;
 
@@ -66,7 +70,7 @@ BEGIN
             v_stock_actual,
             v_stock_nuevo,
             v_record.id_orden_producto,
-            'Venta pagada - Orden #' || v_id_orden || ' - ' || v_record.nom_producto,
+            'Venta procesada - Orden #' || v_id_orden || ' - ' || v_record.nom_producto,
             v_usr
         );
 

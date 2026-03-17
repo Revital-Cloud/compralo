@@ -352,14 +352,31 @@ def create_order_from_checkout_reference(
         pm = tx.get("payment_method", {}) if isinstance(tx.get("payment_method"), dict) else {}
         pm_type = pm.get("type") if pm else None
         metodo_pago = get_payment_method_for_db(pm_type) if pm_type else "transferencia"
-        # Crear orden ya como Pagada (ind_estado=2): la función BD lo soporta; el trigger INSERT limpia el carrito
+        # IMPORTANTE:
+        # Si se crea la orden directamente con ind_estado=2 en el INSERT, los triggers que dependen
+        # de tab_orden_productos pueden dispararse ANTES de que fun_crear_orden_desde_carrito termine
+        # de insertar los ítems, quedando sin filas para descontar stock.
+        # Por eso: crear como Pendiente (1) y luego hacer UPDATE a 2 (procesada/pagada).
         result = order_service.create_order(
-            db, order_data, Decimal(id_usuario), ind_estado=2, metodo_pago=metodo_pago
+            db, order_data, Decimal(id_usuario), ind_estado=1, metodo_pago=metodo_pago
         )
         if not result or not result.get("success") or not result.get("id_orden"):
             logger.error(f"No se pudo crear la orden desde referencia checkout: {result}")
             return None
         order_id = int(result["id_orden"])
+
+        # Marcar como pagada/procesada (UPDATE) para que corran triggers (stock, puntos, limpiar carrito)
+        try:
+            order_service.update_order_payment_info(
+                db,
+                Decimal(order_id),
+                metodo_pago=metodo_pago,
+                ind_estado=2,
+                commit=True,
+            )
+        except Exception as up_err:
+            logger.error(f"Error al marcar orden {order_id} como pagada/procesada: {up_err}", exc_info=True)
+            return None
         amount_in_cents = int(tx.get("amount_in_cents", 0)) or 0
         if amount_in_cents <= 0:
             order_row = db.execute(
@@ -380,7 +397,7 @@ def create_order_from_checkout_reference(
             )
         except Exception as pay_err:
             logger.warning(f"create_payment falló para orden {order_id} (orden ya creada como pagada): {pay_err}")
-        logger.info(f"Orden {order_id} creada como pagada desde referencia checkout: {reference}")
+        logger.info(f"Orden {order_id} creada y marcada como pagada/procesada desde referencia checkout: {reference}")
         return order_id
     except Exception as e:
         logger.error(f"Error creando orden desde referencia checkout: {e}", exc_info=True)
