@@ -141,7 +141,6 @@ Revital es una plataforma SaaS de comercio electrónico diseñada para venderse 
 
 - **Wompi** - Procesamiento de pagos (configuración por cliente)
 - **Resend** - Emails transaccionales con branding personalizado
-- **Docker** - Containerización para deployment de instancias
 
 ## 📁 Estructura del Proyecto
 
