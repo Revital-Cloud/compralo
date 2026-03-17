@@ -29,9 +29,13 @@ export function useVariantSelector(
     [selectedAttributes, variants]
   )
 
+  const requiredAttrNames = useMemo(
+    () => product?.attributeDefinitions?.map((a) => a.name) ?? [],
+    [product?.attributeDefinitions]
+  )
   const selectedVariant = useMemo(
-    () => findExactVariant(selectedAttributes, variants),
-    [selectedAttributes, variants]
+    () => findExactVariant(selectedAttributes, variants, requiredAttrNames),
+    [selectedAttributes, variants, requiredAttrNames]
   )
 
   const handleSelectAttribute = useCallback((attrName: string, value: string | null) => {
