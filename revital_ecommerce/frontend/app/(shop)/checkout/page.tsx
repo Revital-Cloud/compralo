@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/dialog";
 import { useActiveDiscounts } from "@/hooks/use-discounts";
 import { discountService } from "@/services/discount.service";
-import { 
+import {
   getApplicableDiscount, 
   calculateDiscountedPrice, 
   calculateDiscountPercentage 

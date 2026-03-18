@@ -1,4 +1,6 @@
+import type { Metadata } from "next"
 import Link from "next/link"
+import { buildOpenGraph, buildTwitter } from "@/lib/seo"
 
 const MOCK_POSTS = [
   {
@@ -23,6 +25,26 @@ const MOCK_POSTS = [
     autor: "Equipo Compralo",
   },
 ]
+
+export const generateMetadata = (): Metadata => {
+  const title = "Blog de Compralo"
+  const description =
+    "Lee noticias, consejos y novedades sobre Compralo, envíos, categorías y experiencia de compra."
+
+  return {
+    title,
+    description,
+    openGraph: buildOpenGraph({
+      title,
+      description,
+      pathname: "/blog",
+    }),
+    twitter: buildTwitter({
+      title,
+      description,
+    }),
+  }
+}
 
 export default function BlogPage() {
   return (

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { createElement, useMemo, useState, useEffect } from 'react';
 import { useRootCategories, useCategoriesRaw } from '@/hooks/use-categories';

@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { createElement, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -11,7 +11,6 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { CategoryCard } from '@/components/cards/CategoryCard'
 import { ProductCard } from '@/components/cards/ProductCard'
 import type { Category } from '@/types/category'
-
 const CARDS_PER_PAGE = 16 // 4x4 grid para Líneas/Sublíneas
 
 /** Conteo recursivo: productos en esta categoría + todos los descendientes */
