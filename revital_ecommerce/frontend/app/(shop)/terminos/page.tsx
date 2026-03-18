@@ -1,5 +1,31 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { getSectionById } from "@/components/chatbot-widget/chatbot-menu-content"
+import { buildOpenGraph, buildTwitter } from "@/lib/seo"
+
+export const generateMetadata = (): Metadata => {
+  const title = "Términos y condiciones"
+  const description =
+    "Lee los términos y condiciones de uso del sitio y las compras realizadas en Compralo."
+
+  return {
+    title,
+    description,
+    robots: {
+      index: true,
+      follow: true,
+    },
+    openGraph: buildOpenGraph({
+      title,
+      description,
+      pathname: "/terminos",
+    }),
+    twitter: buildTwitter({
+      title,
+      description,
+    }),
+  }
+}
 
 export default function TerminosPage() {
   const section = getSectionById("terminos")

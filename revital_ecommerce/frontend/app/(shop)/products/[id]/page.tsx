@@ -17,7 +17,7 @@ import * as productService from "@/services/product.service"
 import { getProductImageUrl } from "@/utils/image-helpers"
 import { normalizeProductDetail, type ApiProductResponse } from "@/lib/product-detail-normalizer"
 import { useActiveDiscounts } from "@/hooks/use-discounts"
-import { 
+import {
   getApplicableDiscount, 
   calculateDiscountedPrice, 
   calculateDiscountPercentage 
@@ -838,6 +838,38 @@ const ProductPageContent = () => {
         onClose={() => setShowCartToast(false)}
         onViewCart={handleViewCart}
       />
+      {product && typeof window !== "undefined" && (
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Product",
+              name: product.name,
+              image: productImagesResolved,
+              description: product.description,
+              sku: (product as any).sku ?? undefined,
+              brand: product.nom_marca
+                ? {
+                    "@type": "Brand",
+                    name: product.nom_marca,
+                  }
+                : undefined,
+              offers: {
+                "@type": "Offer",
+                priceCurrency: "COP",
+                price: discountedPrice,
+                availability:
+                  productStock > 0
+                    ? "https://schema.org/InStock"
+                    : "https://schema.org/OutOfStock",
+                url: `${window.location.origin}/products/${slug}`,
+              },
+            }),
+          }}
+        />
+      )}
     </div>
   )
 }

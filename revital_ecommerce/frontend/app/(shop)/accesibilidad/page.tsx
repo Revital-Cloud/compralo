@@ -1,4 +1,6 @@
+import type { Metadata } from "next"
 import Link from "next/link"
+import { buildOpenGraph, buildTwitter } from "@/lib/seo"
 
 const MOCK = {
   titulo: "Accesibilidad",
@@ -22,6 +24,30 @@ const MOCK = {
       contenido: "Para sugerencias o reportar problemas de accesibilidad, utiliza la página de Contacto o el email indicado en el footer. Tu feedback nos ayuda a mejorar.",
     },
   ],
+}
+
+export const generateMetadata = (): Metadata => {
+  const title = "Accesibilidad del sitio"
+  const description =
+    "Conoce el compromiso de Compralo con la accesibilidad web, las medidas implementadas y cómo reportar problemas."
+
+  return {
+    title,
+    description,
+    robots: {
+      index: true,
+      follow: true,
+    },
+    openGraph: buildOpenGraph({
+      title,
+      description,
+      pathname: "/accesibilidad",
+    }),
+    twitter: buildTwitter({
+      title,
+      description,
+    }),
+  }
 }
 
 export default function AccesibilidadPage() {

@@ -1,5 +1,7 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { Mail, MapPin, Phone, Clock } from "lucide-react"
+import { buildOpenGraph, buildTwitter } from "@/lib/seo"
 
 const MOCK = {
   email: "contacto@compralo.com",
@@ -10,6 +12,26 @@ const MOCK = {
     { nombre: "Facebook", url: "https://www.facebook.com/" },
     { nombre: "Instagram", url: "https://www.instagram.com/" },
   ],
+}
+
+export const generateMetadata = (): Metadata => {
+  const title = "Contacto | Compralo"
+  const description =
+    "Ponte en contacto con el equipo de Compralo por email, teléfono o visita nuestras oficinas."
+
+  return {
+    title,
+    description,
+    openGraph: buildOpenGraph({
+      title,
+      description,
+      pathname: "/contacto",
+    }),
+    twitter: buildTwitter({
+      title,
+      description,
+    }),
+  }
 }
 
 export default function ContactPage() {

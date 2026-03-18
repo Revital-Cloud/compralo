@@ -1,5 +1,7 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { HelpCircle, Mail } from "lucide-react"
+import { buildOpenGraph, buildTwitter } from "@/lib/seo"
 
 const MOCK_FAQS = [
   {
@@ -23,6 +25,26 @@ const MOCK_FAQS = [
     respuesta: "Puedes escribirnos a contacto@compralo.com o usar el formulario en la página de Contacto. Atención al cliente de lunes a viernes.",
   },
 ]
+
+export const generateMetadata = (): Metadata => {
+  const title = "Centro de ayuda"
+  const description =
+    "Resuelve dudas frecuentes sobre pedidos, envíos, devoluciones y soporte en el Centro de Ayuda de Compralo."
+
+  return {
+    title,
+    description,
+    openGraph: buildOpenGraph({
+      title,
+      description,
+      pathname: "/ayuda",
+    }),
+    twitter: buildTwitter({
+      title,
+      description,
+    }),
+  }
+}
 
 export default function HelpCenterPage() {
   return (

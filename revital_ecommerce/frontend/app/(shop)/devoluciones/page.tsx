@@ -1,5 +1,7 @@
+import type { Metadata } from "next"
 import Link from "next/link"
 import { RotateCcw, Clock, Package } from "lucide-react"
+import { buildOpenGraph, buildTwitter } from "@/lib/seo"
 
 const MOCK = {
   titulo: "Devoluciones",
@@ -16,6 +18,30 @@ const MOCK = {
     { paso: 4, texto: "Tras la revisión, el reembolso se procesará en 5-10 días hábiles." },
   ],
   reembolso: "El reembolso se hará por el mismo medio de pago utilizado en la compra.",
+}
+
+export const generateMetadata = (): Metadata => {
+  const title = "Política de devoluciones"
+  const description =
+    "Consulta los plazos, condiciones y pasos para solicitar devoluciones y reembolsos en Compralo."
+
+  return {
+    title,
+    description,
+    robots: {
+      index: true,
+      follow: true,
+    },
+    openGraph: buildOpenGraph({
+      title,
+      description,
+      pathname: "/devoluciones",
+    }),
+    twitter: buildTwitter({
+      title,
+      description,
+    }),
+  }
 }
 
 export default function ReturnsPage() {
