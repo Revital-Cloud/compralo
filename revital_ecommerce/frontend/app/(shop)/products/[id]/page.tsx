@@ -146,15 +146,17 @@ const ProductPageContent = () => {
   )
 
   // Variantes que coinciden con la selección actual de atributos (filtrado dependiente).
-  // Cuando hay atributos, exige que TODOS estén seleccionados; si falta alguno, no hay variante válida.
+  // Solo exigir selección en atributos donde realmente hay elección (2+ valores).
   const matchingVariantIds = useMemo(() => {
     if (attributesFromApi.length === 0) return new Set(variants.map((v: { id: number }) => v.id))
-    const allRequiredSelected = attributesFromApi.every(
-      (attr) => (selectedAttributes[String(attr.attribute_id)] ?? "").trim() !== ""
-    )
+    const requiredAttrs = attributesFromApi.filter((attr) => (attr.values?.length ?? 0) >= 2)
+    const allRequiredSelected = requiredAttrs.every((attr) => {
+      const val = (selectedAttributes[String(attr.attribute_id)] ?? "").trim()
+      return val !== ""
+    })
     if (!allRequiredSelected) return new Set<number>()
     let ids: Set<number> | null = null
-    for (const attr of attributesFromApi) {
+    for (const attr of requiredAttrs) {
       const selectedVal = selectedAttributes[String(attr.attribute_id)]
       if (!selectedVal) continue
       const valueObj = attr.values.find((v) => (v.value ?? "").trim() === (selectedVal ?? "").trim())
