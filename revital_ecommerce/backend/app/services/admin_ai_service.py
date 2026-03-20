@@ -11,6 +11,8 @@ Seguridad:
 """
 import json
 import re
+import time
+import unicodedata
 from typing import Iterator, Optional
 
 from sqlalchemy.orm import Session
@@ -167,6 +169,131 @@ def fetch_intent_data(db: Session, intent: str) -> dict:
         }
 
     return {}
+
+
+def format_intent_reply(intent: str, data: dict) -> str:
+    """
+    Formatea respuestas de solo lectura usando únicamente los datos ya calculados.
+    Evita que un LLM "reescriba" o invente contenido cuando el endpoint de streaming
+    detecta intenciones por keywords.
+    """
+    if not isinstance(data, dict) or not data:
+        return "No sé con certeza con la información disponible."
+
+    # Nota: los valores de KPIs vienen como strings ya formateadas por fetch_intent_data.
+    if intent == "pending_orders":
+        pending = int(data.get("pending_orders", 0) or 0)
+        return (
+            f"Tienes {pending} órdenes pendientes de envío."
+            if pending > 0
+            else "No tienes órdenes pendientes de envío."
+        )
+
+    if intent == "recent_orders":
+        orders = data.get("recentOrders") or []
+        if not orders:
+            return "No hay órdenes recientes."
+        # Mostramos hasta 3 para mantener la respuesta corta.
+        lines: list[str] = []
+        for o in orders[:3]:
+            oid = o.get("id")
+            date = (o.get("date") or "")[:10] if o.get("date") else ""
+            amount = o.get("amount")
+            status = o.get("status") or ""
+            customer = o.get("customer") or "Cliente"
+            lines.append(
+                f"- Orden #{oid} ({customer}) | ${amount} {('(' + status + ')') if status else ''}{(' ' + date) if date else ''}".strip()
+            )
+        return "Órdenes recientes:\n" + "\n".join(lines)
+
+    if intent == "top_products":
+        best = data.get("bestSellers") or []
+        if not best:
+            return "No hay productos con ventas suficientes para mostrar el ranking."
+        lines = []
+        for b in best[:5]:
+            name = b.get("name") or "N/A"
+            sales = b.get("sales") if b.get("sales") is not None else 0
+            lines.append(f"- {name}: {sales} ventas")
+        return "Productos más vendidos:\n" + "\n".join(lines)
+
+    if intent == "sales_summary":
+        kpis = data.get("kpis") or {}
+        total_orders = kpis.get("totalOrders", "0")
+        shipped_orders = kpis.get("shippedOrders", "0")
+        total_revenue = kpis.get("totalRevenue", "$0")
+        active_orders = kpis.get("activeOrders", "0")
+        return (
+            f"Resumen de ventas: {total_orders} órdenes totales, {active_orders} activas, "
+            f"{shipped_orders} enviadas e ingresos totales de {total_revenue}."
+        )
+
+    if intent == "alerts":
+        alerts = data.get("alerts") or []
+        if not alerts:
+            return "No hay alertas de stock en este momento."
+        return "Alertas de stock:\n" + "\n".join([f"- {a}" for a in alerts])
+
+    if intent == "general":
+        kpis = data.get("kpis") or {}
+        total_orders = kpis.get("totalOrders", "0")
+        active_orders = kpis.get("activeOrders", "0")
+        shipped_orders = kpis.get("shippedOrders", "0")
+        total_revenue = kpis.get("totalRevenue", "$0")
+        best = data.get("bestSellers") or []
+        recent = data.get("recentOrders") or []
+        recent_count = data.get("recentOrdersCount", len(recent) or 0) or 0
+        alerts = data.get("alerts") or []
+
+        parts: list[str] = []
+        parts.append(
+            f"La tienda tiene {total_orders} órdenes totales, {active_orders} activas, "
+            f"{shipped_orders} enviadas e ingresos totales de {total_revenue}."
+        )
+        if best:
+            top = ", ".join([f"{b.get('name') or 'N/A'} ({b.get('sales') or 0} ventas)" for b in best[:2]])
+            parts.append(f"Productos más vendidos: {top}.")
+        if recent and recent_count:
+            # Solo 1-2 para mantenerlo corto.
+            o0 = recent[0]
+            oid = o0.get("id")
+            customer = o0.get("customer") or "Cliente"
+            amount = o0.get("amount") or 0
+            date = (o0.get("date") or "")[:10] if o0.get("date") else ""
+            parts.append(f"Última orden: #{oid} ({customer}) por ${amount}{(' el ' + date) if date else ''}.")
+        if alerts:
+            parts.append("Alertas de stock: " + ", ".join(alerts[:2]) + ("" if len(alerts) <= 2 else "…"))
+
+        return "\n".join(parts)
+
+    # Si no conocemos el intent, fallamos "cerrado".
+    return "No sé con certeza con la información disponible."
+
+
+def _normalize_for_intent(text: str) -> str:
+    """Normaliza para matching: quita tildes y pasa a minúsculas."""
+    nfkd = unicodedata.normalize("NFD", text)
+    without_accents = "".join(ch for ch in nfkd if unicodedata.category(ch) != "Mn")
+    return without_accents.casefold()
+
+
+def _extract_last_order_id(recent_convs: list[dict[str, any]]) -> int | None:
+    """
+    Extrae el ID de la última orden del historial reciente.
+    Esperado por nuestro propio formatter:
+    "Última orden: #29 (...)".
+    """
+    # Recorremos desde lo más reciente.
+    for conv in reversed(recent_convs):
+        blob = f"{conv.get('reply') or ''}\n{conv.get('message') or ''}"
+        n = _normalize_for_intent(blob)
+        m = re.search(r"ultima\s*orden\s*:\s*#\s*(\d+)", n, flags=re.IGNORECASE)
+        if m:
+            try:
+                return int(m.group(1))
+            except Exception:
+                return None
+    return None
 
 
 def reply_for_action(message: str, db: Session, user_id: str | int) -> str:
@@ -383,6 +510,58 @@ def chat_with_admin_ai(
     )
     is_top_categories_request = any(kw in msg_lower for kw in INTENT_TOP_CATEGORIES)
     is_top_stock_request = any(kw in msg_lower for kw in INTENT_TOP_STOCK)
+
+    # Helper: follow-up determinista para "esa última orden".
+    # Evitamos pedir al modelo un ID; lo sacamos del historial calculado por el backend.
+    is_last_order_request = any(
+        kw in msg_lower
+        for kw in [
+            "esa ultima orden",
+            "esa última orden",
+            "de la ultima orden",
+            "de la última orden",
+            "ultima orden",
+            "última orden",
+            "informacion de la ultima orden",
+            "información de la ultima orden",
+            "dame informacion de la ultima orden",
+            "dame información de la ultima orden",
+            "informacion de esa ultima orden",
+            "información de esa ultima orden",
+            "informacion de la ultima orden",
+            "información de la ultima orden",
+            "dame informacion de esa ultima orden",
+            "dame información de esa ultima orden",
+        ]
+    )
+    if is_last_order_request:
+        last_order_id = _extract_last_order_id(recent_convs)
+        if last_order_id is not None:
+            try:
+                reply = admin_ai_actions.execute_action(
+                    db,
+                    "get_order",
+                    {"order_id": last_order_id},
+                    user_id,
+                )
+                save_conversation(
+                    db,
+                    user_id,
+                    message,
+                    reply,
+                    context_data=None,
+                    tool_calls=[{
+                        "name": "get_order",
+                        "params": {"order_id": last_order_id},
+                        "status": "executed",
+                    }],
+                )
+                return reply
+            except Exception:
+                # Si algo falla, caemos al flujo normal para que el sistema pueda recuperarse.
+                pass
+        # Si no hay ID en contexto, degradamos de forma segura.
+        return "No sé con certeza con la información disponible."
 
     # Seguimiento (anti-hallucination):
     # Si el usuario hace una pregunta corta tipo "y la categoría?" y hace poco
@@ -645,9 +824,19 @@ def stream_reply_sse(
         return
     try:
         data = fetch_intent_data(db, intent)
-        user_content = f"El usuario pregunta: {message}\n\nDatos disponibles:\n{json.dumps(data, ensure_ascii=False)}\n\nResponde usando solo estos datos."
-        for chunk in chat_completion_stream(user_content=user_content, system_content=CHAT_SYSTEM_PROMPT, temperature=0.0):
-            yield f"data: {json.dumps({'text': chunk})}\n\n".encode("utf-8")
+        reply_text = format_intent_reply(intent, data)
+
+        def iter_chunks(text: str, chunk_size: int = 28) -> Iterator[str]:
+            text = text or ""
+            if not text:
+                return
+            for i in range(0, len(text), chunk_size):
+                yield text[i : i + chunk_size]
+
+        for chunk in iter_chunks(reply_text):
+            yield f"data: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n".encode("utf-8")
+            # Pequeño respiro para que el front renderice por chunks con claridad.
+            time.sleep(0.01)
     except Exception:
         yield f"data: {json.dumps({'error': 'Error al generar respuesta'})}\n\n".encode("utf-8")
 
