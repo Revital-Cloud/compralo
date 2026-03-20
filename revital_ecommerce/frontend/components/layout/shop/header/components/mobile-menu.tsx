@@ -71,18 +71,46 @@ export function MobileMenu({ isOpen, onClose, items = [], pathname }: MobileMenu
             </Link>
           ))}
 
-          {/* Mi perfil */}
-          <Link
-            href="/profile"
-            className={cn(
-              "flex w-full items-center gap-2 rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#ec2538] dark:hover:text-red-500 transition-colors duration-300",
-              pathname === "/profile" ? "text-[#ec2538] dark:text-red-500 font-semibold" : "text-gray-700 dark:text-gray-300"
-            )}
-            onClick={onClose}
-          >
-            <User className="w-4 h-4" />
-            Mi perfil
-          </Link>
+          {isAuthenticated ? (
+            // Solo mostrar perfil si el usuario está autenticado.
+            <Link
+              href="/profile"
+              className={cn(
+                "flex w-full items-center gap-2 rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#ec2538] dark:hover:text-red-500 transition-colors duration-300",
+                pathname === "/profile" ? "text-[#ec2538] dark:text-red-500 font-semibold" : "text-gray-700 dark:text-gray-300"
+              )}
+              onClick={onClose}
+            >
+              <User className="w-4 h-4" />
+              Mi perfil
+            </Link>
+          ) : (
+            // En no autenticados, mostramos login/registro en el menú mobile.
+            <>
+              <Link
+                href="/login"
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#ec2538] dark:hover:text-red-500 transition-colors duration-300",
+                  pathname === "/login" ? "text-[#ec2538] dark:text-red-500 font-semibold" : "text-gray-700 dark:text-gray-300"
+                )}
+                onClick={onClose}
+              >
+                <User className="w-4 h-4" />
+                Iniciar sesión
+              </Link>
+              <Link
+                href="/register"
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#ec2538] dark:hover:text-red-500 transition-colors duration-300",
+                  pathname === "/register" ? "text-[#ec2538] dark:text-red-500 font-semibold" : "text-gray-700 dark:text-gray-300"
+                )}
+                onClick={onClose}
+              >
+                <User className="w-4 h-4" />
+                Registrarme
+              </Link>
+            </>
+          )}
 
           {/* Tema: Dark / Light */}
           <div className="border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">

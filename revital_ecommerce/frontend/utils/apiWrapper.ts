@@ -434,16 +434,57 @@ const apiWrapper = {
 };
 
 /**
+ * Mensaje en español para HTTP 429 (rate limit).
+ * Usa `retry_after` del body si viene en número o string numérico.
+ */
+export function getRateLimitMessage(error: unknown): string {
+  const err = error as {
+    response?: { headers?: Record<string, string>; data?: { retry_after?: unknown } };
+  };
+  const fromBody = err?.response?.data?.retry_after;
+  let seconds: number | null = null;
+  if (typeof fromBody === "number" && Number.isFinite(fromBody)) {
+    seconds = Math.max(0, Math.ceil(fromBody));
+  } else if (typeof fromBody === "string") {
+    const n = parseInt(fromBody, 10);
+    if (!Number.isNaN(n)) seconds = Math.max(0, n);
+  }
+  if (seconds === null) {
+    const ra = err?.response?.headers?.["retry-after"] ?? err?.response?.headers?.["Retry-After"];
+    if (ra !== undefined) {
+      const n = parseInt(String(ra), 10);
+      if (!Number.isNaN(n)) seconds = Math.max(0, n);
+    }
+  }
+  if (seconds !== null && seconds > 0) {
+    if (seconds >= 60) {
+      const m = Math.ceil(seconds / 60);
+      return `Demasiadas solicitudes. Espera ${m} minuto${m > 1 ? "s" : ""} e inténtalo de nuevo.`;
+    }
+    return `Demasiadas solicitudes. Espera ${seconds} segundo${seconds > 1 ? "s" : ""} e inténtalo de nuevo.`;
+  }
+  return "Demasiadas solicitudes. Espera unos minutos e inténtalo de nuevo.";
+}
+
+/**
  * Extrae un mensaje legible del detail de una respuesta de error del API.
  * Soporta detail como string (4xx/5xx) o como array (422 validación Pydantic).
  */
 export function getApiErrorMessage(error: unknown, fallback: string): string {
-  const err = error as { response?: { data?: { detail?: string | Array<{ msg?: string }> } } };
+  const err = error as {
+    response?: {
+      status?: number;
+      data?: { detail?: string | Array<{ msg?: string }> };
+    };
+  };
+  if (err?.response?.status === 429) {
+    return getRateLimitMessage(error);
+  }
   const detail = err?.response?.data?.detail;
-  if (typeof detail === 'string') return detail;
+  if (typeof detail === "string") return detail;
   if (Array.isArray(detail) && detail.length > 0) {
     const first = detail[0];
-    return typeof first === 'object' && first?.msg ? first.msg : String(first);
+    return typeof first === "object" && first?.msg ? first.msg : String(first);
   }
   return fallback;
 }

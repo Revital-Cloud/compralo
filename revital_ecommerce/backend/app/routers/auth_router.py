@@ -32,14 +32,14 @@ from services import auth_service
 from services import user_service
 from core.dependencies import get_current_user
 from core.rate_limiter import limiter
+from core.login_attempt_lockout import clear_failed_logins, get_remaining_lockout_seconds, record_failed_login
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Autenticación"])
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("10/minute")
-@limiter.limit("100/hour")
+@limiter.limit("20/hour")
 async def login(
     request: Request,
     login_data: LoginRequest,
@@ -58,8 +58,27 @@ async def login(
     Raises:
         HTTPException: Si las credenciales son inválidas
     """
-    tokens = auth_service.login_user(db, login_data)
-    return _token_response(tokens.access_token, tokens.refresh_token)
+    # Fixed cooldown after N failed attempts (per email).
+    remaining = get_remaining_lockout_seconds(login_data.email)
+    if remaining > 0:
+        return JSONResponse(
+            status_code=429,
+            content={
+                "detail": "Too many requests. Please try again later.",
+                "retry_after": remaining,
+            },
+        )
+
+    try:
+        tokens = auth_service.login_user(db, login_data)
+        # Login success -> reset lockout state.
+        clear_failed_logins(login_data.email)
+        return _token_response(tokens.access_token, tokens.refresh_token)
+    except HTTPException as exc:
+        # Wrong credentials -> count failure for lockout.
+        if exc.status_code == status.HTTP_401_UNAUTHORIZED:
+            record_failed_login(login_data.email)
+        raise
 
 
 @router.post("/verify-email-otp", response_model=TokenResponse)

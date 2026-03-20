@@ -1,21 +1,21 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from '@/components/ui'
 import { Button } from '@/components/ui'
-import { ScrollArea } from '@/components/ui'
-import { Input } from '@/components/ui'
-import { IconSend, IconRobot, IconUser, IconTrash } from '@tabler/icons-react'
+import { Textarea } from '@/components/ui'
+import { IconSend, IconSparkles, IconUser } from '@tabler/icons-react'
 import { Streamdown } from 'streamdown'
 import { aiService } from '@/services/ai.service'
 import { PRODUCT_KEYS } from '@/hooks/use-products'
+import { cn } from '@/lib/utils'
 
 interface Message {
   id: string
@@ -36,7 +36,12 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
   const [loading, setLoading] = useState(false)
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const messagesInnerRef = useRef<HTMLDivElement>(null)
+  const prevOpenRef = useRef(false)
+  const prevLoadingRef = useRef(false)
+  const loadingRef = useRef(loading)
+  loadingRef.current = loading
 
   /**
    * Invalida queries de React Query basado en las entidades afectadas por acciones del AI
@@ -69,11 +74,96 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
     })
   }
 
-  useEffect(() => {
-    if (open && messages.length > 0) {
-      scrollRef.current?.scrollIntoView({ behavior: 'smooth' })
+  const scrollChatToBottom = useCallback((mode: 'always' | 'if-near-bottom' = 'always') => {
+    const el = scrollAreaRef.current
+    if (!el) return
+    const threshold = 120
+    const doScroll = () => {
+      if (mode === 'if-near-bottom') {
+        const dist = el.scrollHeight - el.scrollTop - el.clientHeight
+        if (dist > threshold) return
+      }
+      el.scrollTop = el.scrollHeight
     }
-  }, [open, messages])
+    // Nativo + varios frames: Streamdown/prose puede medir altura tras el paint.
+    doScroll()
+    requestAnimationFrame(() => {
+      doScroll()
+      requestAnimationFrame(doScroll)
+    })
+  }, [])
+
+  // Cuando el markdown/streaming cambia el alto real, vuelve a anclar al final.
+  useEffect(() => {
+    if (!open) return
+    const inner = messagesInnerRef.current
+    const scrollEl = scrollAreaRef.current
+    if (!inner || !scrollEl) return
+
+    const ro = new ResizeObserver(() => {
+      scrollChatToBottom(loadingRef.current ? 'always' : 'if-near-bottom')
+    })
+    ro.observe(inner)
+    return () => ro.disconnect()
+  }, [open, scrollChatToBottom])
+
+  // Sin scroll mientras loading (respuesta en curso). Al terminar, un scroll al final; al abrir, al final.
+  useLayoutEffect(() => {
+    if (!open) {
+      prevOpenRef.current = false
+      prevLoadingRef.current = false
+      return
+    }
+    const justOpened = !prevOpenRef.current
+    prevOpenRef.current = true
+
+    if (loading) {
+      // Un solo scroll al empezar la petición (tu mensaje nuevo). Si hay streaming real,
+      // seguimos el final durante todo el streaming (UX: no quedarse "atrás").
+      if (!prevLoadingRef.current) {
+        scrollChatToBottom('always')
+      } else if (streamingMessageId) {
+        scrollChatToBottom('always')
+      }
+      prevLoadingRef.current = true
+      return
+    }
+
+    const finishedResponse = prevLoadingRef.current
+    prevLoadingRef.current = false
+
+    if (justOpened || finishedResponse) {
+      scrollChatToBottom('always')
+      return
+    }
+
+    scrollChatToBottom('if-near-bottom')
+  }, [open, messages, loading, streamingMessageId, scrollChatToBottom])
+
+  // Tras la animación del diálogo: corregir scroll solo si no hay respuesta en curso.
+  useEffect(() => {
+    if (!open) return
+    const run = () => {
+      if (loadingRef.current) return
+      scrollChatToBottom('always')
+    }
+    const raf = requestAnimationFrame(run)
+    const t1 = window.setTimeout(run, 200)
+    const t2 = window.setTimeout(run, 420)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.clearTimeout(t1)
+      window.clearTimeout(t2)
+    }
+  }, [open, scrollChatToBottom])
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.isComposing) return
+    e.preventDefault()
+    const form = e.currentTarget.form
+    if (!form || loading || !input.trim() || !aiEnabled) return
+    form.requestSubmit()
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -106,6 +196,8 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
       onDone() {
         setLoading(false)
         setStreamingMessageId(null)
+        // Garantiza que al terminar el modelo se vea el mensaje completo.
+        scrollChatToBottom('always')
       },
       onError(err) {
         setLoading(false)
@@ -127,50 +219,37 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
     })
   }
 
-  const handleClearChat = () => {
-    if (loading) return
-    setMessages([])
-    setError(null)
-    setStreamingMessageId(null)
-  }
-
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
-        <SheetHeader className="p-4 pr-12 border-b">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1.5">
-              <SheetTitle className="flex items-center gap-2">
-                <IconRobot className="h-5 w-5" />
-                Asistente de administración
-              </SheetTitle>
-              <SheetDescription>
-                Órdenes pendientes, recientes, productos más vendidos, resumen de ventas, resumen general o alertas de stock.
-              </SheetDescription>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        overlayClassName="bg-black/35 backdrop-blur-[2px]"
+        className={cn(
+          'gap-0 p-0 !top-auto !left-auto !right-4 !bottom-4 !translate-x-0 !translate-y-0 sm:!right-6 sm:!bottom-6',
+          'flex h-[min(100dvh-5rem,36rem)] w-[min(100vw-2rem,26rem)] max-w-none flex-col overflow-hidden rounded-2xl border shadow-2xl',
+          'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-bottom-2 data-[state=open]:slide-in-from-right-2 duration-200'
+        )}
+      >
+        <DialogHeader className="space-y-0 border-b p-4 text-left">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 space-y-1.5">
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                  <IconSparkles className="h-5 w-5 text-primary" />
+                </span>
+                <span className="leading-tight">Asistente de administración</span>
+              </DialogTitle>
+              <DialogDescription className="text-pretty text-xs text-muted-foreground sm:text-sm">
+                Pregunta sobre órdenes, productos, ventas o stock de tu tienda.
+              </DialogDescription>
             </div>
-            {messages.length > 0 && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={handleClearChat}
-                disabled={loading}
-                title="Borrar chat"
-                className="shrink-0 text-muted-foreground hover:text-foreground"
-              >
-                <IconTrash className="h-4 w-4" />
-              </Button>
-            )}
           </div>
-        </SheetHeader>
+        </DialogHeader>
 
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
-            {messages.length === 0 && !loading && (
-              <p className="text-sm text-muted-foreground">
-                Por ejemplo: órdenes pendientes, órdenes recientes, productos más vendidos, resumen de ventas, cómo va la tienda o alertas.
-              </p>
-            )}
+        <div
+          ref={scrollAreaRef}
+          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pt-4"
+        >
+          <div ref={messagesInnerRef} className="space-y-4 pb-24">
             {messages.map((msg) => {
               const isStreamingEmpty = msg.role === 'assistant' && streamingMessageId === msg.id && !msg.content
               if (isStreamingEmpty) return null
@@ -183,7 +262,7 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
                 >
                   {msg.role === 'assistant' && (
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                      <IconRobot className="h-4 w-4 text-primary" />
+                      <IconSparkles className="h-4 w-4 text-primary" />
                     </div>
                   )}
                   <div
@@ -214,7 +293,7 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
             {loading && (
               <div className="flex gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                  <IconRobot className="h-4 w-4 text-primary" />
+                  <IconSparkles className="h-4 w-4 text-primary" />
                 </div>
                 <div className="rounded-lg bg-muted px-3 py-2">
                   <span className="text-sm text-muted-foreground animate-pulse">
@@ -223,29 +302,45 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
                 </div>
               </div>
             )}
-            <div ref={scrollRef} />
           </div>
-        </ScrollArea>
+        </div>
 
-        <form onSubmit={handleSubmit} className="p-4 border-t">
-          <div className="flex gap-2">
-            <Input
+        <form onSubmit={handleSubmit} className="border-t bg-background/95 p-4 backdrop-blur-sm">
+          <div className="flex items-end gap-2">
+            <Textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Escribe tu pregunta..."
-              disabled={loading || !aiEnabled}
+              onKeyDown={handleKeyDown}
+              name="admin-chat-message"
+              autoComplete="off"
+              placeholder="Escribe tu pregunta…"
+              disabled={!aiEnabled}
               maxLength={1000}
-              className="flex-1"
+              rows={1}
+              aria-label="Mensaje para el asistente"
+              className={cn(
+                'min-h-10 max-h-32 flex-1 resize-none rounded-xl border-border/80 py-2.5 shadow-none',
+                'focus-visible:border-ring focus-visible:ring-primary/30'
+              )}
             />
-            <Button type="submit" disabled={loading || !input.trim() || !aiEnabled}>
+            <Button
+              type="submit"
+              size="icon"
+              className="h-10 w-10 shrink-0 rounded-xl"
+              disabled={loading || !input.trim() || !aiEnabled}
+              aria-label="Enviar mensaje"
+            >
               <IconSend className="h-4 w-4" />
             </Button>
           </div>
+          <p className="mt-2 text-center text-[11px] leading-snug text-muted-foreground sm:text-xs" role="note">
+            El asistente puede cometer errores. Comprueba siempre la información importante en el panel.
+          </p>
           {error && (
             <p className="mt-2 text-xs text-destructive">{error}</p>
           )}
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   )
 }
