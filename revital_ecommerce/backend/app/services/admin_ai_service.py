@@ -10,6 +10,7 @@ Seguridad:
 - Acceso: solo administradores (require_admin en el router).
 """
 import json
+import re
 from typing import Iterator, Optional
 
 from sqlalchemy.orm import Session
@@ -196,7 +197,8 @@ def reply_for_intent(message: str, intent: str, db: Session) -> str:
     """Genera la respuesta de texto para un mensaje e intención dados (solo lectura)."""
     data = fetch_intent_data(db, intent)
     user_content = f"El usuario pregunta: {message}\n\nDatos disponibles:\n{json.dumps(data, ensure_ascii=False)}\n\nResponde usando solo estos datos."
-    return chat_completion(user_content=user_content, system_content=CHAT_SYSTEM_PROMPT, temperature=0.3)
+    # Temperatura baja para reducir completions inventadas.
+    return chat_completion(user_content=user_content, system_content=CHAT_SYSTEM_PROMPT, temperature=0.0)
 
 
 def _build_action_confirmation_message(action_id: str, params: dict) -> str:
@@ -381,6 +383,27 @@ def chat_with_admin_ai(
     )
     is_top_categories_request = any(kw in msg_lower for kw in INTENT_TOP_CATEGORIES)
     is_top_stock_request = any(kw in msg_lower for kw in INTENT_TOP_STOCK)
+
+    # Seguimiento (anti-hallucination):
+    # Si el usuario hace una pregunta corta tipo "y la categoría?" y hace poco
+    # ya se le respondió con "categorías más vendidas por ingresos", interpretamos
+    # ese seguimiento como "top categorías" y ejecutamos el path determinista.
+    is_short_category_followup = bool(
+        re.fullmatch(
+            r"(y\s*)?la\s*categor(ía|ia)s?\??",
+            msg_lower.strip(),
+        )
+        or msg_lower.strip() in {"categoria", "categoría", "categorias", "categorías"}
+    )
+    has_recent_top_categories = any(
+        (
+            "categor" in ((c.get("reply") or "") + " " + (c.get("message") or "")).lower()
+            and "vend" in ((c.get("reply") or "") + " " + (c.get("message") or "")).lower()
+        )
+        for c in recent_convs
+    )
+    if has_recent_top_categories and is_short_category_followup:
+        is_top_categories_request = True
     
     # Si es una pregunta de resumen, ejecutar automáticamente get_store_summary
     enhanced_message = message.strip()
@@ -410,38 +433,22 @@ def chat_with_admin_ai(
                 "recentOrdersCount": len(recent_orders),
                 "alerts": alerts,
             }
-            
-            # Generar una respuesta natural usando el resumen obtenido
-            user_content = f"""El usuario pregunta: {message}
 
-He obtenido el siguiente resumen de la tienda:
-{summary_result}
-
-Genera una respuesta natural y conversacional en español (1-3 frases) basándote en esta información. 
-Sé claro, directo y útil. No repitas toda la información, solo destaca lo más importante."""
-            
-            try:
-                natural_reply = chat_completion(
-                    user_content=user_content,
-                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara y directa, usando solo los datos proporcionados. NO te presentes. Si el usuario pregunta fuera de alcance, reencuadra dentro del panel.",
-                    temperature=0.3
-                )
-                
-                # Guardar conversación con tool call ejecutado
-                save_conversation(
-                    db, user_id, message, natural_reply,
-                    context_data=context_data,
-                    tool_calls=[{"name": "get_store_summary", "params": {"time_range": "monthly"}, "status": "executed"}]
-                )
-                return natural_reply
-            except Exception:
-                # Si falla la generación natural, devolver el resumen directo
-                save_conversation(
-                    db, user_id, message, summary_result,
-                    context_data=context_data,
-                    tool_calls=[{"name": "get_store_summary", "params": {"time_range": "monthly"}, "status": "executed"}]
-                )
-                return summary_result
+            # IMPORTANTE: evitamos un paso extra con LLM para prevenir “invenciones”.
+            # El backend ya devuelve un texto determinista con datos calculados.
+            save_conversation(
+                db,
+                user_id,
+                message,
+                summary_result,
+                context_data=context_data,
+                tool_calls=[{
+                    "name": "get_store_summary",
+                    "params": {"time_range": "monthly"},
+                    "status": "executed",
+                }],
+            )
+            return summary_result
         except Exception as e:
             # Si falla get_store_summary, continuar con el flujo normal
             print(f"Error al obtener resumen automático: {str(e)}")
@@ -453,30 +460,20 @@ Sé claro, directo y útil. No repitas toda la información, solo destaca lo má
             categories_result = admin_ai_actions.execute_action(
                 db, "get_top_categories_by_revenue", {"limit": 10}, user_id
             )
-            user_content = f"""El usuario pregunta: {message}
 
-He obtenido los siguientes datos de categorías más vendidas:
-{categories_result}
-
-Genera una respuesta natural y conversacional en español (1-3 frases) basándote en esta información.
-Sé claro, directo y útil. Destaca la categoría que más vende si hay datos."""
-            try:
-                natural_reply = chat_completion(
-                    user_content=user_content,
-                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara y directa, usando solo los datos proporcionados. NO te presentes. Si el usuario pregunta fuera de alcance, reencuadra dentro del panel.",
-                    temperature=0.3,
-                )
-                save_conversation(
-                    db, user_id, message, natural_reply,
-                    tool_calls=[{"name": "get_top_categories_by_revenue", "params": {"limit": 10}, "status": "executed"}],
-                )
-                return natural_reply
-            except Exception:
-                save_conversation(
-                    db, user_id, message, categories_result,
-                    tool_calls=[{"name": "get_top_categories_by_revenue", "params": {"limit": 10}, "status": "executed"}],
-                )
-                return categories_result
+            # IMPORTANTE: evitamos un paso extra con LLM para prevenir “invenciones”.
+            save_conversation(
+                db,
+                user_id,
+                message,
+                categories_result,
+                tool_calls=[{
+                    "name": "get_top_categories_by_revenue",
+                    "params": {"limit": 10},
+                    "status": "executed",
+                }],
+            )
+            return categories_result
         except Exception as e:
             print(f"Error al obtener top categorías: {str(e)}")
             pass
@@ -487,30 +484,20 @@ Sé claro, directo y útil. Destaca la categoría que más vende si hay datos.""
             stock_result = admin_ai_actions.execute_action(
                 db, "get_top_stock_products", {"limit": 10}, user_id
             )
-            user_content = f"""El usuario pregunta: {message}
 
-He obtenido los siguientes datos de productos con mayor stock:
-{stock_result}
-
-Genera una respuesta natural y conversacional en español (1-3 frases) basándote en esta información.
-Sé claro y directo. Menciona el producto con mayor stock."""
-            try:
-                natural_reply = chat_completion(
-                    user_content=user_content,
-                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara y directa, usando solo los datos proporcionados. NO te presentes. Si el usuario pregunta fuera de alcance, reencuadra dentro del panel.",
-                    temperature=0.3,
-                )
-                save_conversation(
-                    db, user_id, message, natural_reply,
-                    tool_calls=[{"name": "get_top_stock_products", "params": {"limit": 10}, "status": "executed"}],
-                )
-                return natural_reply
-            except Exception:
-                save_conversation(
-                    db, user_id, message, stock_result,
-                    tool_calls=[{"name": "get_top_stock_products", "params": {"limit": 10}, "status": "executed"}],
-                )
-                return stock_result
+            # IMPORTANTE: evitamos un paso extra con LLM para prevenir “invenciones”.
+            save_conversation(
+                db,
+                user_id,
+                message,
+                stock_result,
+                tool_calls=[{
+                    "name": "get_top_stock_products",
+                    "params": {"limit": 10},
+                    "status": "executed",
+                }],
+            )
+            return stock_result
         except Exception as e:
             print(f"Error al obtener top stock: {str(e)}")
             pass
@@ -529,7 +516,13 @@ Sé claro y directo. Menciona el producto con mayor stock."""
     model_name = _select_model_for_admin_ai(message)
 
     try:
-        response = chat_with_tools(messages=messages, tools=ADMIN_AI_TOOLS, model=model_name)
+        # Temperatura baja para minimizar inferencias no respaldadas por datos.
+        response = chat_with_tools(
+            messages=messages,
+            tools=ADMIN_AI_TOOLS,
+            model=model_name,
+            temperature=0.0,
+        )
     except ValueError:
         # IA no disponible -> mensaje claro al usuario.
         error_msg = "La IA no está configurada actualmente. Pídele al administrador que configure GROQ_API_KEY."
@@ -653,7 +646,7 @@ def stream_reply_sse(
     try:
         data = fetch_intent_data(db, intent)
         user_content = f"El usuario pregunta: {message}\n\nDatos disponibles:\n{json.dumps(data, ensure_ascii=False)}\n\nResponde usando solo estos datos."
-        for chunk in chat_completion_stream(user_content=user_content, system_content=CHAT_SYSTEM_PROMPT, temperature=0.3):
+        for chunk in chat_completion_stream(user_content=user_content, system_content=CHAT_SYSTEM_PROMPT, temperature=0.0):
             yield f"data: {json.dumps({'text': chunk})}\n\n".encode("utf-8")
     except Exception:
         yield f"data: {json.dumps({'error': 'Error al generar respuesta'})}\n\n".encode("utf-8")
@@ -683,4 +676,4 @@ def generate_dashboard_summary(db: Session, time_range: str = "monthly") -> str:
         "alerts": alerts,
     }
     user_content = f"Resume estos datos del dashboard en 2-4 frases:\n\n{json.dumps(context, ensure_ascii=False)}"
-    return chat_completion(user_content=user_content, system_content=SUMMARY_SYSTEM_PROMPT, temperature=0.3)
+    return chat_completion(user_content=user_content, system_content=SUMMARY_SYSTEM_PROMPT, temperature=0.0)

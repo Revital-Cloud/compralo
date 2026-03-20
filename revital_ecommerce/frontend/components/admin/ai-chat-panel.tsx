@@ -10,9 +10,8 @@ import {
   DialogDescription,
 } from '@/components/ui'
 import { Button } from '@/components/ui'
-import { ScrollArea } from '@/components/ui'
 import { Textarea } from '@/components/ui'
-import { IconSend, IconSparkles, IconUser, IconTrash } from '@tabler/icons-react'
+import { IconSend, IconSparkles, IconUser } from '@tabler/icons-react'
 import { Streamdown } from 'streamdown'
 import { aiService } from '@/services/ai.service'
 import { PRODUCT_KEYS } from '@/hooks/use-products'
@@ -38,6 +37,7 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const messagesInnerRef = useRef<HTMLDivElement>(null)
   const prevOpenRef = useRef(false)
   const prevLoadingRef = useRef(false)
   const loadingRef = useRef(loading)
@@ -75,21 +75,37 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
   }
 
   const scrollChatToBottom = useCallback((mode: 'always' | 'if-near-bottom' = 'always') => {
-    const root = scrollAreaRef.current
-    if (!root) return
-    const viewport = root.querySelector<HTMLElement>('[data-radix-scroll-area-viewport]')
-    if (!viewport) return
+    const el = scrollAreaRef.current
+    if (!el) return
     const threshold = 120
     const doScroll = () => {
       if (mode === 'if-near-bottom') {
-        const dist = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight
+        const dist = el.scrollHeight - el.scrollTop - el.clientHeight
         if (dist > threshold) return
       }
-      viewport.scrollTop = viewport.scrollHeight
+      el.scrollTop = el.scrollHeight
     }
-    // Programar en el frame siguiente ayuda a que el scrollHeight/DOM ya reflejen el chunk.
-    requestAnimationFrame(doScroll)
+    // Nativo + varios frames: Streamdown/prose puede medir altura tras el paint.
+    doScroll()
+    requestAnimationFrame(() => {
+      doScroll()
+      requestAnimationFrame(doScroll)
+    })
   }, [])
+
+  // Cuando el markdown/streaming cambia el alto real, vuelve a anclar al final.
+  useEffect(() => {
+    if (!open) return
+    const inner = messagesInnerRef.current
+    const scrollEl = scrollAreaRef.current
+    if (!inner || !scrollEl) return
+
+    const ro = new ResizeObserver(() => {
+      scrollChatToBottom(loadingRef.current ? 'always' : 'if-near-bottom')
+    })
+    ro.observe(inner)
+    return () => ro.disconnect()
+  }, [open, scrollChatToBottom])
 
   // Sin scroll mientras loading (respuesta en curso). Al terminar, un scroll al final; al abrir, al final.
   useLayoutEffect(() => {
@@ -103,12 +119,11 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
 
     if (loading) {
       // Un solo scroll al empezar la petición (tu mensaje nuevo). Si hay streaming real,
-      // seguimos el final solo cuando el usuario ya está cerca del bottom.
+      // seguimos el final durante todo el streaming (UX: no quedarse "atrás").
       if (!prevLoadingRef.current) {
         scrollChatToBottom('always')
       } else if (streamingMessageId) {
-        // Evita "comerse" líneas: si ya estabas en el bottom, mantén el viewport anclado.
-        scrollChatToBottom('if-near-bottom')
+        scrollChatToBottom('always')
       }
       prevLoadingRef.current = true
       return
@@ -181,11 +196,8 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
       onDone() {
         setLoading(false)
         setStreamingMessageId(null)
-        // Garantiza que al terminar el modelo el chat quede en el mensaje más reciente.
-        // Se programa en el siguiente frame para asegurar que el último render del chunk ya ocurrió.
-        requestAnimationFrame(() => {
-          scrollChatToBottom('always')
-        })
+        // Garantiza que al terminar el modelo se vea el mensaje completo.
+        scrollChatToBottom('always')
       },
       onError(err) {
         setLoading(false)
@@ -207,13 +219,6 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
     })
   }
 
-  const handleClearChat = () => {
-    if (loading) return
-    setMessages([])
-    setError(null)
-    setStreamingMessageId(null)
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -224,8 +229,8 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
           'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=open]:slide-in-from-bottom-2 data-[state=open]:slide-in-from-right-2 duration-200'
         )}
       >
-        <DialogHeader className="relative space-y-0 border-b p-4 pr-12 text-left">
-          <div className="flex items-start justify-between gap-3">
+        <DialogHeader className="space-y-0 border-b p-4 text-left">
+          <div className="flex items-center justify-between gap-3">
             <div className="min-w-0 space-y-1.5">
               <DialogTitle className="flex items-center gap-2 text-base">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
@@ -237,24 +242,14 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
                 Pregunta sobre órdenes, productos, ventas o stock de tu tienda.
               </DialogDescription>
             </div>
-            {messages.length > 0 && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={handleClearChat}
-                disabled={loading}
-                title="Borrar chat"
-                className="absolute right-10 top-4 shrink-0 text-muted-foreground hover:text-foreground"
-              >
-                <IconTrash className="h-4 w-4" />
-              </Button>
-            )}
           </div>
         </DialogHeader>
 
-        <ScrollArea ref={scrollAreaRef} className="min-h-0 flex-1 p-4">
-          <div className="space-y-4">
+        <div
+          ref={scrollAreaRef}
+          className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pt-4"
+        >
+          <div ref={messagesInnerRef} className="space-y-4 pb-24">
             {messages.map((msg) => {
               const isStreamingEmpty = msg.role === 'assistant' && streamingMessageId === msg.id && !msg.content
               if (isStreamingEmpty) return null
@@ -308,7 +303,7 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         <form onSubmit={handleSubmit} className="border-t bg-background/95 p-4 backdrop-blur-sm">
           <div className="flex items-end gap-2">
@@ -316,8 +311,10 @@ export function AiChatPanel({ open, onOpenChange, aiEnabled }: AiChatPanelProps)
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Escribe tu pregunta..."
-              disabled={loading || !aiEnabled}
+              name="admin-chat-message"
+              autoComplete="off"
+              placeholder="Escribe tu pregunta…"
+              disabled={!aiEnabled}
               maxLength={1000}
               rows={1}
               aria-label="Mensaje para el asistente"

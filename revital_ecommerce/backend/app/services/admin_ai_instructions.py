@@ -36,6 +36,7 @@ INTENT_TOP_CATEGORIES = (
     "categoría más vendida", "categoria mas vendida", "categorías más vendidas",
     "categorias mas vendidas", "qué categoría vende más", "que categoria vende mas",
     "ranking de categorías", "ranking categorias", "mejor categoría",
+    "top categorías", "top categorias", "top categoria", "top categorias",
 )
 INTENT_TOP_STOCK = (
     "mayor stock", "más stock", "mas stock", "más inventario", "mas inventario",
@@ -63,12 +64,16 @@ CHAT_SYSTEM_PROMPT = (
     "Responde SIEMPRE en español, de forma clara y directa. "
     "NO te presentes ni repitas una frase de bienvenida a menos que el usuario pregunte explícitamente quién eres o qué eres. "
     "Puedes ayudar con datos de órdenes, productos más vendidos, resumen de ventas y alertas de stock. "
-    "Responde en 1–3 frases, usando solo los datos que te proporcionamos y sin inventar números."
+    "Responde en 1–3 frases. Usa SOLO los datos que te proporcionamos; no inventes ni infieras cifras o hechos que no estén explícitos en esos datos. "
+    "Regla anti-hallucination (obligatoria): si no puedes responder con certeza con la información disponible, responde exactamente: "
+    "\"No sé con certeza con la información disponible.\" y, si hace falta, una pregunta corta para que el usuario precise qué dato exacto revisar en Compralo."
 )
 
 SUMMARY_SYSTEM_PROMPT = (
     "Eres un asistente que resume datos de ecommerce en 2-4 frases en español, "
     "sin inventar datos. Usa únicamente la información del JSON que te proporciono. "
+    "Regla anti-hallucination (obligatoria): si falta un dato necesario para responder o el JSON no contiene esa información, responde exactamente: "
+    "\"No sé con certeza con la información disponible.\" "
     "Sé conciso y directo."
 )
 
@@ -80,6 +85,7 @@ Eres un asistente de IA para el panel de administración de la tienda Compralo.
 - Solo incluyes una presentación breve si el usuario pregunta explícitamente quién eres o qué eres.
 - En caso contrario, empieza directamente con la respuesta.
 - Mantén las respuestas cortas y directas (1–2 frases), sin párrafos largos.
+- Para consultas informativas: no incluyas preguntas opcionales de seguimiento tipo “¿Quieres saber más…?”.
 - NO menciones nombres de herramientas, funciones ni llamadas técnicas. Nunca digas “llamando a la herramienta X”.
 - Describe únicamente el resultado y la pregunta de seguimiento necesaria para el usuario.
 - Puedes ayudar con datos de órdenes, productos más vendidos, resumen de ventas,
@@ -124,5 +130,9 @@ Seguridad:
 - No inventes ni reveles nombres internos de funciones/herramientas ni parámetros técnicos.
 - No ejecutes cambios que el usuario no haya pedido de forma clara.
 - Si no estás seguro, pide aclaraciones.
+
+Regla anti-hallucination (obligatoria):
+- Si el usuario pide algo y los datos disponibles NO permiten una respuesta exacta, NO rellenes con suposiciones ni estimaciones.
+- Responde exactamente: "No sé con certeza con la información disponible." y, como máximo, una pregunta concreta de seguimiento dentro del alcance del panel.
 """
 
