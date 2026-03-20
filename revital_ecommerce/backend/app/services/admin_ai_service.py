@@ -285,6 +285,16 @@ def _extract_last_order_id(recent_convs: list[dict[str, any]]) -> int | None:
     """
     # Recorremos desde lo más reciente.
     for conv in reversed(recent_convs):
+        # Preferimos contexto estructurado (si existe).
+        ctx = conv.get("context_data") or {}
+        if isinstance(ctx, dict):
+            raw = ctx.get("last_order_id")
+            if raw is not None:
+                try:
+                    return int(raw)
+                except Exception:
+                    pass
+
         blob = f"{conv.get('reply') or ''}\n{conv.get('message') or ''}"
         n = _normalize_for_intent(blob)
         m = re.search(r"ultima\s*orden\s*:\s*#\s*(\d+)", n, flags=re.IGNORECASE)
@@ -825,6 +835,30 @@ def stream_reply_sse(
     try:
         data = fetch_intent_data(db, intent)
         reply_text = format_intent_reply(intent, data)
+
+        # Persistimos el historial también en streaming para que los follow-ups
+        # ("esa última orden", etc.) sean deterministas y no dependan de parsing frágil.
+        last_order_id = None
+        recent_orders = data.get("recentOrders") if isinstance(data, dict) else None
+        if isinstance(recent_orders, list) and recent_orders:
+            raw_id = recent_orders[0].get("id") or recent_orders[0].get("order_id")
+            if raw_id is not None:
+                try:
+                    last_order_id = int(raw_id)
+                except Exception:
+                    last_order_id = None
+        if user_id is not None:
+            save_conversation(
+                db,
+                user_id,
+                message,
+                reply_text,
+                context_data={
+                    "intent": intent,
+                    "last_order_id": last_order_id,
+                },
+                tool_calls=None,
+            )
 
         def iter_chunks(text: str, chunk_size: int = 28) -> Iterator[str]:
             text = text or ""
