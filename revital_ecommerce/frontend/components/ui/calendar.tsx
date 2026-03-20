@@ -224,7 +224,7 @@ function CalendarDropdown({
           <ChevronDownIcon className="size-3.5 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="p-0 w-[10rem]">
+      <PopoverContent align="start" className="p-0 w-[10rem]" portalled={false}>
         <div ref={listRef} className="max-h-64 overflow-auto py-1">
           {options.map((opt) => (
             <button
