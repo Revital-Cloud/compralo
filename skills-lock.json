@@ -1,0 +1,255 @@
+{
+  "version": 1,
+  "skills": {
+    "agent-browser": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "33f2ce0edc984e16630a2a47db43fa0ba8d41ca43c445fe65f0e7b00a6397bd1"
+    },
+    "agent-browser-verify": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "71b400864b7c93453b5e62430392a98532d73b7da0236402b4807520687687bd"
+    },
+    "ai-elements": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "d257128b3ba4a537e069143388d9f785213a6db228e5bdb248b22614e56ff26e"
+    },
+    "ai-generation-persistence": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "b41dae2c52ce06b203ce225d8684f7762e747b9e0c2dd4083db0a6751a77e00f"
+    },
+    "ai-sdk": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "6364378138ffe6aa1142621e44fc77eb5b2b05c51adcc90490999b11a454272a"
+    },
+    "auth": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "dfca893379432c0216976e19cfd0888c00f8dc83ca6a24ebf9c30212789cb27e"
+    },
+    "benchmark-agents": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "3da228747c1eda571d3acb3e9797e30ad035f92b7ef63a0e5a9905fe03218cf1"
+    },
+    "benchmark-e2e": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "ee1761c8a09c8efdde85e0d54c8548c752dfb5aab367f48ce7b4fb2c251cfab8"
+    },
+    "benchmark-sandbox": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "c9a9d0d565b3df5d9810407466f65435e8a6b0330b462452f18f312365cbac2c"
+    },
+    "benchmark-testing": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "c6558103fba70f50932a38dd0bd0d433d69acdc69934766f1c7ae0db95cd0e5e"
+    },
+    "bootstrap": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "e8d80b9ffe5f53c517faf4c4dc6836936a5eb8405a418bb46264ac99f657ba49"
+    },
+    "chat-sdk": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "5c838f3e2ba6b2e943792c4d2322e2c27ecbd3b3cb0dcfbac41060ea90cfcac2"
+    },
+    "cms": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "4c721e1ad863c037fefe5eb34d1a84c1c6527461933a351fc0224972ddfb44d9"
+    },
+    "cron-jobs": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "c64436da47a0d874b5a13bd545a8e3f7f4f3ce7136b7c4b788e89c0c70776038"
+    },
+    "deployments-cicd": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "2bb940b78c0bcafe59cee91e9a0c98834ad1aab9a328006d5eb06a1bf696a19e"
+    },
+    "email": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "e528ea4c61b192cdc007edc2221f4519a3a24ea752a63651660ffb590fcd458c"
+    },
+    "env-vars": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "8afaa26ba82573de93f099146caa2f568bb65fabe77ce2f24696762671a75100"
+    },
+    "geist": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "b0123d377e77358329ff42985f33a939fd2e7f019b1b988aef060a6240aad87e"
+    },
+    "geistdocs": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "e404e1e961f2e82d7727089a9b93c28745cd689e4e9eb3a5016818aae3e46058"
+    },
+    "investigation-mode": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "e5345e7487c0c2dc0f18291743e35c0cd11a751d4172b2c1283a87cb26da4f01"
+    },
+    "json-render": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "373b358937b1ada8e3b9d1d5567a7d8c45c26b475fa5949720302d8f9572b74a"
+    },
+    "marketplace": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "cd1778024d335bb145e99078e00f18a700d275e59537a6307988831250c69783"
+    },
+    "micro": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "c23f89774680fb5bedcdcc9787f0969b249e728118145a26aa43c8ff0bb0b1ec"
+    },
+    "nextjs": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "c50aa77f7aa7196a0b1e6a436d064319b20316fbad8d9f18769b470bfae0340b"
+    },
+    "observability": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "2efca4b596c0d6e6428e28093f7d63f8a5872be9d30ba2e900fc6db3c7003223"
+    },
+    "payments": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "11cd5f179e9aecbeb3ac89c28f6b66f8e4e316408135a59ae504e75c6bc52846"
+    },
+    "plugin-audit": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "a8f78cbfb1bdd9d721c6962d29fcce46308da07ed18e5311b1aa3b8da4deef45"
+    },
+    "react-best-practices": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "4666ceb6576da8baefe2fea38b31a1c83cb185ee1bc429d3f6f6afa76b724c27"
+    },
+    "release": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "88b21c0e5a59e0b8511079a752865e3ca5b10c9fe8dfca1fbb8d9c41c2f7358f"
+    },
+    "routing-middleware": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "b786757e9522e4c98ad41874d98261528a694bfb697fd72130ed592445e7aa14"
+    },
+    "runtime-cache": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "2e4cce756d46b70a0fcdcf020c7ba886c47e4086845c82db9a48cacebaf26171"
+    },
+    "satori": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "7e2d237036b645a028a5227f8ba2ef1b01eb056093ba22e9f3517a2b722c6635"
+    },
+    "shadcn": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "3d7246c8646f37167701c5ac97d1410094a01e5fdd696d2901b7ca90fe99fad8"
+    },
+    "sign-in-with-vercel": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "821125609b8c5dfb45c7715c74293d90630cabaf2a1d340b2d379f21e9928c4a"
+    },
+    "swr": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "cf9dbfee2cf85488ea653a581518809c30a1c3ca8f83c57ea6632704457e1438"
+    },
+    "turbopack": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "f5369c5efd09055273f89c9ab390dd83f752474ae6a282b0de8dd02e310f51a7"
+    },
+    "v0-dev": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "bc8534a09bc2e1002efab1ed10de2eca651d70f35e7b10bf03bf9f8ead933cc6"
+    },
+    "vercel-agent": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "4729ab90c789192233e888f8e307a9c9c7ea6dfadda3d31e7023873cc4c3336a"
+    },
+    "vercel-api": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "d0358d8b2d77e8c98e4176533611100df7830018136b8b34cd3a6c53db81a290"
+    },
+    "vercel-cli": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "30769c508a51ea89be86edecd1af7b6b022f11da222c0da4890b057cd02467be"
+    },
+    "vercel-firewall": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "02deb2d16534c19da938d304eb20f39ad050404e0b441430d440d52c93a77bfd"
+    },
+    "vercel-flags": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "4a7e8e9b9dc622d7c978e67c02d84aed762a8171c3adaaa1895754961e744202"
+    },
+    "vercel-functions": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "52bc874b60f17d674931e76d8b770da89e69794d726c0ffe6679e5a11fcb2c4b"
+    },
+    "vercel-plugin-eval": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "541f250f242a96243852f39ce69eb40d8be8e89f08a62ec207e44c08b709c204"
+    },
+    "vercel-queues": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "28919e4d3a7678b0f3ee3f81ee982b45486c831aaafe54da1c71de63e7ee6738"
+    },
+    "vercel-sandbox": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "b3208922b10db20a877fd0639f2cbec26954816a8b31b8532e5abe35516f9ab7"
+    },
+    "vercel-services": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "d18a3be9d7347deb18c9f3a9cc900fe92362b0fa13149fa4f039e83aa5654f84"
+    },
+    "vercel-storage": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "9b03f4a4c22be325e50add138172479b4c30f275a9126c14cdbc333acc144f2d"
+    },
+    "verification": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "7cca7fb208ce7428f4d99ffba829c69ea27441f7ccdb5b0d6a9861cf8f09c194"
+    },
+    "workflow": {
+      "source": "vercel-labs/vercel-plugin",
+      "sourceType": "github",
+      "computedHash": "69214a6636044620f81435413ca6ffbba7c89f06be6a0cfa26a1afc53221217a"
+    }
+  }
+}

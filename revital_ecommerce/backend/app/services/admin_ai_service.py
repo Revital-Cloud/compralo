@@ -423,7 +423,7 @@ Sé claro, directo y útil. No repitas toda la información, solo destaca lo má
             try:
                 natural_reply = chat_completion(
                     user_content=user_content,
-                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara, seria pero cercana, usando solo los datos proporcionados.",
+                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara y directa, usando solo los datos proporcionados. NO te presentes. Si el usuario pregunta fuera de alcance, reencuadra dentro del panel.",
                     temperature=0.3
                 )
                 
@@ -463,7 +463,7 @@ Sé claro, directo y útil. Destaca la categoría que más vende si hay datos.""
             try:
                 natural_reply = chat_completion(
                     user_content=user_content,
-                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara, seria pero cercana, usando solo los datos proporcionados.",
+                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara y directa, usando solo los datos proporcionados. NO te presentes. Si el usuario pregunta fuera de alcance, reencuadra dentro del panel.",
                     temperature=0.3,
                 )
                 save_conversation(
@@ -497,7 +497,7 @@ Sé claro y directo. Menciona el producto con mayor stock."""
             try:
                 natural_reply = chat_completion(
                     user_content=user_content,
-                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara, seria pero cercana, usando solo los datos proporcionados.",
+                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara y directa, usando solo los datos proporcionados. NO te presentes. Si el usuario pregunta fuera de alcance, reencuadra dentro del panel.",
                     temperature=0.3,
                 )
                 save_conversation(

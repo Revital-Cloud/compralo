@@ -150,7 +150,7 @@ async def get_users(db: Session = Depends(get_db)):
 
 
 @router.post("/users", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
-@limiter.limit("5/minute")
+@limiter.limit("5/15minute")
 @limiter.limit("20/hour")
 async def create_users(
     request: Request,
