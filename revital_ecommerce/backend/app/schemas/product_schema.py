@@ -150,6 +150,10 @@ class ProductFilterParams(BaseModel):
     precio_min: Optional[Decimal] = Field(None, ge=0, description="Precio mínimo (desde variantes)")
     precio_max: Optional[Decimal] = Field(None, ge=0, description="Precio máximo (desde variantes)")
     solo_con_stock: bool = Field(False, description="Solo productos con stock > 0")
+    solo_en_oferta: bool = Field(
+        False,
+        description="Solo productos con descuento automático activo aplicable (misma regla que descuentos en vitrina)",
+    )
     ordenar_por: str = Field("nombre", pattern="^(precio|nombre|stock|fecha)$", description="Campo para ordenar")
     orden: str = Field("ASC", pattern="^(ASC|DESC)$", description="Dirección del orden")
     limit: int = Field(50, ge=1, le=1000, description="Límite de resultados")

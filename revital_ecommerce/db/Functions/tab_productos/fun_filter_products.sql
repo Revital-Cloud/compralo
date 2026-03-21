@@ -1,14 +1,17 @@
 /*
- * Filtra productos por categoría (opcionalmente con subcategorías), marca, nombre, precio, stock.
+ * Filtra productos por categoría (opcionalmente con subcategorías), marca, nombre, precio, stock, oferta.
  * Usa products, product_variants, categories. total_registros para paginación.
  * Búsqueda por nombre insensible a tildes (unaccent): "jose" encuentra "José".
  * Requiere extensión unaccent para búsqueda sin tildes (ejecutar una vez como superuser):
  *   CREATE EXTENSION IF NOT EXISTS unaccent;
  *
- * Si cambias el tipo de retorno (ej. añadir precio_max), ejecuta antes:
- *   DROP FUNCTION IF EXISTS fun_filter_products(numeric,boolean,numeric,varchar,numeric,numeric,boolean,varchar,varchar,integer,integer);
+ * p_solo_en_oferta: productos con al menos un descuento automático activo que aplica al producto
+ * (misma idea que /discounts/active + getApplicableDiscount en la tienda).
+ *
+ * Si cambias la firma, ejecuta antes el DROP de la versión anterior.
  */
 DROP FUNCTION IF EXISTS fun_filter_products(numeric, boolean, numeric, character varying, numeric, numeric, boolean, character varying, character varying, integer, integer);
+DROP FUNCTION IF EXISTS fun_filter_products(numeric, boolean, numeric, character varying, numeric, numeric, boolean, boolean, character varying, character varying, integer, integer);
 
 CREATE OR REPLACE FUNCTION fun_filter_products(
     p_category_id DECIMAL DEFAULT NULL,
@@ -18,6 +21,7 @@ CREATE OR REPLACE FUNCTION fun_filter_products(
     p_precio_min DECIMAL DEFAULT NULL,
     p_precio_max DECIMAL DEFAULT NULL,
     p_solo_con_stock BOOLEAN DEFAULT FALSE,
+    p_solo_en_oferta BOOLEAN DEFAULT FALSE,
     p_ordenar_por VARCHAR(20) DEFAULT 'nombre',
     p_orden VARCHAR(4) DEFAULT 'ASC',
     p_limit INT DEFAULT 50,
@@ -66,9 +70,9 @@ BEGIN
             p.slug AS slug_producto,
             p.description,
             p.id_marca,
-            (SELECT MIN(c.price) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS precio_min,
-            (SELECT MAX(c.price) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS precio_max,
-            (SELECT COALESCE(SUM(c.stock), 0) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS stock_total,
+            (SELECT MIN(cmb.price) FROM tab_product_variant_combinations cmb JOIN tab_product_variant_groups g ON g.id = cmb.group_id WHERE g.product_id = p.id AND cmb.is_active = TRUE) AS precio_min,
+            (SELECT MAX(cmb.price) FROM tab_product_variant_combinations cmb JOIN tab_product_variant_groups g ON g.id = cmb.group_id WHERE g.product_id = p.id AND cmb.is_active = TRUE) AS precio_max,
+            (SELECT COALESCE(SUM(cmb.stock), 0) FROM tab_product_variant_combinations cmb JOIN tab_product_variant_groups g ON g.id = cmb.group_id WHERE g.product_id = p.id AND cmb.is_active = TRUE) AS stock_total,
             (SELECT pvi.image_url FROM tab_product_variant_images pvi JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id WHERE g.product_id = p.id ORDER BY g.id, pvi.sort_order, pvi.id LIMIT 1) AS img_principal
         FROM tab_products p
         JOIN tab_categories c ON c.id = p.category_id
@@ -94,6 +98,34 @@ BEGIN
         WHERE (p_precio_min IS NULL OR agg.precio_min >= p_precio_min)
         AND (p_precio_max IS NULL OR agg.precio_min <= p_precio_max)
         AND (NOT p_solo_con_stock OR (agg.stock_total > 0))
+        AND (
+            NOT p_solo_en_oferta
+            OR (
+                agg.precio_min IS NOT NULL AND agg.precio_min > 0
+                AND EXISTS (
+                    SELECT 1 FROM tab_descuentos d
+                    WHERE d.ind_activo = TRUE
+                      AND COALESCE(d.ind_canjeable_puntos, FALSE) = FALSE
+                      AND COALESCE(d.ind_es_para_cumpleanos, FALSE) = FALSE
+                      AND COALESCE(d.solo_primera_compra, FALSE) = FALSE
+                      AND COALESCE(d.requiere_codigo, FALSE) = FALSE
+                      AND (d.fec_inicio IS NULL OR d.fec_inicio <= CURRENT_DATE)
+                      AND (d.fec_fin IS NULL OR d.fec_fin >= CURRENT_DATE)
+                      AND (d.max_usos_total IS NULL OR d.usos_actuales_total IS NULL OR d.usos_actuales_total < d.max_usos_total)
+                      AND (
+                          (d.tipo_calculo = TRUE AND COALESCE(d.val_porce_descuento, 0) > 0)
+                          OR (d.tipo_calculo = FALSE AND COALESCE(d.val_monto_descuento, 0) > 0)
+                      )
+                      AND (
+                          d.aplica_a IN ('todos', 'total_pedido')
+                          OR (d.aplica_a = 'producto_especifico' AND d.product_id_aplica IS NOT NULL AND d.product_id_aplica = agg.product_id)
+                          OR (d.aplica_a = 'categoria_especifica' AND d.category_id_aplica IS NOT NULL AND d.category_id_aplica = agg.category_id)
+                          OR (d.aplica_a = 'marca_especifica' AND d.id_marca_aplica IS NOT NULL AND d.id_marca_aplica = agg.id_marca)
+                          OR (d.aplica_a IN ('linea_especifica', 'sublinea_especifica') AND d.category_id_aplica IS NOT NULL AND d.category_id_aplica = agg.category_id)
+                      )
+                )
+            )
+        )
     ),
     total AS (SELECT COUNT(1) AS n FROM filt)
     SELECT

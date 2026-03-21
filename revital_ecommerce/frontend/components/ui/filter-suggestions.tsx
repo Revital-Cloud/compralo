@@ -9,7 +9,6 @@ interface FilterSuggestionsProps {
     categoryId?: number
     brands?: string[]
     attributes?: Record<string, string[]>
-    inStockOnly?: boolean
     onSaleOnly?: boolean
   }
   onRemoveFilter: (filterType: string, value?: string) => void
@@ -49,7 +48,6 @@ export const FilterSuggestions = ({
     activeFilters.categoryId != null ||
     (activeFilters.brands?.length ?? 0) > 0 ||
     (activeFilters.attributes && Object.values(activeFilters.attributes).some((arr) => arr.length > 0)) ||
-    activeFilters.inStockOnly ||
     activeFilters.onSaleOnly
 
   if (!hasActiveFilters) return null
@@ -154,21 +152,6 @@ export const FilterSuggestions = ({
               </Badge>
             ) : null
           )}
-
-        {activeFilters.inStockOnly && (
-          <Badge
-            variant="secondary"
-            className="bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-700"
-          >
-            Solo en stock
-            <button
-              onClick={() => onRemoveFilter("inStockOnly")}
-              className="ml-1 hover:bg-blue-300 dark:hover:bg-blue-600 rounded-full p-0.5"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </Badge>
-        )}
 
         {activeFilters.onSaleOnly && (
           <Badge
