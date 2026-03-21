@@ -1893,6 +1893,11 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
             "p_precio_min": filters.precio_min,
             "p_precio_max": filters.precio_max,
             "p_solo_con_stock": filters.solo_con_stock,
+            # La función BD `fun_filter_products` en tu esquema espera un boolean extra
+            # `p_solo_en_oferta` antes del campo de ordenación. Como el modelo de
+            # backend no lo expone todavía, lo fijamos en `false` para mantener
+            # el comportamiento actual del frontend.
+            "p_solo_en_oferta": False,
             "p_ordenar_por": filters.ordenar_por,
             "p_orden": filters.orden,
             "p_limit": filters.limit,
@@ -1903,7 +1908,7 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
                    id_marca, precio_min, precio_max, stock_total, img_principal, total_registros
             FROM fun_filter_products(
                 :p_category_id, :p_include_subcategories, :p_id_marca, :p_nombre_producto,
-                :p_precio_min, :p_precio_max, :p_solo_con_stock, :p_ordenar_por, :p_orden,
+                :p_precio_min, :p_precio_max, :p_solo_con_stock, :p_solo_en_oferta, :p_ordenar_por, :p_orden,
                 :p_limit, :p_offset
             )
         """)
@@ -2011,6 +2016,8 @@ def get_filter_stats(db: Session, filters: ProductFilterParams) -> ProductFilter
             "p_precio_min": filters.precio_min,
             "p_precio_max": filters.precio_max,
             "p_solo_con_stock": filters.solo_con_stock,
+            # Ver comentario en `filter_products`.
+            "p_solo_en_oferta": False,
             "p_ordenar_por": "nombre",
             "p_orden": "ASC",
             "p_limit": 10000,
@@ -2020,7 +2027,7 @@ def get_filter_stats(db: Session, filters: ProductFilterParams) -> ProductFilter
             SELECT product_id, category_id, nom_categoria, id_marca, precio_min, stock_total, total_registros
             FROM fun_filter_products(
                 :p_category_id, :p_include_subcategories, :p_id_marca, :p_nombre_producto,
-                :p_precio_min, :p_precio_max, :p_solo_con_stock, :p_ordenar_por, :p_orden,
+                :p_precio_min, :p_precio_max, :p_solo_con_stock, :p_solo_en_oferta, :p_ordenar_por, :p_orden,
                 :p_limit, :p_offset
             )
         """)

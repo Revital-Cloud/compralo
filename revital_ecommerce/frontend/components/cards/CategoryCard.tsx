@@ -82,7 +82,7 @@ export function CategoryCard({
         className={
           variant === 'highlighted'
             ? "absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,0.35),transparent_55%)] opacity-40"
-            : "absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(254,200,6,0.28),transparent_55%),radial-gradient(circle_at_85%_15%,rgba(249,115,22,0.16),transparent_45%)] opacity-85"
+            : "absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(254,200,6,0.22),transparent_55%),radial-gradient(circle_at_85%_15%,rgba(249,115,22,0.12),transparent_45%)] opacity-65"
         }
       />
 
@@ -92,11 +92,15 @@ export function CategoryCard({
             {icon}
           </div>
           <div>
-            <CardTitle className={`text-lg font-semibold ${variant === 'highlighted' ? 'text-white' : 'text-card-foreground'}`}>
+            <CardTitle
+              className={`line-clamp-1 text-lg font-semibold ${variant === 'highlighted' ? 'text-white' : 'text-card-foreground'}`}
+            >
               {title}
             </CardTitle>
             {description && (
-              <p className={`text-sm ${variant === 'highlighted' ? 'text-white/90' : 'text-muted-foreground'}`}>
+              <p
+                className={`line-clamp-2 text-sm ${variant === 'highlighted' ? 'text-white/90' : 'text-muted-foreground'}`}
+              >
                 {description}
               </p>
             )}

@@ -54,6 +54,33 @@ export default function CategoriesPage() {
     [categories, currentPage]
   );
 
+  const bentoLargeByIndex = useMemo(() => {
+    // Solo hacemos "grandes" a partir de `xl` (grid de 4 columnas).
+    // El objetivo es seleccionar categorías relevantes y, al mismo tiempo,
+    // evitar columnas huérfanas usando una simulación simple del cursor.
+    const GRID_COLS_XL = 4;
+    // Menos tarjetas "grandes" para que no se perciban pegadas.
+    const desiredCount = Math.min(3, Math.max(1, Math.floor((paginatedCategories.length ?? 0) / 6)));
+
+    const scored = (paginatedCategories ?? []).map((c, index) => {
+      const score = recursiveCounts.get(Number(c.id)) ?? c.productCount ?? 0;
+      return { index, score };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    const desired = new Set(scored.slice(0, desiredCount).map((x) => x.index));
+
+    let colCursor = 0; // 0..3
+    return (paginatedCategories ?? []).map((_, index) => {
+      const canPlaceLarge = colCursor === 0 || colCursor === 2;
+      const shouldLarge = canPlaceLarge && desired.has(index);
+
+      colCursor += shouldLarge ? 2 : 1;
+      if (colCursor >= GRID_COLS_XL) colCursor = 0;
+      return shouldLarge;
+    });
+  }, [paginatedCategories, recursiveCounts]);
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -67,10 +94,10 @@ export default function CategoriesPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header (más jerarquía visual, menos plano) */}
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-muted/30 to-background px-6 py-8 md:px-10 md:py-10 mb-10">
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-muted/25 to-background px-6 py-8 md:px-10 md:py-10 mb-10">
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(254,200,6,0.30),transparent_55%),radial-gradient(circle_at_80%_0%,rgba(249,115,22,0.18),transparent_45%)] opacity-90"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(254,200,6,0.22),transparent_55%),radial-gradient(circle_at_80%_0%,rgba(249,115,22,0.14),transparent_45%)] opacity-80"
         />
         <div className="relative">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
@@ -85,9 +112,6 @@ export default function CategoriesPage() {
                 <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/10">
                   {totalItems} categorías
                 </Badge>
-                <Badge variant="outline" className="text-muted-foreground">
-                  Grid 4x4 por página
-                </Badge>
               </div>
             </div>
           </div>
@@ -97,12 +121,12 @@ export default function CategoriesPage() {
       {/* Grid de Categorías (raíz) 4x4 = 16 por página */}
       {categories && categories.length > 0 ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-10 grid-flow-dense">
             {paginatedCategories.map((category, index) => {
               const IconComponent = getIconForCategory(category.name);
               const totalProducts = recursiveCounts.get(Number(category.id)) ?? category.productCount ?? 0;
-              const isFeatured = index === 0 || index === 6;
-              const bentoClass = isFeatured ? "lg:col-span-2 xl:col-span-2" : "";
+              const isLarge = bentoLargeByIndex[index] ?? false;
+              const bentoClass = isLarge ? "xl:col-span-2" : "";
               return (
                 <div key={category.id} className={bentoClass}>
                   <CategoryCard

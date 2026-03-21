@@ -58,7 +58,33 @@ const CategoryPage = () => {
       ),
     [childCategories, childrenPage]
   )
+
   const recursiveCounts = useRecursiveProductCounts(allCategoriesRaw ?? [])
+
+  const bentoLargeByIndex = useMemo(() => {
+    // Solo aplicamos spans "grandes" en `xl` (grid de 4 columnas).
+    const GRID_COLS_XL = 4
+    // Menos tarjetas "grandes" para evitar que queden demasiado juntas.
+    const desiredCount = Math.min(3, Math.max(1, Math.floor((paginatedChildren.length ?? 0) / 6)))
+
+    const scored = (paginatedChildren ?? []).map((c, index) => {
+      const score = recursiveCounts.get(Number(c.id)) ?? c.productos_count ?? 0
+      return { index, score }
+    })
+
+    scored.sort((a, b) => b.score - a.score)
+    const desired = new Set(scored.slice(0, desiredCount).map((x) => x.index))
+
+    let colCursor = 0
+    return (paginatedChildren ?? []).map((_, index) => {
+      const canPlaceLarge = colCursor === 0 || colCursor === 2
+      const shouldLarge = canPlaceLarge && desired.has(index)
+
+      colCursor += shouldLarge ? 2 : 1
+      if (colCursor >= GRID_COLS_XL) colCursor = 0
+      return shouldLarge
+    })
+  }, [paginatedChildren, recursiveCounts])
   // Si la categoría actual es raíz (parent_id null) → hijos son "Líneas"; si no → "Sublíneas"
   const isRootCategory = category?.parent_id == null
   const childrenSectionTitle = isRootCategory ? 'Líneas' : 'Sublíneas'
@@ -86,19 +112,22 @@ const CategoryPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-muted/25 to-background px-5 py-7 md:px-8 md:py-9 mb-10">
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-muted/20 to-background px-5 py-7 md:px-8 md:py-9 mb-10">
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(254,200,6,0.22),transparent_55%),radial-gradient(circle_at_90%_10%,rgba(249,115,22,0.16),transparent_45%)] opacity-90"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(254,200,6,0.18),transparent_55%),radial-gradient(circle_at_90%_10%,rgba(249,115,22,0.12),transparent_45%)] opacity-80"
         />
         <div className="relative">
-        <button
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-primary hover:text-primary/90 mb-4"
+          className="cursor-pointer flex items-center gap-2 text-primary hover:text-primary/90 mb-4 px-2"
         >
           <ArrowLeft className="w-4 h-4" />
           Volver
-        </button>
+        </Button>
 
           <h1 className="text-3xl font-bold text-foreground md:text-4xl">
             {category?.name}
@@ -141,12 +170,12 @@ const CategoryPage = () => {
               {childCategories.length}
             </Badge>
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-10 mb-6 grid-flow-dense">
             {paginatedChildren.map((child, index) => {
               const IconComponent = getIconForCategory(child.name)
               const totalProducts = recursiveCounts.get(Number(child.id)) ?? child.productos_count ?? 0
-              const isFeatured = index === 0 || index === 5;
-              const bentoClass = isFeatured ? "lg:col-span-2 xl:col-span-2" : "";
+              const isLarge = bentoLargeByIndex[index] ?? false
+              const bentoClass = isLarge ? "xl:col-span-2" : "";
               return (
                 <div key={child.id} className={bentoClass}>
                   <CategoryCard
@@ -217,7 +246,7 @@ const CategoryPage = () => {
               {categoryProducts.length} productos
             </Badge>
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
             {categoryProducts.map((product) => (
               <ProductCard
                 key={product.id}
