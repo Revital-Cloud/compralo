@@ -1128,12 +1128,9 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
             dominant_attr_id = name_to_attr_id.get(dom_attr_name) if dom_attr_name else None
             if dominant_attr_id is not None:
                 v["attributes"][str(dominant_attr_id)] = dom_val
-        # Si tipo_clasificacion está vacío en BD, usar el valor dominante del grupo (ej. "Luz Blanca") para el formulario de edición
+        # tipo_clasificacion: solo columna BD o clave explícita en JSON (no el atributo dominante: Color/Potencia/etc.)
         if not (v.get("tipo_clasificacion") or str(v.get("tipo_clasificacion") or "").strip()):
-            dominant_val = group_id_to_dominant_value.get(gid)
-            if dominant_val is not None and str(dominant_val).strip() and str(dominant_val).strip().lower() != "sin color":
-                v["tipo_clasificacion"] = str(dominant_val).strip()
-            elif isinstance(v.get("attributes"), dict) and (v["attributes"] or {}).get("Tipo/Clasificación"):
+            if isinstance(v.get("attributes"), dict) and (v["attributes"] or {}).get("Tipo/Clasificación"):
                 v["tipo_clasificacion"] = str((v["attributes"] or {}).get("Tipo/Clasificación") or "").strip() or None
     variant_groups = []
     for g in group_rows:
@@ -1893,6 +1890,7 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
             "p_precio_min": filters.precio_min,
             "p_precio_max": filters.precio_max,
             "p_solo_con_stock": filters.solo_con_stock,
+            "p_solo_en_oferta": filters.solo_en_oferta,
             "p_ordenar_por": filters.ordenar_por,
             "p_orden": filters.orden,
             "p_limit": filters.limit,
@@ -1903,7 +1901,7 @@ def filter_products(db: Session, filters: ProductFilterParams) -> ProductFilterR
                    id_marca, precio_min, precio_max, stock_total, img_principal, total_registros
             FROM fun_filter_products(
                 :p_category_id, :p_include_subcategories, :p_id_marca, :p_nombre_producto,
-                :p_precio_min, :p_precio_max, :p_solo_con_stock, :p_ordenar_por, :p_orden,
+                :p_precio_min, :p_precio_max, :p_solo_con_stock, :p_solo_en_oferta, :p_ordenar_por, :p_orden,
                 :p_limit, :p_offset
             )
         """)
@@ -2011,6 +2009,7 @@ def get_filter_stats(db: Session, filters: ProductFilterParams) -> ProductFilter
             "p_precio_min": filters.precio_min,
             "p_precio_max": filters.precio_max,
             "p_solo_con_stock": filters.solo_con_stock,
+            "p_solo_en_oferta": filters.solo_en_oferta,
             "p_ordenar_por": "nombre",
             "p_orden": "ASC",
             "p_limit": 10000,
@@ -2020,7 +2019,7 @@ def get_filter_stats(db: Session, filters: ProductFilterParams) -> ProductFilter
             SELECT product_id, category_id, nom_categoria, id_marca, precio_min, stock_total, total_registros
             FROM fun_filter_products(
                 :p_category_id, :p_include_subcategories, :p_id_marca, :p_nombre_producto,
-                :p_precio_min, :p_precio_max, :p_solo_con_stock, :p_ordenar_por, :p_orden,
+                :p_precio_min, :p_precio_max, :p_solo_con_stock, :p_solo_en_oferta, :p_ordenar_por, :p_orden,
                 :p_limit, :p_offset
             )
         """)

@@ -14,8 +14,6 @@ interface ProductsDisplayProps {
   selectedCategoryId: number | null
   selectedBrands: string[]
   selectedAttributes: Record<string, string[]>
-  inStockOnly: boolean
-  onSaleOnly: boolean
   clearAllFilters: () => void
   onRemoveFilter?: (filterType: string, value?: string) => void
   filterOptions?: { categorias?: { id: number; name: string }[]; marcas?: { id_marca: number; nom_marca: string }[]; attributes?: { id: number; name: string; values: string[] }[] } | null
@@ -36,8 +34,6 @@ export const ProductsDisplay = ({
   selectedCategoryId,
   selectedBrands,
   selectedAttributes,
-  inStockOnly,
-  onSaleOnly,
   clearAllFilters,
   onRemoveFilter,
   filterOptions,

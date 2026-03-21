@@ -503,6 +503,7 @@ async def filter_products(
             precio_min=safe_decimal(query_params.get("precio_min")),
             precio_max=safe_decimal(query_params.get("precio_max")),
             solo_con_stock=query_params.get("solo_con_stock", "false").lower() == "true",
+            solo_en_oferta=query_params.get("solo_en_oferta", "false").lower() == "true",
             ordenar_por=query_params.get("ordenar_por", "nombre"),
             orden=query_params.get("orden", "ASC"),
             limit=int(query_params.get("limit", 20)),

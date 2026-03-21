@@ -189,6 +189,8 @@ export interface ProductFilterParams {
   precio_min?: number;
   precio_max?: number;
   solo_con_stock?: boolean;
+  /** Solo productos con descuento automático activo (vitriena), vía API */
+  solo_en_oferta?: boolean;
   ordenar_por?: 'precio' | 'nombre' | 'stock' | 'fecha';
   orden?: 'ASC' | 'DESC';
   limit?: number;

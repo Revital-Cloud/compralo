@@ -18,8 +18,6 @@ interface ProductsFiltersProps {
   setSelectedBrands: (brands: string[]) => void
   selectedAttributes: Record<string, string[]>
   setSelectedAttributes: React.Dispatch<React.SetStateAction<Record<string, string[]>>>
-  inStockOnly: boolean
-  setInStockOnly: (value: boolean) => void
   onSaleOnly: boolean
   setOnSaleOnly: (value: boolean) => void
   filterOptions: FilterOptions | null | undefined
@@ -116,8 +114,6 @@ export const ProductsFilters = ({
   setSelectedBrands,
   selectedAttributes,
   setSelectedAttributes,
-  inStockOnly,
-  setInStockOnly,
   onSaleOnly,
   setOnSaleOnly,
   filterOptions,
@@ -245,7 +241,7 @@ export const ProductsFilters = ({
     <div
       className={`lg:w-80 lg:flex-shrink-0 lg:self-start space-y-4 ${showFilters ? "block" : "hidden md:block"}`}
     >
-      {/* Bloque 1: Categoría, Marca, Precio, Disponibilidad (estático al hacer scroll; no se recarga al cambiar categoría) */}
+      {/* Bloque 1: Categoría, Marca, Precio, Ofertas (estático al hacer scroll; no se recarga al cambiar categoría) */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Filtros</h3>
@@ -445,20 +441,10 @@ export const ProductsFilters = ({
           </div>
         </div>
 
-        {/* Disponibilidad */}
+        {/* Ofertas: descuentos automáticos activos (misma regla que precios tachados en la tienda) */}
         <div className="mb-6">
-          <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Disponibilidad</h4>
+          <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Ofertas</h4>
           <div className="space-y-2">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="inStock"
-                checked={inStockOnly}
-                onCheckedChange={(checked) => setInStockOnly(checked as boolean)}
-              />
-              <label htmlFor="inStock" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                Solo en stock
-              </label>
-            </div>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="onSale"

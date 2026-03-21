@@ -161,10 +161,10 @@ export function ProductFormComposite({
                 if (single === undefined || single === null) return
                 attributes[key] = single as string | number | boolean
               })
-              // tipo_clasificacion: columna directa o fallback desde attributes (dominant / "Tipo/Clasificación")
+              // tipo_clasificacion: columna API o solo clave "Tipo/Clasificación" en attributes (no "dominant"/primer atributo)
               let tipoClasificacion = v.tipo_clasificacion ?? null
               if (!tipoClasificacion || !String(tipoClasificacion).trim()) {
-                const fromAttr = (rawAttrs as Record<string, unknown>)['Tipo/Clasificación'] ?? (rawAttrs as Record<string, unknown>)['dominant']
+                const fromAttr = (rawAttrs as Record<string, unknown>)['Tipo/Clasificación']
                 if (fromAttr != null && String(fromAttr).trim()) {
                   tipoClasificacion = String(fromAttr).trim()
                 }
