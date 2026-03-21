@@ -6,9 +6,15 @@ Revital es una plataforma SaaS de comercio electrónico diseñada para venderse 
 
 ## 🎯 Estado Actual del Proyecto
 
-**Versión**: V1.0 - Funcionalidades Core Implementadas  
-**Estado**: En desarrollo activo (V1 funcional en clientes piloto)  
-**Última actualización**: Febrero 2026
+**Versión**: V1.0 — núcleo funcional completado  
+**Estado**: Fase de **testing, QA y pruebas** (casi todo el alcance V1 está implementado; validación en entornos reales y con clientes piloto)  
+**Última actualización**: Marzo 2026
+
+### 🔬 Fase actual: pruebas y validación
+
+- Ejecución de **pruebas manuales y automatizadas** sobre flujos críticos (catálogo, carrito, checkout, pagos, admin).
+- **Hardering** de edge cases, rendimiento y experiencia de usuario antes del cierre de V1.
+- Seguimiento con **clientes piloto** para feedback y ajustes finos.
 
 ### ✅ Funcionalidades Implementadas
 
@@ -51,7 +57,9 @@ Revital es una plataforma SaaS de comercio electrónico diseñada para venderse 
 - ✅ Triggers automáticos
 - ✅ Vistas materializadas para analytics
 
-### 🚧 En Desarrollo
+### 🚧 Pendiente o en refinamiento (paralelo al testing)
+
+Trabajo menor o iterativo que puede solaparse con la fase de pruebas; no bloquea el cierre funcional de V1.
 
 #### revital_ecommerce:
 - ⏳ **Optimización de experiencia de checkout** (copias, pasos y estados vacíos)
@@ -63,7 +71,7 @@ Revital es una plataforma SaaS de comercio electrónico diseñada para venderse 
 
 - **Cada cliente = Una instancia completa independiente**
 - **Base de datos dedicada por cliente**
-- **Infraestructura separada (Docker containers o VPS)**
+- **Infraestructura separada**
 - **Personalización total por cliente**
 - **Máximo aislamiento y compliance**
 
@@ -314,6 +322,7 @@ pnpm dev
 
 ## 📝 Notas de Desarrollo
 
+- **Prioridad actual**: estabilizar y validar en **testing/QA** antes de ampliar alcance.
 - Cada aplicación funciona **independientemente** y puede ejecutarse por separado
 - Los frontends usan **pnpm** como gestor de paquetes
 - Los backends usan **FastAPI** con hot-reload en modo desarrollo
