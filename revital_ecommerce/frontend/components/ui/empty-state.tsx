@@ -109,7 +109,7 @@ export const EmptyProductsState = ({
       description="Por el momento no tenemos productos en nuestro catálogo. Estamos trabajando para agregar nuevos productos pronto. ¡Vuelve a visitarnos más tarde!"
       action={{
         label: "Explorar categorías",
-        onClick: () => window.location.href = '/'
+        onClick: () => window.location.href = '/categories'
         }}
     />
   )

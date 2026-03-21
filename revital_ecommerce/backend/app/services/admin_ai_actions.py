@@ -426,7 +426,7 @@ def _execute_get_store_summary(db: Session, params: dict, user_id: str | Decimal
         # KPIs principales
         summary_parts.append("📊 KPIs Principales:")
         summary_parts.append(f"  • Total de órdenes: {kpis.get('totalOrders', {}).get('formatted', '0')}")
-        summary_parts.append(f"  • Órdenes activas: {kpis.get('activeOrders', {}).get('formatted', '0')}")
+        summary_parts.append(f"  • Unidades vendidas: {kpis.get('unitsSold', {}).get('formatted', '0')}")
         summary_parts.append(f"  • Órdenes enviadas: {kpis.get('shippedOrders', {}).get('formatted', '0')}")
         summary_parts.append(f"  • Ingresos totales: {kpis.get('totalRevenue', {}).get('formatted', '$0')}")
         

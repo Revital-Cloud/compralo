@@ -42,7 +42,7 @@ import {
 } from "@/components/ui/dialog";
 import { useActiveDiscounts } from "@/hooks/use-discounts";
 import { discountService } from "@/services/discount.service";
-import { 
+import {
   getApplicableDiscount, 
   calculateDiscountedPrice, 
   calculateDiscountPercentage 
@@ -177,9 +177,13 @@ const CheckoutPage = () => {
     }
 
     // Obtener dirección seleccionada
-    const selectedAddress = addresses?.find(
+  const activeAddresses = Array.isArray(addresses)
+    ? addresses.filter((addr) => addr.ind_activa !== false)
+    : [];
+
+  const selectedAddress = activeAddresses.find(
       (addr) => addr.id_direccion?.toString() === informationForm.getValues().direccion
-    ) || addresses?.[0];
+    ) || activeAddresses[0];
 
     if (!selectedAddress?.id_direccion) {
       toast.error('Debes seleccionar una dirección de envío.');
@@ -403,7 +407,11 @@ function InformationStep({
   const [isCreatingNewAddress, setIsCreatingNewAddress] = useState(false);
   
   // Dirección seleccionada
-  const selectedAddress = addresses?.find(
+  const activeAddresses = Array.isArray(addresses)
+    ? addresses.filter((addr) => addr.ind_activa !== false)
+    : [];
+
+  const selectedAddress = activeAddresses.find(
     (addr) => addr.id_direccion?.toString() === selectedAddressId
   );
 
@@ -479,8 +487,8 @@ function InformationStep({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">Selecciona una dirección</SelectItem>
-                      {Array.isArray(addresses) &&
-                        addresses.map((addr) => (
+                      {Array.isArray(activeAddresses) &&
+                        activeAddresses.map((addr) => (
                           <SelectItem key={addr.id_direccion} value={String(addr.id_direccion)}>
                             {addr.nombre_direccion} - {addr.calle_direccion}, {addr.ciudad}
                           </SelectItem>

@@ -10,6 +10,9 @@ Seguridad:
 - Acceso: solo administradores (require_admin en el router).
 """
 import json
+import re
+import time
+import unicodedata
 from typing import Iterator, Optional
 
 from sqlalchemy.orm import Session
@@ -137,7 +140,7 @@ def fetch_intent_data(db: Session, intent: str) -> dict:
         return {
             "kpis": {
                 "totalOrders": kpis.get("totalOrders", {}).get("formatted", "0"),
-                "activeOrders": kpis.get("activeOrders", {}).get("formatted", "0"),
+                "unitsSold": kpis.get("unitsSold", {}).get("formatted", "0"),
                 "shippedOrders": kpis.get("shippedOrders", {}).get("formatted", "0"),
                 "totalRevenue": kpis.get("totalRevenue", {}).get("formatted", "$0"),
             },
@@ -155,7 +158,7 @@ def fetch_intent_data(db: Session, intent: str) -> dict:
         return {
             "kpis": {
                 "totalOrders": kpis.get("totalOrders", {}).get("formatted", "0"),
-                "activeOrders": kpis.get("activeOrders", {}).get("formatted", "0"),
+                "unitsSold": kpis.get("unitsSold", {}).get("formatted", "0"),
                 "shippedOrders": kpis.get("shippedOrders", {}).get("formatted", "0"),
                 "totalRevenue": kpis.get("totalRevenue", {}).get("formatted", "$0"),
             },
@@ -166,6 +169,141 @@ def fetch_intent_data(db: Session, intent: str) -> dict:
         }
 
     return {}
+
+
+def format_intent_reply(intent: str, data: dict) -> str:
+    """
+    Formatea respuestas de solo lectura usando únicamente los datos ya calculados.
+    Evita que un LLM "reescriba" o invente contenido cuando el endpoint de streaming
+    detecta intenciones por keywords.
+    """
+    if not isinstance(data, dict) or not data:
+        return "No sé con certeza con la información disponible."
+
+    # Nota: los valores de KPIs vienen como strings ya formateadas por fetch_intent_data.
+    if intent == "pending_orders":
+        pending = int(data.get("pending_orders", 0) or 0)
+        return (
+            f"Tienes {pending} órdenes pendientes de envío."
+            if pending > 0
+            else "No tienes órdenes pendientes de envío."
+        )
+
+    if intent == "recent_orders":
+        orders = data.get("recentOrders") or []
+        if not orders:
+            return "No hay órdenes recientes."
+        # Mostramos hasta 3 para mantener la respuesta corta.
+        lines: list[str] = []
+        for o in orders[:3]:
+            oid = o.get("id")
+            date = (o.get("date") or "")[:10] if o.get("date") else ""
+            amount = o.get("amount")
+            status = o.get("status") or ""
+            customer = o.get("customer") or "Cliente"
+            lines.append(
+                f"- Orden #{oid} ({customer}) | ${amount} {('(' + status + ')') if status else ''}{(' ' + date) if date else ''}".strip()
+            )
+        return "Órdenes recientes:\n" + "\n".join(lines)
+
+    if intent == "top_products":
+        best = data.get("bestSellers") or []
+        if not best:
+            return "No hay productos con ventas suficientes para mostrar el ranking."
+        lines = []
+        for b in best[:5]:
+            name = b.get("name") or "N/A"
+            sales = b.get("sales") if b.get("sales") is not None else 0
+            lines.append(f"- {name}: {sales} ventas")
+        return "Productos más vendidos:\n" + "\n".join(lines)
+
+    if intent == "sales_summary":
+        kpis = data.get("kpis") or {}
+        total_orders = kpis.get("totalOrders", "0")
+        shipped_orders = kpis.get("shippedOrders", "0")
+        total_revenue = kpis.get("totalRevenue", "$0")
+        units = kpis.get("unitsSold", "0")
+        return (
+            f"Resumen de ventas: {total_orders} órdenes totales, {shipped_orders} completadas, "
+            f"{units} unidades vendidas, ingresos {total_revenue}."
+        )
+
+    if intent == "alerts":
+        alerts = data.get("alerts") or []
+        if not alerts:
+            return "No hay alertas de stock en este momento."
+        return "Alertas de stock:\n" + "\n".join([f"- {a}" for a in alerts])
+
+    if intent == "general":
+        kpis = data.get("kpis") or {}
+        total_orders = kpis.get("totalOrders", "0")
+        shipped_orders = kpis.get("shippedOrders", "0")
+        total_revenue = kpis.get("totalRevenue", "$0")
+        units = kpis.get("unitsSold", "0")
+        best = data.get("bestSellers") or []
+        recent = data.get("recentOrders") or []
+        recent_count = data.get("recentOrdersCount", len(recent) or 0) or 0
+        alerts = data.get("alerts") or []
+
+        parts: list[str] = []
+        parts.append(
+            f"La tienda tiene {total_orders} órdenes totales, {shipped_orders} completadas, "
+            f"{units} unidades vendidas e ingresos {total_revenue}."
+        )
+        if best:
+            top = ", ".join([f"{b.get('name') or 'N/A'} ({b.get('sales') or 0} ventas)" for b in best[:2]])
+            parts.append(f"Productos más vendidos: {top}.")
+        if recent and recent_count:
+            # Solo 1-2 para mantenerlo corto.
+            o0 = recent[0]
+            oid = o0.get("id")
+            customer = o0.get("customer") or "Cliente"
+            amount = o0.get("amount") or 0
+            date = (o0.get("date") or "")[:10] if o0.get("date") else ""
+            parts.append(f"Última orden: #{oid} ({customer}) por ${amount}{(' el ' + date) if date else ''}.")
+        if alerts:
+            parts.append("Alertas de stock: " + ", ".join(alerts[:2]) + ("" if len(alerts) <= 2 else "…"))
+
+        return "\n".join(parts)
+
+    # Si no conocemos el intent, fallamos "cerrado".
+    return "No sé con certeza con la información disponible."
+
+
+def _normalize_for_intent(text: str) -> str:
+    """Normaliza para matching: quita tildes y pasa a minúsculas."""
+    nfkd = unicodedata.normalize("NFD", text)
+    without_accents = "".join(ch for ch in nfkd if unicodedata.category(ch) != "Mn")
+    return without_accents.casefold()
+
+
+def _extract_last_order_id(recent_convs: list[dict[str, any]]) -> int | None:
+    """
+    Extrae el ID de la última orden del historial reciente.
+    Esperado por nuestro propio formatter:
+    "Última orden: #29 (...)".
+    """
+    # Recorremos desde lo más reciente.
+    for conv in reversed(recent_convs):
+        # Preferimos contexto estructurado (si existe).
+        ctx = conv.get("context_data") or {}
+        if isinstance(ctx, dict):
+            raw = ctx.get("last_order_id")
+            if raw is not None:
+                try:
+                    return int(raw)
+                except Exception:
+                    pass
+
+        blob = f"{conv.get('reply') or ''}\n{conv.get('message') or ''}"
+        n = _normalize_for_intent(blob)
+        m = re.search(r"ultima\s*orden\s*:\s*#\s*(\d+)", n, flags=re.IGNORECASE)
+        if m:
+            try:
+                return int(m.group(1))
+            except Exception:
+                return None
+    return None
 
 
 def reply_for_action(message: str, db: Session, user_id: str | int) -> str:
@@ -196,7 +334,8 @@ def reply_for_intent(message: str, intent: str, db: Session) -> str:
     """Genera la respuesta de texto para un mensaje e intención dados (solo lectura)."""
     data = fetch_intent_data(db, intent)
     user_content = f"El usuario pregunta: {message}\n\nDatos disponibles:\n{json.dumps(data, ensure_ascii=False)}\n\nResponde usando solo estos datos."
-    return chat_completion(user_content=user_content, system_content=CHAT_SYSTEM_PROMPT, temperature=0.3)
+    # Temperatura baja para reducir completions inventadas.
+    return chat_completion(user_content=user_content, system_content=CHAT_SYSTEM_PROMPT, temperature=0.0)
 
 
 def _build_action_confirmation_message(action_id: str, params: dict) -> str:
@@ -381,6 +520,79 @@ def chat_with_admin_ai(
     )
     is_top_categories_request = any(kw in msg_lower for kw in INTENT_TOP_CATEGORIES)
     is_top_stock_request = any(kw in msg_lower for kw in INTENT_TOP_STOCK)
+
+    # Helper: follow-up determinista para "esa última orden".
+    # Evitamos pedir al modelo un ID; lo sacamos del historial calculado por el backend.
+    is_last_order_request = any(
+        kw in msg_lower
+        for kw in [
+            "esa ultima orden",
+            "esa última orden",
+            "de la ultima orden",
+            "de la última orden",
+            "ultima orden",
+            "última orden",
+            "informacion de la ultima orden",
+            "información de la ultima orden",
+            "dame informacion de la ultima orden",
+            "dame información de la ultima orden",
+            "informacion de esa ultima orden",
+            "información de esa ultima orden",
+            "informacion de la ultima orden",
+            "información de la ultima orden",
+            "dame informacion de esa ultima orden",
+            "dame información de esa ultima orden",
+        ]
+    )
+    if is_last_order_request:
+        last_order_id = _extract_last_order_id(recent_convs)
+        if last_order_id is not None:
+            try:
+                reply = admin_ai_actions.execute_action(
+                    db,
+                    "get_order",
+                    {"order_id": last_order_id},
+                    user_id,
+                )
+                save_conversation(
+                    db,
+                    user_id,
+                    message,
+                    reply,
+                    context_data=None,
+                    tool_calls=[{
+                        "name": "get_order",
+                        "params": {"order_id": last_order_id},
+                        "status": "executed",
+                    }],
+                )
+                return reply
+            except Exception:
+                # Si algo falla, caemos al flujo normal para que el sistema pueda recuperarse.
+                pass
+        # Si no hay ID en contexto, degradamos de forma segura.
+        return "No sé con certeza con la información disponible."
+
+    # Seguimiento (anti-hallucination):
+    # Si el usuario hace una pregunta corta tipo "y la categoría?" y hace poco
+    # ya se le respondió con "categorías más vendidas por ingresos", interpretamos
+    # ese seguimiento como "top categorías" y ejecutamos el path determinista.
+    is_short_category_followup = bool(
+        re.fullmatch(
+            r"(y\s*)?la\s*categor(ía|ia)s?\??",
+            msg_lower.strip(),
+        )
+        or msg_lower.strip() in {"categoria", "categoría", "categorias", "categorías"}
+    )
+    has_recent_top_categories = any(
+        (
+            "categor" in ((c.get("reply") or "") + " " + (c.get("message") or "")).lower()
+            and "vend" in ((c.get("reply") or "") + " " + (c.get("message") or "")).lower()
+        )
+        for c in recent_convs
+    )
+    if has_recent_top_categories and is_short_category_followup:
+        is_top_categories_request = True
     
     # Si es una pregunta de resumen, ejecutar automáticamente get_store_summary
     enhanced_message = message.strip()
@@ -402,7 +614,7 @@ def chat_with_admin_ai(
             context_data = {
                 "kpis": {
                     "totalOrders": kpis.get("totalOrders", {}).get("formatted", "0"),
-                    "activeOrders": kpis.get("activeOrders", {}).get("formatted", "0"),
+                    "unitsSold": kpis.get("unitsSold", {}).get("formatted", "0"),
                     "shippedOrders": kpis.get("shippedOrders", {}).get("formatted", "0"),
                     "totalRevenue": kpis.get("totalRevenue", {}).get("formatted", "$0"),
                 },
@@ -410,38 +622,22 @@ def chat_with_admin_ai(
                 "recentOrdersCount": len(recent_orders),
                 "alerts": alerts,
             }
-            
-            # Generar una respuesta natural usando el resumen obtenido
-            user_content = f"""El usuario pregunta: {message}
 
-He obtenido el siguiente resumen de la tienda:
-{summary_result}
-
-Genera una respuesta natural y conversacional en español (1-3 frases) basándote en esta información. 
-Sé claro, directo y útil. No repitas toda la información, solo destaca lo más importante."""
-            
-            try:
-                natural_reply = chat_completion(
-                    user_content=user_content,
-                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara, seria pero cercana, usando solo los datos proporcionados.",
-                    temperature=0.3
-                )
-                
-                # Guardar conversación con tool call ejecutado
-                save_conversation(
-                    db, user_id, message, natural_reply,
-                    context_data=context_data,
-                    tool_calls=[{"name": "get_store_summary", "params": {"time_range": "monthly"}, "status": "executed"}]
-                )
-                return natural_reply
-            except Exception:
-                # Si falla la generación natural, devolver el resumen directo
-                save_conversation(
-                    db, user_id, message, summary_result,
-                    context_data=context_data,
-                    tool_calls=[{"name": "get_store_summary", "params": {"time_range": "monthly"}, "status": "executed"}]
-                )
-                return summary_result
+            # IMPORTANTE: evitamos un paso extra con LLM para prevenir “invenciones”.
+            # El backend ya devuelve un texto determinista con datos calculados.
+            save_conversation(
+                db,
+                user_id,
+                message,
+                summary_result,
+                context_data=context_data,
+                tool_calls=[{
+                    "name": "get_store_summary",
+                    "params": {"time_range": "monthly"},
+                    "status": "executed",
+                }],
+            )
+            return summary_result
         except Exception as e:
             # Si falla get_store_summary, continuar con el flujo normal
             print(f"Error al obtener resumen automático: {str(e)}")
@@ -453,30 +649,20 @@ Sé claro, directo y útil. No repitas toda la información, solo destaca lo má
             categories_result = admin_ai_actions.execute_action(
                 db, "get_top_categories_by_revenue", {"limit": 10}, user_id
             )
-            user_content = f"""El usuario pregunta: {message}
 
-He obtenido los siguientes datos de categorías más vendidas:
-{categories_result}
-
-Genera una respuesta natural y conversacional en español (1-3 frases) basándote en esta información.
-Sé claro, directo y útil. Destaca la categoría que más vende si hay datos."""
-            try:
-                natural_reply = chat_completion(
-                    user_content=user_content,
-                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara, seria pero cercana, usando solo los datos proporcionados.",
-                    temperature=0.3,
-                )
-                save_conversation(
-                    db, user_id, message, natural_reply,
-                    tool_calls=[{"name": "get_top_categories_by_revenue", "params": {"limit": 10}, "status": "executed"}],
-                )
-                return natural_reply
-            except Exception:
-                save_conversation(
-                    db, user_id, message, categories_result,
-                    tool_calls=[{"name": "get_top_categories_by_revenue", "params": {"limit": 10}, "status": "executed"}],
-                )
-                return categories_result
+            # IMPORTANTE: evitamos un paso extra con LLM para prevenir “invenciones”.
+            save_conversation(
+                db,
+                user_id,
+                message,
+                categories_result,
+                tool_calls=[{
+                    "name": "get_top_categories_by_revenue",
+                    "params": {"limit": 10},
+                    "status": "executed",
+                }],
+            )
+            return categories_result
         except Exception as e:
             print(f"Error al obtener top categorías: {str(e)}")
             pass
@@ -487,30 +673,20 @@ Sé claro, directo y útil. Destaca la categoría que más vende si hay datos.""
             stock_result = admin_ai_actions.execute_action(
                 db, "get_top_stock_products", {"limit": 10}, user_id
             )
-            user_content = f"""El usuario pregunta: {message}
 
-He obtenido los siguientes datos de productos con mayor stock:
-{stock_result}
-
-Genera una respuesta natural y conversacional en español (1-3 frases) basándote en esta información.
-Sé claro y directo. Menciona el producto con mayor stock."""
-            try:
-                natural_reply = chat_completion(
-                    user_content=user_content,
-                    system_content="Eres un asistente de IA para el panel de administración de la tienda Compralo. Responde en español de forma clara, seria pero cercana, usando solo los datos proporcionados.",
-                    temperature=0.3,
-                )
-                save_conversation(
-                    db, user_id, message, natural_reply,
-                    tool_calls=[{"name": "get_top_stock_products", "params": {"limit": 10}, "status": "executed"}],
-                )
-                return natural_reply
-            except Exception:
-                save_conversation(
-                    db, user_id, message, stock_result,
-                    tool_calls=[{"name": "get_top_stock_products", "params": {"limit": 10}, "status": "executed"}],
-                )
-                return stock_result
+            # IMPORTANTE: evitamos un paso extra con LLM para prevenir “invenciones”.
+            save_conversation(
+                db,
+                user_id,
+                message,
+                stock_result,
+                tool_calls=[{
+                    "name": "get_top_stock_products",
+                    "params": {"limit": 10},
+                    "status": "executed",
+                }],
+            )
+            return stock_result
         except Exception as e:
             print(f"Error al obtener top stock: {str(e)}")
             pass
@@ -529,7 +705,13 @@ Sé claro y directo. Menciona el producto con mayor stock."""
     model_name = _select_model_for_admin_ai(message)
 
     try:
-        response = chat_with_tools(messages=messages, tools=ADMIN_AI_TOOLS, model=model_name)
+        # Temperatura baja para minimizar inferencias no respaldadas por datos.
+        response = chat_with_tools(
+            messages=messages,
+            tools=ADMIN_AI_TOOLS,
+            model=model_name,
+            temperature=0.0,
+        )
     except ValueError:
         # IA no disponible -> mensaje claro al usuario.
         error_msg = "La IA no está configurada actualmente. Pídele al administrador que configure GROQ_API_KEY."
@@ -652,9 +834,43 @@ def stream_reply_sse(
         return
     try:
         data = fetch_intent_data(db, intent)
-        user_content = f"El usuario pregunta: {message}\n\nDatos disponibles:\n{json.dumps(data, ensure_ascii=False)}\n\nResponde usando solo estos datos."
-        for chunk in chat_completion_stream(user_content=user_content, system_content=CHAT_SYSTEM_PROMPT, temperature=0.3):
-            yield f"data: {json.dumps({'text': chunk})}\n\n".encode("utf-8")
+        reply_text = format_intent_reply(intent, data)
+
+        # Persistimos el historial también en streaming para que los follow-ups
+        # ("esa última orden", etc.) sean deterministas y no dependan de parsing frágil.
+        last_order_id = None
+        recent_orders = data.get("recentOrders") if isinstance(data, dict) else None
+        if isinstance(recent_orders, list) and recent_orders:
+            raw_id = recent_orders[0].get("id") or recent_orders[0].get("order_id")
+            if raw_id is not None:
+                try:
+                    last_order_id = int(raw_id)
+                except Exception:
+                    last_order_id = None
+        if user_id is not None:
+            save_conversation(
+                db,
+                user_id,
+                message,
+                reply_text,
+                context_data={
+                    "intent": intent,
+                    "last_order_id": last_order_id,
+                },
+                tool_calls=None,
+            )
+
+        def iter_chunks(text: str, chunk_size: int = 28) -> Iterator[str]:
+            text = text or ""
+            if not text:
+                return
+            for i in range(0, len(text), chunk_size):
+                yield text[i : i + chunk_size]
+
+        for chunk in iter_chunks(reply_text):
+            yield f"data: {json.dumps({'text': chunk}, ensure_ascii=False)}\n\n".encode("utf-8")
+            # Pequeño respiro para que el front renderice por chunks con claridad.
+            time.sleep(0.01)
     except Exception:
         yield f"data: {json.dumps({'error': 'Error al generar respuesta'})}\n\n".encode("utf-8")
 
@@ -673,7 +889,7 @@ def generate_dashboard_summary(db: Session, time_range: str = "monthly") -> str:
         "timeRange": time_range,
         "kpis": {
             "totalOrders": kpis.get("totalOrders", {}).get("formatted", "0"),
-            "activeOrders": kpis.get("activeOrders", {}).get("formatted", "0"),
+            "unitsSold": kpis.get("unitsSold", {}).get("formatted", "0"),
             "shippedOrders": kpis.get("shippedOrders", {}).get("formatted", "0"),
             "totalRevenue": kpis.get("totalRevenue", {}).get("formatted", "$0"),
         },
@@ -683,4 +899,4 @@ def generate_dashboard_summary(db: Session, time_range: str = "monthly") -> str:
         "alerts": alerts,
     }
     user_content = f"Resume estos datos del dashboard en 2-4 frases:\n\n{json.dumps(context, ensure_ascii=False)}"
-    return chat_completion(user_content=user_content, system_content=SUMMARY_SYSTEM_PROMPT, temperature=0.3)
+    return chat_completion(user_content=user_content, system_content=SUMMARY_SYSTEM_PROMPT, temperature=0.0)

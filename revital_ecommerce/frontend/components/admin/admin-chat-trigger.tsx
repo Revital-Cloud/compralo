@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui'
-import { IconRobot } from '@tabler/icons-react'
+import { IconSparkles } from '@tabler/icons-react'
 import { AiChatPanel } from './ai-chat-panel'
 import { aiService } from '@/services/ai.service'
 
@@ -27,7 +27,7 @@ export function AdminChatTrigger() {
         onClick={() => setOpen(true)}
         title="Abrir asistente de IA"
       >
-        <IconRobot className="h-5 w-5" />
+        <IconSparkles className="h-5 w-5" />
       </Button>
       <AiChatPanel open={open} onOpenChange={setOpen} aiEnabled={aiEnabled} />
     </>

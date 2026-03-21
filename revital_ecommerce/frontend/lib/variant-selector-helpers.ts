@@ -96,33 +96,48 @@ function variantFullyMatchesSelection(
 }
 
 /**
+ * Checks if all required attributes (by name) have a selected value.
+ */
+export function hasAllRequiredSelections(
+  selectedAttributes: Record<string, string | null>,
+  requiredAttrNames: string[]
+): boolean {
+  if (requiredAttrNames.length === 0) return true
+  return requiredAttrNames.every((name) => {
+    const val = selectedAttributes[name]
+    return val != null && String(val).trim() !== ""
+  })
+}
+
+/**
  * Finds the variant that matches the selected attributes. Returns the first match or null.
- * When nothing is selected (selectedCount === 0), returns null so the UI shows "Selecciona todas las opciones".
- * If only one variant matches the current selection, that variant is returned.
- * If several variants match (e.g. same color, different tipo), the one that "fully matches" is returned:
- * i.e. every attribute in the variant is already selected (e.g. variant with only Color when user selected only Color).
+ * Requires ALL required attribute names to be selected before returning any variant.
+ * When nothing is selected (selectedCount === 0), returns null.
  */
 export function findExactVariant(
   selectedAttributes: Record<string, string | null>,
-  variants: Variant[]
+  variants: Variant[],
+  requiredAttrNames?: string[]
 ): Variant | null {
   const selectedCount = Object.values(selectedAttributes).filter(
     (v) => v != null && String(v).trim() !== ""
   ).length
   if (selectedCount === 0) return null
 
+  // Exigir que TODOS los atributos requeridos estén seleccionados
+  if (requiredAttrNames && requiredAttrNames.length > 0) {
+    if (!hasAllRequiredSelections(selectedAttributes, requiredAttrNames)) return null
+  }
+
   const valid = getValidVariants(selectedAttributes, variants)
   if (valid.length === 0) return null
-  
-  // Si solo hay una variante válida, retornarla directamente
-  if (valid.length === 1) return valid[0]
 
-  // Si hay múltiples variantes válidas, buscar la que "coincide completamente" con la selección
-  // (es decir, todos sus valores únicos están seleccionados)
+  // Solo retornar variante si hay UNA sola variante que coincida completamente
+  // (evita devolver variante con selección parcial cuando hay varias opciones)
+  if (valid.length === 1) {
+    return variantFullyMatchesSelection(valid[0], selectedAttributes) ? valid[0] : null
+  }
+
   const fullMatch = valid.filter((v) => variantFullyMatchesSelection(v, selectedAttributes))
-  if (fullMatch.length > 0) return fullMatch[0]
-
-  // Si ninguna coincide completamente pero hay variantes válidas, retornar la primera
-  // Esto permite que el botón se habilite cuando la selección identifica únicamente una variante
-  return valid[0]
+  return fullMatch.length > 0 ? fullMatch[0] : null
 }

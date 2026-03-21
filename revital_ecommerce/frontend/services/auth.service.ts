@@ -97,11 +97,32 @@ export async function verifyEmailOtp(data: VerifyEmailOtpRequest): Promise<Token
 }
 
 /**
+ * Reenviar código OTP de verificación de email.
+ */
+export async function resendEmailOtp(email: string): Promise<ApiResponse> {
+  return await post<ApiResponse>('/resend-email-otp', { email });
+}
+
+/**
  * Registro de un nuevo usuario
  */
 export async function register(userData: RegisterRequest): Promise<ApiResponse> {
   // El backend espera un objeto JSON directamente.
   return await post<ApiResponse>('/users', userData);
+}
+
+/**
+ * Desactiva la cuenta del usuario autenticado (soft delete).
+ */
+export async function deactivateAccount(): Promise<ApiResponse> {
+  return await post<ApiResponse>('/users/me/deactivate', {});
+}
+
+/**
+ * Solicita reactivación de cuenta soft-deleted. Envía email de cambio de contraseña.
+ */
+export async function requestAccountReactivation(email: string): Promise<ApiResponse> {
+  return await post<ApiResponse>('/users/reactivate-request', { email });
 }
 
 // =============================================================================
@@ -119,6 +140,9 @@ const authService = {
   confirmPasswordReset,
   verifyEmailOtp,
   verifyToken,
+  deactivateAccount,
+  requestAccountReactivation,
+   resendEmailOtp,
 };
 
 export default authService; 

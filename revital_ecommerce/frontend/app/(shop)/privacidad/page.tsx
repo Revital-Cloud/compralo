@@ -1,4 +1,6 @@
+import type { Metadata } from "next"
 import Link from "next/link"
+import { buildOpenGraph, buildTwitter } from "@/lib/seo"
 
 const MOCK = {
   titulo: "Política de Privacidad",
@@ -25,6 +27,30 @@ const MOCK = {
       contenido: "Ley 1581 de 2012 – Protección de Datos Personales; Decreto 1377 de 2013; Decreto 1074 de 2015; Circular Externa 002 de 2015 – SIC.",
     },
   ],
+}
+
+export const generateMetadata = (): Metadata => {
+  const title = "Política de privacidad"
+  const description =
+    "Consulta cómo Compralo trata tus datos personales, qué información recopilamos y cuáles son tus derechos de protección de datos."
+
+  return {
+    title,
+    description,
+    robots: {
+      index: true,
+      follow: true,
+    },
+    openGraph: buildOpenGraph({
+      title,
+      description,
+      pathname: "/privacidad",
+    }),
+    twitter: buildTwitter({
+      title,
+      description,
+    }),
+  }
 }
 
 export default function PrivacidadPage() {

@@ -51,56 +51,11 @@ Revital es una plataforma SaaS de comercio electrónico diseñada para venderse 
 - ✅ Triggers automáticos
 - ✅ Vistas materializadas para analytics
 
-#### 🎛️ revital_panel (Panel de Control SaaS)
-
-**Backend (FastAPI)**:
-- ✅ **Autenticación JWT** para usuarios SaaS
-- ✅ **Gestión de instancias** (crear, configurar, monitorear)
-- ✅ **Gestión de clientes** (empresas que contratan Revital)
-- ✅ **Gestión de planes** de suscripción (Starter, Business, Enterprise)
-- ✅ **Gestión de suscripciones** activas
-- ✅ **Sistema de facturación** y pagos recurrentes
-- ✅ **Gestión de deployments** (configuración de infraestructura)
-- ✅ **Gestión de dominios** personalizados
-- ✅ **Monitoreo de uso de recursos** por instancia
-- ✅ **Historial de planes** (cambios de plan)
-- ✅ **Rate limiting** y seguridad
-
-**Frontend (Next.js 16)**:
-- ✅ **Landing page** de marketing con secciones:
-  - Hero section con CTA
-  - Sección de características
-  - Comparación de planes
-  - FAQ
-  - Contacto
-- ✅ **Panel de control** para clientes SaaS:
-  - Dashboard con overview de instancia
-  - Gestión de suscripción y plan
-  - Facturación y pagos
-  - Configuración de dominio
-  - Monitoreo de recursos
-  - Configuración de cuenta y seguridad
-- ✅ **Sistema de autenticación** (login/registro)
-- ✅ **Interfaz responsive** con modo oscuro
-- ✅ **Componentes UI** con shadcn/ui
-
-**Base de Datos**:
-- ✅ Esquema completo para gestión SaaS
-- ✅ Funciones almacenadas por módulo
-- ✅ Triggers de auditoría
-
 ### 🚧 En Desarrollo
 
 #### revital_ecommerce:
 - ⏳ **Optimización de experiencia de checkout** (copias, pasos y estados vacíos)
 - ⏳ **Ampliación de analytics** con más métricas de negocio
-
-#### revital_panel:
-- ⏳ **Panel administrativo** completo para Revital (gestión de todas las instancias)
-- ⏳ **Automatización de deployments** (integración con Docker/CI-CD)
-- ⏳ **Sistema de alertas** por uso de recursos
-- ⏳ **Integración con pasarelas de pago** para facturación automática
-- ⏳ **Dashboard de analytics** de la plataforma SaaS completa
 
 ## 🏢 Modelo de Negocio SaaS
 
@@ -142,7 +97,6 @@ Revital es una plataforma SaaS de comercio electrónico diseñada para venderse 
 
 - **Wompi** - Procesamiento de pagos (configuración por cliente)
 - **Resend** - Emails transaccionales con branding personalizado
-- **Docker** - Containerización para deployment de instancias
 
 ## 📁 Estructura del Proyecto
 
@@ -182,47 +136,6 @@ revital/                          # Repositorio GitHub (solo código fuente)
 │       ├── Functions/           # Funciones almacenadas por tabla
 │       ├── triggers/            # Triggers de BD
 │       └── views/               # Vistas materializadas
-│
-├── revital_panel/                # 🎛️ PANEL DE CONTROL SAAS (gestión de instancias)
-│   ├── backend/                 # FastAPI - API gestión SaaS
-│   │   ├── app/
-│   │   │   ├── core/            # Configuración (DB, JWT, rate limiting)
-│   │   │   ├── middlewares/     # Auth, roles, seguridad
-│   │   │   ├── routers/         # Endpoints SaaS (instancias, clientes, planes, facturación)
-│   │   │   ├── schemas/         # Validación Pydantic
-│   │   │   ├── services/        # Lógica de negocio SaaS
-│   │   │   └── main.py          # Punto de entrada FastAPI
-│   │   ├── requirements.txt
-│   │   └── README.md
-│   ├── frontend/                # Next.js 16 - Landing + Panel SaaS
-│   │   ├── app/
-│   │   │   ├── page.tsx         # Landing page (marketing)
-│   │   │   ├── login/           # Login para clientes SaaS
-│   │   │   ├── register/        # Registro de nuevos clientes
-│   │   │   └── (dashboard)/     # Panel de control SaaS
-│   │   │       ├── dashboard/   # Overview de instancias
-│   │   │       ├── instance/    # Gestión de instancias
-│   │   │       ├── subscription/# Gestión de suscripciones
-│   │   │       ├── billing/     # Facturación y pagos
-│   │   │       ├── resources/   # Uso de recursos
-│   │   │       └── settings/    # Configuración de cuenta
-│   │   ├── components/
-│   │   │   ├── ui/              # Componentes shadcn/ui
-│   │   │   ├── dashboard/       # Componentes del dashboard
-│   │   │   ├── layout/          # Layout components (sidebar, header)
-│   │   │   └── auth/            # Componentes de autenticación
-│   │   ├── hooks/               # Custom hooks React
-│   │   ├── services/            # Servicios API (instancias, clientes, etc.)
-│   │   ├── types/               # Tipos TypeScript
-│   │   ├── utils/               # Utilidades
-│   │   ├── providers/           # Providers (query)
-│   │   ├── public/              # Assets estáticos (logos, imágenes)
-│   │   ├── package.json
-│   │   └── README.md
-│   └── db/                      # Base de datos PostgreSQL SaaS
-│       ├── db_revitalsaas.sql    # Esquema completo
-│       ├── Functions/            # Funciones almacenadas por tabla
-│       └── triggers/            # Triggers de BD
 │
 ├── docs/                         # Documentación del proyecto
 └── README.md                     # Este archivo
@@ -264,77 +177,9 @@ revital/                          # Repositorio GitHub (solo código fuente)
 
 **Cuándo se usa**: Cada vez que un cliente SaaS necesita su propia tienda online. Se despliega como una instancia completamente aislada con su propia BD y configuración.
 
----
-
-#### 🎛️ **revital_panel** - Panel de Control SaaS (Gestión Centralizada)
-
-**Propósito**: Esta es la aplicación que permite a **Revital (la empresa)** gestionar todas las instancias de clientes, suscripciones, facturación y el proceso de onboarding de nuevos clientes.
-
-**Backend (`revital_panel/backend`)**:
-- **FastAPI** para gestión SaaS centralizada
-- **Funcionalidades principales**:
-  - Gestión de **instancias** de clientes (crear, configurar, monitorear)
-  - Gestión de **clientes** (empresas que contratan Revital)
-  - Gestión de **planes** de suscripción (Starter, Business, Enterprise)
-  - Gestión de **suscripciones** activas
-  - **Facturación** y pagos recurrentes
-  - **Deployments** (configuración de infraestructura por cliente)
-  - **Dominios** personalizados por cliente
-  - **Uso de recursos** (monitoreo de consumo)
-  - **Historial de planes** (cambios de plan)
-- **Base de datos**: PostgreSQL centralizada (`db_revitalsaas.sql`) que almacena metadatos de todas las instancias
-
-**Frontend (`revital_panel/frontend`)**:
-- **Next.js 16** con App Router
-- **Landing page** de marketing para atraer nuevos clientes
-- **Panel de control** para clientes SaaS que incluye:
-  - Dashboard con overview de su instancia
-  - Gestión de su suscripción y plan
-  - Facturación y pagos
-  - Configuración de dominio personalizado
-  - Monitoreo de uso de recursos
-  - Configuración de cuenta y seguridad
-- **Panel administrativo** (futuro) para que Revital gestione todas las instancias
-
-**Cuándo se usa**: 
-- **Landing page**: Para marketing y captación de nuevos clientes
-- **Panel de cliente**: Cuando un cliente SaaS necesita gestionar su instancia, cambiar de plan, ver facturación, etc.
-- **Panel admin**: Para que Revital gestione todas las instancias de forma centralizada
-
----
-
 ### 🔄 Relación entre las Aplicaciones
 
-```
-┌───────────────────────────────────────────────────────────┐
-│                    revital_panel                           │
-│  (Gestión SaaS - Una sola instancia para Revital)          │
-│                                                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │  Cliente A   │  │  Cliente B   │  │  Cliente C   │     │
-│  │  Plan: Pro   │  │  Plan: Basic │  │  Plan: Pro   │     │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘     │
-└─────────┼─────────────────┼─────────────────┼─────────────┘
-          │                 │                 │
-          ▼                 ▼                 ▼
-┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│ revital_ecommerce│ │ revital_ecommerce│ │ revital_ecommerce│
-│  (Instancia A)  │ │  (Instancia B)  │ │  (Instancia C)  │
-│                 │ │                 │ │                 │
-│ • BD propia     │ │ • BD propia     │ │ • BD propia     │
-│ • Dominio:      │ │ • Dominio:      │ │ • Dominio:      │
-│   tienda-a.com  │ │   tienda-b.com  │ │   tienda-c.com  │
-│ • Config única  │ │ • Config única  │ │ • Config única  │
-└─────────────────┘ └─────────────────┘ └─────────────────┘
-```
-
-**Flujo típico**:
-1. Un cliente potencial visita la **landing page** (`revital_panel`)
-2. Se registra y elige un plan en **revital_panel**
-3. Se crea una nueva **instancia** en `revital_panel/backend`
-4. Se despliega automáticamente una nueva instancia de **revital_ecommerce** para ese cliente
-5. El cliente gestiona su tienda desde **revital_ecommerce**
-6. El cliente gestiona su suscripción desde **revital_panel**
+Revital actualmente se despliega como instancias independientes de `revital_ecommerce`. Cada cliente tiene su propia base de datos y su propio deployment aislado.
 
 ---
 
@@ -457,77 +302,6 @@ pnpm dev
 
 ---
 
-## 🎛️ Configuración de revital_panel (Panel SaaS)
-
-### 3.1. Configurar Base de Datos
-
-```bash
-# Crear base de datos PostgreSQL
-createdb revital_saas
-
-# Importar esquema
-psql revital_saas < revital_panel/db/db_revitalsaas.sql
-
-# (Opcional) Importar funciones almacenadas
-# psql revital_saas < revital_panel/db/Functions/[archivo].sql
-```
-
-### 3.2. Configurar Backend
-
-```bash
-cd revital_panel/backend
-
-# Crear entorno virtual
-python -m venv venv
-
-# Activar entorno virtual
-source venv/bin/activate  # Linux/Mac
-# .\venv\Scripts\activate  # Windows
-
-# Instalar dependencias
-pip install -r requirements.txt
-
-# Configurar variables de entorno
-cp .env.example .env
-# Editar .env con tu configuración de BD:
-# DATABASE_URL=postgresql://usuario:password@localhost:5432/revital_saas
-# JWT_SECRET=tu_secret_key_aqui
-```
-
-### 3.3. Configurar Frontend
-
-```bash
-cd ../frontend
-
-# Instalar dependencias
-pnpm install
-
-# Configurar variables de entorno
-cp .env.local.example .env.local
-# Editar .env.local con:
-# NEXT_PUBLIC_API_URL=http://localhost:8001
-```
-
-### 3.4. Ejecutar revital_panel
-
-```bash
-# Terminal 3 - Backend
-cd revital_panel/backend
-source venv/bin/activate
-fastapi dev app/main.py
-
-# Terminal 4 - Frontend
-cd revital_panel/frontend
-pnpm dev
-```
-
-**URLs**:
-- Frontend (Landing + Panel): http://localhost:4001
-- Backend API: http://localhost:8001
-- API Docs: http://localhost:8001/docs
-
----
-
 ## 👤 Accesos por Defecto
 
 ### revital_ecommerce (Usuarios de la tienda)
@@ -535,11 +309,6 @@ pnpm dev
 - **Admin**: admin@revital.com / admin123
 - **Employee**: empleado@revital.com / empleado123
 - **Customer**: cliente@revital.com / cliente123
-
-### revital_panel (Usuarios del panel SaaS)
-
-- **Cliente SaaS**: (crear desde el registro en la landing page)
-- **Admin Revital**: (configurar según necesidad)
 
 ---
 
@@ -550,7 +319,6 @@ pnpm dev
 - Los backends usan **FastAPI** con hot-reload en modo desarrollo
 - Las bases de datos son **completamente separadas** (una para e-commerce, otra para SaaS)
 - Para desarrollo local, puedes ejecutar solo `revital_ecommerce` si solo trabajas en la tienda
-- Para desarrollo local, puedes ejecutar solo `revital_panel` si solo trabajas en el panel SaaS
 
 ## 🏗️ Deployment de Instancias de Cliente
 
@@ -586,7 +354,7 @@ pnpm dev
 
 ### Gestión Centralizada
 
-- **Panel de control** para todas las instancias
+- Gestión centralizada (interna) de instancias y deployments
 - **Deployment automatizado** de nuevos clientes
 - **Updates distribuidos** a todas las instancias
 - **Billing integration** por cliente activo
@@ -614,8 +382,6 @@ pnpm dev
 
 - **[Backend E-commerce](./revital_ecommerce/backend/README.md)** - Documentación detallada del backend
 - **[Frontend E-commerce](./revital_ecommerce/frontend/README.md)** - Guía del frontend y componentes
-- **[Frontend Revital Panel](./revital_panel/frontend/README.md)** - Documentación de la landing page y panel
-- **[Backend Revital Panel](./revital_panel/backend/README.md)** - Documentación del backend de gestión
 - **API Interactive**: Swagger UI disponible en cada instancia en `/docs`
 
 ## 🤝 Contribución

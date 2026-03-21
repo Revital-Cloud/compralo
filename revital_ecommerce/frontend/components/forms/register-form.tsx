@@ -14,10 +14,12 @@ import {
 } from "@/components/ui";
 import { Input } from "@/components/ui";
 import { useAuth } from "@/hooks/use-auth";
+import authService from "@/services/auth.service";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui";
+import { toast } from "sonner";
 import { useState } from "react";
 import { ArrowLeft, Loader2, CalendarIcon } from 'lucide-react';
 import { Calendar } from "@/components/ui";
-import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui";
@@ -34,14 +36,31 @@ import {
 import { useRouter } from "next/navigation";
 import { registerSchema } from "@/schemas/auth.schema";
 import type { RegisterRequest } from "@/types";
-import { toLocalISOString, parseLocalDate, formatDateSpanish, fixCalendarDateSelection, debugDate } from "@/utils/date-helpers";
+import { parseLocalDate, formatDateSpanish, fixCalendarDateSelection, debugDate } from "@/utils/date-helpers";
+import {
+  getLockoutState,
+  formatLockoutCountdown,
+  REGISTER_ATTEMPT_CONFIG,
+  REGISTER_ATTEMPT_KEY,
+  remainingLockoutSeconds,
+} from "@/lib/auth-attempt-limiter";
+import { useAuthLockout } from "@/hooks/use-auth-lockout";
 
 type FormValues = z.infer<typeof registerSchema>;
 
 export function RegisterForm() {
   const { register: registerUser } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [reactivateModalOpen, setReactivateModalOpen] = useState(false);
+  const [softDeletedEmail, setSoftDeletedEmail] = useState<string | null>(null);
+  const [isReactivating, setIsReactivating] = useState(false);
   const router = useRouter();
+
+  const { isLocked, remainingSeconds } = useAuthLockout(
+    REGISTER_ATTEMPT_KEY,
+    REGISTER_ATTEMPT_CONFIG,
+  );
+  const formDisabled = isLoading || isLocked;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(registerSchema),
@@ -59,6 +78,15 @@ export function RegisterForm() {
   });
 
   const onSubmit = async (values: FormValues) => {
+    const lock = getLockoutState(REGISTER_ATTEMPT_KEY);
+    if (lock.remainingMs > 0) {
+      toast.error(
+        `Demasiados intentos de registro. Espera ${formatLockoutCountdown(
+          remainingLockoutSeconds({ remainingMs: lock.remainingMs }),
+        )} para volver a intentarlo.`,
+      );
+      return;
+    }
     try {
       setIsLoading(true);
       const dataToSubmit: RegisterRequest = {
@@ -74,9 +102,13 @@ export function RegisterForm() {
       // Redirigir a verificación de email (código OTP enviado al correo)
       router.push(`/verify-email?email=${encodeURIComponent(values.email_usuario)}`);
     } catch (error: any) {
-      console.error('Error en registro:', error);
-      // El error ya se maneja en el hook useAuth con toast
-      // Aquí podríamos agregar manejo adicional si es necesario
+      const status = error?.response?.status;
+      const detail = error?.response?.data?.detail;
+      const code = typeof detail === 'object' ? detail?.code : undefined;
+      if (status === 409 && code === 'ACCOUNT_SOFT_DELETED') {
+        setSoftDeletedEmail(values.email_usuario);
+        setReactivateModalOpen(true);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -102,6 +134,15 @@ export function RegisterForm() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {isLocked && (
+                <p
+                  className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                  role="alert"
+                >
+                  Demasiados intentos fallidos. Podrás enviar el formulario de nuevo en{" "}
+                  {formatLockoutCountdown(remainingSeconds)}.
+                </p>
+              )}
               <FormField
                 control={form.control}
                 name="id_usuario"
@@ -112,7 +153,7 @@ export function RegisterForm() {
                       <Input
                         placeholder="Tu número de identificación"
                         {...field}
-                        disabled={isLoading}
+                        disabled={formDisabled}
                         type="number"
                         maxLength={11}
                         minLength={10}
@@ -132,7 +173,7 @@ export function RegisterForm() {
                     <FormItem>
                       <FormLabel>Nombre <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="John" {...field} disabled={isLoading} type="text"/>
+                        <Input placeholder="John" {...field} disabled={formDisabled} type="text"/>
                       </FormControl>
                       <FormMessage className="min-h-[1.25rem]" />
                     </FormItem>
@@ -145,7 +186,7 @@ export function RegisterForm() {
                     <FormItem>
                       <FormLabel>Apellido <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
-                        <Input placeholder="Doe" {...field} disabled={isLoading} type="text"/>
+                        <Input placeholder="Doe" {...field} disabled={formDisabled} type="text"/>
                       </FormControl>
                       <FormMessage className="min-h-[1.25rem]" />
                     </FormItem>
@@ -163,7 +204,7 @@ export function RegisterForm() {
                         placeholder="john.doe@example.com"
                         {...field}
                         type="email"
-                        disabled={isLoading}
+                        disabled={formDisabled}
                       />
                     </FormControl>
                     <FormMessage className="min-h-[1.25rem]" />
@@ -181,7 +222,7 @@ export function RegisterForm() {
                         value={field.value}
                         onChange={field.onChange}
                         placeholder="••••••••"
-                        disabled={isLoading}
+                        disabled={formDisabled}
                         showToggle={true}
                         showStrength={true}
                         showCriteria={true}
@@ -201,9 +242,16 @@ export function RegisterForm() {
                       <FormControl>
                         <Input
                           placeholder="+57 300 123 4567"
-                          {...field}
-                          disabled={isLoading}
-                          type="number"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const onlyDigits = e.target.value.replace(/\D/g, "").slice(0, 10)
+                          field.onChange(onlyDigits)
+                        }}
+                        disabled={formDisabled}
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
                         />
                       </FormControl>
                       <FormMessage className="min-h-[1.25rem]" />
@@ -218,7 +266,7 @@ export function RegisterForm() {
                       <FormLabel>Género <span className="text-destructive">*</span></FormLabel>
                       <FormControl>
                         <Select
-                          disabled={isLoading}
+                          disabled={formDisabled}
                           value={field.value}
                           onValueChange={field.onChange}
                         >
@@ -251,7 +299,7 @@ export function RegisterForm() {
                               "w-full pl-3 text-left font-normal hover:bg-accent/50 dark:hover:bg-accent/20 dark:hover:text-white",
                               !field.value && "text-muted-foreground dark:text-white/90"
                             )}
-                            disabled={isLoading}
+                            disabled={formDisabled}
                           >
                             {field.value ? (
                               formatDateSpanish(field.value)
@@ -295,7 +343,7 @@ export function RegisterForm() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full mt-6" disabled={isLoading}>
+              <Button type="submit" className="w-full mt-6" disabled={formDisabled}>
                 {isLoading && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
@@ -311,8 +359,47 @@ export function RegisterForm() {
           </Form>
         </CardContent>
       </Card>
+
+      <Dialog open={reactivateModalOpen} onOpenChange={(open) => {
+        setReactivateModalOpen(open);
+        if (!open) setSoftDeletedEmail(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cuenta eliminada</DialogTitle>
+            <DialogDescription>
+              Este correo ya tenía una cuenta eliminada. ¿Deseas reactivarla?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReactivateModalOpen(false)} disabled={isReactivating}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!softDeletedEmail) return;
+                try {
+                  setIsReactivating(true);
+                  await authService.requestAccountReactivation(softDeletedEmail);
+                  toast.success("Te enviamos un correo para reactivar tu cuenta. Revisa tu bandeja de entrada.");
+                  setReactivateModalOpen(false);
+                  setSoftDeletedEmail(null);
+                } catch {
+                  toast.error("Error al solicitar reactivación. Inténtalo de nuevo.");
+                } finally {
+                  setIsReactivating(false);
+                }
+              }}
+              disabled={isReactivating}
+            >
+              {isReactivating ? "Enviando..." : "Reactivar cuenta"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="text-muted-foreground text-center text-xs text-balance">
-        Al hacer clic en continuar, aceptas nuestros{" "}
+        Al hacer clic en Crear cuenta, aceptas nuestros{" "}
         <Link href="/terminos" className="underline underline-offset-4 hover:text-primary">
           Términos de Servicio
         </Link>{" "}

@@ -162,6 +162,7 @@ export async function filterProducts(filters: ProductFilterParams): Promise<Prod
   if (filters.precio_min !== undefined) params.append('precio_min', filters.precio_min.toString());
   if (filters.precio_max !== undefined) params.append('precio_max', filters.precio_max.toString());
   if (filters.solo_con_stock !== undefined) params.append('solo_con_stock', filters.solo_con_stock.toString());
+  if (filters.solo_en_oferta !== undefined) params.append('solo_en_oferta', filters.solo_en_oferta.toString());
   if (filters.ordenar_por) params.append('ordenar_por', filters.ordenar_por);
   if (filters.orden) params.append('orden', filters.orden);
   if (filters.limit !== undefined) params.append('limit', filters.limit.toString());
@@ -188,6 +189,7 @@ export async function getFilterStats(filters: ProductFilterParams): Promise<Prod
   if (filters.precio_min !== undefined) params.append('precio_min', filters.precio_min.toString());
   if (filters.precio_max !== undefined) params.append('precio_max', filters.precio_max.toString());
   if (filters.solo_con_stock !== undefined) params.append('solo_con_stock', filters.solo_con_stock.toString());
+  if (filters.solo_en_oferta !== undefined) params.append('solo_en_oferta', filters.solo_en_oferta.toString());
   if (filters.ordenar_por) params.append('ordenar_por', filters.ordenar_por);
   if (filters.orden) params.append('orden', filters.orden);
   if (filters.limit !== undefined) params.append('limit', filters.limit.toString());

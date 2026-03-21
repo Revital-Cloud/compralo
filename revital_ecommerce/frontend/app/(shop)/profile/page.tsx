@@ -112,7 +112,6 @@ export default function ProfilePage() {
     const updatedValues: any = {};
     if (values.nom_usuario && values.nom_usuario.trim() !== "") updatedValues.nom_usuario = values.nom_usuario.trim();
     if (values.ape_usuario && values.ape_usuario.trim() !== "") updatedValues.ape_usuario = values.ape_usuario.trim();
-    if (values.email_usuario && values.email_usuario.trim() !== "") updatedValues.email_usuario = values.email_usuario.trim();
     if (values.cel_usuario && values.cel_usuario.trim() !== "") updatedValues.cel_usuario = values.cel_usuario.trim();
     // avatar_seed puede ser null o string, siempre incluirlo si está presente
     if (values.avatar_seed !== undefined) updatedValues.avatar_seed = values.avatar_seed;

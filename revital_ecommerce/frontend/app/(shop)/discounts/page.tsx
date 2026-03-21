@@ -5,8 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, Badge, Butto
 import { Tag, Calendar, Percent, DollarSign, ShoppingCart, Loader2 } from "lucide-react"
 import { formatPrice } from "@/utils/format-price"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
+import type { Discount } from "@/types/discount"
 
 export default function DiscountsPage() {
+  const router = useRouter()
   const { data: discounts, isLoading, error } = useActiveDiscounts(50)
 
   if (isLoading) {
@@ -63,6 +66,34 @@ export default function DiscountsPage() {
       month: 'long', 
       day: 'numeric' 
     })
+  }
+
+  const handleViewProducts = (discount: Discount) => {
+    // Si aplica a un producto específico, ir directamente al detalle de ese producto
+    if (discount.aplica_a === "producto_especifico" && discount.id_producto_aplica) {
+      router.push(`/products/${discount.id_producto_aplica}`)
+      return
+    }
+
+    // Si aplica a una categoría / línea / sublínea específica, filtrar por categoría
+    if (
+      (discount.aplica_a === "categoria_especifica" ||
+        discount.aplica_a === "linea_especifica" ||
+        discount.aplica_a === "sublinea_especifica") &&
+      discount.id_categoria_aplica
+    ) {
+      router.push(`/products?category_id=${discount.id_categoria_aplica}`)
+      return
+    }
+
+    // Si aplica a una marca específica, filtrar por marca
+    if (discount.aplica_a === "marca_especifica" && discount.id_marca_aplica) {
+      router.push(`/products?brand_id=${discount.id_marca_aplica}`)
+      return
+    }
+
+    // Para descuentos globales (total_pedido, todos, costo_envio, compra_minima, etc.)
+    router.push("/products")
   }
 
   return (
@@ -182,6 +213,16 @@ export default function DiscountsPage() {
                       {discount.usos_actuales_total || 0} de {discount.max_usos_total} usos
                     </div>
                   )}
+
+                  {/* Botón para ver productos con este descuento aplicado */}
+                  <Button
+                    variant="outline"
+                    className="w-full mt-2 flex items-center justify-center gap-2"
+                    onClick={() => handleViewProducts(discount as Discount)}
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    Ver productos
+                  </Button>
                 </CardContent>
               </Card>
             ))}

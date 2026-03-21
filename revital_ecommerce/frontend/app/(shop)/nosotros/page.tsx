@@ -1,4 +1,6 @@
+import type { Metadata } from "next"
 import Link from "next/link"
+import { buildOpenGraph, buildTwitter } from "@/lib/seo"
 
 const MOCK = {
   nombre: "Compralo",
@@ -15,6 +17,26 @@ const MOCK = {
     { nombre: "Carlos López", rol: "CTO" },
     { nombre: "Ana Martínez", rol: "Directora de Operaciones" },
   ],
+}
+
+export const generateMetadata = (): Metadata => {
+  const title = "Acerca de Compralo"
+  const description =
+    "Conoce la misión, visión, valores y equipo detrás de Compralo, tu tienda online de confianza."
+
+  return {
+    title,
+    description,
+    openGraph: buildOpenGraph({
+      title,
+      description,
+      pathname: "/nosotros",
+    }),
+    twitter: buildTwitter({
+      title,
+      description,
+    }),
+  }
 }
 
 export default function AboutUsPage() {

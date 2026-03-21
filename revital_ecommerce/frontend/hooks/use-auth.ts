@@ -12,6 +12,15 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import authService from '@/services/auth.service';
 import { getApiErrorMessage } from '@/utils/apiWrapper';
+import {
+  clearFailures,
+  loginAttemptKey,
+  recordFailure,
+  setLockoutUntil,
+  LOGIN_ATTEMPT_CONFIG,
+  REGISTER_ATTEMPT_CONFIG,
+  REGISTER_ATTEMPT_KEY,
+} from '@/lib/auth-attempt-limiter';
 import * as userService from '@/services/user.service';
 import { isAuthenticated, clearTokens } from '@/utils/apiWrapper';
 import { useCookies } from './use-cookies';
@@ -61,7 +70,7 @@ export function useAuth() {
   });
 
   // Mutación para login
-  const { mutate: login, isPending: isLoggingIn } = useMutation({
+  const { mutate: login, isPending: isLoggingIn } = useMutation<TokenResponse, unknown, LoginRequest>({
     mutationFn: (credentials: LoginRequest) => {
       // Validar cookies antes de permitir login
       if (!canUseCookie('necessary')) {
@@ -69,7 +78,10 @@ export function useAuth() {
       }
       return authService.login(credentials);
     },
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
+      if (variables?.email) {
+        clearFailures(loginAttemptKey(variables.email));
+      }
       toast.success('¡Bienvenido! Has iniciado sesión correctamente');
       
       // Refresca la query del usuario actual para obtener sus datos
@@ -104,13 +116,53 @@ export function useAuth() {
         // Los layouts se encargarán de la redirección según el contexto
       }
     },
-    onError: (error: any) => {
+    // error: incluye las variables (credenciales) para poder iniciar flujo de reactivación
+    onError: async (error: any, variables?: LoginRequest) => {
       // Manejar errores específicos de cookies
       if (error.message?.includes('cookies')) {
         toast.error('Para iniciar sesión, debes aceptar las cookies necesarias');
         return;
       }
-      
+
+      const status = error?.response?.status;
+      const detail = error?.response?.data?.detail;
+      const code = typeof detail === 'object' ? detail?.code : undefined;
+
+      // Caso especial: cuenta desactivada (soft delete) → iniciar flujo de reactivación desde login
+      if (status === 403 && code === 'ACCOUNT_SOFT_DELETED' && variables?.email) {
+        try {
+          await authService.requestAccountReactivation(variables.email);
+          toast.error(
+            'Tu cuenta ha sido desactivada. Te enviamos un correo para reactivarla. Revisa tu bandeja de entrada.'
+          );
+        } catch {
+          toast.error('Tu cuenta está desactivada y hubo un error al enviar el correo de reactivación.');
+        }
+        return;
+      }
+
+      if (status === 429 && variables?.email) {
+        const retryAfter = error?.response?.data?.retry_after;
+        let retryAfterSeconds: number | null = null;
+        if (typeof retryAfter === 'number' && Number.isFinite(retryAfter)) {
+          retryAfterSeconds = Math.max(0, Math.ceil(retryAfter));
+        } else if (typeof retryAfter === 'string') {
+          const parsed = parseInt(retryAfter, 10);
+          if (!Number.isNaN(parsed)) retryAfterSeconds = Math.max(0, parsed);
+        }
+
+        if (retryAfterSeconds !== null && retryAfterSeconds > 0) {
+          setLockoutUntil(
+            loginAttemptKey(variables.email),
+            Date.now() + retryAfterSeconds * 1000,
+          );
+        }
+      }
+
+      if (status === 401 && variables?.email) {
+        recordFailure(loginAttemptKey(variables.email), LOGIN_ATTEMPT_CONFIG);
+      }
+
       const message = getApiErrorMessage(error, 'Error al iniciar sesión. Verifica tus credenciales.');
       toast.error(message);
     },
@@ -139,6 +191,7 @@ export function useAuth() {
       return authService.register(userData);
     },
     onSuccess: () => {
+      clearFailures(REGISTER_ATTEMPT_KEY);
       toast.success('¡Cuenta creada exitosamente! Ya puedes iniciar sesión.');
     },
     onError: (error: any) => {
@@ -147,7 +200,35 @@ export function useAuth() {
         toast.error('Para crear una cuenta, debes aceptar las cookies necesarias');
         return;
       }
-      
+      // No mostrar toast para ACCOUNT_SOFT_DELETED: el RegisterForm mostrará el modal de reactivación
+      const status = error?.response?.status;
+      const detail = error?.response?.data?.detail;
+      const code = typeof detail === 'object' ? detail?.code : undefined;
+      if (status === 409 && code === 'ACCOUNT_SOFT_DELETED') {
+        throw error;
+      }
+
+      if (status === 429) {
+        const retryAfter = error?.response?.data?.retry_after;
+        let retryAfterSeconds: number | null = null;
+        if (typeof retryAfter === 'number' && Number.isFinite(retryAfter)) {
+          retryAfterSeconds = Math.max(0, Math.ceil(retryAfter));
+        } else if (typeof retryAfter === 'string') {
+          const parsed = parseInt(retryAfter, 10);
+          if (!Number.isNaN(parsed)) retryAfterSeconds = Math.max(0, parsed);
+        }
+
+        if (retryAfterSeconds !== null && retryAfterSeconds > 0) {
+          setLockoutUntil(
+            REGISTER_ATTEMPT_KEY,
+            Date.now() + retryAfterSeconds * 1000,
+          );
+        }
+      }
+
+      if (typeof status === 'number' && status >= 400 && status !== 429) {
+        recordFailure(REGISTER_ATTEMPT_KEY, REGISTER_ATTEMPT_CONFIG);
+      }
       const message = getApiErrorMessage(error, 'Error al crear la cuenta. Inténtalo de nuevo.');
       toast.error(message);
       throw error; // Re-lanzar el error para que el componente lo pueda manejar
@@ -176,6 +257,19 @@ export function useAuth() {
     await updateProfileMutation.mutateAsync(userData);
   };
 
+  /**
+   * Desactiva la cuenta del usuario (soft delete).
+   * Llama al backend, hace logout, limpia el estado y redirige al login.
+   */
+  const deactivateAccount = async () => {
+    await authService.deactivateAccount();
+    await authService.logout();
+    queryClient.clear();
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+  };
+
   // Función helper para verificar si se pueden usar cookies
   const canUseCookies = () => canUseCookie('necessary');
 
@@ -194,6 +288,7 @@ export function useAuth() {
     logout,
     register,
     updateProfile,
+    deactivateAccount,
     canUseCookies: () => canUseCookie('necessary'),
     isHydrated, // Exponer el estado de hidratación
   };

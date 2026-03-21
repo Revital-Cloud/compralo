@@ -13,6 +13,7 @@ import { useActiveDiscounts } from "@/hooks/use-discounts"
 import { CART_LIMITS } from "@/services/cart.service"
 import { getApplicableDiscount, calculateDiscountedPrice, calculateDiscountPercentage } from "@/utils/discount-utils"
 import { formatPrice } from "@/utils/format-price"
+import { getProductImageUrl } from "@/utils/image-helpers"
 
 interface MiniCartHoverProps {
   trigger: React.ReactNode
@@ -202,8 +203,7 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
         {isLoading ? (
           <div className="p-4 text-sm text-muted-foreground">Cargando...</div>
         ) : Array.isArray(items) && items.length > 0 ? (
-          <ScrollArea className="flex-1" style={{ maxHeight: 'calc(85vh - 120px)', minHeight: 0 }}>
-            <div className="flex flex-col">
+          <div className="flex flex-col">
               <ul className="divide-y divide-gray-200 dark:divide-gray-700">
                 {items.slice(0, 6).map((item) => {
                   // IDs temporales de optimistic update (Date.now()) no existen en backend
@@ -230,7 +230,13 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
                     <li key={item.id_carrito_producto} className="flex items-center gap-3 p-3">
                       <div className="relative h-12 w-12 shrink-0 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800">
                         {item.imagen_url ? (
-                          <Image src={item.imagen_url} alt={item.nombre_producto} fill sizes="48px" className="object-cover" />
+                          <Image
+                            src={getProductImageUrl(item.imagen_url)}
+                            alt={item.nombre_producto}
+                            fill
+                            sizes="48px"
+                            className="object-cover"
+                          />
                         ) : (
                           <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">IMG</div>
                         )}
@@ -316,6 +322,19 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
                 })}
               </ul>
 
+              {Array.isArray(items) && items.length > 6 && (
+                <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+                  <Link href="/cart" className="block">
+                    <Button
+                      variant="outline"
+                      className="w-full h-10 rounded-lg border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
+                    >
+                      Ver demás productos
+                    </Button>
+                  </Link>
+                </div>
+              )}
+
               <div className="px-4 py-3 space-y-3 border-t border-gray-200 dark:border-gray-700">
               {(() => {
                 const totalDescAutomaticos = Number(totals?.total_desc_automaticos ?? 0);
@@ -381,15 +400,13 @@ const MiniCartHover: React.FC<MiniCartHoverProps> = ({ trigger }) => {
               })()}
               <div className="flex gap-2">
               <Link href="/cart" className="w-full">
-                  <Button variant="outline" className="w-full cursor-pointer border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white">Ver carrito</Button>
+                  <Button variant="outline" className="w-full cursor-pointer border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white">
+                    Ver carrito
+                  </Button>
                 </Link>
               </div>
-              {Array.isArray(items) && items.length > 6 && (
-                <p className="text-[11px] text-muted-foreground text-center">y {items.length - 6} más…</p>
-              )}
               </div>
-            </div>
-          </ScrollArea>
+          </div>
         ) : (
           <div className="p-6 text-center space-y-2">
             <p className="text-sm font-medium">Tu carrito está vacío</p>

@@ -1,4 +1,6 @@
+import type { Metadata } from "next"
 import Link from "next/link"
+import { buildOpenGraph, buildTwitter } from "@/lib/seo"
 
 const MOCK_PRESS = [
   {
@@ -20,6 +22,30 @@ const MOCK_PRESS = [
     resumen: "Hito de operaciones alcanzado gracias al crecimiento en usuarios y confianza en la plataforma.",
   },
 ]
+
+export const generateMetadata = (): Metadata => {
+  const title = "Sala de prensa"
+  const description =
+    "Consulta los comunicados y notas de prensa más recientes sobre Compralo."
+
+  return {
+    title,
+    description,
+    robots: {
+      index: true,
+      follow: true,
+    },
+    openGraph: buildOpenGraph({
+      title,
+      description,
+      pathname: "/prensa",
+    }),
+    twitter: buildTwitter({
+      title,
+      description,
+    }),
+  }
+}
 
 export default function PressPage() {
   return (

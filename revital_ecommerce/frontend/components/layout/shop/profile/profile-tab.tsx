@@ -19,6 +19,7 @@ interface ProfileTabProps {
 
 export default function ProfileTab({ user, form, isEditing, onSubmit }: ProfileTabProps) {
   const { data: stats, isLoading } = useAccountStats(user.id_usuario);
+  const celField = form.register("cel_usuario");
 
   return (
     <div className="space-y-6">
@@ -59,7 +60,7 @@ export default function ProfileTab({ user, form, isEditing, onSubmit }: ProfileT
                     id="email_usuario" 
                     type="email" 
                     {...form.register("email_usuario")}
-                    disabled={!isEditing} 
+                    disabled={true} 
                   />
                   {form.formState.errors.email_usuario && (
                     <p className="text-sm text-red-500">{form.formState.errors.email_usuario.message}</p>
@@ -69,7 +70,12 @@ export default function ProfileTab({ user, form, isEditing, onSubmit }: ProfileT
                   <Label htmlFor="cel_usuario">Teléfono</Label>
                   <Input 
                     id="cel_usuario" 
-                    {...form.register("cel_usuario")}
+                    {...celField}
+                    value={form.watch("cel_usuario") || ""}
+                    onChange={(e) => {
+                      const onlyDigits = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      form.setValue("cel_usuario", onlyDigits, { shouldValidate: true });
+                    }}
                     disabled={!isEditing} 
                   />
                   {form.formState.errors.cel_usuario && (

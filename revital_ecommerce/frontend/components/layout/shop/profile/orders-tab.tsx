@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { getReviewedProductsInOrder } from "@/services/review.service";
+import { getProductImageUrl } from "@/utils/image-helpers";
 
 interface OrderItem {
   id_orden: number;
@@ -183,24 +184,7 @@ export default function OrdersTab() {
   };
 
   const getProductImage = (productImage: any) => {
-    if (!productImage) return null;
-    
-    try {
-      // Si es un string, intentar parsearlo como JSON
-      if (typeof productImage === 'string') {
-        const parsed = JSON.parse(productImage);
-        return parsed.main || parsed.url || null;
-      }
-      
-      // Si es un objeto, buscar main o url
-      if (typeof productImage === 'object') {
-        return productImage.main || productImage.url || null;
-      }
-      
-      return null;
-    } catch {
-      return null;
-    }
+    return getProductImageUrl(productImage, "/placeholder-product.jpg");
   };
 
   // Estado para rastrear reseñas enviadas por orden (solo en la sesión actual)
@@ -356,7 +340,7 @@ export default function OrdersTab() {
                     <p className="font-medium mb-3">Productos</p>
                     <div className="space-y-4">
                       {orderDetail.items.map((it, idx) => {
-                        const productImage = it.imagen_url || getProductImage(it.product_image);
+                        const productImage = getProductImageUrl(it.imagen_url || it.product_image, "/placeholder-product.jpg");
                         const isReviewing = reviewingProduct === it.id_item;
                         const productKey = it.id_producto != null ? String(it.id_producto) : `item-${it.id_item ?? idx}`;
                         const orderReviews = reviewsSentByOrder.get(orderDetail.id_orden) || new Set();

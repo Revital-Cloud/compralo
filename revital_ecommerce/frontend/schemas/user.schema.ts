@@ -29,7 +29,18 @@ export const profileSchema = z.object({
       nameError
     ),
   email_usuario: z.string().email("Por favor, introduce una dirección de correo válida.").optional(),
-  cel_usuario: z.string().min(9, "El número de celular debe tener al menos 9 dígitos.").optional(),
+  cel_usuario: z
+    .string()
+    .optional()
+    .refine(
+      (v) =>
+        v === undefined ||
+        v === "" ||
+        /^\d{9,10}$/.test(v),
+      {
+        message: "El número de celular debe tener entre 9 y 10 dígitos y solo números.",
+      }
+    ),
   des_direccion: z.string().optional(),
   fec_nacimiento: z.string().optional(),
   avatar_seed: z.string().nullable().optional(), // Seed para el avatar de Facehash

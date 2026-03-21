@@ -17,7 +17,7 @@ import * as productService from "@/services/product.service"
 import { getProductImageUrl } from "@/utils/image-helpers"
 import { normalizeProductDetail, type ApiProductResponse } from "@/lib/product-detail-normalizer"
 import { useActiveDiscounts } from "@/hooks/use-discounts"
-import { 
+import {
   getApplicableDiscount, 
   calculateDiscountedPrice, 
   calculateDiscountPercentage 
@@ -145,11 +145,18 @@ const ProductPageContent = () => {
     [product]
   )
 
-  // Variantes que coinciden con la selección actual de atributos (filtrado dependiente)
+  // Variantes que coinciden con la selección actual de atributos (filtrado dependiente).
+  // Solo exigir selección en atributos donde realmente hay elección (2+ valores).
   const matchingVariantIds = useMemo(() => {
     if (attributesFromApi.length === 0) return new Set(variants.map((v: { id: number }) => v.id))
+    const requiredAttrs = attributesFromApi.filter((attr) => (attr.values?.length ?? 0) >= 2)
+    const allRequiredSelected = requiredAttrs.every((attr) => {
+      const val = (selectedAttributes[String(attr.attribute_id)] ?? "").trim()
+      return val !== ""
+    })
+    if (!allRequiredSelected) return new Set<number>()
     let ids: Set<number> | null = null
-    for (const attr of attributesFromApi) {
+    for (const attr of requiredAttrs) {
       const selectedVal = selectedAttributes[String(attr.attribute_id)]
       if (!selectedVal) continue
       const valueObj = attr.values.find((v) => (v.value ?? "").trim() === (selectedVal ?? "").trim())
@@ -158,7 +165,7 @@ const ProductPageContent = () => {
       if (ids === null) ids = vids
       else ids = new Set<number>([...ids].filter((id: number) => vids.has(id)))
     }
-    return ids ?? new Set(variants.map((v: { id: number }) => v.id))
+    return ids ?? new Set<number>()
   }, [attributesFromApi, selectedAttributes, variants])
 
   // Por cada atributo, marcar qué valores están disponibles (existen en alguna variante que coincida con el resto de selección)
@@ -186,17 +193,15 @@ const ProductPageContent = () => {
 
   const variantGroups = (product as { variant_groups?: Array<{ id: number; dominant_attribute?: string; dominant_value: string; images: Array<{ image_url?: string; is_main?: boolean; sort_order?: number }> }> })?.variant_groups ?? []
 
-  // Preseleccionar primera variante/color o primeros atributos cuando cargan los datos (solo flujo legacy)
+  // Preseleccionar primera variante/color solo cuando NO hay atributos (flujo legacy simple).
+  // NUNCA preseleccionar atributos por attribute_id: el usuario debe elegir explícitamente.
   useEffect(() => {
     if (useVariantSelectorFlow || !product) return
     if (attributesFromApi.length > 0) {
-      const initial: Record<string, string> = {}
-      for (const attr of attributesFromApi) {
-        const firstVal = attr.values[0]?.value
-        if (firstVal) initial[String(attr.attribute_id)] = firstVal
-      }
-      setSelectedAttributes((prev) => (Object.keys(prev).length === 0 ? initial : prev))
-    } else if (colors.length > 0) {
+      // No preseleccionar: selectedAttributes queda vacío hasta que el usuario seleccione
+      return
+    }
+    if (colors.length > 0) {
       const firstColor = colors[0].value
       setSelectedColor(firstColor)
       const firstV = (product as any)?.variants?.find((v: { color?: string }) => (v.color ?? '').trim() === (firstColor ?? '').trim())
@@ -515,6 +520,18 @@ const ProductPageContent = () => {
       return
     }
 
+    // Validación: no permitir agregar si no hay una combinación/variante válida seleccionada.
+    // Este proyecto usa variant_id (combination id) en el carrito/órdenes.
+    const requiresVariantSelection =
+      useVariantSelectorFlow ||
+      attributesFromApi.length > 0 ||
+      (Array.isArray(variants) && variants.length > 0)
+
+    if (requiresVariantSelection && effectiveSelectedVariantId == null) {
+      toast.error('Selecciona todas las opciones antes de agregar al carrito')
+      return
+    }
+
     const opciones: Record<string, string> = {}
     if (useVariantSelectorFlow) {
       Object.entries(variantSelector.selectedAttributes).forEach(([attrName, val]) => {
@@ -685,7 +702,12 @@ const ProductPageContent = () => {
               }}
               description={product.description}
               canAddToCartOverride={useVariantSelectorFlow ? !!variantSelector.selectedVariant && productStock > 0 : (attributesWithAvailability.length > 0 ? !!selectedVariant && productStock > 0 : undefined)}
-              addToCartDisabledLabel={useVariantSelectorFlow && !variantSelector.selectedVariant ? "Selecciona todas las opciones" : undefined}
+              addToCartDisabledLabel={
+                (useVariantSelectorFlow && !variantSelector.selectedVariant) ||
+                (!useVariantSelectorFlow && attributesWithAvailability.length > 0 && !selectedVariant)
+                  ? "Selecciona todas las opciones"
+                  : undefined
+              }
               optionsSlot={useVariantSelectorFlow ? (
                 <ProductVariantSelector
                   attributeDefinitions={variantSelector.attributeDefinitions}
@@ -818,6 +840,38 @@ const ProductPageContent = () => {
         onClose={() => setShowCartToast(false)}
         onViewCart={handleViewCart}
       />
+      {product && typeof window !== "undefined" && (
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Product",
+              name: product.name,
+              image: productImagesResolved,
+              description: product.description,
+              sku: (product as any).sku ?? undefined,
+              brand: product.nom_marca
+                ? {
+                    "@type": "Brand",
+                    name: product.nom_marca,
+                  }
+                : undefined,
+              offers: {
+                "@type": "Offer",
+                priceCurrency: "COP",
+                price: discountedPrice,
+                availability:
+                  productStock > 0
+                    ? "https://schema.org/InStock"
+                    : "https://schema.org/OutOfStock",
+                url: `${window.location.origin}/products/${slug}`,
+              },
+            }),
+          }}
+        />
+      )}
     </div>
   )
 }

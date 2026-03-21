@@ -9,6 +9,23 @@ from sqlalchemy import text
 from typing import Dict, List, Any
 
 
+def _format_revenue_full(value: float) -> str:
+    """
+    Ingresos sin abreviaturas (K/M): monto completo con miles en punto, decimales en coma (es-CO).
+    """
+    d = Decimal(str(float(value))).quantize(Decimal('0.01'))
+    sign = '-' if d < 0 else ''
+    d = abs(d)
+    if d == d.to_integral():
+        n = int(d)
+        grouped = f'{n:,}'.replace(',', '.')
+        return f'{sign}${grouped}'
+    whole, frac = f'{d:.2f}'.split('.')
+    whole_int = int(whole)
+    grouped_whole = f'{whole_int:,}'.replace(',', '.')
+    return f'{sign}${grouped_whole},{frac}'
+
+
 def get_dashboard_data(db: Session, time_range: str = 'monthly') -> Dict[str, Any]:
     """
     Obtiene todos los datos necesarios para el dashboard administrativo.
@@ -70,9 +87,15 @@ def _get_kpis(db: Session, start_date: datetime, end_date: datetime) -> Dict[str
     current_query = text("""
         SELECT 
             COUNT(*) as total_orders,
-            COUNT(*) FILTER (WHERE ind_estado = 1) as active_orders,
             COUNT(*) FILTER (WHERE ind_estado = 2) as shipped_orders,
-            COALESCE(SUM(val_total_pedido) FILTER (WHERE ind_estado = 2), 0) as total_revenue
+            COALESCE(SUM(val_total_pedido) FILTER (WHERE ind_estado = 2), 0) as total_revenue,
+            (
+                SELECT COALESCE(SUM(op.cant_producto), 0)
+                FROM tab_orden_productos op
+                INNER JOIN tab_ordenes o2 ON op.id_orden = o2.id_orden
+                WHERE o2.ind_estado = 2
+                  AND o2.fec_pedido >= :start_date AND o2.fec_pedido <= :end_date
+            ) as units_sold
         FROM tab_ordenes
         WHERE fec_pedido >= :start_date AND fec_pedido <= :end_date
     """)
@@ -91,9 +114,15 @@ def _get_kpis(db: Session, start_date: datetime, end_date: datetime) -> Dict[str
     previous_query = text("""
         SELECT 
             COUNT(*) as total_orders,
-            COUNT(*) FILTER (WHERE ind_estado = 1) as active_orders,
             COUNT(*) FILTER (WHERE ind_estado = 2) as shipped_orders,
-            COALESCE(SUM(val_total_pedido) FILTER (WHERE ind_estado = 2), 0) as total_revenue
+            COALESCE(SUM(val_total_pedido) FILTER (WHERE ind_estado = 2), 0) as total_revenue,
+            (
+                SELECT COALESCE(SUM(op.cant_producto), 0)
+                FROM tab_orden_productos op
+                INNER JOIN tab_ordenes o2 ON op.id_orden = o2.id_orden
+                WHERE o2.ind_estado = 2
+                  AND o2.fec_pedido >= :start_date AND o2.fec_pedido < :end_date
+            ) as units_sold
         FROM tab_ordenes
         WHERE fec_pedido >= :start_date AND fec_pedido < :end_date
     """)
@@ -118,15 +147,15 @@ def _get_kpis(db: Session, start_date: datetime, end_date: datetime) -> Dict[str
         return int(value or 0)
     
     total_orders = safe_int(current.get('total_orders', 0))
-    active_orders = safe_int(current.get('active_orders', 0))
     shipped_orders = safe_int(current.get('shipped_orders', 0))
     total_revenue = safe_float(current.get('total_revenue', 0))
+    units_sold = safe_int(current.get('units_sold', 0))
     
     # Valores anteriores
     prev_total_orders = safe_int(previous.get('total_orders', 0))
-    prev_active_orders = safe_int(previous.get('active_orders', 0))
     prev_shipped_orders = safe_int(previous.get('shipped_orders', 0))
     prev_total_revenue = safe_float(previous.get('total_revenue', 0))
+    prev_units_sold = safe_int(previous.get('units_sold', 0))
     
     # Calcular crecimiento
     def calculate_growth(current, previous):
@@ -136,11 +165,7 @@ def _get_kpis(db: Session, start_date: datetime, end_date: datetime) -> Dict[str
     
     def format_value(value, is_revenue=False):
         if is_revenue:
-            if value >= 1000000:
-                return f"${value/1000000:.1f}M"
-            elif value >= 1000:
-                return f"${value/1000:.1f}K"
-            return f"${value:.0f}"
+            return _format_revenue_full(value)
         else:
             if value >= 1000:
                 return f"{value/1000:.1f}K"
@@ -153,11 +178,11 @@ def _get_kpis(db: Session, start_date: datetime, end_date: datetime) -> Dict[str
             'trend': 'up' if total_orders >= prev_total_orders else 'down',
             'formatted': format_value(total_orders)
         },
-        'activeOrders': {
-            'value': active_orders,
-            'growth': calculate_growth(active_orders, prev_active_orders),
-            'trend': 'up' if active_orders >= prev_active_orders else 'down',
-            'formatted': format_value(active_orders)
+        'unitsSold': {
+            'value': units_sold,
+            'growth': calculate_growth(units_sold, prev_units_sold),
+            'trend': 'up' if units_sold >= prev_units_sold else 'down',
+            'formatted': format_value(units_sold)
         },
         'shippedOrders': {
             'value': shipped_orders,

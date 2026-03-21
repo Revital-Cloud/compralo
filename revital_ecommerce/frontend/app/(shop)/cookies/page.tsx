@@ -1,4 +1,6 @@
+import type { Metadata } from "next"
 import Link from "next/link"
+import { buildOpenGraph, buildTwitter } from "@/lib/seo"
 
 const MOCK = {
   titulo: "Política de Cookies",
@@ -22,6 +24,30 @@ const MOCK = {
       contenido: "Tienes derecho a retirar tu consentimiento en cualquier momento. Para más detalles sobre el tratamiento de datos personales asociado al uso de cookies, consulta nuestra Política de Privacidad.",
     },
   ],
+}
+
+export const generateMetadata = (): Metadata => {
+  const title = "Política de cookies"
+  const description =
+    "Infórmate sobre el uso de cookies en Compralo, los tipos que utilizamos y cómo gestionar tus preferencias."
+
+  return {
+    title,
+    description,
+    robots: {
+      index: true,
+      follow: true,
+    },
+    openGraph: buildOpenGraph({
+      title,
+      description,
+      pathname: "/cookies",
+    }),
+    twitter: buildTwitter({
+      title,
+      description,
+    }),
+  }
 }
 
 export default function CookiesPage() {

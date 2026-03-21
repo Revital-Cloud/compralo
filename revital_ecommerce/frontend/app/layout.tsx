@@ -27,10 +27,14 @@ const geistMono = Geist_Mono({
 
 const siteOrigin = getPublicSiteOrigin();
 const siteName = "Compralo";
-const siteDescription = "Compralo - tienda online";
+const siteDescription =
+  "Compralo es tu tienda online para descubrir y comprar productos de múltiples categorías con envíos rápidos y seguros.";
 
 export const metadata: Metadata = {
-  title: siteName,
+  title: {
+    default: siteName,
+    template: `%s | ${siteName}`,
+  },
   description: siteDescription,
   metadataBase: new URL(siteOrigin),
   openGraph: {
@@ -38,6 +42,16 @@ export const metadata: Metadata = {
     description: siteDescription,
     type: "website",
     url: siteOrigin,
+    siteName,
+    locale: "es_ES",
+    images: [
+      {
+        url: "/api/og",
+        width: 1200,
+        height: 630,
+        alt: siteName,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
@@ -61,11 +75,41 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: siteName,
+    url: siteOrigin,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${siteOrigin}/products?search={search_term_string}`,
+      "query-input": "required name=search_term_string",
+    },
+  };
+
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: siteName,
+    url: siteOrigin,
+    logo: `${siteOrigin}/favicon.ico`,
+  };
+
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href={apiOrigin} crossOrigin="anonymous" />
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
       </head>
       <body
         className={cn(

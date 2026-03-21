@@ -13,7 +13,7 @@ from core.database import get_db
 from core.dependencies import get_current_user, get_current_user_optional
 from core.exceptions import get_safe_message
 from schemas.user_schema import User, UserCreate, UserUpdate, UserPublic, ResponseMessage
-from schemas.auth_schema import UserInToken
+from schemas.auth_schema import UserInToken, ReactivateRequest
 from services import user_service
 from core.jwt_utils import get_password_hash
 from core.otp_store import set_otp, get_otp_expires_minutes
@@ -65,20 +65,92 @@ async def send_user_registration_emails(user_email: str, user_name: str):
     except Exception as e:
         print(f"⚠️ Error enviando emails al usuario {user_email}: {str(e)}")
 
+@router.post("/users/me/deactivate", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute")
+async def deactivate_account(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user),
+):
+    """
+    Desactiva la cuenta del usuario autenticado (soft delete).
+    Solo el propio usuario puede desactivar su cuenta.
+    """
+    try:
+        user_service.soft_delete_user(
+            db,
+            Decimal(str(current_user.id_usuario)),
+            Decimal(str(current_user.id_usuario)),
+        )
+        return ResponseMessage(message="Cuenta desactivada correctamente.")
+    except Exception as e:
+        if "no encontrado" in str(e).lower():
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=get_safe_message(e),
+        )
+
+
+@router.post("/users/reactivate-request", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute")
+@limiter.limit("20/hour")
+async def reactivate_request(
+    request: Request,
+    body: ReactivateRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Inicia el flujo de reactivación para una cuenta soft-deleted.
+    Envía el mismo email de reset de contraseña que forgot-password.
+    La cuenta se reactivará definitivamente cuando el usuario
+    complete el cambio de contraseña.
+    """
+    user = user_service.get_user_by_email(db, body.email)
+    if not user:
+        return ResponseMessage(
+            message="Si el email existe en nuestro sistema con una cuenta eliminada, recibirás un correo para reactivarla.",
+        )
+    if user.get("ind_activo", True):
+        return ResponseMessage(
+            message="Si el email existe en nuestro sistema con una cuenta eliminada, recibirás un correo para reactivarla.",
+        )
+    if user.get("deleted_at") is None:
+        return ResponseMessage(
+            message="Si el email existe en nuestro sistema con una cuenta eliminada, recibirás un correo para reactivarla.",
+        )
+    # Disparar flujo de reset de contraseña (mismo que forgot-password)
+    from core.jwt_utils import create_password_reset_token
+    from services.email_service import send_password_reset_email
+
+    reset_token = create_password_reset_token(
+        user_id=user["id_usuario"],
+        email=user["email_usuario"],
+        expires_hours=1,
+    )
+    background_tasks.add_task(
+        send_password_reset_email,
+        user_email=user["email_usuario"],
+        user_name=user["nom_usuario"],
+        reset_token=reset_token,
+    )
+    return ResponseMessage(
+        message="Te hemos enviado un correo para reactivar tu cuenta. Restablece tu contraseña para volver a usarla.",
+    )
+
+
 @router.get("/users", response_model=list[User])
 async def get_users(db: Session = Depends(get_db)):
     """
     Obtiene todos los usuarios registrados en la base de datos.
-
-    Args:
-        db (Session): Sesión de la base de datos inyectada por FastAPI.
-
     """
     users = user_service.get_users(db)
     return users
 
+
 @router.post("/users", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
-@limiter.limit("5/minute")
+@limiter.limit("5/15minute")
 @limiter.limit("20/hour")
 async def create_users(
     request: Request,
@@ -98,9 +170,25 @@ async def create_users(
         # Verificar si el email ya existe
         existing_user = user_service.get_user_by_email(db, user.email_usuario)
         if existing_user:
+            # Usuario activo: email ya registrado
+            if existing_user.get("ind_activo", True):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="El email ya está registrado"
+                )
+            # Usuario con cuenta eliminada (soft delete): ofrecer reactivación
+            if existing_user.get("deleted_at") is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={
+                        "code": "ACCOUNT_SOFT_DELETED",
+                        "message": "Este correo ya tenía una cuenta eliminada. ¿Deseas reactivarla?",
+                    },
+                )
+            # ind_activo=False pero sin deleted_at: pendiente verificación (no debería pasar en registro)
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
-                detail="El email ya está registrado"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El email ya está registrado",
             )
         
         # Hashear la contraseña antes de crear el usuario

@@ -29,9 +29,35 @@ export function useVariantSelector(
     [selectedAttributes, variants]
   )
 
+  // Solo exigir atributos donde realmente hay elección:
+  // - aparecen en 2+ variantes
+  // - y tienen 2+ valores distintos entre las variantes
+  const requiredAttrNames = useMemo(() => {
+    const defs = product?.attributeDefinitions ?? []
+    if (!defs.length || !variants.length) return []
+    const required: string[] = []
+    for (const def of defs) {
+      const name = def.name
+      if (!name?.trim()) continue
+      const distinct = new Set<string>()
+      let presentCount = 0
+      for (const v of variants) {
+        const raw = v.attributes?.[name]
+        if (raw == null) continue
+        const val = String(raw).trim()
+        if (!val) continue
+        presentCount += 1
+        distinct.add(val.toLowerCase())
+      }
+      if (presentCount >= 2 && distinct.size >= 2) {
+        required.push(name)
+      }
+    }
+    return required
+  }, [product?.attributeDefinitions, variants])
   const selectedVariant = useMemo(
-    () => findExactVariant(selectedAttributes, variants),
-    [selectedAttributes, variants]
+    () => findExactVariant(selectedAttributes, variants, requiredAttrNames),
+    [selectedAttributes, variants, requiredAttrNames]
   )
 
   const handleSelectAttribute = useCallback((attrName: string, value: string | null) => {

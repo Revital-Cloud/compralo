@@ -30,8 +30,6 @@ function ProductsPageInner({
   setShowFilters,
   selectedBrands,
   setSelectedBrands,
-  inStockOnly,
-  setInStockOnly,
   onSaleOnly,
   setOnSaleOnly,
   searchQuery,
@@ -55,8 +53,6 @@ function ProductsPageInner({
   setShowFilters: React.Dispatch<React.SetStateAction<boolean>>
   selectedBrands: string[]
   setSelectedBrands: React.Dispatch<React.SetStateAction<string[]>>
-  inStockOnly: boolean
-  setInStockOnly: React.Dispatch<React.SetStateAction<boolean>>
   onSaleOnly: boolean
   setOnSaleOnly: React.Dispatch<React.SetStateAction<boolean>>
   searchQuery: string
@@ -78,7 +74,7 @@ function ProductsPageInner({
     }
     return {
       ...base,
-      ...(inStockOnly && { solo_con_stock: true }),
+      ...(onSaleOnly && { solo_en_oferta: true }),
       ...(selectedCategoryId != null && { category_id: selectedCategoryId }),
       ...(selectedBrands.length > 0 && { id_marca: Number(selectedBrands[0]) }),
       ...(searchQuery.trim() && { nombre_producto: searchQuery.trim() }),
@@ -96,7 +92,7 @@ function ProductsPageInner({
     priceRange[1],
     dynamicPriceRange.min,
     dynamicPriceRange.max,
-    inStockOnly,
+    onSaleOnly,
     selectedAttributes,
     sortBy,
     itemsPerPage,
@@ -113,7 +109,7 @@ function ProductsPageInner({
       selectedBrands.length > 0 ||
       searchQuery.trim() !== '' ||
       priceFilterActive ||
-      inStockOnly ||
+      onSaleOnly ||
       hasAttributeFilters
     )
   }, [
@@ -123,7 +119,7 @@ function ProductsPageInner({
       priceRange[0],
       priceRange[1],
       dynamicPriceRange.max,
-    inStockOnly,
+    onSaleOnly,
     selectedAttributes,
   ])
 
@@ -135,7 +131,7 @@ function ProductsPageInner({
   // Al cambiar filtros que afectan el resultado, volver a la página 1
   useEffect(() => {
     setCurrentPage(1)
-  }, [selectedCategoryId, selectedBrands, searchQuery, priceRange[0], priceRange[1], inStockOnly, selectedAttributes])
+  }, [selectedCategoryId, selectedBrands, searchQuery, priceRange[0], priceRange[1], onSaleOnly, selectedAttributes])
 
   const {
     data: productsData,
@@ -151,10 +147,10 @@ function ProductsPageInner({
     setSelectedCategoryId(null)
     setSelectedBrands([])
     setSelectedAttributes({})
-    setInStockOnly(false)
+    setOnSaleOnly(false)
     setSearchQuery('')
     setCurrentPage(1)
-  }, [dynamicPriceRange.min, dynamicPriceRange.max, setPriceRange, setSelectedCategoryId, setSelectedBrands, setInStockOnly, setSearchQuery, setCurrentPage])
+  }, [dynamicPriceRange.min, dynamicPriceRange.max, setPriceRange, setSelectedCategoryId, setSelectedBrands, setOnSaleOnly, setSearchQuery, setCurrentPage])
 
   const handleRemoveFilter = useCallback(
     (filterType: string, value?: string) => {
@@ -163,7 +159,6 @@ function ProductsPageInner({
         brands: () => setSelectedBrands((prev) => (value ? prev.filter((b) => b !== value) : [])),
         priceMin: () => setPriceRange([0, priceRange[1]]),
         priceMax: () => setPriceRange([priceRange[0], 0]),
-        inStockOnly: () => setInStockOnly(false),
         onSaleOnly: () => setOnSaleOnly(false),
         attribute: () =>
           value
@@ -176,7 +171,7 @@ function ProductsPageInner({
       }
       handlers[filterType]?.()
     },
-    [dynamicPriceRange.min, dynamicPriceRange.max, setSelectedCategoryId, setSelectedBrands, setPriceRange, setInStockOnly, setOnSaleOnly]
+    [dynamicPriceRange.min, dynamicPriceRange.max, setSelectedCategoryId, setSelectedBrands, setPriceRange, setOnSaleOnly]
   )
 
   const priceFilterActive =
@@ -186,7 +181,7 @@ function ProductsPageInner({
   const activeFiltersCount =
     (selectedCategoryId != null ? 1 : 0) +
     selectedBrands.length +
-    (inStockOnly ? 1 : 0) +
+    (onSaleOnly ? 1 : 0) +
     (searchQuery ? 1 : 0) +
     (priceFilterActive ? 1 : 0) +
     attributeFiltersCount
@@ -218,8 +213,6 @@ function ProductsPageInner({
             setSelectedBrands={setSelectedBrands}
             selectedAttributes={selectedAttributes}
             setSelectedAttributes={setSelectedAttributes}
-            inStockOnly={inStockOnly}
-            setInStockOnly={setInStockOnly}
             onSaleOnly={onSaleOnly}
             setOnSaleOnly={setOnSaleOnly}
             filterOptions={filterOptions}
@@ -237,8 +230,6 @@ function ProductsPageInner({
             selectedCategoryId={selectedCategoryId}
             selectedBrands={selectedBrands}
             selectedAttributes={selectedAttributes}
-            inStockOnly={inStockOnly}
-            onSaleOnly={onSaleOnly}
             clearAllFilters={clearAllFilters}
             onRemoveFilter={handleRemoveFilter}
             filterOptions={filterOptions}
@@ -256,13 +247,23 @@ function ProductsPageInner({
 
 const ProductsPage = () => {
   const searchParams = useSearchParams()
+
+  const initialCategoryId = useMemo(() => {
+    const value = searchParams.get("category_id")
+    return value ? Number(value) : null
+  }, [searchParams])
+
+  const initialBrandId = useMemo(() => {
+    const value = searchParams.get("brand_id")
+    return value ? String(value) : null
+  }, [searchParams])
+
   const [sortBy, setSortBy] = useState('nombre-asc')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [showFilters, setShowFilters] = useState(false)
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 0])
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([])
-  const [inStockOnly, setInStockOnly] = useState(false)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(initialCategoryId)
+  const [selectedBrands, setSelectedBrands] = useState<string[]>(initialBrandId ? [initialBrandId] : [])
   const [onSaleOnly, setOnSaleOnly] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -309,8 +310,6 @@ const ProductsPage = () => {
       setShowFilters={setShowFilters}
       selectedBrands={selectedBrands}
       setSelectedBrands={setSelectedBrands}
-      inStockOnly={inStockOnly}
-      setInStockOnly={setInStockOnly}
       onSaleOnly={onSaleOnly}
       setOnSaleOnly={setOnSaleOnly}
       searchQuery={searchQuery}

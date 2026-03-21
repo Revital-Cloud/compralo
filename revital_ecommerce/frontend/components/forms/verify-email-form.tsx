@@ -27,6 +27,7 @@ export function VerifyEmailForm({
   const [isSuccess, setIsSuccess] = useState(false);
   const [email, setEmail] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const { showSuccess, showError } = useToastActions();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -68,6 +69,22 @@ export function VerifyEmailForm({
       showError('Error al verificar', msg);
     } finally {
       setIsPending(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!email) {
+      showError('Error', 'No se encontró el correo. Usa el enlace del email.');
+      return;
+    }
+    try {
+      setIsResending(true);
+      await authService.resendEmailOtp(email);
+      showSuccess('Código reenviado', 'Te enviamos un nuevo código de verificación. Revisa tu bandeja de entrada o spam.');
+    } catch {
+      showError('Error', 'No pudimos reenviar el código. Inténtalo de nuevo más tarde.');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -180,13 +197,28 @@ export function VerifyEmailForm({
                 'Verificar y continuar'
               )}
             </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              ¿No recibiste el código? Revisa tu carpeta de spam o{' '}
-              <Link href="/register" className="underline underline-offset-4">
-                regístrate de nuevo
-              </Link>
-              .
-            </p>
+            <div className="text-center text-sm text-muted-foreground space-y-1">
+              <p>
+                ¿No recibiste el código? Revisa tu carpeta de spam.
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="mx-auto"
+                onClick={handleResend}
+                disabled={isResending}
+              >
+                {isResending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Reenviando código...
+                  </>
+                ) : (
+                  'Reenviar código'
+                )}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>

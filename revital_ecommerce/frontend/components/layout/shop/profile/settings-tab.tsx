@@ -3,23 +3,31 @@
 import { Button } from "@/components/ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui";
+import { Input } from "@/components/ui";
 import { Separator } from "@/components/ui";
 import { PasswordStrength } from "@/components/ui";
-import { Shield } from "lucide-react";
+import { Shield, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui";
-import { useChangePassword } from "@/hooks/use-auth";
+import { useChangePassword, useAuth } from "@/hooks/use-auth";
 import { changePasswordSchema } from "@/schemas/auth.schema";
+import { toast } from "sonner";
 import type { z } from "zod";
 
 type PasswordFormValues = z.infer<typeof changePasswordSchema>;
 
+const CONFIRM_TEXT = "ELIMINAR";
+
 export default function SettingsTab() {
   const [isOpen, setIsOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const { mutateAsync: changePassword, isPending } = useChangePassword();
+  const { deactivateAccount } = useAuth();
   
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(changePasswordSchema),
@@ -158,7 +166,68 @@ export default function SettingsTab() {
               <p className="font-medium">Zona de peligro</p>
               <p className="text-sm text-muted-foreground">Acciones irreversibles para tu cuenta</p>
             </div>
-            <Button variant="destructive">Eliminar cuenta</Button>
+            <Dialog open={isDeleteModalOpen} onOpenChange={(open) => {
+              setIsDeleteModalOpen(open);
+              if (!open) {
+                setDeleteConfirmText("");
+              }
+            }}>
+              <DialogTrigger asChild>
+                <Button variant="destructive" className="flex items-center gap-2">
+                  <Trash2 className="w-4 h-4" />
+                  Eliminar cuenta
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <>
+                  <DialogHeader>
+                    <DialogTitle className="text-destructive">¿Estás completamente seguro?</DialogTitle>
+                    <DialogDescription>
+                      Tu cuenta será desactivada. Tus datos e historial se conservarán, pero no podrás
+                      iniciar sesión. Si deseas volver, puedes registrarte de nuevo con el mismo correo
+                      y reactivar tu cuenta. Escribe <strong>ELIMINAR</strong> para confirmar.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <Input
+                      placeholder="Escribe ELIMINAR"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      className="font-mono"
+                      disabled={isDeleting}
+                      autoFocus
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsDeleteModalOpen(false)}
+                      disabled={isDeleting}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      disabled={deleteConfirmText !== CONFIRM_TEXT || isDeleting}
+                      onClick={async () => {
+                        if (deleteConfirmText !== CONFIRM_TEXT) return;
+                        try {
+                          setIsDeleting(true);
+                          await deactivateAccount();
+                          toast.success("Cuenta desactivada correctamente.");
+                        } catch (err) {
+                          toast.error("Error al desactivar la cuenta. Inténtalo de nuevo.");
+                        } finally {
+                          setIsDeleting(false);
+                        }
+                      }}
+                    >
+                      {isDeleting ? "Desactivando..." : "Confirmar eliminación"}
+                    </Button>
+                  </DialogFooter>
+                </>
+              </DialogContent>
+            </Dialog>
           </div>
         </CardContent>
       </Card>

@@ -13,13 +13,25 @@ import { Input } from "@/components/ui"
 import { Label } from "@/components/ui"
 import Link from "next/link"
 import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useState, useEffect } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import type { LoginRequest } from "@/types"
 import { useSearchParams } from "next/navigation"
+import { toast } from "sonner"
+import {
+  getLockoutState,
+  formatLockoutCountdown,
+  LOGIN_ATTEMPT_CONFIG,
+  loginAttemptKey,
+  remainingLockoutSeconds,
+  resolveLoginLockoutKey,
+  getActiveLoginLockoutStorageKey,
+  emailFromLoginAttemptKey,
+} from "@/lib/auth-attempt-limiter"
+import { useAuthLockout } from "@/hooks/use-auth-lockout"
 
 // Schema de validación con Zod
 const loginSchema = z.object({
@@ -52,6 +64,9 @@ export function LoginForm({
   const {
     register,
     handleSubmit,
+    control,
+    setValue,
+    getValues,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -61,12 +76,42 @@ export function LoginForm({
     },
   });
 
+  const emailWatched = useWatch({ control, name: "email", defaultValue: "" });
+  const loginLockKey = resolveLoginLockoutKey(emailWatched);
+  const { isLocked, remainingSeconds } = useAuthLockout(
+    loginLockKey,
+    LOGIN_ATTEMPT_CONFIG,
+  );
+
+  // Tras F5, el email vuelve vacío pero el bloqueo sigue en sessionStorage: restaurar correo y UI.
+  useEffect(() => {
+    const active = getActiveLoginLockoutStorageKey();
+    if (!active) return;
+    const em = emailFromLoginAttemptKey(active);
+    if (!em) return;
+    if (!getValues("email")?.trim()) {
+      setValue("email", em, { shouldValidate: false });
+    }
+    // Solo al montar: evita pisar si el usuario borra el correo a propósito en la misma visita.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- restaurar una vez tras recarga
+  }, []);
+
   // Manejar envío del formulario
   const onSubmit = (data: LoginFormData) => {
-    // Usar el hook de login que maneja toda la lógica
-    // El hook detectará automáticamente el parámetro redirect de la URL
+    const key = loginAttemptKey(data.email);
+    const lock = getLockoutState(key);
+    if (lock.remainingMs > 0) {
+      toast.error(
+        `Demasiados intentos fallidos. Espera ${formatLockoutCountdown(
+          remainingLockoutSeconds({ remainingMs: lock.remainingMs }),
+        )} para volver a intentarlo.`,
+      );
+      return;
+    }
     login(data as LoginRequest);
   };
+
+  const formDisabled = isLoggingIn || isLocked;
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -93,6 +138,15 @@ export function LoginForm({
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)}>
             <div className="grid gap-6">
+              {isLocked && (
+                <p
+                  className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                  role="alert"
+                >
+                  Demasiados intentos fallidos con este correo. Podrás volver a intentarlo en{" "}
+                  {formatLockoutCountdown(remainingSeconds)}.
+                </p>
+              )}
               {/* 
               TODO: Implementar OAuth con Apple y Google más adelante
               <div className="flex flex-col gap-4">
@@ -132,7 +186,7 @@ export function LoginForm({
                     placeholder="correo@ejemplo.com"
                     {...register("email")}
                     className={errors.email ? "border-red-500" : ""}
-                    disabled={isLoggingIn}
+                    disabled={formDisabled}
                   />
                   {errors.email && (
                     <p className="text-sm text-red-500">{errors.email.message}</p>
@@ -157,7 +211,7 @@ export function LoginForm({
                       placeholder="Ingresa tu contraseña"
                       {...register("password")}
                       className={errors.password ? "border-red-500 pr-10" : "pr-10"}
-                      disabled={isLoggingIn}
+                      disabled={formDisabled}
                     />
                     <Button
                       type="button"
@@ -165,7 +219,7 @@ export function LoginForm({
                       size="sm"
                       className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                       onClick={() => setShowPassword(!showPassword)}
-                      disabled={isLoggingIn}
+                      disabled={formDisabled}
                     >
                       {showPassword ? (
                         <EyeOff className="h-4 w-4" />
@@ -180,7 +234,7 @@ export function LoginForm({
                 </div>
 
                 {/* Botón Submit */}
-                <Button type="submit" className="w-full" disabled={isLoggingIn}>
+                <Button type="submit" className="w-full" disabled={formDisabled}>
                   {isLoggingIn ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

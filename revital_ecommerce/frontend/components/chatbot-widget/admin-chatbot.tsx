@@ -235,7 +235,7 @@ function generateAdminResponse(query: string): { content: string; data?: any } {
         metrics: [
           { icon: DollarSign, label: "Ingresos", value: "$12,450", change: "+15.3%" },
           { icon: Package, label: "Pedidos", value: "87", change: "+8.2%" },
-          { icon: TrendingUp, label: "Ticket promedio", value: "$143", change: "+5.1%" },
+          { icon: TrendingUp, label: "Unidades vendidas", value: "1.8K", change: "+5.1%" },
           { icon: Users, label: "Clientes nuevos", value: "23", change: "+12.0%" },
         ],
       },

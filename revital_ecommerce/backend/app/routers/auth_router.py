@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from datetime import datetime
 import logging
+from decimal import Decimal
 
 from core.database import get_db
 from core.config import settings, is_production
@@ -24,20 +25,21 @@ from schemas.auth_schema import (
     ResetPasswordRequest,
     ResetPasswordConfirm,
     VerifyEmailOtpRequest,
+    ResendEmailOtpRequest,
 )
 from schemas.user_schema import ResponseMessage, User, UserCreate, UserUpdate, UserPublic
 from services import auth_service
 from services import user_service
 from core.dependencies import get_current_user
 from core.rate_limiter import limiter
+from core.login_attempt_lockout import clear_failed_logins, get_remaining_lockout_seconds, record_failed_login
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Autenticación"])
 
 @router.post("/login", response_model=TokenResponse)
-@limiter.limit("10/minute")
-@limiter.limit("100/hour")
+@limiter.limit("20/hour")
 async def login(
     request: Request,
     login_data: LoginRequest,
@@ -56,8 +58,27 @@ async def login(
     Raises:
         HTTPException: Si las credenciales son inválidas
     """
-    tokens = auth_service.login_user(db, login_data)
-    return _token_response(tokens.access_token, tokens.refresh_token)
+    # Fixed cooldown after N failed attempts (per email).
+    remaining = get_remaining_lockout_seconds(login_data.email)
+    if remaining > 0:
+        return JSONResponse(
+            status_code=429,
+            content={
+                "detail": "Too many requests. Please try again later.",
+                "retry_after": remaining,
+            },
+        )
+
+    try:
+        tokens = auth_service.login_user(db, login_data)
+        # Login success -> reset lockout state.
+        clear_failed_logins(login_data.email)
+        return _token_response(tokens.access_token, tokens.refresh_token)
+    except HTTPException as exc:
+        # Wrong credentials -> count failure for lockout.
+        if exc.status_code == status.HTTP_401_UNAUTHORIZED:
+            record_failed_login(login_data.email)
+        raise
 
 
 @router.post("/verify-email-otp", response_model=TokenResponse)
@@ -73,6 +94,57 @@ async def verify_email_otp(
     """
     tokens = auth_service.verify_email_otp(db, body.email, body.code)
     return _token_response(tokens.access_token, tokens.refresh_token)
+
+
+@router.post("/resend-email-otp", response_model=ResponseMessage)
+@limiter.limit("5/minute")
+@limiter.limit("20/hour")
+async def resend_email_otp(
+    request: Request,
+    body: ResendEmailOtpRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Reenvía un nuevo código OTP de verificación de email.
+    Público: se identifica al usuario solo por su email.
+    """
+    from core.otp_store import set_otp, get_otp_expires_minutes
+    from services.email_service import send_verification_otp_email
+    from urllib.parse import quote
+
+    user = user_service.get_user_by_email(db, body.email)
+    if not user:
+        # No revelar si el email existe o no
+        return ResponseMessage(
+            message="Si el email existe en nuestro sistema, te enviaremos un nuevo código.",
+            success=True,
+        )
+
+    # Si ya está activo, no tiene sentido reenviar código
+    if user.get("ind_activo", True):
+        return ResponseMessage(
+            message="Tu cuenta ya está verificada. Inicia sesión con tu correo y contraseña.",
+            success=True,
+        )
+
+    otp_code = set_otp(user.email_usuario)
+    verify_url = f"{settings.VERIFY_EMAIL_URL}?email={quote(user.email_usuario)}"
+    expires_min = get_otp_expires_minutes()
+
+    background_tasks.add_task(
+        send_verification_otp_email,
+        user_email=user.email_usuario,
+        user_name=user.nom_usuario,
+        otp_code=otp_code,
+        verify_url=verify_url,
+        expires_in_minutes=expires_min,
+    )
+
+    return ResponseMessage(
+        message="Si el email existe en nuestro sistema, te enviaremos un nuevo código de verificación.",
+        success=True,
+    )
 
 
 REFRESH_COOKIE_NAME = "refresh_token"
@@ -486,6 +558,10 @@ async def reset_password(
         
         # Actualizar contraseña en BD (el usuario cambia su propia contraseña)
         user_service.update_password(db, user_id, hashed_password, usr_operacion=user_id)
+
+        # Si la cuenta estaba soft-deleted, reactivarla (ind_activo=TRUE, deleted_at=NULL)
+        if user.get("ind_activo") is False and user.get("deleted_at") is not None:
+            user_service.reactivate_user(db, Decimal(str(user_id)))
         
         # Agregar token a blacklist para evitar reutilización
         add_token_to_blacklist(reset_data.token)
@@ -502,7 +578,7 @@ async def reset_password(
         logger.info(f"Password successfully reset for user: {email}")
         
         return ResponseMessage(
-            message="Contraseña restablecida exitosamente. Puedes iniciar sesión con tu nueva contraseña.",
+            message="Contraseña restablecida exitosamente. Ya puedes iniciar sesión con tu nueva contraseña.",
             success=True
         )
         

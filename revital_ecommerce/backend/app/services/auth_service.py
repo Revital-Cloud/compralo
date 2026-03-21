@@ -35,8 +35,19 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[UserIn
     if not verify_password(password, user.password_usuario):
         return None
 
-    # Usuario pendiente de verificación de email no puede iniciar sesión
+    # Usuario inactivo: diferenciar cuenta desactivada de pendiente verificación
     if user.get("ind_activo", True) is False:
+        # Cuenta desactivada (soft delete): exponer código estructurado para que el frontend
+        # pueda iniciar el flujo de reactivación desde el login.
+        if user.get("deleted_at") is not None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "code": "ACCOUNT_SOFT_DELETED",
+                    "message": "Tu cuenta ha sido desactivada. ¿Deseas reactivarla?",
+                },
+            )
+        # Cuenta pendiente de verificación de email
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Verifica tu correo electrónico antes de iniciar sesión. Revisa el código que te enviamos.",
@@ -112,7 +123,11 @@ def verify_email_otp(db: Session, email: str, code: str) -> TokenResponse:
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuario no encontrado",
         )
-    user_service.update_user_status(db, user.id_usuario, True)
+    # Si es cuenta soft-deleted, reactivar (ind_activo=TRUE y deleted_at=NULL)
+    if user.get("deleted_at") is not None:
+        user_service.reactivate_user(db, user.id_usuario)
+    else:
+        user_service.update_user_status(db, user.id_usuario, True)
     access_token = create_access_token(
         data={"sub": str(user.id_usuario), "email": user.email_usuario}
     )
