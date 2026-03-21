@@ -377,13 +377,62 @@ def _get_product_metrics(db: Session) -> Dict[str, Any]:
     rating_result = db.execute(rating_query)
     rating_row = rating_result.mappings().first()
     avg_rating = safe_float(rating_row.get('rating_promedio', 0)) if rating_row else 0.0
-    
+
+    categorias_activas = 0
+    variantes_activas = 0
+
+    # Intentar primero con esquema nuevo; si no coincide con los datos actuales,
+    # hacer fallback al esquema legacy para evitar KPIs en 0 incorrectos.
+    try:
+        extras_query = text("""
+            SELECT
+                (
+                    SELECT COUNT(DISTINCT category_id)::int
+                    FROM tab_products
+                    WHERE is_active = TRUE AND category_id IS NOT NULL
+                ) AS categorias_activas,
+                (
+                    SELECT COUNT(1)::int
+                    FROM tab_product_variant_combinations
+                    WHERE is_active = TRUE
+                ) AS variantes_activas
+        """)
+        extras_row = db.execute(extras_query).mappings().first() or {}
+        categorias_activas = safe_int(extras_row.get('categorias_activas', 0))
+        variantes_activas = safe_int(extras_row.get('variantes_activas', 0))
+    except Exception:
+        categorias_activas = 0
+        variantes_activas = 0
+
+    if categorias_activas == 0 and variantes_activas == 0:
+        try:
+            legacy_extras_query = text("""
+                SELECT
+                    (
+                        SELECT COUNT(DISTINCT id_categoria)::int
+                        FROM tab_productos
+                        WHERE ind_activo = TRUE
+                    ) AS categorias_activas,
+                    (
+                        SELECT COUNT(1)::int
+                        FROM tab_combinaciones_variante_producto
+                        WHERE ind_activo = TRUE
+                    ) AS variantes_activas
+            """)
+            legacy_row = db.execute(legacy_extras_query).mappings().first() or {}
+            categorias_activas = safe_int(legacy_row.get('categorias_activas', categorias_activas))
+            variantes_activas = safe_int(legacy_row.get('variantes_activas', variantes_activas))
+        except Exception:
+            pass
+
     return {
         'productosActivos': safe_int(row.get('productos_activos', 0)),
         'productosInactivos': safe_int(row.get('productos_inactivos', 0)),
         'sinStock': safe_int(row.get('sin_stock', 0)),
         'precioPromedio': safe_float(row.get('precio_promedio', 0)),
-        'ratingPromedio': avg_rating
+        'ratingPromedio': avg_rating,
+        'categoriasActivas': categorias_activas,
+        'variantesActivas': variantes_activas,
     }
 
 

@@ -18,7 +18,7 @@ Esta guía documenta todos los indicadores clave de rendimiento (KPIs), gráfico
 
 ### 🎯 Métricas de Conversión
 - **Tasa de Conversión** - Porcentaje de visitantes que compran
-- **Valor Promedio de Orden (AOV)** - Ticket promedio por compra
+- **Unidades vendidas** — suma de `cant_producto` en líneas de pedido de órdenes completadas (`ind_estado = 2`) en el período
 - **Abandono de Carrito** - Porcentaje de carritos abandonados
 - **Valor de Vida del Cliente (CLV)** - Valor total por cliente
 

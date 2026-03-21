@@ -13,12 +13,14 @@ interface KPIData {
 
 interface KPICardProps {
   title: string
+  /** Texto breve bajo el título (p. ej. definición de la métrica). */
+  description?: string
   data?: KPIData
   icon: React.ComponentType<{ className?: string }>
   loading?: boolean
 }
 
-export const KPICard = ({ title, data, icon: Icon, loading = false }: KPICardProps) => {
+export const KPICard = ({ title, description, data, icon: Icon, loading = false }: KPICardProps) => {
   // Safe fallbacks for data
   const safeData = data || { value: 0, growth: 0, trend: 'stable' as const, formatted: '$0' }
   
@@ -46,16 +48,26 @@ export const KPICard = ({ title, data, icon: Icon, loading = false }: KPICardPro
         : 'text-muted-foreground'
 
   return (
-    <Card className={`transition-all duration-300 hover:shadow-lg ${loading ? 'animate-pulse' : ''}`}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        <div className={`p-2 rounded-lg ${iconBgColor}`}>
+    <Card
+      className={`flex h-full flex-col transition-all duration-300 hover:shadow-lg ${loading ? 'animate-pulse' : ''}`}
+    >
+      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-2">
+        {/* Caja de altura fija: misma posición del valor en todas las tarjetas (descripción acotada a 2 líneas) */}
+        <div className="flex h-[5.25rem] min-w-0 flex-1 flex-col gap-1 pr-1">
+          <CardTitle className="line-clamp-2 text-sm font-medium leading-tight text-muted-foreground">
+            {title}
+          </CardTitle>
+          {description ? (
+            <p className="line-clamp-2 text-xs leading-snug text-muted-foreground/90">{description}</p>
+          ) : (
+            <div className="min-h-0 flex-1" aria-hidden />
+          )}
+        </div>
+        <div className={`shrink-0 self-start p-2 rounded-lg ${iconBgColor}`}>
           <Icon className={`h-4 w-4 ${iconColor}`} />
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 pt-0">
         <div className="text-2xl font-bold tracking-tight">{safeData.formatted}</div>
         <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
           <div className={`flex items-center ${trendColor}`}>

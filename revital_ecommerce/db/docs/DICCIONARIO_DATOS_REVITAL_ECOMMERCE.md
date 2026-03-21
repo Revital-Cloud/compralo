@@ -453,7 +453,7 @@ Items del carrito (referencia principal por `variant_id`).
 | id_carrito              | INT                         | **NOT NULL, FK** → `tab_carritos(id_carrito)`             | Carrito               |
 | variant_id              | DECIMAL(10)                 | **NOT NULL, FK** → `tab_product_variant_combinations(id)` | Variante              |
 | cantidad                | INT                         | **NOT NULL, DF 1, CK cantidad > 0**                       | Cantidad              |
-| precio_unitario_carrito | DECIMAL(7,0)                | **NOT NULL, CK >= 0**                                     | Precio unitario       |
+| precio_unitario_carrito | DECIMAL(12,2)               | **NOT NULL, CK >= 0**                                     | Precio unitario       |
 | opciones_elegidas       | JSONB                       | **NOT NULL, DF '{}'::JSONB**                              | Opciones elegidas     |
 | usr_insert              | DECIMAL(10)                 | **NOT NULL**                                              | Usuario creación      |
 | fec_insert              | TIMESTAMP WITHOUT TIME ZONE | **NOT NULL**                                              | Fecha creación        |

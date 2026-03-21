@@ -3,10 +3,9 @@
 import React, { useState, useEffect } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui"
-import { Badge } from "@/components/ui"
 import { Button } from "@/components/ui"
+import { Separator } from "@/components/ui"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui"
-import { Progress } from "@/components/ui"
 import { 
   IconTrendingUp,
   IconTrendingDown, 
@@ -14,13 +13,16 @@ import {
   IconUsers, 
   IconCash,
   IconPackage,
-  IconTruck,
   IconDeviceAnalytics,
   IconTarget,
-  IconHeart,
+  IconChartBarPopular,
+  IconCategory,
+  IconPackages,
+  IconBox,
   IconRefresh,
   IconMapPin,
-  IconDownload
+  IconDownload,
+  IconStar
 } from "@tabler/icons-react"
 import { toast } from "sonner"
 import { useAdminTour } from '../_tour/useAdminDriverTour'
@@ -180,7 +182,28 @@ const CHART_COLORS = [
   '#14b8a6'
 ]
 
-// Componente para performance de productos (barras + gráfico dona)
+/** Texto compacto de variación (evita badges grandes repetidos). */
+const CategoryGrowthHint = ({ growth }: { growth: number }) => {
+  if (growth > 0) {
+    return (
+      <span className="shrink-0 tabular-nums text-xs font-medium text-emerald-700 dark:text-emerald-400">
+        +{growth.toFixed(1)}%
+      </span>
+    )
+  }
+  if (growth < 0) {
+    return (
+      <span className="shrink-0 tabular-nums text-xs font-medium text-rose-700 dark:text-rose-400">
+        {growth.toFixed(1)}%
+      </span>
+    )
+  }
+  return <span className="shrink-0 text-xs text-muted-foreground">—</span>
+}
+
+const STACK_TOP_N = 5
+
+// Distribución por categoría: KPIs + barra apilada 100% + ranking (sin dona)
 const ProductPerformance = ({ performance }: { performance: ProductPerformanceData[] }) => {
   const visiblePerformance = performance.filter((p) => p.percentage > 0)
 
@@ -188,154 +211,540 @@ const ProductPerformance = ({ performance }: { performance: ProductPerformanceDa
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Performance por Categoría</CardTitle>
-          <CardDescription>Ventas y crecimiento por categoría</CardDescription>
+          <CardTitle>Distribución por categoría</CardTitle>
+          <CardDescription>Participación de cada categoría en el período analizado</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <p className="text-sm">No hay categorías con ventas en el período seleccionado</p>
+          <div className="py-8 text-center text-muted-foreground">
+            <p className="text-sm">No hay datos por categoría en este período</p>
           </div>
         </CardContent>
       </Card>
     )
   }
 
-  const totalSales = visiblePerformance.reduce((sum, p) => sum + p.sales, 0)
-  const maxSales = Math.max(...visiblePerformance.map((p) => p.sales), 1)
-  const circumference = 2 * Math.PI * 42
-  let offset = 0
-  const chartHeight = 200
-  const barGap = 12
-  const barMinHeight = 8
+  const ranked = [...visiblePerformance].sort((a, b) => b.percentage - a.percentage)
+  const rankedRows = ranked.map((product, index) => ({
+    product,
+    color: CHART_COLORS[index % CHART_COLORS.length],
+    key: `${product.category}-${index}`
+  }))
+
+  const topStack = ranked.slice(0, STACK_TOP_N)
+  const restPct = ranked.slice(STACK_TOP_N).reduce((s, p) => s + p.percentage, 0)
+  type StackSeg = { id: string; label: string; pct: number; color: string }
+  const stackSegments: StackSeg[] = topStack.map((p, i) => ({
+    id: `${p.category}-stack-${i}`,
+    label: p.category,
+    pct: p.percentage,
+    color: CHART_COLORS[i % CHART_COLORS.length]
+  }))
+  if (restPct >= 0.05) {
+    stackSegments.push({
+      id: 'otros-stack',
+      label: 'Otros',
+      pct: restPct,
+      color: 'hsl(var(--muted-foreground) / 0.45)'
+    })
+  }
+
+  const top3Share = ranked
+    .slice(0, 3)
+    .reduce((s, p) => s + p.percentage, 0)
 
   return (
-    <Card>
+    <Card className="flex h-full flex-col">
       <CardHeader>
-        <CardTitle>Performance por Categoría</CardTitle>
-        <CardDescription>Ventas y crecimiento por categoría</CardDescription>
+        <CardTitle>Distribución por categoría</CardTitle>
+        <CardDescription>
+          Indicadores clave, composición del total y ranking. Pasa el cursor sobre el ranking para
+          importe y variación.
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Fila 1: Dona + Gráfico de barras verticales (para que se vea más lleno) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 border-b pb-6">
-          {/* Dona: participación por categoría */}
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="relative flex-shrink-0" aria-hidden>
-              <svg width={120} height={120} className="rotate-[-90deg]">
-                <circle
-                  cx={60}
-                  cy={60}
-                  r={42}
-                  fill="none"
-                  stroke="hsl(var(--muted))"
-                  strokeWidth={14}
-                />
-                {visiblePerformance.map((product, index) => {
-                  const segment = (product.percentage / 100) * circumference
-                  const color = CHART_COLORS[index % CHART_COLORS.length]
-                  const el = (
-                    <circle
-                      key={`${product.category}-${index}`}
-                      cx={60}
-                      cy={60}
-                      r={42}
-                      fill="none"
-                      stroke={color}
-                      strokeWidth={14}
-                      strokeDasharray={`${segment} ${circumference}`}
-                      strokeDashoffset={-offset}
-                      strokeLinecap="round"
-                      className="transition-all duration-300"
-                    />
-                  )
-                  offset += segment
-                  return el
-                })}
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-lg font-bold text-muted-foreground">
-                  {totalSales > 0 ? `${visiblePerformance.length} cat.` : '—'}
-                </span>
-              </div>
-            </div>
-            <div className="flex-1 min-w-0 space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Participación por categoría</p>
-              <ul className="space-y-1.5">
-                {visiblePerformance.map((product, index) => (
-                  <li key={`${product.category}-${index}`} className="flex items-center gap-2 text-sm">
-                    <span
-                      className="inline-block w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }}
-                      aria-hidden
-                    />
-                    <span className="truncate">{product.category}</span>
-                    <span className="text-muted-foreground tabular-nums">{product.percentage.toFixed(1)}%</span>
-                  </li>
-                ))}
-              </ul>
+      <CardContent className="flex flex-1 flex-col gap-8">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="col-span-2 rounded-xl border bg-gradient-to-br from-primary/10 via-background to-background p-4 ring-1 ring-primary/15 xl:col-span-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Líder en participación
+            </p>
+            <p className="mt-1 truncate text-lg font-semibold leading-tight" title={ranked[0].category}>
+              {ranked[0].category}
+            </p>
+            <p className="mt-2 text-3xl font-bold tabular-nums tracking-tight">
+              {ranked[0].percentage.toFixed(1)}
+              <span className="text-xl font-semibold text-muted-foreground">%</span>
+            </p>
+            <div className="mt-2">
+              <CategoryGrowthHint growth={ranked[0].growth} />
             </div>
           </div>
-
-          {/* Gráfico de barras verticales: ventas en $ */}
-          <div className="min-h-[220px]">
-            <p className="text-sm font-medium text-muted-foreground mb-4">Ventas por categoría</p>
-            <div
-              className="flex items-end justify-around gap-2 w-full h-[200px] px-2"
-              style={{ minHeight: chartHeight }}
-              role="img"
-              aria-label="Gráfico de barras de ventas por categoría"
-            >
-              {visiblePerformance.map((product, index) => {
-                const heightRatio = maxSales > 0 ? product.sales / maxSales : 0
-                const barHeight = Math.max(barMinHeight, heightRatio * (chartHeight - 24))
-                const color = CHART_COLORS[index % CHART_COLORS.length]
-                return (
-                  <div
-                    key={`bar-${product.category}-${index}`}
-                    className="flex flex-col items-center flex-1 min-w-0 group"
-                  >
-                    <span
-                      className="text-xs font-medium text-muted-foreground mb-1 truncate w-full text-center"
-                      title={product.category}
-                    >
-                      {product.category.length > 12 ? `${product.category.slice(0, 10)}…` : product.category}
-                    </span>
-                    <div className="w-full flex justify-center items-end flex-1">
-                      <div
-                        className="w-full max-w-[56px] rounded-t-md transition-all duration-300 hover:opacity-90"
-                        style={{
-                          height: barHeight,
-                          backgroundColor: color,
-                          minHeight: barMinHeight
-                        }}
-                        title={`${product.category}: $${product.sales.toLocaleString()}`}
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground mt-1 tabular-nums">
-                      ${(product.sales / 1e6).toFixed(1)}M
-                    </span>
-                  </div>
-                )
-              })}
+          {[1, 2].map(slot => {
+            const p = ranked[slot]
+            if (!p) {
+              return (
+                <div
+                  key={`kpi-empty-${slot}`}
+                  className="rounded-xl border border-dashed bg-muted/20 p-4 text-muted-foreground"
+                >
+                  <p className="text-xs font-medium uppercase tracking-wide">#{slot + 1}</p>
+                  <p className="mt-3 text-sm">—</p>
+                </div>
+              )
+            }
+            const color = CHART_COLORS[slot % CHART_COLORS.length]
+            return (
+              <div
+                key={p.category}
+                className="rounded-xl border bg-card p-4 shadow-sm"
+              >
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  #{slot + 1} en participación
+                </p>
+                <p className="mt-1 truncate text-sm font-semibold" title={p.category}>
+                  {p.category}
+                </p>
+                <p className="mt-2 text-2xl font-bold tabular-nums" style={{ color }}>
+                  {p.percentage.toFixed(1)}%
+                </p>
+              </div>
+            )
+          })}
+          <div className="col-span-2 rounded-xl border bg-card p-4 shadow-sm xl:col-span-4">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <IconChartBarPopular className="size-4 shrink-0" aria-hidden />
+              <p className="text-xs font-medium uppercase tracking-wide">Resumen</p>
             </div>
+            <p className="mt-2 text-2xl font-bold tabular-nums">{ranked.length}</p>
+            <p className="text-xs text-muted-foreground">categorías con datos</p>
+            <p className="mt-3 border-t pt-2 text-xs text-muted-foreground leading-snug">
+              Top 3 concentran{' '}
+              <span className="font-semibold tabular-nums text-foreground">
+                {top3Share.toFixed(1)}%
+              </span>{' '}
+              del total
+            </p>
           </div>
         </div>
 
-        {/* Barras horizontales: ventas y crecimiento */}
-        <div className="space-y-4">
-          {visiblePerformance.map((product, index) => (
-            <div key={`${product.category}-${index}`} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">{product.category}</span>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-muted-foreground">${product.sales.toLocaleString()}</span>
-                  <Badge variant={product.growth > 0 ? "default" : "destructive"}>
-                    {product.growth > 0 ? '+' : ''}{product.growth.toFixed(1)}%
-                  </Badge>
+        <div>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-sm font-medium text-foreground">Composición del total</p>
+            <p className="text-xs text-muted-foreground">Top {STACK_TOP_N} + resto</p>
+          </div>
+          <div
+            className="flex h-6 w-full overflow-hidden rounded-full bg-muted ring-1 ring-border/60"
+            role="img"
+            aria-label="Barra apilada: participación por categoría (top cinco y otros)"
+          >
+            {stackSegments.map(seg => (
+              <div
+                key={seg.id}
+                style={{
+                  width: `${seg.pct}%`,
+                  minWidth: seg.pct > 0 && seg.pct < 1 ? '4px' : undefined,
+                  backgroundColor: seg.color
+                }}
+                className="h-full shrink-0 transition-all duration-300 first:rounded-l-full last:rounded-r-full"
+                title={`${seg.label}: ${seg.pct.toFixed(1)}%`}
+              />
+            ))}
+          </div>
+          <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            {stackSegments.map((seg, i) => (
+              <li key={`leg-${seg.id}`} className="flex items-center gap-1.5">
+                <span
+                  className="size-2 shrink-0 rounded-sm"
+                  style={{ backgroundColor: seg.color }}
+                  aria-hidden
+                />
+                <span className="max-w-[140px] truncate">{seg.label}</span>
+                <span className="tabular-nums">{seg.pct.toFixed(1)}%</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <p className="mb-3 text-sm font-medium text-foreground">Ranking por participación</p>
+          <div className="max-h-[min(480px,60vh)] space-y-4 overflow-y-auto pr-1">
+            {rankedRows.map(({ product, color, key }) => {
+              const pct = Math.min(100, Math.max(0, product.percentage))
+              const detail = `Importe aprox.: $${product.sales.toLocaleString()}. Variación: ${
+                product.growth > 0 ? '+' : ''
+              }${product.growth.toFixed(1)}%`
+              return (
+                <div
+                  key={`bar-row-${key}`}
+                  className="rounded-lg border border-transparent px-1 py-1 transition-colors hover:border-border hover:bg-muted/30"
+                  title={detail}
+                >
+                  <div className="mb-1.5 flex items-baseline justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className="size-2.5 shrink-0 rounded-full ring-2 ring-background"
+                        style={{ backgroundColor: color }}
+                        aria-hidden
+                      />
+                      <span className="truncate text-sm font-medium leading-snug">
+                        {product.category}
+                      </span>
+                    </div>
+                    <div className="flex shrink-0 items-baseline gap-3">
+                      <span className="text-sm font-semibold tabular-nums">{pct.toFixed(1)}%</span>
+                      <CategoryGrowthHint growth={product.growth} />
+                    </div>
+                  </div>
+                  <div
+                    className="h-2.5 overflow-hidden rounded-full bg-muted sm:h-3"
+                    role="progressbar"
+                    aria-valuenow={Math.round(pct)}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`${product.category}: ${pct.toFixed(1)} por ciento del total`}
+                  >
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{ width: `${pct}%`, backgroundColor: color }}
+                    />
+                  </div>
                 </div>
+              )
+            })}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+const STAR_PATH =
+  'M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z'
+
+const CatalogStarRating = ({ value }: { value: number }) => {
+  const clamped = Math.min(5, Math.max(0, value))
+  return (
+    <div
+      className="flex gap-0.5 pt-1"
+      role="img"
+      aria-label={`Valoración media ${clamped.toFixed(1)} de 5 estrellas`}
+    >
+      {[0, 1, 2, 3, 4].map(i => {
+        const fill = Math.min(1, Math.max(0, clamped - i))
+        return (
+          <span key={i} className="relative inline-flex size-7 shrink-0">
+            <svg viewBox="0 0 24 24" className="size-7 text-muted-foreground/35" aria-hidden>
+              <path fill="currentColor" d={STAR_PATH} />
+            </svg>
+            {fill > 0 ? (
+              <span
+                className="absolute inset-0 overflow-hidden text-amber-500"
+                style={{ width: `${fill * 100}%` }}
+              >
+                <svg viewBox="0 0 24 24" className="size-7">
+                  <path fill="currentColor" d={STAR_PATH} />
+                </svg>
+              </span>
+            ) : null}
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
+const INVENTORY_SEGMENTS: {
+  key: string
+  label: string
+  color: string
+  get: (m: ProductMetrics) => number
+}[] = [
+  { key: 'activos', label: 'Activos', color: '#059669', get: m => m.productosActivos ?? 0 },
+  { key: 'inactivos', label: 'Inactivos', color: '#d97706', get: m => m.productosInactivos ?? 0 },
+  { key: 'sinStock', label: 'Sin stock', color: '#e11d48', get: m => m.sinStock ?? 0 }
+]
+
+const ProductOperationalKpis = ({ metrics }: { metrics: ProductMetrics }) => {
+  const activos = metrics.productosActivos ?? 0
+  const inactivos = metrics.productosInactivos ?? 0
+  const sinStock = metrics.sinStock ?? 0
+  const conStock = Math.max(0, activos - sinStock)
+  const totalCatalogo = activos + inactivos
+  const cats = metrics.categoriasActivas ?? 0
+  const skus = metrics.variantesActivas ?? 0
+  const stockPct = activos > 0 ? (conStock / activos) * 100 : 0
+
+  const tiles: {
+    label: string
+    value: string
+    hint: string
+    icon: React.ElementType
+  }[] = [
+    {
+      label: 'Categorías con productos',
+      value: cats.toLocaleString(),
+      hint: 'Con al menos un activo',
+      icon: IconCategory
+    },
+    {
+      label: 'Variantes listadas',
+      value: skus.toLocaleString(),
+      hint: 'SKUs activos en tienda',
+      icon: IconPackages
+    },
+    {
+      label: 'Con stock',
+      value: conStock.toLocaleString(),
+      hint: `De ${activos.toLocaleString()} productos activos`,
+      icon: IconPackage
+    },
+    {
+      label: 'Catálogo total',
+      value: totalCatalogo.toLocaleString(),
+      hint: `${activos.toLocaleString()} activos · ${inactivos.toLocaleString()} inactivos`,
+      icon: IconBox
+    }
+  ]
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Operación de catálogo</CardTitle>
+        <CardDescription>SKUs, categorías y disponibilidad</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {tiles.map(({ label, value, hint, icon: Icon }) => (
+            <div
+              key={label}
+              className="flex flex-col rounded-xl border bg-card p-4 shadow-sm transition-colors hover:bg-muted/30"
+            >
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Icon className="size-4 shrink-0 opacity-80" aria-hidden />
+                <span
+                  className="flex-1 truncate text-xs font-medium uppercase tracking-wide"
+                  title={label}
+                >
+                  {label}
+                </span>
               </div>
-              <Progress value={product.percentage} className="h-2" />
+              <p className="mt-2 min-h-9 leading-none text-2xl font-bold tabular-nums tracking-tight">
+                {value}
+              </p>
+              <p className="mt-1 min-h-6 text-xs text-muted-foreground leading-snug">
+                {hint}
+              </p>
             </div>
           ))}
+        </div>
+
+        <div className="rounded-xl border bg-muted/20 p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <span className="text-sm font-medium">Cobertura de stock (activos)</span>
+            <span className="text-sm tabular-nums text-muted-foreground">
+              {stockPct.toFixed(1)}% con unidades
+            </span>
+          </div>
+          <div
+            className="mt-2 flex h-3 w-full overflow-hidden rounded-full bg-muted"
+            role="presentation"
+            aria-hidden
+          >
+            <div
+              className="h-full bg-emerald-600 transition-all duration-500 dark:bg-emerald-500"
+              style={{ width: `${stockPct}%` }}
+            />
+            <div
+              className="h-full bg-rose-500/75 transition-all duration-500"
+              style={{ width: `${100 - stockPct}%` }}
+            />
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {activos === 0
+              ? 'No hay productos activos.'
+              : sinStock > 0
+                ? `${sinStock.toLocaleString()} activo(s) sin stock disponible.`
+                : 'Todos los activos tienen al menos una variante con stock.'}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+const ProductCatalogMetrics = ({ metrics }: { metrics: ProductMetrics }) => {
+  const activos = metrics.productosActivos ?? 0
+  const inactivos = metrics.productosInactivos ?? 0
+  const sinStock = metrics.sinStock ?? 0
+  const totalCatalogo = activos + inactivos
+  const precio = metrics.precioPromedio ?? 0
+  const rating = metrics.ratingPromedio ?? 0
+
+  const stackParts: { key: string; pct: number; color: string; label: string }[] = []
+  if (totalCatalogo > 0) {
+    if (activos > 0) {
+      stackParts.push({
+        key: 'activos',
+        pct: (activos / totalCatalogo) * 100,
+        color: '#059669',
+        label: 'Activos'
+      })
+    }
+    if (inactivos > 0) {
+      stackParts.push({
+        key: 'inactivos',
+        pct: (inactivos / totalCatalogo) * 100,
+        color: '#d97706',
+        label: 'Inactivos'
+      })
+    }
+  }
+
+  const priceCap = Math.max(10_000_000, precio * 1.5, precio + 1)
+  const priceBarPct = precio > 0 ? Math.min(100, (precio / priceCap) * 100) : 0
+  const ratingBarPct = Math.min(100, Math.max(0, (rating / 5) * 100))
+
+  return (
+    <Card className="flex w-full flex-col">
+      <CardHeader>
+        <CardTitle>Resumen de catálogo</CardTitle>
+        <CardDescription>Inventario, precios y satisfacción</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-6">
+        <div>
+          <p className="mb-2 text-sm font-medium text-foreground">Composición del catálogo</p>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Activos frente a inactivos. &quot;Sin stock&quot; cuenta activos sin unidades (no suma al
+            100%).
+          </p>
+          {totalCatalogo > 0 ? (
+            <div
+              className="mb-4 flex h-7 w-full overflow-hidden rounded-lg bg-muted ring-1 ring-border/60"
+              role="img"
+              aria-label="Proporción de productos activos e inactivos"
+            >
+              {stackParts.map(seg => (
+                <div
+                  key={seg.key}
+                  className="h-full shrink-0 transition-all duration-500 first:rounded-l-lg last:rounded-r-lg"
+                  style={{
+                    width: `${seg.pct}%`,
+                    minWidth: seg.pct > 0 && seg.pct < 1 ? '6px' : undefined,
+                    backgroundColor: seg.color
+                  }}
+                  title={`${seg.label}: ${seg.pct.toFixed(1)}%`}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="mb-4 rounded-lg border border-dashed py-6 text-center text-sm text-muted-foreground">
+              Sin productos en catálogo
+            </div>
+          )}
+          <ul className="flex flex-col gap-3 text-sm" aria-label="Desglose de inventario">
+            {INVENTORY_SEGMENTS.map(seg => {
+              const n = seg.get(metrics)
+              const pctCat =
+                seg.key === 'sinStock'
+                  ? activos > 0
+                    ? (n / activos) * 100
+                    : 0
+                  : totalCatalogo > 0
+                    ? (n / totalCatalogo) * 100
+                    : 0
+              return (
+                <li key={seg.key}>
+                  <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+                    <div className="flex shrink-0 items-center gap-2 sm:w-32">
+                      <span
+                        className="size-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: seg.color }}
+                        aria-hidden
+                      />
+                      <span className="truncate font-medium">{seg.label}</span>
+                    </div>
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div
+                        className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-muted"
+                        role="presentation"
+                        aria-hidden
+                      >
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${pctCat}%`,
+                            minWidth: n > 0 ? '4px' : undefined,
+                            backgroundColor: seg.color
+                          }}
+                        />
+                      </div>
+                      <span className="w-[6.5rem] shrink-0 text-right tabular-nums text-muted-foreground text-xs sm:text-sm">
+                        {n.toLocaleString()}
+                        <span className="ml-1 text-[11px] opacity-90 sm:text-xs">
+                          (
+                          {seg.key === 'sinStock'
+                            ? `${pctCat.toFixed(1)}% act.`
+                            : `${pctCat.toFixed(1)}%`}
+                          )
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+
+        <Separator />
+
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:items-start">
+          <div className="rounded-lg border bg-muted/20 p-4">
+            <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+              <IconCash className="size-4 shrink-0" aria-hidden />
+              <span className="text-xs font-medium uppercase tracking-wide">Precio promedio</span>
+            </div>
+            <p className="text-2xl font-bold tabular-nums tracking-tight">
+              ${precio.toLocaleString('es-CO', { maximumFractionDigits: 0 })}
+            </p>
+            <div
+              className="mt-3 h-3 overflow-hidden rounded-full bg-muted"
+              role="presentation"
+              aria-hidden
+            >
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-sky-500 to-blue-600 transition-all duration-500"
+                style={{ width: `${priceBarPct}%`, minWidth: precio > 0 ? '4px' : undefined }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground leading-snug">
+              Barra relativa al catálogo (referencia visual hasta ~${(priceCap / 1e6).toFixed(1)}M).
+            </p>
+          </div>
+
+          <div className="rounded-lg border bg-muted/20 p-4">
+            <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+              <IconStar className="size-4 shrink-0" aria-hidden />
+              <span className="text-xs font-medium uppercase tracking-wide">Valoración</span>
+            </div>
+            <p className="text-2xl font-bold tabular-nums tracking-tight">
+              {rating.toFixed(1)}
+              <span className="text-base font-semibold text-muted-foreground"> / 5</span>
+            </p>
+            <CatalogStarRating value={rating} />
+            <div
+              className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-valuenow={Math.round(ratingBarPct)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Puntuación ${rating.toFixed(1)} sobre cinco`}
+            >
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-600 transition-all duration-500"
+                style={{ width: `${ratingBarPct}%` }}
+              />
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -399,22 +808,37 @@ const HourlyTrafficChart = ({ hourlyTraffic }: { hourlyTraffic: { hour: string; 
         <CardDescription>Órdenes por hora del día (últimos 30 días)</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="h-64 flex items-end justify-between space-x-1">
-          {hourlyTraffic.map((data, index) => (
-            <div key={data.hour} className="flex flex-col items-center space-y-1 flex-1">
+        {/* Fila de barras y fila de etiquetas separadas: si la etiqueta va dentro de la misma
+            columna con items-end en el padre, las columnas con label quedan más altas y la barra
+            sube (falsa lectura del tráfico en 00h, 04h, etc.). */}
+        <div className="flex h-64 flex-col gap-1">
+          <div className="flex min-h-0 flex-1 items-end justify-between gap-0.5">
+            {hourlyTraffic.map(data => (
+              <div key={data.hour} className="flex h-full min-w-0 flex-1 items-end justify-center">
+                <div
+                  className="w-full cursor-pointer rounded-t-sm bg-gradient-to-t from-blue-500 to-blue-300 transition-all hover:from-blue-600 hover:to-blue-400"
+                  style={{
+                    height: `${(data.visitors / maxVisitors) * 200}px`,
+                    minHeight: '4px',
+                    maxHeight: '100%'
+                  }}
+                  title={`${data.hour}:00 - ${data.visitors} órdenes`}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="flex h-5 shrink-0 justify-between gap-0.5">
+            {hourlyTraffic.map((data, index) => (
               <div
-                className="w-full bg-gradient-to-t from-blue-500 to-blue-300 rounded-t-sm transition-all hover:from-blue-600 hover:to-blue-400 cursor-pointer"
-                style={{
-                  height: `${(data.visitors / maxVisitors) * 200}px`,
-                  minHeight: '4px'
-                }}
-                title={`${data.hour}:00 - ${data.visitors} órdenes`}
-              />
-              {index % 4 === 0 && (
-                <span className="text-xs text-muted-foreground">{data.hour}h</span>
-              )}
-            </div>
-          ))}
+                key={`${data.hour}-axis`}
+                className="flex min-w-0 flex-1 items-start justify-center"
+              >
+                {index % 4 === 0 ? (
+                  <span className="text-xs text-muted-foreground tabular-nums">{data.hour}h</span>
+                ) : null}
+              </div>
+            ))}
+          </div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-4 text-center">
           <div>
@@ -502,7 +926,9 @@ const AnalyticsPage = () => {
       productosInactivos: 0,
       sinStock: 0,
       precioPromedio: 0,
-      ratingPromedio: 0
+      ratingPromedio: 0,
+      categoriasActivas: 0,
+      variantesActivas: 0
     }
   }
 
@@ -582,37 +1008,13 @@ const AnalyticsPage = () => {
         </TabsContent>
 
         <TabsContent value="products" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ProductPerformance performance={data.productPerformance} />
-            <Card>
-              <CardHeader>
-                <CardTitle>Métricas de Productos</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{(data.productMetrics?.productosActivos || 0).toLocaleString()}</p>
-                    <p className="text-sm text-muted-foreground">Productos Activos</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{(data.productMetrics?.productosInactivos || 0).toLocaleString()}</p>
-                    <p className="text-sm text-muted-foreground">Productos Inactivos</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{(data.productMetrics?.sinStock || 0).toLocaleString()}</p>
-                    <p className="text-sm text-muted-foreground">Sin Stock</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">${(data.productMetrics?.precioPromedio || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 })}</p>
-                    <p className="text-sm text-muted-foreground">Precio Promedio</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-2xl font-bold">{(data.productMetrics?.ratingPromedio || 0).toFixed(1)}★</p>
-                    <p className="text-sm text-muted-foreground">Rating Promedio</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-12 xl:items-start">
+            <div className="xl:col-span-7 2xl:col-span-8">
+              <ProductOperationalKpis metrics={data.productMetrics} />
+            </div>
+            <div className="xl:col-span-5 2xl:col-span-4">
+              <ProductCatalogMetrics metrics={data.productMetrics} />
+            </div>
           </div>
         </TabsContent>
       </Tabs>
