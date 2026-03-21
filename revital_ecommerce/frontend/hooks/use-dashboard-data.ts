@@ -50,7 +50,7 @@ export const useDashboardData = (
       const adaptedData: DashboardData = {
         kpis: {
           totalOrders: response.kpis.totalOrders,
-          activeOrders: response.kpis.activeOrders,
+          unitsSold: response.kpis.unitsSold,
           shippedOrders: response.kpis.shippedOrders,
           totalRevenue: response.kpis.totalRevenue
         },
@@ -91,10 +91,10 @@ export const useDashboardData = (
       // En caso de error, usar datos vacíos
       const emptyData: DashboardData = {
         kpis: {
-          totalOrders: { value: 0, growth: 0, trend: 'up', formatted: '$0K' },
-          activeOrders: { value: 0, growth: 0, trend: 'up', formatted: '$0K' },
-          shippedOrders: { value: 0, growth: 0, trend: 'up', formatted: '$0K' },
-          totalRevenue: { value: 0, growth: 0, trend: 'up', formatted: '$0M' }
+          totalOrders: { value: 0, growth: 0, trend: 'up', formatted: '0' },
+          unitsSold: { value: 0, growth: 0, trend: 'up', formatted: '0' },
+          shippedOrders: { value: 0, growth: 0, trend: 'up', formatted: '0' },
+          totalRevenue: { value: 0, growth: 0, trend: 'up', formatted: '$0' }
         },
         salesData: [],
         bestSellers: [],

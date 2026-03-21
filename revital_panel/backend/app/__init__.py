@@ -1,2 +1,0 @@
-# Revital Backend Application
-

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { 
   IconShoppingCart, 
-  IconCash,
+  IconPackage,
   IconTruck,
   IconArrowUpRight,
   IconSparkles
@@ -148,24 +148,28 @@ const AdminDashboard = () => {
       >
         <KPICard
           title="Total de Órdenes"
+          description="Pedidos creados en el período (cualquier estado)"
           data={data?.kpis?.totalOrders}
           icon={IconShoppingCart}
           loading={loading}
         />
         <KPICard
-          title="Órdenes Activas"
-          data={data?.kpis?.activeOrders}
-          icon={IconCash}
+          title="Unidades vendidas"
+          description="Suma de cantidades en líneas de pedidos completados"
+          data={data?.kpis?.unitsSold}
+          icon={IconPackage}
           loading={loading}
         />
         <KPICard
           title="Órdenes Enviadas"
+          description="Pedidos completados o pagados en el período"
           data={data?.kpis?.shippedOrders}
           icon={IconTruck}
           loading={loading}
         />
         <KPICard
           title="Ingresos Totales"
+          description="Suma del total de pedidos completados"
           data={data?.kpis?.totalRevenue}
           icon={IconArrowUpRight}
           loading={loading}

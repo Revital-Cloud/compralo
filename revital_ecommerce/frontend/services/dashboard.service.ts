@@ -9,7 +9,8 @@ export interface DashboardKPIData {
 
 export interface DashboardKPIs {
   totalOrders: DashboardKPIData
-  activeOrders: DashboardKPIData
+  /** Suma de unidades vendidas en pedidos completados del período. */
+  unitsSold: DashboardKPIData
   shippedOrders: DashboardKPIData
   totalRevenue: DashboardKPIData
 }

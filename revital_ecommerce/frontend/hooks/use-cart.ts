@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import * as cartService from "@/services/cart.service";
 import { formatPrice } from "@/utils/format-price";
+import { toUserSafeApiDetail } from "@/utils/api-error-message";
 import { toast } from "sonner";
 
 // =============================================================================
@@ -629,9 +630,17 @@ export function useCart() {
     onError: (error: any) => {
       const data = error?.response?.data;
       const detail = data?.detail;
-      const message = typeof detail === "string" ? detail : Array.isArray(detail) ? detail.map((e: any) => e?.msg ?? e).join(", ") : detail ?? error?.message ?? "Error al agregar al carrito";
-      console.error("❌ Error al agregar producto:", message, data ?? error);
-      // Mostrar al usuario el mensaje del backend (stock, límite, migración, etc.)
+      const raw =
+        typeof detail === "string"
+          ? detail
+          : Array.isArray(detail)
+            ? detail.map((e: { msg?: string }) => e?.msg ?? e).join(", ")
+            : detail ?? error?.message;
+      const message = toUserSafeApiDetail(
+        raw,
+        "No se pudo agregar el producto al carrito. Inténtalo de nuevo."
+      );
+      console.error("❌ Error al agregar producto:", raw ?? error, data ?? error);
       setError(message);
       // Invalidar queries y refrescar para revertir optimistic update
       queryClient.invalidateQueries({ queryKey: CART_KEYS.all });

@@ -5,7 +5,7 @@ import { useRootCategories, useCategoriesRaw } from '@/hooks/use-categories';
 import { CategoryCard } from '@/components/cards/CategoryCard';
 import { getIconForCategory } from '@/utils/category-mapper';
 import { Package } from 'lucide-react';
-import { Button } from '@/components/ui';
+import { Badge, Button } from '@/components/ui';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Category } from '@/types/category';
 
@@ -66,34 +66,55 @@ export default function CategoriesPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-foreground mb-4">
-          Todas las Categorías
-        </h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          Explora todas nuestras categorías de productos y encuentra lo que buscas. Desde aquí puedes entrar a cada categoría y ver sus líneas y sublíneas.
-        </p>
+      {/* Header (más jerarquía visual, menos plano) */}
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-muted/30 to-background px-6 py-8 md:px-10 md:py-10 mb-10">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(254,200,6,0.30),transparent_55%),radial-gradient(circle_at_80%_0%,rgba(249,115,22,0.18),transparent_45%)] opacity-90"
+        />
+        <div className="relative">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+            <div className="max-w-2xl">
+              <h1 className="text-3xl font-bold text-foreground md:text-4xl">
+                Todas las Categorías
+              </h1>
+              <p className="text-base text-muted-foreground mt-3">
+                Explora todas nuestras categorías de productos y encuentra lo que buscas. Desde aquí puedes entrar a cada categoría y ver sus líneas y sublíneas.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-6">
+                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/10">
+                  {totalItems} categorías
+                </Badge>
+                <Badge variant="outline" className="text-muted-foreground">
+                  Grid 4x4 por página
+                </Badge>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Grid de Categorías (raíz) 4x4 = 16 por página */}
       {categories && categories.length > 0 ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {paginatedCategories.map((category) => {
+            {paginatedCategories.map((category, index) => {
               const IconComponent = getIconForCategory(category.name);
               const totalProducts = recursiveCounts.get(Number(category.id)) ?? category.productCount ?? 0;
+              const isFeatured = index === 0 || index === 6;
+              const bentoClass = isFeatured ? "lg:col-span-2 xl:col-span-2" : "";
               return (
-                <CategoryCard
-                  key={category.id}
-                  title={category.name}
-                  description={category.description}
-                  icon={createElement(IconComponent, { className: 'w-6 h-6' })}
-                  count={totalProducts}
-                  countLabel="productos"
-                  variant="default"
-                  categoryId={category.id}
-                />
+                <div key={category.id} className={bentoClass}>
+                  <CategoryCard
+                    title={category.name}
+                    description={category.description}
+                    icon={createElement(IconComponent, { className: 'w-6 h-6' })}
+                    count={totalProducts}
+                    countLabel="productos"
+                    variant="default"
+                    categoryId={category.id}
+                  />
+                </div>
               );
             })}
           </div>
