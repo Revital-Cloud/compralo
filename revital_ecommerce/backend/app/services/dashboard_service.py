@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import Dict, List, Any
 
+from services.product_service import SQL_IMG_PRINCIPAL_COALESCE_P
+
 
 def _format_revenue_full(value: float) -> str:
     """
@@ -244,7 +246,7 @@ def _get_best_sellers(db: Session, limit: int = 10) -> List[Dict[str, Any]]:
         SELECT 
             p.id AS product_id,
             p.name AS nom_producto,
-            (SELECT pvi.image_url FROM tab_product_variant_images pvi JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id WHERE g.product_id = p.id ORDER BY g.id, pvi.sort_order, pvi.id LIMIT 1) AS image_url,
+            """ + SQL_IMG_PRINCIPAL_COALESCE_P + """ AS image_url,
             COALESCE(SUM(op.cant_producto), 0) AS total_sold,
             COALESCE(SUM(op.subtotal), 0) AS total_revenue
         FROM tab_products p

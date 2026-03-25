@@ -39,6 +39,7 @@ import { searchMatches } from '@/utils/search-helpers'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { attributeSchema, type AttributeFormValues } from '@/schemas/admin/attribute.schema'
+import { AdminFiltersSkeleton, AdminTableSkeleton } from '@/components/admin/skeletons'
 
 const DATA_TYPES = ['text', 'number', 'boolean'] as const
 
@@ -203,7 +204,12 @@ const AttributesPage = () => {
         />
       </div>
 
-      {isLoading && <div className="text-sm text-muted-foreground">Cargando atributos...</div>}
+      {isLoading && (
+        <div className="space-y-4">
+          <AdminFiltersSkeleton />
+          <AdminTableSkeleton rows={8} />
+        </div>
+      )}
       {isError && <div className="text-sm text-red-600">No se pudieron cargar los atributos.</div>}
 
       {!isLoading && !isError && Array.isArray(data) && data.length === 0 && (

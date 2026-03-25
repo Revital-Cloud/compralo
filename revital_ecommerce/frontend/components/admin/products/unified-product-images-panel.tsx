@@ -68,11 +68,14 @@ export function UnifiedProductImagesPanel({
       seenUrls.add(key);
       list.push({ type: 'product', url: img.preview, id: img.id, canRemove: true });
     });
+    // Si hay solo 1 imagen existente y el usuario no ha subido nuevas, no permitimos borrarla
+    // para cumplir la regla de "imagen principal obligatoria" en edición.
+    const canRemoveExisting = !!onRemoveExistingImage && !(existingUrls.length === 1 && images.length === 0);
     existingUrls.forEach((url, i) => {
       const key = url.trim();
       if (!key || seenUrls.has(key)) return;
       seenUrls.add(key);
-      list.push({ type: 'product', url, id: `existing-${i}`, canRemove: !!onRemoveExistingImage });
+      list.push({ type: 'product', url, id: `existing-${i}`, canRemove: canRemoveExisting });
     });
     return list;
   }, [existingUrls, images, onRemoveExistingImage]);

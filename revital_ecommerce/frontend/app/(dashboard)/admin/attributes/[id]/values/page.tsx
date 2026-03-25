@@ -37,6 +37,7 @@ import { toast } from 'sonner'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { attributeValueSchema, type AttributeValueFormValues } from '@/schemas/admin/attribute.schema'
+import { AdminDetailSkeleton } from "@/components/admin/skeletons"
 
 const AttributeValuesPage = () => {
   const params = useParams()
@@ -201,7 +202,7 @@ const AttributeValuesPage = () => {
       )}
 
       {loadingAttr || loadingValues ? (
-        <div className="text-sm text-muted-foreground">Cargando…</div>
+        <AdminDetailSkeleton />
       ) : !attribute ? (
         <div className="text-sm text-red-600">Atributo no encontrado.</div>
       ) : values.length === 0 && hasPredefined ? (

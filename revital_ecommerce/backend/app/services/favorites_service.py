@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from schemas.favorites_schema import FavoritesCreate
+from services.product_service import SQL_IMG_PRINCIPAL_COALESCE_P
+
 
 def get_favorites(db:Session, id_usuario: Decimal):
     """
@@ -24,7 +26,7 @@ def get_favorites(db:Session, id_usuario: Decimal):
             f.id_usuario,
             f.product_id AS id_producto,
             p.name AS nom_producto,
-            (SELECT pvi.image_url FROM tab_product_variant_images pvi JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id WHERE g.product_id = p.id ORDER BY g.id, pvi.sort_order, pvi.id LIMIT 1) AS img_producto,
+            """ + SQL_IMG_PRINCIPAL_COALESCE_P + """ AS img_producto,
             (SELECT MIN(c.price) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS val_precio,
             f.fec_insert
         FROM tab_favoritos f

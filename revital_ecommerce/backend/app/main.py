@@ -6,7 +6,9 @@ y registra los routers de la aplicación, como el router de productos.
 También puede incluir configuraciones globales de la aplicación y middlewares.
 """
 from urllib.parse import urlparse
+import uuid
 import logging
+from contextvars import ContextVar
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -58,7 +60,39 @@ from routers.top_info_bar_router import router as top_info_bar_router
 from core.rate_limiter import limiter
 
 # Configurar logging: en producción solo WARNING y superior (no se muestran INFO/DEBUG)
-logging.basicConfig(level=logging.WARNING if is_production() else logging.INFO)
+trace_id_var: ContextVar[str] = ContextVar("trace_id", default="-")
+
+class TraceIdFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        # Inyecta trace_id en todos los logs para correlacionar incidentes.
+        record.trace_id = trace_id_var.get()
+        return True
+
+class SafeTraceIdFormatter(logging.Formatter):
+    """
+    Evita fallos cuando algunos LogRecord (p.ej. logs de startup de Uvicorn)
+    no traen el atributo `trace_id`.
+    """
+
+    def format(self, record: logging.LogRecord) -> str:
+        if not hasattr(record, "trace_id"):
+            record.trace_id = trace_id_var.get()
+        return super().format(record)
+
+
+_log_format = "%(asctime)s [%(levelname)s] %(name)s [trace_id=%(trace_id)s] %(message)s"
+_handler = logging.StreamHandler()
+_handler.setFormatter(SafeTraceIdFormatter(_log_format))
+
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.WARNING if is_production() else logging.INFO)
+if not root_logger.handlers:
+    root_logger.addHandler(_handler)
+else:
+    safe_formatter = SafeTraceIdFormatter(_log_format)
+    for h in root_logger.handlers:
+        h.setFormatter(safe_formatter)
+root_logger.addFilter(TraceIdFilter())
 logger = logging.getLogger(__name__)
 
 # En producción no exponemos documentación pública (Swagger / ReDoc) ni el schema OpenAPI.
@@ -75,6 +109,21 @@ app = FastAPI(
     redoc_url=_redoc_url,
     openapi_url=_openapi_url,
 )
+
+@app.middleware("http")
+async def add_trace_id_middleware(request: Request, call_next):
+    # Prioridad: header -> nuevo uuid
+    incoming = request.headers.get("x-trace-id") or request.headers.get("x-request-id")
+    trace_id = incoming.strip() if incoming else uuid.uuid4().hex
+    token = trace_id_var.set(trace_id)
+    try:
+        response = await call_next(request)
+        # Retornamos siempre para debugging/observabilidad.
+        response.headers["X-Trace-Id"] = trace_id
+        response.headers["X-Request-Id"] = trace_id
+        return response
+    finally:
+        trace_id_var.reset(token)
 
 # Orígenes permitidos para CORS (dev y prod)
 ALLOWED_CORS_ORIGINS = [

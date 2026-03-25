@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from decimal import Decimal
 from typing import Optional, List, Union
 import json
+import logging
 
 from core.database import get_db
 from core.dependencies import require_admin, get_current_user, get_current_user_optional
@@ -33,6 +34,7 @@ from schemas.auth_schema import UserInToken
 from services import product_service
 
 router = APIRouter(tags=["Productos"])
+logger = logging.getLogger(__name__)
 
 #todos los productos
 @router.get("/products", response_model=list[Product])
@@ -270,9 +272,18 @@ async def update_product_composite_route(
         else:
             body = await request.json()
             payload = ProductCreateComposite.model_validate(body)
+
+        product_imgs = [u.strip() for u in (payload.image_urls or []) if (u or "").strip()]
+        if not product_imgs:
+            raise HTTPException(
+                status_code=400,
+                detail="La imagen principal del producto es obligatoria (panel de imágenes del producto).",
+            )
+
         product_service.update_product_composite(db, product_id, payload, current_user.id_usuario)
         return ResponseMessage(message="Producto actualizado correctamente")
     except Exception as e:
+        logger.exception("Error en update_product_composite_route product_id=%s", product_id)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
 
 
@@ -414,10 +425,19 @@ async def create_product_composite(
         else:
             body = await request.json()
             payload = ProductCreateComposite.model_validate(body)
+
+        product_imgs = [u.strip() for u in (payload.image_urls or []) if (u or "").strip()]
+        if not product_imgs:
+            raise HTTPException(
+                status_code=400,
+                detail="La imagen principal del producto es obligatoria (panel de imágenes del producto).",
+            )
+
         result = product_service.create_product_composite(db, payload, current_user.id_usuario)
         product_id = result.replace("OK:", "").strip()
         return ResponseMessage(message=f"Producto creado correctamente. ID: {product_id}")
     except Exception as e:
+        logger.exception("Error en create_product_composite")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
 
 

@@ -51,7 +51,7 @@ export function NavMain({
                 <div className="h-px bg-gray-200 dark:bg-gray-700"></div>
               </div>
             )}
-            <div className="px-3 py-2">
+            <div className="px-3 py-2 group-data-[collapsible=icon]:hidden">
               <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 {section.label}
               </h3>
@@ -70,7 +70,7 @@ export function NavMain({
                         asChild
                         className={`transition-colors duration-300 ${
                           isActive 
-                            ? 'bg-[#fec806]/10 text-[#fec806] hover:bg-[#fec806]/20 border-l-4 border-[#fec806]' 
+                            ? 'bg-[#fec806]/10 text-[#fec806] hover:bg-[#fec806]/20 border-l-4 border-[#fec806] group-data-[collapsible=icon]:border-l-0 group-data-[collapsible=icon]:ring-1 group-data-[collapsible=icon]:ring-[#fec806]/70 group-data-[collapsible=icon]:ring-inset' 
                             : 'text-gray-700 dark:text-gray-300 hover:text-[#fec806] hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
                       >

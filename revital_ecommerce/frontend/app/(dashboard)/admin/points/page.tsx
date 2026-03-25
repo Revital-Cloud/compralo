@@ -24,6 +24,7 @@ import type { UserWithPoints } from '@/types/points'
 import Link from 'next/link'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
 import { searchMatches } from '@/utils/search-helpers'
+import { AdminStatsRowSkeleton, AdminTableSkeleton } from '@/components/admin/skeletons'
 
 const PointsPage = () => {
   const { data: activeRates } = useActivePointsRate()
@@ -250,7 +251,12 @@ const PointsPage = () => {
       </div>
 
       {/* Tabla de usuarios con puntos */}
-      {isLoading && <div className="text-sm text-muted-foreground">Cargando usuarios...</div>}
+      {isLoading && (
+        <div className="space-y-4">
+          <AdminStatsRowSkeleton count={3} />
+          <AdminTableSkeleton rows={10} />
+        </div>
+      )}
       {isError && <div className="text-sm text-red-600">No se pudieron cargar los usuarios.</div>}
       {!isLoading && !isError && Array.isArray(filteredUsers) && (
         <div data-tour-id="points-table">

@@ -4,7 +4,7 @@ Router para la gestión de pagos con Wompi Checkout Widget.
 Endpoints para crear pagos, attach transaction_id, polling de estados,
 y reintentos de pagos fallidos.
 """
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Header
 from starlette.requests import Request
 from fastapi import Request as FastAPIRequest
 from sqlalchemy.orm import Session
@@ -299,7 +299,8 @@ async def create_payment_widget(
     payload: PaymentCreateRequest,
     request: Request,
     db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user)
+    current_user: UserInToken = Depends(get_current_user),
+    idempotency_key: Optional[str] = Header(None, alias="Idempotency-Key"),
 ):
     """
     Crea un pago para una orden y retorna la configuración del widget.
@@ -386,8 +387,37 @@ async def create_payment_widget(
             logger.info(f"🔧 Usando monto del frontend (descuento no guardado en orden): {amount_in_cents} centavos")
         currency = "COP"
         
-        # Generar reference única
-        reference = generate_payment_reference(order_id)
+        # Generar reference (idempotencia opcional)
+        reference = generate_payment_reference(order_id, idempotency_key=idempotency_key)
+
+        # Idempotencia: si ya existe un payment con esa reference, retornamos el mismo payload
+        existing_payment = get_payment_by_reference(db, reference)
+        if existing_payment:
+            amount_existing = existing_payment.get("amount")
+            currency_existing = existing_payment.get("currency_id") or currency
+
+            # amount es Decimal (ej: 12.34) -> a centavos
+            try:
+                amount_in_cents_existing = int((Decimal(str(amount_existing)) * 100).to_integral_value())
+            except Exception:
+                # fallback a lo pedido por el request si no se pudo convertir
+                amount_in_cents_existing = amount_in_cents
+
+            # integrity debe ser consistente para el reference existente
+            integrity_signature_existing = generate_integrity_signature(
+                reference=reference,
+                amount_in_cents=amount_in_cents_existing,
+                currency=str(currency_existing),
+                integrity_secret=wompi_config.wompi_integrity_secret,
+            )
+
+            return PaymentCreateResponse(
+                reference=reference,
+                amount_in_cents=amount_in_cents_existing,
+                currency=str(currency_existing),
+                public_key=wompi_config.wompi_public_key,
+                integrity_signature=integrity_signature_existing,
+            )
         
         # Generar firma integrity en backend
         integrity_signature = generate_integrity_signature(
@@ -396,7 +426,7 @@ async def create_payment_widget(
             currency=currency,
             integrity_secret=wompi_config.wompi_integrity_secret
         )
-        
+
         # Crear registro Payment con status CREATED
         create_payment(
             db=db,
@@ -681,27 +711,20 @@ async def get_payment_status(
                 wompi_config = get_store_from_request(request, db)
                 
                 # Hacer una consulta rápida a Wompi para obtener el estado actual
-                import httpx
-                base_url = "https://sandbox.wompi.co" if wompi_config.wompi_environment == "sandbox" else "https://production.wompi.co"
-                url = f"{base_url}/v1/transactions/{transaction_id}"
-                
-                async with httpx.AsyncClient() as client:
-                    response = await client.get(url, timeout=5.0)
-                    if response.status_code == 200:
-                        tx_data = response.json()
-                        if tx_data.get("data"):
-                            status_result = tx_data["data"].get("status", status_result)
-                            logger.info(f"✅ Estado actualizado desde Wompi: {status_result}")
-                            
-                            # Si es estado final, actualizar payment
-                            if status_result in ["APPROVED", "DECLINED", "VOIDED", "ERROR"]:
-                                update_payment_status(
-                                    db=db,
-                                    reference=reference,
-                                    status=status_result,
-                                    transaction_data=tx_data.get("data", {}),
-                                    mark_order_paid=(status_result == "APPROVED")
-                                )
+                tx_data = await fetch_transaction_by_id(transaction_id, wompi_config)
+                if tx_data:
+                    status_result = tx_data.get("status", status_result)
+                    logger.info(f"✅ Estado actualizado desde Wompi: {status_result}")
+
+                    # Si es estado final, actualizar payment
+                    if status_result in ["APPROVED", "DECLINED", "VOIDED", "ERROR"]:
+                        update_payment_status(
+                            db=db,
+                            reference=reference,
+                            status=status_result,
+                            transaction_data=tx_data,
+                            mark_order_paid=(status_result == "APPROVED")
+                        )
             except Exception as e:
                 logger.warning(f"⚠️ No se pudo obtener estado desde Wompi: {str(e)}")
                 # Continuar con el estado de la BD

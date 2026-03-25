@@ -14,6 +14,7 @@ import { useDiscountData } from '@/components/admin/discounts/use-discount-data'
 import DataTable from '@/components/tables/table'
 import { toast } from 'sonner'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
+import { AdminPageHeaderSkeleton, AdminFiltersSkeleton, AdminTableSkeleton } from "@/components/admin/skeletons"
 
 const DiscountsPage = () => {
   const { data: stats } = useDiscountStats()
@@ -191,7 +192,11 @@ const DiscountsPage = () => {
       </div>
 
       {isLoading && (
-        <div className="text-sm text-muted-foreground">Cargando descuentos...</div>
+        <div className="space-y-4">
+          <AdminPageHeaderSkeleton />
+          <AdminFiltersSkeleton />
+          <AdminTableSkeleton rows={8} />
+        </div>
       )}
 
       {isError && (
