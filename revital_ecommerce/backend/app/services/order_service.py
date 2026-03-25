@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text, bindparam, Integer
 
 from schemas.order_schema import OrderCreate
+from services.out_of_stock_notification_service import notify_after_order_paid_stock_change
 
 logger = logging.getLogger(__name__)
 
@@ -630,7 +631,8 @@ def update_order_payment_info(db: Session, id_orden: Decimal, metodo_pago: str |
     
     try:
         logger.info(f"🔍 update_order_payment_info: id_orden={id_orden}, metodo_pago={metodo_pago}, ind_estado={ind_estado}, commit={commit}")
-        
+        old_state = None
+
         # Verificar estado anterior ANTES del UPDATE para que los triggers se ejecuten correctamente
         if ind_estado is not None:
             check_old_state_query = text("SELECT ind_estado FROM tab_ordenes WHERE id_orden = :id_orden")
@@ -703,6 +705,21 @@ def update_order_payment_info(db: Session, id_orden: Decimal, metodo_pago: str |
         if commit:
             db.commit()
             logger.info(f"✅ Commit realizado para orden {id_orden}")
+            # Tras commit: orden pagada/completada por primera vez → stock descontado en BD
+            if (
+                ind_estado is not None
+                and int(ind_estado) in (2, 3)
+                and old_state is not None
+                and int(old_state) not in (2, 3)
+            ):
+                try:
+                    notify_after_order_paid_stock_change(db, id_orden)
+                except Exception as notify_err:
+                    logger.warning(
+                        "Notificación sin stock post-pago omitida para orden %s: %s",
+                        id_orden,
+                        notify_err,
+                    )
     except Exception as e:
         logger.error(f"❌ Error en update_order_payment_info: {str(e)}")
         if commit:

@@ -20,6 +20,7 @@ from core.tenant import StoreWompiConfig, get_wompi_base_url
 from core.exceptions import get_safe_message, MSG_SERVICE_UNAVAILABLE
 from core.circuit_breaker import CircuitOpenError, run_with_circuit_breaker
 from services import order_service
+from services.out_of_stock_notification_service import notify_after_order_paid_stock_change
 
 logger = logging.getLogger(__name__)
 
@@ -1042,6 +1043,14 @@ def update_payment_status(
                         logger.error(f"❌ ERROR CRÍTICO: La orden {order_id} NO se actualizó a estado 2. Estado actual: {verify_row.ind_estado}")
                     if not verify_row.metodo_pago:
                         logger.warning(f"⚠️ ADVERTENCIA: La orden {order_id} no tiene método de pago guardado")
+                    if verify_row.ind_estado == 2:
+                        try:
+                            notify_after_order_paid_stock_change(db, Decimal(str(order_id)))
+                        except Exception as oos_err:
+                            logger.warning(
+                                "Notificación sin stock post-pago (commit agrupado) omitida: %s",
+                                oos_err,
+                            )
                 else:
                     logger.error(f"❌ ERROR CRÍTICO: No se encontró la orden {order_id} después del commit")
             

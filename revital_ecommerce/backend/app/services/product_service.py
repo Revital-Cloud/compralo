@@ -31,6 +31,11 @@ from schemas.product_schema import (
     ProductCreateComposite,
 )
 from services import cloudinary_service
+from services.out_of_stock_notification_service import (
+    LOW_STOCK_MAX,
+    notify_variant_low_stock,
+    notify_variant_out_of_stock,
+)
 # No necesitamos importar el schema Product aquí si solo devolvemos mappings
 # y el router se encarga de la validación con el response_model.
 
@@ -1791,6 +1796,12 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                 sku_to_try = (v.sku and v.sku.strip()) or None
                 if idx < len(ref_ids):
                     cid = ref_ids[idx]
+                    prev_row = db.execute(
+                        text("SELECT stock, sku FROM tab_product_variant_combinations WHERE id = :cid"),
+                        {"cid": cid},
+                    ).fetchone()
+                    old_stock = int(prev_row[0] or 0) if prev_row else 0
+                    new_stock = int(v.stock or 0)
                     db.execute(text("""
                         UPDATE tab_product_variant_combinations
                         SET sku = COALESCE(:sku, sku),
@@ -1812,6 +1823,40 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                         "usr": usr_update,
                         "cid": cid,
                     })
+                    if new_stock == 0 and old_stock > 0:
+                        pname_row = db.execute(
+                            text("SELECT name FROM tab_products WHERE id = :pid"),
+                            {"pid": product_id},
+                        ).fetchone()
+                        pname = str(pname_row[0] or "") if pname_row else ""
+                        notify_variant_out_of_stock(
+                            db,
+                            product_id=int(product_id),
+                            product_name=pname,
+                            variant_id=int(cid),
+                            sku=sku_to_try,
+                            order_id=None,
+                            source_label="Edición en panel admin",
+                        )
+                    elif (
+                        1 <= new_stock <= LOW_STOCK_MAX
+                        and old_stock > LOW_STOCK_MAX
+                    ):
+                        pname_row = db.execute(
+                            text("SELECT name FROM tab_products WHERE id = :pid"),
+                            {"pid": product_id},
+                        ).fetchone()
+                        pname = str(pname_row[0] or "") if pname_row else ""
+                        notify_variant_low_stock(
+                            db,
+                            product_id=int(product_id),
+                            product_name=pname,
+                            variant_id=int(cid),
+                            sku=sku_to_try,
+                            current_stock=new_stock,
+                            order_id=None,
+                            source_label="Edición en panel admin",
+                        )
                 else:
                     rc = None
                     for _attempt in range(4):

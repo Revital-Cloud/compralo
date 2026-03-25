@@ -2,7 +2,7 @@
 
 {% block title %}Alerta de stock bajo – {{ app_name }}{% endblock %}
 
-{% block preheader %}Stock bajo: {{ product.name }}. Actual: {{ product.stock }}, Mínimo: {{ product.min_stock }}. Acción requerida.{% endblock %}
+{% block preheader %}Stock bajo: {{ product.name }}{% if product.variant_id %} (variante {{ product.variant_id }}){% endif %}. Actual: {{ product.stock }}, umbral: ≤{{ product.min_stock }}.{% endblock %}
 
 {% block content %}
 <div class="greeting">Alerta de stock</div>
@@ -16,9 +16,21 @@
     <table class="table">
         <tr><td><strong>ID</strong></td><td>{{ product.id }}</td></tr>
         <tr><td><strong>Nombre</strong></td><td>{{ product.name }}</td></tr>
-        <tr><td><strong>Stock actual</strong></td><td style="font-weight:bold; color:#dc2626;">{{ product.stock }}</td></tr>
-        <tr><td><strong>Stock mínimo</strong></td><td>{{ product.min_stock }}</td></tr>
+        {% if product.variant_id is defined and product.variant_id %}
+        <tr><td><strong>ID variante</strong></td><td>{{ product.variant_id }}</td></tr>
+        {% endif %}
+        {% if product.sku is defined and product.sku %}
+        <tr><td><strong>SKU</strong></td><td>{{ product.sku }}</td></tr>
+        {% endif %}
+        <tr><td><strong>Stock actual (variante)</strong></td><td style="font-weight:bold; color:#d97706;">{{ product.stock }}</td></tr>
+        <tr><td><strong>Umbral “stock bajo”</strong></td><td>1–{{ product.min_stock }} unidades (mismo criterio que el listado admin)</td></tr>
         <tr><td><strong>Stock recomendado</strong></td><td>{{ product.recommended_stock }}</td></tr>
+        {% if product.order_id is defined and product.order_id %}
+        <tr><td><strong>Orden</strong></td><td>#{{ product.order_id }}</td></tr>
+        {% endif %}
+        {% if product.source_label is defined and product.source_label %}
+        <tr><td><strong>Origen</strong></td><td>{{ product.source_label }}</td></tr>
+        {% endif %}
     </table>
 </div>
 
