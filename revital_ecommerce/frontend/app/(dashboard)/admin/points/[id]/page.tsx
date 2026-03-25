@@ -6,6 +6,7 @@ import { useUserPointsHistory } from '@/hooks/use-points'
 import type { PointsMovement } from '@/types/points'
 import { Card, CardHeader, CardTitle, CardContent, Button, Badge } from '@/components/ui'
 import { IconArrowLeft, IconPlus, IconMinus, IconClock } from '@tabler/icons-react'
+import { AdminDetailSkeleton } from '@/components/admin/skeletons'
 
 const getMovementIcon = (tipo: number) => {
   switch (tipo) {
@@ -68,11 +69,7 @@ const UserPointsHistoryPage = () => {
       </div>
 
       {isLoading && (
-        <Card>
-          <CardContent className="py-8 text-sm text-muted-foreground">
-            Cargando historial...
-          </CardContent>
-        </Card>
+        <AdminDetailSkeleton />
       )}
 
       {isError && (

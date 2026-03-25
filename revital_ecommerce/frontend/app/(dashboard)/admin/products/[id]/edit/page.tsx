@@ -15,6 +15,7 @@ import {
 } from '@/services/product.service'
 import type { ProductCreateComposite, VariantCreateItem } from '@/types/product'
 import { useQuery } from '@tanstack/react-query'
+import { AdminFormSkeleton } from '@/components/admin/skeletons'
 
 const FORM_ID = 'product-form-composite-edit'
 
@@ -56,9 +57,15 @@ export default function ProductEditPage() {
     try {
       setIsSubmitting(true)
       const imageFiles = productImageFilesRef.current.length > 0 ? productImageFilesRef.current : selectedImages.map((img) => img?.file).filter((f): f is File => !!f)
+      const hasMainImage = productImageUrls.length > 0 || imageFiles.length > 0
+      if (!hasMainImage) {
+        toast.error('La imagen principal es obligatoria')
+        return
+      }
       const payloadWithExistingImages: ProductCreateComposite = {
         ...payload,
-        image_urls: productImageUrls.length > 0 ? [...productImageUrls] : (payload.image_urls ?? []),
+        // Usar SIEMPRE el estado local para reflejar la edición/remoción del usuario.
+        image_urls: [...productImageUrls],
       }
       await updateProductComposite(productId, payloadWithExistingImages, imageFiles)
       toast.success('Producto actualizado correctamente')
@@ -106,7 +113,7 @@ export default function ProductEditPage() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         <div className="xl:col-span-2">
           {isLoading ? (
-            <div className="text-muted-foreground">Cargando producto...</div>
+            <AdminFormSkeleton fields={10} />
           ) : (
             <ProductFormComposite
               formId={FORM_ID}

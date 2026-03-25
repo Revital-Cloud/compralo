@@ -424,7 +424,8 @@ def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
                  FROM tab_product_variant_images pvi
                  JOIN tab_product_variant_groups g2 ON g2.id = pvi.variant_group_id
                  WHERE g2.product_id = p.id
-                 ORDER BY g2.id, pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
+                 ORDER BY CASE WHEN LOWER(TRIM(COALESCE(g2.dominant_value, ''))) = 'sin color' THEN 0 ELSE 1 END,
+                          g2.id, pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
                  LIMIT 1)
             ) AS img_principal,
             m.nom_marca,
@@ -601,7 +602,8 @@ def get_cart_with_basic_info(db: Session, get_cart_detail: GetCartDetail):
                  FROM tab_product_variant_images pvi
                  JOIN tab_product_variant_groups g2 ON g2.id = pvi.variant_group_id
                  WHERE g2.product_id = p.id
-                 ORDER BY g2.id, pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
+                 ORDER BY CASE WHEN LOWER(TRIM(COALESCE(g2.dominant_value, ''))) = 'sin color' THEN 0 ELSE 1 END,
+                          g2.id, pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
                  LIMIT 1)
             ) AS imagen_url,
             pv.stock AS num_stock,

@@ -96,7 +96,7 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
         <link rel="preconnect" href={apiOrigin} crossOrigin="anonymous" />
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />

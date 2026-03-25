@@ -9,13 +9,14 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Button, Sheet, SheetContent, SheetHeader, SheetTitle, Tabs, TabsContent, TabsList, TabsTrigger, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui'
 import { Pencil, Power, Eye, Info } from 'lucide-react'
 import { CategoryModal } from '@/components/admin/categories/category-modal'
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { CategoriesFilters } from '@/components/admin/categories/categories-filters'
 import type { Category } from '@/types/category'
 import { toast } from 'sonner'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
 import { searchMatches } from '@/utils/search-helpers'
+import { AdminFiltersSkeleton, AdminTableSkeleton } from '@/components/admin/skeletons'
 
 const TAB_VALUES = ['categoria', 'linea', 'sublinea'] as const
 type CategoryTab = (typeof TAB_VALUES)[number]
@@ -72,11 +73,20 @@ function getCategoryLevelNumber(category: Category, list: Category[]): number {
 /** Sort categories hierarchically: roots first, then children under each root, then grandchildren. */
 function sortCategoriesHierarchically(list: Category[]): Category[] {
   const byId = new Map(list.map((c) => [categoryIdNum(c), c]))
-  const roots = list.filter((c) => parentIdNum(c) == null)
+  // When list is already filtered by search, parent nodes may be missing.
+  // Treat entries whose parent is absent from the current subset as roots too.
+  const roots = list.filter((c) => {
+    const pid = parentIdNum(c)
+    return pid == null || !byId.has(pid)
+  })
   const result: Category[] = []
+  const visited = new Set<number>()
   function visit(id: number) {
     const c = byId.get(id)
-    if (c) result.push(c)
+    if (c && !visited.has(id)) {
+      visited.add(id)
+      result.push(c)
+    }
   }
   function dfs(cats: Category[]) {
     const sorted = [...cats].sort((a, b) => String(a.name ?? '').localeCompare(String(b.name ?? '')))
@@ -87,6 +97,8 @@ function sortCategoriesHierarchically(list: Category[]): Category[] {
     }
   }
   dfs(roots)
+  // Safety: include any leftover nodes not traversed.
+  for (const c of list) visit(categoryIdNum(c))
   return result
 }
 
@@ -109,12 +121,12 @@ const CategoriesPage = () => {
   const tabParam = searchParams.get('tab')
   const currentTab: CategoryTab = isValidTab(tabParam) ? tabParam : DEFAULT_TAB
 
-  const handleTabChange = (value: string) => {
+  const handleTabChange = useCallback((value: string) => {
     const next = isValidTab(value) ? value : DEFAULT_TAB
     const params = new URLSearchParams(searchParams.toString())
     params.set('tab', next)
     router.replace(`${pathname}?${params.toString()}`, { scroll: false })
-  }
+  }, [pathname, router, searchParams])
 
   useEffect(() => {
     if (!searchParams.get('tab')) {
@@ -122,11 +134,11 @@ const CategoriesPage = () => {
     }
   }, [pathname, router, searchParams])
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearch('')
     setFilterByParentCategoryId('')
     setFilterByParentLineId('')
-  }
+  }, [])
 
   const filteredData = useMemo(() => {
     if (!Array.isArray(data)) return []
@@ -207,7 +219,7 @@ const CategoriesPage = () => {
     }
   }, [startCategoriesListTour])
 
-  function buildColumnsForTab(tab: CategoryTab): ColumnDef<Category>[] {
+  const buildColumnsForTab = useCallback((tab: CategoryTab): ColumnDef<Category>[] => {
     const baseColumns: ColumnDef<Category>[] = [
       {
         accessorKey: 'id',
@@ -315,7 +327,7 @@ const CategoriesPage = () => {
       }
     )
     return baseColumns
-  }
+  }, [categoriesList, deactivateActivateCategoryMutation.isPending])
 
   return (
     <div className="space-y-6">
@@ -360,7 +372,10 @@ const CategoriesPage = () => {
       />
 
       {isLoading && (
-        <div className="text-sm text-muted-foreground">Cargando categorías...</div>
+        <div className="space-y-4">
+          <AdminFiltersSkeleton />
+          <AdminTableSkeleton rows={10} />
+        </div>
       )}
 
       {isError && (

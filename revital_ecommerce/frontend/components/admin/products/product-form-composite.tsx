@@ -128,9 +128,18 @@ export function ProductFormComposite({
         is_active: initialData.product.is_active ?? true,
       })
       const imagesByVariant = initialData.images_by_variant ?? {}
+      const seenComboIds = new Set<number>()
+      const uniqueFromApi = initialData.variants.filter((v) => {
+        const id = (v as { id?: number }).id
+        if (id == null || Number.isNaN(Number(id))) return true
+        const n = Number(id)
+        if (seenComboIds.has(n)) return false
+        seenComboIds.add(n)
+        return true
+      })
       setVariants(
-        initialData.variants.length > 0
-          ? initialData.variants.map((v) => {
+        uniqueFromApi.length > 0
+          ? uniqueFromApi.map((v) => {
               const vid = (v as { id?: number }).id != null ? String((v as { id?: number }).id) : undefined
               const imgs = vid ? imagesByVariant[vid] : []
               const sorted = [...(imgs || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
@@ -530,9 +539,19 @@ export function ProductFormComposite({
         <CardContent className="space-y-4">
           {variants.map((variant, index) => {
             const attrValue = variant.attributes && Object.values(variant.attributes).find((v) => v != null && String(v).trim())
+            // Si el atributo dominante es "Color", el valor puede venir como ID (number/string).
+            // Resolvemos ese ID contra categoryAttributes para mostrar siempre el nombre del color.
+            const colorAttr = (categoryAttributes ?? []).find((a) => (a.attribute_name ?? '').toLowerCase() === 'color')
+            const colorAttrId = colorAttr?.attribute_id != null ? String(colorAttr.attribute_id) : null
+            const rawColorId =
+              (colorAttrId ? variant.attributes?.[colorAttrId] : undefined) ??
+              (variant.attributes?.dominant != null ? variant.attributes?.dominant : undefined)
+            const resolvedColorName =
+              colorAttr?.values?.find((av) => String(av.id) === String(rawColorId))?.value ?? undefined
+
             const variantLabel =
               (variant.tipo_clasificacion && String(variant.tipo_clasificacion).trim()) ||
-              (attrValue != null ? String(attrValue).trim() : undefined) ||
+              (resolvedColorName ? String(resolvedColorName).trim() : attrValue != null ? String(attrValue).trim() : undefined) ||
               `Variante ${index + 1}`
             return (
             <div key={index} className="border rounded-lg p-4 space-y-4 bg-muted/30">

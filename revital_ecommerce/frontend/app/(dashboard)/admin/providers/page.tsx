@@ -16,6 +16,7 @@ import { Pencil, Power, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
 import { searchMatches } from '@/utils/search-helpers'
+import { AdminPageHeaderSkeleton, AdminFiltersSkeleton, AdminTableSkeleton } from "@/components/admin/skeletons"
 
 interface Provider {
   id_proveedor: number
@@ -211,7 +212,11 @@ const ProvidersPage = () => {
       </div>
 
       {isLoading && (
-        <div className="text-sm text-muted-foreground">Cargando proveedores...</div>
+        <div className="space-y-4">
+          <AdminPageHeaderSkeleton />
+          <AdminFiltersSkeleton />
+          <AdminTableSkeleton rows={8} />
+        </div>
       )}
 
       {isError && (

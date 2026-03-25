@@ -92,6 +92,11 @@ class Settings(BaseSettings):
     # Groq: API key para IA (resumen, chat admin). Opcional: si no está, rutas /admin/ai devuelven 503
     GROQ_API_KEY: Optional[str] = None
 
+    # Cloudflare Turnstile (CAPTCHA) - server-side verification
+    # Si no está configurado, el backend no puede validar y se tratará como deshabilitado.
+    TURNSTILE_SECRET_KEY: Optional[str] = None
+    TURNSTILE_ENABLED: bool = True
+
     class Config:
         env_file = _ENV_FILES
         case_sensitive = True

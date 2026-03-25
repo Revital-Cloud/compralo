@@ -17,6 +17,7 @@ import { BrandsFilters } from '@/components/admin/brands/brands-filters'
 import { toast } from 'sonner'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
 import { searchMatches } from '@/utils/search-helpers'
+import { AdminFiltersSkeleton, AdminTableSkeleton } from '@/components/admin/skeletons'
 
 interface Brand {
   id_marca: number
@@ -194,7 +195,10 @@ const BrandsPage = () => {
       </div>
 
       {isLoading && (
-        <div className="text-sm text-muted-foreground">Cargando marcas...</div>
+        <div className="space-y-4">
+          <AdminFiltersSkeleton />
+          <AdminTableSkeleton rows={8} />
+        </div>
       )}
 
       {isError && (

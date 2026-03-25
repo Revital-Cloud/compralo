@@ -52,7 +52,19 @@ BEGIN
             p.name AS nom_producto,
             p.slug AS slug_producto,
             p.description,
-            (SELECT pvi.image_url FROM tab_product_variant_images pvi JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id WHERE g.product_id = p.id ORDER BY g.id, pvi.sort_order, pvi.id LIMIT 1) AS img_principal,
+            COALESCE(
+              (SELECT pvi.image_url FROM tab_product_variant_images pvi
+               INNER JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id
+               WHERE g.product_id = p.id
+                 AND LOWER(TRIM(COALESCE(g.dominant_value, ''))) = 'sin color'
+               ORDER BY pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
+               LIMIT 1),
+              (SELECT pvi.image_url FROM tab_product_variant_images pvi
+               INNER JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id
+               WHERE g.product_id = p.id
+               ORDER BY g.id, pvi.sort_order, pvi.id
+               LIMIT 1)
+            ) AS img_principal,
             -- Para admin: mostrar precio y stock incluso si las variantes están inactivas
             (SELECT MIN(c.price) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id) AS precio_min,
             (SELECT MAX(c.price) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id) AS precio_max,

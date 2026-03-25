@@ -17,8 +17,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from fastapi import HTTPException, status
 from core.tenant import StoreWompiConfig, get_wompi_base_url
-from core.exceptions import get_safe_message
+from core.exceptions import get_safe_message, MSG_SERVICE_UNAVAILABLE
+from core.circuit_breaker import CircuitOpenError, run_with_circuit_breaker
 from services import order_service
+from services.out_of_stock_notification_service import notify_after_order_paid_stock_change
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +138,7 @@ def get_payment_method_for_db(wompi_type: str) -> str:
     return WOMPI_TO_DB_METHOD_MAP.get(wompi_type.upper(), "transferencia")
 
 
-def generate_payment_reference(order_id: int) -> str:
+def generate_payment_reference(order_id: int, idempotency_key: Optional[str] = None) -> str:
     """
     Genera una referencia única para el pago.
     
@@ -149,6 +151,13 @@ def generate_payment_reference(order_id: int) -> str:
     Returns:
         str: Referencia única del pago
     """
+    if idempotency_key is not None:
+        normalized = idempotency_key.strip()
+        if normalized:
+            # Idempotencia: la misma clave genera la misma referencia.
+            hash_part = hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:10]
+            return f"revital_{order_id}_{hash_part}"
+
     random_part = uuid.uuid4().hex[:10]
     return f"revital_{order_id}_{random_part}"
 
@@ -210,15 +219,35 @@ async def fetch_transaction_by_id(
     base_url = get_wompi_base_url(wompi_config.wompi_environment)
     url = f"{base_url}/transactions/{transaction_id}"
     headers = {"Content-Type": "application/json"}
-    try:
+
+    async def _do_request():
         async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(url, headers=headers)
-            response.raise_for_status()
-            data = response.json()
-            return data.get("data") or data
+            return await client.get(url, headers=headers)
+
+    try:
+        response = await run_with_circuit_breaker(
+            key=url,
+            call=_do_request,
+            failure_predicate=lambda r: r is not None and (r.status_code >= 500 or r.status_code == 429),
+        )
+    except CircuitOpenError:
+        logger.warning("Circuit breaker abierto: no se consulta Wompi (fetch_transaction_by_id).")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=MSG_SERVICE_UNAVAILABLE)
+    except HTTPException:
+        # Propaga el 503 lanzado por el circuito (o fallas controladas).
+        raise
     except Exception as e:
         logger.warning(f"No se pudo obtener transacción de Wompi: {transaction_id} - {e}")
         return None
+
+    if response.status_code == 404:
+        return None
+    if response.status_code >= 400:
+        logger.warning(f"Wompi devolvió HTTP {response.status_code} al consultar transacción: {transaction_id}")
+        return None
+
+    data = response.json()
+    return data.get("data") or data
 
 
 def create_order_from_checkout_reference(
@@ -722,54 +751,70 @@ async def poll_transaction_status(
     """
     base_url = get_wompi_base_url(wompi_config.wompi_environment)
     url = f"{base_url}/transactions/{transaction_id}"
-    
+
     # No requiere autenticación para consulta pública
-    headers = {
-        "Content-Type": "application/json"
-    }
-    
+    headers = {"Content-Type": "application/json"}
+
     max_attempts = max_duration // interval
-    
+
     async with httpx.AsyncClient(timeout=10.0) as client:
         for attempt in range(max_attempts):
             try:
-                response = await client.get(url, headers=headers)
-                response.raise_for_status()
-                data = response.json()
-                
-                transaction_data = data.get("data", {})
-                status = transaction_data.get("status")
-                
-                # Log para debugging del método de pago
-                if transaction_data:
-                    logger.debug(f"Transaction data recibida de Wompi: {json.dumps(transaction_data, indent=2, default=str)}")
-                    if "payment_method" in transaction_data:
-                        logger.info(f"Método de pago en respuesta: {transaction_data['payment_method']}")
-                
-                # Si es estado final, retornar inmediatamente
-                if status in ["APPROVED", "DECLINED", "VOIDED", "ERROR"]:
-                    logger.info(f"Estado final obtenido: transaction_id={transaction_id}, status={status}")
-                    return {
-                        "status": status,
-                        "transaction_id": transaction_id,
-                        "data": transaction_data
-                    }
-                
-                # Si sigue PENDING, esperar antes del siguiente intento
-                if attempt < max_attempts - 1:
-                    await asyncio.sleep(interval)
-                    
-            except httpx.HTTPStatusError as e:
-                logger.error(f"Error HTTP al consultar transacción: {e.response.status_code} - {e.response.text}")
-                if e.response.status_code == 404:
+                async def _do_request():
+                    return await client.get(url, headers=headers)
+
+                response = await run_with_circuit_breaker(
+                    key=url,
+                    call=_do_request,
+                    failure_predicate=lambda r: r is not None and (r.status_code >= 500 or r.status_code == 429),
+                )
+
+                if response.status_code == 404:
                     raise HTTPException(
                         status_code=status.HTTP_404_NOT_FOUND,
                         detail="Transacción no encontrada",
                     )
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=get_safe_message(e),
-                )
+                if response.status_code >= 400:
+                    # No abrimos circuit por 4xx (solo por 5xx/429 vía predicado).
+                    logger.warning(
+                        f"Wompi devolvió HTTP {response.status_code} al consultar transacción (poll): {transaction_id}"
+                    )
+                    # Trátalo como error final para no dejar pagos colgados.
+                    return {"status": "ERROR", "transaction_id": transaction_id, "data": {}}
+
+                data = response.json()
+
+                transaction_data = data.get("data", {})
+                current_status = transaction_data.get("status")
+
+                # Log para debugging del método de pago
+                if transaction_data:
+                    logger.debug(
+                        f"Transaction data recibida de Wompi: {json.dumps(transaction_data, indent=2, default=str)}"
+                    )
+                    if "payment_method" in transaction_data:
+                        logger.info(f"Método de pago en respuesta: {transaction_data['payment_method']}")
+
+                # Si es estado final, retornar inmediatamente
+                if current_status in ["APPROVED", "DECLINED", "VOIDED", "ERROR"]:
+                    logger.info(f"Estado final obtenido: transaction_id={transaction_id}, status={current_status}")
+                    return {
+                        "status": current_status,
+                        "transaction_id": transaction_id,
+                        "data": transaction_data,
+                    }
+
+                # Si sigue PENDING, esperar antes del siguiente intento
+                if attempt < max_attempts - 1:
+                    await asyncio.sleep(interval)
+
+            except CircuitOpenError:
+                logger.warning("Circuit breaker abierto: poll_transaction_status degradado a ERROR.")
+                return {"status": "ERROR", "transaction_id": transaction_id, "data": {}}
+            except HTTPException as e:
+                if e.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
+                    return {"status": "ERROR", "transaction_id": transaction_id, "data": {}}
+                raise
             except Exception as e:
                 logger.error(f"Error inesperado al consultar transacción: {str(e)}")
                 if attempt == max_attempts - 1:
@@ -778,14 +823,10 @@ async def poll_transaction_status(
                         detail=get_safe_message(e),
                     )
                 await asyncio.sleep(interval)
-    
+
     # Si llegamos aquí, el polling terminó sin estado final
     logger.info(f"Polling terminado sin estado final: transaction_id={transaction_id}")
-    return {
-        "status": "PENDING",
-        "transaction_id": transaction_id,
-        "data": {}
-    }
+    return {"status": "PENDING", "transaction_id": transaction_id, "data": {}}
 
 
 def update_payment_status(
@@ -1002,6 +1043,14 @@ def update_payment_status(
                         logger.error(f"❌ ERROR CRÍTICO: La orden {order_id} NO se actualizó a estado 2. Estado actual: {verify_row.ind_estado}")
                     if not verify_row.metodo_pago:
                         logger.warning(f"⚠️ ADVERTENCIA: La orden {order_id} no tiene método de pago guardado")
+                    if verify_row.ind_estado == 2:
+                        try:
+                            notify_after_order_paid_stock_change(db, Decimal(str(order_id)))
+                        except Exception as oos_err:
+                            logger.warning(
+                                "Notificación sin stock post-pago (commit agrupado) omitida: %s",
+                                oos_err,
+                            )
                 else:
                     logger.error(f"❌ ERROR CRÍTICO: No se encontró la orden {order_id} después del commit")
             

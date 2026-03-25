@@ -13,6 +13,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { discountPageEditSchema, type DiscountPageEditFormData } from '@/schemas/admin/discount.schema'
 import { toast } from 'sonner'
+import { AdminFormSkeleton } from '@/components/admin/skeletons'
 
 const EditDiscountPage = () => {
   const router = useRouter()
@@ -76,7 +77,7 @@ const EditDiscountPage = () => {
   })
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground">Cargando descuento...</div>
+    return <AdminFormSkeleton fields={8} />
   }
 
   if (!discount) {

@@ -164,6 +164,10 @@ function Sidebar({
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  const [isHoveringCollapsedSidebar, setIsHoveringCollapsedSidebar] = React.useState(false)
+  const isHoverExpanded =
+    collapsible === "icon" && state === "collapsed" && isHoveringCollapsedSidebar
+  const collapsibleState = state === "collapsed" && !isHoverExpanded ? collapsible : ""
 
   if (collapsible === "none") {
     return (
@@ -209,10 +213,12 @@ function Sidebar({
     <div
       className="group peer text-sidebar-foreground hidden md:block"
       data-state={state}
-      data-collapsible={state === "collapsed" ? collapsible : ""}
+      data-collapsible={collapsibleState}
       data-variant={variant}
       data-side={side}
       data-slot="sidebar"
+      onMouseEnter={() => setIsHoveringCollapsedSidebar(true)}
+      onMouseLeave={() => setIsHoveringCollapsedSidebar(false)}
     >
       {/* This is what handles the sidebar gap on desktop */}
       <div

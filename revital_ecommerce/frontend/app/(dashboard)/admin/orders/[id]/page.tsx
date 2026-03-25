@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { IconArrowLeft, IconPackage, IconCoins, IconDiscount, IconCalendar, IconUser } from '@tabler/icons-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { AdminDetailSkeleton } from "@/components/admin/skeletons"
 
 const OrderDetailPage = () => {
   const params = useParams()
@@ -37,18 +38,7 @@ const OrderDetailPage = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
-          <Link href="/admin/orders">
-            <Button variant="outline" size="sm">
-              <IconArrowLeft className="h-4 w-4 mr-2" />
-              Volver
-            </Button>
-          </Link>
-          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse" />
-        </div>
-        <div className="text-sm text-muted-foreground">Cargando detalles de la orden...</div>
-      </div>
+      <AdminDetailSkeleton />
     )
   }
 

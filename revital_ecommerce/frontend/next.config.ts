@@ -51,6 +51,7 @@ const nextConfig: NextConfig = {
       "https://sandbox.wompi.co",
       "https://production.wompi.co",
       "https://checkout.wompi.co",
+      "https://challenges.cloudflare.com",
       ...(isDevelopment
         ? [
             "http://localhost:8000",
@@ -94,12 +95,12 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://checkout.wompi.co https://static.cloudflareinsights.com",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://vercel.live https://checkout.wompi.co https://static.cloudflareinsights.com https://challenges.cloudflare.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: blob:",
               `connect-src ${connectSrc}`,
-              "frame-src 'self' https://checkout.wompi.co",
+              "frame-src 'self' https://checkout.wompi.co https://challenges.cloudflare.com",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self' https://checkout.wompi.co",

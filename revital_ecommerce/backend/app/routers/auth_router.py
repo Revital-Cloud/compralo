@@ -33,6 +33,7 @@ from services import user_service
 from core.dependencies import get_current_user
 from core.rate_limiter import limiter
 from core.login_attempt_lockout import clear_failed_logins, get_remaining_lockout_seconds, record_failed_login
+from core.turnstile import verify_turnstile
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,22 @@ async def login(
         )
 
     try:
+        # Cloudflare Turnstile verification (server-side)
+        # Si está habilitado y hay secret configurada, exigimos token.
+        if settings.TURNSTILE_ENABLED and settings.TURNSTILE_SECRET_KEY:
+            remote_ip = request.client.host if request.client else None
+            if not login_data.turnstile_token:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Captcha requerido. Por favor, completa la verificación e inténtalo de nuevo.",
+                )
+            ok = await verify_turnstile(login_data.turnstile_token, remote_ip=remote_ip)
+            if not ok:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Captcha inválido. Por favor, vuelve a intentarlo.",
+                )
+
         tokens = auth_service.login_user(db, login_data)
         # Login success -> reset lockout state.
         clear_failed_logins(login_data.email)
