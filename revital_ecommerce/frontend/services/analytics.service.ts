@@ -39,6 +39,10 @@ export interface ProductMetrics {
   sinStock: number
   precioPromedio: number
   ratingPromedio: number
+  /** Categorías distintas con al menos un producto activo */
+  categoriasActivas?: number
+  /** Combinaciones variante activas (SKUs listados) */
+  variantesActivas?: number
 }
 
 export interface AnalyticsData {

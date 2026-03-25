@@ -20,7 +20,6 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { ArrowLeft, Loader2, CalendarIcon } from 'lucide-react';
 import { Calendar } from "@/components/ui";
-import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui";
@@ -37,7 +36,7 @@ import {
 import { useRouter } from "next/navigation";
 import { registerSchema } from "@/schemas/auth.schema";
 import type { RegisterRequest } from "@/types";
-import { toLocalISOString, parseLocalDate, formatDateSpanish, fixCalendarDateSelection, debugDate } from "@/utils/date-helpers";
+import { parseLocalDate, formatDateSpanish, fixCalendarDateSelection, debugDate } from "@/utils/date-helpers";
 import {
   getLockoutState,
   formatLockoutCountdown,
@@ -400,7 +399,7 @@ export function RegisterForm() {
       </Dialog>
 
       <div className="text-muted-foreground text-center text-xs text-balance">
-        Al hacer clic en continuar, aceptas nuestros{" "}
+        Al hacer clic en Crear cuenta, aceptas nuestros{" "}
         <Link href="/terminos" className="underline underline-offset-4 hover:text-primary">
           Términos de Servicio
         </Link>{" "}

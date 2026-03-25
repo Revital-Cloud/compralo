@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from "@/hooks/use-auth";
+import { useSessionRestoreState } from "@/hooks/session-restore-state";
 import { Loader2 } from "lucide-react";
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
@@ -19,9 +20,13 @@ export function RouteGuard({
   redirectTo 
 }: RouteGuardProps) {
   const { user, isAuthenticated, isLoadingUser, isHydrated } = useAuth();
+  const { isRestoring, hasAttemptedRestore } = useSessionRestoreState();
 
   // Si no está hidratado o cargando, mostrar loader
-  if (!isHydrated || isLoadingUser) {
+  // Importante: en refresh el token de acceso está en memoria y se pierde hasta
+  // que `useSessionRestore()` llame a `/refresh`. Si redirigimos antes,
+  // terminamos en el index de `/admin` y perdemos la ruta actual.
+  if (!isHydrated || isLoadingUser || isRestoring || !hasAttemptedRestore) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />

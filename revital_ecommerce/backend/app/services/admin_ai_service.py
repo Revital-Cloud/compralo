@@ -140,7 +140,7 @@ def fetch_intent_data(db: Session, intent: str) -> dict:
         return {
             "kpis": {
                 "totalOrders": kpis.get("totalOrders", {}).get("formatted", "0"),
-                "activeOrders": kpis.get("activeOrders", {}).get("formatted", "0"),
+                "unitsSold": kpis.get("unitsSold", {}).get("formatted", "0"),
                 "shippedOrders": kpis.get("shippedOrders", {}).get("formatted", "0"),
                 "totalRevenue": kpis.get("totalRevenue", {}).get("formatted", "$0"),
             },
@@ -158,7 +158,7 @@ def fetch_intent_data(db: Session, intent: str) -> dict:
         return {
             "kpis": {
                 "totalOrders": kpis.get("totalOrders", {}).get("formatted", "0"),
-                "activeOrders": kpis.get("activeOrders", {}).get("formatted", "0"),
+                "unitsSold": kpis.get("unitsSold", {}).get("formatted", "0"),
                 "shippedOrders": kpis.get("shippedOrders", {}).get("formatted", "0"),
                 "totalRevenue": kpis.get("totalRevenue", {}).get("formatted", "$0"),
             },
@@ -222,10 +222,10 @@ def format_intent_reply(intent: str, data: dict) -> str:
         total_orders = kpis.get("totalOrders", "0")
         shipped_orders = kpis.get("shippedOrders", "0")
         total_revenue = kpis.get("totalRevenue", "$0")
-        active_orders = kpis.get("activeOrders", "0")
+        units = kpis.get("unitsSold", "0")
         return (
-            f"Resumen de ventas: {total_orders} órdenes totales, {active_orders} activas, "
-            f"{shipped_orders} enviadas e ingresos totales de {total_revenue}."
+            f"Resumen de ventas: {total_orders} órdenes totales, {shipped_orders} completadas, "
+            f"{units} unidades vendidas, ingresos {total_revenue}."
         )
 
     if intent == "alerts":
@@ -237,9 +237,9 @@ def format_intent_reply(intent: str, data: dict) -> str:
     if intent == "general":
         kpis = data.get("kpis") or {}
         total_orders = kpis.get("totalOrders", "0")
-        active_orders = kpis.get("activeOrders", "0")
         shipped_orders = kpis.get("shippedOrders", "0")
         total_revenue = kpis.get("totalRevenue", "$0")
+        units = kpis.get("unitsSold", "0")
         best = data.get("bestSellers") or []
         recent = data.get("recentOrders") or []
         recent_count = data.get("recentOrdersCount", len(recent) or 0) or 0
@@ -247,8 +247,8 @@ def format_intent_reply(intent: str, data: dict) -> str:
 
         parts: list[str] = []
         parts.append(
-            f"La tienda tiene {total_orders} órdenes totales, {active_orders} activas, "
-            f"{shipped_orders} enviadas e ingresos totales de {total_revenue}."
+            f"La tienda tiene {total_orders} órdenes totales, {shipped_orders} completadas, "
+            f"{units} unidades vendidas e ingresos {total_revenue}."
         )
         if best:
             top = ", ".join([f"{b.get('name') or 'N/A'} ({b.get('sales') or 0} ventas)" for b in best[:2]])
@@ -614,7 +614,7 @@ def chat_with_admin_ai(
             context_data = {
                 "kpis": {
                     "totalOrders": kpis.get("totalOrders", {}).get("formatted", "0"),
-                    "activeOrders": kpis.get("activeOrders", {}).get("formatted", "0"),
+                    "unitsSold": kpis.get("unitsSold", {}).get("formatted", "0"),
                     "shippedOrders": kpis.get("shippedOrders", {}).get("formatted", "0"),
                     "totalRevenue": kpis.get("totalRevenue", {}).get("formatted", "$0"),
                 },
@@ -889,7 +889,7 @@ def generate_dashboard_summary(db: Session, time_range: str = "monthly") -> str:
         "timeRange": time_range,
         "kpis": {
             "totalOrders": kpis.get("totalOrders", {}).get("formatted", "0"),
-            "activeOrders": kpis.get("activeOrders", {}).get("formatted", "0"),
+            "unitsSold": kpis.get("unitsSold", {}).get("formatted", "0"),
             "shippedOrders": kpis.get("shippedOrders", {}).get("formatted", "0"),
             "totalRevenue": kpis.get("totalRevenue", {}).get("formatted", "$0"),
         },

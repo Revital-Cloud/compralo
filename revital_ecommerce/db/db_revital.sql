@@ -54,19 +54,6 @@ DROP TABLE IF EXISTS tab_valores_atributo;
 DROP TABLE IF EXISTS tab_atributos;
 DROP TABLE IF EXISTS tab_categorias;
 
--- Nivel 1: catálogo legado (inglés) — solo limpieza en bases antiguas; sin CREATE en este script
-DROP TABLE IF EXISTS tab_product_variant_images;
-DROP TABLE IF EXISTS tab_product_variant_combinations;
-DROP TABLE IF EXISTS tab_product_variant_groups;
-DROP TABLE IF EXISTS tab_product_variant_attributes;
-DROP TABLE IF EXISTS tab_category_attributes;
-DROP TABLE IF EXISTS tab_product_images;
-DROP TABLE IF EXISTS tab_product_variants;
-DROP TABLE IF EXISTS tab_attribute_values;
-DROP TABLE IF EXISTS tab_attributes;
-DROP TABLE IF EXISTS tab_products;
-DROP TABLE IF EXISTS tab_categories;
-
 DROP TABLE IF EXISTS tab_marcas;
 DROP TABLE IF EXISTS tab_proveedores;
 DROP TABLE IF EXISTS tab_roles;
@@ -625,7 +612,7 @@ CREATE TABLE IF NOT EXISTS tab_carrito_productos (
     id_carrito              DECIMAL(10) NOT NULL REFERENCES tab_carritos(id_carrito),
     id_combinacion_variante DECIMAL(10) NOT NULL REFERENCES tab_combinaciones_variante_producto(id_combinacion_variante),
     cantidad                INT NOT NULL DEFAULT 1 CHECK (cantidad > 0),
-    precio_unitario_carrito DECIMAL(7,0) NOT NULL CHECK (precio_unitario_carrito >= 0),
+    precio_unitario_carrito DECIMAL(12,2) NOT NULL CHECK (precio_unitario_carrito >= 0),
     opciones_elegidas       JSONB NOT NULL DEFAULT '{}'::JSONB,
     usr_insert              DECIMAL(10) NOT NULL,
     fec_insert              TIMESTAMP WITHOUT TIME ZONE NOT NULL,
