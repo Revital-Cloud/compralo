@@ -97,6 +97,8 @@ export enum ThemeMode {
 export interface LoginRequest {
   email: string;
   password: string;
+  /** Token de Cloudflare Turnstile (se valida server-side en backend) */
+  turnstile_token?: string;
 }
 
 export interface TokenResponse {

@@ -12,6 +12,8 @@ class LoginRequest(BaseModel):
     """Schema para solicitud de login."""
     email: EmailStr
     password: str
+    # Token emitido por Cloudflare Turnstile (se valida server-side).
+    turnstile_token: Optional[str] = None
 
 class TokenResponse(BaseModel):
     """Schema para respuesta de tokens."""
