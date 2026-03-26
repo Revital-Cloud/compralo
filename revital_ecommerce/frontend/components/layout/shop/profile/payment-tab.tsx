@@ -23,6 +23,16 @@ import { Input } from "@/components/ui";
 import { Label } from "@/components/ui";
 import { Loader2 } from "lucide-react";
 
+/**
+ * Pestaña de métodos de pago guardados.
+ *
+ * Flujo:
+ * - listar tarjetas tokenizadas del usuario
+ * - agregar nuevo método
+ * - establecer principal
+ * - eliminar método existente
+ */
+
 const getBrandIcon = (brand: string) => {
     const iconClass = "w-8 h-5 text-white";
     switch (brand.toLowerCase()) {

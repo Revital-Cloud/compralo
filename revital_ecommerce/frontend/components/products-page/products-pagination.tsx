@@ -3,6 +3,14 @@
 import { Button } from "@/components/ui"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
+/**
+ * Paginador reutilizable para listado de productos.
+ *
+ * Comportamiento:
+ * - Muestra rango actual (start/end) respecto al total.
+ * - Renderiza páginas compactadas con elipsis para catálogos largos.
+ */
+
 interface ProductsPaginationProps {
   currentPage: number
   totalPages: number

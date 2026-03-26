@@ -1,5 +1,18 @@
 """
-Servicio para obtener datos del dashboard administrativo.
+Servicio de dashboard administrativo.
+
+Responsabilidad:
+- Consolidar datos de negocio para widgets del dashboard en un único payload.
+
+Consumido por:
+- `routers.dashboard_router.get_dashboard`.
+
+Bloques generados:
+- KPIs de periodo
+- Serie temporal de ventas
+- Best sellers
+- Órdenes recientes
+- Resumen agregado
 """
 import json
 from decimal import Decimal
@@ -13,7 +26,12 @@ from services.product_service import SQL_IMG_PRINCIPAL_COALESCE_P
 
 def _format_revenue_full(value: float) -> str:
     """
-    Ingresos sin abreviaturas (K/M): monto completo con miles en punto, decimales en coma (es-CO).
+    Formatea valores monetarios completos para UI (es-CO).
+
+    Reglas:
+    - miles con punto
+    - decimales con coma
+    - conserva signo para valores negativos
     """
     d = Decimal(str(float(value))).quantize(Decimal('0.01'))
     sign = '-' if d < 0 else ''
@@ -30,14 +48,14 @@ def _format_revenue_full(value: float) -> str:
 
 def get_dashboard_data(db: Session, time_range: str = 'monthly') -> Dict[str, Any]:
     """
-    Obtiene todos los datos necesarios para el dashboard administrativo.
-    
-    Args:
-        db (Session): Sesión de base de datos
-        time_range (str): Rango de tiempo ('daily', 'weekly', 'monthly')
-        
-    Returns:
-        dict: Datos completos del dashboard
+    Orquesta la carga total del dashboard según rango temporal.
+
+    Flujo:
+    1) Define ventana temporal y granularidad (día/semana/mes).
+    2) Consulta KPIs del periodo y compara contra periodo previo.
+    3) Construye serie de ventas para gráfica.
+    4) Trae top productos y últimas órdenes.
+    5) Calcula resumen final y retorna payload homogéneo.
     """
     try:
         # Calcular fechas según el rango de tiempo
@@ -84,7 +102,15 @@ def get_dashboard_data(db: Session, time_range: str = 'monthly') -> Dict[str, An
 
 
 def _get_kpis(db: Session, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
-    """Obtiene los KPIs del dashboard."""
+    """
+    Calcula KPIs principales y su tendencia contra periodo anterior.
+
+    KPIs:
+    - total de órdenes
+    - unidades vendidas
+    - órdenes enviadas/entregadas (según estado modelado)
+    - ingresos totales
+    """
     # Obtener estadísticas del período actual
     current_query = text("""
         SELECT 
@@ -203,7 +229,13 @@ def _get_kpis(db: Session, start_date: datetime, end_date: datetime) -> Dict[str
 
 def _get_sales_data(db: Session, start_date: datetime, end_date: datetime, 
                     period_format: str, period_label: str) -> List[Dict[str, Any]]:
-    """Obtiene datos de ventas agrupados por período."""
+    """
+    Devuelve serie temporal de ventas/órdenes agrupada por periodo.
+
+    Nota:
+    - `period_label` se conserva en la firma para compatibilidad y posibles
+      extensiones de mapeo semántico en frontend.
+    """
     # Construir la query con el formato de período directamente en el SQL
     query = text(f"""
         SELECT 
@@ -241,7 +273,13 @@ def _get_sales_data(db: Session, start_date: datetime, end_date: datetime,
 
 
 def _get_best_sellers(db: Session, limit: int = 10) -> List[Dict[str, Any]]:
-    """Obtiene los productos más vendidos (tab_products + tab_orden_productos por variant_id = combination id)."""
+    """
+    Obtiene productos más vendidos consolidando por producto base.
+
+    Join clave:
+    - `tab_orden_productos.variant_id` -> combinación de variante (`pv.id`).
+    - Se filtra catálogo activo y se ordena por unidades vendidas.
+    """
     query = text("""
         SELECT 
             p.id AS product_id,
@@ -294,7 +332,12 @@ def _get_best_sellers(db: Session, limit: int = 10) -> List[Dict[str, Any]]:
 
 
 def _get_recent_orders(db: Session, limit: int = 10) -> List[Dict[str, Any]]:
-    """Obtiene las órdenes más recientes."""
+    """
+    Retorna últimas órdenes para tabla de actividad reciente en admin.
+
+    Incluye:
+    - cliente, fecha, monto, estado mapeado a etiqueta UI e ítems totales.
+    """
     query = text("""
         SELECT 
             o.id_orden,
@@ -345,7 +388,13 @@ def _get_recent_orders(db: Session, limit: int = 10) -> List[Dict[str, Any]]:
 
 
 def _get_sales_summary(db: Session, sales_data: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Calcula el resumen de ventas."""
+    """
+    Calcula resumen agregado para tarjetas auxiliares del dashboard.
+
+    Importante:
+    - La conversión actual es placeholder controlado hasta integrar tracking
+      real de visitas/sesiones.
+    """
     total_sales = sum(item.get('sales', 0) for item in sales_data)
     total_orders = sum(item.get('orders', 0) for item in sales_data)
     

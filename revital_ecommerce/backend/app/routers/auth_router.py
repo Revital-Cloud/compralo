@@ -4,6 +4,16 @@ Router de autenticación.
 Define los endpoints relacionados con la autenticación de usuarios,
 incluyendo login, refresh de tokens, cambio de contraseña y obtención
 de información del usuario actual.
+
+Mapa del módulo:
+- Login/refresh/logout.
+- Verificación de email por OTP.
+- Verificación y recuperación de contraseña.
+- Endpoint `me` para perfil seguro del usuario autenticado.
+
+Relación con capas:
+- Router: seguridad HTTP, rate-limit y composición de cookies/tokens.
+- Services: `auth_service`, `user_service`, `email_service`.
 """
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request, Body
@@ -170,7 +180,12 @@ REFRESH_COOKIE_MAX_AGE = 60 * 60 * 24 * settings.REFRESH_TOKEN_EXPIRE_DAYS  # se
 
 
 def _token_response(access_token: str, refresh_token: str) -> JSONResponse:
-    """Build JSON response with access_token in body and refresh_token in HTTPOnly cookie (SEC-001)."""
+    """
+    Construye respuesta estándar de autenticación.
+
+    - `access_token` en body.
+    - `refresh_token` en cookie HTTPOnly (SEC-001).
+    """
     response = JSONResponse(
         content={"access_token": access_token, "token_type": "bearer"}
     )
@@ -197,6 +212,10 @@ async def refresh_token(
     Endpoint para refrescar el token de acceso.
     Lee el refresh token de la cookie (prioridad) o del body (migración).
     Devuelve access_token en el body y refresh_token en cookie HTTPOnly.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /refresh`
+    - Service: `auth_service.refresh_access_token`
     """
     refresh_value = request.cookies.get(REFRESH_COOKIE_NAME) or (
         refresh_data.refresh_token if refresh_data else None
@@ -227,6 +246,10 @@ async def get_current_user_info(
         
     Returns:
         UserPublic: Información segura del usuario actual
+
+    Endpoint -> Service:
+    - Endpoint: `GET /me`
+    - Service: `user_service.get_user`
     """
     # Obtener la información completa del usuario desde la base de datos
     full_user = user_service.get_user(db, current_user.id_usuario)
@@ -276,6 +299,10 @@ async def change_password(
         
     Raises:
         HTTPException: Si la contraseña actual es incorrecta
+
+    Endpoint -> Service:
+    - Endpoint: `POST /change-password`
+    - Service: `auth_service.change_password`
     """
     auth_service.change_password(
         db, 
@@ -292,6 +319,9 @@ async def logout(
     """
     Endpoint para cerrar sesión. Invalida la cookie de refresh token (SEC-001).
     El cliente debe limpiar el access token en memoria.
+
+    Endpoint:
+    - `POST /logout`
     """
     response = JSONResponse(
         content={"message": "Sesión cerrada exitosamente."}
@@ -311,6 +341,9 @@ async def verify_token(
         
     Returns:
         dict: Confirmación de que el token es válido
+
+    Endpoint:
+    - `GET /verify-token`
     """
     return {
         "valid": True,

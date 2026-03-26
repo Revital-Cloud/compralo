@@ -16,6 +16,14 @@ import { changePasswordSchema } from "@/schemas/auth.schema";
 import { toast } from "sonner";
 import type { z } from "zod";
 
+/**
+ * Pestaña de configuración y seguridad.
+ *
+ * Flujos:
+ * - cambio de contraseña con validación de política.
+ * - desactivación de cuenta (soft delete) con confirmación explícita.
+ */
+
 type PasswordFormValues = z.infer<typeof changePasswordSchema>;
 
 const CONFIRM_TEXT = "ELIMINAR";
@@ -38,6 +46,12 @@ export default function SettingsTab() {
     },
   });
 
+  /**
+   * Flujo: cambio de contraseña
+   * - Zod valida política/estructura desde `changePasswordSchema`.
+   * - `useChangePassword()` delega el update al backend y muestra toasts.
+   * - Se cierra el modal y se limpia el form al éxito.
+   */
   const onSubmit = async (data: PasswordFormValues) => {
     try {
       await changePassword({
@@ -210,6 +224,9 @@ export default function SettingsTab() {
                       variant="destructive"
                       disabled={deleteConfirmText !== CONFIRM_TEXT || isDeleting}
                       onClick={async () => {
+                        // Protección anti “clic accidental”:
+                        // - se requiere escribir exactamente `CONFIRM_TEXT` para habilitar la acción.
+                        // - el backend ejecuta un soft-delete y maneja el estado de sesión via `useAuth`.
                         if (deleteConfirmText !== CONFIRM_TEXT) return;
                         try {
                           setIsDeleting(true);

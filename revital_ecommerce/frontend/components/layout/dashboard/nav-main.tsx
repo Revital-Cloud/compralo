@@ -8,6 +8,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui"
 import Link from "next/link"
 
@@ -22,6 +23,7 @@ export function NavMain({
   }[]
 }) {
   const pathname = usePathname()
+  const { isMobile, setOpenMobile } = useSidebar()
 
   // Agrupar items por sección
   const groupedItems = items.reduce((acc, item) => {
@@ -74,7 +76,12 @@ export function NavMain({
                             : 'text-gray-700 dark:text-gray-300 hover:text-[#fec806] hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
                       >
-                        <Link href={item.url}>
+                        <Link
+                          href={item.url}
+                          onClick={() => {
+                            if (isMobile) setOpenMobile(false)
+                          }}
+                        >
                           {item.icon && <item.icon className={isActive ? 'text-[#fec806]' : ''} />}
                           <span className={isActive ? 'font-semibold' : ''}>{item.title}</span>
                         </Link>

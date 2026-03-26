@@ -8,6 +8,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+/**
+ * Cabecera de catálogo: contador, ordenamiento, toggle grid/list y botón de filtros móvil.
+ */
+
 const sortOptions = [
   { value: 'nombre-asc', label: 'Nombre (A-Z)' },
   { value: 'nombre-desc', label: 'Nombre (Z-A)' },

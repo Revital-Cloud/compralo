@@ -8,6 +8,14 @@ import { formatPrice } from '@/utils/format-price';
 import Image from 'next/image';
 import { getProductImageUrl } from '@/utils/image-helpers';
 
+/**
+ * Mapa de la página `profile/orders/[id]`.
+ *
+ * Objetivo:
+ * - Mostrar detalle completo de una orden del cliente.
+ * - Renderizar líneas de producto, importes, descuentos y observaciones.
+ */
+
 interface OrderProductItem {
   id_item?: number;
   id_categoria?: number;
@@ -39,6 +47,8 @@ interface OrderDetail {
 }
 
 function formatStatus(state: number) {
+  // `ind_estado` viene del backend como un entero y representa el ciclo de vida
+  // de la orden. Mapeamos esos estados a textos amigables para UI.
   switch (state) {
     case 1: return 'Pendiente';
     case 2: return 'Procesada';
@@ -50,7 +60,8 @@ function formatStatus(state: number) {
 
 function formatDate(dateString: string) {
   try {
-    // Extraer solo la parte de fecha (antes de la T)
+    // El backend normalmente envía timestamps en ISO (por ej. "2026-03-26T...").
+    // Nos quedamos solo con YYYY-MM-DD para formatear.
     const datePart = dateString.split('T')[0];
     const [year, month, day] = datePart.split('-');
     
@@ -65,6 +76,9 @@ export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
 
+  // Consulta el detalle de la orden del usuario autenticado.
+  // - `enabled: !!id` evita ejecutar la query cuando el `id` aún no se resuelve.
+  // - `queryKey` incluye el `id` para cachear correctamente por orden.
   const { data: order, isLoading } = useQuery({
     queryKey: ['order-detail', id],
     queryFn: async () => await api.get<OrderDetail>(`/orders/${id}/detail`),
@@ -72,6 +86,7 @@ export default function OrderDetailPage() {
   });
 
   if (isLoading || !order) {
+    // Estado de carga (y “sin datos” aún) hasta que el backend responda.
     return (
       <div className="max-w-3xl mx-auto py-8">
         <div className="flex items-center gap-2 text-muted-foreground">
@@ -85,6 +100,7 @@ export default function OrderDetailPage() {
     <div className="max-w-3xl mx-auto py-8">
       <h1 className="text-2xl font-bold mb-4">Orden #{id}</h1>
       <div className="rounded-md border border-border p-4 space-y-2">
+        {/* Metadatos principales de la orden */}
         <div className="flex justify-between">
           <span className="text-muted-foreground">Fecha</span>
           <span>{order?.fec_insert ? formatDate(order.fec_insert) : '—'}</span>
@@ -94,6 +110,7 @@ export default function OrderDetailPage() {
           <span>{formatStatus(order.ind_estado)}</span>
         </div>
         
+        {/* Líneas de productos (cada `item` representa una línea snapshot de la compra) */}
         {order.items && order.items.length > 0 && (
           <div className="pt-2">
             <p className="font-medium mb-3">Productos</p>
@@ -105,6 +122,9 @@ export default function OrderDetailPage() {
                       .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
                       .join(', ')
                   : null
+                // Imagen:
+                // - se intenta con `imagen_url` (si existe) o `product_image`
+                // - si no hay imagen, se usa un placeholder local para evitar layout shifts.
                 const imageUrl = getProductImageUrl(it.imagen_url || it.product_image, "/placeholder-product.jpg");
 
                 return (
@@ -133,6 +153,10 @@ export default function OrderDetailPage() {
                   </div>
                   <div className="text-right">
                     {(() => {
+                      // Este bloque vive “por ítem” para calcular:
+                      // - precio unitario actual
+                      // - si el backend envía `item_discounts` con datos suficientes,
+                      //   mostrar precio original y % de descuento.
                       const unitPrice = Number(it.unit_price)
                       const totalPrice = Number(it.total_price)
 
@@ -140,6 +164,8 @@ export default function OrderDetailPage() {
                       // No se debe "inventar" un precio original distribuyendo el descuento total del pedido.
                       const itemDiscounts = Array.isArray(it.item_discounts) ? it.item_discounts : []
 
+                      // Busca el primer valor numérico válido en un conjunto de claves “posibles”.
+                      // Se usa porque la API podría variar el nombre del campo (legacy vs nuevo backend).
                       const pickNumber = (obj: any, keys: string[]) => {
                         for (const k of keys) {
                           const v = obj?.[k]
@@ -176,6 +202,9 @@ export default function OrderDetailPage() {
                           )
                           .find((n: any) => typeof n === 'number' && Number.isFinite(n))
 
+                      // Decisión de UI:
+                      // - mostramos el “tachado” del precio original solo si el original existe
+                      //   y es mayor al precio unitario actual.
                       const showDiscount =
                         typeof originalUnitPrice === 'number' &&
                         Number.isFinite(originalUnitPrice) &&
@@ -202,6 +231,7 @@ export default function OrderDetailPage() {
                           </div>
                           <div className="flex items-center gap-2 justify-end flex-wrap mt-1">
                             <p className="font-semibold">{formatPrice(totalPrice)}</p>
+                            {/* Mostramos el total original solo si es coherente y reduce al total actual */}
                             {showDiscount && typeof originalTotalPrice === 'number' && originalTotalPrice > totalPrice && (
                               <span className="text-xs text-muted-foreground line-through">
                                 {formatPrice(originalTotalPrice)}
@@ -229,6 +259,10 @@ export default function OrderDetailPage() {
         {order.detalle_descuentos_aplicados && order.detalle_descuentos_aplicados.length > 0 && (
           <ul className="list-disc pl-5 text-sm text-muted-foreground">
             {order.detalle_descuentos_aplicados.map((d, idx) => {
+              // `detalle_descuentos_aplicados` puede incluir distintos tipos de descuento.
+              // Mostramos una etiqueta legible:
+              // - si es canje de puntos, rotulamos como “Descuento por puntos”
+              // - si hay nombre/código, usamos esos campos para contexto
               const label = d.tipo_descuento === "canje_puntos"
                 ? `Descuento por puntos${d.nombre ? `: ${d.nombre}` : ""}`
                 : (d.nombre || d.codigo || "Descuento");

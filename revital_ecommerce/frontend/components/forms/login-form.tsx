@@ -34,6 +34,16 @@ import {
 } from "@/lib/auth-attempt-limiter"
 import { useAuthLockout } from "@/hooks/use-auth-lockout"
 
+/**
+ * Mapa del formulario de login.
+ *
+ * Flujo:
+ * 1) Valida email/contraseña con Zod + React Hook Form.
+ * 2) Aplica protección anti abuso (lockout por intentos fallidos).
+ * 3) Integra Turnstile cuando está configurado por entorno.
+ * 4) Envía credenciales a `useAuth().login`.
+ */
+
 // Schema de validación con Zod
 const loginSchema = z.object({
   email: z
@@ -100,6 +110,7 @@ export function LoginForm({
 
   // Manejar envío del formulario
   const onSubmit = (data: LoginFormData) => {
+    // Doble verificación de bloqueo antes de golpear backend.
     const key = loginAttemptKey(data.email);
     const lock = getLockoutState(key);
     if (lock.remainingMs > 0) {

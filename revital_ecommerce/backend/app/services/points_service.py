@@ -1,3 +1,12 @@
+"""
+Servicios de configuración de puntos.
+
+Responsabilidad:
+- Crear y actualizar la configuración de conversión pesos<->puntos.
+- Exponer lectura de configuraciones activas/vigentes.
+- Encapsular llamadas a funciones SQL de negocio.
+"""
+
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text, func
@@ -7,7 +16,10 @@ from schemas.points_schema import PuntosConfigUpdate, PuntosConfigCreate
 
 def create_points_config(db: Session, config_create: PuntosConfigCreate, user_insert: Decimal):
     """
-    Crea una nueva configuración de puntos llamando a la función de base de datos.
+    Crea configuración de puntos vía función SQL.
+
+    Función invocada:
+    - `fun_crear_config_puntos_empresa(pesos_por_punto, descripcion, usr_insert)`
     """
     try:
         params = config_create.model_dump()
@@ -29,7 +41,13 @@ def create_points_config(db: Session, config_create: PuntosConfigCreate, user_in
 
 def update_active_config(db: Session, id_config_puntos: Decimal, config_update: PuntosConfigUpdate, user_id: int):
     """
-    Actualiza la configuración de puntos activa llamando a la función de base de datos.
+    Actualiza configuración existente de puntos.
+
+    Consideraciones:
+    - Si `descripcion` no viene en payload, se envía `None` para cumplir binds
+      requeridos por la función SQL.
+    - Interpreta respuesta JSON de BD y eleva HTTPException cuando `success`
+      es falso.
     """
     try:
         params = config_update.model_dump(exclude_unset=True)
@@ -78,7 +96,12 @@ def update_active_config(db: Session, id_config_puntos: Decimal, config_update: 
 
 def get_active_rate(db: Session):
     """
-    Obtiene la tasa de conversión de puntos activa llamando a la función de base de datos.
+    Lista configuraciones de puntos desde la tabla de configuración.
+
+    Nota:
+    - Actualmente retorna todas las filas de `tab_config_puntos_empresa`.
+      El filtrado de "activa" puede resolverse en capa SQL/servicio si se desea
+      comportamiento estricto.
     """
     try:
         query = text("""

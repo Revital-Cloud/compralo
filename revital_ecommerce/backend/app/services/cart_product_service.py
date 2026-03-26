@@ -7,6 +7,20 @@ from psycopg2.extras import Json
 
 from schemas.cart_product_schemas import CalculateTotalCart, CartProductCreate, CartProductDelete, GetCartDetail, MigrateCartAnonymous, GetCartUser, CartItemWithBasicInfo, ProductBasicInfo
 
+"""
+Servicios de carrito (capa de negocio/persistencia).
+
+Responsabilidades:
+- obtener/crear carrito por usuario o sesión anónima,
+- agregar/quitar/actualizar ítems del carrito,
+- devolver detalle de ítems para UI,
+- calcular totales de checkout con descuentos/canje.
+
+Se consume principalmente desde:
+- `routers/cart_product_router.py`
+- flujos de pago/orden que necesitan total de carrito.
+"""
+
 
 def _imagen_url_por_color(
     img_producto: Any,
@@ -82,6 +96,9 @@ def _opciones_elegidas_to_dict(value: Any) -> Dict[str, Any]:
 def get_cart(db:Session):
     """
     Obtiene todos los carritos.
+
+    Uso:
+    - endpoint administrativo/técnico de inspección de carritos.
     """
     try:
         query = text("""
@@ -104,6 +121,9 @@ def get_cart(db:Session):
 def get_cart_products(db: Session):
     """
     Obtiene todos los ítems del carrito (tab_carrito_productos usa variant_id).
+
+    Nota:
+    - devuelve estructura cruda de tabla, sin enriquecimiento de producto.
     """
     try:
         query = text("""
@@ -130,6 +150,12 @@ def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert
     """
     Agrega una variante al carrito usando fun_agregar_producto_carrito(id_usuario, session_id, variant_id, cantidad, usr).
     Si se envía variant_id se usa; si solo id_producto, se toma la primera variante activa del producto.
+
+    Flujo:
+    1. Resolver `variant_id` (directo o derivado desde `id_producto`).
+    2. Normalizar `opciones_elegidas` a JSON.
+    3. Invocar función SQL `fun_agregar_producto_carrito`.
+    4. Confirmar commit y retornar resultado de la función.
     """
     try:
         data = cart_product.model_dump()
@@ -198,6 +224,11 @@ def update_cart_product_quantity(db: Session, id_carrito_producto: int, nueva_ca
         id_carrito_producto (int): ID del producto en el carrito a actualizar.
         nueva_cantidad (int): Nueva cantidad del producto.
         usr_update (Optional[int]): Usuario que actualiza el registro.
+
+    Validaciones:
+    - item existe,
+    - cantidad solicitada <= stock activo,
+    - cantidad > 0.
     """
     try:
         # Obtener stock de variante para validar antes del update.
@@ -255,6 +286,9 @@ def delete_cart_product_by_id(db: Session, id_carrito_producto: int) -> bool:
 
     Returns:
         bool: True si se eliminó una fila, False si no existía.
+
+    Recomendado para UI moderna:
+    - elimina ítem exacto por identificador de línea de carrito.
     """
     try:
         query = text("""
@@ -273,6 +307,9 @@ def delete_cart_product(db: Session, id_usuario: Optional[Decimal], session_id: 
     """
     Elimina (o reduce cantidad de) un producto en el carrito.
     La BD opera por `variant_id`; por eso se resuelve desde `product_id`.
+
+    Compatibilidad:
+    - ruta legacy que todavía usa identificadores compuestos.
     """
     try:
         id_carrito_row = db.execute(
@@ -329,8 +366,9 @@ def migrate_cart_anonymous(db: Session, migrate_cart_anonymous: MigrateCartAnony
         db (Session): La sesión de base de datos SQLAlchemy.
         migrate_cart_anonymous (MigrateCartAnonymous): Datos de migración con id_carrito.
         usr_insert (Decimal): El usuario que realizó la operación (también es el id_usuario de destino).
-        
 
+    Resultado:
+    - transfiere ítems del carrito anónimo al carrito del usuario autenticado.
     """
     try:
         params = migrate_cart_anonymous.model_dump()
@@ -369,6 +407,10 @@ def get_cart_user(db:Session, get_cart_user:GetCartUser):
     
     Returns:
         int: ID del carrito obtenido o creado.
+
+    Implementación:
+    - delega en `fun_obtener_carrito_usuario`, que encapsula lógica de
+      "buscar existente o crear nuevo".
     """
     try:
         params = get_cart_user.model_dump()
@@ -400,6 +442,12 @@ def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
     """
     Obtiene el detalle del carrito usando tab_products, tab_product_variant_combinations y variant_id.
     Devuelve la misma estructura esperada por el frontend (id_categoria_producto = category_id, etc.).
+
+    Incluye:
+    - nombre, precio, subtotal, stock,
+    - imagen principal,
+    - marca/categoría,
+    - opciones elegidas (color/talla u otras).
     """
     try:
         params = get_cart_detail.model_dump()
@@ -497,6 +545,13 @@ def calculate_total_cart(db:Session, calculate_total_cart:CalculateTotalCart):
     """
     Calcula el total del carrito de un usuario.
     Soporta tanto usuarios registrados (id_usuario) como anónimos (session_id).
+
+    Fuente principal:
+    - función SQL `fun_calcular_total_carrito`.
+
+    Estrategia de salida:
+    - si la función ya retorna contrato completo, se devuelve intacto;
+    - si retorna estructura simple, se adapta al contrato esperado por API.
     """
     try:
         params = calculate_total_cart.model_dump()
@@ -583,6 +638,9 @@ def calculate_total_cart(db:Session, calculate_total_cart:CalculateTotalCart):
 def get_cart_with_basic_info(db: Session, get_cart_detail: GetCartDetail):
     """
     Obtiene el carrito con información básica (marca, color desde combinación/grupo) usando tab_products/tab_product_variant_combinations.
+
+    Pensado para:
+    - vistas rápidas donde no se requiere el detalle completo del carrito.
     """
     try:
         params = get_cart_detail.model_dump()

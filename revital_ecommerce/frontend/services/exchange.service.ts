@@ -1,6 +1,16 @@
 import { get, post } from '@/utils/apiWrapper'
 import type { DiscountExchangeable, ExchangePointsDiscountResponse, CanjeDisponible } from '@/types/discount'
 
+/**
+ * Service de canjes por puntos (frontend).
+ *
+ * Encapsula el acceso a endpoints del backend relacionados con:
+ * - descuentos canjeables por usuario
+ * - listado de canjes disponibles/no utilizados
+ * - redención (post) de puntos por un descuento específico
+ *
+ * Las funciones son usadas por `ExchangeTab` en el perfil.
+ */
 export const exchangeService = {
   /** Lista descuentos que el usuario puede canjear por puntos */
   async getExchangeableDiscounts(userId: number, limit = 20): Promise<DiscountExchangeable[]> {

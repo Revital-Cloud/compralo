@@ -4,10 +4,21 @@ from sqlalchemy import text
 
 from schemas.provider_schema import ProviderCreate, ProviderUpdate
 
+"""
+Servicios de proveedores.
+
+Responsabilidades:
+- listar/obtener proveedor,
+- crear/actualizar proveedor,
+- activar/desactivar estado operativo.
+"""
+
 def get_providers(db:Session):
     """
     Obtiene todos los proveedores registrados en la base de datos.
 
+    Se consume desde:
+    - `provider_router.get_providers`
     """
     try:
         query = text("""
@@ -31,6 +42,7 @@ def get_providers(db:Session):
     
 #trae un solo proveedor    
 def get_provider(db: Session, id_proveedor: Decimal):  
+    """Obtiene un proveedor por ID."""
     try:
         query = text("""
         SELECT
@@ -63,6 +75,9 @@ def create_provider(db:Session, provider:ProviderCreate, usr_insert: Decimal):
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
         provider (ProviderCreate): Un objeto Pydantic `ProviderCreate` con los datos a insertar.
+
+    Implementación:
+    - delega en `fun_insert_proveedores`.
     """
     try:
         params = provider.model_dump()
@@ -95,6 +110,9 @@ def update_provider(db:Session, id_proveedor:Decimal, provider:ProviderUpdate, u
         db (Session): La sesión de base de datos SQLAlchemy.
         id_proveedor (Decimal): El ID del proveedor a actualizar.
         provider (ProviderUpdate): Un objeto Pydantic `ProviderUpdate` con los datos a actualizar.
+
+    Implementación:
+    - delega en `fun_update_proveedores`.
     """
     try:
         params = provider.model_dump(exclude_unset=True)
@@ -131,6 +149,9 @@ def deactivate_activate_provider(db:Session, id_proveedor:Decimal, usr_update: D
     
     Returns:
         Mensaje de confirmación
+
+    Implementación:
+    - delega en `fun_deactivate_activate_proveedores`.
     """
     try:
         query = text("""    

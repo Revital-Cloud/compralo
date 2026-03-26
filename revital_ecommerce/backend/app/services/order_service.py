@@ -8,6 +8,20 @@ from services.out_of_stock_notification_service import notify_after_order_paid_s
 
 logger = logging.getLogger(__name__)
 
+"""
+Servicios de órdenes (capa de negocio/persistencia).
+
+Este módulo centraliza:
+- consultas de órdenes para usuario y admin,
+- creación de orden desde carrito (vía función SQL),
+- actualización de estado/método de pago,
+- construcción de snapshot de ítems para detalle histórico.
+
+Se consume desde:
+- `routers/order_router.py`
+- `services/payment_widget_service.py` (cuando pago checkout queda APPROVED)
+"""
+
 
 def get_orders(db:Session):
     """
@@ -51,6 +65,10 @@ def get_all_orders_admin(db: Session, limit: int = 50, offset: int = 0):
         
     Returns:
         list: Lista de órdenes con información del usuario
+
+    Pensado para:
+    - listados paginados del panel admin.
+    - normalización defensiva de nulos para evitar fallos en frontend.
     """
     try:
         query = text("""
@@ -108,6 +126,10 @@ def get_order_stats_admin(db: Session):
         
     Returns:
         dict: Estadísticas de órdenes
+
+    Métricas:
+    - conteos por estado,
+    - total de ventas completadas.
     """
     try:
         query = text("""
@@ -158,6 +180,13 @@ def get_order_detail_admin(db: Session, id_orden: int):
         
     Returns:
         dict: Detalle completo de la orden
+
+    Estructura de salida:
+    - `orden`: cabecera y metadatos
+    - `productos`: snapshot de ítems comprados
+    - `direccion_envio`: dirección resolviendo principal activa
+    - `puntos_ganados`
+    - `descuentos_aplicados`
     """
     try:
         # Información base de orden + usuario (LEFT JOIN por datos históricos).
@@ -280,6 +309,9 @@ def update_order_status_admin(db: Session, id_orden: int, new_status: int, usr_u
         id_orden (int): ID de la orden
         new_status (int): Nuevo estado (1=Pendiente, 2=Completada, 3=Cancelada)
         usr_update (Decimal): ID del usuario que actualiza
+
+    Uso:
+    - Endpoint admin de cambio manual de estado.
     """
     try:
         query = text("""
@@ -306,6 +338,8 @@ def update_order_status_admin(db: Session, id_orden: int, new_status: int, usr_u
 def get_orders_by_user(db:Session, id_usuario: Decimal):
     """
     Obtiene todas las órdenes de un usuario específico.
+
+    Se usa para historial en perfil de cliente.
     """
     try:
         query = text("""
@@ -339,6 +373,9 @@ def get_orders_by_user(db:Session, id_usuario: Decimal):
 def get_order_by_id(db:Session, id_orden: Decimal):
     """
     Obtiene una orden específica por su identificador.
+
+    Nota:
+    - Devuelve solo cabecera de orden (sin items).
     """
     try:
         query = text("""
@@ -371,6 +408,9 @@ def get_order_by_id(db:Session, id_orden: Decimal):
 def get_order_detail(db:Session, id_orden: Decimal):
     """
     Obtiene los detalles de una orden específica.
+
+    Nota:
+    - Similar a `get_order_by_id`; se mantiene por compatibilidad histórica.
     """
     try:
         query = text("""
@@ -418,6 +458,12 @@ def create_order(
         metodo_pago (str | None): Método de pago cuando ya está aprobado ('tarjeta', 'transferencia', etc).
     Returns:
         dict: El diccionario completo con toda la información de la orden creada.
+
+    Flujo:
+    1. Normaliza parámetros opcionales (`id_canje`, `metodo_pago`, estado inicial).
+    2. Invoca `fun_crear_orden_desde_carrito` (lógica fuerte en BD).
+    3. Intenta parsear respuesta JSON (dict o string).
+    4. Retorna contrato completo al llamador.
     """
     try:
         # Construir params explícitos para asegurar envío de `id_canje` a BD.
@@ -491,6 +537,7 @@ def create_order(
 
 
 def _pick_first_key(d: dict, keys: list, default=None):
+    """Retorna el primer valor no nulo encontrado entre varias claves."""
     for k in keys:
         if k in d and d[k] is not None:
             return d[k]
@@ -511,6 +558,9 @@ def get_order_with_items(db: Session, id_orden: Decimal):
     Devuelve la orden y un arreglo `items` con el snapshot de productos comprados
     (nombre, cantidad, precio unitario, total, variante y atributos). Usa variant_id
     en tab_orden_productos y JOIN a tab_product_variant_combinations + tab_products.
+
+    Objetivo principal:
+    - entregar detalle histórico estable, aunque productos/variantes cambien luego.
     """
     # 1) Obtener la orden base.
     id_orden_val = int(id_orden) if id_orden is not None else None
@@ -627,6 +677,11 @@ def update_order_payment_info(db: Session, id_orden: Decimal, metodo_pago: str |
         metodo_pago: Método de pago (opcional)
         ind_estado: Estado de la orden (opcional)
         commit: Si True, hace commit. Si False, deja que el llamador maneje el commit.
+
+    Esta función es clave en flujos de pago:
+    - Se llama desde router/order y servicios de pago.
+    - Permite actualizar método de pago y estado de orden de forma controlada.
+    - Cuando hay cambio de estado, puede disparar lógica derivada (triggers/notificaciones).
     """
     import logging
     logger = logging.getLogger(__name__)

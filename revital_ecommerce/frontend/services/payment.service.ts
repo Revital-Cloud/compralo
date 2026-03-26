@@ -3,6 +3,17 @@ import { ApiResponse } from '@/types/common';
 import api from '@/utils/apiWrapper';
 import axios from 'axios';
 
+/**
+ * Mapa del servicio de pagos (frontend).
+ *
+ * Subflujos:
+ * 1) Métodos de pago guardados (tokenización + alta/listado/eliminación/default).
+ * 2) Operaciones transaccionales Wompi (PSE/CARD/CASH/CREDIT).
+ *
+ * Nota de seguridad:
+ * - La tarjeta se tokeniza contra Wompi desde frontend y solo el token viaja al backend.
+ */
+
 const WOMPI_API_BASE_URL = `https://sandbox.wompi.co/v1`;
 
 export const addPaymentMethod = async (cardData: {
@@ -40,7 +51,7 @@ export const addPaymentMethod = async (cardData: {
         
         const tokenData: CardTokenData = wompiResponse.data.data;
 
-        // 2. Enviar el token y la marca a nuestro backend. 
+        // 2. Enviar token + marca al backend para crear la fuente de pago del usuario.
         // El apiWrapper se encarga de lanzar un error si la petición no es exitosa (status 2xx).
         const backendResponse = await api.post<AddPaymentMethodResponse>(
             `/payment/add-method`,
@@ -84,7 +95,7 @@ export const addPaymentMethod = async (cardData: {
 
 export const listPaymentMethods = async (): Promise<MetodoPagoUsuario[]> => {
     try {
-        // api.get devuelve directamente el array de datos de la respuesta.
+        // `api.get` retorna directamente el payload deserializado.
         const paymentMethods = await api.get<MetodoPagoUsuario[]>('/payment/list-methods');
         return paymentMethods;
     } catch (error: any) {
@@ -188,6 +199,7 @@ export const pollForAsyncPaymentUrl = async (
     maxAttempts: number = 30,
     intervalMs: number = 2000
 ): Promise<string | null> => {
+    // Polling acotado para flujos async (ej. PSE) hasta recibir URL de redirección.
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         try {
             const transaction = await getWompiTransaction(transactionId);

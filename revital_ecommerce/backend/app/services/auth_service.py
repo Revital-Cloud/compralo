@@ -3,6 +3,12 @@ Servicio de autenticación.
 
 Contiene la lógica de negocio para la autenticación de usuarios,
 incluyendo login, verificación de credenciales y manejo de tokens.
+
+Responsabilidades:
+- autenticar credenciales y generar tokens,
+- verificar OTP de email y activar cuenta,
+- refrescar sesión con refresh token,
+- cambio seguro de contraseña.
 """
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -27,6 +33,10 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[UserIn
 
     Returns:
         Optional[UserInToken]: Información del usuario si las credenciales son válidas, None en caso contrario
+
+    Reglas:
+    - rechaza credenciales incorrectas,
+    - distingue cuenta inactiva por verificación pendiente vs soft-delete.
     """
     user = user_service.get_user_by_email(db, email)
     if not user:
@@ -74,6 +84,9 @@ def login_user(db: Session, login_data: LoginRequest) -> TokenResponse:
         
     Raises:
         HTTPException: Si las credenciales son inválidas
+
+    Se consume desde:
+    - `auth_router.login`
     """
     user = authenticate_user(db, login_data.email, login_data.password)
     if not user:
@@ -111,6 +124,9 @@ def verify_email_otp(db: Session, email: str, code: str) -> TokenResponse:
 
     Raises:
         HTTPException: Si el código es inválido o expiró
+
+    Efecto:
+    - activa cuenta y devuelve tokens (auto-login).
     """
     if not verify_otp(email, code):
         raise HTTPException(
@@ -153,6 +169,9 @@ def refresh_access_token(db: Session, refresh_token: str) -> TokenResponse:
         
     Raises:
         HTTPException: Si el refresh token es inválido
+
+    Se consume desde:
+    - `auth_router.refresh_token`
     """
     # Verificar refresh token
     payload = verify_token(refresh_token, token_type="refresh")
@@ -201,6 +220,9 @@ def get_current_user(db: Session, token: str) -> UserInToken:
         
     Raises:
         HTTPException: Si el token es inválido o el usuario no existe
+
+    Nota:
+    - función de apoyo para validación de token cuando se requiere explícitamente.
     """
     # Verificar token
     payload = verify_token(token, token_type="access")
@@ -245,6 +267,9 @@ def change_password(db: Session, user_id: Decimal, current_password: str, new_pa
         
     Raises:
         HTTPException: Si la contraseña actual es incorrecta
+
+    Se consume desde:
+    - `auth_router.change_password`
     """
     user = user_service.get_user(db, user_id)
     if not user:

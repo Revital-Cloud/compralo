@@ -1,6 +1,12 @@
 import { ForgotPasswordForm } from '@/components/forms/forgot-password'
 import React from 'react'
 
+/**
+ * Página `forgot-password`.
+ *
+ * Contenedor visual de marca para el flujo de solicitud de reset.
+ */
+
 const forgotPasswordPage = () => {
   return (
     <div className="bg-[#F5F5F5] dark:bg-gray-950 flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10 transition-colors duration-300">

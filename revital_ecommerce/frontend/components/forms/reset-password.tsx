@@ -19,6 +19,16 @@ import { useConfirmPasswordReset } from "@/hooks/use-auth"
 import { useSearchParams, useRouter } from "next/navigation"
 import type { ResetPasswordConfirm } from "@/types"
 
+/**
+ * Formulario de confirmación de restablecimiento.
+ *
+ * Flujo:
+ * 1) lee token desde query param
+ * 2) valida fortaleza y confirmación de contraseña
+ * 3) confirma cambio en backend
+ * 4) maneja estados de token usado/inválido/expirado
+ */
+
 export function ResetPasswordForm({
   className,
   ...props

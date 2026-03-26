@@ -26,6 +26,16 @@ import type { DashboardRefreshIntervalKey } from '@/components/dashboard/dashboa
 import { useDashboardData, DASHBOARD_REFRESH_INTERVALS } from '@/hooks/use-dashboard-data'
 import { useAdminTour } from './_tour/useAdminDriverTour';
 
+/**
+ * Mapa de la página principal admin (`/admin`).
+ *
+ * Qué hace:
+ * - Consume el hook `useDashboardData` para KPIs y widgets.
+ * - Administra intervalo de refresco persistido en `localStorage`.
+ * - Solicita resumen IA (si está habilitado) mediante `aiService`.
+ * - Lanza tour guiado inicial para onboarding de administración.
+ */
+
 const STORAGE_KEY = 'dashboard-refresh-interval'
 const DEFAULT_REFRESH: DashboardRefreshIntervalKey = '30s'
 const ADMIN_TOUR_SEEN_KEY = 'revital_admin_tour_seen'
@@ -40,6 +50,7 @@ const AdminDashboard = () => {
   const { startAdminOverviewTour } = useAdminTour()
 
   const fetchAiSummary = useCallback(async () => {
+    // Evita golpear endpoint de IA cuando la capacidad está desactivada.
     if (!aiEnabled) return
     setAiSummaryLoading(true)
     setAiSummaryError(null)
@@ -59,6 +70,7 @@ const AdminDashboard = () => {
   }, [aiEnabled, timeRange])
 
   useEffect(() => {
+    // Healthcheck de IA para decidir si se muestra la tarjeta de resumen.
     aiService.getHealth().then((res) => setAiEnabled(res.enabled)).catch(() => setAiEnabled(false))
   }, [])
 
@@ -67,6 +79,7 @@ const AdminDashboard = () => {
   }, [aiEnabled, fetchAiSummary])
 
   useEffect(() => {
+    // Restaura preferencia de auto-refresh del usuario si existe.
     try {
       const seen = localStorage.getItem(ADMIN_TOUR_SEEN_KEY)
       if (!seen) {
@@ -79,6 +92,7 @@ const AdminDashboard = () => {
   }, [startAdminOverviewTour])
 
   useEffect(() => {
+    // Persiste cambios de preferencia para próximas visitas.
     try {
       const stored = localStorage.getItem(STORAGE_KEY) as DashboardRefreshIntervalKey | null
       if (stored && Object.keys(DASHBOARD_REFRESH_INTERVALS).includes(stored)) {
@@ -100,7 +114,7 @@ const AdminDashboard = () => {
   const refreshIntervalMs = DASHBOARD_REFRESH_INTERVALS[refreshInterval as keyof typeof DASHBOARD_REFRESH_INTERVALS] ?? 30_000
   const { data, loading, lastUpdate, refetch } = useDashboardData(timeRange, refreshIntervalMs)
 
-  // Show loading skeleton on initial load
+  // En primera carga se prioriza skeleton para evitar layout shift agresivo.
   if (!data && loading) {
     return <LoadingSkeleton />
   }

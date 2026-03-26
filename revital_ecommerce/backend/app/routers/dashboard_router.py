@@ -1,5 +1,13 @@
 """
-Router para el dashboard administrativo.
+Mapa del módulo de dashboard (router).
+
+Este router expone el endpoint que alimenta el dashboard administrativo con
+KPIs, series de ventas, top productos y órdenes recientes.
+
+Flujo:
+1) Valida sesión y rol admin.
+2) Normaliza `time_range` permitido.
+3) Delega la composición del payload a `dashboard_service`.
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -17,15 +25,17 @@ async def get_dashboard(
     current_user: UserInToken = Depends(require_admin())
 ):
     """
-    Obtiene todos los datos del dashboard administrativo.
-    
-    Args:
-        time_range (str): Rango de tiempo ('daily', 'weekly', 'monthly')
-        db (Session): Sesión de base de datos
-        current_user (UserInToken): Usuario autenticado (debe ser admin)
-        
-    Returns:
-        dict: Datos completos del dashboard
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `GET /admin/dashboard?time_range=daily|weekly|monthly`
+    - Service: `dashboard_service.get_dashboard_data`
+    - Tablas principales:
+      - `tab_ordenes`, `tab_orden_productos`
+      - `tab_products` y tablas de variantes
+      - `tab_usuarios` (nombre cliente en recientes)
+
+    Reglas:
+    - Si `time_range` llega con valor inválido, se fuerza a `monthly`.
+    - Solo accesible por administradores.
     """
     try:
         # Validar time_range

@@ -10,6 +10,14 @@ import { Separator } from "@/components/ui";
 import { UserPublic } from "@/types/auth";
 import { useAccountStats } from "@/hooks/use-account-stats";
 
+/**
+ * Pestaña de perfil del usuario.
+ *
+ * Incluye:
+ * - edición de datos personales permitidos
+ * - visualización de métricas resumidas de actividad de cuenta
+ */
+
 interface ProfileTabProps {
   user: UserPublic;
   form: UseFormReturn<z.infer<typeof profileSchema>>;
@@ -18,6 +26,7 @@ interface ProfileTabProps {
 }
 
 export default function ProfileTab({ user, form, isEditing, onSubmit }: ProfileTabProps) {
+  // Obtiene métricas del backend para mostrar un resumen de actividad del usuario.
   const { data: stats, isLoading } = useAccountStats(user.id_usuario);
   const celField = form.register("cel_usuario");
 
@@ -73,6 +82,8 @@ export default function ProfileTab({ user, form, isEditing, onSubmit }: ProfileT
                     {...celField}
                     value={form.watch("cel_usuario") || ""}
                     onChange={(e) => {
+                      // Normalizamos el input a dígitos y limitamos longitud para evitar
+                      // que se guarden caracteres inválidos en el backend.
                       const onlyDigits = e.target.value.replace(/\D/g, "").slice(0, 10);
                       form.setValue("cel_usuario", onlyDigits, { shouldValidate: true });
                     }}

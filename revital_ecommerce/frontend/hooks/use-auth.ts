@@ -43,6 +43,25 @@ export const AUTH_KEYS = {
 };
 
 /**
+ * Estructura de estados devueltos por `useAuth()`:
+ * - `user`: perfil del usuario (o `undefined` si aún no se resolvió).
+ * - `isAuthenticated`: derivado de token/cookies + `user` + hidratación.
+ * - `isLoadingUser`: indica si la query del perfil está en curso.
+ * - `isRestoringSession`: indica si el flujo global de “restore” está en progreso
+ *   (ej. al recargar tras refresh).
+ *
+ * Acciones:
+ * - `login`, `logout`, `register`: delegan en `authService`.
+ * - `updateProfile`: persiste cambios de perfil y luego invalida/cachea.
+ * - `deactivateAccount`: ejecuta soft-delete en backend y fuerza logout + redirect.
+ *
+ * Mecanismos de seguridad/UX:
+ * - Validación de aceptación de cookies antes de ejecutar login/registro.
+ * - Manejo de intentos fallidos con lockout temporal (429 + config en `auth-attempt-limiter`).
+ * - Flujo especial para `ACCOUNT_SOFT_DELETED` (403) que dispara reactivación por email.
+ */
+
+/**
  * Hook principal de autenticación
  * Combina el estado del usuario con las acciones de login/logout.
  * INCLUYE validación de cookies para compliance legal.

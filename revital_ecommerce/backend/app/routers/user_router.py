@@ -3,6 +3,15 @@ Módulo de enrutador para la gestión de usuarios.
 
 Define las rutas y endpoints relacionados con la gestión de usuarios,
 incluyendo la creación, actualización y visualización de usuarios.
+
+Mapa del módulo:
+- registro y actualización de perfil,
+- activación/desactivación/soft-delete/reactivación,
+- flujos de email asociados (bienvenida, OTP, reactivación).
+
+Relación con capas:
+- Router: reglas de autorización y rate-limit.
+- Services: `user_service`, `email_service`, `discount_service`.
 """
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Body, BackgroundTasks, Request
@@ -32,6 +41,9 @@ async def send_user_registration_emails(user_email: str, user_name: str):
     Args:
         user_email (str): Email del usuario
         user_name (str): Nombre del usuario
+
+    Nota:
+    - función auxiliar para tareas en background durante registro.
     """
     try:
         # Obtener descuento de primera compra si existe
@@ -75,6 +87,10 @@ async def deactivate_account(
     """
     Desactiva la cuenta del usuario autenticado (soft delete).
     Solo el propio usuario puede desactivar su cuenta.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /users/me/deactivate`
+    - Service: `user_service.soft_delete_user`
     """
     try:
         user_service.soft_delete_user(
@@ -106,6 +122,9 @@ async def reactivate_request(
     Envía el mismo email de reset de contraseña que forgot-password.
     La cuenta se reactivará definitivamente cuando el usuario
     complete el cambio de contraseña.
+
+    Endpoint:
+    - `POST /users/reactivate-request`
     """
     user = user_service.get_user_by_email(db, body.email)
     if not user:
@@ -144,6 +163,10 @@ async def reactivate_request(
 async def get_users(db: Session = Depends(get_db)):
     """
     Obtiene todos los usuarios registrados en la base de datos.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /users`
+    - Service: `user_service.get_users`
     """
     users = user_service.get_users(db)
     return users
@@ -165,6 +188,10 @@ async def create_users(
     Args:
         db (Session): Sesión de la base de datos inyectada por FastAPI.
         user_data (UserCreate): Datos del usuario a crear.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /users`
+    - Service: `user_service.create_users`
     """
     try:
         # Verificar si el email ya existe
@@ -255,6 +282,10 @@ async def update_current_user(
     """
     Actualiza el perfil del usuario autenticado (avatar, nombre, etc.).
     Devuelve el usuario actualizado para que el frontend actualice la caché.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /users/me`
+    - Service: `user_service.update_user`
     """
     try:
         current_user_id = Decimal(str(current_user.id_usuario))
@@ -304,6 +335,10 @@ async def update_user_status(
     Activa o desactiva un usuario (solo administradores).
 
     - **active** (bool): true para activar, false para desactivar.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /users/{id_usuario}/status`
+    - Service: `user_service.update_user_status`
     """
     if current_user.id_rol != 1:
         raise HTTPException(
@@ -343,6 +378,10 @@ async def update_user(
         user (UserUpdate): Datos del usuario a actualizar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
         current_user (UserInToken): Usuario autenticado actual.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /users/{id_usuario}`
+    - Service: `user_service.update_user`
     """
     try:
         # Validación de seguridad: Usuario solo puede editar su propio perfil
@@ -404,6 +443,10 @@ async def delete_user(id_usuario: Decimal, db: Session = Depends(get_db)):
     Args:
         id_usuario (Decimal): ID del usuario a eliminar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
+
+    Endpoint -> Service:
+    - Endpoint: `DELETE /users/{id_usuario}`
+    - Service: `user_service.delete_user`
     """
     try:
         user_service.delete_user(db,id_usuario)

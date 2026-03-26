@@ -7,6 +7,19 @@ import { formatPrice } from "@/utils/format-price";
 import { toUserSafeApiDetail } from "@/utils/api-error-message";
 import { toast } from "sonner";
 
+/**
+ * Mapa del hook `useCart`.
+ *
+ * Responsabilidad:
+ * - Orquestar estado local (Zustand) + estado remoto (React Query) del carrito.
+ * - Soportar flujo mixto anónimo/autenticado y migración al hacer login.
+ * - Exponer acciones de mutación (agregar, actualizar, eliminar, limpiar, migrar).
+ *
+ * Fuente de verdad:
+ * - Backend vía `cart.service` + caché de React Query.
+ * - Estado UI sincronizado en `cart-store`.
+ */
+
 // =============================================================================
 // TIPOS Y CONSTANTES
 // =============================================================================
@@ -100,7 +113,7 @@ export function useCart() {
   } = useCartStore();
 
   // =============================================================================
-  // INICIALIZACIÓN DEL USUARIO DEL CARRITO
+  // INICIALIZACIÓN DEL CONTEXTO DE CARRITO (USUARIO O SESIÓN ANÓNIMA)
   // =============================================================================
   // Ref estable para session_id anónimo: evita que cada render genere un ID distinto
   // y que la query del carrito cambie de key constantemente (bloqueando la vista).
@@ -262,7 +275,7 @@ export function useCart() {
 
 
   // =============================================================================
-  // MIGRACIÓN AUTOMÁTICA DE CARRITO
+  // MIGRACIÓN AUTOMÁTICA ANÓNIMO -> AUTENTICADO
   // =============================================================================
 
   // Sincronizar usuario del carrito con el store y manejar migración

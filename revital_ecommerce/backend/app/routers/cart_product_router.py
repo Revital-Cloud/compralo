@@ -2,6 +2,16 @@
 Módulo de enrutador para la gestión de productos en el carrito.
 
 Define las rutas y endpoints relacionados con la gestión de productos en el carrito.
+
+Mapa del módulo:
+- Gestión de ítems: agregar, actualizar cantidad, eliminar.
+- Gestión de carrito: obtener/crear carrito por usuario o sesión.
+- Operaciones de checkout previas: detalle y cálculo de total.
+- Migración de carrito anónimo al autenticado.
+
+Relación con capas:
+- Router: resuelve identidad (usuario/sesión) y valida request HTTP.
+- Service: `cart_product_service` ejecuta reglas y persistencia.
 """
 from decimal import Decimal
 from fastapi import APIRouter, Body, Depends, HTTPException, Query, status
@@ -19,6 +29,10 @@ router = APIRouter(tags=["Carrito Productos"])
 async def get_cart(db:Session = Depends(get_db)):
     """
     Obtiene todos los carritos.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /carritos`
+    - Service: `cart_product_service.get_cart`
     """
     cart = cart_product_service.get_cart(db)
     if cart is None:
@@ -34,6 +48,10 @@ async def get_cart_products(db:Session = Depends(get_db)):
         db (Session): La sesión de base de datos SQLAlchemy.
     Returns:
         list[CartProduct]: Lista de productos en el carrito.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /carrito-productos`
+    - Service: `cart_product_service.get_cart_products`
     """
     cart_products = cart_product_service.get_cart_products(db)
     if cart_products is None:
@@ -60,6 +78,14 @@ async def create_cart_product(
         current_user (UserInToken): Usuario autenticado.
     Returns:
         ResponseMessage: Mensaje de confirmación.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /carrito-productos`
+    - Service: `cart_product_service.create_cart_product`
+
+    Regla clave:
+    - Prioriza `current_user` autenticado; si no existe, usa `session_id`
+      para soportar carritos anónimos.
     """
     try:
         # Trazas de diagnóstico del flujo de identificación (usuario/sesión).
@@ -123,6 +149,10 @@ async def update_cart_product_quantity(
         current_user (UserInToken): Usuario autenticado.
     Returns:
         ResponseMessage: Mensaje de confirmación.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /carrito-productos/{id_carrito_producto}`
+    - Service: `cart_product_service.update_cart_product_quantity`
     """
     try:
         cart_product_service.update_cart_product_quantity(
@@ -144,6 +174,10 @@ async def delete_cart_product_by_id(
     """
     Elimina un solo ítem del carrito por su id_carrito_producto.
     Solo se elimina esa línea (ej. un color/talla), no todo el producto en el carrito.
+
+    Endpoint -> Service:
+    - Endpoint: `DELETE /carrito-productos/{id_carrito_producto}`
+    - Service: `cart_product_service.delete_cart_product_by_id`
     """
     try:
         deleted = cart_product_service.delete_cart_product_by_id(db, id_carrito_producto)
@@ -182,6 +216,13 @@ async def delete_cart_product(
         current_user (UserInToken): Usuario autenticado.
     Returns:
         ResponseMessage: Mensaje de confirmación.
+
+    Endpoint -> Service:
+    - Endpoint legacy: `DELETE /carrito-productos/{...parametros_compuestos}`
+    - Service: `cart_product_service.delete_cart_product`
+
+    Nota:
+    - Se mantiene por compatibilidad con clientes antiguos.
     """
     try:
         # Resolver identidad de carrito según autenticación.
@@ -231,6 +272,10 @@ async def migrate_cart_anonymous(
         
     Returns:
         ResponseMessage: Mensaje de confirmación de la migración.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /migrar`
+    - Service: `cart_product_service.migrate_cart_anonymous`
     """
     try:
         print(f"🔄 [ROUTER] Iniciando migración de carrito anónimo")
@@ -271,6 +316,10 @@ async def get_cart_user(
         db (Session): La sesión de base de datos SQLAlchemy.
     Returns:
         CartResponse: ID del carrito y mensaje de confirmación.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /carrito-usuario`
+    - Service: `cart_product_service.get_cart_user`
     """
     try:
         id_carrito = cart_product_service.get_cart_user(db, get_cart_user_data)
@@ -293,6 +342,10 @@ async def get_cart_products_detail(
         current_user (UserInToken): Usuario autenticado.
     Returns:
         list[CartProduct]: Lista de productos en el carrito con detalle.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /carrito-productos-detalle`
+    - Service: `cart_product_service.get_cart_detail`
     """
     try:
         cart_products_detail = cart_product_service.get_cart_detail(db, get_cart_detail)
@@ -310,6 +363,10 @@ async def calculate_total_cart(
     """
     Calcula el total del carrito de un usuario.
     Retorna información completa del carrito incluyendo totales, descuentos, puntos y mensajes.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /calcular-total`
+    - Service: `cart_product_service.calculate_total_cart`
     """
     try:
         cart_total_result = cart_product_service.calculate_total_cart(db, calculate_total_cart_data)
@@ -326,6 +383,10 @@ async def get_cart_products_with_basic_info(
 ):
     """
     Obtiene todos los productos en el carrito con información básica (marca y color).
+
+    Endpoint -> Service:
+    - Endpoint: `POST /carrito-productos-basico`
+    - Service: `cart_product_service.get_cart_with_basic_info`
     """
     try:
         cart_products_with_basic = cart_product_service.get_cart_with_basic_info(db, get_cart_detail)

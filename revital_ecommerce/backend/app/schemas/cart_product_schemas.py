@@ -13,6 +13,9 @@ class Cart(BaseModel):
     """
     Esquema para la Gestión de Carritos.
     Contiene los campos comunes para la gestión de carritos.
+
+    Endpoint típico:
+    - `GET /carritos`
     """
     id_carrito: int = Field(..., description="Identificador del carrito.")
     id_usuario: Optional[Decimal] = Field(None, description="Identificador del usuario.")
@@ -35,6 +38,10 @@ class CartProductBase(BaseModel):
         cantidad (Decimal): Cantidad del producto en el carrito.
         precio_unitario_carrito (Decimal): Precio unitario del producto en el carrito.
         usr_insert (Decimal): Usuario que insertó el registro.
+
+    Nota de compatibilidad:
+    - Algunos campos legacy (`id_linea_producto`, `id_sublinea_producto`) se
+      mantienen para no romper contratos previos del frontend.
     """
     id_carrito: Optional[int] = Field(None, description="Identificador del carrito.")
     id_usuario: Optional[Decimal] = Field(None, description="Identificador del usuario.")
@@ -64,6 +71,9 @@ class CartProduct(CartProductBase):
     Hereda de `CarProductBase` y se utiliza como el modelo de respuesta
     principal para los endpoints que devuelven información de productos en el carrito.
     Incluye el `id_carrito_producto` y los campos de auditoría.
+
+    Endpoint típico:
+    - `GET /carrito-productos`
     """
     id_carrito_producto: Decimal
     
@@ -71,6 +81,9 @@ class CartProductCreate(CartProductBase):
     """
     Esquema para la Creación de Productos en el Carrito.
     Debe incluir variant_id o id_producto (en ese caso se usa la primera variante activa).
+
+    Endpoint asociado:
+    - `POST /carrito-productos`
     """
 
     @model_validator(mode="after")
@@ -85,6 +98,9 @@ class CartProductDelete(CartProductBase):
     Esquema para la Eliminación de Productos en el Carrito.
     Hereda de `CarProductBase` y se utiliza para validar los datos
     al eliminar un producto en el carrito.
+
+    Uso:
+    - eliminación/reducción de items según lógica de service.
     """
     usr_update: Decimal = Field(..., description="Usuario que actualizó el registro.")
     pass
@@ -109,6 +125,9 @@ class GetCartUser(BaseModel):
     Al menos uno de los parámetros debe ser proporcionado:
     - id_usuario: Para usuarios registrados
     - session_id: Para usuarios anónimos
+
+    Endpoint asociado:
+    - `POST /carrito-usuario`
     """
     id_usuario: Optional[Decimal] = Field(None, description="ID del usuario registrado (opcional).")
     session_id: Optional[str] = Field(None, description="ID de la sesión para usuarios anónimos (opcional).")
@@ -123,6 +142,10 @@ class GetCartUser(BaseModel):
 class GetCartDetail(BaseModel):
     """
     Esquema para Obtener Detalle del Carrito.
+
+    Endpoints asociados:
+    - `POST /carrito-productos-detalle`
+    - `POST /carrito-productos-basico`
     """
     id_usuario: Optional[int] = Field(None, description="ID del usuario registrado (opcional).")
     session_id: Optional[str] = Field(None, description="ID de la sesión para usuarios anónimos (opcional).")
@@ -138,6 +161,8 @@ class GetCartDetail(BaseModel):
 class CartResponse(BaseModel):
     """
     Esquema de respuesta para operaciones de carrito.
+
+    Se usa para devolver `id_carrito` ya existente o recién creado.
     """
     id_carrito: int = Field(..., description="ID del carrito obtenido o creado.")
     message: str = Field(..., description="Mensaje de confirmación.")
@@ -145,6 +170,9 @@ class CartResponse(BaseModel):
 class CalculateTotalCart(BaseModel):
     """
     Esquema para el Cálculo del Total del Carrito.
+
+    Endpoint asociado:
+    - `POST /calcular-total`
     """
     id_usuario: Optional[Decimal] = Field(None, description="ID del usuario registrado (opcional).")
     session_id: Optional[str] = Field(None, description="ID de la sesión para usuarios anónimos (opcional).")
@@ -161,6 +189,11 @@ class CartTotalResponse(BaseModel):
     """
     Esquema de respuesta para el cálculo del total del carrito.
     Refleja la estructura JSON retornada por fun_calcular_total_carrito.
+
+    Incluye:
+    - totales agregados,
+    - detalle de descuentos,
+    - información de puntos y mensajes de UX para checkout.
     """
     # === TOTALES PRINCIPALES ===
     success: bool = Field(..., description="Indica si el cálculo fue exitoso.")
@@ -195,6 +228,8 @@ class CartTotalResponse(BaseModel):
 class ProductBasicInfo(BaseModel):
     """
     Esquema simple para información básica del producto (marca y color).
+
+    Se usa en listados livianos de carrito para UI.
     """
     marca: Optional[str] = Field(None, description="Marca del producto")
     color: Optional[str] = Field(None, description="Color del producto")
@@ -202,6 +237,9 @@ class ProductBasicInfo(BaseModel):
 class CartItemWithBasicInfo(BaseModel):
     """
     Esquema para productos del carrito con información básica (marca y color).
+
+    Endpoint asociado:
+    - `POST /carrito-productos-basico`
     """
     id_carrito_producto: Decimal = Field(..., description="ID del producto en el carrito")
     id_carrito: int = Field(..., description="ID del carrito")
@@ -218,6 +256,8 @@ class ResponseMessage(BaseModel):
     Esquema para Mensajes de Respuesta Genéricos.
     Se utiliza para enviar mensajes simples de confirmación o error
     desde la API.
+
+    Reutilizable para confirmaciones simples del módulo carrito.
     """
     message: str
     

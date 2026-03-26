@@ -1,5 +1,14 @@
 """
-Service for tab_attributes CRUD (master attributes catalog).
+Servicio para CRUD de atributos y valores predefinidos.
+
+Cubre:
+- `tab_attributes`: definición de atributos (tipo, nombre, flags).
+- `tab_attribute_values`: valores permitidos por atributo.
+
+Reglas principales:
+- unicidad de nombres por atributo/valor,
+- validación de tipo de dato,
+- bloqueo de borrado cuando hay referencias activas.
 """
 from decimal import Decimal
 from sqlalchemy.orm import Session
@@ -16,7 +25,7 @@ VALID_DATA_TYPES = ("text", "number", "boolean")
 
 
 def _table_exists(db: Session, table_name: str) -> bool:
-    """Check if a table exists in current DB/schema."""
+    """Verifica si una tabla existe en el esquema actual de BD."""
     return bool(
         db.execute(
             text("SELECT to_regclass(:table_name) IS NOT NULL"),
@@ -26,7 +35,12 @@ def _table_exists(db: Session, table_name: str) -> bool:
 
 
 def get_all(db: Session):
-    """List all attributes (id, name, data_type, has_predefined_values)."""
+    """
+    Lista atributos del catálogo maestro.
+
+    Se consume desde:
+    - `attribute_router.get_attributes`
+    """
     try:
         q = text("""
             SELECT id, name, data_type, has_predefined_values, usr_insert, fec_insert, usr_update, fec_update
@@ -41,7 +55,7 @@ def get_all(db: Session):
 
 
 def get_by_id(db: Session, id_attr: Decimal):
-    """Get one attribute by id."""
+    """Obtiene un atributo por su ID."""
     try:
         q = text("""
             SELECT id, name, data_type, has_predefined_values, usr_insert, fec_insert, usr_update, fec_update
@@ -56,12 +70,20 @@ def get_by_id(db: Session, id_attr: Decimal):
 
 
 def _validate_data_type(data_type: str) -> None:
+    """Valida que el tipo esté dentro de los permitidos por negocio."""
     if data_type not in VALID_DATA_TYPES:
         raise ValueError(f"data_type debe ser uno de: {', '.join(VALID_DATA_TYPES)}")
 
 
 def create(db: Session, attr: AttributeCreate, usr_insert: Decimal):
-    """Create attribute. Validates name unique and data_type."""
+    """
+    Crea un atributo nuevo.
+
+    Validaciones:
+    - `data_type` permitido,
+    - nombre único (case-insensitive),
+    - asignación manual de `id` incremental (convención actual).
+    """
     try:
         _validate_data_type(attr.data_type)
         existing = db.execute(
@@ -95,7 +117,14 @@ def create(db: Session, attr: AttributeCreate, usr_insert: Decimal):
 
 
 def update(db: Session, id_attr: Decimal, attr: AttributeUpdate, usr_update: Decimal):
-    """Update attribute. Validates name unique and data_type if provided."""
+    """
+    Actualiza un atributo existente.
+
+    Validaciones:
+    - atributo existe,
+    - si cambia nombre, mantener unicidad,
+    - si cambia tipo, validar catálogo de tipos permitidos.
+    """
     try:
         current = get_by_id(db, id_attr)
         if not current:
@@ -129,8 +158,14 @@ def update(db: Session, id_attr: Decimal, attr: AttributeUpdate, usr_update: Dec
 
 
 def delete(db: Session, id_attr: Decimal):
-    """Delete attribute.
-    Blocks deletion when used by categories or product variants (new model and legacy model)."""
+    """
+    Elimina atributo si no está referenciado.
+
+    Bloquea borrado cuando hay uso en:
+    - categorías (`tab_category_attributes`),
+    - modelo actual de variantes (`tab_product_variant_groups/combinations`),
+    - modelo legacy (`tab_product_variant_attributes`).
+    """
     try:
         attr_row = db.execute(
             text("SELECT name FROM tab_attributes WHERE id = :id"),
@@ -198,7 +233,7 @@ def delete(db: Session, id_attr: Decimal):
 
 
 def get_values_by_attribute_id(db: Session, attribute_id: Decimal):
-    """List values for an attribute, ordered by sort_order."""
+    """Lista valores de un atributo, ordenados por `sort_order` e `id`."""
     try:
         q = text("""
             SELECT id, attribute_id, value, hex_color, sort_order, is_active,
@@ -215,6 +250,7 @@ def get_values_by_attribute_id(db: Session, attribute_id: Decimal):
 
 
 def _ensure_attribute_has_predefined_values(db: Session, attribute_id: Decimal) -> None:
+    """Garantiza que el atributo admita valores predefinidos antes de crear valores."""
     row = db.execute(
         text("SELECT has_predefined_values FROM tab_attributes WHERE id = :id"),
         {"id": attribute_id}
@@ -231,7 +267,13 @@ def create_value(
     payload: AttributeValueCreate,
     usr_insert: Decimal,
 ) -> Decimal:
-    """Create an attribute value. Attribute must have has_predefined_values=True. Value must be unique per attribute."""
+    """
+    Crea un valor para un atributo.
+
+    Validaciones:
+    - atributo existente y con `has_predefined_values=True`,
+    - valor único por atributo (case-insensitive).
+    """
     try:
         _ensure_attribute_has_predefined_values(db, attribute_id)
         existing = db.execute(
@@ -276,7 +318,13 @@ def update_value(
     payload: AttributeValueUpdate,
     usr_update: Decimal,
 ) -> None:
-    """Update an attribute value. Value must belong to attribute; value text must remain unique per attribute."""
+    """
+    Actualiza un valor de atributo.
+
+    Validaciones:
+    - el valor pertenece al atributo indicado,
+    - si cambia texto, mantiene unicidad por atributo.
+    """
     try:
         row = db.execute(
             text("SELECT id FROM tab_attribute_values WHERE id = :vid AND attribute_id = :aid"),
@@ -318,8 +366,14 @@ def update_value(
 
 
 def delete_value(db: Session, attribute_id: Decimal, value_id: Decimal) -> None:
-    """Delete an attribute value.
-    Blocks deletion when the value is used by variants (new model and legacy model)."""
+    """
+    Elimina un valor de atributo cuando no está en uso.
+
+    Bloquea borrado si está referenciado por:
+    - `tab_product_variant_groups` (valor dominante),
+    - `tab_product_variant_combinations` (JSON attributes),
+    - `tab_product_variant_attributes` legacy.
+    """
     try:
         row = db.execute(
             text("""

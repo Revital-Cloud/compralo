@@ -8,6 +8,15 @@ import type { BestSeller } from '@/components/dashboard/best-sellers'
 import type { RecentOrder } from '@/components/dashboard/recent-orders'
 import type { DashboardData as DashboardDataResponse } from '@/services/dashboard.service'
 
+/**
+ * Mapa del hook `useDashboardData`.
+ *
+ * Objetivo:
+ * - Orquestar carga de datos del dashboard admin.
+ * - Adaptar la forma del payload backend al shape que esperan componentes UI.
+ * - Soportar refresco manual y auto-refresh configurable.
+ */
+
 interface DashboardData {
   kpis: Record<string, KPIData>
   salesData: SalesDataPoint[]
@@ -32,6 +41,15 @@ export const DASHBOARD_REFRESH_INTERVALS = {
 
 export type DashboardRefreshIntervalKey = keyof typeof DASHBOARD_REFRESH_INTERVALS
 
+/**
+ * Hook de estado+datos para el dashboard administrativo.
+ *
+ * Flujo:
+ * 1) Consulta backend con `dashboardService`.
+ * 2) Adapta campos a contratos de componentes visuales.
+ * 3) Mantiene estados de loading/lastUpdate.
+ * 4) Configura auto-refresh cuando el intervalo es mayor a 0.
+ */
 export const useDashboardData = (
   timeRange: string,
   refreshIntervalMs: number = 30_000
@@ -46,7 +64,8 @@ export const useDashboardData = (
     try {
       const response = await dashboardService.getDashboardData(timeRange)
       
-      // Adaptar los datos del backend al formato esperado por los componentes
+      // Adaptar los datos del backend al formato esperado por los componentes.
+      // Esta capa desacopla el contrato visual del contrato HTTP.
       const adaptedData: DashboardData = {
         kpis: {
           totalOrders: response.kpis.totalOrders,
@@ -54,24 +73,24 @@ export const useDashboardData = (
           shippedOrders: response.kpis.shippedOrders,
           totalRevenue: response.kpis.totalRevenue
         },
-        // Adaptar salesData - el componente espera 'month' pero el backend envía 'period'
+        // El chart usa clave `month`; backend entrega `period`.
         salesData: response.salesData.map(item => ({
           month: item.period,
           sales: item.sales,
           orders: item.orders,
           revenue: item.sales // Usar sales como revenue
         })),
-        // Adaptar bestSellers - el componente espera estructura diferente
+        // Normaliza best sellers al modelo de tarjetas del dashboard.
         bestSellers: response.bestSellers.map(item => ({
           id: item.id,
           name: item.name,
           image: item.image,
           price: item.revenue / (item.sales || 1), // Calcular precio promedio
           sales: item.sales.toString(),
-          growth: 0, // El backend no calcula crecimiento por producto aún
-          category: '' // No viene en la respuesta
+          growth: 0, // Placeholder hasta que backend exponga crecimiento por producto.
+          category: '' // Placeholder: actualmente este campo no llega en respuesta.
         })),
-        // Adaptar recentOrders - mapear estados
+        // Convierte órdenes recientes al formato de tabla/listado.
         recentOrders: response.recentOrders.map(order => ({
           id: order.id,
           product: `${order.items} item${order.items !== 1 ? 's' : ''}`,
@@ -88,7 +107,7 @@ export const useDashboardData = (
       setLastUpdate(new Date())
     } catch (error) {
       console.error('Error al obtener datos del dashboard:', error)
-      // En caso de error, usar datos vacíos
+      // Fallback estable para que la UI renderice sin romperse ante errores.
       const emptyData: DashboardData = {
         kpis: {
           totalOrders: { value: 0, growth: 0, trend: 'up', formatted: '0' },

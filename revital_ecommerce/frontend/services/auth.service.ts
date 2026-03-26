@@ -3,6 +3,13 @@
  * 
  * Contiene todas las funciones relacionadas con autenticación,
  * registro, cambio de contraseñas, etc.
+ *
+ * Mapa de consumo:
+ * - Hooks: `hooks/use-auth.ts`, formularios de login/registro/OTP.
+ * - Backend objetivo: endpoints de `auth_router` y parte de `user_router`.
+ * - Gestión de tokens:
+ *   - Access token en memoria vía `storeTokens`.
+ *   - Refresh token en cookie HTTPOnly (backend).
  */
 
 import { post, get, storeTokens, clearTokens } from '@/utils/apiWrapper';
@@ -24,6 +31,12 @@ import type {
 
 /**
  * Login del usuario
+ *
+ * Endpoint:
+ * - `POST /login`
+ *
+ * Nota:
+ * - El refresh token no se expone al cliente JS; se mantiene en cookie segura.
  */
 export async function login(credentials: LoginRequest): Promise<TokenResponse> {
   const tokens = await post<TokenResponse>('/login', credentials);
@@ -33,6 +46,9 @@ export async function login(credentials: LoginRequest): Promise<TokenResponse> {
 
 /**
  * Obtener datos del usuario actual (información segura)
+ *
+ * Endpoint:
+ * - `GET /me`
  */
 export async function getCurrentUser(): Promise<UserPublic> {
   return await get<UserPublic>('/me');
@@ -52,6 +68,9 @@ export async function logout(): Promise<void> {
 
 /**
  * Renovar el token de acceso. El refresh token se envía por cookie (HTTPOnly).
+ *
+ * Endpoint:
+ * - `POST /refresh`
  */
 export async function refreshToken(): Promise<TokenResponse> {
   const tokens = await post<TokenResponse>('/refresh', {});
@@ -61,6 +80,9 @@ export async function refreshToken(): Promise<TokenResponse> {
 
 /**
  * Verificar si el token actual es válido
+ *
+ * Endpoint:
+ * - `GET /verify-token`
  */
 export async function verifyToken(): Promise<{ valid: boolean; user_id?: number; email?: string }> {
   return await get<{ valid: boolean; user_id?: number; email?: string }>('/verify-token');
@@ -105,6 +127,9 @@ export async function resendEmailOtp(email: string): Promise<ApiResponse> {
 
 /**
  * Registro de un nuevo usuario
+ *
+ * Endpoint:
+ * - `POST /users`
  */
 export async function register(userData: RegisterRequest): Promise<ApiResponse> {
   // El backend espera un objeto JSON directamente.

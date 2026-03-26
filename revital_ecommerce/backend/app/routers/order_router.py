@@ -2,6 +2,17 @@
 Módulo de enrutador para la gestión de órdenes.
 Define las rutas y endpoints relacionados con la gestión de órdenes,
 incluyendo la creación y visualización de órdenes.
+
+Mapa del módulo:
+- Endpoints de consulta de órdenes del cliente.
+- Endpoints de pago de orden/carrito (integración Wompi).
+- Endpoints administrativos de órdenes y estadísticas.
+
+Relación con capas:
+- Router: validación HTTP básica y orquestación.
+- Services: `order_service`, `wompi_service`, `cart_product_service`.
+- Persistencia: principalmente `tab_ordenes`, `tab_orden_productos`,
+  `tab_metodos_pago_usuario`, y tablas de carrito.
 """
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -56,6 +67,14 @@ async def create_wompi_transaction(
     - payment_method_data: dict (datos específicos del método de pago)
     - customer_data: dict (datos del cliente para PSE)
     - redirect_url: str (URL de redirección después del pago)
+
+    Endpoint -> Service:
+    - Endpoint: `POST /wompi/create-transaction`
+    - Service: `wompi_service.create_transaction`
+
+    Notas:
+    - No crea orden local por sí mismo.
+    - Solo inicia transacción remota en Wompi.
     """
     try:
         amount = float(payload.get("amount", 0))
@@ -95,7 +114,13 @@ async def get_wompi_transaction(
     transaction_id: str,
     current_user: UserInToken = Depends(get_current_user)
 ):
-    """Obtiene el estado de una transacción de Wompi"""
+    """
+    Obtiene el estado de una transacción de Wompi por ID.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /wompi/transaction/{transaction_id}`
+    - Service: `wompi_service.get_transaction`
+    """
     try:
         transaction = await wompi_service.get_transaction(transaction_id)
         return transaction
@@ -109,6 +134,10 @@ async def get_orders(
 ):
     """
     Obtiene las órdenes del usuario autenticado.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /orders`
+    - Service: `order_service.get_orders_by_user`
     """
     orders = order_service.get_orders_by_user(db, current_user.id_usuario)
     if orders is None:
@@ -129,6 +158,13 @@ def get_user_orders(
     Obtiene el historial de órdenes del usuario autenticado usando la función
     `fun_obtener_ordenes_usuario`. Se evita `SELECT id_orden, fecha_pedido, total_productos, total_descuentos, total_pedido, estado_orden, metodo_pago, cantidad_productos, descuentos_aplicados` para mantener un contrato
     explícito de columnas.
+
+    Endpoint -> Tablas/funciones:
+    - Endpoint: `GET /`
+    - Función SQL: `fun_obtener_ordenes_usuario`
+
+    Nota:
+    - Mantiene contrato estable de columnas hacia frontend.
     """
     query = text(
         """
@@ -158,6 +194,13 @@ async def get_order_detail(
 ):
     """
     Obtiene el detalle de una orden si pertenece al usuario autenticado.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /orders/{order_id}`
+    - Service: `order_service.get_order_by_id`
+
+    Seguridad:
+    - Verifica ownership (`id_usuario`) antes de devolver datos.
     """
     order = order_service.get_order_by_id(db, order_id)
     if not order:
@@ -176,6 +219,13 @@ async def get_order_detail_with_items(
     """
     Devuelve la orden con sus `items` (snapshot) y descuentos aplicados.
     Siempre devuelve el snapshot de items aunque un producto haya sido desactivado.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /orders/{order_id}/detail`
+    - Service: `order_service.get_order_with_items`
+
+    Objetivo:
+    - Preservar historial de compra aunque catálogo cambie en el tiempo.
     """
     order = order_service.get_order_with_items(db, order_id)
     if not order:
@@ -201,7 +251,13 @@ async def create_order(
 
     Returns:
         Dict[str, Any]: La respuesta completa de la función SQL con toda la información de la orden tal como la devuelve fun_crear_orden_desde_carrito.
-        
+
+    Endpoint -> Service:
+    - Endpoint: `POST /order`
+    - Service: `order_service.create_order`
+
+    Nota:
+    - Este endpoint crea orden local sin iniciar pago automáticamente.
     """
     try:
         result = order_service.create_order(db, order_data, current_user.id_usuario)
@@ -238,6 +294,20 @@ async def pay_order(
 
     Args:
         order_id (int): El identificador de la orden a pagar.
+
+    Endpoint -> Services -> Tablas:
+    - Endpoint: `POST /{order_id}/pay`
+    - Services:
+      - `wompi_service.create_transaction`
+      - `wompi_service.get_transaction` (polling corto)
+      - `order_service.update_order_payment_info`
+    - Tablas:
+      - Lee `tab_ordenes`, `tab_metodos_pago_usuario`
+      - Actualiza `tab_ordenes` según estado final
+
+    Comportamiento:
+    - Si no está pendiente, no intenta cobrar.
+    - Si obtiene estado final rápido, refleja estado en orden.
     """
     query = text("""
         SELECT o.val_total_pedido, o.ind_estado, mpu.provider_source_id
@@ -322,6 +392,20 @@ async def pay_cart_and_create_order(
       - codigo_descuento?: str | null
       - des_observaciones?: str | null
       - id_canje?: int | null
+
+    Endpoint -> Services -> Tablas:
+    - Endpoint: `POST /cart/{cart_id}/pay`
+    - Services:
+      - `cart_product_service.calculate_total_cart`
+      - `wompi_service.create_transaction`
+      - `order_service.create_order`
+      - `order_service.update_order_payment_info`
+    - Tablas:
+      - Lee carrito y método de pago del usuario
+      - Solo crea/actualiza orden si Wompi devuelve APPROVED
+
+    Ventaja del enfoque:
+    - Evita generar órdenes "basura" en estado pendiente ante pagos fallidos.
     """
     try:
         payment_method_id = int(payload.get("payment_method_id"))
@@ -438,6 +522,10 @@ async def get_all_orders_admin(
 ):
     """
     Obtiene todas las órdenes para el panel de administración (solo admin).
+
+    Endpoint -> Service:
+    - Endpoint: `GET /admin/orders/all`
+    - Service: `order_service.get_all_orders_admin`
     """
     try:
         orders = order_service.get_all_orders_admin(db, limit, offset)
@@ -453,6 +541,10 @@ async def get_order_stats_admin(
 ):
     """
     Obtiene estadísticas de órdenes para el panel de administración (solo admin).
+
+    Endpoint -> Service:
+    - Endpoint: `GET /admin/stats`
+    - Service: `order_service.get_order_stats_admin`
     """
     try:
         stats = order_service.get_order_stats_admin(db)
@@ -480,6 +572,10 @@ async def get_order_detail_admin(
     """
     Obtiene el detalle completo de una orden para el panel de administración (solo admin).
     Acepta tanto /admin/{id} como /admin/orders/{id} por compatibilidad.
+
+    Endpoint -> Service:
+    - Endpoints: `GET /admin/{id_orden}`, `GET /admin/orders/{id_orden}`
+    - Service: `order_service.get_order_detail_admin`
     """
     try:
         return _get_order_detail_admin_impl(id_orden, db)
@@ -499,6 +595,10 @@ async def update_order_status_admin(
 ):
     """
     Actualiza el estado de una orden (solo admin).
+
+    Endpoint -> Service:
+    - Endpoints: `PUT /admin/{id_orden}/status`, `PUT /admin/orders/{id_orden}/status`
+    - Service: `order_service.update_order_status_admin`
     """
     try:
         order_service.update_order_status_admin(db, id_orden, new_status, current_user.id_usuario)
