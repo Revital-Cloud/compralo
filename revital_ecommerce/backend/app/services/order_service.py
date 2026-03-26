@@ -76,12 +76,12 @@ def get_all_orders_admin(db: Session, limit: int = 50, offset: int = 0):
         result = db.execute(query, {"limit": limit, "offset": offset})
         orders = result.mappings().all()
         
-        # Convertir RowMapping a dict y normalizar valores
+        # Convertir RowMapping a dict y normalizar valores nulos.
         orders_list = []
         for order in orders:
             order_dict = dict(order)  # Convertir RowMapping a dict
             
-            # Convertir valores None a valores por defecto
+            # Convertir `None` a valores por defecto para consumo frontend.
             order_dict['val_total_productos'] = order_dict.get('val_total_productos') or 0
             order_dict['val_total_descuentos'] = order_dict.get('val_total_descuentos') or 0
             order_dict['val_total_pedido'] = order_dict.get('val_total_pedido') or 0
@@ -122,18 +122,18 @@ def get_order_stats_admin(db: Session):
         result = db.execute(query)
         stats = result.mappings().first()
         
-        # Convertir valores a los tipos correctos y asegurar que siempre devuelva un dict
+        # Normalizar tipos de salida y asegurar estructura consistente.
         if stats:
-            # Asegurar que todos los conteos sean int
+            # Asegurar que todos los conteos sean enteros.
             stats['total'] = int(stats.get('total', 0))
             stats['pendiente'] = int(stats.get('pendiente', 0))
             stats['completada'] = int(stats.get('completada', 0))
             stats['cancelada'] = int(stats.get('cancelada', 0))
-            # total_ventas ya debería ser Decimal por defecto
+            # `total_ventas` suele llegar como Decimal.
             if stats.get('total_ventas') is None:
                 stats['total_ventas'] = Decimal('0')
         else:
-            # Si no hay resultados, devolver valores por defecto
+            # Si no hay resultados, devolver estructura por defecto.
             stats = {
                 'total': 0,
                 'pendiente': 0,
@@ -160,7 +160,7 @@ def get_order_detail_admin(db: Session, id_orden: int):
         dict: Detalle completo de la orden
     """
     try:
-        # Información básica de la orden con usuario (LEFT JOIN por si falta usuario)
+        # Información base de orden + usuario (LEFT JOIN por datos históricos).
         order_query = text("""
         SELECT 
             o.id_orden, 
@@ -202,12 +202,12 @@ def get_order_detail_admin(db: Session, id_orden: int):
             d = dict(row)
             return {k: _to_jsonable(v) for k, v in d.items()}
             
-        # Productos de la orden: reutilizar la misma lógica que get_order_with_items
-        # para que el snapshot de ítems (incluida imagen_url) sea consistente con el frontend cliente.
+        # Reutilizar `get_order_with_items` para mantener snapshot consistente
+        # con el frontend de cliente (incluye `imagen_url`).
         items_snapshot = get_order_with_items(db, Decimal(id_orden))
         raw_items = items_snapshot.get("items", []) if isinstance(items_snapshot, dict) else []
 
-        # Puntos ganados por esta orden
+        # Puntos ganados por esta orden.
         points_query = text("""
         SELECT SUM(cantidad_puntos) as puntos_ganados
         FROM tab_movimientos_puntos
@@ -217,7 +217,8 @@ def get_order_detail_admin(db: Session, id_orden: int):
         points_data = points_result.scalar()
         points_value = float(points_data) if points_data is not None else 0
         
-        # Dirección de envío: dirección principal del cliente (tab_ordenes no guarda id_direccion)
+        # Dirección de envío:
+        # `tab_ordenes` no almacena `id_direccion`, por eso se toma principal activa.
         id_usuario = order_data.get("id_usuario") if hasattr(order_data, "get") else None
         direccion_envio = None
         if id_usuario is not None:
@@ -233,17 +234,17 @@ def get_order_detail_admin(db: Session, id_orden: int):
             addr_row = addr_result.mappings().first()
             if addr_row:
                 direccion_envio = _row_to_dict(addr_row)
-                # El frontend espera campos opcionales; complemento puede servir como detalle
+                # El frontend espera campos opcionales; `complemento` puede actuar como número.
                 if direccion_envio.get("complemento"):
                     direccion_envio["numero_direccion"] = direccion_envio.get("complemento")
-                # Teléfono de contacto: usar celular del usuario si está en la orden
+                # Teléfono de contacto desde datos del usuario en orden.
                 if order_data.get("cel_usuario"):
                     direccion_envio["telefono_contacto"] = str(order_data.get("cel_usuario"))
         
         orden_dict = _row_to_dict(order_data)
         descuentos = order_data.get("detalle_descuentos_aplicados") if hasattr(order_data, "get") else orden_dict.get("detalle_descuentos_aplicados")
 
-        # Mapear ítems al formato esperado por el admin (manteniendo imagen_url del snapshot)
+        # Mapear ítems al formato esperado por el panel admin.
         productos_list: list[dict[str, Any]] = []
         for it in raw_items:
             productos_list.append(
@@ -419,7 +420,7 @@ def create_order(
         dict: El diccionario completo con toda la información de la orden creada.
     """
     try:
-        # Construir params explícitamente para que id_canje llegue siempre a la BD (descuento por puntos)
+        # Construir params explícitos para asegurar envío de `id_canje` a BD.
         id_canje_val = None
         if getattr(order, "id_canje", None) is not None:
             try:
@@ -462,7 +463,7 @@ def create_order(
                     params.get("id_canje"),
                 )
                 return response_data
-            # Algunos drivers devuelven JSON como string
+            # Algunos drivers devuelven JSON serializado en string.
             if isinstance(response_data, str):
                 import json
                 try:
@@ -477,7 +478,7 @@ def create_order(
         db.rollback()
         error_msg = str(e)
         
-        # Manejo específico para errores de actualización de stock automática
+        # Manejo específico para errores de actualización automática de stock.
         if "fun_actualizar_stock_automatico" in error_msg and "usr_insert" in error_msg:
             raise Exception(
                 "La orden se está procesando pero hay un problema con la actualización automática de stock. "
@@ -485,7 +486,7 @@ def create_order(
                 f"Detalles técnicos: {error_msg}"
             )
         
-        # Para otros errores, mantener el mensaje original
+        # Para otros errores, mantener mensaje original.
         raise Exception(f"Error al crear la orden: {error_msg}")
 
 
@@ -497,7 +498,7 @@ def _pick_first_key(d: dict, keys: list, default=None):
 
 
 def _decimal_to_number(v):
-    """Convierte Decimal a int/float para JSON; deja el resto igual."""
+    """Convierte Decimal a int/float para JSON; deja otros tipos intactos."""
     if v is None:
         return None
     if isinstance(v, Decimal):
@@ -511,7 +512,7 @@ def get_order_with_items(db: Session, id_orden: Decimal):
     (nombre, cantidad, precio unitario, total, variante y atributos). Usa variant_id
     en tab_orden_productos y JOIN a tab_product_variant_combinations + tab_products.
     """
-    # 1) Obtener la orden base
+    # 1) Obtener la orden base.
     id_orden_val = int(id_orden) if id_orden is not None else None
     if id_orden_val is None:
         return None
@@ -521,7 +522,7 @@ def get_order_with_items(db: Session, id_orden: Decimal):
 
     items = []
     try:
-        # Comprobar si hay filas en tab_orden_productos para esta orden (diagnóstico)
+        # Diagnóstico: comprobar si existen filas en `tab_orden_productos`.
         count_result = db.execute(
             text("SELECT COUNT(*) AS n FROM tab_orden_productos WHERE id_orden = :id_orden"),
             {"id_orden": id_orden_val},
@@ -529,7 +530,8 @@ def get_order_with_items(db: Session, id_orden: Decimal):
         count_row = count_result.mappings().first()
         num_rows_in_table = int(count_row["n"]) if count_row and count_row.get("n") is not None else 0
 
-        # 2) tab_orden_productos usa variant_id; LEFT JOIN para no perder filas si producto/variante inactivo
+        # 2) `tab_orden_productos` usa `variant_id`.
+        # LEFT JOIN evita perder filas si producto/variante se inactivó después.
         query_items = text(
             """
             SELECT
@@ -577,7 +579,7 @@ def get_order_with_items(db: Session, id_orden: Decimal):
                     opts = {}
             if not isinstance(opts, dict):
                 opts = {}
-            # Frontend espera: id_item, id_producto, id_categoria, product_name, quantity, unit_price, total_price, imagen_url, opciones_elegidas
+            # Estructura esperada por frontend de perfil/pedidos.
             it = {
                 "id_orden": _decimal_to_number(raw.get("id_orden")),
                 "id_item": _decimal_to_number(raw.get("id_item")),
@@ -633,7 +635,7 @@ def update_order_payment_info(db: Session, id_orden: Decimal, metodo_pago: str |
         logger.info(f"🔍 update_order_payment_info: id_orden={id_orden}, metodo_pago={metodo_pago}, ind_estado={ind_estado}, commit={commit}")
         old_state = None
 
-        # Verificar estado anterior ANTES del UPDATE para que los triggers se ejecuten correctamente
+        # Verificar estado anterior ANTES del UPDATE para entender triggers.
         if ind_estado is not None:
             check_old_state_query = text("SELECT ind_estado FROM tab_ordenes WHERE id_orden = :id_orden")
             old_state_result = db.execute(check_old_state_query, {"id_orden": id_orden})
@@ -667,8 +669,8 @@ def update_order_payment_info(db: Session, id_orden: Decimal, metodo_pago: str |
         logger.info(f"🔍 Ejecutando query: UPDATE tab_ordenes SET {', '.join(sets)} WHERE id_orden = :id_orden")
         logger.info(f"🔍 Parámetros: {params}")
         
-        # IMPORTANTE: Los triggers se ejecutan automáticamente después del UPDATE
-        # Si ind_estado cambia de != 2 a 2, se ejecutarán:
+        # IMPORTANTE: los triggers se ejecutan tras UPDATE + COMMIT.
+        # Si `ind_estado` cambia de !=2 a 2, deberían ejecutarse:
         # - trg_limpiar_carrito_pagado
         # - trg_actualizar_stock_orden_pagada
         # - trg_orden_acumular_puntos
@@ -682,7 +684,7 @@ def update_order_payment_info(db: Session, id_orden: Decimal, metodo_pago: str |
         rows_affected = result.rowcount
         logger.info(f"✅ UPDATE ejecutado: {rows_affected} fila(s) afectada(s) para orden {id_orden}")
         
-        # Verificar estado después del UPDATE (antes del commit) para confirmar el cambio
+        # Verificar estado después del UPDATE (antes de commit).
         if ind_estado is not None:
             verify_after_query = text("SELECT ind_estado FROM tab_ordenes WHERE id_orden = :id_orden")
             verify_after_result = db.execute(verify_after_query, {"id_orden": id_orden})
@@ -693,7 +695,7 @@ def update_order_payment_info(db: Session, id_orden: Decimal, metodo_pago: str |
                     logger.info(f"✅ Orden {id_orden} actualizada a estado 2. Los triggers se ejecutarán al hacer commit.")
         if rows_affected == 0:
             logger.error(f"❌ ERROR CRÍTICO: No se actualizó ninguna fila para orden {id_orden}. ¿Existe la orden?")
-            # Verificar si la orden existe
+            # Verificar si la orden realmente existe.
             check_query = text("SELECT id_orden, ind_estado, metodo_pago FROM tab_ordenes WHERE id_orden = :id_orden")
             check_result = db.execute(check_query, {"id_orden": id_orden})
             check_row = check_result.fetchone()
@@ -705,7 +707,8 @@ def update_order_payment_info(db: Session, id_orden: Decimal, metodo_pago: str |
         if commit:
             db.commit()
             logger.info(f"✅ Commit realizado para orden {id_orden}")
-            # Tras commit: orden pagada/completada por primera vez → stock descontado en BD
+            # Tras commit: si cambia a pagada/completada por primera vez,
+            # puede disparar notificaciones de stock.
             if (
                 ind_estado is not None
                 and int(ind_estado) in (2, 3)

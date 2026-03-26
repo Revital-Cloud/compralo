@@ -33,7 +33,7 @@ async def get_cart_products(db:Session = Depends(get_db)):
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
     Returns:
-        list[CarProduct]: Lista de productos en el carrito.
+        list[CartProduct]: Lista de productos en el carrito.
     """
     cart_products = cart_product_service.get_cart_products(db)
     if cart_products is None:
@@ -62,6 +62,7 @@ async def create_cart_product(
         ResponseMessage: Mensaje de confirmación.
     """
     try:
+        # Trazas de diagnóstico del flujo de identificación (usuario/sesión).
         print(f"🔍 [ROUTER] current_user recibido: {current_user}")
         print(f"🔍 [ROUTER] session_id recibido: {session_id}")
         print(f"🔍 [ROUTER] cart_product_data recibido: {cart_product_data}")
@@ -83,13 +84,13 @@ async def create_cart_product(
                 session_id_param = session_id
                 print(f"🔍 [ROUTER] Usuario anónimo - session_id: {session_id_param}")
         
-        # Establecer los valores correctos en el objeto
+        # Normalizar payload para que service reciba origen único.
         cart_product_data.id_usuario = user_id
         cart_product_data.session_id = session_id_param
         
         print(f"🔍 [ROUTER] Datos finales del producto: {cart_product_data}")
         
-        # Determinar el usr_insert correcto
+        # Determinar `usr_insert` auditado para trazabilidad.
         usr_insert = current_user.id_usuario if current_user else user_id
         print(f"🔍 [ROUTER] usr_insert: {usr_insert}")
         
@@ -166,9 +167,9 @@ async def delete_cart_product(
     current_user: Optional[UserInToken] = Depends(get_current_user_optional)
 ):
     """
-    Elimina un producto en el carrito.
+    Elimina o reduce un producto en el carrito.
     Para usuarios autenticados, usa automáticamente su id_usuario.
-    Para usuarios anónimos, puede pasarse el session_id como query parameter.
+    Para usuarios anónimos, puede pasarse `session_id` como query parameter.
     
     Args:
         id_categoria_producto (Decimal): ID de la categoría del producto.
@@ -181,10 +182,9 @@ async def delete_cart_product(
         current_user (UserInToken): Usuario autenticado.
     Returns:
         ResponseMessage: Mensaje de confirmación.
-    """ 
+    """
     try:
-        # Para usuarios autenticados, usar su id_usuario y session_id=None
-        # Para usuarios anónimos, usar id_usuario=None y el session_id proporcionado
+        # Resolver identidad de carrito según autenticación.
         if current_user:
             user_id = current_user.id_usuario
             session_id_param = None
@@ -287,7 +287,7 @@ async def get_cart_products_detail(
     db: Session = Depends(get_db)
 ):
     """
-    Obtiene todos los productos en el carrito con detalle.2
+    Obtiene todos los productos del carrito con detalle.
     Args:
         db (Session): La sesión de base de datos SQLAlchemy.
         current_user (UserInToken): Usuario autenticado.

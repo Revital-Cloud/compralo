@@ -22,11 +22,12 @@ _ENV_FILES: tuple[str, ...] = (".env", f".env.{_ENV}")
 
 class Settings(BaseSettings):
     """
-    Clase de Configuración SaaS.
+    Clase de configuración central del backend.
 
-    Define todas las variables de configuración de la aplicación.
-    Estas variables se cargan desde un archivo .env o desde el entorno.
-    Configuración multi-tenant para SaaS de ecommerce.
+    Define todas las variables de configuración de la aplicación y su tipado.
+    Las variables se cargan desde archivos `.env` y/o entorno del sistema.
+    Aunque la plataforma es SaaS, este backend pertenece a una instancia
+    aislada de e-commerce.
 
     Atributos:
         DATABASE_URL (str): URL de conexión a la base de datos.
@@ -63,7 +64,7 @@ class Settings(BaseSettings):
     ALGORITHM: str
     REFRESH_TOKEN_EXPIRE_DAYS: int 
     
-    # Cloudinary configuracion
+    # Configuración de Cloudinary
     CLOUDINARY_CLOUD_NAME: str
     CLOUDINARY_API_KEY: str
     CLOUDINARY_API_SECRET: str
@@ -89,11 +90,12 @@ class Settings(BaseSettings):
     WOMPI_INTEGRITY_SECRET: str
     WOMPI_ENVIRONMENT: str = "sandbox"
 
-    # Groq: API key para IA (resumen, chat admin). Opcional: si no está, rutas /admin/ai devuelven 503
+    # Groq: clave API para funcionalidades de IA (resumen/chat admin).
+    # Es opcional; si falta, las rutas /admin/ai devuelven 503.
     GROQ_API_KEY: Optional[str] = None
 
-    # Cloudflare Turnstile (CAPTCHA) - server-side verification
-    # Si no está configurado, el backend no puede validar y se tratará como deshabilitado.
+    # Cloudflare Turnstile (CAPTCHA) - verificación del lado servidor.
+    # Si no está configurado, el backend no valida el captcha y se considera deshabilitado.
     TURNSTILE_SECRET_KEY: Optional[str] = None
     TURNSTILE_ENABLED: bool = True
 
@@ -101,9 +103,9 @@ class Settings(BaseSettings):
         env_file = _ENV_FILES
         case_sensitive = True
 
-# Instancia global de configuración (carga .env y .env.development | .env.production)
+# Instancia global de configuración (carga .env y .env.development/.env.production)
 settings = Settings()
 
-# Exponer entorno actual para uso en la app (ej. middlewares, logging)
+# Expone el entorno actual para su uso en app (middlewares, logging, etc.).
 def is_production() -> bool:
     return _ENV == "production"

@@ -27,14 +27,14 @@ from services import cart_product_service
 
 router = APIRouter(
     tags=["Orders"],
-    responses={404: {"description": "Not found"}},
+    responses={404: {"description": "No encontrado"}},
 )
 
 @router.get("/wompi/financial-institutions")
 async def get_wompi_financial_institutions(
     current_user: UserInToken = Depends(get_current_user)
 ):
-    """Obtiene la lista de instituciones financieras para PSE"""
+    """Obtiene la lista de instituciones financieras disponibles para PSE."""
     try:
         institutions = await wompi_service.get_financial_institutions()
         return institutions
@@ -69,7 +69,7 @@ async def create_wompi_transaction(
         
         amount_in_cents = int(amount * 100)
         
-        # Construir redirect_url si no se proporciona
+        # Construir `redirect_url` si no se proporciona desde frontend.
         if not redirect_url:
             from core.config import settings
             redirect_url = f"{settings.FRONTEND_URL}/checkout/payment-result"
@@ -206,11 +206,11 @@ async def create_order(
     try:
         result = order_service.create_order(db, order_data, current_user.id_usuario)
         
-        # Si la función SQL devolvió un diccionario completo, devolverlo tal como está
+        # Si la función SQL devuelve un diccionario completo, retornarlo intacto.
         if result and isinstance(result, dict):
             return result
         
-        # Si no hay resultado o es None, devolver respuesta de error
+        # Si no hay resultado válido, responder error funcional controlado.
         return {
             "success": False,
             "message": "No se pudo crear la orden",
@@ -262,7 +262,7 @@ async def pay_order(
             reference=reference
         )
         
-        # Marcar el método de pago usado en la orden (para visualización)
+        # Marcar método de pago usado en la orden (uso de UI/seguimiento).
         try:
             order_service.update_order_payment_info(db, Decimal(order_id), metodo_pago="tarjeta")
         except Exception:
@@ -272,17 +272,17 @@ async def pay_order(
         status_tx = transaction_data.get("status")
         transaction_id = transaction_data.get("id")
 
-        # Si quedó en pendiente, hacemos un intento de polling rápido (2s)
+        # Si queda en PENDING, intentar una verificación rápida adicional.
         if status_tx == "PENDING" and transaction_id:
             await asyncio.sleep(2)
             try:
                 detail = await wompi_service.get_transaction(str(transaction_id))
                 status_tx = (detail.get("data") or {}).get("status") or status_tx
             except Exception:
-                # Si falla la consulta, mantenemos el estado original
+                # Si falla la consulta, mantener estado original.
                 pass
 
-        # Si está aprobado/declinado, actualizamos estado de la orden para feedback inmediato
+        # Si llega estado final, actualizar orden para feedback inmediato.
         estado_map = {"APPROVED": 2, "DECLINED": 4, "VOIDED": 4, "ERROR": 4}
         if status_tx in estado_map:
             try:
@@ -329,7 +329,7 @@ async def pay_cart_and_create_order(
     except Exception:
         raise HTTPException(status_code=400, detail="Parámetros inválidos")
 
-    # 1) Validar método de pago pertenece al usuario y obtener provider_source_id
+    # 1) Validar que el método de pago pertenezca al usuario y obtener `provider_source_id`.
     query_pm = text(
         """
         SELECT mpu.provider_source_id
@@ -341,7 +341,7 @@ async def pay_cart_and_create_order(
     if not pm_row or not pm_row.provider_source_id:
         raise HTTPException(status_code=404, detail="Método de pago no encontrado o inválido")
 
-    # 2) Calcular total del carrito para este usuario (sin crear orden)
+    # 2) Calcular total del carrito para este usuario (aún sin crear orden).
     try:
         cart_total_payload = {
             "id_usuario": current_user.id_usuario,
@@ -356,7 +356,7 @@ async def pay_cart_and_create_order(
     if amount <= 0:
         raise HTTPException(status_code=400, detail="El carrito está vacío o el total es inválido")
 
-    # 3) Crear transacción en Wompi con referencia al carrito (no a una orden)
+    # 3) Crear transacción en Wompi con referencia al carrito (no a una orden).
     try:
         reference = f"cart-{cart_id}-{uuid.uuid4()}"
         transaction_response = await wompi_service.create_transaction(
@@ -370,7 +370,7 @@ async def pay_cart_and_create_order(
         status_tx = tx_data.get("status")
         transaction_id = tx_data.get("id")
 
-        # Polling corto para intentar resolver PENDING rápidos
+        # Polling corto para resolver pendientes rápidos.
         if status_tx == "PENDING" and transaction_id:
             await asyncio.sleep(2)
             try:
@@ -379,7 +379,7 @@ async def pay_cart_and_create_order(
             except Exception:
                 pass
 
-        # 4) Solo crear la orden cuando esté aprobado
+        # 4) Solo crear la orden cuando el pago esté aprobado.
         if status_tx == "APPROVED":
             try:
                 result = order_service.create_order(
@@ -399,12 +399,12 @@ async def pay_cart_and_create_order(
                 )
                 order_id = int(result.get("id_orden")) if isinstance(result, dict) else None
                 if order_id:
-                    # Marcar como procesada por si la función la deja pendiente
+                    # Marcar como procesada por si la función la deja pendiente.
                     try:
                         order_service.update_order_payment_info(db, Decimal(order_id), metodo_pago="tarjeta", ind_estado=2)
                     except Exception:
                         pass
-                    # Enviar email de confirmación (gracias por tu compra + resumen)
+                    # Programar email de confirmación de compra.
                     try:
                         from services.email_service import send_order_confirmation_for_order_id
                         asyncio.create_task(send_order_confirmation_for_order_id(order_id))
@@ -412,14 +412,14 @@ async def pay_cart_and_create_order(
                         logger.warning("No se pudo programar email de confirmación: %s", e)
                     return {"status": "APPROVED", "order_id": order_id, "transaction_id": transaction_id}
             except Exception as e:
-                # Si fallara la creación de la orden después de aprobado, devolvemos error controlado
+                # Si falla creación de orden tras pago aprobado, responder error explícito.
                 raise HTTPException(status_code=500, detail=f"Pago aprobado pero falló la creación de la orden: {str(e)}")
 
-        # 5) Para PENDING o DECLINED/ERROR: no crear orden
+        # 5) Para PENDING/DECLINED/VOIDED/ERROR no crear orden.
         if status_tx in ("PENDING", "DECLINED", "VOIDED", "ERROR"):
             return {"status": status_tx, "order_id": None, "transaction_id": transaction_id}
 
-        # Estado desconocido
+        # Estado desconocido: respuesta neutra para manejo en cliente.
         return {"status": status_tx or "UNKNOWN", "order_id": None, "transaction_id": transaction_id}
 
     except httpx.HTTPStatusError as e:
@@ -428,7 +428,7 @@ async def pay_cart_and_create_order(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
-# Endpoints Admin
+# Endpoints de administración.
 @router.get("/admin/orders/all", status_code=status.HTTP_200_OK)
 async def get_all_orders_admin(
     limit: int = 50,

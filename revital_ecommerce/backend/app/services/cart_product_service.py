@@ -165,6 +165,7 @@ def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert
             "usr_insert": usr,
 
         }
+        # Log de diagnóstico: variante y cantidad agregada al carrito.
         print(f"🛒 [BACKEND] Agregando producto al carrito: variant_id={variant_id}, cantidad={params['cantidad']}")
 
         query = text("""
@@ -199,7 +200,7 @@ def update_cart_product_quantity(db: Session, id_carrito_producto: int, nueva_ca
         usr_update (Optional[int]): Usuario que actualiza el registro.
     """
     try:
-        # Obtener stock de la variante para validar
+        # Obtener stock de variante para validar antes del update.
         stock_query = text("""
         SELECT pv.stock, cp.cantidad AS cantidad_actual
         FROM tab_carrito_productos cp
@@ -213,15 +214,15 @@ def update_cart_product_quantity(db: Session, id_carrito_producto: int, nueva_ca
         stock_disponible = stock_info[0]
         cantidad_actual = stock_info[1]
         
-        # Validar que la nueva cantidad no exceda el stock disponible
+        # Validar que no exceda stock disponible.
         if nueva_cantidad > stock_disponible:
             raise Exception(f"Stock insuficiente. Disponible: {stock_disponible}, solicitado: {nueva_cantidad}")
         
-        # Validar que la cantidad sea mayor a 0
+        # Validar mínimo de cantidad.
         if nueva_cantidad <= 0:
             raise Exception("La cantidad debe ser mayor a 0")
         
-        # Actualizar la cantidad en la base de datos
+        # Persistir cantidad en base de datos.
         update_query = text("""
         UPDATE tab_carrito_productos 
         SET cantidad = :nueva_cantidad, 
@@ -271,7 +272,7 @@ def delete_cart_product_by_id(db: Session, id_carrito_producto: int) -> bool:
 def delete_cart_product(db: Session, id_usuario: Optional[Decimal], session_id: Optional[str], id_categoria_producto: Decimal, id_linea_producto: Decimal, id_sublinea_producto: Decimal, id_producto: Decimal, cantidad: Decimal, usr_update: Decimal):
     """
     Elimina (o reduce cantidad de) un producto en el carrito.
-    La BD usa variant_id; se resuelve variant_id desde el carrito del usuario por product_id.
+    La BD opera por `variant_id`; por eso se resuelve desde `product_id`.
     """
     try:
         id_carrito_row = db.execute(
@@ -333,7 +334,8 @@ def migrate_cart_anonymous(db: Session, migrate_cart_anonymous: MigrateCartAnony
     """
     try:
         params = migrate_cart_anonymous.model_dump()
-        params["id_usuario"] = usr_insert  # El usuario de destino es el mismo que hace la operación
+        # El usuario destino coincide con quien ejecuta la operación.
+        params["id_usuario"] = usr_insert
         params["usr_insert"] = usr_insert
         
         print(f"🔄 [SERVICE] Parámetros de migración: {params}")
@@ -463,6 +465,7 @@ def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
                     opts = json.loads(opts) if opts else {}
                 except Exception:
                     opts = {}
+            # Adaptar cada fila SQL al contrato esperado por frontend.
             product_dict = {
                 "id_carrito_producto": row["id_carrito_producto"],
                 "id_categoria_producto": int(row["category_id"]) if row["category_id"] is not None else 0,
@@ -524,18 +527,18 @@ def calculate_total_cart(db:Session, calculate_total_cart:CalculateTotalCart):
                 "mensaje_resumen": ""
             }
         
-        # Si la respuesta ya tiene todos los campos necesarios, devolverla tal como está
+        # Si ya viene con contrato completo, retornar sin transformación.
         if isinstance(response_data, dict) and "success" in response_data:
             return response_data
         
-        # Si la respuesta es un diccionario simple (carrito vacío), mapear a la estructura completa
+        # Si es respuesta simple, mapear a estructura completa de API.
         if isinstance(response_data, dict):
             return {
                 "success": True,
                 "total_final": response_data.get("total_final", 0),
                 "total_productos": response_data.get("total_productos", 0),
                 "total_descuentos": response_data.get("total_descuentos", 0),
-                "ahorro_total": response_data.get("total_descuentos", 0),  # El ahorro es igual a los descuentos
+                "ahorro_total": response_data.get("total_descuentos", 0),  # Ahorro total equivalente a descuentos.
                 "resumen": {
                     "subtotal": response_data.get("total_productos", 0),
                     "descuentos": response_data.get("total_descuentos", 0),
@@ -543,17 +546,17 @@ def calculate_total_cart(db:Session, calculate_total_cart:CalculateTotalCart):
                 },
                 "descuentos_automaticos": response_data.get("descuentos_automaticos", []),
                 "descuento_canjeado": response_data.get("descuento_canjeado"),
-                "total_desc_automaticos": 0,  # Extraer de descuentos_automaticos si está disponible
-                "total_desc_canjeado": 0,     # Extraer de descuento_canjeado si está disponible
-                "es_primera_compra": False,   # Se determinaría con más lógica si es necesario
-                "puntos_a_ganar": 0,          # Se calcularía basado en el total
+                "total_desc_automaticos": 0,  # Placeholder si backend no envía detalle desagregado.
+                "total_desc_canjeado": 0,     # Placeholder de descuento canjeado.
+                "es_primera_compra": False,   # Placeholder para regla comercial.
+                "puntos_a_ganar": 0,          # Placeholder para cálculo de fidelización.
                 "id_canje_aplicado": None,
                 "mensaje": response_data.get("message", "Carrito calculado exitosamente"),
                 "mensaje_puntos": "Ganarás 0 puntos con esta compra" if response_data.get("total_final", 0) == 0 else f"Ganarás puntos con esta compra",
                 "mensaje_resumen": f"Total a pagar: ${response_data.get('total_final', 0)}"
             }
         
-        # Si no es un diccionario, devolver estructura por defecto
+        # Si el formato no es válido, devolver respuesta por defecto.
         return {
             "success": False,
             "total_final": 0,

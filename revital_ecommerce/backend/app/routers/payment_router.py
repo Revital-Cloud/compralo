@@ -1,5 +1,13 @@
 """
 Router para la gestión de pagos y métodos de pago con Wompi.
+
+Mapa de este router:
+- Métodos de pago del usuario (guardar/listar/eliminar/default)
+- Webhook de Wompi para sincronizar estado real de pagos
+
+Relación con services:
+- `payment_service.py`: lifecycle de métodos de pago del usuario.
+- `payment_widget_service.py`: lifecycle de pagos transaccionales.
 """
 import asyncio
 from decimal import Decimal
@@ -33,7 +41,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/payment",
     tags=["Payment Methods"],
-    responses={404: {"description": "Not found"}},
+    responses={404: {"description": "No encontrado"}},
 )
 
 @router.post(
@@ -48,8 +56,16 @@ async def create_payment_method(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    """
+    Registra una tarjeta/token como método de pago del usuario.
+
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `POST /payment/add-method`
+    - Service: `add_payment_method`
+    - Tablas: `tab_metodos_pago_usuario` (vía función SQL)
+    """
     try:
-        # El servicio ahora devuelve un diccionario plano
+        # El servicio devuelve un diccionario plano compatible con el schema.
         result = await add_payment_method(db, current_user, payload.card_token, payload.brand)
         
         if not result.get("success"):
@@ -58,7 +74,7 @@ async def create_payment_method(
                 detail=result.get("message", "Error al agregar el método de pago")
             )
             
-        # Pasamos el resultado directamente, ya que coincide con el schema
+        # Se retorna directo porque ya coincide con `PaymentMethodResponse`.
         return PaymentMethodResponse(**result)
     except HTTPException:
         raise
@@ -71,11 +87,27 @@ async def create_payment_method(
 
 @router.get("/list-methods", response_model=List[PaymentMethodResponse], summary="Listar los métodos de pago guardados")
 async def get_payment_methods(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Lista métodos de pago guardados del usuario autenticado.
+
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `GET /payment/list-methods`
+    - Service: `list_payment_methods`
+    - Tablas: `tab_metodos_pago_usuario`
+    """
     methods = list_payment_methods(db, current_user)
     return [PaymentMethodResponse(**m.dict()) for m in methods]
 
 @router.delete("/delete-method/{payment_method_id}", summary="Eliminar un método de pago")
 async def remove_payment_method(payment_method_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Elimina un método de pago del usuario.
+
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `DELETE /payment/delete-method/{payment_method_id}`
+    - Service: `delete_payment_method`
+    - Tablas: `tab_metodos_pago_usuario` (vía función SQL)
+    """
     result = delete_payment_method(db, current_user, payment_method_id)
     if not result.get("success"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.get("message"))
@@ -83,6 +115,14 @@ async def remove_payment_method(payment_method_id: int, db: Session = Depends(ge
 
 @router.put("/set-default-method/{payment_method_id}", summary="Establecer un método de pago como predeterminado")
 def update_default_payment_method(payment_method_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Marca un método de pago como predeterminado para el usuario.
+
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `PUT /payment/set-default-method/{payment_method_id}`
+    - Service: `set_default_payment_method`
+    - Tablas: `tab_metodos_pago_usuario` (vía función SQL)
+    """
     result = set_default_payment_method(db, current_user, payment_method_id)
     if not result.get("success"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=result.get("message"))
@@ -90,10 +130,10 @@ def update_default_payment_method(payment_method_id: int, db: Session = Depends(
 
 def _get_nested_value(data: dict, path: str) -> str:
     """
-    Obtiene un valor anidado de un diccionario usando un path con notación de punto.
+    Obtiene un valor anidado usando notación por puntos.
     
     Ejemplo: _get_nested_value({"data": {"transaction": {"id": "123"}}}, "data.transaction.id")
-    retorna "123"
+    retorna "123".
     """
     keys = path.split(".")
     value = data
@@ -113,7 +153,7 @@ def _verify_webhook_signature(
     events_secret: str
 ) -> bool:
     """
-    Verifica la firma del webhook usando signature.properties dinámico.
+    Verifica la firma del webhook usando `signature.properties` dinámico.
     
     Wompi envía:
     - signature.properties: Array de paths (ej: ["event", "data.transaction.id"])
@@ -167,6 +207,23 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
     
     Usa verificación de firma dinámica basada en signature.properties.
     Actualiza el estado del payment y marca la orden como pagada si corresponde.
+
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `POST /payment/webhook`
+    - Services:
+      - `get_payment_by_reference`
+      - `create_order_from_checkout_reference` (checkout flow)
+      - `update_payment_status`
+      - `create_payment` (cuando aplica consolidación)
+    - Tablas:
+      - `tab_pagos` (estado de pagos)
+      - `tab_ordenes` (estado de orden)
+      - `tab_orden_productos`/carrito indirectamente en creación de orden checkout
+
+    Reglas clave:
+    - Verifica firma (método dinámico o fallback simple).
+    - Es idempotente para webhooks duplicados.
+    - Puede consolidar pagos por reference o transaction_id.
     """
     request_body = await request.body()
     
@@ -178,14 +235,14 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
             detail="Payload JSON inválido"
         )
     
-    # Obtener credenciales del tenant
+    # Obtener credenciales del tenant.
     wompi_config = get_store_from_request(request, db)
     
-    # Verificar firma usando signature.properties dinámico
+    # Verificar firma con propiedades dinámicas.
     signature_data = payload.get("signature", {})
     
     if not signature_data:
-        # Fallback: verificación simple por header (compatibilidad)
+        # Fallback: verificación simple por header (compatibilidad legada).
         signature_header = request.headers.get("x-wompi-signature")
         if signature_header:
             expected_signature = hmac.new(
@@ -205,7 +262,7 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
                 detail="Firma de webhook faltante"
             )
     else:
-        # Verificación dinámica con signature.properties
+        # Verificación dinámica con `signature.properties`.
         if not _verify_webhook_signature(payload, signature_data, wompi_config.wompi_events_secret):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -213,7 +270,7 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
             )
     
     try:
-        # Extraer datos de la transacción
+        # Extraer datos de la transacción.
         data = payload.get("data", {})
         tx = data.get("transaction", {})
         status_tx = tx.get("status")  # APPROVED, DECLINED, VOIDED, ERROR, PENDING
@@ -224,7 +281,8 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
             logger.warning("Webhook sin reference ni transaction_id")
             return {"status": "ok", "message": "Webhook recibido pero sin datos de transacción"}
         
-        # Flujo checkout sin tabla: referencia codificada (revital_cart_*). La orden se crea solo cuando el pago es APPROVED.
+        # Flujo checkout sin tabla: referencia codificada (`revital_cart_*`).
+        # La orden se crea solo cuando el pago llega a APPROVED.
         if reference and reference.startswith("revital_cart_"):
             if status_tx != "APPROVED":
                 return {"status": "ok"}
@@ -242,13 +300,13 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
                 logger.info(f"Orden {order_id} creada tras webhook (referencia checkout): {reference}")
             return {"status": "ok"}
         
-        # Buscar payment por reference o transaction_id
+        # Buscar pago por `reference` o `transaction_id`.
         payment = None
         if reference:
             payment = get_payment_by_reference(db, reference)
         
         if not payment and transaction_id:
-            # Buscar por transaction_id
+            # Fallback de búsqueda por transaction_id.
             query = text("""
                 SELECT 
                     id_pago,
@@ -268,7 +326,7 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
         
         if not payment:
             logger.warning(f"Payment no encontrado: reference={reference}, transaction_id={transaction_id}")
-            # Intentar actualizar orden directamente si tenemos reference con formato antiguo
+            # Compatibilidad: intentar actualizar orden con referencias antiguas `order-*`.
             if reference and reference.startswith("order-"):
                 try:
                     order_id = int(reference.split("-")[1])
@@ -281,7 +339,7 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
                     }
                     ind_estado = estado_map.get(status_tx)
                     if ind_estado:
-                        # Extraer método de pago de la transacción si está disponible
+                        # Extraer método de pago de la transacción cuando exista.
                         metodo_pago = "Wompi"
                         if tx and "payment_method" in tx:
                             pm = tx.get("payment_method", {})
@@ -299,14 +357,14 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
                     pass
             return {"status": "ok", "message": "Webhook procesado pero payment no encontrado"}
         
-        # Verificar si ya está en estado final (idempotencia)
+        # Idempotencia: ignorar duplicados si ya está en estado final.
         current_status = payment.get("status")
         if current_status in ["APPROVED", "DECLINED", "VOIDED", "ERROR"]:
             if current_status == status_tx:
                 logger.info(f"Webhook duplicado ignorado: payment ya está en {status_tx}")
                 return {"status": "ok", "message": "Webhook duplicado, payment ya actualizado"}
         
-        # Actualizar payment con status y raw_last_event
+        # Actualizar pago con estado y evento crudo.
         update_payment_status(
             db=db,
             reference=payment.get("reference") or reference,
@@ -315,7 +373,7 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
             mark_order_paid=(status_tx == "APPROVED")
         )
         
-        # Enviar email de confirmación cuando el pago es APPROVED
+        # Enviar correo de confirmación cuando el pago es APPROVED.
         if status_tx == "APPROVED":
             order_id = payment.get("id_orden")
             if order_id is not None:
@@ -331,5 +389,5 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
         
     except Exception as e:
         logger.error(f"Error procesando webhook de Wompi: {str(e)}")
-        # Retornar 200 para evitar reintentos de Wompi si es error nuestro
+        # Responder 200 para evitar reintentos si el error es interno nuestro.
         return {"status": "error", "message": f"Error interno: {str(e)}"} 

@@ -15,6 +15,16 @@ from schemas.attribute_schema import (
 VALID_DATA_TYPES = ("text", "number", "boolean")
 
 
+def _table_exists(db: Session, table_name: str) -> bool:
+    """Check if a table exists in current DB/schema."""
+    return bool(
+        db.execute(
+            text("SELECT to_regclass(:table_name) IS NOT NULL"),
+            {"table_name": table_name},
+        ).scalar()
+    )
+
+
 def get_all(db: Session):
     """List all attributes (id, name, data_type, has_predefined_values)."""
     try:
@@ -119,21 +129,59 @@ def update(db: Session, id_attr: Decimal, attr: AttributeUpdate, usr_update: Dec
 
 
 def delete(db: Session, id_attr: Decimal):
-    """Delete attribute. Fails if referenced by tab_category_attributes or tab_product_variant_attributes.
-    tab_attribute_values are removed by FK CASCADE."""
+    """Delete attribute.
+    Blocks deletion when used by categories or product variants (new model and legacy model)."""
     try:
+        attr_row = db.execute(
+            text("SELECT name FROM tab_attributes WHERE id = :id"),
+            {"id": id_attr},
+        ).first()
+        if not attr_row:
+            raise ValueError("Atributo no encontrado")
+
+        attr_name = str(attr_row[0] or "").strip()
         ref_ca = db.execute(
             text("SELECT 1 FROM tab_category_attributes WHERE attribute_id = :id LIMIT 1"),
             {"id": id_attr}
         ).first()
         if ref_ca:
             raise ValueError("No se puede eliminar: el atributo está asignado a categorías")
-        ref_pva = db.execute(
-            text("SELECT 1 FROM tab_product_variant_attributes WHERE attribute_id = :id LIMIT 1"),
-            {"id": id_attr}
-        ).first()
-        if ref_pva:
-            raise ValueError("No se puede eliminar: el atributo tiene valores en variantes")
+
+        # Modelo actual (variant_groups/combinations)
+        if _table_exists(db, "tab_product_variant_groups"):
+            ref_vg = db.execute(
+                text("""
+                    SELECT 1
+                    FROM tab_product_variant_groups
+                    WHERE LOWER(TRIM(dominant_attribute)) = LOWER(TRIM(:attr_name))
+                    LIMIT 1
+                """),
+                {"attr_name": attr_name},
+            ).first()
+            if ref_vg:
+                raise ValueError("No se puede eliminar: el atributo está en uso como atributo dominante en variantes")
+
+        if _table_exists(db, "tab_product_variant_combinations"):
+            ref_vc = db.execute(
+                text("""
+                    SELECT 1
+                    FROM tab_product_variant_combinations
+                    WHERE attributes ? :attr_key
+                    LIMIT 1
+                """),
+                {"attr_key": str(id_attr)},
+            ).first()
+            if ref_vc:
+                raise ValueError("No se puede eliminar: el atributo está en uso en combinaciones de variantes")
+
+        # Modelo legacy (antes de variant_groups)
+        if _table_exists(db, "tab_product_variant_attributes"):
+            ref_pva = db.execute(
+                text("SELECT 1 FROM tab_product_variant_attributes WHERE attribute_id = :id LIMIT 1"),
+                {"id": id_attr}
+            ).first()
+            if ref_pva:
+                raise ValueError("No se puede eliminar: el atributo tiene valores en variantes")
         db.execute(text("DELETE FROM tab_attributes WHERE id = :id"), {"id": id_attr})
         db.commit()
     except ValueError:
@@ -270,20 +318,60 @@ def update_value(
 
 
 def delete_value(db: Session, attribute_id: Decimal, value_id: Decimal) -> None:
-    """Delete an attribute value. Fails if used in tab_product_variant_attributes."""
+    """Delete an attribute value.
+    Blocks deletion when the value is used by variants (new model and legacy model)."""
     try:
         row = db.execute(
-            text("SELECT id FROM tab_attribute_values WHERE id = :vid AND attribute_id = :aid"),
+            text("""
+                SELECT av.id, av.value, a.name
+                FROM tab_attribute_values av
+                JOIN tab_attributes a ON a.id = av.attribute_id
+                WHERE av.id = :vid AND av.attribute_id = :aid
+            """),
             {"vid": value_id, "aid": attribute_id}
         ).first()
         if not row:
             raise ValueError("Valor no encontrado o no pertenece al atributo")
-        ref = db.execute(
-            text("SELECT 1 FROM tab_product_variant_attributes WHERE attribute_value_id = :vid LIMIT 1"),
-            {"vid": value_id}
-        ).first()
-        if ref:
-            raise ValueError("No se puede eliminar: el valor está en uso en variantes de producto")
+
+        value_text = str(row[1] or "").strip()
+        attribute_name = str(row[2] or "").strip()
+
+        # Modelo actual (variant_groups/combinations)
+        if _table_exists(db, "tab_product_variant_groups"):
+            ref_vg = db.execute(
+                text("""
+                    SELECT 1
+                    FROM tab_product_variant_groups
+                    WHERE LOWER(TRIM(dominant_attribute)) = LOWER(TRIM(:attr_name))
+                      AND LOWER(TRIM(dominant_value)) = LOWER(TRIM(:value_text))
+                    LIMIT 1
+                """),
+                {"attr_name": attribute_name, "value_text": value_text},
+            ).first()
+            if ref_vg:
+                raise ValueError("No se puede eliminar: el valor está en uso como valor dominante en variantes")
+
+        if _table_exists(db, "tab_product_variant_combinations"):
+            ref_vc = db.execute(
+                text("""
+                    SELECT 1
+                    FROM tab_product_variant_combinations
+                    WHERE LOWER(TRIM(COALESCE(attributes->>:attr_key, ''))) = LOWER(TRIM(:value_text))
+                    LIMIT 1
+                """),
+                {"attr_key": str(attribute_id), "value_text": value_text},
+            ).first()
+            if ref_vc:
+                raise ValueError("No se puede eliminar: el valor está en uso en combinaciones de variantes")
+
+        # Modelo legacy (antes de variant_groups)
+        if _table_exists(db, "tab_product_variant_attributes"):
+            ref = db.execute(
+                text("SELECT 1 FROM tab_product_variant_attributes WHERE attribute_value_id = :vid LIMIT 1"),
+                {"vid": value_id}
+            ).first()
+            if ref:
+                raise ValueError("No se puede eliminar: el valor está en uso en variantes de producto")
         db.execute(
             text("DELETE FROM tab_attribute_values WHERE id = :vid AND attribute_id = :aid"),
             {"vid": value_id, "aid": attribute_id}

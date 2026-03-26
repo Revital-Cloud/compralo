@@ -3,6 +3,18 @@ Router para la gestión de pagos con Wompi Checkout Widget.
 
 Endpoints para crear pagos, attach transaction_id, polling de estados,
 y reintentos de pagos fallidos.
+
+Mapa de flujo (alto nivel):
+- Endpoint HTTP (este router)
+  -> llama funciones de `services/payment_widget_service.py`
+  -> persiste/consulta en `tab_pagos` y, según caso, `tab_ordenes`
+  -> retorna estado para que frontend continúe UX (polling, éxito, error).
+
+Estados de pago más usados:
+- CREATED: pago local creado, aún sin transacción Wompi.
+- PENDING: ya existe `transaction_id`, esperando estado final.
+- APPROVED: pago confirmado, orden debe quedar pagada.
+- DECLINED/VOIDED/ERROR: pago fallido o anulado.
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Header
 from starlette.requests import Request
@@ -49,7 +61,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(
     prefix="/payments",
     tags=["Payment Widget"],
-    responses={404: {"description": "Not found"}},
+    responses={404: {"description": "No encontrado"}},
 )
 
 
@@ -65,6 +77,11 @@ async def test_signature(
     """
     Genera una firma de prueba para verificar la configuración.
     Compara manualmente esta firma con la que genera Wompi.
+
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `GET /payments/test-signature`
+    - Service: `generate_integrity_signature`
+    - Tablas: no toca BD de pagos/órdenes (solo usa config tenant).
     """
     from core.tenant import get_store_from_request
     
@@ -119,7 +136,23 @@ async def create_checkout_session_endpoint(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user)
 ):
-    """Crea sesión de checkout: no se crea orden hasta que el pago sea aprobado."""
+    """
+    Crea sesión de checkout sin crear orden todavía.
+
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `POST /payments/create-checkout`
+    - Services:
+      - `calculate_total_cart` (cart service)
+      - `generate_checkout_reference_from_cart`
+      - `generate_integrity_signature`
+    - Tablas:
+      - Lee `tab_carritos`, `tab_carrito_productos`
+      - NO inserta en `tab_pagos` ni `tab_ordenes` en este paso
+
+    Resultado esperado:
+    - Devuelve `reference`, `amount_in_cents`, `public_key`, `integrity_signature`
+      para abrir el widget de Wompi desde frontend.
+    """
     try:
         cart_id = payload.cart_id
         id_direccion = payload.id_direccion
@@ -199,7 +232,18 @@ async def get_order_by_reference(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user)
 ):
-    """Tras el pago, el frontend hace polling hasta que el webhook o confirm-checkout cree la orden e inserte en tab_pagos."""
+    """
+    Permite resolver `order_id` por `reference` durante polling en frontend.
+
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `GET /payments/order-by-reference`
+    - Service: consulta directa en router (sin función de service)
+    - Tablas: `tab_pagos`
+
+    Resultado:
+    - `{order_id: <int>}` cuando ya existe asociación.
+    - `{order_id: null}` mientras no se haya consolidado el pago/orden.
+    """
     row = db.execute(
         text("SELECT id_orden FROM tab_pagos WHERE reference = :ref AND usr_insert = :uid"),
         {"ref": reference, "uid": current_user.id_usuario}
@@ -227,12 +271,27 @@ async def confirm_checkout(
     - Si Wompi confirma pago exitoso (APPROVED): se crea la orden y se marca como Pagada.
     El frontend llama con reference + transaction_id; el backend consulta Wompi y solo
     crea la orden cuando la transacción está APPROVED.
+
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `POST /payments/confirm-checkout`
+    - Services:
+      - `get_payment_by_reference`
+      - `fetch_transaction_by_id`
+      - `create_order_from_checkout_reference`
+    - Tablas (indirectas vía services):
+      - `tab_pagos`, `tab_ordenes`, `tab_orden_productos`, `tab_carritos`
+
+    Casos:
+    - Pago ya consolidado: retorna `order_id` existente (idempotente).
+    - No APPROVED: no crea orden.
+    - APPROVED: crea orden y la deja pagada/procesada.
     """
     reference = payload.reference.strip()
     transaction_id = payload.transaction_id.strip()
     if not reference.startswith("revital_cart_"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Referencia no es de checkout")
-    # Si ya existe pago con esta referencia, asegurar que la orden esté Pagada y devolver order_id
+    # Idempotencia: si ya existe pago con esta referencia, garantizar
+    # que la orden quede pagada y devolver el `order_id` existente.
     existing = get_payment_by_reference(db, reference)
     if existing and existing.get("id_orden") is not None:
         order_id = int(existing["id_orden"])
@@ -264,7 +323,7 @@ async def confirm_checkout(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="La referencia de la transacción no coincide",
         )
-    # Solo crear orden cuando Wompi confirma pago exitoso
+    # Regla principal: solo crear orden cuando Wompi confirme APPROVED.
     if tx.get("status") != "APPROVED":
         return {"order_id": None, "message": "La transacción no está aprobada"}
     id_usuario = int(current_user.id_usuario)
@@ -310,11 +369,26 @@ async def create_payment_widget(
     - Genera firma integrity en backend
     - Crea registro Payment con status CREATED
     - Retorna configuración para abrir widget
+
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `POST /payments/create`
+    - Services:
+      - `generate_payment_reference`
+      - `get_payment_by_reference`
+      - `generate_integrity_signature`
+      - `create_payment`
+    - Tablas:
+      - Lee `tab_ordenes`
+      - Inserta/consulta `tab_pagos`
+
+    Estados:
+    - Crea pago local en `CREATED` (todavía sin transacción Wompi).
     """
     try:
         order_id = payload.order_id
         
-        # Validar orden existe y está pagable (incluir totales para fallback de descuento)
+        # Validar que la orden exista y sea pagable
+        # (incluye totales para fallback de descuentos).
         query = text("""
             SELECT 
                 id_orden,
@@ -335,7 +409,7 @@ async def create_payment_widget(
                 detail=f"Orden {order_id} no encontrada"
             )
         
-        # Validar que la orden está pagable (no pagada ni cancelada)
+        # Validar que la orden sea pagable (no pagada ni cancelada).
         # ind_estado: 1=pendiente, 2=procesada/aprobada, 4=cancelada
         if order.ind_estado == 2:
             raise HTTPException(
@@ -349,10 +423,10 @@ async def create_payment_widget(
                 detail="La orden está cancelada"
             )
         
-        # Obtener credenciales del tenant
+        # Obtener credenciales Wompi del tenant actual.
         wompi_config = get_store_from_request(request, db)
         
-        # Validar que las credenciales estén configuradas
+        # Validar que las credenciales estén configuradas en entorno.
         if not wompi_config.wompi_public_key:
             logger.error("❌ WOMPI_PUBLIC_KEY no está configurada en las variables de entorno")
             raise HTTPException(
@@ -369,8 +443,9 @@ async def create_payment_widget(
         
         logger.info(f"🔍 Credenciales Wompi obtenidas: public_key={wompi_config.wompi_public_key[:20]}..., environment={wompi_config.wompi_environment}")
         
-        # Calcular amount_in_cents: usar el de la orden; si la orden no tiene descuento guardado
-        # pero el frontend envía un monto menor (con descuento), usarlo para que Wompi muestre el total correcto
+        # Calcular `amount_in_cents`: prioriza el total de la orden.
+        # Si la orden no persistió descuento pero frontend envía un monto
+        # menor válido, se usa ese valor para mostrar el total correcto en Wompi.
         order_total_cents = int(float(order.val_total_pedido) * 100)
         order_subtotal_cents = int(float(order.val_total_productos or 0) * 100)
         order_discount = float(order.val_total_descuentos or 0)
@@ -387,23 +462,24 @@ async def create_payment_widget(
             logger.info(f"🔧 Usando monto del frontend (descuento no guardado en orden): {amount_in_cents} centavos")
         currency = "COP"
         
-        # Generar reference (idempotencia opcional)
+        # Generar referencia (idempotencia opcional por header).
         reference = generate_payment_reference(order_id, idempotency_key=idempotency_key)
 
-        # Idempotencia: si ya existe un payment con esa reference, retornamos el mismo payload
+        # Idempotencia: si la referencia ya existe, retorna exactamente
+        # la misma configuración esperada por el widget.
         existing_payment = get_payment_by_reference(db, reference)
         if existing_payment:
             amount_existing = existing_payment.get("amount")
             currency_existing = existing_payment.get("currency_id") or currency
 
-            # amount es Decimal (ej: 12.34) -> a centavos
+            # `amount` es Decimal (ej. 12.34) -> convertir a centavos.
             try:
                 amount_in_cents_existing = int((Decimal(str(amount_existing)) * 100).to_integral_value())
             except Exception:
-                # fallback a lo pedido por el request si no se pudo convertir
+                # Fallback: usa el monto calculado en el request.
                 amount_in_cents_existing = amount_in_cents
 
-            # integrity debe ser consistente para el reference existente
+            # La firma debe ser consistente para la misma referencia existente.
             integrity_signature_existing = generate_integrity_signature(
                 reference=reference,
                 amount_in_cents=amount_in_cents_existing,
@@ -419,7 +495,7 @@ async def create_payment_widget(
                 integrity_signature=integrity_signature_existing,
             )
         
-        # Generar firma integrity en backend
+        # Generar firma de integridad en backend (nunca en frontend).
         integrity_signature = generate_integrity_signature(
             reference=reference,
             amount_in_cents=amount_in_cents,
@@ -427,7 +503,7 @@ async def create_payment_widget(
             integrity_secret=wompi_config.wompi_integrity_secret
         )
 
-        # Crear registro Payment con status CREATED
+        # Persistir registro de pago inicial con estado CREATED.
         create_payment(
             db=db,
             order_id=order_id,
@@ -470,13 +546,24 @@ async def attach_transaction(
     current_user: UserInToken = Depends(get_current_user)
 ):
     """
-    Asocia un transaction_id de Wompi a un payment.
+    Asocia un `transaction_id` de Wompi a un pago local.
     
-    - Busca payment por reference
+    - Busca pago por referencia
     - Guarda wompi_transaction_id
     - Cambia status a PENDING si estaba CREATED
+
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `POST /payments/attach-transaction`
+    - Services:
+      - `get_payment_by_reference`
+      - `attach_transaction_id`
+    - Tablas:
+      - Actualiza `tab_pagos`
+
+    Estado típico:
+    - `CREATED` -> `PENDING` tras asociar transaction_id.
     """
-    logger.info(f"🔍 ========== ATTACH TRANSACTION RECIBIDO ==========")
+    logger.info("🔍 ========== ATTACH TRANSACTION RECIBIDO ==========")
     logger.info(f"🔍 reference recibido: {payload.reference}")
     logger.info(f"🔍 transaction_id recibido: {payload.transaction_id}")
     logger.info(f"🔍 Tipo de reference: {type(payload.reference)}")
@@ -487,7 +574,7 @@ async def attach_transaction(
         reference = payload.reference
         transaction_id = payload.transaction_id
         
-        # Validación estricta de reference
+        # Validación estricta de `reference`.
         if not reference or not isinstance(reference, str) or len(reference.strip()) == 0:
             logger.error(f"❌ reference inválido: {reference} (tipo: {type(reference)})")
             raise HTTPException(
@@ -497,7 +584,7 @@ async def attach_transaction(
         
         reference = reference.strip()
         
-        # Validación estricta de transaction_id
+        # Validación estricta de `transaction_id`.
         if not transaction_id:
             logger.error(f"❌ transaction_id es requerido pero no se proporcionó (reference: {reference})")
             raise HTTPException(
@@ -521,7 +608,7 @@ async def attach_transaction(
                 detail="transaction_id no puede estar vacío"
             )
         
-        # Verificar que el payment existe antes de attachar
+        # Verificar que el pago exista antes de asociar transaction_id.
         payment = get_payment_by_reference(db, reference)
         if not payment:
             logger.error(f"❌ Payment no encontrado para reference: {reference}")
@@ -532,7 +619,7 @@ async def attach_transaction(
         
         logger.info(f"✅ Payment encontrado: id_pago={payment.get('id_pago')}, id_orden={payment.get('id_orden')}, status_actual={payment.get('status')}")
         
-        # Verificar que no tenga transaction_id ya asignado (idempotencia)
+        # Idempotencia: si ya tiene transaction_id, evitar duplicidad.
         existing_transaction_id = payment.get("provider_transaction_id")
         if existing_transaction_id:
             if existing_transaction_id == transaction_id:
@@ -540,9 +627,9 @@ async def attach_transaction(
                 return {"status": "ok", "message": "Transaction ID ya estaba asociado", "transaction_id": transaction_id}
             else:
                 logger.warning(f"⚠️ Payment ya tiene transaction_id diferente: {existing_transaction_id} vs {transaction_id}")
-                # Continuar y actualizar (puede ser un reintento)
+                # Se permite actualizar (posible reintento con nuevo id).
         
-        # Attach transaction_id
+        # Asociar transaction_id en base de datos.
         logger.info(f"🔍 Llamando a attach_transaction_id para reference={reference}, transaction_id={transaction_id}")
         attach_transaction_id(
             db=db,
@@ -550,7 +637,7 @@ async def attach_transaction(
             transaction_id=transaction_id
         )
         
-        # Verificar que se guardó correctamente
+        # Verificar persistencia correcta post-update.
         payment_after = get_payment_by_reference(db, reference)
         if payment_after and payment_after.get("provider_transaction_id") == transaction_id:
             logger.info(f"✅ Transaction ID attachado y verificado: reference={reference}, transaction_id={transaction_id}")
@@ -586,16 +673,26 @@ async def poll_payment(
     current_user: Optional[UserInToken] = Depends(get_current_user)
 ):
     """
-    Hace long-polling del estado de una transacción.
+    Hace consulta periódica del estado de una transacción.
     
-    - Busca payment por reference
+    - Busca pago por referencia
     - Valida tiene wompi_transaction_id
-    - Hace polling contra endpoint público de Wompi
+    - Consulta endpoint público de Wompi por intervalos
     - Actualiza payment y marca orden pagada si APPROVED
+
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `GET /payments/poll`
+    - Services:
+      - `get_payment_by_reference`
+      - `poll_transaction_status`
+      - `update_payment_status`
+    - Tablas:
+      - Actualiza `tab_pagos`
+      - Puede actualizar `tab_ordenes` si estado final = APPROVED
     """
     logger.info(f"🔍 POLLING INICIADO: reference={reference}")
     try:
-        # Buscar payment por reference
+        # Buscar pago por referencia.
         payment = get_payment_by_reference(db, reference)
         logger.info(f"🔍 Payment encontrado: {payment is not None}")
         
@@ -605,7 +702,7 @@ async def poll_payment(
                 detail=f"Payment con reference {reference} no encontrado"
             )
         
-        # Validar tiene wompi_transaction_id
+        # Validar que exista `wompi_transaction_id`.
         transaction_id = payment.get("provider_transaction_id")
         if not transaction_id:
             raise HTTPException(
@@ -613,10 +710,10 @@ async def poll_payment(
                 detail="transaction_id no ha sido attachado aún. Abre el widget primero."
             )
         
-        # Obtener credenciales del tenant
+        # Obtener credenciales del tenant.
         wompi_config = get_store_from_request(request, db)
         
-        # Hacer polling
+        # Ejecutar consulta periódica.
         poll_result = await poll_transaction_status(
             transaction_id=transaction_id,
             wompi_config=wompi_config,
@@ -627,7 +724,7 @@ async def poll_payment(
         status_result = poll_result["status"]
         transaction_data = poll_result.get("data", {})
         
-        # Si es estado final, actualizar payment
+        # Si llega a estado final, actualizar pago y orden.
         logger.info(f"🔍 Polling resultado: status={status_result}, reference={reference}, es_estado_final={status_result in ['APPROVED', 'DECLINED', 'VOIDED', 'ERROR']}")
         if status_result in ["APPROVED", "DECLINED", "VOIDED", "ERROR"]:
             should_mark_paid = (status_result == "APPROVED")
@@ -646,11 +743,11 @@ async def poll_payment(
                 logger.error(f"❌ Error en update_payment_status: {str(e)}")
                 import traceback
                 logger.error(f"Traceback completo: {traceback.format_exc()}")
-                # No hacer raise aquí para que el endpoint retorne el status aunque falle la actualización
-                # El webhook puede actualizar después
+                # No elevar excepción aquí para que el frontend reciba estado.
+                # El webhook podría completar la actualización luego.
                 logger.warning(f"⚠️ Continuando aunque update_payment_status falló. El webhook puede actualizar después.")
         
-        # Preparar mensaje
+        # Mensaje opcional para UX.
         message = None
         if status_result == "PENDING":
             message = "Te avisaremos cuando se confirme"
@@ -685,14 +782,24 @@ async def get_payment_status(
     current_user: Optional[UserInToken] = Depends(get_current_user)
 ):
     """
-    Verifica el estado actual de un payment por reference.
+    Verifica el estado actual de un pago por referencia.
     
     Útil cuando el callback del widget no se ejecuta y necesitamos
     verificar el estado del pago directamente desde la base de datos.
+
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `GET /payments/status`
+    - Services:
+      - `get_payment_by_reference`
+      - opcional `fetch_transaction_by_id`
+      - opcional `update_payment_status`
+    - Tablas:
+      - Lee `tab_pagos`
+      - Puede sincronizar `tab_pagos`/`tab_ordenes` si detecta estado final
     """
     logger.info(f"🔍 GET STATUS: reference={reference}")
     try:
-        # Buscar payment por reference
+        # Buscar pago por referencia.
         payment = get_payment_by_reference(db, reference)
         
         if not payment:
@@ -704,19 +811,19 @@ async def get_payment_status(
         status_result = payment.get("status", "CREATED")
         transaction_id = payment.get("provider_transaction_id")
         
-        # Si el payment tiene transaction_id pero el estado es CREATED o PENDING,
-        # intentar obtener el estado actual desde Wompi
+        # Si existe transaction_id y aún no hay estado final local,
+        # consulta Wompi para sincronizar estado.
         if transaction_id and status_result in ["CREATED", "PENDING"]:
             try:
                 wompi_config = get_store_from_request(request, db)
                 
-                # Hacer una consulta rápida a Wompi para obtener el estado actual
+                # Consulta rápida a Wompi para estado más reciente.
                 tx_data = await fetch_transaction_by_id(transaction_id, wompi_config)
                 if tx_data:
                     status_result = tx_data.get("status", status_result)
                     logger.info(f"✅ Estado actualizado desde Wompi: {status_result}")
 
-                    # Si es estado final, actualizar payment
+                    # Si es estado final, persistir actualización local.
                     if status_result in ["APPROVED", "DECLINED", "VOIDED", "ERROR"]:
                         update_payment_status(
                             db=db,
@@ -727,7 +834,7 @@ async def get_payment_status(
                         )
             except Exception as e:
                 logger.warning(f"⚠️ No se pudo obtener estado desde Wompi: {str(e)}")
-                # Continuar con el estado de la BD
+                # Si falla Wompi, se mantiene estado de la BD local.
         
         message = None
         if status_result == "PENDING":
@@ -764,12 +871,23 @@ async def reattempt_payment(
     current_user: UserInToken = Depends(get_current_user)
 ):
     """
-    Permite reintentar un pago fallido.
+    Permite reintentar un pago fallido de una orden.
     
     - Valida último payment está en DECLINED/ERROR/VOIDED
     - Crea nuevo payment con nueva reference única
     - Setea parent_payment_id
     - Retorna mismo payload que /payments/create
+
+    Endpoint -> Service -> Tablas:
+    - Endpoint: `POST /payments/reattempt`
+    - Services:
+      - `get_last_payment_for_order`
+      - `generate_payment_reference`
+      - `generate_integrity_signature`
+      - `create_payment`
+    - Tablas:
+      - Lee `tab_ordenes`, `tab_pagos`
+      - Inserta nuevo registro en `tab_pagos` enlazado por `parent_payment_id`
     """
     try:
         order_id = payload.order_id

@@ -20,6 +20,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   Input,
   Label,
   AlertDialog,
@@ -31,8 +32,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   Checkbox,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from '@/components/ui'
-import { Pencil, Trash2, ArrowLeft } from 'lucide-react'
+import { Pencil, Trash2, ArrowLeft, Pipette, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useForm, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -320,12 +324,29 @@ function ValueModal({
   isSubmitting: boolean
 }) {
   const showHexField = isColorAttribute(attributeName)
+  const colorInputRef = React.useRef<HTMLInputElement | null>(null)
   const form = useForm<AttributeValueFormValues>({
     resolver: zodResolver(attributeValueSchema) as Resolver<AttributeValueFormValues>,
     defaultValues,
   })
+  const [draftHex, setDraftHex] = React.useState<string | null>(null)
+  const hexRegister = form.register('hex_color')
+  const watchedHex = form.watch('hex_color')?.trim() ?? ''
+  const isValidHex = /^#[0-9A-Fa-f]{6}$/.test(watchedHex)
+  const normalizedCurrentHex = isValidHex ? watchedHex.toUpperCase() : ''
+  const normalizedDraftHex = draftHex?.toUpperCase() ?? null
+  const hasPendingColor = !!normalizedDraftHex && normalizedDraftHex !== normalizedCurrentHex
+  const iconHex = normalizedDraftHex ?? normalizedCurrentHex
+  const previewHex = normalizedDraftHex ?? watchedHex
+  const hasPreviewHex = /^#[0-9A-Fa-f]{6}$/.test(previewHex)
+  const pickerValueCandidate = normalizedDraftHex ?? watchedHex
+  const colorPickerValue = /^#[0-9A-Fa-f]{6}$/.test(pickerValueCandidate) ? pickerValueCandidate : '#000000'
+
   React.useEffect(() => {
-    if (open) form.reset(defaultValues)
+    if (open) {
+      form.reset(defaultValues)
+      setDraftHex(null)
+    }
   }, [open, defaultValues.value, defaultValues.hex_color, defaultValues.sort_order, defaultValues.is_active, form])
 
   const handleSubmit = (values: AttributeValueFormValues) => {
@@ -340,6 +361,9 @@ function ValueModal({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Formulario para crear o editar un valor de atributo, incluyendo color, orden y estado activo.
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
           <div className="space-y-2">
@@ -356,18 +380,73 @@ function ValueModal({
           {showHexField && (
             <div className="space-y-2">
               <Label htmlFor="val-hex">Color (HEX)</Label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 <Input
                   id="val-hex"
-                  {...form.register('hex_color')}
+                  {...hexRegister}
+                  onChange={(e) => {
+                    hexRegister.onChange(e)
+                    setDraftHex(null)
+                  }}
                   placeholder="#000000"
                   className="font-mono"
                 />
-                {form.watch('hex_color')?.trim() && /^#[0-9A-Fa-f]{6}$/.test(form.watch('hex_color')!.trim()) && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => colorInputRef.current?.click()}
+                      className="h-9 w-9 shrink-0 rounded-md border border-input bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground inline-flex items-center justify-center"
+                      aria-label="Seleccionar color"
+                    >
+                      <Pipette className="h-4 w-4" style={iconHex ? { color: iconHex } : undefined} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Seleccionar color</TooltipContent>
+                </Tooltip>
+                <input
+                  ref={colorInputRef}
+                  id="val-hex-picker"
+                  type="color"
+                  value={colorPickerValue}
+                  onChange={(e) => setDraftHex(e.target.value.toUpperCase())}
+                  className="sr-only"
+                  tabIndex={-1}
+                  aria-hidden="true"
+                />
+                {hasPendingColor && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!normalizedDraftHex) return
+                        form.setValue('hex_color', normalizedDraftHex, {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                          shouldTouch: true,
+                        })
+                        setDraftHex(null)
+                      }}
+                      className="h-9 w-9 shrink-0 rounded-md border border-emerald-500/60 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 inline-flex items-center justify-center"
+                      aria-label="Aceptar color"
+                    >
+                      <Check className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDraftHex(null)}
+                      className="h-9 w-9 shrink-0 rounded-md border border-red-500/60 bg-red-500/10 text-red-600 hover:bg-red-500/20 inline-flex items-center justify-center"
+                      aria-label="Cancelar color"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
+                {hasPreviewHex && (
                   <span
                     className="inline-block w-8 h-8 rounded border border-gray-300 dark:border-gray-600 shrink-0"
-                    style={{ backgroundColor: form.watch('hex_color')!.trim() }}
-                    title={form.watch('hex_color')!}
+                    style={{ backgroundColor: previewHex }}
+                    title={previewHex}
                   />
                 )}
               </div>
