@@ -41,6 +41,16 @@ import {
   Button,
 } from "@/components/ui";
 
+/**
+ * Mapa de la página `profile`.
+ *
+ * Funciones clave:
+ * - Validar sesión e hidratar datos de usuario.
+ * - Renderizar pestañas (perfil, órdenes, direcciones, canje, settings).
+ * - Sincronizar estado de pestaña con `?tab=`.
+ * - Editar datos de perfil y avatar con actualización optimista de cache.
+ */
+
 const CURRENT_USER_QUERY_KEY = ["auth", "currentUser"] as const;
 
 export default function ProfilePage() {
@@ -51,7 +61,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
 
-  // Obtener la pestaña activa de la URL o usar 'profile' por defecto (payment redirige a canje)
+  // Sincroniza navegación por pestañas con query param compartible.
   const tabParam = searchParams.get('tab') || 'profile';
   const activeTab = tabParam === 'payment' ? 'canje' : tabParam;
 
@@ -70,12 +80,14 @@ export default function ProfilePage() {
 
   // Función para cambiar la pestaña y actualizar la URL
   const handleTabChange = (value: string) => {
+    // Mantiene el resto de parámetros URL existentes y solo reemplaza `tab`.
+    // Esto permite compartir/volver a abrir la misma vista del perfil.
     const params = new URLSearchParams(searchParams);
     params.set('tab', value);
     router.push(`/profile?${params.toString()}`);
   };
 
-  // Redirigir URL antigua ?tab=payment a ?tab=canje
+  // Compatibilidad con links antiguos.
   useEffect(() => {
     if (searchParams.get('tab') === 'payment') {
       const params = new URLSearchParams(searchParams);
@@ -86,6 +98,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     // Esperar a que se complete la hidratación y cualquier restore desde refresh cookie
+    // evita reseteos del form con datos incompletos o en un estado intermedio.
     if (!isHydrated || isLoadingUser || isRestoringSession) return;
 
     // Si no logramos resolver un usuario autenticado, redirigir a login
@@ -94,6 +107,10 @@ export default function ProfilePage() {
       return;
     }
 
+    // Poblamos el formulario con los datos del usuario.
+    // - `email_usuario` y `fec_nacimiento` no se editan en la UI.
+    // - `password_usuario` se maneja como campo para cambio (se mantiene vacío hasta submit).
+    // - `avatar_seed` y `avatar_colors` alimentan tanto la pestaña de avatar como el modal.
     form.reset({
       nom_usuario: user.nom_usuario || "",
       ape_usuario: user.ape_usuario || "",
@@ -110,6 +127,9 @@ export default function ProfilePage() {
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
     // Filtrar valores vacíos y null, pero mantener los que realmente tienen datos
     const updatedValues: any = {};
+    // Este filtrado evita:
+    // - enviar strings vacíos (que el backend podría interpretar como “limpiar” campos)
+    // - enviar cambios de campos que la UI no permite actualizar (fec_nacimiento / password / etc.)
     if (values.nom_usuario && values.nom_usuario.trim() !== "") updatedValues.nom_usuario = values.nom_usuario.trim();
     if (values.ape_usuario && values.ape_usuario.trim() !== "") updatedValues.ape_usuario = values.ape_usuario.trim();
     if (values.cel_usuario && values.cel_usuario.trim() !== "") updatedValues.cel_usuario = values.cel_usuario.trim();
@@ -126,10 +146,14 @@ export default function ProfilePage() {
     }
 
     try {
+      // Delegamos la persistencia al hook `useAuth()` para que:
+      // - llame al backend
+      // - invalide/cachea el query del usuario
       await updateProfile(updatedValues);
       toast.success("¡Perfil actualizado con éxito!");
       setIsEditing(false);
     } catch (error: unknown) {
+      // Normaliza errores de API para mostrar mensajes legibles al usuario.
       const errorMessage = getApiErrorMessage(error, "No se pudo actualizar el perfil. Inténtalo de nuevo.");
       toast.error(errorMessage);
       console.error("Error al actualizar perfil:", error);
@@ -141,6 +165,7 @@ export default function ProfilePage() {
       // Si está editando, ejecutar la validación y guardar
       const isValid = await form.trigger();
       if (isValid) {
+        // `form.handleSubmit(onSubmit)()` ejecuta el `onSubmit` con los valores validados.
         form.handleSubmit(onSubmit)();
       }
     } else {
@@ -149,6 +174,9 @@ export default function ProfilePage() {
     }
   };
 
+  // Selecciones del avatar (desde `AvatarSelector`) actualizan:
+  // - el estado del formulario para que el UI refleje el cambio
+  // - la caché del usuario para que el resto del perfil/menu muestre el resultado al instante
   const handleSelectSeed = (seed: string) => {
     form.setValue("avatar_seed", seed);
     queryClient.setQueryData(CURRENT_USER_QUERY_KEY, (old: UserPublic | undefined) =>
@@ -167,6 +195,7 @@ export default function ProfilePage() {
     const avatar_seed = form.getValues("avatar_seed");
     const avatar_colors = form.getValues("avatar_colors");
     try {
+      // Al guardar el modal persistimos en backend.
       await updateProfile({ avatar_seed, avatar_colors });
       toast.success("Avatar actualizado correctamente.");
       setAvatarModalOpen(false);

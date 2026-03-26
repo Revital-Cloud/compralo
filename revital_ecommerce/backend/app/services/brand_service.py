@@ -4,10 +4,22 @@ from sqlalchemy import text
 
 from schemas.brand_schema import BrandCreate, BrandUpdate
 
+"""
+Servicios de marcas.
+
+Responsabilidades:
+- listar marcas,
+- crear/actualizar registros de marca,
+- activar/desactivar con función SQL dedicada.
+"""
+
 
 def get_brands(db:Session):
     """
     Obtiene todas las marcas registradas en la base de datos.
+
+    Se consume desde:
+    - `brand_router.get_brands`
     """
     try:
         query = text("""
@@ -39,6 +51,9 @@ def create_brand(db:Session, brand:BrandCreate, usr_insert: str):
         db (Session): La sesión de base de datos SQLAlchemy.
         brand (BrandCreate): Un objeto Pydantic `BrandCreate` con los datos a insertar.
         usr_insert (str): ID del usuario que está creando el registro.
+
+    Implementación:
+    - delega en `fun_insert_marca`.
     """
     try:
         # Convierte el objeto Pydantic BrandCreate en un diccionario Python
@@ -75,6 +90,9 @@ def update_brand(db:Session, id_marca:Decimal, brand:BrandUpdate, usr_update: st
         id_marca (Decimal): ID de la marca a actualizar.
         brand (BrandUpdate): Un objeto Pydantic `BrandUpdate` con los datos a actualizar.
         usr_update (str): ID del usuario que está actualizando el registro.
+
+    Implementación:
+    - delega en `fun_update_marca`.
     """
     try:
         update_params = brand.model_dump(exclude_unset=True)
@@ -109,6 +127,9 @@ def deactivate_activate_brand(db:Session, id_marca:Decimal, usr_update: Decimal,
     
     Returns:
         Mensaje de confirmación
+
+    Implementación:
+    - delega en `fun_deactivate_activate_marca`.
     """
     try:
         params = {'id_marca': id_marca, 'usr_update': usr_update, 'activar': activar}

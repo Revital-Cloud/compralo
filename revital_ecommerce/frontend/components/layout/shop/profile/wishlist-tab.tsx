@@ -3,6 +3,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { Heart } from "lucide-react";
 
+/**
+ * Placeholder de lista de deseos.
+ *
+ * Nota:
+ * - Actualmente muestra estado vacío y sirve como base para futura integración.
+ */
+
 export default function WishlistTab() {
   return (
     <div className="space-y-6">

@@ -12,6 +12,15 @@ import { Skeleton } from "@/components/ui";
 import { Gift, Coins, Loader2, ShoppingCart, Tag } from "lucide-react";
 import { toast } from "sonner";
 
+/**
+ * Pestaña de canje por puntos.
+ *
+ * Muestra:
+ * - saldo de puntos
+ * - canjes ya disponibles para usar en carrito
+ * - descuentos canjeables y acción de canje
+ */
+
 function formatExpiration(fec: string | null): string {
   if (!fec) return "Sin vencimiento";
   try {

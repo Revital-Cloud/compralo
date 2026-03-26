@@ -1,5 +1,13 @@
 """
-Router for tab_attributes (master attributes catalog). Admin only.
+Router para catálogo maestro de atributos (`tab_attributes`).
+
+Mapa del módulo:
+- CRUD de atributos (nombre, tipo de dato, valores predefinidos).
+- CRUD de valores por atributo (`tab_attribute_values`).
+
+Relación con capas:
+- Router: validación HTTP y mapping de errores.
+- Service: `attribute_service` con reglas de unicidad e integridad referencial.
 """
 from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status, Body
@@ -23,7 +31,7 @@ router = APIRouter(tags=["Atributos"])
 
 
 def _row_to_attribute(r) -> Attribute | None:
-    """Build Attribute from DB row; skip rows with invalid name (e.g. empty string)."""
+    """Construye `Attribute` desde fila BD; omite filas con nombre inválido/vacío."""
     d = dict(r)
     if not (d.get("name") or "").strip():
         return None
@@ -32,14 +40,26 @@ def _row_to_attribute(r) -> Attribute | None:
 
 @router.get("/attributes", response_model=list[Attribute])
 async def get_attributes(db: Session = Depends(get_db)):
-    """List all attributes (id, name, data_type). Invalid rows (e.g. empty name) are excluded."""
+    """
+    Lista todos los atributos válidos.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /attributes`
+    - Service: `attribute_service.get_all`
+    """
     rows = attribute_service.get_all(db)
     return [a for r in rows if (a := _row_to_attribute(r)) is not None]
 
 
 @router.get("/attributes/{id_attr}", response_model=Attribute)
 async def get_attribute(id_attr: Decimal, db: Session = Depends(get_db)):
-    """Get one attribute by id."""
+    """
+    Obtiene un atributo por id.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /attributes/{id_attr}`
+    - Service: `attribute_service.get_by_id`
+    """
     row = attribute_service.get_by_id(db, id_attr)
     if not row:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Atributo no encontrado")
@@ -55,7 +75,17 @@ async def create_attribute(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user),
 ):
-    """Create attribute. Name must be unique; data_type must be text, number or boolean."""
+    """
+    Crea atributo nuevo.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /attributes`
+    - Service: `attribute_service.create`
+
+    Reglas:
+    - nombre único,
+    - `data_type` en {text, number, boolean}.
+    """
     try:
         attribute_service.create(db, attr, current_user.id_usuario)
         return ResponseMessage(message="Atributo creado exitosamente")
@@ -70,7 +100,13 @@ async def update_attribute(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user),
 ):
-    """Update attribute."""
+    """
+    Actualiza un atributo existente.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /attributes/{id_attr}`
+    - Service: `attribute_service.update`
+    """
     try:
         attribute_service.update(db, id_attr, attr, current_user.id_usuario)
         return ResponseMessage(message="Atributo actualizado exitosamente")
@@ -86,7 +122,16 @@ async def delete_attribute(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user),
 ):
-    """Delete attribute. Fails if used by categories or variant attributes."""
+    """
+    Elimina un atributo.
+
+    Endpoint -> Service:
+    - Endpoint: `DELETE /attributes/{id_attr}`
+    - Service: `attribute_service.delete`
+
+    Regla:
+    - falla si está en uso por categorías o variantes.
+    """
     try:
         attribute_service.delete(db, id_attr)
         return ResponseMessage(message="Atributo eliminado exitosamente")
@@ -101,7 +146,13 @@ async def delete_attribute(
 
 @router.get("/attributes/{id_attr}/values", response_model=list[AttributeValue])
 async def get_attribute_values(id_attr: Decimal, db: Session = Depends(get_db)):
-    """List values for an attribute, ordered by sort_order."""
+    """
+    Lista valores de un atributo, ordenados por `sort_order`.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /attributes/{id_attr}/values`
+    - Service: `attribute_service.get_values_by_attribute_id`
+    """
     rows = attribute_service.get_values_by_attribute_id(db, id_attr)
     return [AttributeValue(**dict(r)) for r in rows]
 
@@ -117,7 +168,16 @@ async def create_attribute_value(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user),
 ):
-    """Create a value for an attribute. Attribute must have has_predefined_values=True."""
+    """
+    Crea un valor para un atributo.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /attributes/{id_attr}/values`
+    - Service: `attribute_service.create_value`
+
+    Regla:
+    - el atributo debe tener `has_predefined_values=True`.
+    """
     try:
         attribute_service.create_value(db, id_attr, payload, current_user.id_usuario)
         return ResponseMessage(message="Valor creado exitosamente")
@@ -133,7 +193,13 @@ async def update_attribute_value(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user),
 ):
-    """Update an attribute value."""
+    """
+    Actualiza un valor de atributo.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /attributes/{id_attr}/values/{id_val}`
+    - Service: `attribute_service.update_value`
+    """
     try:
         attribute_service.update_value(db, id_attr, id_val, payload, current_user.id_usuario)
         return ResponseMessage(message="Valor actualizado exitosamente")
@@ -150,7 +216,16 @@ async def delete_attribute_value(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user),
 ):
-    """Delete an attribute value. Fails if used in product variant attributes."""
+    """
+    Elimina un valor de atributo.
+
+    Endpoint -> Service:
+    - Endpoint: `DELETE /attributes/{id_attr}/values/{id_val}`
+    - Service: `attribute_service.delete_value`
+
+    Regla:
+    - falla si está en uso por combinaciones/variantes.
+    """
     try:
         attribute_service.delete_value(db, id_attr, id_val)
         return ResponseMessage(message="Valor eliminado exitosamente")

@@ -1,5 +1,18 @@
 """
-Servicio para obtener datos de analytics avanzados.
+Servicio de analytics avanzados.
+
+Responsabilidad:
+- Construir un payload único para la vista de analytics administrativo a partir
+  de consultas SQL agregadas y reglas de negocio de reporting.
+
+Contrato con el router:
+- Consumido por `routers.analytics_router.get_analytics`.
+- Retorna estructuras orientadas a frontend (listas/dicts serializables).
+
+Notas de diseño:
+- Prioriza datos reales del dominio (órdenes, productos, usuarios).
+- Donde el modelo no tiene tracking explícito (ej. referrers), utiliza
+  aproximaciones controladas y documentadas para evitar bloquear la UI.
 """
 from decimal import Decimal
 from datetime import datetime, timedelta
@@ -11,13 +24,17 @@ from services.statistic_service import get_categories_stadistics
 
 def get_analytics_data(db: Session) -> Dict[str, Any]:
     """
-    Obtiene todos los datos necesarios para la página de analytics avanzados.
-    
-    Args:
-        db (Session): Sesión de base de datos
-        
+    Orquesta el armado completo del payload de analytics.
+
+    Flujo:
+    1) Obtiene bloques de métricas mediante helpers privados.
+    2) Normaliza el objeto de salida con claves esperadas por frontend.
+    3) Si ocurre un error, hace rollback y eleva excepción de dominio.
+
     Returns:
-        dict: Datos completos de analytics
+    - Dict con claves:
+      `conversionMetrics`, `productPerformance`, `productMetrics`,
+      `geoData`, `hourlyTraffic`, `trafficSources`, `customerDemographics`.
     """
     try:
         # Obtener métricas de conversión
@@ -56,7 +73,18 @@ def get_analytics_data(db: Session) -> Dict[str, Any]:
 
 
 def _get_conversion_metrics(db: Session) -> List[Dict[str, Any]]:
-    """Obtiene métricas de conversión."""
+    """
+    Calcula KPIs de conversión comparando periodo actual vs periodo anterior.
+
+    Regla de conversión usada:
+    - conversión aproximada = órdenes / carritos * 100
+
+    KPIs incluidos:
+    - tasa de conversión
+    - valor promedio de orden
+    - total de órdenes
+    - ingresos totales
+    """
     # Obtener estadísticas de órdenes
     end_date = datetime.now()
     start_date = end_date - timedelta(days=30)
@@ -170,7 +198,14 @@ def _get_conversion_metrics(db: Session) -> List[Dict[str, Any]]:
 
 
 def _get_product_performance_by_category(db: Session) -> List[Dict[str, Any]]:
-    """Obtiene performance por categoría desde estadísticas o calcula directamente (tab_categories + órdenes/variantes)."""
+    """
+    Obtiene performance por categoría con estrategia híbrida.
+
+    Estrategia:
+    1) Intenta usar estadísticas pre-calculadas (`get_categories_stadistics`).
+    2) Si no hay datos útiles, hace fallback a cálculo directo desde órdenes
+       y variantes activas para mantener fidelidad del reporte.
+    """
     try:
         categories_stats = None
         try:
@@ -322,7 +357,20 @@ def _get_product_performance_by_category(db: Session) -> List[Dict[str, Any]]:
 
 
 def _get_product_metrics(db: Session) -> Dict[str, Any]:
-    """Obtiene métricas generales de productos."""
+    """
+    Consolida métricas globales del catálogo de productos.
+
+    Incluye:
+    - activos/inactivos
+    - sin stock
+    - precio promedio
+    - rating promedio (si hay comentarios)
+    - categorías/variantes activas
+
+    Compatibilidad:
+    - Intenta primero esquema nuevo y luego legacy para evitar KPI en cero
+      por diferencias de migración.
+    """
     query = text("""
         WITH product_data AS (
             SELECT
@@ -437,7 +485,14 @@ def _get_product_metrics(db: Session) -> Dict[str, Any]:
 
 
 def _get_geographic_data(db: Session) -> List[Dict[str, Any]]:
-    """Ventas por región: dirección principal del usuario o cualquier activa (departamento o ciudad)."""
+    """
+    Agrega ventas por región usando dirección activa por usuario.
+
+    Priorización de región:
+    - `departamento`
+    - si vacío, `ciudad`
+    - si no hay datos, `Sin especificar`
+    """
     query = text("""
         WITH dir_por_usuario AS (
             SELECT DISTINCT ON (id_usuario) id_usuario, departamento, ciudad
@@ -480,7 +535,12 @@ def _get_geographic_data(db: Session) -> List[Dict[str, Any]]:
 
 
 def _get_hourly_traffic(db: Session) -> List[Dict[str, Any]]:
-    """Obtiene tráfico por horas usando fechas de órdenes como proxy."""
+    """
+    Estima tráfico por hora usando órdenes como proxy de actividad.
+
+    Salida:
+    - Siempre retorna 24 posiciones (00..23), rellenando horas faltantes con 0.
+    """
     query = text("""
         SELECT 
             EXTRACT(HOUR FROM fec_pedido) as hour,
@@ -508,7 +568,17 @@ def _get_hourly_traffic(db: Session) -> List[Dict[str, Any]]:
 
 
 def _get_traffic_sources_mock(db: Session) -> List[Dict[str, Any]]:
-    """Obtiene fuentes de tráfico basado en datos reales de órdenes."""
+    """
+    Construye fuentes de tráfico estimadas cuando no existe tracking de referrer.
+
+    Base:
+    - total de órdenes actuales y previas.
+    - distribución estimada (Direct/Google/Social) sobre ese total.
+
+    Objetivo:
+    - Entregar un bloque de analytics consistente hasta implementar
+      instrumentación real de adquisición.
+    """
     # Como no tenemos tracking de referrers, usamos datos aproximados basados en órdenes
     # Contamos órdenes del último mes y distribuimos de forma aproximada
     end_date = datetime.now()
@@ -604,7 +674,17 @@ def _get_traffic_sources_mock(db: Session) -> List[Dict[str, Any]]:
 
 
 def _get_customer_demographics(db: Session) -> List[Dict[str, Any]]:
-    """Obtiene demografía de clientes por grupos de edad (fec_nacimiento en tab_usuarios)."""
+    """
+    Segmenta clientes por rango de edad y calcula peso relativo.
+
+    Fuente:
+    - `fec_nacimiento` en `tab_usuarios`.
+    - ingresos asociados por órdenes en estados pagados/completados.
+
+    Fallback:
+    - Si no hay ingresos para distribuir porcentajes, reparte por cantidad de
+      clientes por grupo.
+    """
     query = text("""
         WITH edades AS (
             SELECT 

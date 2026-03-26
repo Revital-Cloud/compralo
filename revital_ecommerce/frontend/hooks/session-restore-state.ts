@@ -2,6 +2,20 @@
 
 import { useSyncExternalStore } from "react";
 
+/**
+ * Estado global (a nivel de módulo) para el “restore” de sesión.
+ *
+ * Motivo:
+ * - Cuando el usuario recarga la página, parte del estado de auth depende de cookies/tokens
+ *   y de un restore que se ejecuta async.
+ * - Este archivo permite que múltiples componentes compartan dos flags:
+ *   - `isRestoring`: hay un restore en progreso
+ *   - `hasAttemptedRestore`: el restore ya se intentó (evita redirects prematuros)
+ *
+ * Por qué `useSyncExternalStore`:
+ * - React requiere una forma consistente de suscribirse a un store externo para evitar
+ *   desajustes entre render y snapshots.
+ */
 type SessionRestoreStatus = {
   isRestoring: boolean;
   hasAttemptedRestore: boolean;

@@ -8,6 +8,15 @@ import {
   isOptionAvailable as isOptionAvailableHelper,
 } from "@/lib/variant-selector-helpers"
 
+/**
+ * Hook para selector de variantes en detalle de producto.
+ *
+ * Funciones:
+ * - Mantener atributos seleccionados por nombre.
+ * - Calcular opciones válidas según selección parcial.
+ * - Resolver variante exacta solo cuando están completos los atributos requeridos.
+ */
+
 const EMPTY_SELECTION: Record<string, string | null> = {}
 
 export function useVariantSelector(

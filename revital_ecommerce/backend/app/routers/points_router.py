@@ -1,3 +1,14 @@
+"""
+Mapa del módulo de puntos (router).
+
+Este router expone endpoints de configuración de conversión de puntos.
+
+Flujo:
+- Endpoints admin crean/actualizan configuración.
+- Endpoint público/controlado consulta la tasa/configuración activa.
+- Toda la lógica de persistencia se delega a `services.points_service`.
+"""
+
 from decimal import Decimal
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -18,7 +29,12 @@ async def create_points_config(
     current_user: UserInToken = Depends(require_admin())
 ):
     """
-    Crea una nueva configuración de puntos llamando a la función de base de datos.
+    Crea una nueva configuración de puntos (solo admin).
+
+    Endpoint -> Service -> Función SQL:
+    - `POST /config`
+    - `points_service.create_points_config`
+    - `fun_crear_config_puntos_empresa(...)`
     """
     try:
         points_service.create_points_config(db, config_data, current_user.id_usuario)
@@ -34,12 +50,12 @@ async def update_points_config(
     current_user: UserInToken = Depends(require_admin())
 ):
     """
-    Crea una nueva configuración de puntos llamando a la función de base de datos.
-    
-    Args:
-        db (Session): La sesión de base de datos SQLAlchemy.
-        config_data (PuntosConfigCreate): Los datos de la configuración de puntos a crear.
-        current_user (UserInToken): El usuario autenticado.
+    Actualiza una configuración de puntos existente (solo admin).
+
+    Endpoint -> Service -> Función SQL:
+    - `PUT /configuracion/{id_config_puntos}`
+    - `points_service.update_active_config`
+    - `fun_actualizar_config_puntos_empresa(...)`
     """
     try:
         points_service.update_active_config(db, id_config_puntos, config_data, current_user.id_usuario)
@@ -50,7 +66,7 @@ async def update_points_config(
 @router.get("/tasa-activa",response_model=list[PuntosConfig],summary="Obtiene la tasa de conversión de puntos activa")
 async def get_active_rate(db: Session = Depends(get_db)):
     """
-    Obtiene la tasa de conversión de puntos activa llamando a la función de base de datos.
+    Retorna configuración/tasa de puntos disponible para consumo de frontend.
     """
     points = points_service.get_active_rate(db)
     if points is None:

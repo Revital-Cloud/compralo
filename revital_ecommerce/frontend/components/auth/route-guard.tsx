@@ -6,6 +6,15 @@ import { Loader2 } from "lucide-react";
 import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 
+/**
+ * Guard de rutas cliente por autenticación/rol.
+ *
+ * Casos:
+ * - `AuthGuard`: requiere sesión.
+ * - `AdminGuard`: requiere rol admin.
+ * - `ClientGuard`: requiere rol cliente.
+ */
+
 interface RouteGuardProps {
   children: ReactNode;
   requiredRole?: number;

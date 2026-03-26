@@ -39,6 +39,17 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription, Alert, Alert
 import categoryService from "@/services/category.service";
 import { Category } from "@/types/category";
 
+/**
+ * Mapa de la página `cart`.
+ *
+ * Subflujos principales:
+ * 1) Consulta estado de carrito (ítems/totales/canje) con `useCart`.
+ * 2) Aplica/remueve códigos de descuento y sincroniza con `sessionStorage`.
+ * 3) Muestra recomendados por categorías presentes en carrito.
+ * 4) Gestiona precondiciones de checkout (autenticación, dirección, método de pago).
+ * 5) Redirige a `/checkout` para el cierre de compra.
+ */
+
 const cartTexts = {
   es: {
     title: "Carrito de la compra",
@@ -223,7 +234,7 @@ const CartPage = () => {
 
     setIsApplyingCode(true);
     try {
-      // Validar el código en el contexto del carrito actual
+      // Validar código con backend usando el carrito actual del usuario.
       const validation = await discountService.validateDiscountForCart(
         promoCode.trim(),
         id_carrito ? Number(id_carrito) : undefined
@@ -341,7 +352,12 @@ const CartPage = () => {
       }, 0)
     : 0;
 
-  /** Para cada ítem del carrito, calcula precio unitario con descuentos automáticos, de código y de canje */
+  /**
+   * Para cada ítem del carrito, calcula precio unitario final combinando:
+   * - descuentos automáticos de catálogo
+   * - cupón por código (si aplica al producto)
+   * - descuento por canje de puntos
+   */
   function getItemPriceWithDiscounts(item: { 
     precio_unitario: number; 
     cantidad: number; 

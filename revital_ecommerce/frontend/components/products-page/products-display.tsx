@@ -5,6 +5,13 @@ import { ProductsPagination } from "./products-pagination"
 import { useCart } from "@/hooks/use-cart"
 import { toast } from "sonner"
 
+/**
+ * Vista de resultados del catálogo (grid/list + estados de carga/error + paginación).
+ *
+ * Nota:
+ * - Este componente asume que los filtros ya fueron aplicados en backend.
+ */
+
 interface ProductsDisplayProps {
   productsData: any
   productsLoading: boolean
@@ -49,7 +56,7 @@ export const ProductsDisplay = ({
   // Función real para agregar al carrito
   const handleAddToCart = async (productId: string) => {
     try {
-      // Obtener productos de la estructura correcta
+      // Normaliza distintas formas de payload que puede devolver el endpoint.
       const getProductsToDisplay = () => {
         if (productsData?.products && Array.isArray(productsData.products)) {
           return productsData.products

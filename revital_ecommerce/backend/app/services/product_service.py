@@ -8,6 +8,15 @@ funciones de base de datos (procedimientos almacenados o funciones SQL).
 
 Las funciones aquí definidas son llamadas por los routers de la API
 y utilizan los esquemas Pydantic para la validación y transformación de datos.
+
+Mapa del módulo (alto nivel):
+- Catálogo público: listado, detalle por slug/id, filtros y búsqueda.
+- Panel admin: listado avanzado, detalle compuesto, creación/edición compuesta.
+- Gestión de activación/desactivación y soporte de imágenes/variantes.
+
+Se consume principalmente desde:
+- `routers/product_router.py`
+- módulos de analítica/notificaciones que leen stock o estado de producto.
 """
 # Lógica de negocio 
 from decimal import Decimal
@@ -67,7 +76,10 @@ def _normalize_for_search(text: Optional[str]) -> str:
 
 
 def _resolve_attribute_value_id(db: Session, attr_id: int, val) -> tuple:
-    """If val is int and exists in tab_attribute_values for attr_id, return (value_id, value_text); else (None, None)."""
+    """
+    Si `val` es ID válido en `tab_attribute_values` para `attr_id`,
+    devuelve `(value_id, value_text)`, de lo contrario `(None, None)`.
+    """
     try:
         vint = int(val)
     except (TypeError, ValueError):
@@ -128,6 +140,9 @@ def _get_images_for_product_or_variant(
     Obtiene imágenes del modelo variant_groups: si variant_id (combination id) está definido,
     imágenes del grupo de esa combinación; si no, primera imagen de cualquier grupo del producto.
     Devuelve lista con { image_url, is_main, sort_order } (is_primary -> is_main).
+
+    Uso:
+    - normalizar payload de imágenes para endpoints de detalle/admin.
     """
     if variant_id is not None:
         rows = db.execute(
@@ -162,6 +177,9 @@ def get_products_admin(db: Session, params: dict):
     Obtiene todos los productos para el panel de administración usando
     fun_get_all_products_admin (tab_products, variant_combinations/groups, tab_categories, tab_marcas).
     Filtros por search, category_id, id_marca se aplican en Python (la función DB no los tiene).
+
+    Salida:
+    - lista lista para panel admin con datos agregados y métricas de stock.
     """
     try:
         params = params or {}

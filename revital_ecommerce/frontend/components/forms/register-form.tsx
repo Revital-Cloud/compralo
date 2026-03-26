@@ -46,6 +46,16 @@ import {
 } from "@/lib/auth-attempt-limiter";
 import { useAuthLockout } from "@/hooks/use-auth-lockout";
 
+/**
+ * Mapa del formulario de registro.
+ *
+ * Flujo:
+ * 1) Valida payload de registro con `registerSchema`.
+ * 2) Aplica lockout global de intentos fallidos.
+ * 3) Ejecuta registro y redirige a verificación OTP por email.
+ * 4) Si la cuenta está soft-deleted, ofrece flujo de reactivación.
+ */
+
 type FormValues = z.infer<typeof registerSchema>;
 
 export function RegisterForm() {
@@ -78,6 +88,7 @@ export function RegisterForm() {
   });
 
   const onSubmit = async (values: FormValues) => {
+    // Guard anti-spam adicional en cliente.
     const lock = getLockoutState(REGISTER_ATTEMPT_KEY);
     if (lock.remainingMs > 0) {
       toast.error(

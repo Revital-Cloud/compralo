@@ -5,6 +5,11 @@ Define los modelos Pydantic utilizados para la validación de datos
 en las solicitudes y respuestas de la API relacionadas con las órdenes.
 Incluye esquemas para la creación y visualización de órdenes,
 así como un esquema para mensajes de respuesta genéricos.
+
+Dónde se usan estos schemas:
+- `routers/order_router.py` para endpoints de usuario/admin.
+- `services/order_service.py` para entrada/salida de funciones de negocio.
+- `services/payment_widget_service.py` cuando crea orden tras pago APPROVED.
 """
 
 from datetime import date, datetime
@@ -22,7 +27,7 @@ class OrderBase(BaseModel):
         val_total_descuentos: Valor total de los descuentos aplicados.
         val_total_pedido: Valor final de la orden (productos - descuentos).
         ind_estado: Estado de la orden (1: Pendiente, 2: Procesada, 3: Enviada/Cancelada).
-        metodo_pago: Método de pago (1: Tarjeta, 2: Transferencia, 3: Otro).
+        metodo_pago: Método de pago textual persistido en BD.
         id_descuento: Identificador del descuento principal aplicado (legacy).
         detalle_descuentos_aplicados: JSON con el detalle de todos los descuentos aplicados.
         des_observaciones: Observaciones adicionales sobre la orden.
@@ -53,6 +58,10 @@ class Order(OrderBase):
     Hereda de `OrderBase` y se utiliza como el modelo de respuesta
     principal para los endpoints que devuelven información de órdenes.
     Incluye el `id_orden` y los campos de auditoría.
+
+    Respuesta típica en:
+    - `GET /orders`
+    - `GET /orders/{order_id}`
     """
     id_orden: Decimal
 
@@ -67,6 +76,10 @@ class OrderCreate(BaseModel):
         codigo_descuento: Código de descuento a aplicar.
         des_observaciones: Observaciones adicionales sobre la orden.
         usr_insert: Identificador del usuario que insertó la orden.
+
+    Se usa en:
+    - `POST /order`
+    - Flujo interno de checkout aprobado (`create_order_from_checkout_reference`)
     """
     id_carrito: Decimal = Field(..., description="Identificador del carrito que realiza la orden.")
     id_direccion: Decimal = Field(..., description="Identificador de la dirección de envío.")
@@ -81,6 +94,9 @@ class OrderCreate(BaseModel):
 class ResponseMessage(BaseModel):
     """
     Esquema para mensajes de respuesta genéricos.
+
+    Uso:
+    - respuestas simples de éxito/error en endpoints admin y operativos.
     """
     message: str = Field(..., description="Mensaje de respuesta.")
 
@@ -88,6 +104,10 @@ class CreateOrderResponse(BaseModel):
     """
     Esquema de respuesta para la creación de órdenes.
     Captura la respuesta completa que devuelve la función SQL fun_crear_orden_desde_carrito.
+
+    Nota:
+    - Este schema modela contrato flexible porque la función SQL puede retornar
+      campos adicionales según reglas de negocio/descuentos.
     """
     success: Optional[bool] = Field(None, description="Indica si la operación fue exitosa")
     message: Optional[str] = Field(None, description="Mensaje descriptivo de la operación")
@@ -101,6 +121,9 @@ class CreateOrderResponse(BaseModel):
 class OrderStats(BaseModel):
     """
     Esquema para estadísticas de órdenes para el panel de administración.
+
+    Endpoint asociado:
+    - `GET /admin/stats`
     """
     total: Optional[int] = Field(default=0, description="Total de órdenes")
     pendiente: Optional[int] = Field(default=0, description="Órdenes pendientes")

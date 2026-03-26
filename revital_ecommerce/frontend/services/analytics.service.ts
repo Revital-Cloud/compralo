@@ -1,5 +1,15 @@
 import { get } from '@/utils/apiWrapper'
 
+/**
+ * Mapa del servicio de analytics (frontend).
+ *
+ * Responsabilidad:
+ * - Definir el contrato tipado de la respuesta que entrega backend para
+ *   `/admin/analytics`.
+ * - Centralizar la llamada HTTP para que componentes/hooks no dependan de
+ *   detalles de transporte.
+ */
+
 export interface ConversionMetric {
   title: string
   value: string
@@ -56,6 +66,16 @@ export interface AnalyticsData {
 }
 
 export const analyticsService = {
+  /**
+   * Obtiene el payload completo de analytics para el panel admin.
+   *
+   * Endpoint backend:
+   * - GET `/admin/analytics`
+   *
+   * Retorna:
+   * - Métricas de conversión, tráfico, clientes, categorías, geografía y
+   *   KPIs de catálogo en un único objeto.
+   */
   async getAnalyticsData(): Promise<AnalyticsData> {
     return get<AnalyticsData>('/admin/analytics')
   }

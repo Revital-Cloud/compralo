@@ -5,6 +5,13 @@ import { LoginForm } from '@/components/forms/login-form'
 import { useLoginRedirect } from '@/hooks/use-role-redirect'
 import { Loader2 } from 'lucide-react'
 
+/**
+ * Página de acceso (`/login`).
+ *
+ * - Si el usuario ya está autenticado, delega redirección por rol.
+ * - Si no, renderiza `LoginForm`.
+ */
+
 const LoginPage = () => {
   const { isLoading, isAuthenticated } = useLoginRedirect();
 

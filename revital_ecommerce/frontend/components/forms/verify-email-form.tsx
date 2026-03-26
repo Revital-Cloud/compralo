@@ -19,6 +19,15 @@ import authService from '@/services/auth.service';
 import type { VerifyEmailOtpRequest } from '@/types';
 import { cn } from '@/lib/utils';
 
+/**
+ * Formulario OTP de verificación de email.
+ *
+ * Flujo:
+ * - Lee `email` desde query string.
+ * - Envía `email+code` a `verifyEmailOtp`.
+ * - Permite reenvío de código y redirige al home al confirmar.
+ */
+
 export function VerifyEmailForm({
   className,
   ...props

@@ -8,6 +8,15 @@ import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import type { Discount } from "@/types/discount"
 
+/**
+ * Mapa de la página pública de descuentos.
+ *
+ * Flujo:
+ * - Carga descuentos activos desde `useActiveDiscounts`.
+ * - Presenta condiciones principales y ejemplo de precio.
+ * - Permite navegar al catálogo filtrado según alcance del descuento.
+ */
+
 export default function DiscountsPage() {
   const router = useRouter()
   const { data: discounts, isLoading, error } = useActiveDiscounts(50)
@@ -69,6 +78,7 @@ export default function DiscountsPage() {
   }
 
   const handleViewProducts = (discount: Discount) => {
+    // Navegación contextual: producto/categoría/marca o catálogo general.
     // Si aplica a un producto específico, ir directamente al detalle de ese producto
     if (discount.aplica_a === "producto_especifico" && discount.id_producto_aplica) {
       router.push(`/products/${discount.id_producto_aplica}`)

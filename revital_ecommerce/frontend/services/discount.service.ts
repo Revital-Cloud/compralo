@@ -6,6 +6,17 @@ import type {
 } from '@/types/discount'
 
 /**
+ * Mapa del servicio de descuentos (frontend).
+ *
+ * Responsabilidad:
+ * - Validar/transformar payloads del panel admin antes de enviarlos al backend.
+ * - Exponer endpoints de descuentos para:
+ *   - storefront (activos, por código, validar en carrito)
+ *   - perfil usuario (my-available)
+ *   - administración (CRUD, stats, canjes)
+ */
+
+/**
  * Helper para parsear números de forma segura
  */
 const safeParseFloat = (value: any, defaultValue: number = 0): number => {
@@ -113,7 +124,8 @@ export const transformDiscountPayload = (values: any): any => {
     }),
   }
 
-  // Eliminar campos undefined/null (mantener fec_inicio/fec_fin aunque sean null para plantillas canjeables)
+  // Limpiar campos vacíos para evitar enviar ruido al backend.
+  // Se preservan `fec_inicio/fec_fin` en null cuando corresponde.
   Object.keys(payload).forEach(key => {
     if (payload[key] === undefined) delete payload[key]
     if (payload[key] === null && key !== 'fec_inicio' && key !== 'fec_fin') delete payload[key]

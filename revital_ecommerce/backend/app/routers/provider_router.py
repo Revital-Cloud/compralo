@@ -3,6 +3,14 @@ Módulo de enrutador para la gestión de proveedores.
 
 Define las rutas y endpoints relacionados con la gestión de proveedores,
 incluyendo la creación, actualización y visualización de proveedores.
+
+Mapa del módulo:
+- CRUD operativo de proveedores.
+- Activación/desactivación (con endpoint legacy).
+
+Relación con capas:
+- Router: validación HTTP y mensajes de respuesta.
+- Service: `provider_service` (funciones SQL de proveedores).
 """
 from decimal import Decimal
 from fastapi import APIRouter, Depends, Form, Body, HTTPException, status
@@ -25,6 +33,10 @@ async def get_providers(db:Session = Depends(get_db)):
 
     Returns:
         list[Provider]: Lista de proveedores registrados.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /providers`
+    - Service: `provider_service.get_providers`
     """
     providers = provider_service.get_providers(db)
     if providers is None:
@@ -43,6 +55,10 @@ async def get_provider(id_proveedor:Decimal, db:Session = Depends(get_db)):
 
     Returns:
         Provider: Detalles del proveedor solicitado.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /providers/{id_proveedor}`
+    - Service: `provider_service.get_provider`
     """
     provider = provider_service.get_provider(db, id_proveedor)
     if not provider:
@@ -65,6 +81,10 @@ async def create_provider(
         email (str): Correo electrónico del proveedor.
         tel_proveedor (str): Teléfono del proveedor.
         ind_activo (bool): Indica si el proveedor está activo o no.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /providers`
+    - Service: `provider_service.create_provider`
     """
     try:
         provider_service.create_provider(db, provider_data, current_user.id_usuario)
@@ -89,6 +109,10 @@ async def update_provider(
         nom_proveedor (str): Nombre del proveedor.
         email (str): Correo electrónico del proveedor.
         tel_proveedor (str): Teléfono del proveedor.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /providers/{id_proveedor}`
+    - Service: `provider_service.update_provider`
     """
     try:
         provider_service.update_provider(db, id_proveedor, provider_data, current_user.id_usuario)
@@ -121,6 +145,10 @@ async def toggle_provider(
 
     Returns:
         ResponseMessage: Mensaje de confirmación.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /providers/{id_proveedor}/toggle`
+    - Service: `provider_service.deactivate_activate_provider`
     """
     try:
         result = provider_service.deactivate_activate_provider(db, id_proveedor, current_user.id_usuario, activar)
@@ -143,6 +171,10 @@ async def deactivate_provider(
     Args:
         id_proveedor (Decimal): ID del proveedor a desactivar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /providers/{id_proveedor}/deactivate`
+    - Service: `provider_service.deactivate_provider`
     """
     try:
         result = provider_service.deactivate_provider(db, id_proveedor, current_user.id_usuario)

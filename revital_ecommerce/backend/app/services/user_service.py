@@ -8,6 +8,12 @@ funciones de base de datos (procedimientos almacenados o funciones SQL).
 
 Las funciones aquí definidas son llamadas por los routers de la API
 y utilizan los esquemas Pydantic para la validación y transformación de datos.
+
+Responsabilidades:
+- CRUD de usuarios,
+- búsqueda por email/id para autenticación y perfil,
+- actualización de contraseña/estado,
+- soft-delete y reactivación de cuentas.
 """
 from decimal import Decimal
 from sqlalchemy.orm import Session
@@ -29,6 +35,9 @@ def get_users(db: Session):
         list: Una lista de diccionarios, donde cada diccionario representa un usuario.
               FastAPI utilizará el `response_model` del endpoint para convertir esto
               en una lista de objetos `User`.
+
+    Se consume desde:
+    - `user_router.get_users`
     """
     try:
         query = text("""
@@ -64,6 +73,11 @@ def get_user(db: Session, id_usuario: Decimal):
 
     Ejecuta una consulta SQL para seleccionar un usuario por su ID y devuelve
     el resultado como un diccionario (RowMapping).
+
+    Uso:
+    - perfil actual,
+    - validaciones de autorización,
+    - soporte de autenticación.
     """
     try:
         query = text("""SELECT id_usuario,
@@ -106,6 +120,9 @@ def create_users(db: Session, user: UserCreate):
         dict or None: Un diccionario que representa el usuario creado (generalmente el JSON
         devuelto por la función SQL) o None si la creación falla o la función
         SQL no devuelve el resultado esperado.
+
+    Implementación:
+    - delega en `fun_insert_usuarios`.
     """
     try:
         params = user.model_dump()
@@ -160,6 +177,10 @@ def update_user(db: Session, id_usuario: Decimal, user: UserUpdate, current_user
         dict or None: Un diccionario que representa el usuario actualizado (generalmente el JSON
                       devuelto por la función SQL) o None si la actualización falla o la función
                       SQL no devuelve el resultado esperado.
+
+    Implementación:
+    - delega en `fun_update_usuarios`,
+    - complementa actualización de `avatar_seed/avatar_colors` por SQL directo.
     """
     
     try:
@@ -237,6 +258,9 @@ def delete_user(db: Session, id_usuario:Decimal):
         dict: Un diccionario con un mensaje indicando el resultado de la operación.
               El mensaje puede provenir directamente de la función SQL o ser un
               mensaje genérico si la función no proporciona uno específico.
+
+    Implementación:
+    - delega en `fun_delete_usuarios`.
     """
     
     try:
@@ -264,6 +288,9 @@ def get_user_by_email(db: Session, email: str):
 
     Returns:
         dict or None: Un diccionario que representa el usuario o None si no se encuentra.
+
+    Uso principal:
+    - autenticación, registro y flujos de reactivación.
     """
     try:
         query = text("""
@@ -324,6 +351,9 @@ def update_password(db: Session, id_usuario: Decimal, hashed_password: str, usr_
 
     Returns:
         bool: True si la actualización fue exitosa.
+
+    Implementación:
+    - delega en `fun_update_password_usuario`.
     """
     try:
         # Si no se proporciona usr_operacion, usar el mismo id_usuario
@@ -357,6 +387,9 @@ def update_user_status(db: Session, id_usuario: Decimal, ind_activo: bool):
 
     Returns:
         dict or None: El usuario actualizado o None si no existe.
+
+    Nota:
+    - actualiza estado por SQL directo (sin función almacenada intermedia).
     """
     try:
         existing = get_user(db, id_usuario)
@@ -409,6 +442,9 @@ def soft_delete_user(db: Session, id_usuario: Decimal, current_user_id: Decimal)
 
     Returns:
         str: Mensaje devuelto por la función de base de datos.
+
+    Implementación:
+    - delega en `fun_soft_delete_usuario`.
     """
     try:
         existing = get_user(db, id_usuario)
@@ -442,6 +478,9 @@ def reactivate_user(db: Session, id_usuario: Decimal):
 
     Returns:
         str: Mensaje devuelto por la función de base de datos.
+
+    Implementación:
+    - delega en `fun_reactivate_usuario`.
     """
     try:
         existing = get_user(db, id_usuario)

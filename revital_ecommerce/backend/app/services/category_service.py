@@ -12,11 +12,23 @@ En este archivo se crean las funciones utilizando "query by example" para intera
 # `create_category`: Crea una nueva categoría en la base de datos llamando a la función fun_insert_categoria().
 # `update_category`: Actualiza una categoría existente en la base de datos llamando a la función fun_update_categoria().
 # `delete_category`: Elimina una categoría existente en la base de datos llamando a la función fun_delete_categoria().
+
+Responsabilidades principales:
+- consulta de árbol de categorías (raíz/línea/sublínea),
+- CRUD de categorías vía funciones SQL,
+- asignación de atributos por categoría (`tab_category_attributes`),
+- activación/desactivación en cascada.
 """
 
 
 # Todas las categorías (tab_categories + conteo de productos activos en tab_products)
 def get_categories(db: Session):
+    """
+    Lista todas las categorías con conteo de productos activos.
+
+    Se consume desde:
+    - `category_router.get_categories`
+    """
     try:
         query = text("""
         SELECT
@@ -42,6 +54,7 @@ def get_categories(db: Session):
 
 # Categorías raíz (parent_id IS NULL)
 def get_categories_roots(db: Session):
+    """Obtiene categorías raíz (`parent_id IS NULL`)."""
     try:
         query = text("""
         SELECT
@@ -69,6 +82,7 @@ def get_categories_roots(db: Session):
 
 # Líneas (hijas de categorías raíz)
 def get_categories_lines(db: Session):
+    """Obtiene categorías de segundo nivel (líneas)."""
     try:
         query = text("""
         SELECT
@@ -96,6 +110,7 @@ def get_categories_lines(db: Session):
 
 # Sublíneas (nietas de categorías raíz)
 def get_categories_sublines(db: Session):
+    """Obtiene categorías de tercer nivel (sublíneas)."""
     try:
         query = text("""
         SELECT
@@ -126,6 +141,7 @@ def get_categories_sublines(db: Session):
 
 # Una categoría específica (tab_categories)
 def get_category(db: Session, category_id: Decimal):
+    """Obtiene una categoría por ID con su conteo de productos activos."""
     try:
         query = text("""
         SELECT
@@ -153,6 +169,13 @@ def get_category(db: Session, category_id: Decimal):
     
 # Crear una categoría (fun_insert_categoria: p_name, p_parent_id, p_is_active, p_usr_operacion)
 def create_category(db: Session, category: CategoryCreate, usr_insert: Decimal):
+    """
+    Crea categoría mediante `fun_insert_categoria`.
+
+    Comportamiento:
+    - acepta `is_active` o `ind_activo` desde frontend,
+    - parsea mensaje SQL para extraer `id` creado cuando aplica.
+    """
     try:
         payload = category.model_dump(exclude_none=True)
         query = text("""
@@ -191,6 +214,12 @@ def create_category(db: Session, category: CategoryCreate, usr_insert: Decimal):
     
 # Actualizar categoría (fun_update_categoria: p_id, p_name, p_parent_id, p_is_active, p_usr_operacion)
 def update_category(db: Session, category_id: Decimal, category: CategoryUpdate, usr_update: Decimal):
+    """
+    Actualiza categoría mediante `fun_update_categoria`.
+
+    Nota:
+    - si faltan campos opcionales, usa valores actuales para mantener contrato.
+    """
     try:
         payload = category.model_dump(exclude_unset=True)
         # Obtener valores actuales si no se envían (la función espera p_name obligatorio)
@@ -228,6 +257,9 @@ def update_category(db: Session, category_id: Decimal, category: CategoryUpdate,
 def deactivate_activate_category(db: Session, category_id: Decimal, usr_update: Decimal, activar: bool):
     """
     Activa o desactiva una categoría y en cascada subcategorías y productos (tab_categories / tab_products).
+
+    Implementación:
+    - delega en `fun_deactivate_activate_categoria`.
     """
     try:
         query = text("""
@@ -257,6 +289,9 @@ def get_category_attributes(db: Session, category_id: Decimal):
     """
     Lista atributos de una categoría (tab_category_attributes + nombre y data_type del atributo).
     Returns list of dicts: id, category_id, attribute_id, is_required, is_filterable, attribute_name, data_type.
+
+    Se usa en:
+    - configuración de formulario de producto por categoría.
     """
     try:
         query = text("""
@@ -285,6 +320,9 @@ def get_category_attributes_with_values(db: Session, category_id: Decimal):
     """
     Lista atributos de la categoría con sus valores predefinidos (cuando has_predefined_values=True).
     Una sola query de atributos y una de valores para evitar N+1.
+
+    Resultado:
+    - lista de atributos, cada uno con `values` listo para UI.
     """
     try:
         attrs = get_category_attributes(db, category_id)
@@ -320,6 +358,9 @@ def set_category_attributes(db: Session, category_id: Decimal, items: list, usr:
     Reemplaza los atributos de una categoría: borra los existentes e inserta los nuevos.
     items: list of dicts with keys attribute_id, is_required, is_filterable.
     UNIQUE(category_id, attribute_id) respetado; id generado con COALESCE(MAX(id),0)+row_number.
+
+    Estrategia:
+    - operación de reemplazo total para simplificar sincronización frontend-backend.
     """
     try:
         delete_q = text("DELETE FROM tab_category_attributes WHERE category_id = :category_id")

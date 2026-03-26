@@ -23,6 +23,17 @@ import {
   calculateDiscountPercentage 
 } from "@/utils/discount-utils"
 
+/**
+ * Mapa de la página de detalle de producto (`/products/[id]`).
+ *
+ * Flujo principal:
+ * 1) Carga producto por slug/id.
+ * 2) Resuelve variantes, atributos e imágenes según selección.
+ * 3) Calcula precio visible considerando descuentos activos.
+ * 4) Agrega al carrito usando `variant_id` cuando aplique.
+ * 5) Muestra reseñas y relacionados por categoría.
+ */
+
 const ProductPageContent = () => {
   const params = useParams()
   const router = useRouter()
@@ -89,14 +100,14 @@ const ProductPageContent = () => {
       }))
   }, [relatedResponse, slug])
 
-  // Hook del carrito para funcionalidad real
+  // Estado y acciones reales de carrito.
   const { 
     addToCart, 
     isAddingToCart,
     error: cartError 
   } = useCart()
 
-  // Hook de descuentos para calcular precio con descuento
+  // Descuentos activos para precio final visible en PDP y toast.
   const { data: discounts } = useActiveDiscounts()
 
   // Manejar errores del carrito solo cuando estamos intentando agregar

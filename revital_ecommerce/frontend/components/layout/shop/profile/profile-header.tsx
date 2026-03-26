@@ -7,6 +7,16 @@ import { cn } from "@/lib/utils";
 import { Edit, Pencil, Star } from "lucide-react";
 import { UserPublic } from "@/types/auth";
 
+/**
+ * Cabecera del perfil.
+ *
+ * Responsabilidad:
+ * - Presentar datos del usuario (`nom_usuario`, `ape_usuario`).
+ * - Mostrar un badge de “Usuario Activo”.
+ * - Ofrecer interacción de edición:
+ *   - botón “Editar Perfil” con estado controlado por el contenedor (`isEditing`)
+ *   - edición opcional de avatar mediante `onAvatarClick`
+ */
 interface ProfileHeaderProps {
   user: UserPublic;
   isEditing: boolean;
