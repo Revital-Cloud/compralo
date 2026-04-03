@@ -19,7 +19,7 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, Task
 ## PR Creation Process
 
 1. **Analyze changes**: `git diff main...HEAD` to understand ALL commits
-2. **Determine affected components**: revital_ecommerce (backend/frontend), revital_panel (backend/frontend)
+2. **Determine affected components**: revital_ecommerce (backend/frontend)
 3. **Fill template sections** based on changes
 4. **Create PR** with `gh pr create`
 
@@ -32,7 +32,7 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, Task
 
 ### Description
 
-{Summary of changes and dependencies. Mention which component(s) are affected: revital_ecommerce, revital_panel, or both}
+{Summary of changes and dependencies. Mention which component(s) are affected in revital_ecommerce}
 
 ### Steps to review
 
@@ -47,7 +47,6 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, Task
 - [ ] Code follows project conventions (see AGENTS.md)
 - [ ] All tests pass locally
 - [ ] Linting passes (if applicable)
-- [ ] No cross-references between revital_ecommerce and revital_panel
 - [ ] Database migrations are included (if applicable)
 - [ ] Environment variables documented (if new ones added)
 - [ ] README updated (if needed)
@@ -59,12 +58,6 @@ allowed-tools: Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, Task
 - [ ] Database schema changes tested (if applicable)
 - [ ] Screenshots included for UI changes (Mobile/Tablet/Desktop)
 
-#### revital_panel (if applicable)
-- [ ] Backend changes tested locally
-- [ ] Frontend changes tested locally
-- [ ] Landing page changes tested (if applicable)
-- [ ] Dashboard changes tested (if applicable)
-- [ ] Screenshots included for UI changes (Mobile/Tablet/Desktop)
 
 ### License
 
@@ -77,8 +70,6 @@ By submitting this pull request, I confirm that my contribution is made under th
 |-----------|---------|--------------|
 | revital_ecommerce/backend | `revital_ecommerce/backend/` | API endpoints tested, DB migrations |
 | revital_ecommerce/frontend | `revital_ecommerce/frontend/` | Screenshots Mobile/Tablet/Desktop |
-| revital_panel/backend | `revital_panel/backend/` | API endpoints tested, DB migrations |
-| revital_panel/frontend | `revital_panel/frontend/` | Landing + Dashboard screenshots |
 
 ## Commands
 
@@ -92,7 +83,6 @@ git diff main...HEAD
 
 # View diff for specific component
 git diff main...HEAD -- revital_ecommerce/
-git diff main...HEAD -- revital_panel/
 
 # Create PR with heredoc for body
 gh pr create --title "feat: description" --body "$(cat <<'EOF'
@@ -124,29 +114,23 @@ Follow conventional commits: `<type>[scope]: <description>`
 
 **Scopes:**
 - `ecommerce` - Changes to revital_ecommerce
-- `panel` - Changes to revital_panel
 - `ecommerce-backend` - Backend e-commerce only
 - `ecommerce-frontend` - Frontend e-commerce only
-- `panel-backend` - Backend panel only
-- `panel-frontend` - Frontend panel only
 
 **Examples:**
 - `feat[ecommerce]: Add product favorites feature`
-- `fix[panel-backend]: Fix subscription validation`
+- `fix[ecommerce-backend]: Fix subscription validation`
 - `docs: Update API documentation`
 - `refactor[ecommerce-frontend]: Improve cart state management`
 
 ## Architecture Rules (CRITICAL)
 
 **ALWAYS verify:**
-- ✅ No cross-references between `revital_ecommerce` and `revital_panel`
 - ✅ Each application remains independent
 - ✅ No shared dependencies introduced
 - ✅ Database schemas remain separate
 
 **NEVER:**
-- ❌ Import code from revital_ecommerce in revital_panel
-- ❌ Import code from revital_panel in revital_ecommerce
 - ❌ Share database connections between apps
 - ❌ Create monorepo tools or shared packages
 
@@ -168,21 +152,12 @@ Follow conventional commits: `<type>[scope]: <description>`
 cd revital_ecommerce/backend
 source venv/bin/activate
 pytest
-
-# Test panel backend
-cd revital_panel/backend
-source venv/bin/activate
-pytest
 ```
 
 ### For Frontend Changes
 ```bash
 # Test e-commerce frontend
 cd revital_ecommerce/frontend
-pnpm run build  # Check for build errors
-
-# Test panel frontend
-cd revital_panel/frontend
 pnpm run build  # Check for build errors
 ```
 
@@ -193,5 +168,3 @@ pnpm run build  # Check for build errors
 - **Component READMEs**: 
   - `revital_ecommerce/backend/README.md`
   - `revital_ecommerce/frontend/README.md`
-  - `revital_panel/backend/README.md`
-  - `revital_panel/frontend/README.md`

@@ -81,13 +81,11 @@ revital_ecommerce/
 ## Rules
 
 **ALWAYS**:
-- Keep e-commerce code independent from `revital_panel`
 - No references to SaaS concepts (plans, billing, subscriptions)
 - Everything is local to the instance
 
 **NEVER**:
 - Share database with other instances
-- Reference `revital_panel` code
 - Assume multi-tenant architecture
 
 ## Related Skills

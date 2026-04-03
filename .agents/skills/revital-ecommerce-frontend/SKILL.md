@@ -123,7 +123,6 @@ export const useCartStore = create<CartStore>((set) => ({
 **NEVER**:
 - Use Pages Router
 - Mix server/client code incorrectly
-- Reference `revital_panel` code
 - Skip TypeScript types
 
 ## Related Skills
