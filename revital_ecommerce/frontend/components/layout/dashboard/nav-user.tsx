@@ -30,9 +30,16 @@ import { Button } from "@/components/ui"
 import { toast } from "sonner"
 
 export function NavUser() {
-  const { isMobile } = useSidebar()
+  const { isMobile, setHoverExpandedLock } = useSidebar()
   const { user, logout, isLoggingOut } = useAuth()
   const [open, setOpen] = React.useState(false)
+  const [menuOpen, setMenuOpen] = React.useState(false)
+
+  React.useEffect(() => {
+    return () => {
+      setHoverExpandedLock(false)
+    }
+  }, [setHoverExpandedLock])
 
   const handleLogout = () => {
     setOpen(true)
@@ -51,7 +58,13 @@ export function NavUser() {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu>
+        <DropdownMenu
+          open={menuOpen}
+          onOpenChange={(nextOpen) => {
+            setMenuOpen(nextOpen)
+            setHoverExpandedLock(nextOpen)
+          }}
+        >
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
