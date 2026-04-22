@@ -62,7 +62,7 @@ class RoleBasedAccessMiddleware:
                 "POST": [1],      # Solo administradores
                 "PUT": [1],       # Solo administradores
                 "DELETE": [1],    # Solo administradores
-                "GET": [1, 2]     # Administradores y usuarios
+                "GET": [1]     # Administradores y usuarios
             },
             "/api/brands": {
                 "POST": [1],      # Solo administradores
