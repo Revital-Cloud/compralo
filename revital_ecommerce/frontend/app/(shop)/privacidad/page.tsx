@@ -5,6 +5,7 @@ import { buildOpenGraph, buildTwitter } from "@/lib/seo"
 const MOCK = {
   titulo: "Política de Privacidad",
   ultimaActualizacion: "Febrero 2026",
+  intro: "La permanencia en el sistema será entendida como la aceptación de los términos y condiciones de la política de privacidad.",
   secciones: [
     {
       titulo: "Responsable del tratamiento",
@@ -61,6 +62,9 @@ export default function PrivacidadPage() {
       </h1>
       <p className="text-sm text-gray-500 dark:text-gray-500 mb-8">
         Última actualización: {MOCK.ultimaActualizacion}
+      </p>
+      <p className="text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
+        {MOCK.intro}
       </p>
       <div className="space-y-8">
         {MOCK.secciones.map((s, i) => (
