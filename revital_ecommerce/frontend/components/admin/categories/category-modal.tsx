@@ -30,6 +30,15 @@ function parentIdNum(c: Category): number | null {
   return typeof c.parent_id === 'number' ? c.parent_id : Number(c.parent_id)
 }
 
+function normalizeCategoryName(value: string): string {
+  return value
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
 export interface CategoryModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -86,6 +95,18 @@ export function CategoryModal({
   const allAttributes = allAttributesData ?? EMPTY_ALL_ATTRS
 
   const list = useMemo(() => (Array.isArray(categories) ? categories : []) as Category[], [categories])
+  const watchedName = form.watch('name')
+  const duplicateCategory = useMemo(() => {
+    const normalized = normalizeCategoryName(watchedName ?? '')
+    if (!normalized) return false
+
+    const editingId = mode === 'edit' && editingCategory ? categoryIdNum(editingCategory) : null
+    return list.some((c) => {
+      const candidateId = categoryIdNum(c)
+      if (editingId != null && candidateId === editingId) return false
+      return normalizeCategoryName(c.name ?? '') === normalized
+    })
+  }, [watchedName, list, mode, editingCategory])
 
   const excludedParentIds = useMemo(() => {
     if (mode !== 'edit' || !editingCategory) return new Set<number>()
@@ -225,6 +246,11 @@ export function CategoryModal({
         : 'Atributos categoría'
 
   const doSubmit = async (values: CategoryModalFormValues) => {
+    if (duplicateCategory) {
+      form.setError('name', { type: 'manual', message: 'Ya existe una categoría con ese nombre.' })
+      toast.error('Ya existe una categoría con ese nombre.')
+      return
+    }
     if (duplicateAttr) {
       toast.error('No puede haber atributos repetidos. Elimina duplicados en la lista.')
       return
@@ -281,6 +307,11 @@ export function CategoryModal({
         toast.error('No puede haber atributos repetidos. Elimina duplicados en la lista.')
         return
       }
+      if (duplicateCategory) {
+        form.setError('name', { type: 'manual', message: 'Ya existe una categoría con ese nombre.' })
+        toast.error('Ya existe una categoría con ese nombre.')
+        return
+      }
       const valid = await form.trigger()
       if (!valid) {
         const err = form.formState.errors.name?.message ?? (Object.values(form.formState.errors)[0] as { message?: string } | undefined)?.message
@@ -314,9 +345,18 @@ export function CategoryModal({
             <Label htmlFor="name">Nombre</Label>
             <Input
               id="name"
-              {...form.register('name')}
+              {...form.register('name', {
+                onChange: () => {
+                  if (form.formState.errors.name?.type === 'manual') {
+                    form.clearErrors('name')
+                  }
+                },
+              })}
               placeholder="Ej. Electrónicos"
             />
+            {duplicateCategory && !form.formState.errors.name && (
+              <p className="text-sm text-red-600">Ya existe una categoría con ese nombre.</p>
+            )}
             {form.formState.errors.name && (
               <p className="text-sm text-red-600">{form.formState.errors.name.message}</p>
             )}
