@@ -202,7 +202,16 @@ BEGIN
                         JOIN tab_product_variant_groups g ON g.id = pv.group_id
                         JOIN tab_products p ON p.id = g.product_id
                         WHERE cp.id_carrito = v_id_carrito
-                            AND p.category_id = d.category_id_aplica
+                            AND p.category_id IN (
+                                WITH RECURSIVE categorias_objetivo AS (
+                                    SELECT id FROM tab_categories WHERE id = d.category_id_aplica
+                                    UNION ALL
+                                    SELECT c.id
+                                    FROM tab_categories c
+                                    JOIN categorias_objetivo co ON c.parent_id = co.id
+                                )
+                                SELECT id FROM categorias_objetivo
+                            )
                             AND cp.cantidad >= d.cantidad_minima_producto
                             AND (cp.cantidad * cp.precio_unitario_carrito) >= d.monto_minimo_producto)
                     WHEN d.aplica_a = 'marca_especifica' THEN
@@ -327,7 +336,16 @@ BEGIN
                         JOIN tab_product_variant_groups g ON g.id = pv.group_id
                         JOIN tab_products p ON p.id = g.product_id
                         WHERE cp.id_carrito = v_id_carrito
-                            AND p.category_id = v_canje_info.category_id_aplica
+                            AND p.category_id IN (
+                                WITH RECURSIVE categorias_objetivo AS (
+                                    SELECT id FROM tab_categories WHERE id = v_canje_info.category_id_aplica
+                                    UNION ALL
+                                    SELECT c.id
+                                    FROM tab_categories c
+                                    JOIN categorias_objetivo co ON c.parent_id = co.id
+                                )
+                                SELECT id FROM categorias_objetivo
+                            )
                             AND cp.cantidad >= v_canje_info.cantidad_minima_producto
                             AND (cp.cantidad * cp.precio_unitario_carrito) >= v_canje_info.monto_minimo_producto)
                     WHEN v_canje_info.aplica_a = 'marca_especifica' THEN

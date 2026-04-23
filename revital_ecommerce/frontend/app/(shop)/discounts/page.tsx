@@ -7,6 +7,7 @@ import { formatPrice } from "@/utils/format-price"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import type { Discount } from "@/types/discount"
+import { parseDateSafe } from "@/utils/date-helpers"
 
 /**
  * Mapa de la página pública de descuentos.
@@ -69,7 +70,9 @@ export default function DiscountsPage() {
 
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'Sin fecha límite'
-    const date = new Date(dateString)
+    const dateOnly = dateString.split('T')[0]
+    const date = parseDateSafe(dateOnly)
+    if (!date) return 'Fecha inválida'
     return date.toLocaleDateString('es-ES', { 
       year: 'numeric', 
       month: 'long', 
