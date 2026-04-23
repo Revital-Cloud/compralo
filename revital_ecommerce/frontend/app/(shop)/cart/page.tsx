@@ -418,34 +418,10 @@ const CartPage = () => {
       }
     }
     
-    // 3. Aplicar descuento de canje si hay (sobre el precio ya descontado)
-    // Usar subtotalOriginal calculado fuera de la función
-    const currentSubtotal = subtotalOriginal;
-    if (totalDescCanjeado > 0 && descuentoCanjeado && currentSubtotal > 0) {
-      const tipo = descuentoCanjeado.tipo;
-      const valor = Number(descuentoCanjeado.valor ?? 0);
-      
-      if (tipo === "porcentaje" && valor > 0) {
-        // Descuento porcentual de canje: aplicar sobre precio actual
-        const priceAfterCanje = currentPrice * (1 - valor / 100);
-        // Calcular porcentaje total combinado
-        const canjeDiscountAmount = currentPrice - priceAfterCanje;
-        const totalDiscountAmount = originalUnitPrice - priceAfterCanje;
-        totalDiscountPercentage = originalUnitPrice > 0 
-          ? Math.round((totalDiscountAmount / originalUnitPrice) * 100)
-          : totalDiscountPercentage;
-        currentPrice = priceAfterCanje;
-      } else if (tipo === "monto_fijo" && totalDescCanjeado > 0) {
-        // Descuento fijo de canje: distribuir proporcionalmente sobre subtotal original
-        const discountShare = totalDescCanjeado * (item.subtotal / currentSubtotal);
-        const discountedSubtotal = (currentPrice * item.cantidad) - discountShare;
-        currentPrice = item.cantidad > 0 ? discountedSubtotal / item.cantidad : currentPrice;
-        const totalDiscountAmount = originalUnitPrice - currentPrice;
-        totalDiscountPercentage = originalUnitPrice > 0
-          ? Math.round((totalDiscountAmount / originalUnitPrice) * 100)
-          : totalDiscountPercentage;
-      }
-    }
+    // 3. No aplicar canjes por puntos sobre cada línea de producto en frontend.
+    // El backend ya calcula el canje sobre el resumen (`total_desc_canjeado`) y
+    // aquí mostrarlo por ítem puede inducir errores visuales (ej. aplicarlo a
+    // productos fuera del alcance de `aplica_a`).
     
     // Retornar precio final, precio original y porcentaje de descuento
     if (currentPrice < originalUnitPrice && totalDiscountPercentage > 0) {
@@ -1186,12 +1162,12 @@ const CartPage = () => {
                       </div>
                     )}
                     {selectedCanjeId != null && (
-                      <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
-                        <span>
+                      <div className="flex items-start justify-between gap-3 text-sm text-amber-600 dark:text-amber-400">
+                        <span className="flex-1 min-w-0">
                           Descuento por puntos
                           {selectedCanjeNombre ? ` (${selectedCanjeNombre})` : ""}
                         </span>
-                        <span>-{formatPrice(totalDescCanjeado)}</span>
+                        <span className="whitespace-nowrap text-right font-medium">-{formatPrice(totalDescCanjeado)}</span>
                       </div>
                     )}
                   </div>
@@ -1506,12 +1482,12 @@ const CartPage = () => {
                     </div>
                   )}
                   {selectedCanjeId != null && (
-                    <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
-                      <span>
+                    <div className="flex items-start justify-between gap-3 text-sm text-amber-600 dark:text-amber-400">
+                      <span className="flex-1 min-w-0">
                         Descuento por puntos
                         {selectedCanjeNombre ? ` (${selectedCanjeNombre})` : ""}
                       </span>
-                      <span>-{formatPrice(totalDescCanjeado)}</span>
+                      <span className="whitespace-nowrap text-right font-medium">-{formatPrice(totalDescCanjeado)}</span>
                     </div>
                   )}
                 </div>

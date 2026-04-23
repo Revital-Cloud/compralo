@@ -186,21 +186,33 @@ def create_discount(db:Session, discount:DiscountCreate, usr_insert:Decimal):
             :id_usuario_destino
         )
         """)
-        result = db.execute(query, sql_params)
-        fetched_result = result.fetchone()
-        db.commit()
-        
-        # La función devuelve un JSON, necesitamos parsearlo
-        if fetched_result and fetched_result[0]:
+
+        def _execute_insert(params: dict):
+            result = db.execute(query, params)
+            fetched_result = result.fetchone()
+            db.commit()
+            if not fetched_result or not fetched_result[0]:
+                raise Exception('No se pudo crear el descuento')
             result_json = json.loads(fetched_result[0]) if isinstance(fetched_result[0], str) else fetched_result[0]
-            
-            # Verificar si la operación fue exitosa
-            if result_json.get('success') == False:
+            if result_json.get('success') is False:
                 raise Exception(result_json.get('message', 'Error desconocido al crear descuento'))
-            
             return result_json.get('id_descuento')
-        
-        raise Exception('No se pudo crear el descuento')
+
+        try:
+            return _execute_insert(sql_params)
+        except Exception as first_error:
+            # Compatibilidad temporal con instancias donde la función SQL
+            # `fun_insert_descuento` tiene invertidos `usr_insert` e `id_usuario_destino`.
+            if 'null value in column "usr_insert"' not in str(first_error):
+                raise
+
+            db.rollback()
+            retry_params = dict(sql_params)
+            retry_params['usr_operacion'], retry_params['id_usuario_destino'] = (
+                retry_params.get('id_usuario_destino'),
+                retry_params.get('usr_operacion'),
+            )
+            return _execute_insert(retry_params)
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al crear descuento: {str(e)}")

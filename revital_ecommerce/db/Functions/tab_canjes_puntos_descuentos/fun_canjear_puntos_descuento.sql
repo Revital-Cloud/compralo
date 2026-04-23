@@ -55,6 +55,8 @@ DECLARE
     v_total_final DECIMAL(10,2);
     v_aplicado_automaticamente BOOLEAN := FALSE;
     v_calculo_carrito JSON;
+    v_total_canjes INT := 0;
+    v_canjes_usuario INT := 0;
 BEGIN
     -- PASO 1: Verificar que el descuento existe y es canjeable
     SELECT 
@@ -112,6 +114,29 @@ BEGIN
     -- VALIDACIÓN 3: Verificar vigencia para canje (fechas null = siempre; con fechas = current entre ellas)
     IF NOT v_descuento.vigente THEN
         RETURN json_build_object('success', false, 'message', 'El descuento no está vigente para canje');
+    END IF;
+
+    -- VALIDACIÓN 3b: Límite total de canjes del descuento.
+    IF v_descuento.max_usos_total IS NOT NULL THEN
+        SELECT COUNT(*) INTO v_total_canjes
+        FROM tab_canjes_puntos_descuentos
+        WHERE id_descuento = p_id_descuento;
+
+        IF COALESCE(v_total_canjes, 0) >= v_descuento.max_usos_total THEN
+            RETURN json_build_object('success', false, 'message', 'Este descuento alcanzó su límite máximo de canjes');
+        END IF;
+    END IF;
+
+    -- VALIDACIÓN 3c: Límite de canjes por usuario.
+    IF v_descuento.max_usos_por_usuario IS NOT NULL THEN
+        SELECT COUNT(*) INTO v_canjes_usuario
+        FROM tab_canjes_puntos_descuentos
+        WHERE id_descuento = p_id_descuento
+          AND id_usuario = p_id_usuario;
+
+        IF COALESCE(v_canjes_usuario, 0) >= v_descuento.max_usos_por_usuario THEN
+            RETURN json_build_object('success', false, 'message', 'Ya alcanzaste el límite de canjes para este descuento');
+        END IF;
     END IF;
 
     -- PASO 2: Asegurar que el usuario tenga registro de puntos
