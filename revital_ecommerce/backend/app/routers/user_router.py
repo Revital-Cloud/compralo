@@ -29,7 +29,12 @@ from core.otp_store import set_otp, get_otp_expires_minutes
 from core.config import settings
 from services.email_service import send_welcome_email, send_verification_otp_email
 from services.discount_service import get_first_purchase_discount
-from core.rate_limiter import limiter
+from core.rate_limiter import (
+    limiter,
+    get_client_ip,
+    get_register_retry_after_seconds,
+    record_register_attempt,
+)
 from core.database import SessionLocal
 
 router = APIRouter(tags=["Usuarios"])
@@ -173,8 +178,6 @@ async def get_users(db: Session = Depends(get_db)):
 
 
 @router.post("/users", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
-@limiter.limit("5/15minute")
-@limiter.limit("20/hour")
 async def create_users(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -193,6 +196,19 @@ async def create_users(
     - Endpoint: `POST /users`
     - Service: `user_service.create_users`
     """
+    client_ip = get_client_ip(request)
+    retry_after = get_register_retry_after_seconds(client_ip, user.email_usuario)
+    if retry_after > 0:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail={
+                "message": "Demasiadas solicitudes de registro para esta combinación de IP y correo.",
+                "retry_after": retry_after,
+            },
+        )
+    # Count attempts before processing to protect against brute-force / spam retries.
+    record_register_attempt(client_ip, user.email_usuario)
+
     try:
         # Verificar si el email ya existe
         existing_user = user_service.get_user_by_email(db, user.email_usuario)
