@@ -15,6 +15,7 @@ Relación con capas:
 """
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Body, BackgroundTasks, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from decimal import Decimal
 from urllib.parse import quote
@@ -199,10 +200,10 @@ async def create_users(
     client_ip = get_client_ip(request)
     retry_after = get_register_retry_after_seconds(client_ip, user.email_usuario)
     if retry_after > 0:
-        raise HTTPException(
+        return JSONResponse(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail={
-                "message": "Demasiadas solicitudes de registro para esta combinación de IP y correo.",
+            content={
+                "detail": "Demasiadas solicitudes de registro para esta combinación de IP y correo.",
                 "retry_after": retry_after,
             },
         )
