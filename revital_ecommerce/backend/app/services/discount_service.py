@@ -88,21 +88,34 @@ def get_discount_exchangeable(db:Session, id_usuario:Decimal, limit:int = 20):
     try:
         query = text("""
         SELECT
-            id_descuento,
-            nom_descuento,
-            des_descuento,
-            costo_puntos_canje,
-            tipo_calculo_texto,
-            valor_descuento,
-            aplica_a,
-            fec_inicio,
-            fec_fin,
-            puede_canjear,
-            puntos_usuario
+            f.id_descuento,
+            f.nom_descuento,
+            f.des_descuento,
+            f.costo_puntos_canje,
+            f.tipo_calculo_texto,
+            f.valor_descuento,
+            f.aplica_a,
+            f.fec_inicio,
+            f.fec_fin,
+            f.puede_canjear,
+            f.puntos_usuario,
+            d.max_usos_total,
+            d.usos_actuales_total,
+            d.max_usos_por_usuario,
+            COALESCE(uc.usos_usuario_actuales, 0) AS usos_usuario_actuales
         FROM fun_listar_descuentos_canjeables(
             :id_usuario,
             :limit
-        )
+        ) f
+        JOIN tab_descuentos d ON d.id_descuento = f.id_descuento
+        LEFT JOIN (
+            SELECT
+                id_descuento,
+                COUNT(*)::INT AS usos_usuario_actuales
+            FROM tab_canjes_puntos_descuentos
+            WHERE id_usuario = :id_usuario
+            GROUP BY id_descuento
+        ) uc ON uc.id_descuento = f.id_descuento
         """)
         result = db.execute(query, {'id_usuario': id_usuario, 'limit': limit})
         return result.mappings().all()

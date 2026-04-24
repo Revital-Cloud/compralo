@@ -93,6 +93,10 @@ class DiscountExchangeableResponse(BaseModel):
     fec_fin: Optional[date] = None
     puede_canjear: Optional[bool] = None
     puntos_usuario: Optional[int] = None
+    max_usos_total: Optional[int] = None
+    usos_actuales_total: Optional[int] = None
+    max_usos_por_usuario: Optional[int] = None
+    usos_usuario_actuales: Optional[int] = None
     
     class Config:
         from_attributes = True

@@ -1,6 +1,7 @@
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from fastapi import HTTPException, status
 
 from schemas.exchange_schema import ApplyExchangeOrder, ExchangePointsDiscount
 
@@ -94,19 +95,28 @@ def exchange_points_discount(db:Session, exchange_points_discount:ExchangePoints
         ).mappings().first()
 
         if not limits_row:
-            raise Exception("Descuento no encontrado")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Descuento no encontrado",
+            )
 
         if (
             limits_row.get("max_usos_total") is not None
             and int(limits_row["total_canjes"]) >= int(limits_row["max_usos_total"])
         ):
-            raise Exception("Este descuento alcanzó su límite máximo de canjes")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Este descuento alcanzó su límite máximo de canjes",
+            )
 
         if (
             limits_row.get("max_usos_por_usuario") is not None
             and int(limits_row["canjes_usuario"]) >= int(limits_row["max_usos_por_usuario"])
         ):
-            raise Exception("Ya alcanzaste el límite de canjes para este descuento")
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Ya alcanzaste el límite de canjes para este descuento",
+            )
 
         query = text("""
         SELECT fun_canjear_puntos_descuento(
@@ -118,9 +128,15 @@ def exchange_points_discount(db:Session, exchange_points_discount:ExchangePoints
         fetched_result = result.fetchone()
         db.commit()
         return fetched_result[0] if fetched_result else None
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al realizar canje de puntos por descuento: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al realizar canje de puntos por descuento: {str(e)}",
+        )
     
 def apply_exchange_order(db:Session, apply_exchange_order:ApplyExchangeOrder, usr_update:Decimal):
     """
