@@ -1156,13 +1156,32 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
         gid = int(v["group_id"])
         dom_val = group_id_to_dominant_value.get(gid)
         if dom_val is not None and str(dom_val).strip() and str(dom_val).strip().lower() != "sin color":
-            v["attributes"] = dict(v.get("attributes") or {})
-            v["attributes"]["dominant"] = dom_val
-            # Clave por attribute_id para que el formulario muestre el valor en "Atributos de la categoría"
             dom_attr_name = group_id_to_dominant_attr_name.get(gid)
             dominant_attr_id = name_to_attr_id.get(dom_attr_name) if dom_attr_name else None
+            # Verificar que dom_val sea un valor real en tab_attribute_values (no un label generado como "1 - Variante 3")
+            is_real_value = False
             if dominant_attr_id is not None:
-                v["attributes"][str(dominant_attr_id)] = dom_val
+                check = db.execute(
+                    text("SELECT 1 FROM tab_attribute_values WHERE attribute_id = :aid AND LOWER(TRIM(value)) = LOWER(TRIM(:val)) AND is_active = TRUE LIMIT 1"),
+                    {"aid": dominant_attr_id, "val": str(dom_val).strip()},
+                ).first()
+                is_real_value = check is not None
+            else:
+                # Si no hay attribute_id conocido, asumir que es válido (no bloquear)
+                is_real_value = True
+            if is_real_value:
+                v["attributes"] = dict(v.get("attributes") or {})
+                v["attributes"]["dominant"] = dom_val
+                # Clave por attribute_id para que el formulario muestre el valor en "Atributos de la categoría"
+                if dominant_attr_id is not None:
+                    v["attributes"][str(dominant_attr_id)] = dom_val
+            else:
+                # dominant_value es un label sintético (ej. "1 - Variante 3"); limpiar para que el
+                # Select en admin quede en "Selecciona una opción" y el usuario corrija el color.
+                v["attributes"] = dict(v.get("attributes") or {})
+                v["attributes"].pop("dominant", None)
+                if dominant_attr_id is not None:
+                    v["attributes"].pop(str(dominant_attr_id), None)
         # tipo_clasificacion: solo columna BD o clave explícita en JSON (no el atributo dominante: Color/Potencia/etc.)
         if not (v.get("tipo_clasificacion") or str(v.get("tipo_clasificacion") or "").strip()):
             if isinstance(v.get("attributes"), dict) and (v["attributes"] or {}).get("Tipo/Clasificación"):
@@ -1420,14 +1439,23 @@ def _get_attribute_name(db: Session, attr_id: Optional[int], default: str = "col
 
 
 def _group_variants_by_dominant(payload_variants: list, dominant_attr_id: Optional[int]) -> dict:
-    """Agrupa variantes por valor del atributo dominante (ej. color). Key = valor o 'Sin color'."""
+    """Agrupa variantes por valor del atributo dominante (ej. color). Key = valor o 'Sin color'.
+
+    Si dominant_attr_id es conocido pero una variante no lo trae, va a 'Sin color' —nunca
+    se usa otro atributo como fallback para evitar que valores de Talla contaminan el nombre
+    del grupo (ej. "L" o "4" como dominant_value falso).
+    """
     groups = {}
     for v in payload_variants:
         attrs = getattr(v, "attributes", None) or {}
         dominant_val = "Sin color"
-        if dominant_attr_id is not None and str(dominant_attr_id) in attrs:
-            dominant_val = str(attrs[str(dominant_attr_id)]).strip() or "Sin color"
+        if dominant_attr_id is not None:
+            # Atributo dominante conocido: solo usar ese atributo, sin fallback a otros
+            if str(dominant_attr_id) in attrs:
+                dominant_val = str(attrs[str(dominant_attr_id)]).strip() or "Sin color"
+            # Si no está → "Sin color" (no caer a otro atributo)
         elif attrs:
+            # Solo cuando no hay ningún atributo dominante conocido, tomar el primero
             first_key = next(iter(attrs), None)
             if first_key is not None and attrs[first_key] is not None:
                 dominant_val = str(attrs[first_key]).strip() or "Sin color"
@@ -1496,7 +1524,7 @@ def create_product_composite(db: Session, payload: ProductCreateComposite, usr_i
                     except (TypeError, ValueError):
                         pass
         dominant_attr_id = _get_dominant_attr_id(db, all_attr_ids)
-        groups_one_per_row = _group_variants_one_per_row(payload.variants, dominant_attr_id)
+        groups_by_dominant = _group_variants_by_dominant(payload.variants, dominant_attr_id)
 
         q1 = text(
             "SELECT fun_insert_producto(:p_category_id, :p_name, :p_description, :p_id_marca, :p_is_active, :p_usr_operacion, :p_id_proveedor)"
@@ -1537,7 +1565,7 @@ def create_product_composite(db: Session, payload: ProductCreateComposite, usr_i
                         {"gid": sin_color_gid, "url": url, "primary": ord_i == 0, "ord": ord_i},
                     )
 
-        for _idx, (group_label, variants_in_group) in sorted(groups_one_per_row.items()):
+        for group_label, variants_in_group in sorted(groups_by_dominant.items()):
             resolved_label = group_label or "Sin color"
             if dominant_attr_id is not None and (group_label or "").strip():
                 _, text_val = _resolve_attribute_value_id(db, dominant_attr_id, group_label)
@@ -1568,17 +1596,22 @@ def create_product_composite(db: Session, payload: ProductCreateComposite, usr_i
                 internal_attrs = {}
                 if v.attributes:
                     for k, val in v.attributes.items():
-                        if dominant_attr_id is not None and str(k) == str(dominant_attr_id):
+                        # Omitir claves no numéricas (ej. "dominant") — metadatos de frontend
+                        try:
+                            attr_id_int = int(k)
+                        except (TypeError, ValueError):
+                            continue
+                        if dominant_attr_id is not None and attr_id_int == dominant_attr_id:
                             continue
                         if val is None or str(val).strip() == "":
                             continue
                         try:
-                            _, text_val = _resolve_attribute_value_id(db, int(k), val)
+                            _, text_val = _resolve_attribute_value_id(db, attr_id_int, val)
                             if text_val:
                                 internal_attrs[str(k)] = text_val
                             else:
                                 internal_attrs[str(k)] = str(val).strip()
-                        except (TypeError, ValueError):
+                        except Exception:
                             internal_attrs[str(k)] = str(val).strip()
                 attrs_json = json.dumps(internal_attrs) if internal_attrs else "{}"
                 tipo_clasif = (v.tipo_clasificacion and v.tipo_clasificacion.strip()) or None if hasattr(v, 'tipo_clasificacion') else None
@@ -1690,7 +1723,7 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                     except (TypeError, ValueError):
                         pass
         dominant_attr_id = _get_dominant_attr_id(db, all_attr_ids)
-        groups_one_per_row = _group_variants_one_per_row(payload.variants, dominant_attr_id)
+        groups_by_dominant = _group_variants_by_dominant(payload.variants, dominant_attr_id)
         # Nombre del atributo dominante al actualizar: mismo criterio que en create_product_composite
         dominant_attr_name = _get_attribute_name(db, dominant_attr_id, default="color")
 
@@ -1718,7 +1751,7 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                         {"gid": sin_color_gid, "url": url, "primary": ord_i == 0, "ord": ord_i},
                     )
 
-        for _idx, (group_label, variants_in_group) in sorted(groups_one_per_row.items()):
+        for group_label, variants_in_group in sorted(groups_by_dominant.items()):
             # Resolve value_id to display string for group dominant_value (e.g. "123" -> "Negro")
             resolved_label = group_label or "Sin color"
             if dominant_attr_id is not None and (group_label or "").strip():
@@ -1797,17 +1830,22 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                 internal_attrs = {}
                 if v.attributes:
                     for k, val in v.attributes.items():
-                        if dominant_attr_id is not None and str(k) == str(dominant_attr_id):
+                        # Omitir claves no numéricas (ej. "dominant") — metadatos de frontend
+                        try:
+                            attr_id_int = int(k)
+                        except (TypeError, ValueError):
+                            continue
+                        if dominant_attr_id is not None and attr_id_int == dominant_attr_id:
                             continue
                         if val is None or str(val).strip() == "":
                             continue
                         try:
-                            _, text_val = _resolve_attribute_value_id(db, int(k), val)
+                            _, text_val = _resolve_attribute_value_id(db, attr_id_int, val)
                             if text_val:
                                 internal_attrs[str(k)] = text_val
                             else:
                                 internal_attrs[str(k)] = str(val).strip()
-                        except (TypeError, ValueError):
+                        except Exception:
                             internal_attrs[str(k)] = str(val).strip()
                 attrs_json = json.dumps(internal_attrs) if internal_attrs else "{}"
                 tipo_clasif = (v.tipo_clasificacion and v.tipo_clasificacion.strip()) or None if hasattr(v, 'tipo_clasificacion') else None

@@ -62,7 +62,7 @@ export function AttributeValueSelect({
           {required && ' *'}
         </Label>
         <Select
-          value={safeNumericValue != null ? String(safeNumericValue) : undefined}
+          value={safeNumericValue != null ? String(safeNumericValue) : ''}
           onValueChange={(v) => onChange(Number(v))}
           disabled={disabled}
         >
