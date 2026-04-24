@@ -411,7 +411,24 @@ def create_order_from_checkout_reference(
 
     # Lock por referencia para evitar órdenes duplicadas
     # (confirm-checkout y webhook pueden correr en paralelo).
-    db.execute(text("SELECT pg_advisory_xact_lock(hashtext(:ref)::bigint)"), {"ref": reference})
+    # Importante: usar TRY lock para no bloquear todo el request/event-loop
+    # cuando ya existe otra confirmación en curso con la misma referencia.
+    lock_row = db.execute(
+        text("SELECT pg_try_advisory_xact_lock(hashtext(:ref)::bigint)"),
+        {"ref": reference},
+    ).fetchone()
+    got_lock = bool(lock_row[0]) if lock_row and len(lock_row) > 0 else False
+    if not got_lock:
+        logger.warning(
+            "Referencia %s ya se está procesando en otra transacción; se evita bloqueo esperando lock.",
+            reference,
+        )
+        # Si ya quedó consolidado por el otro proceso, devolverlo.
+        existing_locked = get_payment_by_reference(db, reference)
+        if existing_locked and existing_locked.get("id_orden") is not None:
+            return int(existing_locked["id_orden"])
+        # Si aún no existe orden, dejar que el cliente reintente en polling.
+        return None
     existing = get_payment_by_reference(db, reference)
     if existing and existing.get("id_orden") is not None:
         order_id_existing = int(existing["id_orden"])
