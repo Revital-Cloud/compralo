@@ -295,5 +295,5 @@ def change_password(db: Session, user_id: Decimal, current_password: str, new_pa
     # Actualizar contraseña
     hashed_password = get_password_hash(new_password)
     user_service.update_password(db, user_id, hashed_password, usr_operacion=user_id)
-    
+    # Quitar mas adelante
     return True 
