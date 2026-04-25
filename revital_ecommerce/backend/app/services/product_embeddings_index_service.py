@@ -4,7 +4,7 @@ Indexado de embeddings de productos hacia `tab_product_embeddings`.
 Qué hace:
 - Lee productos (activos) desde la misma fuente que el catálogo (fun_filter_products)
 - Construye el texto canónico (nombre, marca, categoría, descripción)
-- Genera embedding (por ahora HashingEmbeddingProvider)
+- Genera embedding usando `OllamaEmbeddingProvider`
 - Hace upsert en `tab_product_embeddings`
 
 Por qué está separado de la búsqueda:

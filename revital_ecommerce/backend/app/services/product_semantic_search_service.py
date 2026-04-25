@@ -8,7 +8,7 @@ Este módulo conecta 3 conceptos:
 
 2) Texto -> embedding (vector)
    - lo hace un `EmbeddingProvider`
-   - por ahora usamos `HashingEmbeddingProvider` (NO semántico, solo para demostrar flujo)
+   - usamos `OllamaEmbeddingProvider` para embeddings semánticos reales
 
 3) Embedding -> topK product_ids (pgvector)
    - lo hace `pgvector_product_embeddings_service.semantic_search_product_ids`
@@ -228,6 +228,32 @@ def _fetch_products_by_ids(db: Session, product_ids: Sequence[int]) -> Dict[int,
     )
     rows = db.execute(q, {"ids": ids}).mappings().all()
     return {int(r["product_id"]): dict(r) for r in rows}
+
+
+def _filter_active_product_ids(db: Session, product_ids: Sequence[int]) -> List[int]:
+    """
+    Filtra IDs para conservar solo productos activos que siguen existiendo.
+
+    Esto estabiliza la paginación cuando hay embeddings huérfanos
+    (producto desactivado o eliminado sin limpiar embedding).
+    """
+    if not product_ids:
+        return []
+
+    ids = [int(pid) for pid in dict.fromkeys(product_ids)]
+    rows = db.execute(
+        text(
+            """
+            SELECT p.id AS product_id
+            FROM tab_products p
+            WHERE p.id = ANY(:ids)
+              AND p.is_active = TRUE
+            """
+        ),
+        {"ids": ids},
+    ).mappings().all()
+    valid_ids = {int(r["product_id"]) for r in rows}
+    return [pid for pid in ids if pid in valid_ids]
 
 
 def _to_product_filtered(row: dict, *, total_registros: int) -> ProductFiltered:
@@ -486,8 +512,9 @@ def semantic_search_products(
             f"Dimensión de embedding inesperada: {len(query_embedding)} (esperada {DEFAULT_EMBEDDING_DIMENSIONS})"
         )
 
-    # Pedimos más que `limit` para poder paginar con offset sin recalcular.
-    top_k = max(1, int(offset) + int(limit))
+    # Calculamos ranking completo para que `total`/`total_pages` sean estables
+    # entre páginas y no dependan de `offset`.
+    top_k = max(1, int(embeddings_cnt))
     ranked = semantic_search_product_ids(db, query_embedding=query_embedding, top_k=top_k)
     ranked = _rerank_semantic_candidates(db, query=q, ranked=ranked)
 
@@ -548,6 +575,7 @@ def semantic_search_products(
     if min_score is not None:
         ranked = [r for r in ranked if float(r.score) >= float(min_score)]
     ranked_ids = [r.product_id for r in ranked]
+    ranked_ids = _filter_active_product_ids(db, ranked_ids)
 
     if not ranked_ids:
         classic_result = _fallback_classic_or_text_search(db, query=q, limit=limit, offset=offset)
@@ -571,15 +599,14 @@ def semantic_search_products(
             matches,
         )
 
-    # Traemos solo los productos necesarios para los IDs rankeados.
-    by_id = _fetch_products_by_ids(db, ranked_ids)
-    ordered_rows = [by_id[pid] for pid in ranked_ids if pid in by_id]
-    total = len(ordered_rows)
+    total = len(ranked_ids)
 
     page = (offset // limit) + 1 if limit else 1
     total_pages = (total + limit - 1) // limit if total and limit else 0
 
-    slice_rows = ordered_rows[int(offset) : int(offset) + int(limit)]
+    page_ids = ranked_ids[int(offset) : int(offset) + int(limit)]
+    by_id = _fetch_products_by_ids(db, page_ids)
+    slice_rows = [by_id[pid] for pid in page_ids if pid in by_id]
     products = [_to_product_filtered(r, total_registros=total) for r in slice_rows]
 
     return (

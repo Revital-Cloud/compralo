@@ -748,7 +748,7 @@ async def semantic_search_products_debug(
     min_score_ratio: float | None = None,
     max_score_drop: float | None = None,
     db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user_optional),
+    current_user: UserInToken = Depends(require_admin()),
 ):
     """
     Versión debug de la búsqueda semántica.
