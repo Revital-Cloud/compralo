@@ -7,7 +7,7 @@ import { ProductsHeader } from "@/components/admin/products";
 import { ProductsFilters } from "@/components/admin/products/products-filters";
 // Import explícito para evitar "Pagination is not defined" (referencia desde barrel u otro módulo)
 import { Pagination } from "@/components/admin/products/pagination";
-import { useProductsAdmin, useDeactivateActivateProductById, useFilterOptionsAdmin } from "@/hooks/use-products";
+import { useProductsAdmin, useDeactivateActivateProductById, useFilterOptionsAdmin, useReindexProductEmbeddings } from "@/hooks/use-products";
 import type { Product } from '@/types/product';
 import DataTable from '@/components/tables/table';
 import { ColumnDef } from '@tanstack/react-table';
@@ -176,6 +176,7 @@ const ProductsPage = () => {
   });
 
   const deactivateActivateProductMutation = useDeactivateActivateProductById();
+  const reindexEmbeddingsMutation = useReindexProductEmbeddings();
 
   // Manejar cambio de página (actualiza la URL; currentPage se lee de la URL)
   const handlePageChange = useCallback((page: number) => {
@@ -524,7 +525,10 @@ const ProductsPage = () => {
   if (error) {
     return (
       <div className="space-y-6">
-        <ProductsHeader />
+        <ProductsHeader
+          onReindexEmbeddings={() => reindexEmbeddingsMutation.mutate(10000)}
+          isReindexing={reindexEmbeddingsMutation.isPending}
+        />
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -549,7 +553,10 @@ const ProductsPage = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <ProductsHeader />
+      <ProductsHeader
+        onReindexEmbeddings={() => reindexEmbeddingsMutation.mutate(10000)}
+        isReindexing={reindexEmbeddingsMutation.isPending}
+      />
 
       {/* Filtros de productos */}
       <div data-tour-id="products-filters">

@@ -243,6 +243,51 @@ export async function quickSearchProducts(query: string, limit: number = 20): Pr
 }
 
 /**
+ * Búsqueda semántica (AI Product Search).
+ *
+ * Backend:
+ * - GET /products/semantic-search?q=...&limit=...&offset=...
+ *
+ * Nota:
+ * - El backend ya incluye fallback a búsqueda clásica cuando:
+ *   - Ollama no está disponible, o
+ *   - no hay embeddings indexados, o
+ *   - el score no es suficiente.
+ */
+export async function semanticSearchProducts(
+  query: string,
+  params?: { limit?: number; offset?: number; min_score_ratio?: number; max_score_drop?: number; min_score?: number }
+): Promise<ProductFilterResponse> {
+  const {
+    limit = 20,
+    offset = 0,
+    min_score_ratio,
+    max_score_drop,
+    min_score,
+  } = params ?? {}
+
+  return await get<ProductFilterResponse>('/products/semantic-search', {
+    params: {
+      q: query,
+      limit,
+      offset,
+      ...(min_score != null ? { min_score } : {}),
+      ...(min_score_ratio != null ? { min_score_ratio } : {}),
+      ...(max_score_drop != null ? { max_score_drop } : {}),
+    },
+  })
+}
+
+/**
+ * Reindexa embeddings de productos (admin).
+ */
+export async function reindexProductEmbeddings(limit: number = 10000): Promise<{ indexed: number; failed: number }> {
+  return await post<{ indexed: number; failed: number }>('/admin/products/embeddings/reindex', null, {
+    params: { limit },
+  });
+}
+
+/**
  * Obtener productos por categoría
  */
 export async function getProductsByCategory(categoryId: number, params?: PaginationParams): Promise<PaginatedResponse<Product>> {
@@ -448,6 +493,8 @@ const productService = {
   getFilterStats,
   getFilterOptions,
   quickSearchProducts,
+  semanticSearchProducts,
+  reindexProductEmbeddings,
   
   // Inventario
   updateProductStock,

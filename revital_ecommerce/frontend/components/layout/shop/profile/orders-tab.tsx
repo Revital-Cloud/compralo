@@ -91,6 +91,25 @@ function formatDate(dateString: string) {
   }
 }
 
+function formatCurrency(value: number) {
+  return `$${Number(value || 0).toLocaleString()}`;
+}
+
+function getOrderHeadline(state: number) {
+  switch (state) {
+    case 1:
+      return "Estamos preparando tu pedido";
+    case 2:
+      return "Tu pedido va en camino";
+    case 3:
+      return "Tu pedido fue enviado";
+    case 4:
+      return "Este pedido fue cancelado";
+    default:
+      return "Estado actualizado de tu pedido";
+  }
+}
+
 export default function OrdersTab() {
   const [selectedOrder, setSelectedOrder] = useState<OrderDetail | null>(null);
   const [reviewingProduct, setReviewingProduct] = useState<number | null>(null);
@@ -118,7 +137,7 @@ export default function OrdersTab() {
     
     try {
       // Obtener los datos del producto desde la orden
-      const product = orderDetail.items?.find(item => item.id_item === reviewingProduct);
+      const product = orderDetail.items?.find((item: OrderProductItem) => item.id_item === reviewingProduct);
       if (!product) {
         toast.error('No se encontró el producto');
         return;
@@ -170,7 +189,7 @@ export default function OrdersTab() {
         
         // Si el error indica que ya existe una reseña, actualizar el estado
         if (typeof errorMessage === 'string' && errorMessage.includes('Ya has reseñado')) {
-          const product = orderDetail?.items?.find(item => item.id_item === reviewingProduct);
+          const product = orderDetail?.items?.find((item: OrderProductItem) => item.id_item === reviewingProduct);
           if (product && orderDetail?.id_orden) {
             const productKey = product.id_producto != null ? String(product.id_producto) : `item-${product.id_item}`;
             setReviewsSentByOrder(prev => {
@@ -246,7 +265,7 @@ export default function OrdersTab() {
             </div>
           ) : (
             <div className="space-y-4">
-              {orders.map((o) => (
+              {orders.map((o: OrderItem) => (
                 <div 
                   key={o.id_orden} 
                   className="flex items-center justify-between rounded-md border border-border px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer"
@@ -298,157 +317,176 @@ export default function OrdersTab() {
                 <p className="text-muted-foreground">Cargando detalles…</p>
               </div>
             ) : orderDetail ? (
-              <div className="space-y-4">
-                <div className="rounded-md border border-border p-4 space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Fecha</span>
-                    <span>{orderDetail.fec_insert ? formatDate(orderDetail.fec_insert) : '—'}</span>
+              <div className="rounded-xl border border-border bg-card p-6 sm:p-8">
+                <p className="text-sm font-medium text-primary">¡Gracias por tu compra!</p>
+                <h2 className="mt-2 text-3xl font-semibold leading-tight tracking-tight">
+                  {getOrderHeadline(orderDetail.ind_estado)}
+                </h2>
+                <p className="mt-3 text-base text-muted-foreground">
+                  Tu orden #{orderDetail.id_orden} está en estado <span className="font-medium text-foreground">{formatStatus(orderDetail.ind_estado)}</span>.
+                </p>
+
+                <div className="mt-8 grid gap-6 border-y border-border py-6 sm:grid-cols-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Fecha</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {orderDetail.fec_insert ? formatDate(orderDetail.fec_insert) : "—"}
+                    </p>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Estado</span>
-                    <span>{formatStatus(orderDetail.ind_estado)}</span>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Método de pago</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{formatPaymentMethod(orderDetail.metodo_pago)}</p>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Método de pago</span>
-                    <span>{formatPaymentMethod(orderDetail.metodo_pago)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span>${Number(orderDetail.val_total_productos).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Descuentos</span>
-                    <span>-${Number(orderDetail.val_total_descuentos || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between font-semibold">
-                    <span>Total</span>
-                    <span>${Number(orderDetail.val_total_pedido).toLocaleString()}</span>
-                  </div>
-                  <div className="pt-2 space-y-1">
-                    <span className="text-muted-foreground">Descuentos aplicados:</span>
-                    {(orderDetail.detalle_descuentos_aplicados && (orderDetail.detalle_descuentos_aplicados as any[])?.length > 0) ? (
-                      <ul className="list-disc pl-5 text-sm">
-                        {(orderDetail.detalle_descuentos_aplicados as any[]).map((d, idx) => {
-                          const label = d.tipo_descuento === "canje_puntos"
-                            ? `Descuento por puntos${d.nombre ? `: ${d.nombre}` : ""}`
-                            : (d.nombre || d.codigo || "Descuento");
-                          const amount = d.descuento_aplicado ?? d.monto ?? d.valor ?? 0;
-                          return (
-                            <li key={idx}>{label} (-${Number(amount).toLocaleString()})</li>
-                          );
-                        })}
-                      </ul>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">Sin descuentos aplicados</p>
-                    )}
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Total pagado</p>
+                    <p className="mt-1 text-sm text-muted-foreground">{formatCurrency(orderDetail.val_total_pedido)}</p>
                   </div>
                 </div>
 
                 {orderDetail.items && orderDetail.items.length > 0 ? (
-                  <div className="rounded-md border border-border p-4">
-                    <p className="font-medium mb-3">Productos</p>
-                    <div className="space-y-4">
-                      {orderDetail.items.map((it, idx) => {
-                        const productImage = getProductImageUrl(it.imagen_url || it.product_image, "/placeholder-product.jpg");
-                        const isReviewing = reviewingProduct === it.id_item;
-                        const productKey = it.id_producto != null ? String(it.id_producto) : `item-${it.id_item ?? idx}`;
-                        const orderReviews = reviewsSentByOrder.get(orderDetail.id_orden) || new Set();
-                        const hasReviewInThisOrder = orderReviews.has(productKey);
-                        
-                        return (
-                          <div key={idx} className="space-y-3">
-                            <div className="flex items-start gap-3">
-                              {/* Imagen del producto */}
-                              <div className="flex-shrink-0">
-                                {productImage ? (
-                                  <Image
-                                    src={productImage}
-                                    alt={it.product_name}
-                                    width={60}
-                                    height={60}
-                                    className="rounded-md object-cover border border-border"
-                                  />
-                                ) : (
-                                  <div className="w-15 h-15 bg-muted rounded-md flex items-center justify-center">
-                                    <Package className="h-6 w-6 text-muted-foreground" />
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {/* Información del producto */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-start justify-between">
-                                  <div className="min-w-0 flex-1">
-                                    <p className="font-medium truncate">{it.product_name}</p>
-                                    <p className="text-sm text-muted-foreground">Cantidad: {it.quantity}</p>
-                                    {it.opciones_elegidas && Object.keys(it.opciones_elegidas).length > 0 && (
-                                      <p className="text-sm text-muted-foreground">
-                                        {Object.entries(it.opciones_elegidas)
-                                          .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
-                                          .join(', ')}
-                                      </p>
-                                    )}
-                                    {it.item_discounts && (
-                                      <p className="text-xs text-muted-foreground">
-                                        Descuentos: {Array.isArray(it.item_discounts) ? it.item_discounts.map((d:any)=>d.nombre||d.codigo).join(', ') : '-'}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <div className="text-right ml-2">
-                                    <p className="text-sm">${Number(it.unit_price).toLocaleString()} c/u</p>
-                                    <p className="font-semibold">${Number(it.total_price).toLocaleString()}</p>
-                                  </div>
+                  <div className="space-y-6 pt-8">
+                    {orderDetail.items.map((it: OrderProductItem, idx: number) => {
+                      const productImage = getProductImageUrl(it.imagen_url || it.product_image, "/placeholder-product.jpg");
+                      const isReviewing = reviewingProduct === it.id_item;
+                      const productKey = it.id_producto != null ? String(it.id_producto) : `item-${it.id_item ?? idx}`;
+                      const orderReviews = reviewsSentByOrder.get(orderDetail.id_orden) || new Set();
+                      const hasReviewInThisOrder = orderReviews.has(productKey);
+
+                      return (
+                        <div key={idx} className="space-y-3 border-b border-border pb-6 last:border-b-0 last:pb-0">
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                            <div className="flex-shrink-0">
+                              {productImage ? (
+                                <Image
+                                  src={productImage}
+                                  alt={it.product_name}
+                                  width={100}
+                                  height={100}
+                                  className="h-[100px] w-[100px] rounded-lg border border-border object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-[100px] w-[100px] items-center justify-center rounded-lg border border-border bg-muted">
+                                  <Package className="h-7 w-7 text-muted-foreground" />
                                 </div>
-                                
-                                {/* Botón de reseña */}
-                                <div className="mt-2">
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setReviewingProduct(isReviewing ? null : it.id_item || null)}
-                                    className="text-xs"
-                                    disabled={hasReviewInThisOrder}
-                                  >
-                                    <MessageSquare className="h-3 w-3 mr-1" />
-                                    {hasReviewInThisOrder 
-                                      ? 'Ya reseñaste este producto' 
-                                      : isReviewing 
-                                        ? 'Cancelar reseña' 
-                                        : 'Haz tu reseña'
-                                    }
-                                  </Button>
-                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex-1">
+                              <p className="text-2xl font-medium leading-tight">{it.product_name}</p>
+                              {it.opciones_elegidas && Object.keys(it.opciones_elegidas).length > 0 && (
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                  {Object.entries(it.opciones_elegidas)
+                                    .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
+                                    .join(", ")}
+                                </p>
+                              )}
+                              {it.item_discounts && (
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  Descuentos: {Array.isArray(it.item_discounts) ? it.item_discounts.map((d:any)=>d.nombre||d.codigo).join(", ") : "-"}
+                                </p>
+                              )}
+
+                              <div className="mt-5 flex flex-wrap items-center gap-3 text-sm">
+                                <span className="font-medium text-foreground">Cantidad</span>
+                                <span className="text-muted-foreground">{it.quantity}</span>
+                                <span className="h-4 w-px bg-border" />
+                                <span className="font-medium text-foreground">Precio</span>
+                                <span className="text-muted-foreground">{formatCurrency(it.unit_price)}</span>
+                                <span className="h-4 w-px bg-border" />
+                                <span className="font-medium text-foreground">Subtotal</span>
+                                <span className="text-muted-foreground">{formatCurrency(it.total_price)}</span>
                               </div>
                             </div>
-                            
-                            {/* Formulario de reseña */}
-                            {isReviewing && (
-                              <ReviewForm
-                                productName={it.product_name}
-                                onSubmit={handleReviewSubmit}
-                                onCancel={() => setReviewingProduct(null)}
-                              />
-                            )}
                           </div>
-                        );
-                      })}
-                    </div>
+
+                          <div className="pt-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setReviewingProduct(isReviewing ? null : it.id_item || null)}
+                              className="text-xs"
+                              disabled={hasReviewInThisOrder}
+                            >
+                              <MessageSquare className="mr-1 h-3 w-3" />
+                              {hasReviewInThisOrder
+                                ? "Ya reseñaste este producto"
+                                : isReviewing
+                                  ? "Cancelar reseña"
+                                  : "Haz tu reseña"}
+                            </Button>
+                          </div>
+
+                          {isReviewing && (
+                            <ReviewForm
+                              productName={it.product_name}
+                              onSubmit={handleReviewSubmit}
+                              onCancel={() => setReviewingProduct(null)}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
-                  <div className="rounded-md border border-border p-4">
-                    <p className="font-medium mb-2">Productos</p>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="pt-8">
+                    <p className="text-base font-medium">Productos</p>
+                    <p className="mt-2 text-sm text-muted-foreground">
                       No se encontró detalle de productos para esta orden. Si crees que es un error, contacta a soporte.
                     </p>
                   </div>
                 )}
 
-                {orderDetail.des_observaciones && (
-                  <div className="pt-2">
-                    <span className="text-muted-foreground">Observaciones:</span>
-                    <p>{orderDetail.des_observaciones}</p>
+                <div className="mt-8 grid gap-6 border-y border-border py-6 sm:grid-cols-2">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Resumen de pago</p>
+                    <div className="mt-3 space-y-2 text-sm">
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>Subtotal</span>
+                        <span>{formatCurrency(orderDetail.val_total_productos)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>Descuentos</span>
+                        <span>-{formatCurrency(orderDetail.val_total_descuentos || 0)}</span>
+                      </div>
+                      <div className="flex items-center justify-between font-semibold text-foreground">
+                        <span>Total</span>
+                        <span>{formatCurrency(orderDetail.val_total_pedido)}</span>
+                      </div>
+                    </div>
                   </div>
-                )}
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Estado del envío</p>
+                    <p className="mt-3 text-sm text-muted-foreground">{formatStatus(orderDetail.ind_estado)}</p>
+                    {orderDetail.des_observaciones && (
+                      <>
+                        <p className="mt-4 text-sm font-medium text-foreground">Observaciones</p>
+                        <p className="mt-1 text-sm text-muted-foreground">{orderDetail.des_observaciones}</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-6">
+                  <p className="text-sm font-medium text-foreground">Descuentos aplicados</p>
+                  {(orderDetail.detalle_descuentos_aplicados && (orderDetail.detalle_descuentos_aplicados as any[])?.length > 0) ? (
+                    <ul className="mt-2 space-y-1 text-sm text-muted-foreground">
+                      {(orderDetail.detalle_descuentos_aplicados as any[]).map((d, idx) => {
+                        const label = d.tipo_descuento === "canje_puntos"
+                          ? `Descuento por puntos${d.nombre ? `: ${d.nombre}` : ""}`
+                          : (d.nombre || d.codigo || "Descuento");
+                        const amount = d.descuento_aplicado ?? d.monto ?? d.valor ?? 0;
+                        return (
+                          <li key={idx} className="flex items-center justify-between">
+                            <span>{label}</span>
+                            <span>-{formatCurrency(amount)}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-sm text-muted-foreground">Sin descuentos aplicados</p>
+                  )}
+                </div>
               </div>
             ) : null}
           </div>

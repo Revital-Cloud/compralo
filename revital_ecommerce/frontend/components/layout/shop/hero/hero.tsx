@@ -7,6 +7,7 @@ import { Star, TrendingUp, Shield, Zap } from "lucide-react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import BgDecorativeElements from "./components/bg-decorative-elements"
+import { getHomepageStats } from "@/services/homepage.service"
 
 const RotatingText = dynamic(() => import("@/components/ui/rotating-text"), {
   ssr: false,
@@ -18,6 +19,11 @@ const RotatingText = dynamic(() => import("@/components/ui/rotating-text"), {
 })
 
 const EcommerceHeroCarousel: React.FC = () => {
+  const [heroStats, setHeroStats] = useState({
+    totalClients: 50000,
+    totalProducts: 10000,
+  })
+
   // Animation variants for text
   const textVariants = {
     hidden: { opacity: 0, y: 20 },
@@ -77,12 +83,45 @@ const EcommerceHeroCarousel: React.FC = () => {
 
   const [showParticles, setShowParticles] = useState(false)
 
+  const formatCompactNumber = (value: number) =>
+    new Intl.NumberFormat("es-CO", {
+      notation: "compact",
+      compactDisplay: "short",
+      maximumFractionDigits: 1,
+    })
+      .format(value)
+      .toUpperCase()
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setShowParticles(true)
     }, 1200)
 
     return () => window.clearTimeout(timeoutId)
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadHomepageStats = async () => {
+      try {
+        const stats = await getHomepageStats()
+        if (!isMounted) return
+
+        setHeroStats({
+          totalClients: stats.total_clients,
+          totalProducts: stats.total_products,
+        })
+      } catch (error) {
+        console.error("[Hero] No se pudieron cargar estadísticas de homepage:", error)
+      }
+    }
+
+    void loadHomepageStats()
+
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   // Floating particles component
@@ -315,7 +354,9 @@ const EcommerceHeroCarousel: React.FC = () => {
                   animate="visible"
                   custom={0}
                 >
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[#ec2538] dark:text-red-500">50K+</div>
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[#ec2538] dark:text-red-500">
+                    {formatCompactNumber(heroStats.totalClients)}
+                  </div>
                   <div className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Clientes</div>
                 </motion.div>
                 <motion.div 
@@ -325,7 +366,9 @@ const EcommerceHeroCarousel: React.FC = () => {
                   animate="visible"
                   custom={1}
                 >
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[#FF8C00] dark:text-orange-500">10K+</div>
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[#FF8C00] dark:text-orange-500">
+                    {formatCompactNumber(heroStats.totalProducts)}
+                  </div>
                   <div className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Productos</div>
                 </motion.div>
                 <motion.div 
@@ -335,7 +378,9 @@ const EcommerceHeroCarousel: React.FC = () => {
                   animate="visible"
                   custom={2}
                 >
-                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[#fec806] dark:text-yellow-400">24/7</div>
+                  <div className="text-xl sm:text-2xl md:text-3xl font-bold text-[#fec806] dark:text-yellow-400">
+                    24/7
+                  </div>
                   <div className="text-[10px] sm:text-xs md:text-sm text-gray-600 dark:text-gray-300 mt-1">Soporte</div>
                 </motion.div>
               </div>

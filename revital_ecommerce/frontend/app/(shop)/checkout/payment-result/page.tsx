@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,11 +12,15 @@ import {
   AlertTriangle,
   ArrowLeft,
   Home,
-  Receipt
+  Receipt,
+  PackageCheck,
+  Truck,
+  Sparkles
 } from "lucide-react";
 import { formatPrice } from "@/utils/format-price";
 import Loading from "@/components/ui/loading";
 import { getTokenForPaymentCallback, clearPaymentCallbackToken } from "@/utils/apiWrapper";
+import { clearCartStorage, useCartStore } from "@/stores/cart-store";
 
 type PaymentStatus = 'success' | 'pending' | 'declined' | 'error' | 'unknown';
 
@@ -28,8 +32,52 @@ interface PaymentResultData {
   message?: string;
 }
 
-const POLL_INTERVAL_MS = 2000;
-const POLL_TIMEOUT_MS = 60000;
+interface OrderPreviewItem {
+  id_item?: number;
+  product_name: string;
+  quantity: number;
+  total_price: number;
+  imagen_url?: string | null;
+  product_image?: string | null;
+}
+
+interface OrderPreviewDetail {
+  id_orden: number;
+  items?: OrderPreviewItem[];
+}
+
+const normalizeOrderId = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return null;
+};
+
+const extractOrderId = (payload: unknown): number | null => {
+  if (!payload || typeof payload !== "object") return null;
+  const obj = payload as Record<string, unknown>;
+  const nestedData = obj.data && typeof obj.data === "object" ? (obj.data as Record<string, unknown>) : null;
+  return (
+    normalizeOrderId(obj.order_id) ??
+    normalizeOrderId(obj.id_orden) ??
+    normalizeOrderId(obj.orderId) ??
+    normalizeOrderId(obj.idOrder) ??
+    normalizeOrderId(nestedData?.order_id) ??
+    normalizeOrderId(nestedData?.id_orden) ??
+    normalizeOrderId(nestedData?.orderId) ??
+    normalizeOrderId(nestedData?.idOrder)
+  );
+};
+
+const POLL_INTERVAL_MS = 1000;
+const POLL_TIMEOUT_MS = 15000;
+const PENDING_FALLBACK_REDIRECT_MS = 5000;
 
 const PaymentResultPage = () => {
   const router = useRouter();
@@ -38,45 +86,68 @@ const PaymentResultPage = () => {
   const [paymentData, setPaymentData] = useState<PaymentResultData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pollingOrderId, setPollingOrderId] = useState<number | null | "pending">(null);
+  const [orderPreview, setOrderPreview] = useState<OrderPreviewDetail | null>(null);
+  const [pendingSince, setPendingSince] = useState<number | null>(null);
+  const initializedParamsRef = useRef<string | null>(null);
+  const confirmFlowStartedRef = useRef<string | null>(null);
+  const finalizedCheckoutRef = useRef(false);
+  const pendingFallbackNavigatedRef = useRef(false);
+  const statusParam = (searchParams.get("status") as PaymentStatus) || "unknown";
+  const transactionIdParam = searchParams.get("transaction_id");
+  const amountParam = searchParams.get("amount");
+  const referenceParam = searchParams.get("reference");
+  const messageParam = searchParams.get("message");
 
   useEffect(() => {
-    // Obtener parámetros de la URL
-    const status = searchParams.get('status') as PaymentStatus || 'unknown';
-    const transactionId = searchParams.get('transaction_id');
-    const amount = searchParams.get('amount');
-    const reference = searchParams.get('reference');
-    const message = searchParams.get('message');
+    const paramsKey = `${statusParam}|${transactionIdParam ?? ""}|${amountParam ?? ""}|${referenceParam ?? ""}|${messageParam ?? ""}`;
+    if (initializedParamsRef.current === paramsKey) {
+      return;
+    }
+    initializedParamsRef.current = paramsKey;
 
     setPaymentData({
-      status,
-      transactionId: transactionId || undefined,
-      amount: amount ? parseInt(amount) : undefined,
-      reference: reference || undefined,
-      message: message || undefined
+      status: statusParam,
+      transactionId: transactionIdParam || undefined,
+      amount: amountParam ? parseInt(amountParam) : undefined,
+      reference: referenceParam || undefined,
+      message: messageParam || undefined
     });
 
     setIsLoading(false);
 
-    if (status === "success") {
+    if (statusParam === "success") {
       queryClient.invalidateQueries({ queryKey: ["cart"] });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
     }
 
-    if (transactionId) {
-      console.log("Transaction ID:", transactionId);
+    if (transactionIdParam) {
+      console.log("Transaction ID:", transactionIdParam);
     }
-  }, [searchParams, queryClient]);
+  }, [
+    amountParam,
+    messageParam,
+    queryClient,
+    referenceParam,
+    statusParam,
+    transactionIdParam
+  ]);
 
   // Confirmar checkout y/o hacer polling: si tenemos transaction_id llamamos confirm-checkout (respaldo si el webhook no llegó)
   useEffect(() => {
-    const reference = searchParams.get('reference');
-    const status = searchParams.get('status');
-    const transactionId = searchParams.get('transaction_id');
+    const reference = referenceParam;
+    const status = statusParam;
+    const transactionId = transactionIdParam;
     if (status !== "success" || !reference || !reference.startsWith("revital_cart_")) {
       return;
     }
+    const flowKey = `${status}|${reference}|${transactionId ?? ""}`;
+    if (confirmFlowStartedRef.current === flowKey) {
+      return;
+    }
+    confirmFlowStartedRef.current = flowKey;
 
     setPollingOrderId("pending");
+    setPendingSince(Date.now());
 
     // Tras redirect de Wompi la página se recarga y el token en memoria se pierde; usar token guardado para este flujo
     const token = getTokenForPaymentCallback();
@@ -99,48 +170,88 @@ const PaymentResultPage = () => {
     let cancelled = false;
     const start = Date.now();
 
-    const run = async () => {
-      // Primero: si tenemos transaction_id, llamar confirm-checkout para crear la orden (respaldo si el webhook no llegó)
-      if (transactionId) {
-        try {
-          const confirmRes = await fetch("/api/payments/confirm-checkout", {
-            method: "POST",
-            headers,
-            body: JSON.stringify({ reference, transaction_id: transactionId }),
-          });
-          const confirmData = await confirmRes.json().catch(() => ({}));
-          if (cancelled) return;
-          if (confirmData?.order_id != null) {
-            queryClient.invalidateQueries({ queryKey: ["cart"] });
-            queryClient.invalidateQueries({ queryKey: ["orders"] });
-            setPollingOrderId(confirmData.order_id);
-            return;
-          }
-        } catch {
-          // Seguir con polling si confirm-checkout falla
-        }
-      }
-
-      // Si no tenemos order_id aún, hacer polling a order-by-reference (por si el webhook llegó después)
-      while (!cancelled && Date.now() - start < POLL_TIMEOUT_MS) {
-        const data = await fetchOrderByReference();
-        if (cancelled) return;
-        if (data?.order_id != null) {
+    const tryConfirmCheckout = async (): Promise<number | null> => {
+      if (!transactionId) return null;
+      try {
+        const confirmRes = await fetch("/api/payments/confirm-checkout", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ reference, transaction_id: transactionId }),
+        });
+        const confirmData = await confirmRes.json().catch(() => ({}));
+        if (cancelled) return null;
+          const orderId = extractOrderId(confirmData);
+          if (orderId != null) {
           queryClient.invalidateQueries({ queryKey: ["cart"] });
           queryClient.invalidateQueries({ queryKey: ["orders"] });
-          setPollingOrderId(data.order_id);
+            return orderId;
+        }
+      } catch {
+        // Ignorar y continuar con el polling
+      }
+      return null;
+    };
+
+    const run = async () => {
+      // Primer intento paralelo para minimizar latencia de "obteniendo pedido...".
+      const [confirmNow, byReferenceNow] = await Promise.all([
+        tryConfirmCheckout(),
+        fetchOrderByReference(),
+      ]);
+
+      if (cancelled) return;
+
+      const firstResolvedOrderId = confirmNow ?? extractOrderId(byReferenceNow);
+      if (firstResolvedOrderId != null) {
+        queryClient.invalidateQueries({ queryKey: ["cart"] });
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+        setPollingOrderId(firstResolvedOrderId);
+        setPendingSince(null);
+        return;
+      }
+
+      // Si no tenemos order_id aún, reintentar confirm-checkout + polling por referencia en paralelo.
+      while (!cancelled && Date.now() - start < POLL_TIMEOUT_MS) {
+        const [retryConfirmOrderId, retryByReference] = await Promise.all([
+          tryConfirmCheckout(),
+          fetchOrderByReference(),
+        ]);
+
+        if (cancelled) return;
+
+        const resolvedOrderId = retryConfirmOrderId ?? extractOrderId(retryByReference);
+        if (resolvedOrderId != null) {
+          queryClient.invalidateQueries({ queryKey: ["cart"] });
+          queryClient.invalidateQueries({ queryKey: ["orders"] });
+          setPollingOrderId(resolvedOrderId);
+          setPendingSince(null);
           return;
         }
+
         await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
       }
+
       if (!cancelled) setPollingOrderId(null);
+      if (!cancelled) setPendingSince(null);
     };
 
     run();
     return () => {
       cancelled = true;
     };
-  }, [searchParams, queryClient]);
+  }, [queryClient, referenceParam, statusParam, transactionIdParam]);
+
+  // Fallback UX: si el flujo tarda demasiado, enviar al listado de órdenes.
+  useEffect(() => {
+    if (pendingSince == null) return;
+    if (pendingFallbackNavigatedRef.current) return;
+    const timeout = setTimeout(() => {
+      if (pendingFallbackNavigatedRef.current) return;
+      pendingFallbackNavigatedRef.current = true;
+      router.replace("/profile?tab=orders");
+    }, PENDING_FALLBACK_REDIRECT_MS);
+    return () => clearTimeout(timeout);
+  }, [pendingSince, router]);
 
   const getStatusConfig = (status: PaymentStatus) => {
     switch (status) {
@@ -218,15 +329,52 @@ const PaymentResultPage = () => {
         : null
       : getOrderIdFromReference(paymentData?.reference);
 
-  // Redirigir automáticamente cuando el polling devuelve order_id (checkout session)
+  // Finalizar checkout localmente cuando ya exista order_id:
+  // - limpiar token temporal
+  // - limpiar estado/caché de carrito para evitar stale UI
+  // - mantener al usuario en esta vista con resumen de compra
   useEffect(() => {
     if (paymentData?.status !== "success" || !resolvedOrderId) return;
     if (!paymentData.reference?.startsWith("revital_cart_")) return;
+    if (finalizedCheckoutRef.current) return;
+    finalizedCheckoutRef.current = true;
     clearPaymentCallbackToken();
-    queryClient.invalidateQueries({ queryKey: ["cart"] });
+    useCartStore.getState().clearCart();
+    useCartStore.getState().setCartId(undefined);
+    clearCartStorage();
+    queryClient.removeQueries({ queryKey: ["cart"] });
     queryClient.invalidateQueries({ queryKey: ["orders"] });
-    router.replace(`/profile/orders/${resolvedOrderId}`);
   }, [paymentData?.status, paymentData?.reference, resolvedOrderId, router, queryClient]);
+
+  // Cargar resumen de productos del pedido para mostrarlo en esta misma vista
+  useEffect(() => {
+    if (!resolvedOrderId) {
+      setOrderPreview(null);
+      return;
+    }
+
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const token = getTokenForPaymentCallback();
+        const headers: HeadersInit = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const res = await fetch(`/api/orders/${resolvedOrderId}/detail`, { method: "GET", headers });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) {
+          setOrderPreview(data);
+        }
+      } catch {
+        // vista sigue funcionando aunque falle el preview
+      }
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedOrderId]);
 
   const handlePrimaryAction = () => {
     switch (paymentData?.status) {
@@ -234,10 +382,10 @@ const PaymentResultPage = () => {
         if (resolvedOrderId) {
           router.push(`/profile/orders/${resolvedOrderId}`);
         } else if (paymentData.reference?.startsWith("revital_cart_") && pollingOrderId === "pending") {
-          // Sigue esperando el resultado del polling
-          return;
+          // Evitar bloqueo de UX: permitir salida al listado de órdenes mientras termina de sincronizar.
+          router.push('/profile?tab=orders');
         } else {
-          router.push('/profile/orders');
+          router.push('/profile?tab=orders');
         }
         break;
       case 'pending':
@@ -284,16 +432,24 @@ const PaymentResultPage = () => {
 
   const statusConfig = getStatusConfig(paymentData.status);
   const StatusIcon = statusConfig.icon;
+  const isSuccess = paymentData.status === "success";
+  const transactionDate = new Date().toLocaleDateString("es-CO", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50 to-white dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 py-10">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
-        <div className="mb-8">
+        <div className="mb-6">
           <Button
             variant="ghost"
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+            className="flex items-center gap-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" />
             Volver
@@ -301,110 +457,164 @@ const PaymentResultPage = () => {
         </div>
 
         {/* Resultado del pago */}
-        <Card className={`${statusConfig.bgColor} ${statusConfig.borderColor} border-2`}>
-          <CardContent className="p-8 text-center">
-            {/* Icono de estado */}
-            <div className="mb-6">
-              <StatusIcon className={`h-16 w-16 ${statusConfig.color} mx-auto`} />
-            </div>
-
-            {/* Título y descripción */}
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-              {statusConfig.title}
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              {statusConfig.description}
-            </p>
-
-            {/* Detalles de la transacción */}
-            {(paymentData.transactionId || paymentData.reference || paymentData.amount) && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 mb-6 text-left">
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                  <Receipt className="h-4 w-4" />
-                  Detalles de la transacción
-                </h3>
-                <div className="space-y-2 text-sm">
-                  {paymentData.transactionId && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">ID de transacción:</span>
-                      <span className="font-mono text-gray-900 dark:text-white">
-                        {paymentData.transactionId}
-                      </span>
+        <Card className={`${isSuccess ? "border-slate-200/80 shadow-xl shadow-slate-200/40 dark:shadow-none dark:border-slate-800" : `${statusConfig.bgColor} ${statusConfig.borderColor} border-2`}`}>
+          <CardContent className="p-8">
+            {isSuccess ? (
+              <div className="space-y-8">
+                <div className="rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-50 via-white to-cyan-50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-cyan-950/30 dark:border-emerald-900/60 p-6">
+                  <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                    <div className="space-y-3">
+                      <div className="inline-flex items-center gap-2 rounded-full bg-white/90 dark:bg-slate-900 px-3 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900">
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Pago confirmado
+                      </div>
+                      <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                        Tu compra ya está en proceso
+                      </h1>
+                      <p className="text-slate-600 dark:text-slate-300 max-w-xl">
+                        Recibimos tu pago correctamente. Estamos preparando tu pedido y muy pronto podrás seguir su estado.
+                      </p>
                     </div>
-                  )}
-                  {paymentData.reference && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Referencia:</span>
-                      <span className="font-mono text-gray-900 dark:text-white">
-                        {paymentData.reference}
-                      </span>
+                    <div className="h-16 w-16 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center shrink-0">
+                      <CheckCircle className="h-9 w-9 text-emerald-600 dark:text-emerald-300" />
                     </div>
-                  )}
-                  {paymentData.amount && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Monto:</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">
-                        {formatPrice(paymentData.amount / 100)} COP
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">Fecha:</span>
-                    <span className="text-gray-900 dark:text-white">
-                      {new Date().toLocaleDateString('es-CO', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
                   </div>
                 </div>
+
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white/90 dark:bg-slate-900/80">
+                    <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Estado</p>
+                    <p className="mt-2 font-semibold text-slate-900 dark:text-white">Confirmado</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white/90 dark:bg-slate-900/80">
+                    <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Fecha</p>
+                    <p className="mt-2 font-semibold text-slate-900 dark:text-white">{transactionDate}</p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 bg-white/90 dark:bg-slate-900/80">
+                    <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">Total pagado</p>
+                    <p className="mt-2 font-semibold text-slate-900 dark:text-white">
+                      {paymentData.amount ? `${formatPrice(paymentData.amount / 100)} COP` : "Sin dato"}
+                    </p>
+                  </div>
+                </div>
+
+                {(paymentData.transactionId || paymentData.reference) && (
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-5 bg-white dark:bg-slate-900">
+                    <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                      <Receipt className="h-4 w-4" />
+                      Datos de la compra
+                    </h3>
+                    <div className="grid gap-4 md:grid-cols-2 text-sm">
+                      {paymentData.transactionId && (
+                        <div>
+                          <p className="text-slate-500 dark:text-slate-400 mb-1">ID de transacción</p>
+                          <p className="font-mono text-slate-900 dark:text-white break-all">{paymentData.transactionId}</p>
+                        </div>
+                      )}
+                      {paymentData.reference && (
+                        <div>
+                          <p className="text-slate-500 dark:text-slate-400 mb-1">Referencia</p>
+                          <p className="font-mono text-slate-900 dark:text-white break-all">{paymentData.reference}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-5 bg-white dark:bg-slate-900">
+                    <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                      <PackageCheck className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+                      Siguientes pasos
+                    </h3>
+                    <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-300">
+                      <li>Estamos validando y preparando tu pedido.</li>
+                      <li>Recibirás actualizaciones en tu historial de órdenes.</li>
+                      <li>Puedes revisar el detalle cuando quieras.</li>
+                    </ul>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-5 bg-white dark:bg-slate-900">
+                    <h3 className="font-semibold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                      <Truck className="h-4 w-4 text-slate-600 dark:text-slate-300" />
+                      Seguimiento
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-300">
+                      Cuando tu pedido cambie de estado podrás verlo desde <span className="font-medium text-slate-900 dark:text-white">Mis Órdenes</span>.
+                    </p>
+                  </div>
+                </div>
+
+                {orderPreview?.items && orderPreview.items.length > 0 && (
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-5 bg-white dark:bg-slate-900">
+                    <h3 className="font-semibold text-slate-900 dark:text-white mb-4">
+                      Productos de tu pedido
+                    </h3>
+                    <div className="space-y-3">
+                      {orderPreview.items.map((item, idx) => (
+                        <div key={`${item.id_item ?? idx}-${item.product_name}`} className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                              {item.product_name}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              Cantidad: {item.quantity}
+                            </p>
+                          </div>
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                            {formatPrice(Number(item.total_price || 0))}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center">
+                <div className="mb-6">
+                  <StatusIcon className={`h-16 w-16 ${statusConfig.color} mx-auto`} />
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                  {statusConfig.title}
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  {statusConfig.description}
+                </p>
               </div>
             )}
 
-            {/* Mensaje adicional */}
             {paymentData.message && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mt-6">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
                   {paymentData.message}
                 </p>
               </div>
             )}
 
-            {/* Mensaje mientras se obtiene order_id (checkout session) */}
             {paymentData.status === 'success' &&
               paymentData.reference?.startsWith('revital_cart_') &&
               pollingOrderId === 'pending' && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-4">
                   Obteniendo tu pedido...
                 </p>
             )}
-            {/* Pago exitoso pero no se pudo obtener order_id (timeout/error): invitar a revisar Mis Órdenes */}
             {paymentData.status === 'success' &&
               paymentData.reference?.startsWith('revital_cart_') &&
               pollingOrderId === null && (
-                <p className="text-sm text-amber-700 dark:text-amber-300 mb-4">
+                <p className="text-sm text-amber-700 dark:text-amber-300 mt-4">
                   Si tu pago fue exitoso, tu pedido puede tardar un momento en aparecer. Revisa en Mis Órdenes.
                 </p>
             )}
 
-            {/* Acciones */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <div className={`flex flex-col sm:flex-row gap-3 ${isSuccess ? "justify-start pt-8" : "justify-center pt-6"}`}>
               <Button
                 variant={statusConfig.actionVariant}
                 onClick={handlePrimaryAction}
-                disabled={
-                  paymentData.status === 'success' &&
-                  paymentData.reference?.startsWith('revital_cart_') &&
-                  pollingOrderId === 'pending'
-                }
                 className="flex items-center gap-2"
               >
                 {statusConfig.actionText}
               </Button>
-              
+
               <Button
                 variant="outline"
                 onClick={() => router.push('/')}

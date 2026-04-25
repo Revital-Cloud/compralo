@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation"
 import { Search, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui"
 import { Button } from "@/components/ui"
-import { get } from "@/utils/apiWrapper"
 import { getProductImageUrl } from "@/utils/image-helpers"
-import type { ProductFiltered, ProductFilterResponse } from "@/types/product"
+import type { ProductFiltered } from "@/types/product"
 import Image from "next/image"
+import { semanticSearchProducts } from "@/services/product.service"
 
 interface ProductSearchBarProps {
   placeholder?: string
@@ -43,10 +43,17 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
       setIsLoading(true)
       setShowNoResultsMessage(false)
       try {
-        const response = await get<ProductFilterResponse>('/products/search', {
-          params: { q: query.trim(), limit: 5 }
+        const trimmed = query.trim()
+        // Semántico (con fallback automático en backend cuando aplique).
+        const response = await semanticSearchProducts(trimmed, {
+          limit: 5,
+          offset: 0,
+          min_score: 0.45,
+          min_score_ratio: 0.92,
+          max_score_drop: 0.07,
         })
-        const products = response?.products || []
+        const products: ProductFiltered[] = response?.products || []
+
         setSuggestions(products)
         setIsOpen(products.length > 0)
       } catch (error) {
@@ -90,9 +97,15 @@ export const ProductSearchBar: React.FC<ProductSearchBarProps> = ({
     setIsLoading(true)
     setShowNoResultsMessage(false)
     try {
-      const response = await get<ProductFilterResponse>('/products/search', {
-        params: { q: trimmed, limit: 5 }
+      // Semántico (el backend decide fallback si es necesario).
+      const response = await semanticSearchProducts(trimmed, {
+        limit: 5,
+        offset: 0,
+        min_score: 0.45,
+        min_score_ratio: 0.92,
+        max_score_drop: 0.07,
       })
+
       const products = response?.products || []
       if (products.length === 0) {
         setSuggestions([])

@@ -94,6 +94,15 @@ class Settings(BaseSettings):
     # Es opcional; si falta, las rutas /admin/ai devuelven 503.
     GROQ_API_KEY: Optional[str] = None
 
+    # AI Product Search (Ollama embeddings)
+    # Son opcionales porque el backend tiene fallback a búsqueda clásica.
+    OLLAMA_BASE_URL: Optional[str] = None
+    OLLAMA_EMBED_MODEL: Optional[str] = None
+    AI_SEARCH_MIN_BEST_SCORE: float = 0.45
+    AI_SEARCH_DEFAULT_MIN_SCORE: Optional[float] = None
+    AI_SEARCH_DEFAULT_MIN_SCORE_RATIO: Optional[float] = None
+    AI_SEARCH_DEFAULT_MAX_SCORE_DROP: Optional[float] = None
+
     # Cloudflare Turnstile (CAPTCHA) - verificación del lado servidor.
     # Si no está configurado, el backend no valida el captcha y se considera deshabilitado.
     TURNSTILE_SECRET_KEY: Optional[str] = None

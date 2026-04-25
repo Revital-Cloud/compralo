@@ -40,6 +40,8 @@ from schemas.product_schema import (
     ProductCreateComposite,
 )
 from services import cloudinary_service
+from services import product_embeddings_index_service
+from services.embedding_provider_service import EmbeddingsNotConfiguredError
 from services.out_of_stock_notification_service import (
     LOW_STOCK_MAX,
     notify_variant_low_stock,
@@ -1391,6 +1393,12 @@ async def create_product(db: Session, product: ProductCreate, image_files: Optio
             db.execute(text("SELECT fun_insert_product_image(:pid, :url, :main, :ord, :usr)"), {"pid": product_id, "url": url, "main": (i == 0), "ord": i, "usr": usr_insert})
         if urls:
             db.commit()
+        # Intento de indexación automática (no bloqueante para la creación).
+        try:
+            product_embeddings_index_service.reindex_product_by_id(db, product_id=product_id)
+        except (EmbeddingsNotConfiguredError, Exception):
+            # Si Ollama no está disponible o falla el indexado, no rompemos el flujo de negocio.
+            pass
         return f"OK:{product_id}"
     except Exception as e:
         db.rollback()
@@ -1640,6 +1648,11 @@ def create_product_composite(db: Session, payload: ProductCreateComposite, usr_i
                     raise Exception(str(rc) if rc else "Error al insertar combinación")
 
         db.commit()
+        # Intento de indexación automática (no bloqueante).
+        try:
+            product_embeddings_index_service.reindex_product_by_id(db, product_id=product_id)
+        except (EmbeddingsNotConfiguredError, Exception):
+            pass
         return f"OK:{product_id}"
     except Exception as e:
         db.rollback()
@@ -1945,6 +1958,11 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                 """), {"cid": ref_ids[j], "usr": usr_update})
 
         db.commit()
+        # Intento de indexación automática (no bloqueante).
+        try:
+            product_embeddings_index_service.reindex_product_by_id(db, product_id=product_id)
+        except (EmbeddingsNotConfiguredError, Exception):
+            pass
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al actualizar producto compuesto: {str(e)}")
@@ -2049,6 +2067,11 @@ async def update_product(
             db.rollback()
             raise Exception(str(msg).strip())
         db.commit()
+        # Intento de indexación automática (no bloqueante).
+        try:
+            product_embeddings_index_service.reindex_product_by_id(db, product_id=id_producto)
+        except (EmbeddingsNotConfiguredError, Exception):
+            pass
         return msg
     except Exception as e:
         db.rollback()
@@ -2077,6 +2100,14 @@ def deactivate_activate_product(
         result = db.execute(query, params)
         fetched_result = result.fetchone()
         db.commit()
+        # Sincronizar índice semántico con estado activo/inactivo.
+        try:
+            if activar:
+                product_embeddings_index_service.reindex_product_by_id(db, product_id=product_id)
+            else:
+                product_embeddings_index_service.delete_product_embedding(db, product_id=product_id)
+        except (EmbeddingsNotConfiguredError, Exception):
+            pass
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()
