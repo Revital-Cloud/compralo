@@ -23,11 +23,12 @@ export function AdminChatTrigger() {
     <>
       <Button
         variant="ghost"
-        size="icon"
         onClick={() => setOpen(true)}
         title="Abrir asistente de IA"
+        className="gap-2"
       >
         <IconSparkles className="h-5 w-5" />
+        <span className="text-sm font-medium">Asistente IA</span>
       </Button>
       <AiChatPanel open={open} onOpenChange={setOpen} aiEnabled={aiEnabled} />
     </>

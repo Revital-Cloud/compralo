@@ -48,13 +48,24 @@ import {
   calculateDiscountPercentage 
 } from "@/utils/discount-utils";
 
+/**
+ * Mapa de la página `checkout`.
+ *
+ * Flujo de alto nivel:
+ * 1) Verifica sesión activa; si no, redirige a login con retorno.
+ * 2) Captura/selecciona información de dirección de envío.
+ * 3) Calcula resumen final (subtotal, envío, descuentos por puntos/código).
+ * 4) Crea datos de checkout para Wompi sin crear orden todavía.
+ * 5) Orden se materializa después de confirmación de pago aprobado.
+ */
+
 const CheckoutPage = () => {
   const router = useRouter();
   const { user, isAuthenticated, isHydrated, isLoadingUser } = useAuth();
   const { items, totals, total, hasItems, isLoading: cartLoading, id_carrito, selectedCanjeId, cartUser, isMigratingCart } = useCart();
   const queryClient = useQueryClient();
 
-  // Require login for checkout: redirect to login with return URL so after login user comes back to checkout
+  // Checkout es ruta protegida: fuerza login y conserva retorno a `/checkout`.
   useEffect(() => {
     if (!isHydrated || isLoadingUser) return;
     if (!isAuthenticated) {
@@ -129,7 +140,7 @@ const CheckoutPage = () => {
   const totalConDescuentos = Number(totals?.total_final) ?? subtotal;
   const totalDescCanjeado = Number(totals?.total_desc_canjeado ?? 0);
 
-  // Código de descuento aplicado en el carrito: validar y obtener total con descuento para mostrarlo en el resumen
+  // Valida cupón guardado desde carrito para mantener continuidad entre pantallas.
   const codigoDescuentoStored =
     typeof window !== "undefined" ? sessionStorage.getItem("checkout_codigo_descuento") : null;
   const { data: appliedCodeValidation } = useQuery({
@@ -190,7 +201,7 @@ const CheckoutPage = () => {
       return;
     }
 
-    // Obtener el carrito actual del servidor para evitar enviar un id_carrito obsoleto.
+    // Rehidrata `id_carrito` desde servidor para evitar usar ids obsoletos.
     // IMPORTANTE: usar id_usuario (no session_id) para evitar referencias a carritos anónimos.
     let cartId: number;
     try {
@@ -350,7 +361,7 @@ const CheckoutPage = () => {
         </div>
       </div>
 
-      {/* Modal de Wompi: usa checkoutData para no crear orden hasta que el pago sea aprobado */}
+      {/* Modal Wompi: el backend confirma y crea orden solo al aprobar transacción. */}
       <WompiModal
         isOpen={isWompiModalOpen}
         onClose={() => {

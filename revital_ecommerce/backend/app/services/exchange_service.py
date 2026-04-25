@@ -1,6 +1,7 @@
 from decimal import Decimal
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from fastapi import HTTPException, status
 
 from schemas.exchange_schema import ApplyExchangeOrder, ExchangePointsDiscount
 
@@ -64,7 +65,59 @@ def exchange_points_discount(db:Session, exchange_points_discount:ExchangePoints
     """
     try:
         params = exchange_points_discount.model_dump()
+        # Seguridad: el canje siempre se ejecuta para el usuario autenticado.
+        params["id_usuario"] = usr_insert
         params["usr_insert"] = usr_insert
+
+        # Validar límites de uso antes de intentar el canje en la función SQL.
+        limits_query = text("""
+        SELECT
+            d.max_usos_total,
+            d.max_usos_por_usuario,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM tab_canjes_puntos_descuentos c
+                WHERE c.id_descuento = d.id_descuento
+            ), 0) AS total_canjes,
+            COALESCE((
+                SELECT COUNT(*)
+                FROM tab_canjes_puntos_descuentos c
+                WHERE c.id_descuento = d.id_descuento
+                  AND c.id_usuario = :id_usuario
+            ), 0) AS canjes_usuario
+        FROM tab_descuentos d
+        WHERE d.id_descuento = :id_descuento
+        LIMIT 1
+        """)
+        limits_row = db.execute(
+            limits_query,
+            {"id_descuento": params["id_descuento"], "id_usuario": params["id_usuario"]},
+        ).mappings().first()
+
+        if not limits_row:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Descuento no encontrado",
+            )
+
+        if (
+            limits_row.get("max_usos_total") is not None
+            and int(limits_row["total_canjes"]) >= int(limits_row["max_usos_total"])
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Este descuento alcanzó su límite máximo de canjes",
+            )
+
+        if (
+            limits_row.get("max_usos_por_usuario") is not None
+            and int(limits_row["canjes_usuario"]) >= int(limits_row["max_usos_por_usuario"])
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Ya alcanzaste el límite de canjes para este descuento",
+            )
+
         query = text("""
         SELECT fun_canjear_puntos_descuento(
             :id_usuario, 
@@ -75,9 +128,15 @@ def exchange_points_discount(db:Session, exchange_points_discount:ExchangePoints
         fetched_result = result.fetchone()
         db.commit()
         return fetched_result[0] if fetched_result else None
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception as e:
         db.rollback()
-        raise Exception(f"Error al realizar canje de puntos por descuento: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al realizar canje de puntos por descuento: {str(e)}",
+        )
     
 def apply_exchange_order(db:Session, apply_exchange_order:ApplyExchangeOrder, usr_update:Decimal):
     """

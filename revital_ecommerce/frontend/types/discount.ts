@@ -64,6 +64,10 @@ export interface DiscountExchangeable {
   fec_fin: string | null
   puede_canjear: boolean | null
   puntos_usuario: number | null
+  max_usos_total?: number | null
+  usos_actuales_total?: number | null
+  max_usos_por_usuario?: number | null
+  usos_usuario_actuales?: number | null
 }
 
 /** Respuesta del canje de puntos por descuento (POST /canjes-puntos-descuento) */

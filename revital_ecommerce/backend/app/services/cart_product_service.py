@@ -7,6 +7,20 @@ from psycopg2.extras import Json
 
 from schemas.cart_product_schemas import CalculateTotalCart, CartProductCreate, CartProductDelete, GetCartDetail, MigrateCartAnonymous, GetCartUser, CartItemWithBasicInfo, ProductBasicInfo
 
+"""
+Servicios de carrito (capa de negocio/persistencia).
+
+Responsabilidades:
+- obtener/crear carrito por usuario o sesión anónima,
+- agregar/quitar/actualizar ítems del carrito,
+- devolver detalle de ítems para UI,
+- calcular totales de checkout con descuentos/canje.
+
+Se consume principalmente desde:
+- `routers/cart_product_router.py`
+- flujos de pago/orden que necesitan total de carrito.
+"""
+
 
 def _imagen_url_por_color(
     img_producto: Any,
@@ -82,6 +96,9 @@ def _opciones_elegidas_to_dict(value: Any) -> Dict[str, Any]:
 def get_cart(db:Session):
     """
     Obtiene todos los carritos.
+
+    Uso:
+    - endpoint administrativo/técnico de inspección de carritos.
     """
     try:
         query = text("""
@@ -104,6 +121,9 @@ def get_cart(db:Session):
 def get_cart_products(db: Session):
     """
     Obtiene todos los ítems del carrito (tab_carrito_productos usa variant_id).
+
+    Nota:
+    - devuelve estructura cruda de tabla, sin enriquecimiento de producto.
     """
     try:
         query = text("""
@@ -130,6 +150,12 @@ def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert
     """
     Agrega una variante al carrito usando fun_agregar_producto_carrito(id_usuario, session_id, variant_id, cantidad, usr).
     Si se envía variant_id se usa; si solo id_producto, se toma la primera variante activa del producto.
+
+    Flujo:
+    1. Resolver `variant_id` (directo o derivado desde `id_producto`).
+    2. Normalizar `opciones_elegidas` a JSON.
+    3. Invocar función SQL `fun_agregar_producto_carrito`.
+    4. Confirmar commit y retornar resultado de la función.
     """
     try:
         data = cart_product.model_dump()
@@ -165,6 +191,7 @@ def create_cart_product(db: Session, cart_product: CartProductCreate, usr_insert
             "usr_insert": usr,
 
         }
+        # Log de diagnóstico: variante y cantidad agregada al carrito.
         print(f"🛒 [BACKEND] Agregando producto al carrito: variant_id={variant_id}, cantidad={params['cantidad']}")
 
         query = text("""
@@ -197,9 +224,14 @@ def update_cart_product_quantity(db: Session, id_carrito_producto: int, nueva_ca
         id_carrito_producto (int): ID del producto en el carrito a actualizar.
         nueva_cantidad (int): Nueva cantidad del producto.
         usr_update (Optional[int]): Usuario que actualiza el registro.
+
+    Validaciones:
+    - item existe,
+    - cantidad solicitada <= stock activo,
+    - cantidad > 0.
     """
     try:
-        # Obtener stock de la variante para validar
+        # Obtener stock de variante para validar antes del update.
         stock_query = text("""
         SELECT pv.stock, cp.cantidad AS cantidad_actual
         FROM tab_carrito_productos cp
@@ -213,15 +245,15 @@ def update_cart_product_quantity(db: Session, id_carrito_producto: int, nueva_ca
         stock_disponible = stock_info[0]
         cantidad_actual = stock_info[1]
         
-        # Validar que la nueva cantidad no exceda el stock disponible
+        # Validar que no exceda stock disponible.
         if nueva_cantidad > stock_disponible:
             raise Exception(f"Stock insuficiente. Disponible: {stock_disponible}, solicitado: {nueva_cantidad}")
         
-        # Validar que la cantidad sea mayor a 0
+        # Validar mínimo de cantidad.
         if nueva_cantidad <= 0:
             raise Exception("La cantidad debe ser mayor a 0")
         
-        # Actualizar la cantidad en la base de datos
+        # Persistir cantidad en base de datos.
         update_query = text("""
         UPDATE tab_carrito_productos 
         SET cantidad = :nueva_cantidad, 
@@ -254,6 +286,9 @@ def delete_cart_product_by_id(db: Session, id_carrito_producto: int) -> bool:
 
     Returns:
         bool: True si se eliminó una fila, False si no existía.
+
+    Recomendado para UI moderna:
+    - elimina ítem exacto por identificador de línea de carrito.
     """
     try:
         query = text("""
@@ -271,7 +306,10 @@ def delete_cart_product_by_id(db: Session, id_carrito_producto: int) -> bool:
 def delete_cart_product(db: Session, id_usuario: Optional[Decimal], session_id: Optional[str], id_categoria_producto: Decimal, id_linea_producto: Decimal, id_sublinea_producto: Decimal, id_producto: Decimal, cantidad: Decimal, usr_update: Decimal):
     """
     Elimina (o reduce cantidad de) un producto en el carrito.
-    La BD usa variant_id; se resuelve variant_id desde el carrito del usuario por product_id.
+    La BD opera por `variant_id`; por eso se resuelve desde `product_id`.
+
+    Compatibilidad:
+    - ruta legacy que todavía usa identificadores compuestos.
     """
     try:
         id_carrito_row = db.execute(
@@ -328,12 +366,14 @@ def migrate_cart_anonymous(db: Session, migrate_cart_anonymous: MigrateCartAnony
         db (Session): La sesión de base de datos SQLAlchemy.
         migrate_cart_anonymous (MigrateCartAnonymous): Datos de migración con id_carrito.
         usr_insert (Decimal): El usuario que realizó la operación (también es el id_usuario de destino).
-        
 
+    Resultado:
+    - transfiere ítems del carrito anónimo al carrito del usuario autenticado.
     """
     try:
         params = migrate_cart_anonymous.model_dump()
-        params["id_usuario"] = usr_insert  # El usuario de destino es el mismo que hace la operación
+        # El usuario destino coincide con quien ejecuta la operación.
+        params["id_usuario"] = usr_insert
         params["usr_insert"] = usr_insert
         
         print(f"🔄 [SERVICE] Parámetros de migración: {params}")
@@ -367,6 +407,10 @@ def get_cart_user(db:Session, get_cart_user:GetCartUser):
     
     Returns:
         int: ID del carrito obtenido o creado.
+
+    Implementación:
+    - delega en `fun_obtener_carrito_usuario`, que encapsula lógica de
+      "buscar existente o crear nuevo".
     """
     try:
         params = get_cart_user.model_dump()
@@ -398,6 +442,12 @@ def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
     """
     Obtiene el detalle del carrito usando tab_products, tab_product_variant_combinations y variant_id.
     Devuelve la misma estructura esperada por el frontend (id_categoria_producto = category_id, etc.).
+
+    Incluye:
+    - nombre, precio, subtotal, stock,
+    - imagen principal,
+    - marca/categoría,
+    - opciones elegidas (color/talla u otras).
     """
     try:
         params = get_cart_detail.model_dump()
@@ -424,7 +474,8 @@ def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
                  FROM tab_product_variant_images pvi
                  JOIN tab_product_variant_groups g2 ON g2.id = pvi.variant_group_id
                  WHERE g2.product_id = p.id
-                 ORDER BY g2.id, pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
+                 ORDER BY CASE WHEN LOWER(TRIM(COALESCE(g2.dominant_value, ''))) = 'sin color' THEN 0 ELSE 1 END,
+                          g2.id, pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
                  LIMIT 1)
             ) AS img_principal,
             m.nom_marca,
@@ -462,6 +513,7 @@ def get_cart_detail(db: Session, get_cart_detail: GetCartDetail):
                     opts = json.loads(opts) if opts else {}
                 except Exception:
                     opts = {}
+            # Adaptar cada fila SQL al contrato esperado por frontend.
             product_dict = {
                 "id_carrito_producto": row["id_carrito_producto"],
                 "id_categoria_producto": int(row["category_id"]) if row["category_id"] is not None else 0,
@@ -493,6 +545,13 @@ def calculate_total_cart(db:Session, calculate_total_cart:CalculateTotalCart):
     """
     Calcula el total del carrito de un usuario.
     Soporta tanto usuarios registrados (id_usuario) como anónimos (session_id).
+
+    Fuente principal:
+    - función SQL `fun_calcular_total_carrito`.
+
+    Estrategia de salida:
+    - si la función ya retorna contrato completo, se devuelve intacto;
+    - si retorna estructura simple, se adapta al contrato esperado por API.
     """
     try:
         params = calculate_total_cart.model_dump()
@@ -523,18 +582,18 @@ def calculate_total_cart(db:Session, calculate_total_cart:CalculateTotalCart):
                 "mensaje_resumen": ""
             }
         
-        # Si la respuesta ya tiene todos los campos necesarios, devolverla tal como está
+        # Si ya viene con contrato completo, retornar sin transformación.
         if isinstance(response_data, dict) and "success" in response_data:
             return response_data
         
-        # Si la respuesta es un diccionario simple (carrito vacío), mapear a la estructura completa
+        # Si es respuesta simple, mapear a estructura completa de API.
         if isinstance(response_data, dict):
             return {
                 "success": True,
                 "total_final": response_data.get("total_final", 0),
                 "total_productos": response_data.get("total_productos", 0),
                 "total_descuentos": response_data.get("total_descuentos", 0),
-                "ahorro_total": response_data.get("total_descuentos", 0),  # El ahorro es igual a los descuentos
+                "ahorro_total": response_data.get("total_descuentos", 0),  # Ahorro total equivalente a descuentos.
                 "resumen": {
                     "subtotal": response_data.get("total_productos", 0),
                     "descuentos": response_data.get("total_descuentos", 0),
@@ -542,17 +601,17 @@ def calculate_total_cart(db:Session, calculate_total_cart:CalculateTotalCart):
                 },
                 "descuentos_automaticos": response_data.get("descuentos_automaticos", []),
                 "descuento_canjeado": response_data.get("descuento_canjeado"),
-                "total_desc_automaticos": 0,  # Extraer de descuentos_automaticos si está disponible
-                "total_desc_canjeado": 0,     # Extraer de descuento_canjeado si está disponible
-                "es_primera_compra": False,   # Se determinaría con más lógica si es necesario
-                "puntos_a_ganar": 0,          # Se calcularía basado en el total
+                "total_desc_automaticos": 0,  # Placeholder si backend no envía detalle desagregado.
+                "total_desc_canjeado": 0,     # Placeholder de descuento canjeado.
+                "es_primera_compra": False,   # Placeholder para regla comercial.
+                "puntos_a_ganar": 0,          # Placeholder para cálculo de fidelización.
                 "id_canje_aplicado": None,
                 "mensaje": response_data.get("message", "Carrito calculado exitosamente"),
                 "mensaje_puntos": "Ganarás 0 puntos con esta compra" if response_data.get("total_final", 0) == 0 else f"Ganarás puntos con esta compra",
                 "mensaje_resumen": f"Total a pagar: ${response_data.get('total_final', 0)}"
             }
         
-        # Si no es un diccionario, devolver estructura por defecto
+        # Si el formato no es válido, devolver respuesta por defecto.
         return {
             "success": False,
             "total_final": 0,
@@ -579,6 +638,9 @@ def calculate_total_cart(db:Session, calculate_total_cart:CalculateTotalCart):
 def get_cart_with_basic_info(db: Session, get_cart_detail: GetCartDetail):
     """
     Obtiene el carrito con información básica (marca, color desde combinación/grupo) usando tab_products/tab_product_variant_combinations.
+
+    Pensado para:
+    - vistas rápidas donde no se requiere el detalle completo del carrito.
     """
     try:
         params = get_cart_detail.model_dump()
@@ -601,7 +663,8 @@ def get_cart_with_basic_info(db: Session, get_cart_detail: GetCartDetail):
                  FROM tab_product_variant_images pvi
                  JOIN tab_product_variant_groups g2 ON g2.id = pvi.variant_group_id
                  WHERE g2.product_id = p.id
-                 ORDER BY g2.id, pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
+                 ORDER BY CASE WHEN LOWER(TRIM(COALESCE(g2.dominant_value, ''))) = 'sin color' THEN 0 ELSE 1 END,
+                          g2.id, pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
                  LIMIT 1)
             ) AS imagen_url,
             pv.stock AS num_stock,

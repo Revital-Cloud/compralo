@@ -94,7 +94,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # Verificar si la ruta necesita protección (si no se estableció en el caso especial de /api/users)
         if not needs_auth:
             needs_auth = any(path.startswith(protected_path) for protected_path in self.protected_paths)
-        
+        if path.startswith("/api/providers"):
+            needs_auth = True
+            needs_admin = True
         # Para rutas administrativas, solo requerir admin en métodos de escritura
         # PERO solo si no es el caso especial de /api/users que ya manejamos arriba
         if not users_path_handled and not needs_admin and any(path.startswith(admin_path) for admin_path in self.admin_only_paths):

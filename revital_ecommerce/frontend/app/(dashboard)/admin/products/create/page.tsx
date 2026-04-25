@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   ProductCreateHeader,
   ProductFormComposite,
@@ -28,6 +29,10 @@ const ProductCreatePage = () => {
   }, []);
 
   const handleSubmit = async (payload: ProductCreateComposite) => {
+    if (selectedImageFiles.length === 0) {
+      toast.error('La imagen principal es obligatoria');
+      return;
+    }
     try {
       await createMutation.mutateAsync({
         payload,

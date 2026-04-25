@@ -180,11 +180,20 @@ export function PayButton({
     try {
       // 1. Crear pago en backend
       const token = getStoredToken();
+
+      // Idempotencia: evita duplicar el payment si el request se reintenta por red.
+      // (El backend usa esta clave para generar una `reference` deterministica.)
+      const idempotencyKey =
+        typeof (globalThis as any)?.crypto?.randomUUID === "function"
+          ? (globalThis as any).crypto.randomUUID()
+          : `idemp_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+
       const createResponse = await fetch("/api/payments/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          "Idempotency-Key": idempotencyKey,
         },
         body: JSON.stringify({ order_id: orderId }),
       });
@@ -265,6 +274,14 @@ export function PayButton({
         // Flag para evitar múltiples ejecuciones del callback
         let callbackExecuted = false;
         let postMessageListener: ((event: MessageEvent) => void) | null = null;
+        let safetyTimeoutId: ReturnType<typeof setTimeout> | null = null;
+
+        const clearSafetyTimeout = () => {
+          if (safetyTimeoutId) {
+            clearTimeout(safetyTimeoutId);
+            safetyTimeoutId = null;
+          }
+        };
         
         console.log("🔍 [FRONTEND] Definindo función processWidgetResult...");
         
@@ -284,6 +301,8 @@ export function PayButton({
             // Guard clause 1: result existe
             if (result === null || result === undefined) {
               console.warn(`⚠️ [FRONTEND] result es null/undefined (${source}) - widget cerrado sin completar`);
+              callbackExecuted = true;
+              clearSafetyTimeout();
               setIsProcessing(false);
               return;
             }
@@ -297,6 +316,8 @@ export function PayButton({
             if (!transaction || transaction === null || typeof transaction !== 'object') {
               console.warn(`⚠️ [FRONTEND] result.transaction inválido (${source}):`, transaction);
               console.warn("⚠️ [FRONTEND] Estructura completa de result:", JSON.stringify(result, null, 2));
+              callbackExecuted = true;
+              clearSafetyTimeout();
               setIsProcessing(false);
               return;
             }
@@ -312,6 +333,8 @@ export function PayButton({
               console.error(`❌ [FRONTEND] transaction.id inválido (${source}):`, transactionId);
               console.error("❌ [FRONTEND] Transaction completa:", JSON.stringify(transaction, null, 2));
               toast.error("Error: ID de transacción inválido");
+              callbackExecuted = true;
+              clearSafetyTimeout();
               setIsProcessing(false);
               return;
             }
@@ -325,6 +348,8 @@ export function PayButton({
               console.error(`❌ [FRONTEND] transaction.status inválido (${source}):`, transactionStatus);
               console.error("❌ [FRONTEND] Transaction completa:", JSON.stringify(transaction, null, 2));
               toast.error("Error: Estado de transacción inválido");
+              callbackExecuted = true;
+              clearSafetyTimeout();
               setIsProcessing(false);
               return;
             }
@@ -333,6 +358,7 @@ export function PayButton({
             
             // Marcar como ejecutado ANTES de procesar
             callbackExecuted = true;
+            clearSafetyTimeout();
             
             // Limpiar listener de postMessage si existe
             if (postMessageListener) {
@@ -349,6 +375,7 @@ export function PayButton({
             toast.error("Error al procesar el resultado del pago");
             setIsProcessing(false);
             callbackExecuted = true;
+            clearSafetyTimeout();
           }
         };
         
@@ -412,10 +439,29 @@ export function PayButton({
         console.log("🔍 [FRONTEND] Estado: postMessageListener registrado=", !!postMessageListener);
         
         // Timeout de seguridad: si después de 5 minutos no hay callback, limpiar listener
-        setTimeout(() => {
-          if (postMessageListener && !callbackExecuted) {
-            window.removeEventListener('message', postMessageListener);
-            console.warn("⚠️ [FRONTEND] Timeout: listener de postMessage removido después de 5 minutos sin callback");
+        safetyTimeoutId = setTimeout(() => {
+          // Si nada llegó en el timeout, hacemos salida segura:
+          // - cortar el flujo (marcar callbackExecuted)
+          // - liberar listener
+          // - desbloquear UI
+          // - ofrecer reintento
+          if (!callbackExecuted) {
+            callbackExecuted = true;
+            clearSafetyTimeout();
+
+            if (postMessageListener) {
+              window.removeEventListener('message', postMessageListener);
+              postMessageListener = null;
+            }
+
+            setIsProcessing(false);
+            toast.error("El pago tardó demasiado en confirmarse. Puedes reintentarlo si quieres.", {
+              duration: 8000,
+              action: {
+                label: "Reintentar",
+                onClick: () => handleReattempt(),
+              },
+            });
           }
         }, 5 * 60 * 1000);
         
@@ -436,7 +482,7 @@ export function PayButton({
   // Función eliminada: pollPaymentStatus
   // El backend ya hace polling automáticamente a través del webhook de Wompi
 
-  const handleReattempt = async () => {
+  async function handleReattempt() {
     if (isProcessing) return;
 
     setIsProcessing(true);
@@ -537,7 +583,7 @@ export function PayButton({
       toast.error(error.message || "Error al reintentar el pago");
       setIsProcessing(false);
     }
-  };
+  }
 
   return (
     <div className="flex flex-col gap-2">

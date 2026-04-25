@@ -116,8 +116,8 @@ BEGIN
         COALESCE(p_monto_minimo_producto, 0),
         COALESCE(p_cantidad_minima_producto, 1),
         COALESCE(p_requiere_codigo, FALSE),
-        p_usr_operacion,
         p_id_usuario_destino,
+        p_usr_operacion,
         NOW()
     );
 

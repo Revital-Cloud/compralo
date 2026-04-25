@@ -5,6 +5,15 @@ Define los endpoints de la API para la gestión de productos.
 Incluye operaciones CRUD (Crear, Leer, Actualizar, Eliminar) para los productos.
 Utiliza FastAPI para definir las rutas y depende del servicio de productos
 para la lógica de negocio y del gestor de base de datos para las sesiones.
+
+Mapa del módulo:
+- Endpoints públicos de catálogo (`/products`, búsqueda, filtros, detalle).
+- Endpoints admin para panel (`/products-admin`, crear/editar compuesto, toggle).
+- Endpoints auxiliares de assets (`/products/upload-image`).
+
+Relación con capas:
+- Router: validación HTTP, parseo de query/form-data, permisos.
+- Service: `product_service` centraliza lógica de negocio y persistencia.
 """
 # Definición de rutas (endpoints) de la API para productos
 from fastapi import APIRouter, Depends, Body, Form, HTTPException, status, UploadFile, File, Request
@@ -38,7 +47,7 @@ from services import product_embeddings_index_service
 router = APIRouter(tags=["Productos"])
 logger = logging.getLogger(__name__)
 
-#todos los productos
+# Todos los productos (catálogo público).
 @router.get("/products", response_model=list[Product])
 async def get_products(db: Session = Depends(get_db)):
     """
@@ -58,7 +67,7 @@ async def get_products(db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontraron productos")
     return products
 
-#endpoint para administradores - productos completos con estados de activación
+# Endpoint admin: productos con metadata completa y estados.
 @router.get("/products-admin", response_model=list[ProductAdminResponse])
 async def get_products_admin(
     ordenar_por: str = "nombre",
@@ -95,6 +104,10 @@ async def get_products_admin(
         
     Returns:
         list[ProductAdminResponse]: Lista de productos con información completa para admin
+
+    Endpoint -> Service:
+    - Endpoint: `GET /products-admin`
+    - Service: `product_service.get_products_admin`
     """
     # Validar parámetros
     if ordenar_por not in ['precio', 'nombre', 'stock', 'fecha', 'categoria', 'marca']:
@@ -126,7 +139,7 @@ async def get_products_admin(
     # Devolver lista vacía si no hay productos (resultado válido con filtros)
     return products if products else []
 
-#endpoint de prueba temporal (sin autenticación)
+# Endpoint temporal de prueba (sin autenticación).
 @router.get("/products-admin-test", response_model=list[ProductAdminResponse])
 async def get_products_admin_test(
     ordenar_por: str = "nombre",
@@ -145,6 +158,9 @@ async def get_products_admin_test(
     Endpoint de prueba para productos admin (sin autenticación).
     
     Este endpoint está temporalmente sin autenticación para pruebas.
+
+    Uso recomendado:
+    - solo en entornos controlados de desarrollo.
     """
     # Validar parámetros
     if ordenar_por not in ['precio', 'nombre', 'stock', 'fecha', 'categoria', 'marca']:
@@ -204,7 +220,13 @@ async def upload_single_image(
     file: UploadFile = File(..., description="Imagen a subir"),
     current_user: UserInToken = Depends(get_current_user),
 ):
-    """Sube una imagen a Cloudinary y devuelve la URL. Para imágenes de variantes en el admin."""
+    """
+    Sube una imagen a Cloudinary y devuelve su URL pública.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /products/upload-image`
+    - Service: `cloudinary_service.upload_image`
+    """
     try:
         from services import cloudinary_service
         url = await cloudinary_service.upload_image(
@@ -227,7 +249,13 @@ async def get_product_admin_detail_by_id(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(require_admin()),
 ):
-    """Devuelve { product, variants, image_urls } para el formulario de edición compuesto."""
+    """
+    Devuelve detalle de producto para formulario compuesto de edición.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /products/{product_id}/admin-detail`
+    - Service: `product_service.get_product_with_variants_for_admin`
+    """
     data = product_service.get_product_with_variants_for_admin(db, product_id)
     if not data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
@@ -242,7 +270,17 @@ async def update_product_composite_route(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user),
 ):
-    """Actualiza producto + variantes + imágenes. Acepta JSON o multipart (payload + image_files)."""
+    """
+    Actualiza producto compuesto (producto + variantes + imágenes).
+
+    Soporta:
+    - JSON puro
+    - multipart con `payload` + `image_files`
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /products/{product_id}/composite`
+    - Service: `product_service.update_product_composite`
+    """
     try:
         content_type = (request.headers.get("content-type") or "").lower()
         payload: ProductCreateComposite
@@ -274,13 +312,22 @@ async def update_product_composite_route(
         else:
             body = await request.json()
             payload = ProductCreateComposite.model_validate(body)
+
+        product_imgs = [u.strip() for u in (payload.image_urls or []) if (u or "").strip()]
+        if not product_imgs:
+            raise HTTPException(
+                status_code=400,
+                detail="La imagen principal del producto es obligatoria (panel de imágenes del producto).",
+            )
+
         product_service.update_product_composite(db, product_id, payload, current_user.id_usuario)
         return ResponseMessage(message="Producto actualizado correctamente")
     except Exception as e:
+        logger.exception("Error en update_product_composite_route product_id=%s", product_id)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
 
 
-#crea un producto
+# Crea un producto simple por form-data.
 @router.post("/products", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
 async def create_product(
     request: Request,
@@ -322,6 +369,10 @@ async def create_product(
         
     Raises:
         HTTPException: Si ocurre un error durante la creación del producto.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /products`
+    - Service: `product_service.create_product`
     """
     try:
         # Manejar archivos de imagen (convertir None a lista vacía si es necesario)
@@ -386,6 +437,10 @@ async def create_product_composite(
     Crea producto + variantes + atributos dinámicos + imágenes en una sola transacción.
     Acepta JSON (Body) o multipart con "payload" (JSON string) y "image_files" (archivos).
     Si se envían archivos, se suben a Cloudinary y sus URLs se añaden a image_urls.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /products/composite`
+    - Service: `product_service.create_product_composite`
     """
     try:
         payload: ProductCreateComposite
@@ -418,10 +473,19 @@ async def create_product_composite(
         else:
             body = await request.json()
             payload = ProductCreateComposite.model_validate(body)
+
+        product_imgs = [u.strip() for u in (payload.image_urls or []) if (u or "").strip()]
+        if not product_imgs:
+            raise HTTPException(
+                status_code=400,
+                detail="La imagen principal del producto es obligatoria (panel de imágenes del producto).",
+            )
+
         result = product_service.create_product_composite(db, payload, current_user.id_usuario)
         product_id = result.replace("OK:", "").strip()
         return ResponseMessage(message=f"Producto creado correctamente. ID: {product_id}")
     except Exception as e:
+        logger.exception("Error en create_product_composite")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=get_safe_message(e))
 
 
@@ -437,7 +501,13 @@ async def toggle_product_by_id(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user),
 ):
-    """Activa o desactiva un producto por su ID (tab_products.id)."""
+    """
+    Activa o desactiva un producto por su ID.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /products/{product_id}/toggle`
+    - Service: `product_service.deactivate_activate_product`
+    """
     try:
         product_service.deactivate_activate_product(
             db, Decimal(0), Decimal(0), Decimal(0), product_id, current_user.id_usuario, toggle_data.activar
@@ -473,6 +543,10 @@ async def filter_products(
         
     Raises:
         HTTPException: Si ocurre un error durante el filtrado.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /products/filter`
+    - Service: `product_service.filter_products`
     """
     try:
         query_params = request.query_params
@@ -544,6 +618,10 @@ async def get_filter_stats(
         
     Raises:
         HTTPException: Si ocurre un error al obtener las estadísticas.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /products/filter/stats`
+    - Service: `product_service.get_filter_stats`
     """
     try:
         stats = product_service.get_filter_stats(db, filters)
@@ -560,6 +638,10 @@ async def get_filter_options(
     """
     Opciones de filtro: categorías, precio, marcas. Si se pasa category_id,
     además devuelve los atributos filtrables de esa categoría (y sus valores).
+
+    Endpoint -> Service:
+    - Endpoint: `GET /products/filter/options`
+    - Service: `product_service.get_filter_options`
     """
     try:
         options = product_service.get_filter_options(db, category_id=category_id)
@@ -591,6 +673,10 @@ async def search_products(
         
     Raises:
         HTTPException: Si ocurre un error durante la búsqueda.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /products/search`
+    - Service: `product_service.filter_products` (con filtros de búsqueda)
     """
     try:
         # Validar límite
@@ -732,6 +818,10 @@ async def get_product_by_slug_or_id(
     """
     Obtener un producto por slug (tab_products.slug) o por id.
     Acepta: slug (ej. "laptop-gamer"), id numérico ("5"), o formato legacy "5-null-null-5".
+
+    Endpoint -> Service:
+    - Endpoint: `GET /products/{slug_or_id}`
+    - Service: `product_service.get_product_by_slug_or_id`
     """
     product = product_service.get_product_by_slug_or_id(db, slug_or_id)
     if product is None:

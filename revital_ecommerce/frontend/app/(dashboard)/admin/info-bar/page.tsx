@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui'
 import { IconCalendar } from '@tabler/icons-react'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
 import { sanitizeHtml } from '@/utils/sanitize'
+import { AdminFormSkeleton } from '@/components/admin/skeletons'
 
 const MESSAGE_MAX_LENGTH = 100
 
@@ -149,7 +150,7 @@ const InfoBarPage = () => {
             showImportButton={false}
           />
         </div>
-        <div className="text-sm text-muted-foreground">Cargando configuración...</div>
+        <AdminFormSkeleton fields={8} />
       </div>
     )
   }

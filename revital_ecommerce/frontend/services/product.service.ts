@@ -3,6 +3,11 @@
  * 
  * Contiene todas las funciones relacionadas con productos,
  * categorías, marcas, inventario, etc.
+ *
+ * Mapa:
+ * - Storefront: catálogo, búsqueda, filtros avanzados y detalle por slug/id.
+ * - Admin: listado avanzado, creación/edición compuesta y toggles de estado.
+ * - Catálogos auxiliares: categorías, marcas, proveedores.
  */
 
 import { get, post, put, del } from '@/utils/apiWrapper';
@@ -154,6 +159,9 @@ export async function searchProducts(query: string, params?: ProductFilters): Pr
 /**
  * Filtrar productos con criterios avanzados.
  * Backend: category_id (uno), include_subcategories, precio_min/max, atributos (JSON), id_marca.
+ *
+ * Endpoint:
+ * - `GET /products/filter`
  */
 export async function filterProducts(filters: ProductFilterParams): Promise<ProductFilterResponse> {
   const params = new URLSearchParams();
@@ -209,6 +217,9 @@ export async function getFilterStats(filters: ProductFilterParams): Promise<Prod
 /**
  * Obtener opciones disponibles para los filtros (tienda: solo activos).
  * Si se pasa categoryId, el backend devuelve atributos filtrables solo de esa categoría.
+ *
+ * Endpoint:
+ * - `GET /products/filter/options`
  */
 export async function getFilterOptions(categoryId?: number | null): Promise<FilterOptions> {
   const params = categoryId != null ? { category_id: categoryId } : {};

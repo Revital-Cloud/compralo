@@ -25,6 +25,16 @@ async def add_payment_method(db: Session, user: UserInToken, card_token: str, br
         
     Raises:
         HTTPException: Si hay errores en la validación o en el proceso
+
+    Relación con endpoint:
+    - Consumido por `POST /payment/add-method` en `payment_router.py`.
+
+    Flujo completo:
+    1. Crear fuente de pago en Wompi usando `card_token`.
+    2. Validar campos críticos de respuesta (`id`, `last_four`, expiración).
+    3. Persistir método con función SQL `fun_agregar_metodo_pago`.
+    4. Confirmar transacción local (`commit`) y retornar payload plano
+       listo para serializar como `PaymentMethodResponse`.
     """
     try:
         # Crear fuente de pago en Wompi
@@ -62,7 +72,7 @@ async def add_payment_method(db: Session, user: UserInToken, card_token: str, br
         exp_month = int(public_data.get("exp_month", 0))
         exp_year = int(public_data.get("exp_year", 0))
         
-        # Llamar a la función de base de datos usando el formato que funciona
+        # Llamar función SQL que registra el método de pago del usuario.
         query = text("""
             SELECT fun_agregar_metodo_pago(
                 :id_usuario,
@@ -109,17 +119,17 @@ async def add_payment_method(db: Session, user: UserInToken, card_token: str, br
 
         db.commit()
         
-        # Combinar el mensaje de éxito con los detalles del método de pago
+        # Combinar mensaje de éxito con detalles del método de pago.
         payment_details = db_response.get("data", {})
         
-        # Crear la respuesta final
+        # Construir respuesta final plana.
         final_response = {
             "success": True,
             "message": db_response.get("message", "Método de pago agregado con éxito."),
             **payment_details
         }
         
-        # La respuesta ahora es un solo diccionario plano
+        # Se retorna un único diccionario plano.
         return final_response
 
     except HTTPException:
@@ -136,7 +146,17 @@ async def add_payment_method(db: Session, user: UserInToken, card_token: str, br
 
 def list_payment_methods(db: Session, user_or_id: Union[UserInToken, int, Decimal]) -> List[MetodoPagoUsuario]:
     """
-    Lista los métodos de pago guardados de un usuario. Acepta objeto `UserInToken` o id.
+    Lista métodos de pago guardados de un usuario.
+    Acepta `UserInToken`, `int` o `Decimal` para resolver `id_usuario`.
+
+    Relación con endpoint:
+    - Consumido por `GET /payment/list-methods`.
+
+    Decisiones:
+    - Ordena por `is_default DESC` para que UI muestre primero la tarjeta
+      predeterminada.
+    - Devuelve entidades validadas (`MetodoPagoUsuario`) para asegurar
+      contrato de tipos entre servicio y router.
     """
     try:
         id_usuario = None
@@ -181,6 +201,16 @@ def list_payment_methods(db: Session, user_or_id: Union[UserInToken, int, Decima
 
 
 def delete_payment_method(db: Session, user: UserInToken, id_metodo_pago: int):
+    """
+    Elimina un método de pago del usuario autenticado.
+
+    Relación con endpoint:
+    - Consumido por `DELETE /payment/delete-method/{payment_method_id}`.
+
+    Nota:
+    - Delega reglas de negocio/autorización fina a la función SQL
+      `fun_eliminar_metodo_pago`.
+    """
     try:
         query = text("SELECT fun_eliminar_metodo_pago(:id_usuario, :id_metodo_pago)")
         result = db.execute(query, {
@@ -200,6 +230,17 @@ def delete_payment_method(db: Session, user: UserInToken, id_metodo_pago: int):
 
 
 def set_default_payment_method(db: Session, user: UserInToken, id_metodo_pago: int) -> Dict[str, Any]:
+    """
+    Define un método de pago como predeterminado para el usuario.
+
+    Relación con endpoint:
+    - Consumido por `PUT /payment/set-default-method/{payment_method_id}`.
+
+    Comportamiento esperado:
+    - Marca solo un método como default por usuario.
+    - Mantiene consistencia a través de la función SQL
+      `fun_actualizar_metodo_pago_default`.
+    """
     try:
         query = text("SELECT fun_actualizar_metodo_pago_default(:id_usuario, :id_metodo_pago, :usr_operacion)")
         result = db.execute(query, {

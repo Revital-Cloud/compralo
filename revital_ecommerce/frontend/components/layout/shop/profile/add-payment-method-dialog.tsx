@@ -21,6 +21,18 @@ import { Input } from "@/components/ui";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui";
 import { PlusCircle, Loader2 } from "lucide-react";
 
+/**
+ * Diálogo para agregar un nuevo método de pago (tarjeta).
+ *
+ * Este componente es “presentational”: no llama al backend directamente.
+ * En su lugar, delega la mutación a través del callback `onAddPaymentMethod`.
+ *
+ * Flujo:
+ * 1) Abre `Dialog` con formulario validado por `paymentCardSchema` (React Hook Form + Zod).
+ * 2) Al enviar, ejecuta `onAddPaymentMethod(data, { onSuccess, onError })`.
+ * 3) En `onSuccess`, si el backend responde `success=true`, cierra el modal y resetea el formulario.
+ * 4) La UI usa `isPending` para mostrar mensajes de progreso (estado externo controlado por el padre).
+ */
 interface AddPaymentMethodDialogProps {
     onAddPaymentMethod: (
         data: PaymentCardFormValues,
@@ -46,6 +58,13 @@ export const AddPaymentMethodDialog: React.FC<AddPaymentMethodDialogProps> = ({ 
         },
     });
 
+    /**
+     * Envía el formulario al callback provisto por el contenedor.
+     *
+     * Nota:
+     * - `onError` está diseñado para capturar errores de la mutación.
+     * - El `catch` adicional cubre fallos inesperados (por ejemplo, si el callback lanza).
+     */
     const onSubmit = async (data: PaymentCardFormValues) => {
         try {
             onAddPaymentMethod(data, {

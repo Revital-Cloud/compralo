@@ -15,6 +15,16 @@ import { addressSchema, type AddressFormValues } from "@/schemas/shop/address.sc
 import { useState } from "react";
 import { toast } from "sonner";
 
+/**
+ * Pestaña de direcciones del perfil.
+ *
+ * Soporta:
+ * - crear/editar direcciones
+ * - activar/desactivar
+ * - marcar como principal
+ * - vista detallada en modal
+ */
+
 export default function AddressesTab() {
   const { user } = useAuth();
   const queryClient = useQueryClient();

@@ -7,6 +7,17 @@ import { Checkbox } from "@/components/ui"
 import { Badge } from "@/components/ui"
 import type { FilterOptions, CategoryTreeNode } from "@/types/product"
 
+/**
+ * Panel lateral de filtros del catálogo.
+ *
+ * Incluye:
+ * - árbol de categorías
+ * - marcas
+ * - rango de precio
+ * - atributos dinámicos por categoría
+ * - flag "solo en oferta"
+ */
+
 interface ProductsFiltersProps {
   showFilters: boolean
   setShowFilters: (show: boolean) => void
@@ -127,7 +138,7 @@ export const ProductsFilters = ({
   const marcas = filterOptions?.marcas ?? []
   const attributes = filterOptions?.attributes ?? []
 
-  // Estado para mantener las categorías expandidas (persiste entre selecciones)
+  // Mantiene expand/collapse del árbol de categorías entre interacciones.
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
   const [minPriceInput, setMinPriceInput] = useState<string>("")
   const [maxPriceInput, setMaxPriceInput] = useState<string>("")

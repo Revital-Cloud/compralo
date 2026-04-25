@@ -149,6 +149,7 @@ export default function AdminHeader() {
         <h1 className="text-base font-medium text-foreground transition-colors duration-300">Dashboard</h1>
       </div>
       <div className="ml-auto flex items-center gap-2 px-4">
+        <AdminChatTrigger />
         <Button
           variant="outline"
           size="icon"
@@ -157,7 +158,6 @@ export default function AdminHeader() {
         >
           <IconHelpCircle className="h-4 w-4" />
         </Button>
-        <AdminChatTrigger />
         <ThemeToggle />
       </div>
     </header>

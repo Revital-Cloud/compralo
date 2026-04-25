@@ -2,27 +2,28 @@ import type { Metadata } from "next"
 import Link from "next/link"
 import { buildOpenGraph, buildTwitter } from "@/lib/seo"
 
-const MOCK = {
-  nombre: "Compralo",
-  fundacion: 2020,
-  mision: "Conectar a millones de personas con los productos que necesitan, ofreciendo calidad, precios justos y un servicio excepcional.",
-  vision: "Ser la plataforma de e-commerce de referencia en la región, reconocida por la confianza y la experiencia de compra.",
+const MOCK = {  
+  fundacion: 2026,
+  mision:
+    "Diseñar y escalar software a medida para startups y empresas que necesitan velocidad sin perder calidad, con comunicación clara y estándares de ingeniería sólidos.",
+  vision:
+    "Ser el socio técnico de referencia en la región para construir productos digitales confiables, rápidos y mantenibles, con mentalidad de producto global.",
   valores: [
-    { titulo: "Confianza", desc: "Construimos relaciones duraderas con clientes y proveedores." },
-    { titulo: "Innovación", desc: "Mejoramos constantemente nuestra tecnología y procesos." },
-    { titulo: "Compromiso", desc: "Nos responsabilizamos de cada pedido de principio a fin." },
+    { titulo: "Claridad", desc: "Sin jerga innecesaria: alcance, riesgos y plazos visibles desde el día uno." },
+    { titulo: "Ownership", desc: "Pensamos como socios técnicos y asumimos responsabilidad de principio a fin." },
+    { titulo: "Calidad", desc: "Código mantenible, revisable y con foco en rendimiento y experiencia de usuario." },
   ],
   equipo: [
-    { nombre: "María García", rol: "CEO y cofundadora" },
-    { nombre: "Carlos López", rol: "CTO" },
-    { nombre: "Ana Martínez", rol: "Directora de Operaciones" },
+    { nombre: "Alejandro Hernández Lara", rol: "Co-founder · Desarrollo" },
+    { nombre: "Kevin Daniel Bermúdez Calderón", rol: "Co-founder · Desarrollo" },
+    { nombre: "Jhoan Camilo Suárez Mora", rol: "Co-founder · Desarrollo" },
   ],
 }
 
 export const generateMetadata = (): Metadata => {
-  const title = "Acerca de Compralo"
+  const title = "Acerca de Revital"
   const description =
-    "Conoce la misión, visión, valores y equipo detrás de Compralo, tu tienda online de confianza."
+    "Conoce la misión, visión, valores y el equipo detrás de Revital."
 
   return {
     title,
@@ -43,10 +44,19 @@ export default function AboutUsPage() {
   return (
     <div className="container mx-auto px-4 py-10 max-w-4xl">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-        Acerca de {MOCK.nombre}
+        Acerca de
       </h1>
       <p className="text-gray-600 dark:text-gray-400 mb-8">
-        Tu tienda de confianza desde {MOCK.fundacion}.
+        Construyendo productos digitales desde {MOCK.fundacion}.{" "}
+        <a
+          href="https://revital.cloud/"
+          target="_blank"
+          rel="noreferrer"
+          className="text-[#ec2538] dark:text-red-400 hover:underline font-medium"
+        >
+          Conoce más en revital.cloud
+        </a>
+        .
       </p>
 
       <section className="mb-10">

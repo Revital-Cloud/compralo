@@ -1,5 +1,19 @@
 import { post, put, del, get } from "@/utils/apiWrapper";
 
+/**
+ * Mapa del servicio de carrito (frontend).
+ *
+ * Responsabilidad:
+ * - Centralizar llamadas HTTP de carrito para usuarios autenticados y anónimos.
+ * - Exponer tipos de request/response usados por hooks y páginas (`use-cart`, `cart`, `checkout`).
+ *
+ * Endpoints backend principales:
+ * - `/carrito-usuario`
+ * - `/carrito-productos*`
+ * - `/calcular-total`
+ * - `/migrar`
+ */
+
 // =============================================================================
 // CONSTANTES
 // =============================================================================
@@ -135,6 +149,9 @@ export function generateSessionId(): string {
 
 /**
  * Obtiene o crea un carrito para un usuario (registrado o anónimo)
+ *
+ * Endpoint:
+ * - `POST /carrito-usuario`
  */
 export async function getOrCreateCart(
   cartUser: CartUser
@@ -144,6 +161,12 @@ export async function getOrCreateCart(
 
 /**
  * Agrega un producto al carrito
+ *
+ * Endpoint:
+ * - `POST /carrito-productos`
+ *
+ * Nota:
+ * - `session_id` se envía como query param para conservar el contexto anónimo.
  */
 export async function addToCart(
   product: CartProductCreate
@@ -198,6 +221,9 @@ export async function getCartProductsDetail(
 
 /**
  * Calcula el total del carrito (opcionalmente con un canje de puntos aplicado).
+ *
+ * Endpoint:
+ * - `POST /calcular-total`
  */
 export async function calculateCartTotal(
   cartUser: CartUser,

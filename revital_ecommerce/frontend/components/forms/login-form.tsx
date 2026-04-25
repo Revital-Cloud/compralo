@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/use-auth"
 import type { LoginRequest } from "@/types"
 import { useSearchParams } from "next/navigation"
 import { toast } from "sonner"
+import Script from "next/script"
 import {
   getLockoutState,
   formatLockoutCountdown,
@@ -32,6 +33,16 @@ import {
   emailFromLoginAttemptKey,
 } from "@/lib/auth-attempt-limiter"
 import { useAuthLockout } from "@/hooks/use-auth-lockout"
+
+/**
+ * Mapa del formulario de login.
+ *
+ * Flujo:
+ * 1) Valida email/contraseña con Zod + React Hook Form.
+ * 2) Aplica protección anti abuso (lockout por intentos fallidos).
+ * 3) Integra Turnstile cuando está configurado por entorno.
+ * 4) Envía credenciales a `useAuth().login`.
+ */
 
 // Schema de validación con Zod
 const loginSchema = z.object({
@@ -52,6 +63,7 @@ export function LoginForm({
   ...props
 }: React.ComponentProps<"div">) {
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const searchParams = useSearchParams();
   
   // Hook de autenticación
@@ -98,6 +110,7 @@ export function LoginForm({
 
   // Manejar envío del formulario
   const onSubmit = (data: LoginFormData) => {
+    // Doble verificación de bloqueo antes de golpear backend.
     const key = loginAttemptKey(data.email);
     const lock = getLockoutState(key);
     if (lock.remainingMs > 0) {
@@ -108,10 +121,35 @@ export function LoginForm({
       );
       return;
     }
-    login(data as LoginRequest);
+    const payload: LoginRequest = {
+      email: data.email,
+      password: data.password,
+      ...(turnstileToken ? { turnstile_token: turnstileToken } : {}),
+    };
+    login(payload);
   };
 
   const formDisabled = isLoggingIn || isLocked;
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const shouldUseTurnstile = Boolean(turnstileSiteKey);
+
+  useEffect(() => {
+    if (!shouldUseTurnstile) return;
+
+    (window as any).__revitalTurnstileOnSuccess = (token: string) => setTurnstileToken(token);
+    (window as any).__revitalTurnstileOnExpired = () => setTurnstileToken(null);
+    (window as any).__revitalTurnstileOnError = () => setTurnstileToken(null);
+
+    return () => {
+      try {
+        delete (window as any).__revitalTurnstileOnSuccess;
+        delete (window as any).__revitalTurnstileOnExpired;
+        delete (window as any).__revitalTurnstileOnError;
+      } catch {
+        // ignore
+      }
+    };
+  }, [shouldUseTurnstile]);
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -233,8 +271,39 @@ export function LoginForm({
                   )}
                 </div>
 
+                {/* Cloudflare Turnstile (managed) */}
+                {shouldUseTurnstile && (
+                  <div className="grid gap-2 justify-items-center">
+                    <Script
+                      src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+                      strategy="afterInteractive"
+                    />
+                    <div
+                      className="cf-turnstile"
+                      data-sitekey={turnstileSiteKey}
+                      data-callback="__revitalTurnstileOnSuccess"
+                      data-expired-callback="__revitalTurnstileOnExpired"
+                      data-error-callback="__revitalTurnstileOnError"
+                    />
+                    {!turnstileToken && (
+                      <p className="text-xs text-muted-foreground text-center">
+                        Completa la verificación para poder iniciar sesión.
+                      </p>
+                    )}
+                  </div>
+                )}
+
                 {/* Botón Submit */}
-                <Button type="submit" className="w-full" disabled={formDisabled}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={formDisabled || (shouldUseTurnstile && !turnstileToken)}
+                  onClick={() => {
+                    if (shouldUseTurnstile && !turnstileToken && !formDisabled) {
+                      toast.error("Completa el captcha para continuar.");
+                    }
+                  }}
+                >
                   {isLoggingIn ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

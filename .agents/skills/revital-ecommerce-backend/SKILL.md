@@ -129,7 +129,6 @@ async def admin_endpoint(
 - Access database directly without session
 - Put business logic in routers
 - Skip authentication/authorization
-- Reference `revital_panel` code
 
 ## Related Skills
 

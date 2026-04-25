@@ -7,6 +7,16 @@ import { formatPrice } from "@/utils/format-price"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import type { Discount } from "@/types/discount"
+import { parseDateSafe } from "@/utils/date-helpers"
+
+/**
+ * Mapa de la página pública de descuentos.
+ *
+ * Flujo:
+ * - Carga descuentos activos desde `useActiveDiscounts`.
+ * - Presenta condiciones principales y ejemplo de precio.
+ * - Permite navegar al catálogo filtrado según alcance del descuento.
+ */
 
 export default function DiscountsPage() {
   const router = useRouter()
@@ -60,7 +70,9 @@ export default function DiscountsPage() {
 
   const formatDate = (dateString: string | null | undefined) => {
     if (!dateString) return 'Sin fecha límite'
-    const date = new Date(dateString)
+    const dateOnly = dateString.split('T')[0]
+    const date = parseDateSafe(dateOnly)
+    if (!date) return 'Fecha inválida'
     return date.toLocaleDateString('es-ES', { 
       year: 'numeric', 
       month: 'long', 
@@ -69,6 +81,7 @@ export default function DiscountsPage() {
   }
 
   const handleViewProducts = (discount: Discount) => {
+    // Navegación contextual: producto/categoría/marca o catálogo general.
     // Si aplica a un producto específico, ir directamente al detalle de ese producto
     if (discount.aplica_a === "producto_especifico" && discount.id_producto_aplica) {
       router.push(`/products/${discount.id_producto_aplica}`)

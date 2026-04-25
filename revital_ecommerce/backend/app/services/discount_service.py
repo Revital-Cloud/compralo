@@ -1,3 +1,13 @@
+"""
+Servicios de descuentos y cupones.
+
+Responsabilidad:
+- Implementar consultas/operaciones de descuentos para endpoints públicos y
+  administrativos.
+- Encapsular integración con funciones SQL de negocio de descuentos.
+- Resolver validación de aplicabilidad para carrito y usuario.
+"""
+
 import json
 from decimal import Decimal
 from sqlalchemy.orm import Session
@@ -7,8 +17,14 @@ from schemas.discount_schema import DiscountCreate, DiscountUpdate
 
 def get_discounts(db:Session):
     """
-    Obtiene todos los descuentos registrados en la base de datos.
+    Lista todos los descuentos registrados para administración.
 
+    Fuente principal:
+    - `tab_descuentos`
+
+    Compatibilidad:
+    - Mapea `category_id_aplica/product_id_aplica` a
+      `id_categoria_aplica/id_producto_aplica` para mantener contrato API.
     """
     try:
         query = text("""
@@ -64,26 +80,42 @@ def get_discounts(db:Session):
     
 def get_discount_exchangeable(db:Session, id_usuario:Decimal, limit:int = 20):
     """
-    Obtiene todos descuentos canjeables en la base de datos.
+    Obtiene descuentos canjeables por puntos para un usuario.
+
+    Fuente:
+    - Función SQL `fun_listar_descuentos_canjeables`.
     """
     try:
         query = text("""
         SELECT
-            id_descuento,
-            nom_descuento,
-            des_descuento,
-            costo_puntos_canje,
-            tipo_calculo_texto,
-            valor_descuento,
-            aplica_a,
-            fec_inicio,
-            fec_fin,
-            puede_canjear,
-            puntos_usuario
+            f.id_descuento,
+            f.nom_descuento,
+            f.des_descuento,
+            f.costo_puntos_canje,
+            f.tipo_calculo_texto,
+            f.valor_descuento,
+            f.aplica_a,
+            f.fec_inicio,
+            f.fec_fin,
+            f.puede_canjear,
+            f.puntos_usuario,
+            d.max_usos_total,
+            d.usos_actuales_total,
+            d.max_usos_por_usuario,
+            COALESCE(uc.usos_usuario_actuales, 0) AS usos_usuario_actuales
         FROM fun_listar_descuentos_canjeables(
             :id_usuario,
             :limit
-        )
+        ) f
+        JOIN tab_descuentos d ON d.id_descuento = f.id_descuento
+        LEFT JOIN (
+            SELECT
+                id_descuento,
+                COUNT(*)::INT AS usos_usuario_actuales
+            FROM tab_canjes_puntos_descuentos
+            WHERE id_usuario = :id_usuario
+            GROUP BY id_descuento
+        ) uc ON uc.id_descuento = f.id_descuento
         """)
         result = db.execute(query, {'id_usuario': id_usuario, 'limit': limit})
         return result.mappings().all()
@@ -93,11 +125,13 @@ def get_discount_exchangeable(db:Session, id_usuario:Decimal, limit:int = 20):
 
 def create_discount(db:Session, discount:DiscountCreate, usr_insert:Decimal):
     """
-    Crea un nuevo descuento en la base de datos.
-    
-    Utiliza la función de base de datos `fun_insert_descuento` para insertar
-    un nuevo descuento, identificado por `id_descuento`. Los datos para la
-    inserción se toman del esquema `DiscountCreate` (solo campos proporcionados).
+    Crea un descuento nuevo vía función SQL transaccional.
+
+    Flujo:
+    1) Convierte payload Pydantic a params SQL.
+    2) Normaliza nombres API -> BD (`id_*_aplica` a `*_id_aplica` esperado).
+    3) Ejecuta `fun_insert_descuento`.
+    4) Parsea respuesta JSON y valida `success`.
     """
     import json
     try:
@@ -165,34 +199,46 @@ def create_discount(db:Session, discount:DiscountCreate, usr_insert:Decimal):
             :id_usuario_destino
         )
         """)
-        result = db.execute(query, sql_params)
-        fetched_result = result.fetchone()
-        db.commit()
-        
-        # La función devuelve un JSON, necesitamos parsearlo
-        if fetched_result and fetched_result[0]:
+
+        def _execute_insert(params: dict):
+            result = db.execute(query, params)
+            fetched_result = result.fetchone()
+            db.commit()
+            if not fetched_result or not fetched_result[0]:
+                raise Exception('No se pudo crear el descuento')
             result_json = json.loads(fetched_result[0]) if isinstance(fetched_result[0], str) else fetched_result[0]
-            
-            # Verificar si la operación fue exitosa
-            if result_json.get('success') == False:
+            if result_json.get('success') is False:
                 raise Exception(result_json.get('message', 'Error desconocido al crear descuento'))
-            
             return result_json.get('id_descuento')
-        
-        raise Exception('No se pudo crear el descuento')
+
+        try:
+            return _execute_insert(sql_params)
+        except Exception as first_error:
+            # Compatibilidad temporal con instancias donde la función SQL
+            # `fun_insert_descuento` tiene invertidos `usr_insert` e `id_usuario_destino`.
+            if 'null value in column "usr_insert"' not in str(first_error):
+                raise
+
+            db.rollback()
+            retry_params = dict(sql_params)
+            retry_params['usr_operacion'], retry_params['id_usuario_destino'] = (
+                retry_params.get('id_usuario_destino'),
+                retry_params.get('usr_operacion'),
+            )
+            return _execute_insert(retry_params)
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al crear descuento: {str(e)}")
     
 def update_discount(db:Session, id_descuento:Decimal, discount:DiscountUpdate, usr_update:Decimal):
     """
-    Actualiza un descuento existente en la base de datos.
-    
-    Utiliza la función de base de datos `fun_update_descuento` para actualizar
-    un descuento existente, identificado por `id_descuento`. Los datos para la
-    actualización se toman del esquema `DiscountUpdate` (solo campos proporcionados).
-    Se fusionan con los valores actuales del descuento para asegurar que todos
-    los parámetros requeridos por la función SQL estén presentes.
+    Actualiza un descuento existente preservando campos no enviados.
+
+    Estrategia:
+    - Lee estado actual en BD.
+    - Mezcla con `exclude_unset=True` del payload.
+    - Ejecuta `fun_update_descuento` con set completo de parámetros.
+    - Valida respuesta JSON `success`.
     """
     try:
         # Obtener el descuento actual (columnas reales de tab_descuentos)
@@ -269,10 +315,7 @@ def update_discount(db:Session, id_descuento:Decimal, discount:DiscountUpdate, u
     
 def deactivate_activate_discount(db:Session, id_descuento:Decimal, activar:bool, usr_update:Decimal):
     """
-    Desactiva o activa un descuento existente en la base de datos.
-    
-    Utiliza la función de base de datos `fun_activar_desactivar_descuento` para
-    desactivar o activar un descuento existente, identificado por `id_descuento`.
+    Activa o desactiva un descuento utilizando función SQL dedicada.
     """
     try:
         query = text("""
@@ -293,13 +336,12 @@ def deactivate_activate_discount(db:Session, id_descuento:Decimal, activar:bool,
 
 def get_discount_stats(db: Session):
     """
-    Obtiene estadísticas generales de descuentos para el panel de administración.
-    
-    Args:
-        db (Session): Sesión de base de datos
-        
-    Returns:
-        dict: Estadísticas de descuentos
+    Obtiene estadísticas globales para panel admin.
+
+    Incluye:
+    - total activos/inactivos
+    - total de canjes
+    - puntos canjeados acumulados
     """
     try:
         query = text("""
@@ -319,14 +361,7 @@ def get_discount_stats(db: Session):
 
 def get_discount_exchanges(db: Session, id_descuento: Decimal):
     """
-    Obtiene el historial de canjes de un descuento específico.
-    
-    Args:
-        db (Session): Sesión de base de datos
-        id_descuento (Decimal): ID del descuento
-        
-    Returns:
-        list: Lista de canjes del descuento
+    Obtiene historial de canjes de un descuento específico.
     """
     try:
         query = text("""
@@ -356,14 +391,11 @@ def get_discount_exchanges(db: Session, id_descuento: Decimal):
 
 def get_discount_by_code(db: Session, codigo_descuento: str):
     """
-    Obtiene un descuento por su código.
-    
-    Args:
-        db (Session): Sesión de base de datos
-        codigo_descuento (str): Código del descuento a buscar
-        
-    Returns:
-        dict: Descuento encontrado o None
+    Busca descuento por código normalizado (trim + uppercase).
+
+    Reglas:
+    - Solo descuentos activos y vigentes.
+    - Retorna None si no existe o no aplica por fecha/estado.
     """
     try:
         query = text("""
@@ -412,16 +444,15 @@ def get_discount_by_code(db: Session, codigo_descuento: str):
 
 def validate_discount_for_cart(db: Session, codigo_descuento: str, id_usuario: Decimal, id_carrito: Decimal = None):
     """
-    Valida si un código de descuento es aplicable al carrito actual del usuario.
-    
-    Args:
-        db (Session): Sesión de base de datos
-        codigo_descuento (str): Código del descuento a validar
-        id_usuario (Decimal): ID del usuario
-        id_carrito (Decimal): ID del carrito (opcional, se busca si no se proporciona)
-        
-    Returns:
-        dict: Información del descuento y validación, o None si no es válido
+    Valida aplicabilidad real de un cupón para el carrito del usuario.
+
+    Flujo:
+    1) Busca descuento por código.
+    2) Resuelve carrito (explícito o último del usuario).
+    3) Calcula total de carrito.
+    4) Evalúa función SQL de aplicabilidad.
+    5) Añade reglas adicionales (monto mínimo, motivo de rechazo).
+    6) Calcula descuento estimado y total final.
     """
     try:
         # Primero obtener el descuento por código
@@ -512,21 +543,10 @@ def validate_discount_for_cart(db: Session, codigo_descuento: str, id_usuario: D
 
 def get_active_discounts(db: Session, limit: int = 50):
     """
-    Obtiene los descuentos activos disponibles para la página pública de descuentos.
-    Solo se muestran descuentos que tienen "Descuento activo" y ningún otro selector
-    especial activado (canjeable por puntos, cumpleaños, primera compra, requiere código).
-    
-    Reglas:
-    - ind_activo = TRUE y el resto de selectores en FALSE: SÍ aparece en la página.
-    - Si tiene canjeable por puntos, es para cumpleaños, solo primera compra o requiere
-      código: NO aparece en esta lista (se gestionan en otros flujos).
-    
-    Args:
-        db (Session): Sesión de base de datos
-        limit (int): Límite de resultados a retornar
-        
-    Returns:
-        list: Lista de descuentos activos "simples" para la tienda
+    Lista descuentos activos de exposición pública "simple".
+
+    Excluye explícitamente:
+    - canje por puntos, cumpleaños, primera compra y requiere código.
     """
     try:
         query = text("""
@@ -581,13 +601,7 @@ def get_active_discounts(db: Session, limit: int = 50):
 
 def get_birthday_discount(db: Session):
     """
-    Obtiene el descuento activo para cumpleaños.
-    
-    Args:
-        db (Session): Sesión de base de datos
-        
-    Returns:
-        dict: Descuento de cumpleaños activo o None
+    Obtiene descuento activo configurado para cumpleaños.
     """
     try:
         query = text("""
@@ -632,13 +646,7 @@ def get_birthday_discount(db: Session):
 
 def get_first_purchase_discount(db: Session):
     """
-    Obtiene el descuento activo para primera compra.
-    
-    Args:
-        db (Session): Sesión de base de datos
-        
-    Returns:
-        dict: Descuento de primera compra activo o None
+    Obtiene descuento activo configurado para primera compra.
     """
     try:
         query = text("""
@@ -683,18 +691,14 @@ def get_first_purchase_discount(db: Session):
 
 def get_user_available_discounts(db: Session, id_usuario: Decimal, limit: int = 50):
     """
-    Obtiene descuentos disponibles para un usuario específico, incluyendo:
-    - Descuentos activos generales (sin selectores especiales)
-    - Descuento de cumpleaños (si hoy es su cumpleaños)
-    - Descuento de primera compra (si es su primera compra)
-    
-    Args:
-        db (Session): Sesión de base de datos
-        id_usuario (Decimal): ID del usuario
-        limit (int): Límite de resultados a retornar
-        
-    Returns:
-        list: Lista de descuentos disponibles para el usuario
+    Compone descuentos disponibles para un usuario concreto.
+
+    Incluye:
+    - generales activos
+    - cumpleaños (si aplica hoy)
+    - primera compra (si no tiene órdenes)
+
+    Evita duplicados por `id_descuento`.
     """
     try:
         discounts = []
@@ -778,8 +782,14 @@ def get_discount_by_id(db: Session, id_descuento: Decimal):
 
 async def send_coupon_email_to_user(db: Session, id_descuento: Decimal, id_usuario: Decimal):
     """
-    Envía por correo el código del descuento al usuario indicado.
-    Requiere que el descuento tenga codigo_descuento y que el usuario exista con email.
+    Envía un cupón por email a un usuario existente.
+
+    Precondiciones:
+    - descuento existe y contiene `codigo_descuento`
+    - usuario existe y tiene email registrado
+
+    Delegación:
+    - usa `email_service.send_coupon_to_user` para envío efectivo.
     """
     from services import user_service
     from services import email_service as email_svc

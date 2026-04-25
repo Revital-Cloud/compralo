@@ -6,6 +6,15 @@ import { useFilterProducts, useFilterOptions, useFilterStats } from "@/hooks"
 import type { ProductFilterParams } from "@/types/product"
 import { useSearchParams } from "next/navigation"
 
+/**
+ * Mapa de la página de catálogo (`/products`).
+ *
+ * Flujo:
+ * 1) Lee estado de filtros/orden/paginación desde UI + query params iniciales.
+ * 2) Construye `ProductFilterParams` y consulta backend con hooks de productos.
+ * 3) Renderiza header, panel de filtros y lista/grid paginada.
+ */
+
 const computeSort = (value: string): ['precio' | 'nombre' | 'stock' | 'fecha', 'ASC' | 'DESC'] => {
   const [campo, dir] = value.split('-')
   const ordenarPor = (['precio', 'nombre', 'stock', 'fecha'].includes(campo) ? campo : 'nombre') as 'precio' | 'nombre' | 'stock' | 'fecha'
@@ -64,6 +73,7 @@ function ProductsPageInner({
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string[]>>({})
 
   const filterParams: ProductFilterParams = useMemo(() => {
+    // Traduce estado UI a query params del endpoint `/products/filter`.
     const [ordenar_por, orden] = computeSort(sortBy)
     const base: ProductFilterParams = {
       ordenar_por,

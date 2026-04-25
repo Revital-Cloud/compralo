@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Card, CardContent } from "@/components/ui"
 import { Badge } from "@/components/ui"
 import { Button } from "@/components/ui"
@@ -20,6 +20,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { editUserSchema, type EditUserFormData } from '@/schemas/admin/user-edit.schema'
 import { useAdminTour } from '../_tour/useAdminDriverTour'
+import { AdminStatsRowSkeleton, AdminTableSkeleton } from '@/components/admin/skeletons'
 
 const getRoleBadge = (roleId: number) => {
   switch (roleId) {
@@ -114,13 +115,13 @@ const UsersPage = () => {
   const users = Array.isArray(usersResponse) ? usersResponse : (usersResponse?.items || [])
   const totalUsers = Array.isArray(usersResponse) ? usersResponse.length : (usersResponse?.total || 0)
 
-  const userStats = {
+  const userStats = useMemo(() => ({
     total: totalUsers,
     customers: users.filter(u => Number((u as any).id_rol) === 2).length,
     admins: users.filter(u => Number((u as any).id_rol) === 1).length,
     active: users.filter(u => (u as any).ind_activo).length,
     inactive: users.filter(u => !(u as any).ind_activo).length,
-  }
+  }), [totalUsers, users])
 
   const { startUsersTour } = useAdminTour()
 
@@ -136,7 +137,7 @@ const UsersPage = () => {
     }
   }, [startUsersTour])
 
-  const openEdit = (user: User) => {
+  const openEdit = useCallback((user: User) => {
     setEditingUser(user)
     form.reset({
       nom_usuario: user.nom_usuario,
@@ -147,15 +148,19 @@ const UsersPage = () => {
       fec_nacimiento: user.fec_nacimiento ? String(user.fec_nacimiento).slice(0, 10) : '',
     })
     setEditOpen(true)
-  }
+  }, [form])
 
-  const handleEditSubmit = form.handleSubmit((data) => {
-    if (!editingUser) return
-    const id = Number(editingUser.id_usuario)
-    updateMutation.mutate({ id, data })
-  })
+  const handleEditSubmit = useMemo(
+    () =>
+      form.handleSubmit((data) => {
+        if (!editingUser) return
+        const id = Number(editingUser.id_usuario)
+        updateMutation.mutate({ id, data })
+      }),
+    [editingUser, form, updateMutation]
+  )
 
-  const columns: ColumnDef<User>[] = [
+  const columns: ColumnDef<User>[] = useMemo(() => [
     {
       accessorKey: 'id_usuario',
       header: 'Usuario',
@@ -198,9 +203,9 @@ const UsersPage = () => {
       header: 'Estado',
       cell: ({ row }) => getStatusBadge(row.original.ind_activo),
     },
-  ]
+  ], [])
 
-  const actions: ColumnDef<User>[] = [
+  const actions: ColumnDef<User>[] = useMemo(() => [
     {
       id: 'actions',
       header: 'Acciones',
@@ -239,7 +244,7 @@ const UsersPage = () => {
         </div>
       ),
     },
-  ]
+  ], [openEdit, toggleMutation])
 
   return (
     <div className="space-y-6">
@@ -272,8 +277,9 @@ const UsersPage = () => {
       </div>
 
       {isLoading && (
-        <div className="text-center py-12">
-          <div className="text-muted-foreground">Cargando usuarios...</div>
+        <div className="space-y-4">
+          <AdminStatsRowSkeleton count={5} />
+          <AdminTableSkeleton rows={10} />
         </div>
       )}
 

@@ -6,7 +6,9 @@ y registra los routers de la aplicación, como el router de productos.
 También puede incluir configuraciones globales de la aplicación y middlewares.
 """
 from urllib.parse import urlparse
+import uuid
 import logging
+from contextvars import ContextVar
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -58,7 +60,39 @@ from routers.top_info_bar_router import router as top_info_bar_router
 from core.rate_limiter import limiter
 
 # Configurar logging: en producción solo WARNING y superior (no se muestran INFO/DEBUG)
-logging.basicConfig(level=logging.WARNING if is_production() else logging.INFO)
+trace_id_var: ContextVar[str] = ContextVar("trace_id", default="-")
+
+class TraceIdFilter(logging.Filter):
+    def filter(self, record: logging.LogRecord) -> bool:
+        # Inyecta trace_id en todos los logs para correlacionar incidentes.
+        record.trace_id = trace_id_var.get()
+        return True
+
+class SafeTraceIdFormatter(logging.Formatter):
+    """
+    Evita fallos cuando algunos LogRecord (p.ej. logs de startup de Uvicorn)
+    no traen el atributo `trace_id`.
+    """
+
+    def format(self, record: logging.LogRecord) -> str:
+        if not hasattr(record, "trace_id"):
+            record.trace_id = trace_id_var.get()
+        return super().format(record)
+
+
+_log_format = "%(asctime)s [%(levelname)s] %(name)s [trace_id=%(trace_id)s] %(message)s"
+_handler = logging.StreamHandler()
+_handler.setFormatter(SafeTraceIdFormatter(_log_format))
+
+root_logger = logging.getLogger()
+root_logger.setLevel(logging.WARNING if is_production() else logging.INFO)
+if not root_logger.handlers:
+    root_logger.addHandler(_handler)
+else:
+    safe_formatter = SafeTraceIdFormatter(_log_format)
+    for h in root_logger.handlers:
+        h.setFormatter(safe_formatter)
+root_logger.addFilter(TraceIdFilter())
 logger = logging.getLogger(__name__)
 
 # En producción no exponemos documentación pública (Swagger / ReDoc) ni el schema OpenAPI.
@@ -76,6 +110,21 @@ app = FastAPI(
     openapi_url=_openapi_url,
 )
 
+@app.middleware("http")
+async def add_trace_id_middleware(request: Request, call_next):
+    # Prioridad: header -> nuevo uuid
+    incoming = request.headers.get("x-trace-id") or request.headers.get("x-request-id")
+    trace_id = incoming.strip() if incoming else uuid.uuid4().hex
+    token = trace_id_var.set(trace_id)
+    try:
+        response = await call_next(request)
+        # Retornamos siempre para debugging/observabilidad.
+        response.headers["X-Trace-Id"] = trace_id
+        response.headers["X-Request-Id"] = trace_id
+        return response
+    finally:
+        trace_id_var.reset(token)
+
 # Orígenes permitidos para CORS (dev y prod)
 ALLOWED_CORS_ORIGINS = [
     # Producción
@@ -91,13 +140,16 @@ ALLOWED_CORS_ORIGINS = [
 
 def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
     """
-    Custom handler for rate limit exceeded errors.
-    Returns a JSON response with a user-friendly message.
+    Manejador personalizado cuando se supera el límite de peticiones.
+
+    Este handler centraliza la respuesta HTTP 429 y entrega un mensaje claro
+    al cliente, junto con la pista de reintento (`retry_after`) emitida por
+    el limitador.
     """
     return JSONResponse(
         status_code=429,
         content={
-            "detail": "Too many requests. Please try again later.",
+            "detail": "Demasiadas solicitudes. Por favor, inténtalo de nuevo más tarde.",
             "retry_after": exc.detail
         }
     )
@@ -105,7 +157,10 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
 
 def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
     """
-    Sanitize 5xx error details in production – never expose SQL or internal errors to the client.
+    Sanitiza errores 5xx en producción.
+
+    Regla de seguridad: nunca exponer al cliente detalles internos
+    (consultas SQL, trazas o mensajes de infraestructura).
     """
     if exc.status_code >= 500 and is_production():
         logger.warning("HTTP 5xx sanitized for client: status=%s", exc.status_code, exc_info=False)
@@ -118,7 +173,10 @@ def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSO
 
 def sqlalchemy_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """
-    Catch all SQLAlchemy/DB errors and return a safe message. Log the real error server-side only.
+    Captura errores de SQLAlchemy/base de datos y devuelve un mensaje seguro.
+
+    El detalle real se registra únicamente del lado del servidor para
+    diagnóstico, sin filtrarlo al cliente.
     """
     logger.exception("Database/SQL error (not exposed to client): %s", type(exc).__name__)
     return JSONResponse(
@@ -129,7 +187,10 @@ def sqlalchemy_exception_handler(request: Request, exc: Exception) -> JSONRespon
 
 def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """
-    Catch any unhandled exception. Never expose stack trace or message to the client.
+    Captura excepciones no controladas de forma global.
+
+    Nunca expone stack traces ni mensajes internos al cliente; responde con
+    texto seguro definido por la capa de excepciones.
     """
     logger.exception("Unhandled exception (not exposed to client): %s", type(exc).__name__)
     return JSONResponse(
@@ -176,7 +237,8 @@ app.add_middleware(
         "/api/auth/change-password", 
         "/api/auth/logout",
         "/api/favorites",
-        # Cart (/api/carrito-*) is intentionally NOT protected: anonymous users can view and add to cart; login required only at checkout
+        # Carrito (/api/carrito-*) NO protegido intencionalmente:
+        # usuarios anónimos pueden navegar/agregar; login solo al pagar.
         "/api/orders",
         "/api/profile",
         "/api/user-discounts",
@@ -193,7 +255,9 @@ app.add_middleware(
         "/api/admin",        # Todo requiere admin
         "/api/email",        # Todo requiere admin
         "/api/points",       # Todo requiere admin
-        # /api/discounts: no está aquí; validate-for-cart y by-code son para clientes. Admin solo en create/update/send-coupon/stats (router)
+        # /api/discounts no está aquí:
+        # validate-for-cart y by-code son públicos para clientes.
+        # Admin solo en create/update/send-coupon/stats (validado en router).
         "/api/top-info-bar",  # GET/PUT requieren admin; GET /top-info-bar/active es público (protegido en router)
         "/api/attributes",   # CRUD admin
     ]

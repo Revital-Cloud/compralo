@@ -1,5 +1,13 @@
 import { get } from '@/utils/apiWrapper'
 
+/**
+ * Mapa del servicio de dashboard (frontend).
+ *
+ * Responsabilidad:
+ * - Tipar la respuesta del endpoint admin de dashboard.
+ * - Exponer una única función de consumo para páginas/hooks.
+ */
+
 export interface DashboardKPIData {
   value: number
   growth: number
@@ -58,6 +66,15 @@ export interface DashboardData {
 }
 
 export const dashboardService = {
+  /**
+   * Solicita datos del dashboard para un rango de tiempo.
+   *
+   * Endpoint backend:
+   * - GET `/admin/dashboard?time_range=daily|weekly|monthly`
+   *
+   * `timeRange` controla la ventana temporal y granularidad de agregación
+   * que aplica el backend para KPIs y series.
+   */
   async getDashboardData(timeRange: string = 'monthly'): Promise<DashboardData> {
     return get<DashboardData>(`/admin/dashboard?time_range=${timeRange}`)
   }

@@ -13,6 +13,15 @@ import { toast } from "sonner";
 import { getReviewedProductsInOrder } from "@/services/review.service";
 import { getProductImageUrl } from "@/utils/image-helpers";
 
+/**
+ * Pestaña de órdenes del perfil.
+ *
+ * Funciones:
+ * - lista órdenes del usuario
+ * - abre detalle en drawer
+ * - permite reseñar productos por orden (una vez por producto/orden)
+ */
+
 interface OrderItem {
   id_orden: number;
   fec_pedido: string;

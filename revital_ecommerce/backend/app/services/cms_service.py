@@ -8,6 +8,11 @@ utilizando funciones de base de datos (procedimientos almacenados o funciones SQ
 
 Las funciones aquí definidas son llamadas por los routers de la API
 y utilizan los esquemas Pydantic para la validación y transformación de datos.
+
+Responsabilidades:
+- listar contenido CMS,
+- obtener detalle de contenido,
+- crear/actualizar/desactivar contenido con funciones SQL.
 """
 import json
 from sqlalchemy.orm import Session
@@ -28,6 +33,9 @@ def get_contents(db:Session):
 
     Returns:
         list: Una lista de diccionarios, donde cada diccionario representa un CMS Content.
+
+    Se consume desde:
+    - `cms_router.get_cms_contents`
     """
     try:
         query = text("""
@@ -62,6 +70,9 @@ def get_content(db:Session,id_cms_content:int):
 
     Returns:
         dict: Un diccionario que representa el CMS Content encontrado.
+
+    Se consume desde:
+    - `cms_router.get_cms_content`
     """
     try:
         query = text("""
@@ -99,6 +110,9 @@ def create_cms_content(db:Session,cms_content:CmsCreate, usr_insert: Decimal):
         dict or None: Un diccionario que representa el CMS Content creado (generalmente el JSON
         devuelto por la función SQL) o None si la creación falla o la función
         SQL no devuelve el resultado esperado.
+
+    Implementación:
+    - delega en función SQL `fun_insert_content`.
     """
     try:
         params = cms_content.model_dump()
@@ -137,6 +151,9 @@ def update_cms_content(db:Session,id_cms_content:int,cms_content:CmsUpdate, usr_
         dict or None: Un diccionario que representa el CMS Content actualizado (generalmente el JSON
         devuelto por la función SQL) o None si la actualización falla o la función
         SQL no devuelve el resultado esperado.
+
+    Implementación:
+    - delega en función SQL `fun_update_content`.
     """
     try:
         update_params = cms_content.model_dump(exclude_unset=True)
@@ -170,6 +187,9 @@ def delete_cms_content(db:Session,id_cms_content:int, usr_update: Decimal):
     Elimina un CMS Content de la base de datos.
     Utiliza la función de base de datos `fun_delete_content` para eliminar
     un CMS Content existente.
+
+    Nota:
+    - el endpoint usa verbo `PUT .../deactivate` por compatibilidad semántica del proyecto.
     """
     try:
         query = text("""

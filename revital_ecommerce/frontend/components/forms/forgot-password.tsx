@@ -18,6 +18,15 @@ import { useToastActions } from "@/hooks/use-toast-actions"
 import authService from "@/services/auth.service"
 import type { ResetPasswordRequest } from "@/types"
 
+/**
+ * Formulario de solicitud de restablecimiento.
+ *
+ * Flujo:
+ * - recibe email
+ * - solicita enlace al backend
+ * - muestra estado de éxito y guía de siguientes pasos
+ */
+
 export function ForgotPasswordForm({
   className,
   ...props

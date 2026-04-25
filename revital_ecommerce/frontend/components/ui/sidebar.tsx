@@ -38,6 +38,8 @@ type SidebarContextProps = {
   setOpen: (open: boolean) => void
   openMobile: boolean
   setOpenMobile: (open: boolean) => void
+  hoverExpandedLock: boolean
+  setHoverExpandedLock: (locked: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
 }
@@ -68,6 +70,7 @@ function SidebarProvider({
 }) {
   const isMobile = useIsMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
+  const [hoverExpandedLock, setHoverExpandedLock] = React.useState(false)
 
   // This is the internal state of the sidebar.
   // We use openProp and setOpenProp for control from outside the component.
@@ -121,9 +124,21 @@ function SidebarProvider({
       isMobile,
       openMobile,
       setOpenMobile,
+      hoverExpandedLock,
+      setHoverExpandedLock,
       toggleSidebar,
     }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+    [
+      state,
+      open,
+      setOpen,
+      isMobile,
+      openMobile,
+      setOpenMobile,
+      hoverExpandedLock,
+      setHoverExpandedLock,
+      toggleSidebar,
+    ]
   )
 
   return (
@@ -163,7 +178,13 @@ function Sidebar({
   variant?: "sidebar" | "floating" | "inset"
   collapsible?: "offcanvas" | "icon" | "none"
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  const { isMobile, state, openMobile, setOpenMobile, hoverExpandedLock } = useSidebar()
+  const [isHoveringCollapsedSidebar, setIsHoveringCollapsedSidebar] = React.useState(false)
+  const isHoverExpanded =
+    collapsible === "icon" &&
+    state === "collapsed" &&
+    (isHoveringCollapsedSidebar || hoverExpandedLock)
+  const collapsibleState = state === "collapsed" && !isHoverExpanded ? collapsible : ""
 
   if (collapsible === "none") {
     return (
@@ -209,10 +230,12 @@ function Sidebar({
     <div
       className="group peer text-sidebar-foreground hidden md:block"
       data-state={state}
-      data-collapsible={state === "collapsed" ? collapsible : ""}
+      data-collapsible={collapsibleState}
       data-variant={variant}
       data-side={side}
       data-slot="sidebar"
+      onMouseEnter={() => setIsHoveringCollapsedSidebar(true)}
+      onMouseLeave={() => setIsHoveringCollapsedSidebar(false)}
     >
       {/* This is what handles the sidebar gap on desktop */}
       <div

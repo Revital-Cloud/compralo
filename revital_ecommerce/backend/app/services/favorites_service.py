@@ -3,6 +3,17 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from schemas.favorites_schema import FavoritesCreate
+from services.product_service import SQL_IMG_PRINCIPAL_COALESCE_P
+
+"""
+Servicios de favoritos.
+
+Responsabilidades:
+- listar favoritos por usuario con datos de producto,
+- crear favorito con control de duplicados (vía función SQL),
+- eliminar favorito.
+"""
+
 
 def get_favorites(db:Session, id_usuario: Decimal):
     """
@@ -14,6 +25,9 @@ def get_favorites(db:Session, id_usuario: Decimal):
     
     Returns:
         Lista de favoritos del usuario especificado con detalles del producto.
+
+    Se consume desde:
+    - `favorites_router.get_favorites`
     """
     
     try:
@@ -24,7 +38,7 @@ def get_favorites(db:Session, id_usuario: Decimal):
             f.id_usuario,
             f.product_id AS id_producto,
             p.name AS nom_producto,
-            (SELECT pvi.image_url FROM tab_product_variant_images pvi JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id WHERE g.product_id = p.id ORDER BY g.id, pvi.sort_order, pvi.id LIMIT 1) AS img_producto,
+            """ + SQL_IMG_PRINCIPAL_COALESCE_P + """ AS img_producto,
             (SELECT MIN(c.price) FROM tab_product_variant_combinations c JOIN tab_product_variant_groups g ON g.id = c.group_id WHERE g.product_id = p.id AND c.is_active = TRUE) AS val_precio,
             f.fec_insert
         FROM tab_favoritos f
@@ -46,6 +60,10 @@ def create_favorite(db:Session, favorite:FavoritesCreate, usr_insert: Decimal):
         db (Session): La sesión de base de datos SQLAlchemy.
         favorite (FavoritesCreate): Un objeto Pydantic 'FavoritesCreate' con los datos a insertar.
         usr_insert (Decimal): ID del usuario que está creando el favorito.
+
+    Implementación:
+    - delega en `fun_insert_favorito`.
+    - traduce error de duplicado a mensaje amigable.
     """
     try:
         # tab_favoritos usa product_id; la API puede seguir enviando id_producto (y opc. id_categoria, id_linea, id_sublinea)
@@ -82,6 +100,9 @@ def create_favorite(db:Session, favorite:FavoritesCreate, usr_insert: Decimal):
 def delete_favorite(db: Session, id_usuario: Decimal, id_producto: Decimal):
     """
     Elimina un favorito (tab_favoritos: id_usuario, product_id).
+
+    Implementación:
+    - delega en `fun_delete_favorito`.
     """
     try:
         query = text("""

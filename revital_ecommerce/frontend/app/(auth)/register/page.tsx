@@ -7,6 +7,14 @@ import React from 'react';
 import { RegisterForm } from '@/components/forms/register-form';
 import { useAuth } from '@/hooks/use-auth';
 
+/**
+ * Página de registro (`/register`).
+ *
+ * - Espera hidratación/auth state antes de renderizar.
+ * - Si ya hay sesión, redirige según rol.
+ * - Si no, muestra `RegisterForm`.
+ */
+
 const RegisterPage = () => {
   const [mounted, setMounted] = useState(false);
   const { isAuthenticated, isLoadingUser, user, isHydrated } = useAuth();

@@ -3,6 +3,14 @@ Módulo de enrutador para la gestión de favoritos.
 
 Define las rutas y endpoints relacionados con la gestión de favoritos,
 incluyendo la creación, visualización y eliminación de favoritos.
+
+Mapa del módulo:
+- Listado de favoritos por usuario.
+- Alta y baja de favoritos por producto.
+
+Relación con capas:
+- Router: seguridad de ownership y validación HTTP.
+- Service: `favorites_service` para persistencia/consultas.
 """
 from decimal import Decimal
 from fastapi import APIRouter, Depends, Body, HTTPException, status
@@ -28,6 +36,10 @@ async def get_favorites(id_usuario: Decimal,
         
     Returns:
         list[Favorites]: Lista de favoritos del usuario.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /favorites/{id_usuario}`
+    - Service: `favorites_service.get_favorites`
     """
     try:
         favorites = favorites_service.get_favorites(db, id_usuario)
@@ -53,6 +65,10 @@ async def create_favorite(
         id_linea_producto (Decimal): El ID de la linea del producto.
         id_sublinea_producto (Decimal): El ID de la sublinea del producto.
         id_producto (Decimal): El ID del producto.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /favorites`
+    - Service: `favorites_service.create_favorite`
     """
     try:
         favorite_to_create = FavoritesCreate(
@@ -75,6 +91,13 @@ async def delete_favorite(
 ):
     """
     Elimina un favorito existente (tab_favoritos: id_usuario, product_id).
+
+    Endpoint -> Service:
+    - Endpoint: `DELETE /favorites/{id_usuario}-{id_producto}`
+    - Service: `favorites_service.delete_favorite`
+
+    Seguridad:
+    - valida que el `id_usuario` de ruta coincida con usuario autenticado.
     """
     try:
         if id_usuario != current_user.id_usuario:

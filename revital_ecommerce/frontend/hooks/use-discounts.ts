@@ -2,6 +2,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { discountService } from '@/services/discount.service'
 import type { Discount } from '@/types/discount'
 
+/**
+ * Hooks de descuentos (storefront + admin).
+ *
+ * Convención de keys:
+ * - `discounts` base para administración.
+ * - `discounts/active` y `discounts/my-available` para experiencia de tienda.
+ */
+
 export const useDiscounts = () => {
   return useQuery({
     queryKey: ['discounts'],

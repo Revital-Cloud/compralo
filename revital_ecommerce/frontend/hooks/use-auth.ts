@@ -2,7 +2,7 @@
  * Hook personalizado para autenticación
  * 
  * Este hook encapsula toda la lógica de autenticación usando React Query
- * para el manejo de estado del servidor y cache automático.
+ * para el manejo de estado del servidor y caché automático.
  * 
  * INCLUYE validación de cookies para compliance legal.
  */
@@ -37,10 +37,29 @@ import type {
 import { useEffect } from 'react';
 import { useSessionRestoreState } from './session-restore-state';
 
-// Keys para las queries (para cache management)
+// Claves de queries para administrar caché de autenticación.
 export const AUTH_KEYS = {
   currentUser: ['auth', 'currentUser'] as const,
 };
+
+/**
+ * Estructura de estados devueltos por `useAuth()`:
+ * - `user`: perfil del usuario (o `undefined` si aún no se resolvió).
+ * - `isAuthenticated`: derivado de token/cookies + `user` + hidratación.
+ * - `isLoadingUser`: indica si la query del perfil está en curso.
+ * - `isRestoringSession`: indica si el flujo global de “restore” está en progreso
+ *   (ej. al recargar tras refresh).
+ *
+ * Acciones:
+ * - `login`, `logout`, `register`: delegan en `authService`.
+ * - `updateProfile`: persiste cambios de perfil y luego invalida/cachea.
+ * - `deactivateAccount`: ejecuta soft-delete en backend y fuerza logout + redirect.
+ *
+ * Mecanismos de seguridad/UX:
+ * - Validación de aceptación de cookies antes de ejecutar login/registro.
+ * - Manejo de intentos fallidos con lockout temporal (429 + config en `auth-attempt-limiter`).
+ * - Flujo especial para `ACCOUNT_SOFT_DELETED` (403) que dispara reactivación por email.
+ */
 
 /**
  * Hook principal de autenticación
@@ -69,7 +88,7 @@ export function useAuth() {
     refetchOnReconnect: false,
   });
 
-  // Mutación para login
+  // Mutación para inicio de sesión.
   const { mutate: login, isPending: isLoggingIn } = useMutation<TokenResponse, unknown, LoginRequest>({
     mutationFn: (credentials: LoginRequest) => {
       // Validar cookies antes de permitir login
@@ -84,11 +103,11 @@ export function useAuth() {
       }
       toast.success('¡Bienvenido! Has iniciado sesión correctamente');
       
-      // Refresca la query del usuario actual para obtener sus datos
-      // Esto es necesario porque el login solo devuelve tokens, no datos del usuario
+      // Refresca la query del usuario actual para obtener sus datos.
+      // Esto es necesario porque el login solo devuelve tokens, no perfil.
       const refreshedUser = await queryClient.fetchQuery<UserPublic>({ queryKey: AUTH_KEYS.currentUser });
       
-      // Redirección simplificada después del login
+      // Redirección simplificada después del inicio de sesión.
       if (typeof window !== 'undefined') {
         // Convertir id_rol a number para asegurar comparación correcta
         const userRole = Number(refreshedUser?.id_rol);
@@ -116,7 +135,7 @@ export function useAuth() {
         // Los layouts se encargarán de la redirección según el contexto
       }
     },
-    // error: incluye las variables (credenciales) para poder iniciar flujo de reactivación
+    // Incluye las variables (credenciales) para iniciar flujo de reactivación.
     onError: async (error: any, variables?: LoginRequest) => {
       // Manejar errores específicos de cookies
       if (error.message?.includes('cookies')) {
@@ -128,7 +147,7 @@ export function useAuth() {
       const detail = error?.response?.data?.detail;
       const code = typeof detail === 'object' ? detail?.code : undefined;
 
-      // Caso especial: cuenta desactivada (soft delete) → iniciar flujo de reactivación desde login
+      // Caso especial: cuenta desactivada (borrado lógico) -> inicia reactivación.
       if (status === 403 && code === 'ACCOUNT_SOFT_DELETED' && variables?.email) {
         try {
           await authService.requestAccountReactivation(variables.email);
@@ -168,7 +187,7 @@ export function useAuth() {
     },
   });
 
-  // Mutación para logout (invalida cookie en backend y limpia token en memoria)
+  // Mutación para cierre de sesión (invalida cookie y limpia estado local).
   const { mutate: logout, isPending: isLoggingOut } = useMutation({
     mutationFn: () => authService.logout(),
     onSuccess: () => {
@@ -200,7 +219,7 @@ export function useAuth() {
         toast.error('Para crear una cuenta, debes aceptar las cookies necesarias');
         return;
       }
-      // No mostrar toast para ACCOUNT_SOFT_DELETED: el RegisterForm mostrará el modal de reactivación
+      // No mostrar toast para ACCOUNT_SOFT_DELETED: RegisterForm abre modal de reactivación.
       const status = error?.response?.status;
       const detail = error?.response?.data?.detail;
       const code = typeof detail === 'object' ? detail?.code : undefined;
@@ -231,20 +250,20 @@ export function useAuth() {
       }
       const message = getApiErrorMessage(error, 'Error al crear la cuenta. Inténtalo de nuevo.');
       toast.error(message);
-      throw error; // Re-lanzar el error para que el componente lo pueda manejar
+      throw error; // Relanza el error para que el componente llamador lo maneje.
     },
   });
 
   const updateProfileMutation = useMutation({
     mutationFn: (userData: UserUpdate) => {
       if (!user?.id_usuario) {
-        throw new Error("User not authenticated");
+        throw new Error("Usuario no autenticado");
       }
       return userService.updateUser(user.id_usuario, userData);
     },
     onSuccess: () => {
-      // Si la actualización es exitosa, invalidamos la query de 'user'
-      // para que React Query la vuelva a fetchear automáticamente.
+      // Si la actualización es exitosa, invalida la query de usuario
+      // para que React Query vuelva a consultar automáticamente.
       queryClient.invalidateQueries({ queryKey: AUTH_KEYS.currentUser });
     },
   });
@@ -270,10 +289,10 @@ export function useAuth() {
     }
   };
 
-  // Función helper para verificar si se pueden usar cookies
+  // Helper para validar si se pueden usar cookies necesarias.
   const canUseCookies = () => canUseCookie('necessary');
 
-  // Lógica simplificada de autenticación
+  // Estado final de autenticación consumible por UI.
   const isUserAuthenticated = isAuthenticated() && !!user && isHydrated;
 
   return {
@@ -295,7 +314,7 @@ export function useAuth() {
 }
 
 /**
- * Hook para cambio de contraseña
+ * Hook para cambio de contraseña.
  */
 export function useChangePassword() {
   return useMutation({
@@ -311,7 +330,7 @@ export function useChangePassword() {
 }
 
 /**
- * Hook para solicitar reset de contraseña
+ * Hook para solicitar restablecimiento de contraseña.
  */
 export function useRequestPasswordReset() {
   return useMutation({
@@ -327,13 +346,13 @@ export function useRequestPasswordReset() {
 }
 
 /**
- * Hook para confirmar reset de contraseña
+ * Hook para confirmar restablecimiento de contraseña.
  */
 export function useConfirmPasswordReset() {
   return useMutation({
     mutationFn: (confirmData: ResetPasswordConfirm) => authService.confirmPasswordReset(confirmData),
     onSuccess: () => {
-      // El componente se encarga de mostrar la UI de éxito / redirección
+      // El componente se encarga de pintar la UI de éxito/redirección.
       toast.success('Contraseña restablecida exitosamente. Ya puedes iniciar sesión.');
     },
     onError: (error: any) => {
@@ -344,14 +363,14 @@ export function useConfirmPasswordReset() {
         error?.message ||
         'Error al restablecer la contraseña';
       toast.error(message);
-      // Re-lanzar para que los componentes que usen mutateAsync puedan manejarlo
+      // Relanza para que componentes con mutateAsync puedan manejarlo.
       throw error;
     },
   });
 }
 
 /**
- * Hook para actualizar perfil del usuario
+ * Hook para actualizar perfil del usuario.
  */
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
@@ -359,7 +378,7 @@ export function useUpdateProfile() {
   return useMutation({
     mutationFn: (userData: UserUpdate) => userService.updateCurrentUser(userData),
     onSuccess: (updatedUser: UserPublic) => {
-      // Actualizar la cache con los nuevos datos
+      // Actualiza la caché con los nuevos datos.
       queryClient.setQueryData(AUTH_KEYS.currentUser, updatedUser);
       
       toast.success('Perfil actualizado exitosamente');

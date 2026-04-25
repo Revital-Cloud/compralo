@@ -9,6 +9,11 @@ import { cn } from "@/lib/utils";
 import { RefreshTokenProvider } from "@/components/providers/refresh-token-provider";
 import { getPublicSiteOrigin } from "@/utils/url-helpers";
 
+/**
+ * Fuentes principales del sitio:
+ * - Se exponen como variables CSS para usarlas desde clases utilitarias.
+ * - `display: "swap"` evita texto invisible durante la carga de la fuente.
+ */
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -30,6 +35,7 @@ const siteName = "Compralo";
 const siteDescription =
   "Compralo es tu tienda online para descubrir y comprar productos de múltiples categorías con envíos rápidos y seguros.";
 
+// Metadata global para SEO y social sharing.
 export const metadata: Metadata = {
   title: {
     default: siteName,
@@ -61,6 +67,7 @@ export const metadata: Metadata = {
 };
 
 const apiOrigin = (() => {
+  // Normaliza el origen de la API para habilitar preconnect sin arrastrar rutas.
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
   try {
     const url = new URL(apiUrl);
@@ -75,6 +82,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // JSON-LD del sitio para mejorar resultados enriquecidos en buscadores.
   const websiteJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -96,8 +104,9 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
+        {/* Preconexiones para reducir latencia de handshake en recursos externos */}
         <link rel="preconnect" href={apiOrigin} crossOrigin="anonymous" />
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
         <script

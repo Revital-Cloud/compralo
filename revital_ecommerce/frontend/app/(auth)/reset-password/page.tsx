@@ -3,6 +3,12 @@
 import { Suspense } from 'react';
 import { ResetPasswordForm } from '@/components/forms';
 
+/**
+ * Página `reset-password`.
+ *
+ * Usa `Suspense` porque el formulario depende de search params (token).
+ */
+
 export default function ResetPasswordPage() {
   return (
     <div className="bg-[#F5F5F5] dark:bg-gray-950 flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10 transition-colors duration-300">

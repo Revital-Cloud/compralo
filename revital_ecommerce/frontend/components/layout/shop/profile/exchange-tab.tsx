@@ -11,6 +11,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui";
 import { Gift, Coins, Loader2, ShoppingCart, Tag } from "lucide-react";
 import { toast } from "sonner";
+import { AxiosError } from "axios";
+
+/**
+ * Pestaña de canje por puntos.
+ *
+ * Muestra:
+ * - saldo de puntos
+ * - canjes ya disponibles para usar en carrito
+ * - descuentos canjeables y acción de canje
+ */
 
 function formatExpiration(fec: string | null): string {
   if (!fec) return "Sin vencimiento";
@@ -20,6 +30,41 @@ function formatExpiration(fec: string | null): string {
   } catch {
     return "—";
   }
+}
+
+function getUsageLimitLabel(d: DiscountExchangeable): string | null {
+  const perUserLimit = d.max_usos_por_usuario;
+  const perUserUsed = d.usos_usuario_actuales ?? 0;
+  const totalLimit = d.max_usos_total;
+  const totalUsed = d.usos_actuales_total ?? 0;
+
+  if (perUserLimit != null) {
+    return `Límite por usuario: ${perUserUsed}/${perUserLimit}`;
+  }
+  if (totalLimit != null) {
+    return `Límite total: ${totalUsed}/${totalLimit}`;
+  }
+  return null;
+}
+
+function getRedeemDisabledReason(d: DiscountExchangeable): string | null {
+  const perUserLimit = d.max_usos_por_usuario;
+  const perUserUsed = d.usos_usuario_actuales ?? 0;
+  if (perUserLimit != null && perUserUsed >= perUserLimit) {
+    return "Ya alcanzaste tu límite de canjes para este descuento";
+  }
+
+  const totalLimit = d.max_usos_total;
+  const totalUsed = d.usos_actuales_total ?? 0;
+  if (totalLimit != null && totalUsed >= totalLimit) {
+    return "Este descuento ya alcanzó su límite total de canjes";
+  }
+
+  if (!d.puede_canjear) {
+    return "Puntos insuficientes";
+  }
+
+  return null;
 }
 
 export default function ExchangeTab() {
@@ -58,9 +103,19 @@ export default function ExchangeTab() {
       queryClient.invalidateQueries({ queryKey: ["myAvailableCanjes", userId] });
       toast.success(data.message ?? "Canje realizado correctamente.");
     },
-    onError: (err: { response?: { data?: { detail?: string } }; message?: string }) => {
-      const msg =
-        err?.response?.data?.detail ?? err?.message ?? "No se pudo realizar el canje.";
+    onError: (err: unknown) => {
+      const axiosErr = err as AxiosError<{ detail?: string }>;
+      const apiDetail = axiosErr?.response?.data?.detail;
+      const statusCode = axiosErr?.response?.status;
+      const isNetworkError = axiosErr?.message === "Network Error" && !axiosErr?.response;
+
+      const msg = isNetworkError
+        ? "No se pudo conectar con el servidor. Verifica que el backend esté activo y la URL de la API sea correcta."
+        : typeof apiDetail === "string"
+          ? apiDetail
+          : statusCode === 409
+            ? "No se pudo realizar el canje porque el descuento alcanzó su límite de uso."
+            : axiosErr?.message ?? "No se pudo realizar el canje.";
       toast.error(msg);
     },
   });
@@ -181,7 +236,13 @@ export default function ExchangeTab() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {exchangeableDiscounts.map((d) => (
+            {exchangeableDiscounts.map((d) => {
+                const disabledReason = getRedeemDisabledReason(d);
+                const usageLimitLabel = getUsageLimitLabel(d);
+                const isPendingCurrent = redeemMutation.isPending && redeemMutation.variables === d.id_descuento;
+                const isDisabled = !!disabledReason || redeemMutation.isPending;
+
+                return (
               <Card
                 key={d.id_descuento}
                 className="bg-card border border-border hover:border-violet-500/50 transition-colors dark:bg-gray-900/80 dark:border-white/10"
@@ -203,28 +264,30 @@ export default function ExchangeTab() {
                     <span className="text-green-400">{d.valor_descuento}</span>
                     <span className="text-muted-foreground">({d.tipo_calculo_texto})</span>
                   </div>
+                  {usageLimitLabel && (
+                    <p className="text-xs text-muted-foreground">{usageLimitLabel}</p>
+                  )}
                   <Button
                     size="sm"
-                    disabled={
-                      !d.puede_canjear || redeemMutation.isPending
-                    }
+                    disabled={isDisabled}
                     onClick={() => redeemMutation.mutate(d.id_descuento)}
                     className="w-full sm:w-auto"
                   >
-                    {redeemMutation.isPending && redeemMutation.variables === d.id_descuento ? (
+                    {isPendingCurrent ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Canjeando...
                       </>
-                    ) : d.puede_canjear ? (
+                    ) : !disabledReason ? (
                       "Canjear"
                     ) : (
-                      "Puntos insuficientes"
+                      disabledReason
                     )}
                   </Button>
                 </CardContent>
               </Card>
-            ))}
+                );
+              })}
           </div>
         )}
       </div>

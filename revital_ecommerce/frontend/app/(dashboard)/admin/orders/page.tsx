@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { CatalogHeader } from '@/components/admin/catalog-header'
 import { useAllOrders, useOrderStats } from '@/hooks/use-orders'
 import { OrderStatsCards } from '@/components/admin/orders/order-stats-cards'
@@ -97,7 +97,7 @@ const OrdersPage = () => {
     return filtered
   }, [orders, filters])
 
-  const columns: ColumnDef<Order>[] = [
+  const columns: ColumnDef<Order>[] = useMemo(() => [
     { 
       accessorKey: 'id_orden', 
       header: 'ID Orden', 
@@ -182,9 +182,9 @@ const OrdersPage = () => {
         <span className="text-sm">{row.original.metodo_pago || '-'}</span>
       ) 
     },
-  ]
+  ], [])
 
-  const actions: ColumnDef<Order>[] = [
+  const actions: ColumnDef<Order>[] = useMemo(() => [
     {
       id: 'actions',
       header: 'Acciones',
@@ -197,13 +197,13 @@ const OrdersPage = () => {
         </Link>
       ),
     },
-  ]
+  ], [])
 
-  const handleFiltersChange = (newFilters: OrderFiltersType) => {
+  const handleFiltersChange = useCallback((newFilters: OrderFiltersType) => {
     setFilters(newFilters)
-  }
+  }, [])
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     setFilters({
       search: undefined,
       status: undefined,
@@ -212,7 +212,7 @@ const OrdersPage = () => {
       limit: 50,
       offset: 0,
     })
-  }
+  }, [])
 
   const { startOrdersTour } = useAdminTour()
 

@@ -8,6 +8,15 @@ funciones de base de datos (procedimientos almacenados o funciones SQL).
 
 Las funciones aquí definidas son llamadas por los routers de la API
 y utilizan los esquemas Pydantic para la validación y transformación de datos.
+
+Mapa del módulo (alto nivel):
+- Catálogo público: listado, detalle por slug/id, filtros y búsqueda.
+- Panel admin: listado avanzado, detalle compuesto, creación/edición compuesta.
+- Gestión de activación/desactivación y soporte de imágenes/variantes.
+
+Se consume principalmente desde:
+- `routers/product_router.py`
+- módulos de analítica/notificaciones que leen stock o estado de producto.
 """
 # Lógica de negocio 
 from decimal import Decimal
@@ -18,6 +27,7 @@ from typing import List, Optional
 import json
 import re
 import unicodedata
+from uuid import uuid4
 from psycopg2.extras import Json
 
 from schemas.product_schema import (
@@ -30,10 +40,30 @@ from schemas.product_schema import (
     ProductCreateComposite,
 )
 from services import cloudinary_service
+from services.out_of_stock_notification_service import (
+    LOW_STOCK_MAX,
+    notify_variant_low_stock,
+    notify_variant_out_of_stock,
+)
 # No necesitamos importar el schema Product aquí si solo devolvemos mappings
 # y el router se encarga de la validación con el response_model.
 
 MAX_IMAGES_PER_VARIANT = 10
+
+# Portada en listados / PDP resumido: galería "Sin color" (panel admin), no la primera variante por id de grupo
+SQL_IMG_PRINCIPAL_COALESCE_P = """COALESCE(
+  (SELECT pvi.image_url FROM tab_product_variant_images pvi
+   INNER JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id
+   WHERE g.product_id = p.id
+     AND LOWER(TRIM(COALESCE(g.dominant_value, ''))) = 'sin color'
+   ORDER BY pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
+   LIMIT 1),
+  (SELECT pvi.image_url FROM tab_product_variant_images pvi
+   INNER JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id
+   WHERE g.product_id = p.id
+   ORDER BY g.id, pvi.sort_order, pvi.id
+   LIMIT 1)
+)"""
 
 
 def _normalize_for_search(text: Optional[str]) -> str:
@@ -46,7 +76,10 @@ def _normalize_for_search(text: Optional[str]) -> str:
 
 
 def _resolve_attribute_value_id(db: Session, attr_id: int, val) -> tuple:
-    """If val is int and exists in tab_attribute_values for attr_id, return (value_id, value_text); else (None, None)."""
+    """
+    Si `val` es ID válido en `tab_attribute_values` para `attr_id`,
+    devuelve `(value_id, value_text)`, de lo contrario `(None, None)`.
+    """
     try:
         vint = int(val)
     except (TypeError, ValueError):
@@ -107,6 +140,9 @@ def _get_images_for_product_or_variant(
     Obtiene imágenes del modelo variant_groups: si variant_id (combination id) está definido,
     imágenes del grupo de esa combinación; si no, primera imagen de cualquier grupo del producto.
     Devuelve lista con { image_url, is_main, sort_order } (is_primary -> is_main).
+
+    Uso:
+    - normalizar payload de imágenes para endpoints de detalle/admin.
     """
     if variant_id is not None:
         rows = db.execute(
@@ -127,7 +163,8 @@ def _get_images_for_product_or_variant(
             FROM tab_product_variant_images pvi
             JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id
             WHERE g.product_id = :pid
-            ORDER BY g.id, pvi.sort_order, pvi.id
+            ORDER BY CASE WHEN LOWER(TRIM(COALESCE(g.dominant_value, ''))) = 'sin color' THEN 0 ELSE 1 END,
+                     g.id, pvi.sort_order, pvi.id
         """),
         {"pid": product_id},
     ).mappings().all()
@@ -140,6 +177,9 @@ def get_products_admin(db: Session, params: dict):
     Obtiene todos los productos para el panel de administración usando
     fun_get_all_products_admin (tab_products, variant_combinations/groups, tab_categories, tab_marcas).
     Filtros por search, category_id, id_marca se aplican en Python (la función DB no los tiene).
+
+    Salida:
+    - lista lista para panel admin con datos agregados y métricas de stock.
     """
     try:
         params = params or {}
@@ -467,9 +507,7 @@ def get_product_by_slug(db: Session, slug: str):
                 (SELECT COALESCE(SUM(cmb.stock), 0) FROM tab_product_variant_combinations cmb
                  JOIN tab_product_variant_groups gr ON gr.id = cmb.group_id
                  WHERE gr.product_id = p.id AND cmb.is_active = TRUE) AS num_stock,
-                (SELECT pvi.image_url FROM tab_product_variant_images pvi
-                 JOIN tab_product_variant_groups gr ON gr.id = pvi.variant_group_id
-                 WHERE gr.product_id = p.id ORDER BY gr.id, pvi.sort_order, pvi.id LIMIT 1) AS img_principal,
+                """ + SQL_IMG_PRINCIPAL_COALESCE_P + """ AS img_principal,
                 m.nom_marca,
                 pr.nom_proveedor
             FROM tab_products p
@@ -568,9 +606,7 @@ def get_product_by_id(db: Session, product_id: Decimal):
                 (SELECT COALESCE(SUM(cmb.stock), 0) FROM tab_product_variant_combinations cmb
                  JOIN tab_product_variant_groups gr ON gr.id = cmb.group_id
                  WHERE gr.product_id = p.id AND cmb.is_active = TRUE) AS num_stock,
-                (SELECT pvi.image_url FROM tab_product_variant_images pvi
-                 JOIN tab_product_variant_groups gr ON gr.id = pvi.variant_group_id
-                 WHERE gr.product_id = p.id ORDER BY gr.id, pvi.sort_order, pvi.id LIMIT 1) AS img_principal,
+                """ + SQL_IMG_PRINCIPAL_COALESCE_P + """ AS img_principal,
                 m.nom_marca,
                 pr.nom_proveedor
             FROM tab_products p
@@ -951,11 +987,8 @@ def get_product_by_id(db: Session, product_id: Decimal):
                 if tipo_val.lower() == dominant_val.lower():
                     del attrs["Tipo/Clasificación"]
             v["attributes"] = attrs
-        # Imagen principal y galería: product_images primero (si hay), luego primera del primer grupo de color
+        # Imagen principal y galería: solo product_images (grupo Sin color en BD); sin mezclar imágenes de variantes de color
         all_imgs = list(result.get("product_images") or [])
-        if result["variant_groups"]:
-            first_imgs = result["variant_groups"][0].get("images") or []
-            all_imgs.extend(first_imgs)
         if all_imgs:
             main_url = next((i["image_url"] for i in all_imgs if i.get("is_main")), all_imgs[0]["image_url"])
             if main_url:
@@ -1073,10 +1106,12 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
             "is_main": bool(r.get("is_primary")),
             "sort_order": int(r.get("sort_order") or 0),
         })
+    # Solo combinaciones activas: las dadas de baja en edición (is_active=FALSE) no deben reaparecer al reabrir el formulario
     combo_rows = db.execute(text("""
         SELECT id, group_id, sku, price, stock, attributes, is_active, tipo_clasificacion
         FROM tab_product_variant_combinations
-        WHERE group_id = ANY(:gids) ORDER BY group_id, id
+        WHERE group_id = ANY(:gids) AND is_active = TRUE
+        ORDER BY group_id, id
     """), {"gids": group_ids}).mappings().all()
     combinations_by_group = {}
     variants_flat = []
@@ -1121,13 +1156,32 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
         gid = int(v["group_id"])
         dom_val = group_id_to_dominant_value.get(gid)
         if dom_val is not None and str(dom_val).strip() and str(dom_val).strip().lower() != "sin color":
-            v["attributes"] = dict(v.get("attributes") or {})
-            v["attributes"]["dominant"] = dom_val
-            # Clave por attribute_id para que el formulario muestre el valor en "Atributos de la categoría"
             dom_attr_name = group_id_to_dominant_attr_name.get(gid)
             dominant_attr_id = name_to_attr_id.get(dom_attr_name) if dom_attr_name else None
+            # Verificar que dom_val sea un valor real en tab_attribute_values (no un label generado como "1 - Variante 3")
+            is_real_value = False
             if dominant_attr_id is not None:
-                v["attributes"][str(dominant_attr_id)] = dom_val
+                check = db.execute(
+                    text("SELECT 1 FROM tab_attribute_values WHERE attribute_id = :aid AND LOWER(TRIM(value)) = LOWER(TRIM(:val)) AND is_active = TRUE LIMIT 1"),
+                    {"aid": dominant_attr_id, "val": str(dom_val).strip()},
+                ).first()
+                is_real_value = check is not None
+            else:
+                # Si no hay attribute_id conocido, asumir que es válido (no bloquear)
+                is_real_value = True
+            if is_real_value:
+                v["attributes"] = dict(v.get("attributes") or {})
+                v["attributes"]["dominant"] = dom_val
+                # Clave por attribute_id para que el formulario muestre el valor en "Atributos de la categoría"
+                if dominant_attr_id is not None:
+                    v["attributes"][str(dominant_attr_id)] = dom_val
+            else:
+                # dominant_value es un label sintético (ej. "1 - Variante 3"); limpiar para que el
+                # Select en admin quede en "Selecciona una opción" y el usuario corrija el color.
+                v["attributes"] = dict(v.get("attributes") or {})
+                v["attributes"].pop("dominant", None)
+                if dominant_attr_id is not None:
+                    v["attributes"].pop(str(dominant_attr_id), None)
         # tipo_clasificacion: solo columna BD o clave explícita en JSON (no el atributo dominante: Color/Potencia/etc.)
         if not (v.get("tipo_clasificacion") or str(v.get("tipo_clasificacion") or "").strip()):
             if isinstance(v.get("attributes"), dict) and (v["attributes"] or {}).get("Tipo/Clasificación"):
@@ -1150,10 +1204,9 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
             "image_urls": urls_dedup,
             "combinations": combinations_by_group.get(gid, []),
         })
-    # Imágenes de producto: grupo "Sin color" si existe; si no, primer grupo (retrocompatibilidad)
+    # Imágenes de producto (panel admin): solo grupo "Sin color"; sin usar el primer grupo de color como portada
     sin_color_row = next((g for g in group_rows if (g.get("dominant_value") or "").strip().lower() == "sin color"), None)
-    product_images_group = sin_color_row if sin_color_row else (group_rows[0] if group_rows else None)
-    first_group_id = int(product_images_group["id"]) if product_images_group else None
+    first_group_id = int(sin_color_row["id"]) if sin_color_row else None
     combos_by_group = {}
     for v in variants_flat:
         gid = int(v["group_id"])
@@ -1189,15 +1242,18 @@ def get_product_with_variants_for_admin(db: Session, product_id: Decimal):
         combo_id = v["id"]
         group_combos = combos_by_group.get(int(v["group_id"]), [])
         first_in_group = min(group_combos) if group_combos else combo_id
-        is_product_images_combo = int(v["group_id"]) == first_group_id and combo_id == first_in_group
+        is_product_images_combo = (
+            first_group_id is not None
+            and int(v["group_id"]) == first_group_id
+            and combo_id == first_in_group
+        )
         if is_product_images_combo:
             images_by_variant[str(combo_id)] = []
         else:
             images_by_variant[str(combo_id)] = _dedupe_images_by_url(images_by_group.get(gid, []))
-    # Imágenes de producto (panel derecho): grupo "Sin color" si existe; si no, primer grupo (retrocompatibilidad)
     image_urls_ordered = []
-    if group_rows:
-        gid_for_product = str(int(sin_color_row["id"])) if sin_color_row else str(int(group_rows[0]["id"]))
+    if sin_color_row:
+        gid_for_product = str(int(sin_color_row["id"]))
         imgs = sorted(images_by_group.get(gid_for_product, []), key=lambda x: (x.get("sort_order") or 0))
         seen = set()
         for x in imgs:
@@ -1383,14 +1439,23 @@ def _get_attribute_name(db: Session, attr_id: Optional[int], default: str = "col
 
 
 def _group_variants_by_dominant(payload_variants: list, dominant_attr_id: Optional[int]) -> dict:
-    """Agrupa variantes por valor del atributo dominante (ej. color). Key = valor o 'Sin color'."""
+    """Agrupa variantes por valor del atributo dominante (ej. color). Key = valor o 'Sin color'.
+
+    Si dominant_attr_id es conocido pero una variante no lo trae, va a 'Sin color' —nunca
+    se usa otro atributo como fallback para evitar que valores de Talla contaminan el nombre
+    del grupo (ej. "L" o "4" como dominant_value falso).
+    """
     groups = {}
     for v in payload_variants:
         attrs = getattr(v, "attributes", None) or {}
         dominant_val = "Sin color"
-        if dominant_attr_id is not None and str(dominant_attr_id) in attrs:
-            dominant_val = str(attrs[str(dominant_attr_id)]).strip() or "Sin color"
+        if dominant_attr_id is not None:
+            # Atributo dominante conocido: solo usar ese atributo, sin fallback a otros
+            if str(dominant_attr_id) in attrs:
+                dominant_val = str(attrs[str(dominant_attr_id)]).strip() or "Sin color"
+            # Si no está → "Sin color" (no caer a otro atributo)
         elif attrs:
+            # Solo cuando no hay ningún atributo dominante conocido, tomar el primero
             first_key = next(iter(attrs), None)
             if first_key is not None and attrs[first_key] is not None:
                 dominant_val = str(attrs[first_key]).strip() or "Sin color"
@@ -1459,7 +1524,7 @@ def create_product_composite(db: Session, payload: ProductCreateComposite, usr_i
                     except (TypeError, ValueError):
                         pass
         dominant_attr_id = _get_dominant_attr_id(db, all_attr_ids)
-        groups_one_per_row = _group_variants_one_per_row(payload.variants, dominant_attr_id)
+        groups_by_dominant = _group_variants_by_dominant(payload.variants, dominant_attr_id)
 
         q1 = text(
             "SELECT fun_insert_producto(:p_category_id, :p_name, :p_description, :p_id_marca, :p_is_active, :p_usr_operacion, :p_id_proveedor)"
@@ -1500,7 +1565,7 @@ def create_product_composite(db: Session, payload: ProductCreateComposite, usr_i
                         {"gid": sin_color_gid, "url": url, "primary": ord_i == 0, "ord": ord_i},
                     )
 
-        for _idx, (group_label, variants_in_group) in sorted(groups_one_per_row.items()):
+        for group_label, variants_in_group in sorted(groups_by_dominant.items()):
             resolved_label = group_label or "Sin color"
             if dominant_attr_id is not None and (group_label or "").strip():
                 _, text_val = _resolve_attribute_value_id(db, dominant_attr_id, group_label)
@@ -1531,24 +1596,46 @@ def create_product_composite(db: Session, payload: ProductCreateComposite, usr_i
                 internal_attrs = {}
                 if v.attributes:
                     for k, val in v.attributes.items():
-                        if dominant_attr_id is not None and str(k) == str(dominant_attr_id):
+                        # Omitir claves no numéricas (ej. "dominant") — metadatos de frontend
+                        try:
+                            attr_id_int = int(k)
+                        except (TypeError, ValueError):
+                            continue
+                        if dominant_attr_id is not None and attr_id_int == dominant_attr_id:
                             continue
                         if val is None or str(val).strip() == "":
                             continue
                         try:
-                            _, text_val = _resolve_attribute_value_id(db, int(k), val)
+                            _, text_val = _resolve_attribute_value_id(db, attr_id_int, val)
                             if text_val:
                                 internal_attrs[str(k)] = text_val
                             else:
                                 internal_attrs[str(k)] = str(val).strip()
-                        except (TypeError, ValueError):
+                        except Exception:
                             internal_attrs[str(k)] = str(val).strip()
                 attrs_json = json.dumps(internal_attrs) if internal_attrs else "{}"
                 tipo_clasif = (v.tipo_clasificacion and v.tipo_clasificacion.strip()) or None if hasattr(v, 'tipo_clasificacion') else None
-                rc = db.execute(
-                    text("SELECT fun_insert_variant_combination(:gid, :sku, :price, :stock, CAST(:attrs AS JSONB), :active, :tipo_clasif)"),
-                    {"gid": group_id, "sku": (v.sku and v.sku.strip()) or None, "price": v.price, "stock": v.stock, "attrs": attrs_json, "active": v.is_active, "tipo_clasif": tipo_clasif},
-                ).fetchone()[0]
+                sku_to_try = (v.sku and v.sku.strip()) or None
+                rc = None
+                for _attempt in range(4):
+                    rc = db.execute(
+                        text("SELECT fun_insert_variant_combination(:gid, :sku, :price, :stock, CAST(:attrs AS JSONB), :active, :tipo_clasif)"),
+                        {
+                            "gid": group_id,
+                            "sku": sku_to_try,
+                            "price": v.price,
+                            "stock": v.stock,
+                            "attrs": attrs_json,
+                            "active": v.is_active,
+                            "tipo_clasif": tipo_clasif,
+                        },
+                    ).fetchone()[0]
+                    if rc and not str(rc).strip().upper().startswith("ERROR"):
+                        break
+                    if rc and "SKU duplicado" in str(rc):
+                        sku_to_try = f"RV-{int(product_id)}-{group_id}-{uuid4().hex[:8]}"
+                        continue
+                    break
                 if not rc or str(rc).strip().upper().startswith("ERROR"):
                     raise Exception(str(rc) if rc else "Error al insertar combinación")
 
@@ -1583,13 +1670,49 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
         if msg and str(msg).strip().upper().startswith("ERROR"):
             raise Exception(str(msg))
 
+        # No eliminar variantes/grupos que estén referenciados por órdenes o carritos activos.
+        # De lo contrario, falla por FK (tab_orden_productos.variant_id / tab_carrito_productos.variant_id -> combinations.id).
+        locked_group_rows = db.execute(text("""
+            SELECT DISTINCT g.id
+            FROM tab_product_variant_groups g
+            JOIN tab_product_variant_combinations c ON c.group_id = g.id
+            WHERE g.product_id = :pid
+              AND (
+                    EXISTS (SELECT 1 FROM tab_orden_productos op WHERE op.variant_id = c.id)
+                 OR EXISTS (SELECT 1 FROM tab_carrito_productos cp WHERE cp.variant_id = c.id)
+              )
+        """), {"pid": product_id}).fetchall()
+        locked_group_ids = [int(r[0]) for r in locked_group_rows if r and r[0] is not None]
+
         db.execute(text("""
-            DELETE FROM tab_product_variant_images WHERE variant_group_id IN (SELECT id FROM tab_product_variant_groups WHERE product_id = :pid)
-        """), {"pid": product_id})
+            DELETE FROM tab_product_variant_images
+            WHERE variant_group_id IN (
+                SELECT id FROM tab_product_variant_groups
+                WHERE product_id = :pid
+                  AND id <> ALL(:locked_ids)
+            )
+        """), {"pid": product_id, "locked_ids": locked_group_ids})
         db.execute(text("""
-            DELETE FROM tab_product_variant_combinations WHERE group_id IN (SELECT id FROM tab_product_variant_groups WHERE product_id = :pid)
-        """), {"pid": product_id})
-        db.execute(text("DELETE FROM tab_product_variant_groups WHERE product_id = :pid"), {"pid": product_id})
+            DELETE FROM tab_product_variant_combinations
+            WHERE id IN (
+                SELECT c.id
+                FROM tab_product_variant_combinations c
+                JOIN tab_product_variant_groups g ON g.id = c.group_id
+                WHERE g.product_id = :pid
+                  AND g.id <> ALL(:locked_ids)
+                  AND NOT EXISTS (SELECT 1 FROM tab_orden_productos op WHERE op.variant_id = c.id)
+                  AND NOT EXISTS (SELECT 1 FROM tab_carrito_productos cp WHERE cp.variant_id = c.id)
+            )
+        """), {"pid": product_id, "locked_ids": locked_group_ids})
+        db.execute(text("""
+            DELETE FROM tab_product_variant_groups g
+            WHERE g.product_id = :pid
+              AND g.id <> ALL(:locked_ids)
+              AND NOT EXISTS (
+                    SELECT 1 FROM tab_product_variant_combinations c
+                    WHERE c.group_id = g.id
+              )
+        """), {"pid": product_id, "locked_ids": locked_group_ids})
 
         all_attr_ids = set()
         for v in payload.variants:
@@ -1600,13 +1723,12 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                     except (TypeError, ValueError):
                         pass
         dominant_attr_id = _get_dominant_attr_id(db, all_attr_ids)
-        groups_one_per_row = _group_variants_one_per_row(payload.variants, dominant_attr_id)
+        groups_by_dominant = _group_variants_by_dominant(payload.variants, dominant_attr_id)
         # Nombre del atributo dominante al actualizar: mismo criterio que en create_product_composite
         dominant_attr_name = _get_attribute_name(db, dominant_attr_id, default="color")
 
         product_image_urls = getattr(payload, "image_urls", None) or []
-        product_images_in_sin_color = False
-        # Crear grupo "Sin color" primero para imágenes del producto (van primero en la galería PDP)
+        # Grupo "Sin color" para imágenes del producto (panel admin / PDP); no copiar a grupos de color
         if product_image_urls:
             rg = db.execute(
                 text("SELECT fun_insert_variant_group(:pid, :attr, :val, TRUE)"),
@@ -1614,6 +1736,10 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
             ).fetchone()[0]
             if rg and not str(rg).strip().upper().startswith("ERROR"):
                 sin_color_gid = int(str(rg).replace("OK:", "").strip())
+                db.execute(
+                    text("DELETE FROM tab_product_variant_images WHERE variant_group_id = :gid"),
+                    {"gid": sin_color_gid},
+                )
                 seen_urls = set()
                 for ord_i, url in enumerate(product_image_urls):
                     url = (url or "").strip()
@@ -1624,10 +1750,8 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                         text("SELECT fun_insert_variant_group_image(:gid, :url, :primary, :ord)"),
                         {"gid": sin_color_gid, "url": url, "primary": ord_i == 0, "ord": ord_i},
                     )
-                product_images_in_sin_color = True
 
-        first_group = True
-        for _idx, (group_label, variants_in_group) in sorted(groups_one_per_row.items()):
+        for group_label, variants_in_group in sorted(groups_by_dominant.items()):
             # Resolve value_id to display string for group dominant_value (e.g. "123" -> "Negro")
             resolved_label = group_label or "Sin color"
             if dominant_attr_id is not None and (group_label or "").strip():
@@ -1642,56 +1766,183 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                 raise Exception(str(rg) if rg else "Error al insertar grupo")
             group_id = int(str(rg).replace("OK:", "").strip())
 
+            db.execute(
+                text("DELETE FROM tab_product_variant_images WHERE variant_group_id = :gid"),
+                {"gid": group_id},
+            )
             seen_urls = set()
-            # Solo añadir product_image_urls al primer grupo si NO los pusimos ya en "Sin color"
-            if first_group and product_image_urls and not product_images_in_sin_color:
-                for ord_i, url in enumerate(product_image_urls):
+            ord_next = 0
+            # Mismo group_id que el bloque de imágenes de producto: volver a escribir la galería antes de las imágenes por variante
+            if (resolved_label or "").strip().lower() == "sin color" and product_image_urls:
+                for url in product_image_urls:
                     url = (url or "").strip()
                     if not url or url in seen_urls:
                         continue
                     seen_urls.add(url)
                     db.execute(
                         text("SELECT fun_insert_variant_group_image(:gid, :url, :primary, :ord)"),
-                        {"gid": group_id, "url": url, "primary": ord_i == 0, "ord": ord_i},
+                        {"gid": group_id, "url": url, "primary": ord_next == 0, "ord": ord_next},
                     )
+                    ord_next += 1
             for idx, v in enumerate(variants_in_group):
                 variant_urls = getattr(v, "image_urls", None) or []
                 main_idx = min(int(getattr(v, "main_index", 0) or 0), max(0, len(variant_urls) - 1))
+                _sin_color_gallery = (resolved_label or "").strip().lower() == "sin color" and bool(product_image_urls)
                 for i, url in enumerate(variant_urls):
                     if not (url and str(url).strip()) or url in seen_urls:
                         continue
                     seen_urls.add(url)
                     db.execute(
                         text("SELECT fun_insert_variant_group_image(:gid, :url, :primary, :ord)"),
-                        {"gid": group_id, "url": url.strip(), "primary": (idx == 0 and i == main_idx), "ord": len(seen_urls) - 1},
+                        {
+                            "gid": group_id,
+                            "url": url.strip(),
+                            "primary": (idx == 0 and i == main_idx) and not _sin_color_gallery,
+                            "ord": ord_next,
+                        },
                     )
-            first_group = False
+                    ord_next += 1
 
-            for v in variants_in_group:
+            # Combinaciones: borrar solo las no referenciadas (órdenes/carrito);
+            # actualizar las referenciadas existentes; insertar el resto.
+            db.execute(text("""
+                DELETE FROM tab_product_variant_combinations c
+                WHERE c.group_id = :gid
+                  AND NOT EXISTS (
+                    SELECT 1 FROM tab_orden_productos op WHERE op.variant_id = c.id
+                  )
+                  AND NOT EXISTS (
+                    SELECT 1 FROM tab_carrito_productos cp WHERE cp.variant_id = c.id
+                  )
+            """), {"gid": group_id})
+            ref_rows = db.execute(text("""
+                SELECT c.id FROM tab_product_variant_combinations c
+                WHERE c.group_id = :gid
+                  AND (
+                        EXISTS (SELECT 1 FROM tab_orden_productos op WHERE op.variant_id = c.id)
+                     OR EXISTS (SELECT 1 FROM tab_carrito_productos cp WHERE cp.variant_id = c.id)
+                  )
+                ORDER BY c.id
+            """), {"gid": group_id}).fetchall()
+            ref_ids = [int(r[0]) for r in ref_rows if r and r[0] is not None]
+
+            for idx, v in enumerate(variants_in_group):
                 internal_attrs = {}
                 if v.attributes:
                     for k, val in v.attributes.items():
-                        if dominant_attr_id is not None and str(k) == str(dominant_attr_id):
+                        # Omitir claves no numéricas (ej. "dominant") — metadatos de frontend
+                        try:
+                            attr_id_int = int(k)
+                        except (TypeError, ValueError):
+                            continue
+                        if dominant_attr_id is not None and attr_id_int == dominant_attr_id:
                             continue
                         if val is None or str(val).strip() == "":
                             continue
-                        # Resolve value_id to display string so JSONB stores "Negro", "S" not "123"
                         try:
-                            _, text_val = _resolve_attribute_value_id(db, int(k), val)
+                            _, text_val = _resolve_attribute_value_id(db, attr_id_int, val)
                             if text_val:
                                 internal_attrs[str(k)] = text_val
                             else:
                                 internal_attrs[str(k)] = str(val).strip()
-                        except (TypeError, ValueError):
+                        except Exception:
                             internal_attrs[str(k)] = str(val).strip()
                 attrs_json = json.dumps(internal_attrs) if internal_attrs else "{}"
                 tipo_clasif = (v.tipo_clasificacion and v.tipo_clasificacion.strip()) or None if hasattr(v, 'tipo_clasificacion') else None
-                rc = db.execute(
-                    text("SELECT fun_insert_variant_combination(:gid, :sku, :price, :stock, CAST(:attrs AS JSONB), :active, :tipo_clasif)"),
-                    {"gid": group_id, "sku": (v.sku and v.sku.strip()) or None, "price": v.price, "stock": v.stock, "attrs": attrs_json, "active": v.is_active, "tipo_clasif": tipo_clasif},
-                ).fetchone()[0]
-                if not rc or str(rc).strip().upper().startswith("ERROR"):
-                    raise Exception(str(rc) if rc else "Error al insertar combinación")
+                sku_to_try = (v.sku and v.sku.strip()) or None
+                if idx < len(ref_ids):
+                    cid = ref_ids[idx]
+                    prev_row = db.execute(
+                        text("SELECT stock, sku FROM tab_product_variant_combinations WHERE id = :cid"),
+                        {"cid": cid},
+                    ).fetchone()
+                    old_stock = int(prev_row[0] or 0) if prev_row else 0
+                    new_stock = int(v.stock or 0)
+                    db.execute(text("""
+                        UPDATE tab_product_variant_combinations
+                        SET sku = COALESCE(:sku, sku),
+                            price = :price,
+                            stock = :stock,
+                            attributes = CAST(:attrs AS JSONB),
+                            is_active = :active,
+                            tipo_clasificacion = :tipo_clasif,
+                            usr_update = :usr,
+                            fec_update = NOW()
+                        WHERE id = :cid
+                    """), {
+                        "sku": sku_to_try,
+                        "price": v.price,
+                        "stock": v.stock,
+                        "attrs": attrs_json,
+                        "active": v.is_active,
+                        "tipo_clasif": tipo_clasif,
+                        "usr": usr_update,
+                        "cid": cid,
+                    })
+                    if new_stock == 0 and old_stock > 0:
+                        pname_row = db.execute(
+                            text("SELECT name FROM tab_products WHERE id = :pid"),
+                            {"pid": product_id},
+                        ).fetchone()
+                        pname = str(pname_row[0] or "") if pname_row else ""
+                        notify_variant_out_of_stock(
+                            db,
+                            product_id=int(product_id),
+                            product_name=pname,
+                            variant_id=int(cid),
+                            sku=sku_to_try,
+                            order_id=None,
+                            source_label="Edición en panel admin",
+                        )
+                    elif (
+                        1 <= new_stock <= LOW_STOCK_MAX
+                        and old_stock > LOW_STOCK_MAX
+                    ):
+                        pname_row = db.execute(
+                            text("SELECT name FROM tab_products WHERE id = :pid"),
+                            {"pid": product_id},
+                        ).fetchone()
+                        pname = str(pname_row[0] or "") if pname_row else ""
+                        notify_variant_low_stock(
+                            db,
+                            product_id=int(product_id),
+                            product_name=pname,
+                            variant_id=int(cid),
+                            sku=sku_to_try,
+                            current_stock=new_stock,
+                            order_id=None,
+                            source_label="Edición en panel admin",
+                        )
+                else:
+                    rc = None
+                    for _attempt in range(4):
+                        rc = db.execute(
+                            text("SELECT fun_insert_variant_combination(:gid, :sku, :price, :stock, CAST(:attrs AS JSONB), :active, :tipo_clasif)"),
+                            {
+                                "gid": group_id,
+                                "sku": sku_to_try,
+                                "price": v.price,
+                                "stock": v.stock,
+                                "attrs": attrs_json,
+                                "active": v.is_active,
+                                "tipo_clasif": tipo_clasif,
+                            },
+                        ).fetchone()[0]
+                        if rc and not str(rc).strip().upper().startswith("ERROR"):
+                            break
+                        if rc and "SKU duplicado" in str(rc):
+                            sku_to_try = f"RV-{int(product_id)}-{group_id}-{uuid4().hex[:8]}"
+                            continue
+                        break
+                    if not rc or str(rc).strip().upper().startswith("ERROR"):
+                        raise Exception(str(rc) if rc else "Error al insertar combinación")
+
+            for j in range(len(variants_in_group), len(ref_ids)):
+                db.execute(text("""
+                    UPDATE tab_product_variant_combinations
+                    SET is_active = FALSE, usr_update = :usr, fec_update = NOW()
+                    WHERE id = :cid
+                """), {"cid": ref_ids[j], "usr": usr_update})
 
         db.commit()
     except Exception as e:

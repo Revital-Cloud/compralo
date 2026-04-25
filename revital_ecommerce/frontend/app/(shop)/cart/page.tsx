@@ -39,6 +39,17 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription, Alert, Alert
 import categoryService from "@/services/category.service";
 import { Category } from "@/types/category";
 
+/**
+ * Mapa de la página `cart`.
+ *
+ * Subflujos principales:
+ * 1) Consulta estado de carrito (ítems/totales/canje) con `useCart`.
+ * 2) Aplica/remueve códigos de descuento y sincroniza con `sessionStorage`.
+ * 3) Muestra recomendados por categorías presentes en carrito.
+ * 4) Gestiona precondiciones de checkout (autenticación, dirección, método de pago).
+ * 5) Redirige a `/checkout` para el cierre de compra.
+ */
+
 const cartTexts = {
   es: {
     title: "Carrito de la compra",
@@ -223,7 +234,7 @@ const CartPage = () => {
 
     setIsApplyingCode(true);
     try {
-      // Validar el código en el contexto del carrito actual
+      // Validar código con backend usando el carrito actual del usuario.
       const validation = await discountService.validateDiscountForCart(
         promoCode.trim(),
         id_carrito ? Number(id_carrito) : undefined
@@ -341,7 +352,12 @@ const CartPage = () => {
       }, 0)
     : 0;
 
-  /** Para cada ítem del carrito, calcula precio unitario con descuentos automáticos, de código y de canje */
+  /**
+   * Para cada ítem del carrito, calcula precio unitario final combinando:
+   * - descuentos automáticos de catálogo
+   * - cupón por código (si aplica al producto)
+   * - descuento por canje de puntos
+   */
   function getItemPriceWithDiscounts(item: { 
     precio_unitario: number; 
     cantidad: number; 
@@ -402,34 +418,10 @@ const CartPage = () => {
       }
     }
     
-    // 3. Aplicar descuento de canje si hay (sobre el precio ya descontado)
-    // Usar subtotalOriginal calculado fuera de la función
-    const currentSubtotal = subtotalOriginal;
-    if (totalDescCanjeado > 0 && descuentoCanjeado && currentSubtotal > 0) {
-      const tipo = descuentoCanjeado.tipo;
-      const valor = Number(descuentoCanjeado.valor ?? 0);
-      
-      if (tipo === "porcentaje" && valor > 0) {
-        // Descuento porcentual de canje: aplicar sobre precio actual
-        const priceAfterCanje = currentPrice * (1 - valor / 100);
-        // Calcular porcentaje total combinado
-        const canjeDiscountAmount = currentPrice - priceAfterCanje;
-        const totalDiscountAmount = originalUnitPrice - priceAfterCanje;
-        totalDiscountPercentage = originalUnitPrice > 0 
-          ? Math.round((totalDiscountAmount / originalUnitPrice) * 100)
-          : totalDiscountPercentage;
-        currentPrice = priceAfterCanje;
-      } else if (tipo === "monto_fijo" && totalDescCanjeado > 0) {
-        // Descuento fijo de canje: distribuir proporcionalmente sobre subtotal original
-        const discountShare = totalDescCanjeado * (item.subtotal / currentSubtotal);
-        const discountedSubtotal = (currentPrice * item.cantidad) - discountShare;
-        currentPrice = item.cantidad > 0 ? discountedSubtotal / item.cantidad : currentPrice;
-        const totalDiscountAmount = originalUnitPrice - currentPrice;
-        totalDiscountPercentage = originalUnitPrice > 0
-          ? Math.round((totalDiscountAmount / originalUnitPrice) * 100)
-          : totalDiscountPercentage;
-      }
-    }
+    // 3. No aplicar canjes por puntos sobre cada línea de producto en frontend.
+    // El backend ya calcula el canje sobre el resumen (`total_desc_canjeado`) y
+    // aquí mostrarlo por ítem puede inducir errores visuales (ej. aplicarlo a
+    // productos fuera del alcance de `aplica_a`).
     
     // Retornar precio final, precio original y porcentaje de descuento
     if (currentPrice < originalUnitPrice && totalDiscountPercentage > 0) {
@@ -525,8 +517,39 @@ const CartPage = () => {
     (subtotal > 50 || subtotal === 0 ? 0 : 10);
   const salesTax = Number(totals?.resumen?.impuestos) || 0;
   
-  // Calcular total final desde el subtotal local, aplicando descuentos del backend
-  const totalDescAutomaticos = Number(totals?.total_desc_automaticos ?? 0);
+  // Calcular total final desde el subtotal local.
+  // Nota: en modo anónimo el backend puede no devolver `total_desc_automaticos`,
+  // pero sí podemos calcular los descuentos automáticos localmente con `activeDiscounts`.
+  const localTotalDescAutomaticos = useMemo(() => {
+    if (!Array.isArray(items) || items.length === 0) return 0;
+    if (!activeDiscounts || activeDiscounts.length === 0) return 0;
+
+    const subtotalAfterAuto = items.reduce((acc, item) => {
+      const productForDiscount = {
+        id_producto: item.id_producto,
+        id_categoria: (item as any).id_categoria_producto ?? (item as any).category_id,
+        category_id: (item as any).category_id ?? (item as any).id_categoria_producto,
+        id_marca: (item as any).id_marca ?? (item as any).marca_id,
+        marca_id: (item as any).marca_id ?? (item as any).id_marca,
+      };
+
+      const originalUnitPrice = Number(item.precio_unitario ?? 0);
+      const qty = Number(item.cantidad ?? 0);
+
+      const applicableDiscount = getApplicableDiscount(productForDiscount as any, activeDiscounts);
+      const unitAfterAuto = applicableDiscount
+        ? calculateDiscountedPrice(originalUnitPrice, applicableDiscount)
+        : originalUnitPrice;
+
+      return acc + Math.max(0, unitAfterAuto) * Math.max(0, qty);
+    }, 0);
+
+    return Math.max(0, subtotalOriginal - subtotalAfterAuto);
+  }, [items, activeDiscounts, subtotalOriginal]);
+
+  const backendTotalDescAutomaticos = Number(totals?.total_desc_automaticos ?? 0);
+  const totalDescAutomaticos =
+    backendTotalDescAutomaticos > 0 ? backendTotalDescAutomaticos : localTotalDescAutomaticos;
   // totalDescCanjeado ya está definido arriba (línea 274)
   const totalDescuentos = totalDescAutomaticos + totalDescCanjeado;
   
@@ -1132,13 +1155,19 @@ const CartPage = () => {
                             </div>
                           )
                     )}
+                    {Number(totals?.total_desc_automaticos ?? 0) <= 0 && totalDescAutomaticos > 0 && (
+                      <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                        <span>Descuentos aplicados</span>
+                        <span>-{formatPrice(totalDescAutomaticos)}</span>
+                      </div>
+                    )}
                     {selectedCanjeId != null && (
-                      <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
-                        <span>
+                      <div className="flex items-start justify-between gap-3 text-sm text-amber-600 dark:text-amber-400">
+                        <span className="flex-1 min-w-0">
                           Descuento por puntos
                           {selectedCanjeNombre ? ` (${selectedCanjeNombre})` : ""}
                         </span>
-                        <span>-{formatPrice(totalDescCanjeado)}</span>
+                        <span className="whitespace-nowrap text-right font-medium">-{formatPrice(totalDescCanjeado)}</span>
                       </div>
                     )}
                   </div>
@@ -1431,28 +1460,34 @@ const CartPage = () => {
                       </span>
                     </div>
                   )}
-                    {Number(totals?.total_desc_automaticos ?? 0) > 0 && (
-                      Array.isArray(totals?.descuentos_automaticos) && totals.descuentos_automaticos.length > 0
-                        ? totals.descuentos_automaticos.map((d: { nombre?: string; descuento_aplicado?: number }, i: number) => (
-                            <div key={i} className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                              <span>{d.nombre || "Descuento"}</span>
-                              <span>-{formatPrice(Number(d.descuento_aplicado ?? 0))}</span>
-                            </div>
-                          ))
-                        : (
-                            <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                              <span>Descuentos aplicados</span>
-                              <span>-{formatPrice(Number(totals?.total_desc_automaticos ?? 0))}</span>
-                            </div>
-                          )
-                    )}
+                  {Number(totals?.total_desc_automaticos ?? 0) > 0 && (
+                    Array.isArray(totals?.descuentos_automaticos) && totals.descuentos_automaticos.length > 0
+                      ? totals.descuentos_automaticos.map((d: { nombre?: string; descuento_aplicado?: number }, i: number) => (
+                          <div key={i} className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                            <span>{d.nombre || "Descuento"}</span>
+                            <span>-{formatPrice(Number(d.descuento_aplicado ?? 0))}</span>
+                          </div>
+                        ))
+                      : (
+                          <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                            <span>Descuentos aplicados</span>
+                            <span>-{formatPrice(Number(totals?.total_desc_automaticos ?? 0))}</span>
+                          </div>
+                        )
+                  )}
+                  {Number(totals?.total_desc_automaticos ?? 0) <= 0 && totalDescAutomaticos > 0 && (
+                    <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                      <span>Descuentos aplicados</span>
+                      <span>-{formatPrice(totalDescAutomaticos)}</span>
+                    </div>
+                  )}
                   {selectedCanjeId != null && (
-                    <div className="flex justify-between text-sm text-amber-600 dark:text-amber-400">
-                      <span>
+                    <div className="flex items-start justify-between gap-3 text-sm text-amber-600 dark:text-amber-400">
+                      <span className="flex-1 min-w-0">
                         Descuento por puntos
                         {selectedCanjeNombre ? ` (${selectedCanjeNombre})` : ""}
                       </span>
-                      <span>-{formatPrice(totalDescCanjeado)}</span>
+                      <span className="whitespace-nowrap text-right font-medium">-{formatPrice(totalDescCanjeado)}</span>
                     </div>
                   )}
                 </div>

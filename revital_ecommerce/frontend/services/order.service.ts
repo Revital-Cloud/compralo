@@ -6,6 +6,18 @@ import type {
   OrderFilters 
 } from '@/types/order'
 
+/**
+ * Mapa del servicio de órdenes (frontend).
+ *
+ * Responsabilidad:
+ * - Centralizar endpoints administrativos de órdenes.
+ * - Mantener compatibilidad con flujo cliente legado de pago desde carrito.
+ *
+ * Endpoints principales:
+ * - Admin: `/admin/orders/*`, `/admin/stats`
+ * - Cliente legado: `/cart/{cartId}/pay`
+ */
+
 export interface PayCartAndCreateOrderRequest {
   payment_method_id: number;
   id_direccion: number;
@@ -49,6 +61,7 @@ export const orderService = {
     cartId: number,
     payload: PayCartAndCreateOrderRequest
   ): Promise<PayCartAndCreateOrderResponse> {
+    // Flujo heredado: pago + creación de orden en una sola operación backend.
     const res = await post<PayCartAndCreateOrderResponse>(`/cart/${cartId}/pay`, payload);
     return res;
   }

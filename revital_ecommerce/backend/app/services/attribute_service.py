@@ -1,5 +1,14 @@
 """
-Service for tab_attributes CRUD (master attributes catalog).
+Servicio para CRUD de atributos y valores predefinidos.
+
+Cubre:
+- `tab_attributes`: definición de atributos (tipo, nombre, flags).
+- `tab_attribute_values`: valores permitidos por atributo.
+
+Reglas principales:
+- unicidad de nombres por atributo/valor,
+- validación de tipo de dato,
+- bloqueo de borrado cuando hay referencias activas.
 """
 from decimal import Decimal
 from sqlalchemy.orm import Session
@@ -15,8 +24,23 @@ from schemas.attribute_schema import (
 VALID_DATA_TYPES = ("text", "number", "boolean")
 
 
+def _table_exists(db: Session, table_name: str) -> bool:
+    """Verifica si una tabla existe en el esquema actual de BD."""
+    return bool(
+        db.execute(
+            text("SELECT to_regclass(:table_name) IS NOT NULL"),
+            {"table_name": table_name},
+        ).scalar()
+    )
+
+
 def get_all(db: Session):
-    """List all attributes (id, name, data_type, has_predefined_values)."""
+    """
+    Lista atributos del catálogo maestro.
+
+    Se consume desde:
+    - `attribute_router.get_attributes`
+    """
     try:
         q = text("""
             SELECT id, name, data_type, has_predefined_values, usr_insert, fec_insert, usr_update, fec_update
@@ -31,7 +55,7 @@ def get_all(db: Session):
 
 
 def get_by_id(db: Session, id_attr: Decimal):
-    """Get one attribute by id."""
+    """Obtiene un atributo por su ID."""
     try:
         q = text("""
             SELECT id, name, data_type, has_predefined_values, usr_insert, fec_insert, usr_update, fec_update
@@ -46,12 +70,20 @@ def get_by_id(db: Session, id_attr: Decimal):
 
 
 def _validate_data_type(data_type: str) -> None:
+    """Valida que el tipo esté dentro de los permitidos por negocio."""
     if data_type not in VALID_DATA_TYPES:
         raise ValueError(f"data_type debe ser uno de: {', '.join(VALID_DATA_TYPES)}")
 
 
 def create(db: Session, attr: AttributeCreate, usr_insert: Decimal):
-    """Create attribute. Validates name unique and data_type."""
+    """
+    Crea un atributo nuevo.
+
+    Validaciones:
+    - `data_type` permitido,
+    - nombre único (case-insensitive),
+    - asignación manual de `id` incremental (convención actual).
+    """
     try:
         _validate_data_type(attr.data_type)
         existing = db.execute(
@@ -85,7 +117,14 @@ def create(db: Session, attr: AttributeCreate, usr_insert: Decimal):
 
 
 def update(db: Session, id_attr: Decimal, attr: AttributeUpdate, usr_update: Decimal):
-    """Update attribute. Validates name unique and data_type if provided."""
+    """
+    Actualiza un atributo existente.
+
+    Validaciones:
+    - atributo existe,
+    - si cambia nombre, mantener unicidad,
+    - si cambia tipo, validar catálogo de tipos permitidos.
+    """
     try:
         current = get_by_id(db, id_attr)
         if not current:
@@ -119,21 +158,65 @@ def update(db: Session, id_attr: Decimal, attr: AttributeUpdate, usr_update: Dec
 
 
 def delete(db: Session, id_attr: Decimal):
-    """Delete attribute. Fails if referenced by tab_category_attributes or tab_product_variant_attributes.
-    tab_attribute_values are removed by FK CASCADE."""
+    """
+    Elimina atributo si no está referenciado.
+
+    Bloquea borrado cuando hay uso en:
+    - categorías (`tab_category_attributes`),
+    - modelo actual de variantes (`tab_product_variant_groups/combinations`),
+    - modelo legacy (`tab_product_variant_attributes`).
+    """
     try:
+        attr_row = db.execute(
+            text("SELECT name FROM tab_attributes WHERE id = :id"),
+            {"id": id_attr},
+        ).first()
+        if not attr_row:
+            raise ValueError("Atributo no encontrado")
+
+        attr_name = str(attr_row[0] or "").strip()
         ref_ca = db.execute(
             text("SELECT 1 FROM tab_category_attributes WHERE attribute_id = :id LIMIT 1"),
             {"id": id_attr}
         ).first()
         if ref_ca:
             raise ValueError("No se puede eliminar: el atributo está asignado a categorías")
-        ref_pva = db.execute(
-            text("SELECT 1 FROM tab_product_variant_attributes WHERE attribute_id = :id LIMIT 1"),
-            {"id": id_attr}
-        ).first()
-        if ref_pva:
-            raise ValueError("No se puede eliminar: el atributo tiene valores en variantes")
+
+        # Modelo actual (variant_groups/combinations)
+        if _table_exists(db, "tab_product_variant_groups"):
+            ref_vg = db.execute(
+                text("""
+                    SELECT 1
+                    FROM tab_product_variant_groups
+                    WHERE LOWER(TRIM(dominant_attribute)) = LOWER(TRIM(:attr_name))
+                    LIMIT 1
+                """),
+                {"attr_name": attr_name},
+            ).first()
+            if ref_vg:
+                raise ValueError("No se puede eliminar: el atributo está en uso como atributo dominante en variantes")
+
+        if _table_exists(db, "tab_product_variant_combinations"):
+            ref_vc = db.execute(
+                text("""
+                    SELECT 1
+                    FROM tab_product_variant_combinations
+                    WHERE attributes ? :attr_key
+                    LIMIT 1
+                """),
+                {"attr_key": str(id_attr)},
+            ).first()
+            if ref_vc:
+                raise ValueError("No se puede eliminar: el atributo está en uso en combinaciones de variantes")
+
+        # Modelo legacy (antes de variant_groups)
+        if _table_exists(db, "tab_product_variant_attributes"):
+            ref_pva = db.execute(
+                text("SELECT 1 FROM tab_product_variant_attributes WHERE attribute_id = :id LIMIT 1"),
+                {"id": id_attr}
+            ).first()
+            if ref_pva:
+                raise ValueError("No se puede eliminar: el atributo tiene valores en variantes")
         db.execute(text("DELETE FROM tab_attributes WHERE id = :id"), {"id": id_attr})
         db.commit()
     except ValueError:
@@ -150,7 +233,7 @@ def delete(db: Session, id_attr: Decimal):
 
 
 def get_values_by_attribute_id(db: Session, attribute_id: Decimal):
-    """List values for an attribute, ordered by sort_order."""
+    """Lista valores de un atributo, ordenados por `sort_order` e `id`."""
     try:
         q = text("""
             SELECT id, attribute_id, value, hex_color, sort_order, is_active,
@@ -167,6 +250,7 @@ def get_values_by_attribute_id(db: Session, attribute_id: Decimal):
 
 
 def _ensure_attribute_has_predefined_values(db: Session, attribute_id: Decimal) -> None:
+    """Garantiza que el atributo admita valores predefinidos antes de crear valores."""
     row = db.execute(
         text("SELECT has_predefined_values FROM tab_attributes WHERE id = :id"),
         {"id": attribute_id}
@@ -183,7 +267,13 @@ def create_value(
     payload: AttributeValueCreate,
     usr_insert: Decimal,
 ) -> Decimal:
-    """Create an attribute value. Attribute must have has_predefined_values=True. Value must be unique per attribute."""
+    """
+    Crea un valor para un atributo.
+
+    Validaciones:
+    - atributo existente y con `has_predefined_values=True`,
+    - valor único por atributo (case-insensitive).
+    """
     try:
         _ensure_attribute_has_predefined_values(db, attribute_id)
         existing = db.execute(
@@ -228,7 +318,13 @@ def update_value(
     payload: AttributeValueUpdate,
     usr_update: Decimal,
 ) -> None:
-    """Update an attribute value. Value must belong to attribute; value text must remain unique per attribute."""
+    """
+    Actualiza un valor de atributo.
+
+    Validaciones:
+    - el valor pertenece al atributo indicado,
+    - si cambia texto, mantiene unicidad por atributo.
+    """
     try:
         row = db.execute(
             text("SELECT id FROM tab_attribute_values WHERE id = :vid AND attribute_id = :aid"),
@@ -270,20 +366,66 @@ def update_value(
 
 
 def delete_value(db: Session, attribute_id: Decimal, value_id: Decimal) -> None:
-    """Delete an attribute value. Fails if used in tab_product_variant_attributes."""
+    """
+    Elimina un valor de atributo cuando no está en uso.
+
+    Bloquea borrado si está referenciado por:
+    - `tab_product_variant_groups` (valor dominante),
+    - `tab_product_variant_combinations` (JSON attributes),
+    - `tab_product_variant_attributes` legacy.
+    """
     try:
         row = db.execute(
-            text("SELECT id FROM tab_attribute_values WHERE id = :vid AND attribute_id = :aid"),
+            text("""
+                SELECT av.id, av.value, a.name
+                FROM tab_attribute_values av
+                JOIN tab_attributes a ON a.id = av.attribute_id
+                WHERE av.id = :vid AND av.attribute_id = :aid
+            """),
             {"vid": value_id, "aid": attribute_id}
         ).first()
         if not row:
             raise ValueError("Valor no encontrado o no pertenece al atributo")
-        ref = db.execute(
-            text("SELECT 1 FROM tab_product_variant_attributes WHERE attribute_value_id = :vid LIMIT 1"),
-            {"vid": value_id}
-        ).first()
-        if ref:
-            raise ValueError("No se puede eliminar: el valor está en uso en variantes de producto")
+
+        value_text = str(row[1] or "").strip()
+        attribute_name = str(row[2] or "").strip()
+
+        # Modelo actual (variant_groups/combinations)
+        if _table_exists(db, "tab_product_variant_groups"):
+            ref_vg = db.execute(
+                text("""
+                    SELECT 1
+                    FROM tab_product_variant_groups
+                    WHERE LOWER(TRIM(dominant_attribute)) = LOWER(TRIM(:attr_name))
+                      AND LOWER(TRIM(dominant_value)) = LOWER(TRIM(:value_text))
+                    LIMIT 1
+                """),
+                {"attr_name": attribute_name, "value_text": value_text},
+            ).first()
+            if ref_vg:
+                raise ValueError("No se puede eliminar: el valor está en uso como valor dominante en variantes")
+
+        if _table_exists(db, "tab_product_variant_combinations"):
+            ref_vc = db.execute(
+                text("""
+                    SELECT 1
+                    FROM tab_product_variant_combinations
+                    WHERE LOWER(TRIM(COALESCE(attributes->>:attr_key, ''))) = LOWER(TRIM(:value_text))
+                    LIMIT 1
+                """),
+                {"attr_key": str(attribute_id), "value_text": value_text},
+            ).first()
+            if ref_vc:
+                raise ValueError("No se puede eliminar: el valor está en uso en combinaciones de variantes")
+
+        # Modelo legacy (antes de variant_groups)
+        if _table_exists(db, "tab_product_variant_attributes"):
+            ref = db.execute(
+                text("SELECT 1 FROM tab_product_variant_attributes WHERE attribute_value_id = :vid LIMIT 1"),
+                {"vid": value_id}
+            ).first()
+            if ref:
+                raise ValueError("No se puede eliminar: el valor está en uso en variantes de producto")
         db.execute(
             text("DELETE FROM tab_attribute_values WHERE id = :vid AND attribute_id = :aid"),
             {"vid": value_id, "aid": attribute_id}

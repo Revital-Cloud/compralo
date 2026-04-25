@@ -1,5 +1,14 @@
 import { get, post, put } from '@/utils/apiWrapper';
 
+/**
+ * Service de reseñas/comentarios (frontend).
+ *
+ * Encapsula endpoints del backend para:
+ * - comentarios por producto
+ * - creación de comentario
+ * - testimonios (landing)
+ * - productos ya reseñados en una orden (para habilitar/deshabilitar botón de reseña)
+ */
 export interface Comment {
   id_comentario: number;
   id_producto: number;

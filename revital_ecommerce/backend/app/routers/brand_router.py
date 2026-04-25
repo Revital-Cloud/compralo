@@ -3,6 +3,14 @@ Módulo de enrutador para la gestión de marcas.
 
 Define las rutas y endpoints relacionados con la gestión de marcas,
 incluyendo la creación, actualización y visualización de marcas.
+
+Mapa del módulo:
+- CRUD operativo de marcas.
+- Activación/desactivación (incluye endpoint legacy de compatibilidad).
+
+Relación con capas:
+- Router: validación HTTP y orquestación.
+- Service: `brand_service` (funciones SQL de marca).
 """
 from decimal import Decimal
 from fastapi import APIRouter, Body, Depends, Form, HTTPException, status
@@ -25,6 +33,10 @@ async def get_brands(db:Session = Depends(get_db)):
 
     Returns:
         list[Brand]: Lista de marcas registradas.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /brands`
+    - Service: `brand_service.get_brands`
     """
     try:
         brands = brand_service.get_brands(db)
@@ -47,6 +59,10 @@ async def create_brand(
         db (Session): Sesión de la base de datos inyectada por FastAPI.
         brand_data (BrandCreate): Datos de la marca a crear.
         current_user (UserInToken): Usuario autenticado que realiza la creación.
+
+    Endpoint -> Service:
+    - Endpoint: `POST /brands`
+    - Service: `brand_service.create_brand`
     """
     try:
         service_response = brand_service.create_brand(db, brand_data, current_user.id_usuario)
@@ -75,6 +91,10 @@ async def update_brand(
         brand_data (BrandUpdate): Datos de la marca a actualizar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
         current_user (UserInToken): Usuario autenticado que realiza la actualización.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /brands/{id_marca}`
+    - Service: `brand_service.update_brand`
     """
     try:
         service_response = brand_service.update_brand(db, id_marca, brand_data, current_user.id_usuario)
@@ -108,6 +128,10 @@ async def toggle_brand(
 
     Returns:
         ResponseMessage: Mensaje de confirmación.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /brands/{id_marca}/toggle`
+    - Service: `brand_service.deactivate_activate_brand`
     """
     try:
         result = brand_service.deactivate_activate_brand(db, id_marca, current_user.id_usuario, activar)
@@ -130,6 +154,10 @@ async def deactivate_brand(
     Args:
         id_marca (Decimal): ID de la marca a desactivar.
         db (Session): Sesión de la base de datos inyectada por FastAPI.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /brands/{id_marca}/deactivate`
+    - Service: `brand_service.deactivate_brand`
     """
     try:
         result = brand_service.deactivate_brand(db, id_marca, current_user.id_usuario)

@@ -417,6 +417,25 @@ class EmailTemplates:
             'admin/low_stock.html',
             **stock_data
         )
+
+    def get_out_of_stock_notification_template(
+        self,
+        *,
+        product: Dict[str, Any],
+        combo: Dict[str, Any],
+        order_id: Optional[int] = None,
+        source_label: str = "Venta",
+    ) -> str:
+        """
+        Notificación cuando una combinación (variante) queda en stock 0.
+        """
+        return self.render_template(
+            "admin/out_of_stock.html",
+            product=product,
+            combo=combo,
+            order_id=order_id,
+            source_label=source_label,
+        )
     
     def get_new_user_notification_template(self, user_data: Dict[str, Any]) -> str:
         """

@@ -12,6 +12,14 @@ import {
 import { useRouter } from "next/navigation";
 import { LogIn, UserPlus } from "lucide-react";
 
+/**
+ * Modal de acceso requerido.
+ *
+ * Uso típico:
+ * - Flujos protegidos (checkout, acciones de cuenta, etc.).
+ * - Redirige a login/register con `redirectTo` para retornar al flujo original.
+ */
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;

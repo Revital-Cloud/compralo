@@ -730,6 +730,110 @@ async def send_low_stock_notification(stock_data: Dict[str, Any], admin_emails: 
         logger.error(f"Error al enviar notificación de stock: {str(e)}")
         return False
 
+
+def send_out_of_stock_notification_sync(
+    *,
+    product_name: str,
+    product_id: int,
+    variant_id: int,
+    sku: Optional[str],
+    order_id: Optional[int],
+    source_label: str,
+    admin_emails: List[str],
+) -> bool:
+    """
+    Envía email de variante sin stock a administradores (vía Resend, síncrono).
+    Usado desde servicios no async tras actualizar inventario.
+    """
+    if not admin_emails:
+        return False
+    try:
+        _configure_resend()
+        product_ctx = {"id": product_id, "name": product_name}
+        combo_ctx = {"id": variant_id, "sku": sku or ""}
+        html_content = email_templates.get_out_of_stock_notification_template(
+            product=product_ctx,
+            combo=combo_ctx,
+            order_id=order_id,
+            source_label=source_label,
+        )
+        subject = f"Sin stock: {product_name}"
+        ok_any = False
+        for to_addr in admin_emails:
+            try:
+                resend.Emails.send(
+                    {
+                        "from": _get_from_field(),
+                        "to": to_addr,
+                        "subject": subject,
+                        "html": html_content,
+                    }
+                )
+                ok_any = True
+            except Exception as ex:
+                logger.warning("No se pudo enviar sin-stock a %s: %s", to_addr, ex)
+        return ok_any
+    except Exception as e:
+        logger.error("Error al enviar notificación sin stock: %s", e)
+        return False
+
+
+# Mismo umbral que el listado admin (product_service): stock bajo = 1..10 por producto agregado; aquí por variante.
+LOW_STOCK_VARIANT_THRESHOLD = 10
+
+
+def send_low_stock_variant_notification_sync(
+    *,
+    product_id: int,
+    product_name: str,
+    variant_id: int,
+    sku: Optional[str],
+    current_stock: int,
+    order_id: Optional[int],
+    source_label: str,
+    admin_emails: List[str],
+) -> bool:
+    """
+    Stock bajo por variante (1..LOW_STOCK_VARIANT_THRESHOLD), mismo criterio operativo que el panel.
+    """
+    if not admin_emails:
+        return False
+    try:
+        _configure_resend()
+        tmax = LOW_STOCK_VARIANT_THRESHOLD
+        product_ctx: Dict[str, Any] = {
+            "id": product_id,
+            "name": product_name,
+            "stock": current_stock,
+            "min_stock": tmax,
+            "recommended_stock": max(tmax * 2, 20),
+            "variant_id": variant_id,
+            "sku": (sku or "").strip(),
+            "order_id": order_id,
+            "source_label": source_label,
+        }
+        html_content = email_templates.get_low_stock_notification_template({"product": product_ctx})
+        subject = f"Stock bajo: {product_name}"
+        ok_any = False
+        for to_addr in admin_emails:
+            try:
+                resend.Emails.send(
+                    {
+                        "from": _get_from_field(),
+                        "to": to_addr,
+                        "subject": subject,
+                        "html": html_content,
+                    }
+                )
+                ok_any = True
+            except Exception as ex:
+                logger.warning("No se pudo enviar stock bajo a %s: %s", to_addr, ex)
+        return ok_any
+    except Exception as e:
+        logger.error("Error al enviar notificación stock bajo: %s", e)
+        return False
+
+
 async def send_new_user_notification(user_data: Dict[str, Any], admin_emails: List[str]) -> bool:
     """
     Envía notificación de nuevo usuario a administradores.

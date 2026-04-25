@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Sin stock – {{ app_name }}{% endblock %}
+
+{% block preheader %}La variante quedó en 0 unidades: {{ product.name }}. ID variante {{ combo.id }}.{% endblock %}
+
+{% block content %}
+<div class="greeting">Producto sin stock</div>
+
+<div class="alert alert-danger">
+    <strong>Stock agotado.</strong> Una combinación de variante tiene <strong>0</strong> unidades disponibles.
+</div>
+
+<div class="content-block">
+    <h2>Detalle</h2>
+    <table class="table">
+        <tr><td><strong>Producto</strong></td><td>{{ product.name }}</td></tr>
+        <tr><td><strong>ID producto</strong></td><td>{{ product.id }}</td></tr>
+        <tr><td><strong>ID variante (combinación)</strong></td><td>{{ combo.id }}</td></tr>
+        {% if combo.sku %}
+        <tr><td><strong>SKU</strong></td><td>{{ combo.sku }}</td></tr>
+        {% endif %}
+        {% if order_id %}
+        <tr><td><strong>Orden</strong></td><td>#{{ order_id }} (venta que agotó el stock)</td></tr>
+        {% endif %}
+        <tr><td><strong>Origen</strong></td><td>{{ source_label }}</td></tr>
+    </table>
+</div>
+
+{% set product_admin_url = frontend_url ~ '/admin/products/' ~ product.id %}
+{% set url = product_admin_url %}
+{% set label = "Editar producto" %}
+{% set variant = "primary" %}
+<div class="text-center">
+    {% include "_button.html" %}
+</div>
+
+<div class="content-block text-center text-muted">
+    <p>{{ app_name }} – Notificación automática de inventario.</p>
+</div>
+{% endblock %}

@@ -36,6 +36,16 @@ import type {
   ProductMetrics
 } from '@/services/analytics.service'
 
+/**
+ * Mapa de esta página (`/admin/analytics`).
+ *
+ * Responsabilidad:
+ * - Renderizar la vista avanzada de analytics para administradores.
+ * - Consumir `analyticsService.getAnalyticsData`.
+ * - Gestionar estados de carga/error y refresco manual.
+ * - Sincronizar la pestaña activa con el query param `tab`.
+ */
+
 // Los tipos se importan desde el servicio
 
 // Mapeo de iconos por nombre
@@ -869,10 +879,12 @@ const AnalyticsPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Se traduce valor URL -> valor interno de Tabs para mantener enlaces compartibles.
   const tabParam = searchParams.get('tab') ?? ''
   const currentTab = (URL_TO_TAB[tabParam] as keyof typeof TAB_TO_URL) ?? DEFAULT_TAB
 
   const handleTabChange = (value: string) => {
+    // Mantiene navegación sin recarga completa y evita salto de scroll.
     const urlTab = TAB_TO_URL[value] ?? TAB_TO_URL[DEFAULT_TAB]
     const params = new URLSearchParams(searchParams.toString())
     params.set('tab', urlTab)
@@ -910,7 +922,7 @@ const AnalyticsPage = () => {
     toast.success('Datos actualizados')
   }
 
-  // Datos por defecto si no hay datos
+  // Estado base para renderizar componentes incluso antes de tener payload real.
   const data: AnalyticsData = analyticsData || {
     conversionMetrics: [],
     trafficSources: [],

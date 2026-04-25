@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from "sonner";
 import { ProductsHeader } from "@/components/admin/products";
@@ -178,14 +178,14 @@ const ProductsPage = () => {
   const deactivateActivateProductMutation = useDeactivateActivateProductById();
 
   // Manejar cambio de página (actualiza la URL; currentPage se lee de la URL)
-  const handlePageChange = (page: number) => {
+  const handlePageChange = useCallback((page: number) => {
     const params = new URLSearchParams(searchParams);
     if (page <= 1) params.delete('page');
     else params.set('page', page.toString());
     router.push(`/admin/products${params.toString() ? `?${params.toString()}` : ''}`);
-  };
+  }, [router, searchParams]);
 
-  const handleToggleActive = (row: Product) => {
+  const handleToggleActive = useCallback((row: Product) => {
     const isActive = Boolean((row as { ind_activo?: boolean; is_active?: boolean }).ind_activo ?? (row as { is_active?: boolean }).is_active ?? true);
     if (isActive) {
       setProductToDeactivate(row);
@@ -194,18 +194,18 @@ const ProductsPage = () => {
     const productId = Number(row.id);
     if (!productId) return;
     deactivateActivateProductMutation.mutate({ productId, activar: true });
-  };
+  }, [deactivateActivateProductMutation]);
 
-  const handleConfirmDeactivate = () => {
+  const handleConfirmDeactivate = useCallback(() => {
     if (!productToDeactivate) return;
     const productId = Number(productToDeactivate.id);
     if (!productId) return;
     deactivateActivateProductMutation.mutate({ productId, activar: false });
     setProductToDeactivate(null);
-  };
+  }, [deactivateActivateProductMutation, productToDeactivate]);
 
   // Manejar cambios en el input con debounce directo (sin useEffect)
-  const handleSearchChange = (value: string) => {
+  const handleSearchChange = useCallback((value: string) => {
     // Actualizar estado local inmediatamente (para que el input responda al instante)
     setSearchInput(value);
     
@@ -231,9 +231,9 @@ const ProductsPage = () => {
       
       router.push(`?${params.toString()}`);
     }, 500); // 500ms de debounce
-  };
+  }, [router, searchParams]);
 
-  const handleCategoryChange = (value: string) => {
+  const handleCategoryChange = useCallback((value: string) => {
     const params = new URLSearchParams(searchParams);
     if (value) {
       params.set('category', value);
@@ -241,9 +241,9 @@ const ProductsPage = () => {
       params.delete('category');
     }
     router.push(`?${params.toString()}`);
-  };
+  }, [router, searchParams]);
 
-  const handleBrandChange = (value: string) => {
+  const handleBrandChange = useCallback((value: string) => {
     const params = new URLSearchParams(searchParams);
     if (value) {
       params.set('brand', value);
@@ -251,9 +251,9 @@ const ProductsPage = () => {
       params.delete('brand');
     }
     router.push(`?${params.toString()}`);
-  };
+  }, [router, searchParams]);
 
-  const handleProviderChange = (value: string) => {
+  const handleProviderChange = useCallback((value: string) => {
     const params = new URLSearchParams(searchParams);
     if (value) {
       params.set('provider', value);
@@ -261,31 +261,31 @@ const ProductsPage = () => {
       params.delete('provider');
     }
     router.push(`?${params.toString()}`);
-  };
+  }, [router, searchParams]);
 
-  const handleLineChange = (value: string) => {
+  const handleLineChange = useCallback((value: string) => {
     const params = new URLSearchParams(searchParams);
     if (value) params.set('line', value);
     else params.delete('line');
     params.delete('subline'); // al cambiar línea limpiamos sublínea
     router.push(`/admin/products?${params.toString()}`);
-  };
+  }, [router, searchParams]);
 
-  const handleSublineChange = (value: string) => {
+  const handleSublineChange = useCallback((value: string) => {
     const params = new URLSearchParams(searchParams);
     if (value) params.set('subline', value);
     else params.delete('subline');
     router.push(`/admin/products?${params.toString()}`);
-  };
+  }, [router, searchParams]);
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
       searchTimeoutRef.current = null;
     }
     setSearchInput('');
     router.push('/admin/products');
-  };
+  }, [router]);
 
   // Extraer datos de la respuesta (todos los productos de la consulta; el DataTable pagina en cliente)
   const adminProducts = Array.isArray(productsResponse) ? productsResponse : [];

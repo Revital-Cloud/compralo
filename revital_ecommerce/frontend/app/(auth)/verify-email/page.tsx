@@ -3,6 +3,12 @@
 import { Suspense } from 'react';
 import { VerifyEmailForm } from '@/components/forms/verify-email-form';
 
+/**
+ * Página de verificación de email (`/verify-email`).
+ *
+ * Renderiza `VerifyEmailForm` dentro de `Suspense` porque consume search params.
+ */
+
 export default function VerifyEmailPage() {
   return (
     <div className="bg-[#F5F5F5] dark:bg-gray-950 flex min-h-svh flex-col items-center justify-center gap-6 p-6 md:p-10 transition-colors duration-300">

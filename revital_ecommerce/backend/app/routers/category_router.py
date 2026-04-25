@@ -1,5 +1,14 @@
 """
 En este archivo se definen las rutas para manejar las operaciones CRUD de categorias, vinculandolas con verbos http (get, post, put, patch, delete).
+
+Mapa del módulo:
+- CRUD de categorías.
+- Gestión de atributos por categoría.
+- Activación/desactivación con cascada.
+
+Relación con capas:
+- Router: validación HTTP y permisos.
+- Service: `category_service` con funciones SQL y reglas de integridad.
 """
 
 from decimal import Decimal
@@ -37,6 +46,10 @@ async def get_categories(db: Session = Depends(get_db)):
 
     Returns:
         list[Category]: Lista de categorías registradas.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /categories`
+    - Service: `category_service.get_categories`
     """
     categories = category_service.get_categories(db)
     return categories if categories else []
@@ -54,6 +67,10 @@ async def get_category(id_categoria: Decimal, db: Session = Depends(get_db)):
 
     Returns:
         Category: Detalles de la categoría solicitada.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /categories/{id_categoria}`
+    - Service: `category_service.get_category`
     """
     try:
         category = category_service.get_category(db, id_categoria)
@@ -73,6 +90,10 @@ async def create_category(
 ):
     """
     Crea una nueva categoría en la base de datos. Devuelve id_categoria para poder asignar atributos (PUT /categories/{id}/attributes).
+
+    Endpoint -> Service:
+    - Endpoint: `POST /categories`
+    - Service: `category_service.create_category`
     """
     try:
         category_id = category_service.create_category(db, category_data, current_user.id_usuario)
@@ -99,6 +120,10 @@ async def update_category(
 
     Returns:
         ResponseMessage: Mensaje de confirmación de actualización exitosa.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /categories/{id_categoria}`
+    - Service: `category_service.update_category`
     """
     try:
         category_service.update_category(
@@ -114,7 +139,13 @@ async def update_category(
 # Atributos de la categoría
 @router.get("/categories/{id_categoria}/attributes", response_model=list[CategoryAttributeResponse])
 async def get_category_attributes(id_categoria: Decimal, db: Session = Depends(get_db)):
-    """Devuelve los atributos asociados a la categoría (id, attribute_id, is_required, is_filterable, attribute_name, data_type)."""
+    """
+    Devuelve atributos asociados a una categoría.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /categories/{id_categoria}/attributes`
+    - Service: `category_service.get_category_attributes`
+    """
     try:
         rows = category_service.get_category_attributes(db, id_categoria)
         return [CategoryAttributeResponse(**dict(r)) for r in rows]
@@ -124,7 +155,13 @@ async def get_category_attributes(id_categoria: Decimal, db: Session = Depends(g
 
 @router.get("/categories/{id_categoria}/attributes-with-values", response_model=list[CategoryAttributeWithValuesResponse])
 async def get_category_attributes_with_values(id_categoria: Decimal, db: Session = Depends(get_db)):
-    """Obtiene los atributos de la categoría con sus valores predefinidos (para admin/product form)."""
+    """
+    Obtiene atributos de categoría junto con valores predefinidos.
+
+    Endpoint -> Service:
+    - Endpoint: `GET /categories/{id_categoria}/attributes-with-values`
+    - Service: `category_service.get_category_attributes_with_values`
+    """
     try:
         rows = category_service.get_category_attributes_with_values(db, id_categoria)
         return [CategoryAttributeWithValuesResponse(**r) for r in rows]
@@ -139,7 +176,13 @@ async def set_category_attributes(
     db: Session = Depends(get_db),
     current_user: UserInToken = Depends(get_current_user),
 ):
-    """Reemplaza los atributos de la categoría. Body: { attributes: [{ attribute_id, is_required, is_filterable }] }."""
+    """
+    Reemplaza la configuración de atributos de una categoría.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /categories/{id_categoria}/attributes`
+    - Service: `category_service.set_category_attributes`
+    """
     try:
         category = category_service.get_category(db, id_categoria)
         if not category:
@@ -176,6 +219,10 @@ async def toggle_category(
 
     Returns:
         ResponseMessage: Mensaje de confirmación con detalles de elementos afectados.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /categories/{id_categoria}/toggle`
+    - Service: `category_service.deactivate_activate_category`
     """
     try:
         activar = toggle_data.activar
@@ -208,6 +255,10 @@ async def deactivate_category(
 
     Returns:
         ResponseMessage: Mensaje de confirmación de desactivación exitosa.
+
+    Endpoint -> Service:
+    - Endpoint: `PUT /categories/{id_categoria}/deactivate`
+    - Service: `category_service.deactivate_category`
     """
     try:
         result = category_service.deactivate_category(db, id_categoria, current_user.id_usuario)
