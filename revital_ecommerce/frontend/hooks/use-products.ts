@@ -222,3 +222,19 @@ export function useProductsAdmin(params: ProductAdminParams = {}) {
     placeholderData: keepPreviousData, // Mantener total y stats al cambiar de página
   });
 }
+
+/**
+ * Hook para reindexar embeddings de productos (admin).
+ */
+export function useReindexProductEmbeddings() {
+  return useMutation({
+    mutationFn: (limit: number = 10000) => productService.reindexProductEmbeddings(limit),
+    onSuccess: (data) => {
+      toast.success(`Reindexación completada. Indexados: ${data.indexed}, Fallidos: ${data.failed}`);
+    },
+    onError: (error: any) => {
+      const msg = error?.response?.data?.detail || error?.message || 'Error al reindexar embeddings';
+      toast.error(msg);
+    },
+  });
+}

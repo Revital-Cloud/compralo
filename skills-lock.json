@@ -81,6 +81,11 @@
       "sourceType": "github",
       "computedHash": "2bb940b78c0bcafe59cee91e9a0c98834ad1aab9a328006d5eb06a1bf696a19e"
     },
+    "design-taste-frontend": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "computedHash": "9d1e82c5c409d2b0247245a005bc0f7e4447c0999b78dcea60f568c1ba4a6694"
+    },
     "email": {
       "source": "vercel-labs/vercel-plugin",
       "sourceType": "github",
@@ -106,6 +111,11 @@
       "sourceType": "github",
       "computedHash": "426dcf33f23419643f2aab71e2253e1a5b5684a808fabb8a4ad135e489ed7a0f"
     },
+    "full-output-enforcement": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "computedHash": "26bd29ce4c5e02c7666b2d503609bf466bd32290822e91f0e984147048dbb924"
+    },
     "geist": {
       "source": "vercel-labs/vercel-plugin",
       "sourceType": "github",
@@ -115,6 +125,26 @@
       "source": "vercel-labs/vercel-plugin",
       "sourceType": "github",
       "computedHash": "e404e1e961f2e82d7727089a9b93c28745cd689e4e9eb3a5016818aae3e46058"
+    },
+    "gpt-taste": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "computedHash": "cc8f0c601d8240a124e1d11634351a2be7b8a72fd807c75e5b6bf7afcd5ddee0"
+    },
+    "high-end-visual-design": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "computedHash": "7db385e4c5370e5a7fca9704a1361b056e4504ea6a03924bb86f33a4f00b5c73"
+    },
+    "image-to-code": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "computedHash": "58517b03b2a01f4c9ba65861559d03df931400871bbc200978c975b24bb92c73"
+    },
+    "industrial-brutalist-ui": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "computedHash": "8fc355c4aadb7d29c53ca28bc41be3cd6eea765d121e3737c4dc2d0f90a8effa"
     },
     "investigation-mode": {
       "source": "vercel-labs/vercel-plugin",
@@ -135,6 +165,11 @@
       "source": "vercel-labs/vercel-plugin",
       "sourceType": "github",
       "computedHash": "c23f89774680fb5bedcdcc9787f0969b249e728118145a26aa43c8ff0bb0b1ec"
+    },
+    "minimalist-ui": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "computedHash": "08873a3131d3be27bef9bf3304b310b16b44ca6e3561aebe532797be3443f6bd"
     },
     "nextjs": {
       "source": "vercel-labs/vercel-plugin",
@@ -160,6 +195,11 @@
       "source": "vercel-labs/vercel-plugin",
       "sourceType": "github",
       "computedHash": "4666ceb6576da8baefe2fea38b31a1c83cb185ee1bc429d3f6f6afa76b724c27"
+    },
+    "redesign-existing-projects": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "computedHash": "b405eee0e0e80fc243f731d9aa368bca307e356db7e6157d27101d369dac6726"
     },
     "release": {
       "source": "vercel-labs/vercel-plugin",
@@ -190,6 +230,11 @@
       "source": "vercel-labs/vercel-plugin",
       "sourceType": "github",
       "computedHash": "821125609b8c5dfb45c7715c74293d90630cabaf2a1d340b2d379f21e9928c4a"
+    },
+    "stitch-design-taste": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "computedHash": "3aa58992f0fd9673b975cd48cd4f8ae4b4976fd5cdd9f20e26d3d447aee317fb"
     },
     "swr": {
       "source": "vercel-labs/vercel-plugin",

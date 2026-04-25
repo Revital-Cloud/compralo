@@ -31,6 +31,7 @@ from typing import Dict, List, Sequence, TypedDict
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 
+from core.config import settings
 from schemas.product_schema import ProductFilterParams, ProductFilterResponse, ProductFiltered
 from services.ollama_embedding_provider_service import OllamaEmbeddingProvider
 from services.pgvector_product_embeddings_service import semantic_search_product_ids, count_embeddings
@@ -38,13 +39,6 @@ from services.embedding_provider_service import EmbeddingsNotConfiguredError
 
 
 DEFAULT_EMBEDDING_DIMENSIONS = 768
-# Gate por score absoluto del mejor match.
-#
-# Si el top-1 tiene score MUY bajo, es señal de que la query no "pega" con nada del
-# catálogo (o de que el embedding está siendo ruidoso). En ese caso es mejor
-# hacer fallback a búsqueda clásica que reordenar el catálogo con resultados flojos.
-# Con catálogo pequeño y queries en español, un umbral ~0.45 funciona mejor.
-MIN_BEST_SCORE_FOR_SEMANTIC = 0.45
 
 
 @dataclass(frozen=True)
@@ -78,22 +72,59 @@ def _fetch_products_by_ids(db: Session, product_ids: Sequence[int]) -> Dict[int,
         SELECT
           p.id              AS product_id,
           p.category_id     AS category_id,
-          c.nom_categoria   AS nom_categoria,
-          p.nom_producto    AS nom_producto,
-          p.slug_producto   AS slug_producto,
+          c.name            AS nom_categoria,
+          p.name            AS nom_producto,
+          p.slug            AS slug_producto,
           p.description     AS description,
           p.id_marca        AS id_marca,
           m.nom_marca       AS nom_marca,
-          p.precio_min      AS precio_min,
-          p.precio_max      AS precio_max,
-          p.stock_total     AS stock_total,
-          p.img_principal   AS img_principal
+          (
+            SELECT MIN(cmb.price)
+            FROM tab_product_variant_combinations cmb
+            JOIN tab_product_variant_groups g ON g.id = cmb.group_id
+            WHERE g.product_id = p.id
+              AND cmb.is_active = TRUE
+          )                 AS precio_min,
+          (
+            SELECT MAX(cmb.price)
+            FROM tab_product_variant_combinations cmb
+            JOIN tab_product_variant_groups g ON g.id = cmb.group_id
+            WHERE g.product_id = p.id
+              AND cmb.is_active = TRUE
+          )                 AS precio_max,
+          (
+            SELECT COALESCE(SUM(cmb.stock), 0)
+            FROM tab_product_variant_combinations cmb
+            JOIN tab_product_variant_groups g ON g.id = cmb.group_id
+            WHERE g.product_id = p.id
+              AND cmb.is_active = TRUE
+          )                 AS stock_total,
+          COALESCE(
+            (
+              SELECT pvi.image_url
+              FROM tab_product_variant_images pvi
+              JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id
+              WHERE g.product_id = p.id
+                AND LOWER(TRIM(COALESCE(g.dominant_value, ''))) = 'sin color'
+              ORDER BY pvi.is_primary DESC NULLS LAST, pvi.sort_order NULLS LAST, pvi.id
+              LIMIT 1
+            ),
+            (
+              SELECT pvi.image_url
+              FROM tab_product_variant_images pvi
+              JOIN tab_product_variant_groups g ON g.id = pvi.variant_group_id
+              WHERE g.product_id = p.id
+              ORDER BY g.id, pvi.sort_order, pvi.id
+              LIMIT 1
+            )
+          )                 AS img_principal
         FROM tab_products p
         LEFT JOIN tab_categories c
-          ON c.id_categoria = p.category_id
+          ON c.id = p.category_id
         LEFT JOIN tab_marcas m
           ON m.id_marca = p.id_marca
         WHERE p.id = ANY(:ids)
+          AND p.is_active = TRUE
         """
     )
     rows = db.execute(q, {"ids": ids}).mappings().all()
@@ -136,6 +167,14 @@ def semantic_search_products(
     - si no hay embeddings, hace fallback a búsqueda clásica por nombre
     """
     q = (query or "").strip()
+    min_best_score_for_semantic = float(settings.AI_SEARCH_MIN_BEST_SCORE)
+    if min_score is None:
+        min_score = settings.AI_SEARCH_DEFAULT_MIN_SCORE
+    if min_score_ratio is None:
+        min_score_ratio = settings.AI_SEARCH_DEFAULT_MIN_SCORE_RATIO
+    if max_score_drop is None:
+        max_score_drop = settings.AI_SEARCH_DEFAULT_MAX_SCORE_DROP
+
     if not q:
         empty = ProductFilterResponse(products=[], total=0, page=1, total_pages=0, limit=limit, offset=offset)
         return (
@@ -202,7 +241,7 @@ def semantic_search_products(
 
     matches: List[RankedMatch] = [{"product_id": r.product_id, "score": float(r.score)} for r in ranked]
 
-    if ranked and float(ranked[0].score) < MIN_BEST_SCORE_FOR_SEMANTIC:
+    if ranked and float(ranked[0].score) < min_best_score_for_semantic:
         filters = ProductFilterParams(
             nombre_producto=q,
             limit=limit,

@@ -279,6 +279,15 @@ export async function semanticSearchProducts(
 }
 
 /**
+ * Reindexa embeddings de productos (admin).
+ */
+export async function reindexProductEmbeddings(limit: number = 10000): Promise<{ indexed: number; failed: number }> {
+  return await post<{ indexed: number; failed: number }>('/admin/products/embeddings/reindex', null, {
+    params: { limit },
+  });
+}
+
+/**
  * Obtener productos por categoría
  */
 export async function getProductsByCategory(categoryId: number, params?: PaginationParams): Promise<PaginatedResponse<Product>> {
@@ -485,6 +494,7 @@ const productService = {
   getFilterOptions,
   quickSearchProducts,
   semanticSearchProducts,
+  reindexProductEmbeddings,
   
   // Inventario
   updateProductStock,

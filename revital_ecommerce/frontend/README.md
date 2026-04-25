@@ -293,10 +293,9 @@ cp .env.development.example .env.development
 # Variables mínimas (ver `.env.development.example` para el set completo)
 NEXT_PUBLIC_API_URL=http://localhost:8000/api
 NEXT_PUBLIC_WOMPI_PUBLIC_KEY=pub_test_xxxx
-NEXT_PUBLIC_AI_PRODUCT_SEARCH_ENABLED=true
 ```
 
-Cuando `NEXT_PUBLIC_AI_PRODUCT_SEARCH_ENABLED=true` y el backend tiene configurado Ollama/pgvector, el buscador del header (`ProductSearchBar`) usa el endpoint:
+Con backend configurado con Ollama/pgvector, el buscador del header (`ProductSearchBar`) usa el endpoint:
 
 - `GET /api/products/semantic-search`
 

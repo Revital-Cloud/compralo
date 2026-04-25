@@ -58,7 +58,7 @@ def _fetch_products_for_indexing(db: Session, *, limit: int = 10000) -> List[dic
           m.nom_marca
         FROM fun_filter_products(
           NULL, TRUE, NULL, NULL,
-          NULL, NULL, FALSE, 'nombre', 'ASC',
+          NULL, NULL, FALSE, FALSE, 'nombre', 'ASC',
           :p_limit, 0
         ) f
         LEFT JOIN tab_marcas m
@@ -140,4 +140,82 @@ def reindex_all_products(db: Session, *, limit: int = 10000) -> ReindexResult:
 
     db.commit()
     return ReindexResult(indexed=indexed, failed=failed)
+
+
+def reindex_product_by_id(db: Session, *, product_id: Decimal) -> bool:
+    """
+    Reindexa un único producto activo.
+
+    Devuelve:
+    - True si se indexó correctamente.
+    - False si el producto no está activo o no existe.
+    """
+    q = text(
+        """
+        SELECT
+          p.id            AS product_id,
+          p.category_id   AS category_id,
+          c.name          AS nom_categoria,
+          p.name          AS nom_producto,
+          p.slug          AS slug_producto,
+          p.description   AS description,
+          p.id_marca      AS id_marca,
+          m.nom_marca     AS nom_marca,
+          p.is_active     AS ind_activo
+        FROM tab_products p
+        LEFT JOIN tab_categories c ON c.id = p.category_id
+        LEFT JOIN tab_marcas m ON m.id_marca = p.id_marca
+        WHERE p.id = :pid
+        LIMIT 1
+        """
+    )
+    row = db.execute(q, {"pid": product_id}).mappings().first()
+    if not row:
+        return False
+    if not bool(row.get("ind_activo", False)):
+        return False
+
+    filtered = ProductFiltered(
+        category_id=int(row.get("category_id") or 0),
+        id=int(row.get("product_id")),
+        slug=row.get("slug_producto"),
+        category_name=(row.get("nom_categoria") or "") or "",
+        name=(row.get("nom_producto") or "") or "",
+        description=row.get("description"),
+        image_url=None,
+        price_min=Decimal("0"),
+        price_max=Decimal("0"),
+        stock_total=0,
+        total_registros=0,
+        rating=None,
+        id_marca=int(row.get("id_marca")) if row.get("id_marca") is not None else None,
+        nom_marca=row.get("nom_marca"),
+        fec_insert=None,
+    )
+    source_text = build_embedding_text_from_filtered_product(filtered)
+    provider = OllamaEmbeddingProvider()
+    emb = provider.embed_product(source_text)
+    if len(emb) != DEFAULT_EMBEDDING_DIMENSIONS:
+        raise ValueError(
+            f"Dimensión de embedding inesperada: {len(emb)} (esperada {DEFAULT_EMBEDDING_DIMENSIONS})"
+        )
+    upsert_product_embedding(
+        db,
+        product_id=Decimal(str(row.get("product_id"))),
+        embedding=emb,
+        source_text=source_text,
+    )
+    db.commit()
+    return True
+
+
+def delete_product_embedding(db: Session, *, product_id: Decimal) -> None:
+    """
+    Elimina embedding de un producto (útil al desactivar).
+    """
+    db.execute(
+        text("DELETE FROM tab_product_embeddings WHERE product_id = :pid"),
+        {"pid": product_id},
+    )
+    db.commit()
 
