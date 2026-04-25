@@ -113,7 +113,7 @@ class Settings(BaseSettings):
     ABANDONED_CART_INACTIVITY_HOURS: int = 2
     ABANDONED_CART_SEND_COOLDOWN_HOURS: int = 24
     ABANDONED_CART_BATCH_LIMIT: int = 1000
-#Hay que quitar esto de prueba
+#Hay que quitar esto de prueba para producción
 
     class Config:
         env_file = _ENV_FILES
