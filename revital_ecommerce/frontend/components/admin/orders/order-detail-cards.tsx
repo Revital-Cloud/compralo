@@ -30,7 +30,7 @@ export const OrderDetailCards = ({ orderDetail }: OrderDetailCardsProps) => {
           </div>
           <div>
             <span className="text-sm font-medium">Email:</span>
-            <div className="text-sm flex items-center gap-1">
+            <div className="flex items-center gap-1 break-all text-sm">
               <IconMail className="h-3 w-3" />
               {orden.email_usuario}
             </div>
@@ -64,7 +64,7 @@ export const OrderDetailCards = ({ orderDetail }: OrderDetailCardsProps) => {
           </div>
           <div>
             <span className="text-sm font-medium">Método de Pago:</span>
-            <div className="text-sm">{orden.metodo_pago || 'No especificado'}</div>
+            <div className="break-words text-sm">{orden.metodo_pago || 'No especificado'}</div>
           </div>
           <div>
             <span className="text-sm font-medium">Estado:</span>
@@ -100,7 +100,7 @@ export const OrderDetailCards = ({ orderDetail }: OrderDetailCardsProps) => {
               </div>
               <div>
                 <span className="text-sm font-medium">Ciudad:</span>
-                <div className="text-sm">{direccion_envio.ciudad}, {direccion_envio.departamento}</div>
+                <div className="break-words text-sm">{direccion_envio.ciudad}, {direccion_envio.departamento}</div>
               </div>
               {(direccion_envio as any).barrio && (
                 <div>
@@ -117,13 +117,13 @@ export const OrderDetailCards = ({ orderDetail }: OrderDetailCardsProps) => {
               {(direccion_envio as any).complemento && (
                 <div>
                   <span className="text-sm font-medium">Complemento:</span>
-                  <div className="text-sm">{(direccion_envio as any).complemento}</div>
+                  <div className="break-words text-sm">{(direccion_envio as any).complemento}</div>
                 </div>
               )}
               {(direccion_envio as any).referencias && (
                 <div>
                   <span className="text-sm font-medium">Referencias:</span>
-                  <div className="text-sm">{(direccion_envio as any).referencias}</div>
+                  <div className="break-words text-sm">{(direccion_envio as any).referencias}</div>
                 </div>
               )}
               {direccion_envio.telefono_contacto && (

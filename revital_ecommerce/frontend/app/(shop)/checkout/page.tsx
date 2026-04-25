@@ -284,7 +284,7 @@ const CheckoutPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumbs */}
         <div className="mb-8">
@@ -307,7 +307,7 @@ const CheckoutPage = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
           {/* Columna izquierda - Formulario */}
           <div className="lg:col-span-2">
             {currentStep === 1 && (
@@ -452,8 +452,8 @@ function InformationStep({
 
   return (
     <Card>
-      <CardContent className="p-6">
-        <h2 className="text-2xl font-bold mb-6">Información</h2>
+      <CardContent className="p-4 sm:p-6">
+        <h2 className="mb-6 text-xl font-bold sm:text-2xl">Información</h2>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {/* Método de entrega - Deshabilitado por ahora */}
@@ -491,7 +491,7 @@ function InformationStep({
                 <Label htmlFor="direccion-select">
                   Dirección <span className="text-red-500">*</span>
                 </Label>
-                <div className="flex gap-2 mt-1">
+                <div className="mt-1 flex flex-col gap-2 sm:flex-row">
                   <Select value={selectedAddressId || "__none__"} onValueChange={(v) => setSelectedAddressId(v === "__none__" ? "" : v)}>
                     <SelectTrigger id="direccion-select" className="flex-1">
                       <SelectValue placeholder="Selecciona una dirección" />
@@ -510,7 +510,7 @@ function InformationStep({
                     type="button"
                     variant="outline"
                     onClick={() => setIsCreatingNewAddress(true)}
-                    className="flex items-center gap-2"
+                    className="flex w-full items-center justify-center gap-2 sm:w-auto"
                   >
                     <Plus className="h-4 w-4" />
                     Nueva
@@ -551,7 +551,7 @@ function InformationStep({
                 </div>
               ) : selectedAddress ? (
               <>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <Label htmlFor="nombre">
                     Nombre <span className="text-red-500">*</span>
@@ -605,7 +605,7 @@ function InformationStep({
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div>
                   <Label htmlFor="pais">
                     País/Región <span className="text-red-500">*</span>
@@ -659,7 +659,7 @@ function InformationStep({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {selectedAddress ? (
                   <>
                     {selectedAddress.codigo_postal && (
@@ -741,7 +741,7 @@ function InformationStep({
           )}
 
           {/* Botones de navegación */}
-          <div className="flex items-center justify-between pt-6 border-t">
+          <div className="flex flex-col-reverse gap-3 border-t pt-6 sm:flex-row sm:items-center sm:justify-between">
             <Button
               type="button"
               variant="ghost"
@@ -751,7 +751,7 @@ function InformationStep({
               <ChevronLeft className="h-4 w-4" />
               Volver al carrito
             </Button>
-            <Button type="submit">Continuar con el envío</Button>
+            <Button type="submit" className="w-full sm:w-auto">Continuar con el envío</Button>
           </div>
         </form>
 
@@ -937,9 +937,9 @@ function CreateAddressForm({
         />
       </div>
 
-      <div className="flex justify-end gap-2 pt-4">
+      <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-end">
         {showCancel && onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
             Cancelar
           </Button>
         )}
@@ -947,6 +947,7 @@ function CreateAddressForm({
           type="button"
           variant="outline"
           onClick={() => addressForm.reset()}
+          className="w-full sm:w-auto"
         >
           Limpiar
         </Button>
@@ -954,6 +955,7 @@ function CreateAddressForm({
           type={nested ? "button" : "submit"}
           disabled={isSubmitting}
           {...(nested ? { onClick: () => addressForm.handleSubmit(handleSubmit)() } : {})}
+          className="w-full sm:w-auto"
         >
           {isSubmitting ? "Guardando..." : "Guardar dirección"}
         </Button>
@@ -1044,8 +1046,8 @@ function PaymentStep({
 
   return (
     <Card>
-      <CardContent className="p-6">
-        <h2 className="text-2xl font-bold mb-6">Pago</h2>
+      <CardContent className="p-4 sm:p-6">
+        <h2 className="mb-6 text-xl font-bold sm:text-2xl">Pago</h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
           Todas las transacciones son seguras y están cifradas.
         </p>
@@ -1095,7 +1097,7 @@ function PaymentStep({
                       : "border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/30 hover:border-gray-300 dark:hover:border-gray-600",
                   ].join(" ")}
                 >
-                  <div className="flex items-start gap-4 p-5 w-full">
+                  <div className="flex w-full items-start gap-3 p-4 sm:gap-4 sm:p-5">
                     <RadioGroupItem value="wompi" id="wompi" className="mt-1 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -1115,7 +1117,7 @@ function PaymentStep({
                       <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
                         Paga con Wompi: PSE, tarjeta de crédito/débito, Nequi o corresponsal Bancolombia.
                       </p>
-                      <div className="rounded-lg bg-white dark:bg-gray-800/50 px-4 py-3 border border-gray-100 dark:border-gray-700">
+                      <div className="rounded-lg border border-gray-100 bg-white px-3 py-3 dark:border-gray-700 dark:bg-gray-800/50 sm:px-4">
                         <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
                           Métodos aceptados
                         </p>
@@ -1150,7 +1152,7 @@ function PaymentStep({
 
             {!form.watch("useShippingAddress") && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div>
                     <Label htmlFor="tipoIdentificacion">
                       Tipo de Identificación <span className="text-red-500">*</span>
@@ -1198,12 +1200,12 @@ function PaymentStep({
           </div>
 
           {/* Botones de navegación */}
-          <div className="flex items-center justify-between pt-6 border-t">
+          <div className="flex flex-col-reverse gap-3 border-t pt-6 sm:flex-row sm:items-center sm:justify-between">
             <Button type="button" variant="ghost" onClick={onBack}>
               <ChevronLeft className="h-4 w-4 mr-2" />
               Volver a la información
             </Button>
-            <Button type="submit" className="bg-teal-600 hover:bg-teal-700">
+            <Button type="submit" className="w-full bg-teal-600 hover:bg-teal-700 sm:w-auto">
               Continuar con el pago
             </Button>
           </div>

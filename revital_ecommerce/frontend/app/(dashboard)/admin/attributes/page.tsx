@@ -369,7 +369,7 @@ function AttributeModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-lg overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
@@ -424,11 +424,11 @@ function AttributeModal({
               Usa valores predefinidos
             </Label>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="bg-[#fec806] hover:bg-[#e6b800] text-black">
+            <Button type="submit" disabled={isSubmitting} className="w-full bg-[#fec806] text-black hover:bg-[#e6b800] sm:w-auto">
               {isSubmitting ? 'Guardando...' : 'Guardar'}
             </Button>
           </div>

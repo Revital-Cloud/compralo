@@ -580,11 +580,15 @@ async def send_abandoned_cart_email(cart_data: Dict[str, Any]) -> bool:
         bool: True si se envió exitosamente
     """
     try:
+        if not cart_data.get("user_email"):
+            logger.warning("send_abandoned_cart_email: user_email faltante")
+            return False
+
         html_content = email_templates.get_abandoned_cart_template(cart_data)
         
         email_data = EmailSend(
             to=cart_data['user_email'],
-            subject="¡No olvides tu carrito!",
+            subject="Tu carrito te esta esperando",
             html_content=html_content
         )
         

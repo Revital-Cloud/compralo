@@ -74,32 +74,32 @@ const OrderDetailPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-2">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <Link href="/admin/orders">
             <Button variant="outline" size="sm">
               <IconArrowLeft className="h-4 w-4 mr-2" />
               Volver
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold">Orden #{orden.id_orden}</h1>
+          <div className="min-w-0">
+            <h1 className="break-words text-2xl font-bold">Orden #{orden.id_orden}</h1>
             <p className="text-muted-foreground">
               Creada el {new Date(orden.fec_pedido).toLocaleDateString('es-CO')}
             </p>
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <OrderStatusBadge status={orden.ind_estado} />
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <Select
               value={newStatus?.toString() ?? orden.ind_estado.toString()}
               onValueChange={(v) => setNewStatus(parseInt(v, 10))}
             >
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
@@ -113,6 +113,7 @@ const OrderDetailPage = () => {
                 size="sm" 
                 onClick={handleStatusUpdate}
                 disabled={updateStatusMutation.isPending}
+                className="w-full sm:w-auto"
               >
                 Guardar
               </Button>
@@ -390,19 +391,19 @@ const OrderDetailPage = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="flex justify-between">
+            <div className="flex items-start justify-between gap-3">
               <span>Subtotal productos:</span>
-              <span className="font-medium">${orden.val_total_productos.toLocaleString('es-CO')}</span>
+              <span className="break-all text-right font-medium">${orden.val_total_productos.toLocaleString('es-CO')}</span>
             </div>
             {orden.val_total_descuentos > 0 && (
-              <div className="flex justify-between text-green-600">
+              <div className="flex items-start justify-between gap-3 text-green-600">
                 <span>Descuentos:</span>
-                <span className="font-medium">-${orden.val_total_descuentos.toLocaleString('es-CO')}</span>
+                <span className="break-all text-right font-medium">-${orden.val_total_descuentos.toLocaleString('es-CO')}</span>
               </div>
             )}
-            <div className="flex justify-between text-lg font-bold border-t pt-3">
+            <div className="flex items-start justify-between gap-3 border-t pt-3 text-lg font-bold">
               <span>Total:</span>
-              <span>${orden.val_total_pedido.toLocaleString('es-CO')}</span>
+              <span className="break-all text-right">${orden.val_total_pedido.toLocaleString('es-CO')}</span>
             </div>
           </div>
         </CardContent>

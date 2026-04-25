@@ -51,7 +51,7 @@ export const EditEntityModal: React.FC<EditEntityModalProps> = ({ open, onOpenCh
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-lg overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>{title || `Editar ${type}`}</DialogTitle>
         </DialogHeader>
@@ -89,12 +89,12 @@ export const EditEntityModal: React.FC<EditEntityModalProps> = ({ open, onOpenCh
               </div>
               <div className="space-y-2">
                 <Label>Teléfono</Label>
-                <div className="flex gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Select
                     value={form.watch('tel_country_code') || '57'}
                     onValueChange={(v) => form.setValue('tel_country_code', v)}
                   >
-                    <SelectTrigger className="w-[180px] shrink-0">
+                    <SelectTrigger className="w-full shrink-0 sm:w-[180px]">
                       <SelectValue placeholder="País" />
                     </SelectTrigger>
                     <SelectContent>
@@ -122,9 +122,9 @@ export const EditEntityModal: React.FC<EditEntityModalProps> = ({ open, onOpenCh
             <Label htmlFor="ind_activo_edit">Activo</Label>
           </div>
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" className="bg-[#fec806] hover:bg-[#e6b800] text-black">Guardar cambios</Button>
+          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">Cancelar</Button>
+            <Button type="submit" className="w-full bg-[#fec806] text-black hover:bg-[#e6b800] sm:w-auto">Guardar cambios</Button>
           </div>
         </form>
       </DialogContent>

@@ -13,7 +13,7 @@ Endpoints disponibles:
 - POST /password-reset: Enviar email de reset de contraseña
 - GET /config: Obtener configuración del servicio
 """
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, Header, status
 from sqlalchemy.orm import Session
 import logging
 
@@ -29,8 +29,10 @@ from services.email_service import (
     get_email_config_status,
     process_birthday_emails
 )
+from services.abandoned_cart_service import process_abandoned_cart_emails
 from core.database import get_db
 from core.dependencies import get_current_user
+from core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -216,6 +218,7 @@ async def get_email_config(
                 "auth/verify_email.html", 
                 "auth/reset_password.html",
                 "auth/password_changed.html",
+                "cart/abandoned_cart.html",
                 "test_email.html"
             ]
         }
@@ -322,6 +325,54 @@ async def process_birthday_emails_endpoint(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al procesar emails de cumpleaños: {str(e)}"
+        )
+
+
+@router.post("/abandoned-cart/process", response_model=ResponseMessage)
+async def process_abandoned_cart_emails_endpoint(
+    db: Session = Depends(get_db),
+    x_cron_token: str | None = Header(default=None, alias="X-Cron-Token"),
+):
+    """
+    Procesa carritos abandonados y envía emails de recuperación.
+
+    Diseñado para ser llamado por un cron externo cada hora.
+    Requiere header `X-Cron-Token` configurado en backend.
+    """
+    expected_token = settings.CRON_JOB_TOKEN
+    if not expected_token:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="CRON_JOB_TOKEN no configurado en el backend",
+        )
+
+    if x_cron_token != expected_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de cron inválido",
+        )
+
+    try:
+        logger.info("Iniciando procesamiento de carritos abandonados")
+        result = await process_abandoned_cart_emails(db)
+        return ResponseMessage(
+            message=result.get("message", "Procesamiento completado"),
+            success=result.get("success", False),
+            data={
+                "candidates_found": result.get("candidates_found", 0),
+                "processed": result.get("processed", 0),
+                "emails_sent": result.get("emails_sent", 0),
+                "skipped": result.get("skipped", 0),
+                "errors": result.get("errors"),
+            },
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en process_abandoned_cart_emails_endpoint: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al procesar carritos abandonados: {str(e)}",
         )
 
 # ==================== ENDPOINTS DE ESTADÍSTICAS ====================

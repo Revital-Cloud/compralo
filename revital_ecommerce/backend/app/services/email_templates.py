@@ -339,7 +339,7 @@ class EmailTemplates:
             str: HTML del email de carrito abandonado
         """
         return self.render_template(
-            'marketing/abandoned_cart.html',
+            'cart/abandoned_cart.html',
             **cart_data
         )
 
