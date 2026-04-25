@@ -5,6 +5,8 @@ import { ProductsHeader, ProductsFilters, ProductsDisplay } from "@/components/p
 import { useFilterProducts, useFilterOptions, useFilterStats } from "@/hooks"
 import type { ProductFilterParams } from "@/types/product"
 import { useSearchParams } from "next/navigation"
+import { useQuery } from "@tanstack/react-query"
+import { semanticSearchProducts } from "@/services/product.service"
 
 /**
  * Mapa de la página de catálogo (`/products`).
@@ -149,6 +151,33 @@ function ProductsPageInner({
     error: productsError,
   } = useFilterProducts(hasActiveFilters ? filterParams : defaultFilters)
 
+  const semanticSearchEnabled = searchQuery.trim().length > 0
+  const semanticOffset = (currentPage - 1) * itemsPerPage
+  const {
+    data: semanticProductsData,
+    isLoading: semanticProductsLoading,
+    error: semanticProductsError,
+  } = useQuery({
+    queryKey: ["products", "semantic-search", searchQuery.trim(), itemsPerPage, semanticOffset],
+    queryFn: () =>
+      semanticSearchProducts(searchQuery.trim(), {
+        limit: itemsPerPage,
+        offset: semanticOffset,
+        // Para página de resultados usamos un filtro más flexible que el header.
+        min_score: 0.43,
+        min_score_ratio: 0.88,
+        max_score_drop: 0.12,
+      }),
+    enabled: semanticSearchEnabled,
+    placeholderData: (previousData) => previousData,
+    staleTime: 60 * 1000,
+    refetchOnWindowFocus: false,
+  })
+
+  const effectiveProductsData = semanticSearchEnabled ? semanticProductsData : productsData
+  const effectiveProductsLoading = semanticSearchEnabled ? semanticProductsLoading : productsLoading
+  const effectiveProductsError = semanticSearchEnabled ? semanticProductsError : productsError
+
   const emptyFilters = useMemo(() => ({} as ProductFilterParams), [])
   useFilterStats(hasActiveFilters ? filterParams : emptyFilters)
 
@@ -199,9 +228,9 @@ function ProductsPageInner({
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <ProductsHeader
-        productsData={productsData}
-        productsLoading={productsLoading}
-        productsError={productsError}
+        productsData={effectiveProductsData}
+        productsLoading={effectiveProductsLoading}
+        productsError={effectiveProductsError}
         sortBy={sortBy}
         setSortBy={setSortBy}
         viewMode={viewMode}
@@ -232,9 +261,9 @@ function ProductsPageInner({
             priceRangeOptions={dynamicPriceRange}
           />
           <ProductsDisplay
-            productsData={productsData}
-            productsLoading={productsLoading}
-            productsError={productsError}
+            productsData={effectiveProductsData}
+            productsLoading={effectiveProductsLoading}
+            productsError={effectiveProductsError}
             viewMode={viewMode}
             priceRange={priceRange}
             selectedCategoryId={selectedCategoryId}
@@ -244,8 +273,8 @@ function ProductsPageInner({
             onRemoveFilter={handleRemoveFilter}
             filterOptions={filterOptions}
             currentPage={currentPage}
-            totalPages={productsData?.total_pages ?? 1}
-            totalItems={productsData?.total ?? 0}
+            totalPages={effectiveProductsData?.total_pages ?? 1}
+            totalItems={effectiveProductsData?.total ?? 0}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
           />
