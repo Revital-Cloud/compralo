@@ -299,9 +299,7 @@ Con backend configurado con Ollama/pgvector, el buscador del header (`ProductSea
 
 - `GET /api/products/semantic-search`
 
-con fallback automático a búsqueda clásica cuando no hay embeddings o el proveedor no está disponible.*** End Patch```"/>
-```*** End Patch
-``` -->
+con fallback automático a búsqueda clásica cuando no hay embeddings o el proveedor no está disponible.
 
 ### 3. Iniciar Desarrollo
 
