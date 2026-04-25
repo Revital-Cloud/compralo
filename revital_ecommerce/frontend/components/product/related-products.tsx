@@ -97,8 +97,62 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
         </div>
       </div>
 
-      {/* Products Grid */}
-      <div className="relative overflow-hidden">
+      {/* Mobile: carrusel deslizable con dedo */}
+      <div className="sm:hidden">
+        <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {products.map((product) => {
+            const href = product.slug ? `/products/${product.slug}` : "#"
+            const content = (
+              <>
+                <div className="relative mb-3 aspect-square overflow-hidden rounded-lg bg-gray-50 dark:bg-gray-700">
+                  {product.badge && (
+                    <Badge 
+                      variant={getBadgeVariant(product.badgeColor)}
+                      className="absolute top-2 left-2 z-10"
+                    >
+                      {product.badge}
+                    </Badge>
+                  )}
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="line-clamp-2 text-sm font-semibold text-gray-900 dark:text-white">
+                    {product.name}
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-gray-900 dark:text-white">
+                      {formatPrice(product.price)}
+                    </span>
+                    {product.originalPrice != null && product.originalPrice > product.price && (
+                      <span className="text-sm text-gray-500 line-through">
+                        {formatPrice(product.originalPrice)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </>
+            )
+            return (
+              <div key={`mobile-${product.slug ?? product.id}`} className="group w-[72%] min-w-[72%] snap-start">
+                {product.slug ? (
+                  <Link href={href} className="block">
+                    {content}
+                  </Link>
+                ) : (
+                  <div>{content}</div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Desktop / tablet: carrusel con flechas */}
+      <div className="relative hidden overflow-hidden sm:block">
         <div
           className="flex flex-shrink-0 transition-transform duration-300 ease-in-out"
           style={{
@@ -171,7 +225,7 @@ const RelatedProducts: React.FC<RelatedProductsProps> = ({
 
       {/* Dots Indicator - solo si hay más de una página */}
       {products.length > 0 && maxIndex > 0 && (
-        <div className="flex justify-center gap-2">
+        <div className="hidden justify-center gap-2 sm:flex">
           {Array.from({ length: maxIndex + 1 }).map((_, index) => (
             <button
               key={index}

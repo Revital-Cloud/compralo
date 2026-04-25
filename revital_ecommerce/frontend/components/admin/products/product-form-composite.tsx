@@ -7,9 +7,21 @@ import { productFormCompositeSchema, type ProductFormCompositeFields } from '@/s
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui'
 import { Input, Label, Button, Textarea, Checkbox } from '@/components/ui'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui'
 import { useAllCategories } from '@/hooks/use-categories'
 import { useAllProviders } from '@/hooks/use-providers'
 import { useBrands } from '@/hooks/use-products'
+import { aiDescriptionService } from '@/services/ai-description.service'
 import { getCategoryAttributesWithValues } from '@/services/category.service'
 import { useQuery } from '@tanstack/react-query'
 import type { ProductCreateComposite, VariantCreateItem } from '@/types/product'
@@ -21,6 +33,7 @@ import { cn } from '@/lib/utils'
 import { VariantImageUpload } from './variant-image-upload'
 import type { Category } from '@/types/category'
 import { formatNumberWithDots, parseFormattedNumber } from '@/utils/format-price'
+import { toast } from 'sonner'
 
 function isCategoryActive(c: Category): boolean {
   return (c.ind_activo ?? c.is_active) !== false
@@ -69,6 +82,8 @@ export function ProductFormComposite({
   const [selectedParentId, setSelectedParentId] = useState<number | null>(null)
   const [selectedLineId, setSelectedLineId] = useState<number | null>(null)
   const [selectedSublineId, setSelectedSublineId] = useState<number | null>(null)
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false)
+  const [confirmReplaceOpen, setConfirmReplaceOpen] = useState(false)
 
   useEffect(() => {
     onVariantsChange?.(variants)
@@ -76,6 +91,7 @@ export function ProductFormComposite({
   const { data: categories = [] } = useAllCategories()
   const { data: brands = [] } = useBrands()
   const { data: providers = [] } = useAllProviders()
+  const brandOptions = Array.isArray(brands) ? brands : []
 
   const list = Array.isArray(categories) ? (categories as Category[]) : []
   const rootOptions = useMemo(
@@ -298,6 +314,54 @@ export function ProductFormComposite({
     )
   }, [])
 
+  const handleGenerateDescription = useCallback(async (forceReplace = false) => {
+    const name = form.getValues('name')?.trim()
+    const categoryId = Number(form.getValues('category_id'))
+    const brandId = form.getValues('id_marca')
+    const currentDescription = form.getValues('description')?.trim()
+
+    if (!name) {
+      toast.error('Ingresa el nombre del producto para generar la descripción.')
+      return
+    }
+    if (!categoryId || Number.isNaN(categoryId) || categoryId <= 0) {
+      toast.error('Selecciona categoría/línea antes de generar la descripción.')
+      return
+    }
+
+    if (currentDescription && !forceReplace) {
+      setConfirmReplaceOpen(true)
+      return
+    }
+
+    const selectedCategory = list.find((c) => idNum(c) === categoryId)
+    const selectedBrand = brandOptions.find((b: { id_marca: number }) => Number(b.id_marca) === Number(brandId))
+
+    if (!selectedCategory?.name) {
+      toast.error('No se pudo identificar la categoría seleccionada.')
+      return
+    }
+
+    try {
+      setIsGeneratingDescription(true)
+      const response = await aiDescriptionService.generateProductDescription({
+        name,
+        category: selectedCategory.name,
+        brand: selectedBrand?.nom_marca || undefined,
+        attributes: {},
+        tone: 'profesional y persuasivo',
+      })
+      form.setValue('description', response.description, { shouldDirty: true, shouldValidate: true })
+      toast.success(currentDescription ? 'Descripción regenerada con IA.' : 'Descripción generada con IA.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudo generar la descripción.'
+      toast.error(message)
+    } finally {
+      setIsGeneratingDescription(false)
+      setConfirmReplaceOpen(false)
+    }
+  }, [brandOptions, form, list])
+
   const setVariantImageUrls = useCallback((variantIndex: number, image_urls: string[]) => {
     setVariants((prev) =>
       prev.map((v, i) => (i === variantIndex ? { ...v, image_urls } : v))
@@ -367,8 +431,6 @@ export function ProductFormComposite({
     }
     onSubmit(payload)
   })
-
-  const brandOptions = Array.isArray(brands) ? brands : []
 
   const onParentChange = (value: string) => {
     const id = value ? Number(value) : null
@@ -513,6 +575,45 @@ export function ProductFormComposite({
           <div className="space-y-2">
             <Label htmlFor="description">Descripción</Label>
             <Textarea id="description" {...form.register('description')} rows={3} className="resize-none" />
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void handleGenerateDescription(false)}
+                      disabled={isGeneratingDescription}
+                    >
+                      {isGeneratingDescription
+                        ? 'Generando...'
+                        : form.watch('description')?.trim()
+                          ? 'Crear nueva descripción'
+                          : 'Crear descripción'}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Genera automáticamente una descripción optimizada para SEO y ventas usando IA
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+            <AlertDialog open={confirmReplaceOpen} onOpenChange={setConfirmReplaceOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reemplazar descripción actual</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Ya existe una descripción escrita. Si continúas, se reemplazará por una nueva descripción.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isGeneratingDescription}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => void handleGenerateDescription(true)} disabled={isGeneratingDescription}>
+                    {isGeneratingDescription ? 'Generando...' : 'Sí, reemplazar'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
           <div className="flex items-center gap-2">
             <Checkbox

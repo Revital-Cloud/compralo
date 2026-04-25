@@ -55,7 +55,7 @@ export function WompiPaymentModal({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
-        className="max-w-4xl w-full p-0 bg-gray-800 dark:bg-gray-900 border-gray-700"
+        className="max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-4xl overflow-y-auto p-0 bg-gray-800 dark:bg-gray-900 border-gray-700 sm:w-full"
         showCloseButton={false}
       >
         <DialogHeader className="sr-only">
@@ -63,7 +63,7 @@ export function WompiPaymentModal({
         </DialogHeader>
         <div className="relative">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-6 border-b border-gray-700 gap-4">
+          <div className="flex flex-col items-start justify-between gap-4 border-b border-gray-700 p-4 sm:flex-row sm:items-center sm:p-6">
             <div className="flex items-center gap-4">
               {/* Logo Phonetify - placeholder, reemplazar con logo real */}
               <div className="flex items-center gap-3">
@@ -99,7 +99,7 @@ export function WompiPaymentModal({
           </div>
 
           {/* Payment Methods Grid */}
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {paymentMethods.map((method) => {
                 const Icon = method.icon;
@@ -107,15 +107,15 @@ export function WompiPaymentModal({
                   <button
                     key={method.id}
                     onClick={() => onSelectPaymentMethod(method.id as any)}
-                    className="relative p-6 bg-gray-700 hover:bg-gray-600 rounded-lg border border-gray-600 hover:border-gray-500 transition-all duration-200 flex flex-col items-center justify-center gap-4 text-center min-h-[200px] group"
+                    className="group relative flex min-h-[180px] flex-col items-center justify-center gap-4 rounded-lg border border-gray-600 bg-gray-700 p-4 text-center transition-all duration-200 hover:border-gray-500 hover:bg-gray-600 sm:min-h-[200px] sm:p-6"
                   >
                     {method.isNew && (
                       <span className="absolute top-3 right-3 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
                         NUEVO
                       </span>
                     )}
-                    <div className="w-20 h-20 bg-gray-600 group-hover:bg-gray-500 rounded-full flex items-center justify-center transition-colors">
-                      <Icon className="h-10 w-10 text-white" />
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-600 transition-colors group-hover:bg-gray-500 sm:h-20 sm:w-20">
+                      <Icon className="h-8 w-8 text-white sm:h-10 sm:w-10" />
                     </div>
                     <div className="flex flex-col gap-2">
                       <span className="text-white font-medium text-sm leading-tight">
@@ -141,7 +141,7 @@ export function WompiPaymentModal({
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 border-t border-gray-700 flex items-center justify-between bg-gray-900">
+          <div className="flex flex-col items-start justify-between gap-3 border-t border-gray-700 bg-gray-900 px-4 py-4 sm:flex-row sm:items-center sm:px-6">
             <div className="flex items-center gap-2">
               <Check className="h-5 w-5 text-green-400" />
               <span className="text-gray-300 text-sm font-medium">
@@ -150,7 +150,7 @@ export function WompiPaymentModal({
             </div>
             <div className="flex items-center gap-2">
               {/* Logo Grupo Cibest - placeholder */}
-              <div className="w-24 h-10 bg-white rounded flex items-center justify-center">
+              <div className="flex h-10 w-24 items-center justify-center rounded bg-white">
                 <span className="text-gray-900 font-bold text-xs">
                   Grupo Cibest
                 </span>

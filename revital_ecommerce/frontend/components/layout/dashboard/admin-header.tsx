@@ -137,28 +137,28 @@ export default function AdminHeader() {
 
   return (
     <header
-      className="flex h-(--header-height) shrink-0 items-center gap-2 border-b border-sidebar-border bg-background ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) transition-colors duration-300"
+      className="flex min-h-(--header-height) shrink-0 items-center gap-2 border-b border-sidebar-border bg-background ease-linear transition-colors duration-300 group-has-data-[collapsible=icon]/sidebar-wrapper:min-h-(--header-height)"
       data-tour-id="admin-header"
     >
-      <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
+      <div className="flex w-full flex-wrap items-center gap-x-1 gap-y-2 px-3 py-2 sm:px-4 lg:gap-2 lg:px-6">
         <SidebarTrigger className="-ml-1" />
         <Separator
           orientation="vertical"
           className="mx-2 my-auto data-[orientation=vertical]:h-6 bg-border"
         />
-        <h1 className="text-base font-medium text-foreground transition-colors duration-300">Dashboard</h1>
-      </div>
-      <div className="ml-auto flex items-center gap-2 px-4">
-        <AdminChatTrigger />
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Ayuda y recorridos"
-          onClick={handleHelpClick}
-        >
-          <IconHelpCircle className="h-4 w-4" />
-        </Button>
-        <ThemeToggle />
+        <h1 className="truncate text-base font-medium text-foreground transition-colors duration-300">Dashboard</h1>
+        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <AdminChatTrigger />
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Ayuda y recorridos"
+            onClick={handleHelpClick}
+          >
+            <IconHelpCircle className="h-4 w-4" />
+          </Button>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   )

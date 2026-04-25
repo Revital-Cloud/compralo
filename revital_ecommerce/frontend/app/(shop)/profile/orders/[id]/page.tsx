@@ -157,7 +157,7 @@ export default function OrderDetailPage() {
   if (isLoading || !order) {
     // Estado de carga (y “sin datos” aún) hasta que el backend responda.
     return (
-      <div className="max-w-3xl mx-auto py-8">
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Cargando orden…
         </div>
@@ -169,11 +169,11 @@ export default function OrderDetailPage() {
   const billingLines = formatAddress(order.billing_address);
 
   return (
-    <div className="mx-auto max-w-4xl py-8">
+    <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
       <div className="space-y-2">
         <p className="text-base font-medium text-primary">Thank you!</p>
-        <h1 className="text-4xl font-semibold tracking-tight">{getHeadlineByStatus(order.ind_estado)}</h1>
-        <p className="text-lg text-muted-foreground">
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{getHeadlineByStatus(order.ind_estado)}</h1>
+        <p className="text-base text-muted-foreground sm:text-lg">
           Tu orden #{order.id_orden} está en estado{" "}
           <span className="font-medium text-foreground">{formatStatus(order.ind_estado)}</span>.
         </p>
@@ -220,20 +220,20 @@ export default function OrderDetailPage() {
                         alt={it.product_name}
                         width={160}
                         height={160}
-                        className="h-40 w-40 rounded-lg object-cover"
+                        className="h-40 w-full max-w-40 rounded-lg object-cover"
                       />
                     ) : (
-                      <div className="flex h-40 w-40 items-center justify-center rounded-lg bg-muted">
+                      <div className="flex h-40 w-full max-w-40 items-center justify-center rounded-lg bg-muted">
                         <Package className="h-8 w-8 text-muted-foreground" />
                       </div>
                     )}
                   </div>
 
-                  <div className="flex-1">
-                    <p className="text-3xl font-medium tracking-tight">{it.product_name}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words text-xl font-medium tracking-tight sm:text-2xl">{it.product_name}</p>
                     {optsText && <p className="mt-2 text-base text-muted-foreground">{optsText}</p>}
 
-                    <div className="mt-6 flex flex-wrap items-center gap-3 text-lg">
+                    <div className="mt-6 flex flex-wrap items-center gap-2 text-base sm:gap-3 sm:text-lg">
                       <span className="font-medium">Quantity</span>
                       <span className="text-muted-foreground">{it.quantity}</span>
                       <span className="h-5 w-px bg-border" />
@@ -252,8 +252,8 @@ export default function OrderDetailPage() {
 
       <div className="mt-10 grid gap-8 border-t border-border pt-8 sm:grid-cols-2">
         <section>
-          <p className="text-2xl font-medium">Shipping address</p>
-          <div className="mt-3 space-y-1 text-lg text-muted-foreground">
+          <p className="text-xl font-medium sm:text-2xl">Shipping address</p>
+          <div className="mt-3 space-y-1 break-words text-base text-muted-foreground sm:text-lg">
             {shippingLines.map((line, idx) => (
               <p key={`shipping-${idx}`}>{line}</p>
             ))}
@@ -261,8 +261,8 @@ export default function OrderDetailPage() {
         </section>
 
         <section>
-          <p className="text-2xl font-medium">Billing address</p>
-          <div className="mt-3 space-y-1 text-lg text-muted-foreground">
+          <p className="text-xl font-medium sm:text-2xl">Billing address</p>
+          <div className="mt-3 space-y-1 break-words text-base text-muted-foreground sm:text-lg">
             {billingLines.map((line, idx) => (
               <p key={`billing-${idx}`}>{line}</p>
             ))}
@@ -272,23 +272,23 @@ export default function OrderDetailPage() {
 
       <div className="mt-10 grid gap-8 border-t border-border pt-8 sm:grid-cols-2">
         <section>
-          <p className="text-2xl font-medium">Payment method</p>
-          <div className="mt-3 space-y-1 text-lg text-muted-foreground">
-            <p>{formatPaymentMethod(order.metodo_pago)}</p>
+          <p className="text-xl font-medium sm:text-2xl">Payment method</p>
+          <div className="mt-3 space-y-1 break-words text-base text-muted-foreground sm:text-lg">
+            <p className="break-words">{formatPaymentMethod(order.metodo_pago)}</p>
           </div>
         </section>
 
         <section>
-          <p className="text-2xl font-medium">Shipping method</p>
-          <div className="mt-3 space-y-1 text-lg text-muted-foreground">
-            <p>{order.shipping_method || "No disponible"}</p>
+          <p className="text-xl font-medium sm:text-2xl">Shipping method</p>
+          <div className="mt-3 space-y-1 break-words text-base text-muted-foreground sm:text-lg">
+            <p className="break-words">{order.shipping_method || "No disponible"}</p>
           </div>
         </section>
       </div>
 
       <div className="mt-10 border-t border-border pt-8">
-        <p className="text-2xl font-medium">Resumen</p>
-        <div className="mt-4 space-y-3 text-lg">
+        <p className="text-xl font-medium sm:text-2xl">Resumen</p>
+        <div className="mt-4 space-y-3 text-base sm:text-lg">
           <div className="flex justify-between text-muted-foreground">
             <span>Fecha</span>
             <span>{order.fec_insert ? formatDate(order.fec_insert) : "—"}</span>

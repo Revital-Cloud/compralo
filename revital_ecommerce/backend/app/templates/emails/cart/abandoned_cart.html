@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Tu carrito sigue esperandote - {{ app_name }}{% endblock %}
+
+{% block preheader %}
+Tienes productos guardados en tu carrito. Finaliza tu compra en pocos minutos.
+{% endblock %}
+
+{% block content %}
+<div class="greeting">Hola {{ user_name }},</div>
+
+<div class="content-block">
+    <p>Guardamos tu carrito para que termines tu compra cuando quieras. Estos son los productos que dejaste pendientes:</p>
+</div>
+
+<div class="content-block">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Cant.</th>
+                <th>Subtotal</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in (cart["items"] or []) %}
+            <tr>
+                <td>
+                    {% if item.image_url %}
+                    <img src="{{ item.image_url }}" alt="{{ item.product_name }}" width="56" height="56" style="border-radius: 8px; object-fit: cover; margin-right: 8px; vertical-align: middle;" />
+                    {% endif %}
+                    {{ item.product_name }}
+                </td>
+                <td>{{ item.quantity }}</td>
+                <td class="price">${{ item.price }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="content-block">
+    <table class="table">
+        <tr>
+            <td><strong>Total estimado</strong></td>
+            <td class="price">${{ cart.total }}</td>
+        </tr>
+    </table>
+    <p class="text-muted">Ultima actividad del carrito: {{ cart_last_activity }}</p>
+</div>
+
+<div class="text-center">
+{% set url = checkout_url %}
+{% set label = "Ir al carrito" %}
+{% set variant = "primary" %}
+{% include "_button.html" %}
+</div>
+
+<div class="content-block text-center">
+    <p>Si necesitas ayuda para finalizar tu compra, respondemos en <a href="mailto:{{ support_email }}" style="color:#dc2626;">{{ support_email }}</a>.</p>
+    <p class="text-muted">Gracias por confiar en {{ app_name }}.</p>
+</div>
+{% endblock %}

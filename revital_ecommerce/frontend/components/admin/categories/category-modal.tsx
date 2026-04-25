@@ -329,7 +329,7 @@ export function CategoryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[calc(100vw-1.5rem)] max-w-lg overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle>{mode === 'create' ? 'Nueva categoría' : 'Editar categoría'}</DialogTitle>
         </DialogHeader>
@@ -460,15 +460,15 @@ export function CategoryModal({
           </div>
 
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <Label>{attributesSectionLabel}</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addAttributeRow}>
+              <Button type="button" variant="outline" size="sm" onClick={addAttributeRow} className="w-full sm:w-auto">
                 Agregar atributo
               </Button>
             </div>
             {attributeRows.length > 0 && (
-              <div className="border rounded-md overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto rounded-md border">
+                <table className="w-full min-w-[540px] text-sm">
                   <thead>
                     <tr className="border-b bg-muted/50">
                       <th className="text-left p-2">Atributo</th>
@@ -532,14 +532,14 @@ export function CategoryModal({
             )}
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
             <Button
               type="button"
               disabled={isSubmitting}
-              className="bg-[#fec806] hover:bg-[#e6b800] text-black"
+              className="w-full bg-[#fec806] text-black hover:bg-[#e6b800] sm:w-auto"
               onClick={onGuardarClick}
             >
               {isSubmitting ? 'Guardando...' : 'Guardar'}

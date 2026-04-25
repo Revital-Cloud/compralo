@@ -262,10 +262,15 @@ export default function ExchangeTab() {
                     </span>
                     <span className="text-muted-foreground">·</span>
                     <span className="text-green-400">{d.valor_descuento}</span>
-                    <span className="text-muted-foreground">({d.tipo_calculo_texto})</span>
+                    <span className="break-words text-muted-foreground">({d.tipo_calculo_texto})</span>
                   </div>
                   {usageLimitLabel && (
-                    <p className="text-xs text-muted-foreground">{usageLimitLabel}</p>
+                    <p className="break-words text-xs text-muted-foreground">{usageLimitLabel}</p>
+                  )}
+                  {disabledReason && (
+                    <p className="break-words rounded-md bg-red-500/10 px-2 py-1 text-xs text-red-400">
+                      {disabledReason}
+                    </p>
                   )}
                   <Button
                     size="sm"
@@ -278,10 +283,8 @@ export default function ExchangeTab() {
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Canjeando...
                       </>
-                    ) : !disabledReason ? (
-                      "Canjear"
                     ) : (
-                      disabledReason
+                      "Canjear"
                     )}
                   </Button>
                 </CardContent>

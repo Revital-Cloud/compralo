@@ -13,7 +13,7 @@ import json
 import re
 import time
 import unicodedata
-from typing import Iterator, Optional
+from typing import Any, Iterator, Optional
 
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -48,6 +48,25 @@ from services.admin_ai_instructions import (
     SUMMARY_SYSTEM_PROMPT,
     SYSTEM_PROMPT_ADMIN_AI,
 )
+
+PRODUCT_DESCRIPTION_SYSTEM_PROMPT = """
+Eres un experto en copywriting e-commerce, SEO on-page y conversión.
+Tu misión: redactar descripciones de producto listas para vender.
+
+Reglas obligatorias:
+1) Escribe en español natural, claro y profesional.
+2) Extensión entre 120 y 180 palabras.
+3) No uses viñetas, títulos ni prefijos como "Descripción:".
+4) Evita frases genéricas, relleno y clichés vacíos.
+5) Usa lenguaje comercial orientado a beneficios concretos para el cliente.
+6) Incluye de forma natural palabras clave relevantes (nombre, categoría, marca y atributos), sin keyword stuffing.
+7) Adapta el texto al tipo de categoría; no reutilices plantillas genéricas.
+8) Enfatiza valor, diferenciadores y utilidad real, no solo especificaciones.
+9) No inventes certificaciones o garantías que no estén en los datos de entrada.
+10) Devuelve solo el texto final de la descripción.
+11) PROHIBIDO mencionar precio, descuentos, stock, unidades disponibles, tallas, colores, medidas o atributos técnicos.
+12) El texto debe sonar aspiracional y persuasivo, como mensaje de venta para atraer clientes.
+""".strip()
 
 
 def get_alerts(db: Session) -> list[str]:
@@ -900,3 +919,62 @@ def generate_dashboard_summary(db: Session, time_range: str = "monthly") -> str:
     }
     user_content = f"Resume estos datos del dashboard en 2-4 frases:\n\n{json.dumps(context, ensure_ascii=False)}"
     return chat_completion(user_content=user_content, system_content=SUMMARY_SYSTEM_PROMPT, temperature=0.0)
+
+
+def generate_product_description(
+    *,
+    name: str,
+    category: str,
+    brand: Optional[str] = None,
+    attributes: Optional[dict[str, Any]] = None,
+    tone: Optional[str] = None,
+) -> str:
+    """
+    Genera una descripción de producto optimizada para SEO y conversión.
+    """
+    safe_name = (name or "").strip()
+    safe_category = (category or "").strip()
+    safe_brand = (brand or "").strip()
+    safe_tone = (tone or "").strip()
+
+    if not safe_name:
+        raise ValueError("El nombre del producto es obligatorio.")
+    if not safe_category:
+        raise ValueError("La categoría del producto es obligatoria.")
+
+    normalized_attributes: dict[str, Any] = {}
+    for key, value in (attributes or {}).items():
+        key_str = str(key).strip()
+        if not key_str:
+            continue
+        if value is None:
+            continue
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                continue
+        normalized_attributes[key_str] = value
+
+    user_payload = {
+        "product_name": safe_name,
+        "category": safe_category,
+        "brand": safe_brand or None,
+        "tone": safe_tone or "profesional y persuasivo",
+        "attributes": normalized_attributes,
+    }
+    user_content = (
+        "Genera una descripción comercial aspiracional del producto con esta información estructurada:\n"
+        f"{json.dumps(user_payload, ensure_ascii=False)}\n\n"
+        "Recuerda: prioriza beneficios emocionales y valor percibido, con SEO natural y enfoque total en conversión. "
+        "No incluyas precio, stock ni especificaciones técnicas."
+    )
+
+    description = chat_completion(
+        user_content=user_content,
+        system_content=PRODUCT_DESCRIPTION_SYSTEM_PROMPT,
+        temperature=0.2,
+    )
+    normalized = " ".join((description or "").split()).strip()
+    if not normalized:
+        raise RuntimeError("No se pudo generar una descripción válida en este momento.")
+    return normalized

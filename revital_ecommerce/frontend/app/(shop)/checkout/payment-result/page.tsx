@@ -442,7 +442,7 @@ const PaymentResultPage = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50 to-white dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 py-10">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-slate-50 to-white py-6 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 sm:py-10">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <div className="mb-6">
@@ -458,7 +458,7 @@ const PaymentResultPage = () => {
 
         {/* Resultado del pago */}
         <Card className={`${isSuccess ? "border-slate-200/80 shadow-xl shadow-slate-200/40 dark:shadow-none dark:border-slate-800" : `${statusConfig.bgColor} ${statusConfig.borderColor} border-2`}`}>
-          <CardContent className="p-8">
+          <CardContent className="p-4 sm:p-8">
             {isSuccess ? (
               <div className="space-y-8">
                 <div className="rounded-2xl border border-emerald-200/70 bg-gradient-to-r from-emerald-50 via-white to-cyan-50 dark:from-emerald-950/40 dark:via-slate-900 dark:to-cyan-950/30 dark:border-emerald-900/60 p-6">
@@ -468,7 +468,7 @@ const PaymentResultPage = () => {
                         <Sparkles className="h-3.5 w-3.5" />
                         Pago confirmado
                       </div>
-                      <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                      <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
                         Tu compra ya está en proceso
                       </h1>
                       <p className="text-slate-600 dark:text-slate-300 max-w-xl">
@@ -499,22 +499,22 @@ const PaymentResultPage = () => {
                 </div>
 
                 {(paymentData.transactionId || paymentData.reference) && (
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-5 bg-white dark:bg-slate-900">
+                  <div className="rounded-xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
                     <h3 className="font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                       <Receipt className="h-4 w-4" />
                       Datos de la compra
                     </h3>
-                    <div className="grid gap-4 md:grid-cols-2 text-sm">
+                    <div className="grid gap-4 text-sm md:grid-cols-2">
                       {paymentData.transactionId && (
                         <div>
                           <p className="text-slate-500 dark:text-slate-400 mb-1">ID de transacción</p>
-                          <p className="font-mono text-slate-900 dark:text-white break-all">{paymentData.transactionId}</p>
+                          <p className="break-all font-mono text-slate-900 dark:text-white">{paymentData.transactionId}</p>
                         </div>
                       )}
                       {paymentData.reference && (
                         <div>
                           <p className="text-slate-500 dark:text-slate-400 mb-1">Referencia</p>
-                          <p className="font-mono text-slate-900 dark:text-white break-all">{paymentData.reference}</p>
+                          <p className="break-all font-mono text-slate-900 dark:text-white">{paymentData.reference}</p>
                         </div>
                       )}
                     </div>
@@ -606,11 +606,11 @@ const PaymentResultPage = () => {
                 </p>
             )}
 
-            <div className={`flex flex-col sm:flex-row gap-3 ${isSuccess ? "justify-start pt-8" : "justify-center pt-6"}`}>
+            <div className={`flex flex-col gap-3 sm:flex-row ${isSuccess ? "justify-start pt-8" : "justify-center pt-6"}`}>
               <Button
                 variant={statusConfig.actionVariant}
                 onClick={handlePrimaryAction}
-                className="flex items-center gap-2"
+                className="flex w-full items-center gap-2 sm:w-auto"
               >
                 {statusConfig.actionText}
               </Button>
@@ -618,7 +618,7 @@ const PaymentResultPage = () => {
               <Button
                 variant="outline"
                 onClick={() => router.push('/')}
-                className="flex items-center gap-2"
+                className="flex w-full items-center gap-2 sm:w-auto"
               >
                 <Home className="h-4 w-4" />
                 Ir al inicio

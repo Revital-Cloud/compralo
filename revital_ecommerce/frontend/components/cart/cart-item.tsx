@@ -138,7 +138,7 @@ const CartItem: React.FC<CartItemProps> = ({
   return (
     <div className="flex flex-col sm:flex-row gap-4 p-4 sm:p-6">
       {/* Imagen del producto */}
-      <div className="relative w-full h-32 sm:w-24 sm:h-24 md:w-32 md:h-32 flex-shrink-0 mx-auto sm:mx-0">
+      <div className="relative mx-auto h-40 w-full flex-shrink-0 overflow-hidden rounded-xl bg-gray-100 dark:bg-gray-700 sm:mx-0 sm:h-24 sm:w-24 md:h-32 md:w-32">
         <div 
           onClick={handleImageClick}
           className={`${productId ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}`}
@@ -147,7 +147,7 @@ const CartItem: React.FC<CartItemProps> = ({
             src={image}
             alt={name}
             fill
-            className="object-cover rounded-xl"
+            className="object-contain p-2"
           />
         </div>
       </div>

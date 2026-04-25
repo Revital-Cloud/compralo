@@ -55,6 +55,7 @@ from routers.movements_inventory_router import router as movements_inventory_rou
 from routers.dashboard_router import router as dashboard_router
 from routers.analytics_router import router as analytics_router
 from routers.ai_router import router as ai_router
+from routers.ai_description_router import router as ai_description_router
 from routers.attribute_router import router as attribute_router
 from routers.top_info_bar_router import router as top_info_bar_router
 from routers.homepage_router import router as homepage_router
@@ -254,7 +255,8 @@ app.add_middleware(
         "/api/cms",          # GET público, POST/PUT/DELETE admin
         "/api/users",        # POST público (registro), resto admin-only
         "/api/admin",        # Todo requiere admin
-        "/api/email",        # Todo requiere admin
+        # "/api/email" se valida a nivel de router con dependencias;
+        # mantenerlo fuera del middleware permite endpoints internos por token (cron).
         "/api/points",       # Todo requiere admin
         # /api/discounts no está aquí:
         # validate-for-cart y by-code son públicos para clientes.
@@ -341,6 +343,7 @@ app.include_router(analytics_router, prefix=settings.API_STR)
 
 # Incluye el router de IA admin (/admin/ai/health, /admin/ai/summary, /admin/ai/chat)
 app.include_router(ai_router, prefix=settings.API_STR)
+app.include_router(ai_description_router, prefix=settings.API_STR)
 
 # Incluye el router de órdenes con un prefijo de API.
 app.include_router(order_router, prefix=settings.API_STR)

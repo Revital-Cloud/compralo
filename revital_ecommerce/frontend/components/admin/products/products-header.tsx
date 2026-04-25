@@ -18,9 +18,9 @@ export const ProductsHeader: React.FC<ProductsHeaderProps> = ({
 }) => {
 
   return (
-    <div className="flex items-center justify-between" data-tour-id="products-header">
-      <div>
-        <h1 className="text-2xl font-bold">Todos los Productos</h1>
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between" data-tour-id="products-header">
+      <div className="min-w-0">
+        <h1 className="text-2xl font-bold leading-tight sm:text-3xl">Todos los Productos</h1>
         <Breadcrumb 
           items={[{ label: 'Inicio', href: '/admin' }, { label: 'Todos los Productos', href: '/admin/products' }]}
           className="text-sm text-gray-500"
@@ -28,26 +28,27 @@ export const ProductsHeader: React.FC<ProductsHeaderProps> = ({
         </Breadcrumb>
       </div>
       
-      <div className="flex gap-3">
+      <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end sm:gap-3">
         <Button
           variant="outline"
           onClick={onReindexEmbeddings}
           disabled={!onReindexEmbeddings || isReindexing}
           title="Actualizar índice de búsqueda"
+          className="min-w-0 flex-1 sm:flex-none"
         >
           {isReindexing ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
             <RefreshCw className="h-4 w-4 mr-2" />
           )}
-          Actualizar índice
+          <span className="truncate">Actualizar índice</span>
         </Button>
 
         {/* Botón de Agregar */}
-        <Link href="/admin/products/create">
-          <Button className="bg-yellow-500 hover:bg-yellow-600 text-black">
+        <Link href="/admin/products/create" className="min-w-0 flex-1 sm:flex-none">
+          <Button className="w-full bg-yellow-500 text-black hover:bg-yellow-600">
             <IconPlus className="h-4 w-4 mr-2" />
-            Agregar Producto
+            <span className="truncate">Agregar Producto</span>
           </Button>
         </Link>
       </div>

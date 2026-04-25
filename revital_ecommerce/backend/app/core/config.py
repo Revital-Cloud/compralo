@@ -108,6 +108,12 @@ class Settings(BaseSettings):
     TURNSTILE_SECRET_KEY: Optional[str] = None
     TURNSTILE_ENABLED: bool = True
 
+    # Jobs de carrito abandonado (cron externo)
+    CRON_JOB_TOKEN: Optional[str] = None
+    ABANDONED_CART_INACTIVITY_HOURS: int = 2
+    ABANDONED_CART_SEND_COOLDOWN_HOURS: int = 24
+    ABANDONED_CART_BATCH_LIMIT: int = 1000
+
     class Config:
         env_file = _ENV_FILES
         case_sensitive = True
