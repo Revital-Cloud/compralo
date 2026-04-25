@@ -670,6 +670,9 @@ export class WompiWidgetService {
           console.warn('⚠️ Callback ya ejecutado, ignorando ejecución duplicada');
           return;
         }
+        // Bloqueo optimista: en algunos navegadores/escenarios el callback del widget
+        // puede dispararse más de una vez en rápida sucesión.
+        callbackExecuted = true;
 
         try {
           if (cleanupErrorHandler) {
@@ -685,7 +688,6 @@ export class WompiWidgetService {
         if (onResult) {
           onResult(result);
         }
-            callbackExecuted = true;
             return;
           }
           
@@ -804,7 +806,6 @@ export class WompiWidgetService {
           // para que la página de resultado haga polling (revital_cart_) o muestre el pedido.
           // Así el usuario no se queda en checkout sin ver el resultado.
           if (transactionId && transactionStatus && config.reference) {
-            callbackExecuted = true;
             console.log(`✅ [WIDGET-SERVICE] Redirigiendo a resultado: status=${transactionStatus}`);
             switch (transactionStatus) {
               case 'APPROVED':
@@ -829,42 +830,14 @@ export class WompiWidgetService {
             }
           }
 
-          // Manejar el resultado automáticamente solo si NO se redirigió arriba
-          if (!callbackExecuted && transactionId && transactionStatus) {
-            console.log(`✅ [WIDGET-SERVICE] Transaction válida - ID: ${transactionId}, Status: ${transactionStatus}`);
-            switch (transactionStatus) {
-              case 'APPROVED':
-                toast.success('¡Pago aprobado exitosamente!');
-                window.location.href = `/checkout/payment-result?status=success&transaction_id=${transactionId}&amount=${config.amountInCents}&reference=${config.reference ? encodeURIComponent(config.reference) : ''}`;
-                break;
-              case 'DECLINED':
-                toast.error('El pago fue rechazado. Intenta con otro método de pago.');
-                window.location.href = `/checkout/payment-result?status=declined&transaction_id=${transactionId}&message=Pago rechazado`;
-                break;
-              case 'PENDING':
-                toast.info('El pago está pendiente de confirmación.');
-                window.location.href = `/checkout/payment-result?status=pending&transaction_id=${transactionId}&amount=${config.amountInCents}&reference=${config.reference ? encodeURIComponent(config.reference) : ''}`;
-                break;
-              case 'ERROR':
-                toast.error('Ocurrió un error durante el pago. Intenta nuevamente.');
-                window.location.href = `/checkout/payment-result?status=error&message=Error durante el pago`;
-                break;
-              default:
-                console.log('❓ Estado de transacción no manejado:', transactionStatus);
-                toast.info(`Estado del pago: ${transactionStatus}`);
-            }
-            callbackExecuted = true;
-          } else if (result.error) {
+          if (result.error) {
           console.error('❌ Error en el resultado del widget:', result.error);
           toast.error('Error en el procesamiento del pago');
-            callbackExecuted = true;
           } else {
             console.log('ℹ️ Widget cerrado sin completar el pago (usuario canceló o cerró el widget)');
-            callbackExecuted = true;
           }
         } catch (error: any) {
           console.error('❌ Error en callback del widget:', error);
-          callbackExecuted = true;
         }
       });
 

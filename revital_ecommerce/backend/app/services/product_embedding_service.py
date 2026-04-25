@@ -17,7 +17,7 @@ Mantener esta lógica en un módulo separado nos permite reutilizarla desde:
   consistente de los productos.
 """
 
-from typing import Optional
+from typing import Iterable, Optional
 
 from schemas.product_schema import Product, ProductFiltered
 
@@ -28,6 +28,10 @@ def build_product_embedding_text(
     brand_name: Optional[str] = None,
     category_name: Optional[str] = None,
     description: Optional[str] = None,
+    category_path: Optional[str] = None,
+    attribute_values: Optional[Iterable[str]] = None,
+    dominant_values: Optional[Iterable[str]] = None,
+    variant_types: Optional[Iterable[str]] = None,
 ) -> str:
     """
     Construye una representación textual canónica de un producto.
@@ -67,6 +71,9 @@ def build_product_embedding_text(
     category_clean = (category_name or "").strip()
     if category_clean:
         parts.append(f"Categoría: {category_clean}")
+    category_path_clean = (category_path or "").strip()
+    if category_path_clean and category_path_clean != category_clean:
+        parts.append(f"Ruta de categoría: {category_path_clean}")
 
     # Tercera parte: descripción libre.
     if description:
@@ -74,41 +81,18 @@ def build_product_embedding_text(
         if description_clean:
             parts.append(f"Descripción: {description_clean}")
 
-    # Cuarta parte: palabras clave derivadas (sinónimos sencillos por categoría).
-    # Esto ayuda a queries genéricas en español como "celulares", "consolas", etc.
-    keywords: list[str] = []
-    cat_lower = category_clean.lower()
+    # Cuarta parte: señales estructuradas del catálogo (sin hardcode de sinónimos).
+    attrs = [str(v).strip() for v in (attribute_values or []) if str(v).strip()]
+    if attrs:
+        parts.append("Atributos: " + ", ".join(sorted(set(attrs))))
 
-    if "smartphone" in cat_lower or "celular" in cat_lower or "teléfono" in cat_lower:
-        keywords.extend(
-            [
-                "celular",
-                "celulares",
-                "teléfono móvil",
-                "telefono movil",
-                "smartphone",
-            ]
-        )
-    if "consola" in cat_lower:
-        keywords.extend(
-            [
-                "consola de videojuegos",
-                "videojuegos",
-                "juegos",
-                "gaming",
-            ]
-        )
-    if "maleta" in cat_lower:
-        keywords.extend(
-            [
-                "equipaje",
-                "viajes",
-                "bolso de viaje",
-            ]
-        )
+    dominant = [str(v).strip() for v in (dominant_values or []) if str(v).strip()]
+    if dominant:
+        parts.append("Valores dominantes: " + ", ".join(sorted(set(dominant))))
 
-    if keywords:
-        parts.append("Palabras clave: " + ", ".join(sorted(set(keywords))))
+    types_ = [str(v).strip() for v in (variant_types or []) if str(v).strip()]
+    if types_:
+        parts.append("Tipos de variante: " + ", ".join(sorted(set(types_))))
 
     return " | ".join(parts)
 

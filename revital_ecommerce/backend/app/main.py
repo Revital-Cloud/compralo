@@ -57,6 +57,7 @@ from routers.analytics_router import router as analytics_router
 from routers.ai_router import router as ai_router
 from routers.attribute_router import router as attribute_router
 from routers.top_info_bar_router import router as top_info_bar_router
+from routers.homepage_router import router as homepage_router
 from core.rate_limiter import limiter
 
 # Configurar logging: en producción solo WARNING y superior (no se muestran INFO/DEBUG)
@@ -358,3 +359,6 @@ app.include_router(payment_widget_router, prefix=settings.API_STR)
 
 # Barra informativa superior (top info bar) - GET /top-info-bar/active público
 app.include_router(top_info_bar_router, prefix=settings.API_STR)
+
+# Métricas públicas para homepage
+app.include_router(homepage_router, prefix=settings.API_STR)

@@ -44,6 +44,12 @@ interface OrderDetail {
   des_observaciones?: string | null;
   detalle_descuentos_aplicados?: Array<{ nombre?: string; tipo_descuento?: string; descuento_aplicado?: number; monto?: number; valor?: number; codigo?: string }> | null;
   items?: OrderProductItem[];
+  tracking_number?: string | null;
+  tracking_url?: string | null;
+  shipping_address?: unknown;
+  billing_address?: unknown;
+  shipping_method?: string | null;
+  metodo_pago?: string | null;
 }
 
 function formatStatus(state: number) {
@@ -72,6 +78,69 @@ function formatDate(dateString: string) {
   }
 }
 
+function formatPaymentMethod(method?: string | null) {
+  if (!method) return "No disponible";
+
+  const map: Record<string, string> = {
+    tarjeta: "Tarjeta",
+    efectivo_red_pagos: "Efectivo (red de pagos)",
+    transferencia: "Transferencia",
+    apple_pay: "Apple Pay",
+    mastercard: "Mastercard",
+  };
+
+  return map[method] ?? method;
+}
+
+function formatAddress(address: unknown) {
+  if (!address) return ["No disponible"];
+
+  if (typeof address === "string") {
+    return [address];
+  }
+
+  if (typeof address === "object") {
+    const data = address as Record<string, unknown>;
+    const lines: string[] = [];
+
+    const name = [data.first_name, data.last_name].filter(Boolean).join(" ").trim();
+    if (name) lines.push(name);
+
+    const line1 = String(data.line1 ?? data.address1 ?? data.direccion ?? "").trim();
+    if (line1) lines.push(line1);
+
+    const line2 = String(data.line2 ?? data.address2 ?? "").trim();
+    if (line2) lines.push(line2);
+
+    const city = String(data.city ?? data.ciudad ?? "").trim();
+    const state = String(data.state ?? data.departamento ?? "").trim();
+    const zip = String(data.zip ?? data.postal_code ?? data.codigo_postal ?? "").trim();
+    const country = String(data.country ?? data.pais ?? "").trim();
+    const cityLine = [city, state, zip].filter(Boolean).join(", ").trim();
+    if (cityLine) lines.push(cityLine);
+    if (country) lines.push(country);
+
+    return lines.length > 0 ? lines : ["No disponible"];
+  }
+
+  return ["No disponible"];
+}
+
+function getHeadlineByStatus(status: number) {
+  switch (status) {
+    case 1:
+      return "Estamos procesando tu pedido";
+    case 2:
+      return "¡Está en camino!";
+    case 3:
+      return "Tu pedido fue enviado";
+    case 4:
+      return "Tu pedido fue cancelado";
+    default:
+      return "Tu pedido está en camino";
+  }
+}
+
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
@@ -96,191 +165,170 @@ export default function OrderDetailPage() {
     );
   }
 
-  return (
-    <div className="max-w-3xl mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-4">Orden #{id}</h1>
-      <div className="rounded-md border border-border p-4 space-y-2">
-        {/* Metadatos principales de la orden */}
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Fecha</span>
-          <span>{order?.fec_insert ? formatDate(order.fec_insert) : '—'}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Estado</span>
-          <span>{formatStatus(order.ind_estado)}</span>
-        </div>
-        
-        {/* Líneas de productos (cada `item` representa una línea snapshot de la compra) */}
-        {order.items && order.items.length > 0 && (
-          <div className="pt-2">
-            <p className="font-medium mb-3">Productos</p>
-            <div className="space-y-3">
-              {order.items.map((it, idx) => {
-                const opts = it.opciones_elegidas
-                const optsText = opts && Object.keys(opts).length > 0
-                  ? Object.entries(opts)
-                      .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
-                      .join(', ')
-                  : null
-                // Imagen:
-                // - se intenta con `imagen_url` (si existe) o `product_image`
-                // - si no hay imagen, se usa un placeholder local para evitar layout shifts.
-                const imageUrl = getProductImageUrl(it.imagen_url || it.product_image, "/placeholder-product.jpg");
+  const shippingLines = formatAddress(order.shipping_address);
+  const billingLines = formatAddress(order.billing_address);
 
-                return (
-                <div key={idx} className="flex items-center justify-between gap-3">
+  return (
+    <div className="mx-auto max-w-4xl py-8">
+      <div className="space-y-2">
+        <p className="text-base font-medium text-primary">Thank you!</p>
+        <h1 className="text-4xl font-semibold tracking-tight">{getHeadlineByStatus(order.ind_estado)}</h1>
+        <p className="text-lg text-muted-foreground">
+          Tu orden #{order.id_orden} está en estado{" "}
+          <span className="font-medium text-foreground">{formatStatus(order.ind_estado)}</span>.
+        </p>
+      </div>
+
+      <div className="mt-10 border-t border-border pt-8">
+        <p className="text-base font-semibold text-foreground">Tracking number</p>
+        {order.tracking_url && order.tracking_number ? (
+          <a
+            href={order.tracking_url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-2 inline-block text-base text-primary underline-offset-4 hover:underline"
+          >
+            {order.tracking_number}
+          </a>
+        ) : (
+          <p className="mt-2 text-base text-muted-foreground">
+            {order.tracking_number || "Se asignará cuando el envío sea despachado"}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-10 border-t border-border pt-8">
+        <p className="text-base font-semibold text-foreground">Productos</p>
+
+        {order.items && order.items.length > 0 ? (
+          <div className="mt-6 space-y-8">
+            {order.items.map((it, idx) => {
+              const opts = it.opciones_elegidas;
+              const optsText = opts && Object.keys(opts).length > 0
+                ? Object.entries(opts)
+                    .map(([k, v]) => `${k.charAt(0).toUpperCase() + k.slice(1)}: ${v}`)
+                    .join(", ")
+                : null;
+              const imageUrl = getProductImageUrl(it.imagen_url || it.product_image, "/placeholder-product.jpg");
+
+              return (
+                <div key={idx} className="flex flex-col gap-5 border-b border-border pb-8 last:border-b-0 last:pb-0 sm:flex-row">
                   <div className="flex-shrink-0">
                     {imageUrl ? (
                       <Image
                         src={imageUrl}
                         alt={it.product_name}
-                        width={60}
-                        height={60}
-                        className="rounded-md object-cover border border-border"
+                        width={160}
+                        height={160}
+                        className="h-40 w-40 rounded-lg object-cover"
                       />
                     ) : (
-                      <div className="w-15 h-15 bg-muted rounded-md flex items-center justify-center">
-                        <Package className="h-6 w-6 text-muted-foreground" />
+                      <div className="flex h-40 w-40 items-center justify-center rounded-lg bg-muted">
+                        <Package className="h-8 w-8 text-muted-foreground" />
                       </div>
                     )}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate">{it.product_name}</p>
-                    <p className="text-sm text-muted-foreground">Cantidad: {it.quantity}</p>
-                    {optsText && (
-                      <p className="text-sm text-muted-foreground mt-0.5">{optsText}</p>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    {(() => {
-                      // Este bloque vive “por ítem” para calcular:
-                      // - precio unitario actual
-                      // - si el backend envía `item_discounts` con datos suficientes,
-                      //   mostrar precio original y % de descuento.
-                      const unitPrice = Number(it.unit_price)
-                      const totalPrice = Number(it.total_price)
 
-                      // Solo mostrar descuento por producto si el backend lo envía explícitamente en `item_discounts`.
-                      // No se debe "inventar" un precio original distribuyendo el descuento total del pedido.
-                      const itemDiscounts = Array.isArray(it.item_discounts) ? it.item_discounts : []
+                  <div className="flex-1">
+                    <p className="text-3xl font-medium tracking-tight">{it.product_name}</p>
+                    {optsText && <p className="mt-2 text-base text-muted-foreground">{optsText}</p>}
 
-                      // Busca el primer valor numérico válido en un conjunto de claves “posibles”.
-                      // Se usa porque la API podría variar el nombre del campo (legacy vs nuevo backend).
-                      const pickNumber = (obj: any, keys: string[]) => {
-                        for (const k of keys) {
-                          const v = obj?.[k]
-                          const n = typeof v === 'string' ? Number(v) : typeof v === 'number' ? v : NaN
-                          if (Number.isFinite(n)) return n
-                        }
-                        return undefined
-                      }
-
-                      // Heurística: si existe precio original o porcentaje en item_discounts, lo mostramos.
-                      const originalUnitPrice =
-                        itemDiscounts
-                          .map((d: any) =>
-                            pickNumber(d, [
-                              'original_unit_price',
-                              'unit_price_original',
-                              'precio_unitario_original',
-                              'precio_original',
-                              'val_precio_original',
-                            ])
-                          )
-                          .find((n: any) => typeof n === 'number' && Number.isFinite(n))
-
-                      const discountPercentage =
-                        itemDiscounts
-                          .map((d: any) =>
-                            pickNumber(d, [
-                              'discount_percentage',
-                              'percentage',
-                              'porcentaje',
-                              'porcentaje_descuento',
-                              'val_porce_descuento',
-                            ])
-                          )
-                          .find((n: any) => typeof n === 'number' && Number.isFinite(n))
-
-                      // Decisión de UI:
-                      // - mostramos el “tachado” del precio original solo si el original existe
-                      //   y es mayor al precio unitario actual.
-                      const showDiscount =
-                        typeof originalUnitPrice === 'number' &&
-                        Number.isFinite(originalUnitPrice) &&
-                        originalUnitPrice > unitPrice
-
-                      const originalTotalPrice = showDiscount ? originalUnitPrice * it.quantity : undefined
-                      
-                      return (
-                        <>
-                          <div className="flex items-center gap-2 justify-end flex-wrap">
-                            <p className="text-sm">{formatPrice(unitPrice)} c/u</p>
-                            {showDiscount && (
-                              <>
-                                <span className="text-xs text-muted-foreground line-through">
-                                  {formatPrice(originalUnitPrice)} c/u
-                                </span>
-                                {typeof discountPercentage === 'number' && discountPercentage > 0 && (
-                                  <span className="text-xs bg-red-500 text-white px-1.5 py-0.5 rounded">
-                                    -{Math.round(discountPercentage)}%
-                                  </span>
-                                )}
-                              </>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 justify-end flex-wrap mt-1">
-                            <p className="font-semibold">{formatPrice(totalPrice)}</p>
-                            {/* Mostramos el total original solo si es coherente y reduce al total actual */}
-                            {showDiscount && typeof originalTotalPrice === 'number' && originalTotalPrice > totalPrice && (
-                              <span className="text-xs text-muted-foreground line-through">
-                                {formatPrice(originalTotalPrice)}
-                              </span>
-                            )}
-                          </div>
-                        </>
-                      )
-                    })()}
+                    <div className="mt-6 flex flex-wrap items-center gap-3 text-lg">
+                      <span className="font-medium">Quantity</span>
+                      <span className="text-muted-foreground">{it.quantity}</span>
+                      <span className="h-5 w-px bg-border" />
+                      <span className="font-medium">Price</span>
+                      <span className="text-muted-foreground">{formatPrice(it.unit_price)}</span>
+                    </div>
                   </div>
                 </div>
               );
-              })}
-            </div>
+            })}
           </div>
+        ) : (
+          <p className="mt-4 text-muted-foreground">No se encontró detalle de productos para esta orden.</p>
         )}
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Subtotal</span>
-          <span>${Number(order.val_total_productos).toLocaleString()}</span>
+      </div>
+
+      <div className="mt-10 grid gap-8 border-t border-border pt-8 sm:grid-cols-2">
+        <section>
+          <p className="text-2xl font-medium">Shipping address</p>
+          <div className="mt-3 space-y-1 text-lg text-muted-foreground">
+            {shippingLines.map((line, idx) => (
+              <p key={`shipping-${idx}`}>{line}</p>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <p className="text-2xl font-medium">Billing address</p>
+          <div className="mt-3 space-y-1 text-lg text-muted-foreground">
+            {billingLines.map((line, idx) => (
+              <p key={`billing-${idx}`}>{line}</p>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <div className="mt-10 grid gap-8 border-t border-border pt-8 sm:grid-cols-2">
+        <section>
+          <p className="text-2xl font-medium">Payment method</p>
+          <div className="mt-3 space-y-1 text-lg text-muted-foreground">
+            <p>{formatPaymentMethod(order.metodo_pago)}</p>
+          </div>
+        </section>
+
+        <section>
+          <p className="text-2xl font-medium">Shipping method</p>
+          <div className="mt-3 space-y-1 text-lg text-muted-foreground">
+            <p>{order.shipping_method || "No disponible"}</p>
+          </div>
+        </section>
+      </div>
+
+      <div className="mt-10 border-t border-border pt-8">
+        <p className="text-2xl font-medium">Resumen</p>
+        <div className="mt-4 space-y-3 text-lg">
+          <div className="flex justify-between text-muted-foreground">
+            <span>Fecha</span>
+            <span>{order.fec_insert ? formatDate(order.fec_insert) : "—"}</span>
+          </div>
+          <div className="flex justify-between text-muted-foreground">
+            <span>Subtotal</span>
+            <span>{formatPrice(order.val_total_productos)}</span>
+          </div>
+          <div className="flex justify-between text-muted-foreground">
+            <span>Descuentos</span>
+            <span>-{formatPrice(order.val_total_descuentos || 0)}</span>
+          </div>
+          <div className="flex justify-between font-semibold">
+            <span>Total</span>
+            <span>{formatPrice(order.val_total_pedido)}</span>
+          </div>
         </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Descuentos</span>
-          <span>-${Number(order.val_total_descuentos || 0).toLocaleString()}</span>
-        </div>
+
         {order.detalle_descuentos_aplicados && order.detalle_descuentos_aplicados.length > 0 && (
-          <ul className="list-disc pl-5 text-sm text-muted-foreground">
+          <ul className="mt-4 space-y-1 text-base text-muted-foreground">
             {order.detalle_descuentos_aplicados.map((d, idx) => {
-              // `detalle_descuentos_aplicados` puede incluir distintos tipos de descuento.
-              // Mostramos una etiqueta legible:
-              // - si es canje de puntos, rotulamos como “Descuento por puntos”
-              // - si hay nombre/código, usamos esos campos para contexto
               const label = d.tipo_descuento === "canje_puntos"
                 ? `Descuento por puntos${d.nombre ? `: ${d.nombre}` : ""}`
                 : (d.nombre || d.codigo || "Descuento");
               const amount = d.descuento_aplicado ?? d.monto ?? d.valor ?? 0;
+
               return (
-                <li key={idx}>{label} (-${Number(amount).toLocaleString()})</li>
+                <li key={idx} className="flex items-center justify-between">
+                  <span>{label}</span>
+                  <span>-{formatPrice(amount)}</span>
+                </li>
               );
             })}
           </ul>
         )}
-        <div className="flex justify-between font-semibold">
-          <span>Total</span>
-          <span>${Number(order.val_total_pedido).toLocaleString()}</span>
-        </div>
+
         {order.des_observaciones && (
-          <div className="pt-2">
-            <span className="text-muted-foreground">Observaciones:</span>
-            <p>{order.des_observaciones}</p>
+          <div className="mt-6">
+            <p className="font-medium">Observaciones</p>
+            <p className="mt-1 text-muted-foreground">{order.des_observaciones}</p>
           </div>
         )}
       </div>

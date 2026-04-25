@@ -37,26 +37,13 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
   const { theme, setTheme } = useTheme()
 
   const [mounted, setMounted] = useState(false)
-  const [displayCartCount, setDisplayCartCount] = useState(0)
-  const [favoritesCount, setFavoritesCount] = useState(0)
 
   useEffect(() => {
     setMounted(true)
-    setDisplayCartCount(cartCount ?? itemCount)
-    setFavoritesCount(favorites.length)
-  }, [cartCount, itemCount, favorites.length])
+  }, [])
 
-  useEffect(() => {
-    if (mounted) {
-      setDisplayCartCount(cartCount ?? itemCount)
-    }
-  }, [cartCount, itemCount, mounted])
-
-  useEffect(() => {
-    if (mounted) {
-      setFavoritesCount(favorites.length)
-    }
-  }, [favorites.length, mounted])
+  const displayCartCount = cartCount ?? itemCount
+  const favoritesCount = favorites.length
 
   const handleCartClick = () => router.push('/cart')
   const handleFavoritesClick = () => router.push('/favorites')

@@ -21,10 +21,9 @@ from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 
-from schemas.product_schema import ProductFiltered
 from services.ollama_embedding_provider_service import OllamaEmbeddingProvider
 from services.pgvector_product_embeddings_service import upsert_product_embedding
-from services.product_embedding_service import build_embedding_text_from_filtered_product
+from services.product_embedding_service import build_product_embedding_text
 from services.embedding_provider_service import EmbeddingsNotConfiguredError
 
 
@@ -42,27 +41,51 @@ def _fetch_products_for_indexing(db: Session, *, limit: int = 10000) -> List[dic
     """
     Trae productos activos y campos necesarios para construir el texto de embeddings.
 
-    Reutiliza fun_filter_products para mantener consistencia con el catálogo.
+    Se toma la información directamente de tablas base para incluir
+    más señal semántica (ruta de categoría, atributos y variantes).
     """
-    # fun_filter_products no devuelve `nom_marca`, así que lo traemos por JOIN.
     q = text(
         """
         SELECT
-          f.product_id,
-          f.category_id,
-          f.nom_categoria,
-          f.nom_producto,
-          f.slug_producto,
-          f.description,
-          f.id_marca,
-          m.nom_marca
-        FROM fun_filter_products(
-          NULL, TRUE, NULL, NULL,
-          NULL, NULL, FALSE, FALSE, 'nombre', 'ASC',
-          :p_limit, 0
-        ) f
-        LEFT JOIN tab_marcas m
-          ON m.id_marca = f.id_marca
+          p.id AS product_id,
+          p.category_id,
+          c.name AS category_name,
+          p.name AS product_name,
+          p.slug AS product_slug,
+          p.description,
+          p.id_marca,
+          m.nom_marca,
+          COALESCE(cp.name || ' > ', '') || c.name AS category_path,
+          COALESCE(var_meta.dominant_values, '') AS dominant_values,
+          COALESCE(var_meta.variant_types, '') AS variant_types,
+          COALESCE(attr_meta.attribute_values, '') AS attribute_values
+        FROM tab_products p
+        LEFT JOIN tab_categories c ON c.id = p.category_id
+        LEFT JOIN tab_categories cp ON cp.id = c.parent_id
+        LEFT JOIN tab_marcas m ON m.id_marca = p.id_marca
+        LEFT JOIN LATERAL (
+          SELECT
+            string_agg(DISTINCT NULLIF(TRIM(vg.dominant_value), ''), ', ') AS dominant_values,
+            string_agg(DISTINCT NULLIF(TRIM(cmb.tipo_clasificacion), ''), ', ') AS variant_types
+          FROM tab_product_variant_groups vg
+          LEFT JOIN tab_product_variant_combinations cmb
+            ON cmb.group_id = vg.id
+           AND cmb.is_active = TRUE
+          WHERE vg.product_id = p.id
+        ) AS var_meta ON TRUE
+        LEFT JOIN LATERAL (
+          SELECT
+            string_agg(DISTINCT NULLIF(TRIM(attr.value), ''), ', ') AS attribute_values
+          FROM tab_product_variant_groups vg
+          JOIN tab_product_variant_combinations cmb
+            ON cmb.group_id = vg.id
+           AND cmb.is_active = TRUE
+          CROSS JOIN LATERAL jsonb_each_text(COALESCE(cmb.attributes, '{}'::jsonb)) AS attr(key, value)
+          WHERE vg.product_id = p.id
+        ) AS attr_meta ON TRUE
+        WHERE p.is_active = TRUE
+        ORDER BY p.id DESC
+        LIMIT :p_limit
         """
     )
     rows = db.execute(q, {"p_limit": int(limit)}).mappings().all()
@@ -85,24 +108,16 @@ def reindex_all_products(db: Session, *, limit: int = 10000) -> ReindexResult:
         if pid_raw is None:
             continue
         product_id = Decimal(str(pid_raw))
-        filtered = ProductFiltered(
-            category_id=int(row.get("category_id") or 0),
-            id=int(pid_raw),
-            slug=row.get("slug_producto"),
-            category_name=(row.get("nom_categoria") or "") or "",
-            name=(row.get("nom_producto") or "") or "",
+        source_text = build_product_embedding_text(
+            name=(row.get("product_name") or "") or "",
+            brand_name=row.get("nom_marca"),
+            category_name=(row.get("category_name") or "") or "",
+            category_path=row.get("category_path"),
             description=row.get("description"),
-            image_url=None,
-            price_min=Decimal("0"),
-            price_max=Decimal("0"),
-            stock_total=0,
-            total_registros=0,
-            rating=None,
-            id_marca=int(row.get("id_marca")) if row.get("id_marca") is not None else None,
-            nom_marca=row.get("nom_marca"),
-            fec_insert=None,
+            attribute_values=(row.get("attribute_values") or "").split(","),
+            dominant_values=(row.get("dominant_values") or "").split(","),
+            variant_types=(row.get("variant_types") or "").split(","),
         )
-        source_text = build_embedding_text_from_filtered_product(filtered)
         index_items.append((product_id, source_text))
 
     # 2) Embeddings en batch (con concurrencia limitada)
@@ -155,16 +170,41 @@ def reindex_product_by_id(db: Session, *, product_id: Decimal) -> bool:
         SELECT
           p.id            AS product_id,
           p.category_id   AS category_id,
-          c.name          AS nom_categoria,
-          p.name          AS nom_producto,
-          p.slug          AS slug_producto,
+          c.name          AS category_name,
+          p.name          AS product_name,
+          p.slug          AS product_slug,
           p.description   AS description,
           p.id_marca      AS id_marca,
           m.nom_marca     AS nom_marca,
-          p.is_active     AS ind_activo
+          p.is_active     AS ind_activo,
+          COALESCE(cp.name || ' > ', '') || c.name AS category_path,
+          COALESCE(var_meta.dominant_values, '') AS dominant_values,
+          COALESCE(var_meta.variant_types, '') AS variant_types,
+          COALESCE(attr_meta.attribute_values, '') AS attribute_values
         FROM tab_products p
         LEFT JOIN tab_categories c ON c.id = p.category_id
+        LEFT JOIN tab_categories cp ON cp.id = c.parent_id
         LEFT JOIN tab_marcas m ON m.id_marca = p.id_marca
+        LEFT JOIN LATERAL (
+          SELECT
+            string_agg(DISTINCT NULLIF(TRIM(vg.dominant_value), ''), ', ') AS dominant_values,
+            string_agg(DISTINCT NULLIF(TRIM(cmb.tipo_clasificacion), ''), ', ') AS variant_types
+          FROM tab_product_variant_groups vg
+          LEFT JOIN tab_product_variant_combinations cmb
+            ON cmb.group_id = vg.id
+           AND cmb.is_active = TRUE
+          WHERE vg.product_id = p.id
+        ) AS var_meta ON TRUE
+        LEFT JOIN LATERAL (
+          SELECT
+            string_agg(DISTINCT NULLIF(TRIM(attr.value), ''), ', ') AS attribute_values
+          FROM tab_product_variant_groups vg
+          JOIN tab_product_variant_combinations cmb
+            ON cmb.group_id = vg.id
+           AND cmb.is_active = TRUE
+          CROSS JOIN LATERAL jsonb_each_text(COALESCE(cmb.attributes, '{}'::jsonb)) AS attr(key, value)
+          WHERE vg.product_id = p.id
+        ) AS attr_meta ON TRUE
         WHERE p.id = :pid
         LIMIT 1
         """
@@ -175,24 +215,16 @@ def reindex_product_by_id(db: Session, *, product_id: Decimal) -> bool:
     if not bool(row.get("ind_activo", False)):
         return False
 
-    filtered = ProductFiltered(
-        category_id=int(row.get("category_id") or 0),
-        id=int(row.get("product_id")),
-        slug=row.get("slug_producto"),
-        category_name=(row.get("nom_categoria") or "") or "",
-        name=(row.get("nom_producto") or "") or "",
+    source_text = build_product_embedding_text(
+        name=(row.get("product_name") or "") or "",
+        brand_name=row.get("nom_marca"),
+        category_name=(row.get("category_name") or "") or "",
+        category_path=row.get("category_path"),
         description=row.get("description"),
-        image_url=None,
-        price_min=Decimal("0"),
-        price_max=Decimal("0"),
-        stock_total=0,
-        total_registros=0,
-        rating=None,
-        id_marca=int(row.get("id_marca")) if row.get("id_marca") is not None else None,
-        nom_marca=row.get("nom_marca"),
-        fec_insert=None,
+        attribute_values=(row.get("attribute_values") or "").split(","),
+        dominant_values=(row.get("dominant_values") or "").split(","),
+        variant_types=(row.get("variant_types") or "").split(","),
     )
-    source_text = build_embedding_text_from_filtered_product(filtered)
     provider = OllamaEmbeddingProvider()
     emb = provider.embed_product(source_text)
     if len(emb) != DEFAULT_EMBEDDING_DIMENSIONS:
