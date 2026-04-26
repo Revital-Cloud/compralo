@@ -1,11 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Button } from "@/components/ui";
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui";
 import { IconPlus } from "@tabler/icons-react";
 import Link from "next/link";
 import { Breadcrumb } from "@/components/ui";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Download, Loader2, RefreshCw } from "lucide-react";
 
 interface ProductsHeaderProps {
   onReindexEmbeddings?: () => void;
@@ -43,6 +43,25 @@ export const ProductsHeader: React.FC<ProductsHeaderProps> = ({
           )}
           <span className="truncate">Actualizar índice</span>
         </Button>
+
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="min-w-0 flex-1 sm:flex-none">
+              <Button
+                variant="outline"
+                disabled
+                aria-disabled="true"
+                className="w-full cursor-not-allowed opacity-70"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                <span className="truncate">Importar Productos</span>
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="top">
+            Próximamente (en construcción)
+          </TooltipContent>
+        </Tooltip>
 
         {/* Botón de Agregar */}
         <Link href="/admin/products/create" className="min-w-0 flex-1 sm:flex-none">

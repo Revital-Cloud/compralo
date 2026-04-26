@@ -138,6 +138,48 @@ Backend en: `http://localhost:8000`
 - `GET /api/admin/analytics`
 - `POST /api/admin/ai/chat`
 
+### Automatización: carrito abandonado (cron externo)
+
+Se implementó procesamiento de emails de carrito abandonado en backend.
+
+- **Servicio**: `backend/app/services/abandoned_cart_service.py`
+- **Endpoint de ejecución**: `POST /api/email/abandoned-cart/process`
+- **Template de email**: `backend/app/templates/emails/cart/abandoned_cart.html`
+- **Tracking de envíos**: tabla `tab_abandoned_cart_email_tracking` (evita reenvíos no controlados)
+
+El endpoint está diseñado para ser llamado por un **cron externo** (por ejemplo cada hora) y requiere autenticación por token en header:
+
+- Header requerido: `X-Cron-Token: <tu_token>`
+- Config backend: `CRON_JOB_TOKEN` (obligatorio para habilitar el proceso)
+
+Ejemplo de ejecución manual:
+
+```bash
+curl -X POST "http://localhost:8000/api/email/abandoned-cart/process" \
+  -H "X-Cron-Token: TU_CRON_JOB_TOKEN" \
+  -H "Content-Type: application/json"
+```
+
+Ejemplo de cron (cada hora):
+
+```cron
+0 * * * * curl -s -X POST "https://TU_DOMINIO/api/email/abandoned-cart/process" -H "X-Cron-Token: TU_CRON_JOB_TOKEN" >/dev/null 2>&1
+```
+
+## 🧩 Estado actual del CMS Builder (Frontend Admin)
+
+Estado actualizado a Abril 2026:
+
+- `/(dashboard)/admin/builder` funciona como hub de páginas del builder.
+- Solo **Página Principal** abre `/(dashboard)/admin/builder/create`.
+- Otras páginas quedan bloqueadas con estado **Próximamente**.
+- Botón **Nueva página** deshabilitado con tooltip **En construcción**.
+- Cards de **Templates** bloqueadas con overlay **Próximamente**.
+- En `builder/create`:
+  - vista de composición editable por bloques,
+  - vista del sitio por iframe,
+  - controles de preview agrupados en el header de Vista previa.
+
 Documentación OpenAPI (dev):
 - `http://localhost:8000/docs`
 - `http://localhost:8000/redoc`
@@ -161,6 +203,7 @@ Documentación OpenAPI (dev):
 - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
 - `GROQ_API_KEY`
 - `TURNSTILE_SECRET_KEY`, `TURNSTILE_ENABLED`
+- `CRON_JOB_TOKEN` (token para proteger jobs externos como carrito abandonado)
 
 ## 🧪 Testing
 

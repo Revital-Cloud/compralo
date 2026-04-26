@@ -6,6 +6,7 @@ import {
   IconDashboard,
   IconHelp,
   IconInnerShadowTop,
+  IconLayoutGrid,
   IconCategory,
   IconListDetails,
   IconTags,
@@ -103,7 +104,13 @@ const data = {
       title: "Barra Informativa",
       url: "/admin/info-bar",
       icon: IconInnerShadowTop,
-      section: "gestion"
+      section: "contenido"
+    },
+    {
+      title: "Builder",
+      url: "/admin/builder",
+      icon: IconLayoutGrid,
+      section: "contenido"
     },
     {
       title: "Analíticas",

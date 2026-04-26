@@ -39,6 +39,7 @@ El frontend de Revital está construido con Next.js 16+ y diseñado para ofrecer
 - **Gestión de usuarios** con roles
 - **Tablas interactivas** con TanStack Table
 - **Formularios validados** con React Hook Form
+- **CMS Builder (beta controlada)** con vista de composición y vista del sitio
 
 #### Interfaz de Usuario Moderna
 - **Diseño responsive** con Tailwind CSS
@@ -59,6 +60,20 @@ El frontend de Revital está construido con Next.js 16+ y diseñado para ofrecer
 - **Starter**: Interfaz básica con funciones esenciales
 - **Business**: Dashboard avanzado con analytics
 - **Enterprise**: Personalización completa + integraciones
+
+## 🧩 Estado actual del CMS Builder (Admin)
+
+Ruta principal: `/(dashboard)/admin/builder`
+
+- Solo **Página Principal** está habilitada para abrir el constructor.
+- El botón **Nueva página** está visible pero deshabilitado con tooltip **"En construcción"**.
+- Las páginas restantes se muestran como **"Próximamente"** (bloqueadas temporalmente).
+- Los **Templates** están bloqueados visual y funcionalmente con overlay **"Próximamente"**.
+- El constructor (`/admin/builder/create`) incluye:
+  - **Vista de composición** editable por secciones.
+  - **Vista del sitio** en iframe para referencia real.
+  - Controles de preview (modo, viewport, zoom, acciones) en el header de **Vista previa**.
+- Se corrigió un warning de hidratación en dev evitando anidación inválida de `button` dentro de `button` en la composición.
 
 ## 🛠️ Stack Tecnológico
 
