@@ -167,7 +167,8 @@ export function BuilderPreviewPanel({
                       {sections
                         .filter((section) => section.visible)
                         .map((section) => (
-                          <button
+                          <div
+                            aria-label={`Seleccionar sección ${section.type}`}
                             className={`block w-full rounded-lg text-left transition ${
                               selectedId === section.id
                                 ? "ring-2 ring-[#4f46e5]"
@@ -175,10 +176,17 @@ export function BuilderPreviewPanel({
                             }`}
                             key={section.id}
                             onClick={() => onSelectSection(section.id)}
-                            type="button"
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                onSelectSection(section.id);
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
                           >
                             <BuilderSectionPreview section={section} />
-                          </button>
+                          </div>
                         ))}
                     </div>
                   </div>
