@@ -42,6 +42,7 @@ Revital es una plataforma SaaS de comercio electrónico diseñada para venderse 
 - ✅ **Sistema de filtros** avanzado con búsqueda en tiempo real
 - ✅ **Carrito de compras** funcional con persistencia
 - ✅ **Dashboard administrativo** para gestión de productos
+- ✅ **CMS Builder Admin** en beta controlada (solo "Página Principal" habilitada)
 - ✅ **Sistema de autenticación** con login/registro
 - ✅ **Gestión de categorías, líneas y sublíneas**
 - ✅ **Gestión de marcas y proveedores**
@@ -64,6 +65,18 @@ Trabajo menor o iterativo que puede solaparse con la fase de pruebas; no bloquea
 #### revital_ecommerce:
 - ⏳ **Optimización de experiencia de checkout** (copias, pasos y estados vacíos)
 - ⏳ **Ampliación de analytics** con más métricas de negocio
+- ⏳ **Habilitación progresiva del CMS Builder** para más páginas y templates
+
+### 🧩 Estado actual del CMS Builder (Abril 2026)
+
+- Ruta de gestión: `/(dashboard)/admin/builder`
+- Ruta de edición: `/(dashboard)/admin/builder/create`
+- Solo **Página Principal** está habilitada para edición.
+- **Nueva página** y **Templates** visibles pero bloqueados como **En construcción / Próximamente**.
+- El editor ofrece:
+  - Vista de composición editable por secciones.
+  - Vista del sitio en iframe para comparación real.
+  - Controles de preview (modo, viewport, zoom) en el header de Vista previa.
 
 ## 🏢 Modelo de Negocio SaaS
 
