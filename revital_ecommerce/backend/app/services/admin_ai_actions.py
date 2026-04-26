@@ -75,7 +75,29 @@ def _execute_create_brand(db: Session, params: dict, user_id: str | Decimal) -> 
 
         ind_activo = params.get("ind_activo", True)
         brand = BrandCreate(nom_marca=nom)
-        svc_create_brand(db, brand, str(user_id))
+        # Mantener consistencia con el resto del backend: usar Decimal para IDs de usuario.
+        normalized_user_id = Decimal(str(user_id))
+        service_result = svc_create_brand(db, brand, normalized_user_id)
+
+        # La función SQL puede devolver texto de error en vez de lanzar excepción.
+        if service_result is None or (
+            isinstance(service_result, str) and "error" in service_result.lower()
+        ):
+            return (
+                f"No se pudo crear la marca «{nom}». "
+                f"Detalle: {service_result or 'la base de datos no confirmó la inserción'}."
+            )
+
+        # Verificación post-escritura para evitar falsos positivos del asistente.
+        verify_q = text(
+            "SELECT 1 FROM tab_marcas WHERE LOWER(nom_marca) = LOWER(:nom_marca) LIMIT 1"
+        )
+        if not db.execute(verify_q, {"nom_marca": nom}).first():
+            return (
+                f"No se pudo confirmar la creación de la marca «{nom}». "
+                "Por favor, intenta de nuevo."
+            )
+
         estado = "activa" if ind_activo else "inactiva"
         return f"Marca «{nom}» creada correctamente ({estado})."
     except Exception as e:
@@ -538,9 +560,15 @@ def _execute_get_product(db: Session, params: dict, user_id: str | Decimal) -> s
         cat = product.get("nom_categoria") or product.get("category_name") or "N/A"
         marca = product.get("nom_marca") or "N/A"
         activo = "activo" if product.get("ind_activo", product.get("is_active", True)) else "inactivo"
+        try:
+            precio_num = float(precio or 0)
+        except Exception:
+            precio_num = 0.0
+        # Formato amigable para COP con separadores de miles.
+        precio_fmt = f"${precio_num:,.0f}".replace(",", ".")
         return (
             f"Producto: {nom} (ID: {pid})\n"
-            f"  Precio: ${precio} | Stock: {stock} | Categoría: {cat} | Marca: {marca} | Estado: {activo}"
+            f"  Precio: {precio_fmt} COP | Stock: {stock} | Categoría: {cat} | Marca: {marca} | Estado: {activo}"
         )
     except Exception as e:
         return f"Error al obtener producto: {str(e)}"

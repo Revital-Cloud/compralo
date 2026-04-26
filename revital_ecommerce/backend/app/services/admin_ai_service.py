@@ -115,6 +115,17 @@ def detect_intent(message: str) -> str | None:
     se resuelven exclusivamente vía tool calling, no por keywords.
     """
     msg_lower = message.strip().lower()
+    msg_norm = _normalize_for_intent(message.strip())
+
+    # Caso singular: "el producto más vendido"
+    # Debe responder 1 resultado, no el top 5.
+    if re.search(
+        r"\b(producto)\b.*\b(mas|m[aá]s)\b.*\bvendid[oa]s?\b",
+        msg_norm,
+        flags=re.IGNORECASE,
+    ):
+        return "top_product"
+
     if any(kw in msg_lower for kw in INTENT_PENDING_ORDERS):
         return "pending_orders"
     if any(kw in msg_lower for kw in INTENT_RECENT_ORDERS):
@@ -130,8 +141,37 @@ def detect_intent(message: str) -> str | None:
     return None
 
 
-def fetch_intent_data(db: Session, intent: str) -> dict:
+def _extract_requested_top_limit(message: str, default_limit: int = 5, max_limit: int = 20) -> int:
+    """
+    Extrae límites tipo "top 3", "los 10 más vendidos", etc.
+    Si no detecta un número válido, usa default_limit.
+    """
+    normalized = _normalize_for_intent(message or "")
+    patterns = [
+        r"\btop\s+(\d{1,2})\b",
+        r"\blos\s+(\d{1,2})\s+mas\b",
+        r"\b(\d{1,2})\s+productos?\s+mas\b",
+    ]
+    for pat in patterns:
+        m = re.search(pat, normalized, flags=re.IGNORECASE)
+        if m:
+            try:
+                val = int(m.group(1))
+                if val <= 0:
+                    return default_limit
+                return min(val, max_limit)
+            except Exception:
+                return default_limit
+    return default_limit
+
+
+def fetch_intent_data(db: Session, intent: str, top_limit: int = 5) -> dict:
     """Obtiene datos según la intención detectada."""
+    if intent == "top_product":
+        data = get_dashboard_data(db, "monthly")
+        best = data.get("bestSellers", [])[:1]
+        return {"bestSellers": [{"name": b.get("name"), "sales": b.get("sales"), "revenue": b.get("revenue")} for b in best]}
+
     if intent == "pending_orders":
         q = text("SELECT COUNT(*) as cnt FROM tab_ordenes WHERE ind_estado = 1")
         row = db.execute(q).mappings().first()
@@ -150,7 +190,8 @@ def fetch_intent_data(db: Session, intent: str) -> dict:
 
     if intent == "top_products":
         data = get_dashboard_data(db, "monthly")
-        best = data.get("bestSellers", [])[:5]
+        safe_limit = max(1, min(int(top_limit or 5), 20))
+        best = data.get("bestSellers", [])[:safe_limit]
         return {"bestSellers": [{"name": b.get("name"), "sales": b.get("sales"), "revenue": b.get("revenue")} for b in best]}
 
     if intent == "sales_summary":
@@ -200,6 +241,15 @@ def format_intent_reply(intent: str, data: dict) -> str:
         return "No sé con certeza con la información disponible."
 
     # Nota: los valores de KPIs vienen como strings ya formateadas por fetch_intent_data.
+    if intent == "top_product":
+        best = data.get("bestSellers") or []
+        if not best:
+            return "No hay productos con ventas suficientes para identificar el más vendido."
+        top = best[0]
+        name = top.get("name") or "N/A"
+        sales = top.get("sales") if top.get("sales") is not None else 0
+        return f"El producto más vendido es «{name}» con {sales} ventas."
+
     if intent == "pending_orders":
         pending = int(data.get("pending_orders", 0) or 0)
         return (
@@ -325,6 +375,125 @@ def _extract_last_order_id(recent_convs: list[dict[str, any]]) -> int | None:
     return None
 
 
+def _extract_last_top_product_name(recent_convs: list[dict[str, any]]) -> str | None:
+    """
+    Extrae el nombre del último "producto más vendido" del historial.
+    Busca primero en contexto estructurado y luego por regex sobre replies.
+    """
+    for conv in reversed(recent_convs):
+        ctx = conv.get("context_data") or {}
+        if isinstance(ctx, dict):
+            raw_name = ctx.get("last_top_product_name")
+            if isinstance(raw_name, str) and raw_name.strip():
+                return raw_name.strip()
+
+        blob = f"{conv.get('reply') or ''}\n{conv.get('message') or ''}"
+        # Patrón esperado: El producto más vendido es «Nombre» con N ventas.
+        m = re.search(r"producto m[aá]s vendido es [«\"]([^»\"]+)[»\"]", blob, flags=re.IGNORECASE)
+        if m and m.group(1).strip():
+            return m.group(1).strip()
+    return None
+
+
+def _extract_last_top_products(recent_convs: list[dict[str, any]]) -> list[str]:
+    """
+    Extrae la última lista de productos top guardada en contexto.
+    """
+    for conv in reversed(recent_convs):
+        ctx = conv.get("context_data") or {}
+        if not isinstance(ctx, dict):
+            continue
+        raw = ctx.get("last_top_products")
+        if isinstance(raw, list):
+            names = [str(x).strip() for x in raw if isinstance(x, str) and str(x).strip()]
+            if names:
+                return names
+    return []
+
+
+def _extract_requested_rank_position(message: str) -> int | None:
+    """
+    Detecta ordinales como 1er/2do/3er, primero/segundo/tercero o #3.
+    Retorna posición 1-based.
+    """
+    normalized = _normalize_for_intent(message or "")
+
+    # Formatos numéricos: 3er, 3ro, 3o, #3, numero 3
+    numeric_patterns = [
+        r"\b(\d{1,2})(?:er|ro|do|to|o)\b",
+        r"#\s*(\d{1,2})\b",
+        r"\bnumero\s+(\d{1,2})\b",
+        r"\btop\s+(\d{1,2})\b",
+    ]
+    for pat in numeric_patterns:
+        m = re.search(pat, normalized, flags=re.IGNORECASE)
+        if m:
+            try:
+                val = int(m.group(1))
+                if val > 0:
+                    return val
+            except Exception:
+                pass
+
+    # Formatos en texto
+    text_ordinals = {
+        "primer": 1,
+        "primero": 1,
+        "segunda": 2,
+        "segundo": 2,
+        "tercer": 3,
+        "tercero": 3,
+        "cuarto": 4,
+        "quinto": 5,
+    }
+    for token, pos in text_ordinals.items():
+        if re.search(rf"\b{token}\b", normalized, flags=re.IGNORECASE):
+            return pos
+
+    return None
+
+
+def _is_likely_product_followup(message: str, has_context_product: bool) -> bool:
+    """
+    Detección flexible (híbrida) para follow-ups sobre "ese producto".
+    No depende de una frase exacta; usa señales semánticas simples.
+    """
+    if not has_context_product:
+        return False
+
+    normalized = _normalize_for_intent(message or "")
+    tokens = set(re.findall(r"[a-z0-9]+", normalized))
+    if not tokens:
+        return False
+
+    # Señales de intención de ampliar información.
+    intent_tokens = {
+        "info", "informacion", "detalle", "detalles", "explicame",
+        "explica", "cuentame", "hablame", "sobre", "mas", "amplia",
+    }
+    # Señales de referencia al objeto previo.
+    reference_tokens = {"producto", "este", "ese", "el", "lo"}
+
+    has_intent = bool(tokens & intent_tokens)
+    has_reference = bool(tokens & reference_tokens)
+
+    # Frases cortas y típicas de seguimiento, incluso sin "producto" explícito.
+    short_followup_patterns = (
+        r"^dame\s+mas\s+info",
+        r"^dame\s+mas\s+informacion",
+        r"^mas\s+info",
+        r"^mas\s+informacion",
+        r"^cuentame\s+mas",
+        r"^explicame\s+mas",
+        r"^hablame\s+de",
+    )
+    has_short_followup_pattern = any(
+        re.search(pat, normalized, flags=re.IGNORECASE) for pat in short_followup_patterns
+    )
+
+    return (has_intent and has_reference) or has_short_followup_pattern
+
+
 def reply_for_action(message: str, db: Session, user_id: str | int) -> str:
     """
     Parsea la acción del mensaje y pide confirmación. NUNCA ejecuta en el primer mensaje.
@@ -351,7 +520,8 @@ def handle_confirmation_or_new_intent(
 
 def reply_for_intent(message: str, intent: str, db: Session) -> str:
     """Genera la respuesta de texto para un mensaje e intención dados (solo lectura)."""
-    data = fetch_intent_data(db, intent)
+    top_limit = _extract_requested_top_limit(message) if intent == "top_products" else 5
+    data = fetch_intent_data(db, intent, top_limit=top_limit)
     user_content = f"El usuario pregunta: {message}\n\nDatos disponibles:\n{json.dumps(data, ensure_ascii=False)}\n\nResponde usando solo estos datos."
     # Temperatura baja para reducir completions inventadas.
     return chat_completion(user_content=user_content, system_content=CHAT_SYSTEM_PROMPT, temperature=0.0)
@@ -413,6 +583,33 @@ def _build_action_confirmation_message(action_id: str, params: dict) -> str:
     )
 
 
+def _extract_direct_action_from_message(message: str) -> Optional[tuple[str, dict[str, any]]]:
+    """
+    Extrae acciones simples de forma determinista (sin depender del LLM).
+    Esto evita falsos positivos donde el modelo "simula" una confirmación
+    sin emitir tool_call real.
+    """
+    raw = (message or "").strip()
+    if not raw:
+        return None
+
+    # Patrones tolerantes:
+    # - "crea la marca Puma"
+    # - "crear marca \"Nvidia\""
+    # - "agrega una marca AMD"
+    brand_pattern = re.compile(
+        r"^(?:crea(?:r)?|agrega(?:r)?|registra(?:r)?)(?:\s+(?:la|el|una?))?\s+marca\s+(.+)$",
+        flags=re.IGNORECASE,
+    )
+    m_brand = brand_pattern.match(raw)
+    if m_brand:
+        nom_marca = m_brand.group(1).strip().strip("\"'` ")
+        if nom_marca:
+            return ("create_brand", {"nom_marca": nom_marca})
+
+    return None
+
+
 def _maybe_handle_pending_action_confirmation(
     message: str, db: Session, user_id: str | int
 ) -> Optional[str | dict[str, any]]:
@@ -424,19 +621,34 @@ def _maybe_handle_pending_action_confirmation(
     if not pending:
         return None
 
-    msg_norm = message.strip().lower()
-    CONFIRM = {"sí", "si", "ok", "vale", "confirmar", "confirmo"}
-    CANCEL = {"no", "cancelar", "cancelo"}
+    # Normalización más tolerante:
+    # - quita tildes
+    # - ignora puntuación
+    # - interpreta frases naturales ("sí claro continúa", "ok dale", etc.)
+    normalized = _normalize_for_intent(message or "")
+    msg_tokens = set(re.findall(r"[a-z0-9]+", normalized))
 
-    def _matches_any(text: str, words: set[str]) -> bool:
-        if text in words:
-            return True
-        for w in words:
-            if text.startswith(f"{w} ") or text.endswith(f" {w}") or f" {w} " in text:
-                return True
-        return False
+    confirm_tokens = {
+        "si", "s", "ok", "vale", "confirmar", "confirmo",
+        "claro", "continua", "continuar", "prosigue", "procede",
+        "dale", "hazlo", "hagalo", "haganlo", "adelante",
+    }
+    cancel_tokens = {
+        "no", "cancelar", "cancelo", "deten", "detente",
+        "parar", "pare", "mejor", "nunca",
+    }
 
-    if _matches_any(msg_norm, CONFIRM):
+    has_confirm = bool(msg_tokens & confirm_tokens)
+    has_cancel = bool(msg_tokens & cancel_tokens)
+
+    # Si hay señales mixtas ("sí, pero no..."), pedimos aclaración explícita.
+    if has_confirm and has_cancel:
+        return (
+            "Veo señales mixtas en tu respuesta. "
+            "Responde solo «sí» para ejecutar o «no» para cancelar."
+        )
+
+    if has_confirm:
         result_data = admin_ai_actions.execute_action_with_metadata(
             db, pending["action"], pending["params"], str(user_id)
         )
@@ -450,7 +662,7 @@ def _maybe_handle_pending_action_confirmation(
         # Devolver dict con metadata para invalidar queries en el frontend
         return {"message": result, "affected_entities": result_data["affected_entities"]}
 
-    if _matches_any(msg_norm, CANCEL):
+    if has_cancel:
         admin_ai_state.clear_pending_action(user_id)
         cancel_msg = "He cancelado la acción pendiente, no se ejecutará nada."
         # Guardar conversación de cancelación
@@ -459,6 +671,16 @@ def _maybe_handle_pending_action_confirmation(
             tool_calls=[{"name": pending["action"], "params": pending["params"], "status": "cancelled"}]
         )
         return cancel_msg
+
+    # Si detectamos que el usuario escribió una instrucción nueva,
+    # descartamos la acción pendiente y dejamos continuar el flujo normal.
+    new_intent_tokens = {
+        "crear", "crea", "actualizar", "actualiza", "dame", "mostrar", "muestrame",
+        "listar", "lista", "obtener", "quiero", "busca", "buscar",
+    }
+    if msg_tokens & new_intent_tokens:
+        admin_ai_state.clear_pending_action(user_id)
+        return None
 
     # Respuesta ambigua: mantenemos la acción pendiente y pedimos confirmación explícita.
     return (
@@ -524,6 +746,19 @@ def chat_with_admin_ai(
             save_conversation(db, user_id, message, maybe)
             return maybe
 
+    # 1.5) Fallback determinista para acciones simples de escritura.
+    # Evita depender del tool-calling para comandos triviales (ej. "crea la marca X").
+    direct_action = _extract_direct_action_from_message(message)
+    if direct_action is not None:
+        action_name, action_params = direct_action
+        admin_ai_state.set_pending_action(user_id, action_name, action_params)
+        confirmation_msg = _build_action_confirmation_message(action_name, action_params)
+        save_conversation(
+            db, user_id, message, confirmation_msg,
+            tool_calls=[{"name": action_name, "params": action_params, "status": "pending"}]
+        )
+        return confirmation_msg
+
     # 2) Obtener historial de conversaciones recientes para contexto
     recent_convs = get_recent_conversations(db, user_id, limit=5, days_back=7)
     conversation_context = build_conversation_context(recent_convs, max_tokens=1500)
@@ -539,6 +774,12 @@ def chat_with_admin_ai(
     )
     is_top_categories_request = any(kw in msg_lower for kw in INTENT_TOP_CATEGORIES)
     is_top_stock_request = any(kw in msg_lower for kw in INTENT_TOP_STOCK)
+    msg_norm = _normalize_for_intent(message.strip())
+    is_top_product_request = bool(
+        re.search(r"\bproducto\b.*\bmas\b.*\bvendid[oa]s?\b", msg_norm, flags=re.IGNORECASE)
+    )
+
+    # Follow-up de producto: "ese producto", "explícame más de ese producto", etc.
 
     # Helper: follow-up determinista para "esa última orden".
     # Evitamos pedir al modelo un ID; lo sacamos del historial calculado por el backend.
@@ -592,6 +833,69 @@ def chat_with_admin_ai(
         # Si no hay ID en contexto, degradamos de forma segura.
         return "No sé con certeza con la información disponible."
 
+    # Follow-up determinista para el último "producto más vendido".
+    last_product_name = _extract_last_top_product_name(recent_convs)
+    last_top_products = _extract_last_top_products(recent_convs)
+    requested_rank_pos = _extract_requested_rank_position(message)
+    if requested_rank_pos and last_top_products and 1 <= requested_rank_pos <= len(last_top_products):
+        last_product_name = last_top_products[requested_rank_pos - 1]
+    is_top_product_followup = _is_likely_product_followup(
+        message=message,
+        has_context_product=bool(last_product_name),
+    )
+    if is_top_product_followup and last_product_name:
+        try:
+            reply = admin_ai_actions.execute_action(
+                db,
+                "get_product",
+                {"product_name": last_product_name},
+                user_id,
+            )
+            save_conversation(
+                db,
+                user_id,
+                message,
+                reply,
+                context_data={"last_top_product_name": last_product_name},
+                tool_calls=[{
+                    "name": "get_product",
+                    "params": {"product_name": last_product_name},
+                    "status": "executed",
+                }],
+            )
+            return reply
+        except Exception:
+            pass
+        return "No sé con certeza con la información disponible."
+
+    # Fallback adicional: si el usuario menciona explícitamente "del producto"
+    # y venimos de un top product reciente, intentamos resolver igual.
+    if last_product_name and re.search(r"\bproducto\b", msg_norm, flags=re.IGNORECASE):
+        if last_product_name:
+            try:
+                reply = admin_ai_actions.execute_action(
+                    db,
+                    "get_product",
+                    {"product_name": last_product_name},
+                    user_id,
+                )
+                save_conversation(
+                    db,
+                    user_id,
+                    message,
+                    reply,
+                    context_data={"last_top_product_name": last_product_name},
+                    tool_calls=[{
+                        "name": "get_product",
+                        "params": {"product_name": last_product_name},
+                        "status": "executed",
+                    }],
+                )
+                return reply
+            except Exception:
+                pass
+        return "No sé con certeza con la información disponible."
+
     # Seguimiento (anti-hallucination):
     # Si el usuario hace una pregunta corta tipo "y la categoría?" y hace poco
     # ya se le respondió con "categorías más vendidas por ingresos", interpretamos
@@ -612,6 +916,76 @@ def chat_with_admin_ai(
     )
     if has_recent_top_categories and is_short_category_followup:
         is_top_categories_request = True
+
+    # Si piden singular ("el producto más vendido"), devolvemos solo 1 de forma determinista.
+    if is_top_product_request and not is_summary_request and not is_top_categories_request and not is_top_stock_request:
+        try:
+            data = fetch_intent_data(db, "top_product")
+            reply = format_intent_reply("top_product", data)
+            top_name = None
+            top_names: list[str] = []
+            best = data.get("bestSellers") if isinstance(data, dict) else None
+            if isinstance(best, list) and best:
+                candidate = best[0].get("name")
+                if isinstance(candidate, str) and candidate.strip():
+                    top_name = candidate.strip()
+                    top_names = [top_name]
+            save_conversation(
+                db,
+                user_id,
+                message,
+                reply,
+                context_data={
+                    "last_top_product_name": top_name,
+                    "last_top_products": top_names,
+                },
+                tool_calls=[{
+                    "name": "get_top_product_deterministic",
+                    "params": {},
+                    "status": "executed",
+                }],
+            )
+            return reply
+        except Exception:
+            pass
+
+    # Si piden "top N productos más vendidos", resolvemos de forma determinista
+    # y guardamos la lista para follow-ups por ordinal (ej. "3er producto").
+    if (
+        detect_intent(message) == "top_products"
+        and not is_summary_request
+        and not is_top_categories_request
+        and not is_top_stock_request
+    ):
+        try:
+            requested_limit = _extract_requested_top_limit(message, default_limit=5, max_limit=20)
+            data = fetch_intent_data(db, "top_products", top_limit=requested_limit)
+            reply = format_intent_reply("top_products", data)
+            top_names: list[str] = []
+            best = data.get("bestSellers") if isinstance(data, dict) else None
+            if isinstance(best, list):
+                for row in best:
+                    candidate = row.get("name") if isinstance(row, dict) else None
+                    if isinstance(candidate, str) and candidate.strip():
+                        top_names.append(candidate.strip())
+            save_conversation(
+                db,
+                user_id,
+                message,
+                reply,
+                context_data={
+                    "last_top_product_name": top_names[0] if top_names else None,
+                    "last_top_products": top_names,
+                },
+                tool_calls=[{
+                    "name": "get_top_products_deterministic",
+                    "params": {"limit": requested_limit},
+                    "status": "executed",
+                }],
+            )
+            return reply
+        except Exception:
+            pass
     
     # Si es una pregunta de resumen, ejecutar automáticamente get_store_summary
     enhanced_message = message.strip()
@@ -761,6 +1135,21 @@ def chat_with_admin_ai(
     content = message_obj.get("content")
     if not tool_calls:
         if isinstance(content, str) and content.strip():
+            # Guard rail: si el modelo devuelve una "confirmación" sin tool_call,
+            # no confiamos en ese texto para evitar ejecuciones fantasma.
+            if "¿confirmas que deseas continuar?" in content.lower():
+                safe_reply = (
+                    "No pude preparar una acción válida para ejecutar. "
+                    "Intenta de nuevo con una instrucción explícita, por ejemplo: "
+                    "\"crea la marca Nike\"."
+                )
+                save_conversation(
+                    db, user_id, message, safe_reply,
+                    context_data=context_data,
+                    tool_calls=None
+                )
+                return safe_reply
+
             # Guardar conversación sin tool calls
             save_conversation(
                 db, user_id, message, content, 
@@ -852,12 +1241,15 @@ def stream_reply_sse(
             yield f"data: {json.dumps({'error': 'Error al ejecutar la acción'})}\n\n".encode("utf-8")
         return
     try:
-        data = fetch_intent_data(db, intent)
+        top_limit = _extract_requested_top_limit(message) if intent == "top_products" else 5
+        data = fetch_intent_data(db, intent, top_limit=top_limit)
         reply_text = format_intent_reply(intent, data)
 
         # Persistimos el historial también en streaming para que los follow-ups
         # ("esa última orden", etc.) sean deterministas y no dependan de parsing frágil.
         last_order_id = None
+        last_top_product_name = None
+        last_top_products: list[str] = []
         recent_orders = data.get("recentOrders") if isinstance(data, dict) else None
         if isinstance(recent_orders, list) and recent_orders:
             raw_id = recent_orders[0].get("id") or recent_orders[0].get("order_id")
@@ -866,6 +1258,14 @@ def stream_reply_sse(
                     last_order_id = int(raw_id)
                 except Exception:
                     last_order_id = None
+        best_sellers = data.get("bestSellers") if isinstance(data, dict) else None
+        if intent in {"top_product", "top_products"} and isinstance(best_sellers, list) and best_sellers:
+            for row in best_sellers:
+                raw_name = row.get("name") if isinstance(row, dict) else None
+                if isinstance(raw_name, str) and raw_name.strip():
+                    last_top_products.append(raw_name.strip())
+            if last_top_products:
+                last_top_product_name = last_top_products[0]
         if user_id is not None:
             save_conversation(
                 db,
@@ -875,6 +1275,8 @@ def stream_reply_sse(
                 context_data={
                     "intent": intent,
                     "last_order_id": last_order_id,
+                    "last_top_product_name": last_top_product_name,
+                    "last_top_products": last_top_products,
                 },
                 tool_calls=None,
             )
