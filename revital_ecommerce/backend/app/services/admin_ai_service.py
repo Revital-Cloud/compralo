@@ -1228,6 +1228,24 @@ def chat_with_admin_ai(
             )
             save_conversation(db, user_id, message, reply)
             return reply
+    elif name == "create_provider":
+        nom = str(params.get("nom_proveedor") or "").strip()
+        email = str(params.get("email") or "").strip()
+        if not nom:
+            reply = (
+                "Puedo ayudarte a crear un proveedor, pero necesito el nombre. "
+                "Por ejemplo: \"crea el proveedor Formula Racing SAS\"."
+            )
+            save_conversation(db, user_id, message, reply)
+            return reply
+        # Requerimos email válido antes de pasar a confirmación.
+        if not email or "@" not in email:
+            reply = (
+                f"Perfecto, para crear el proveedor «{nom}» me falta el email. "
+                "Compárteme un correo válido y lo preparo para confirmar."
+            )
+            save_conversation(db, user_id, message, reply)
+            return reply
 
     # Tools de solo lectura: se ejecutan directamente sin confirmación.
     READ_ONLY_TOOLS = (
