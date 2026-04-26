@@ -240,6 +240,31 @@ def format_intent_reply(intent: str, data: dict) -> str:
     if not isinstance(data, dict) or not data:
         return "No sé con certeza con la información disponible."
 
+    def _format_cop(value: Any) -> str:
+        """
+        Formatea valores monetarios en COP: $1.234.567
+        """
+        if value is None:
+            return "$0"
+        if isinstance(value, str):
+            raw = value.strip()
+            # Si ya viene formateado con $, lo respetamos.
+            if raw.startswith("$"):
+                return raw
+            cleaned = raw.replace("$", "").replace(".", "").replace(",", "").strip()
+            if cleaned.isdigit():
+                try:
+                    num = int(cleaned)
+                    return f"${num:,}".replace(",", ".")
+                except Exception:
+                    return raw or "$0"
+            return raw or "$0"
+        try:
+            num = int(float(value))
+            return f"${num:,}".replace(",", ".")
+        except Exception:
+            return "$0"
+
     # Nota: los valores de KPIs vienen como strings ya formateadas por fetch_intent_data.
     if intent == "top_product":
         best = data.get("bestSellers") or []
@@ -270,8 +295,9 @@ def format_intent_reply(intent: str, data: dict) -> str:
             amount = o.get("amount")
             status = o.get("status") or ""
             customer = o.get("customer") or "Cliente"
+            amount_fmt = _format_cop(amount)
             lines.append(
-                f"- Orden #{oid} ({customer}) | ${amount} {('(' + status + ')') if status else ''}{(' ' + date) if date else ''}".strip()
+                f"- Orden #{oid} ({customer}) | {amount_fmt} {('(' + status + ')') if status else ''}{(' ' + date) if date else ''}".strip()
             )
         return "Órdenes recientes:\n" + "\n".join(lines)
 
@@ -329,7 +355,8 @@ def format_intent_reply(intent: str, data: dict) -> str:
             customer = o0.get("customer") or "Cliente"
             amount = o0.get("amount") or 0
             date = (o0.get("date") or "")[:10] if o0.get("date") else ""
-            parts.append(f"Última orden: #{oid} ({customer}) por ${amount}{(' el ' + date) if date else ''}.")
+            amount_fmt = _format_cop(amount)
+            parts.append(f"Última orden: #{oid} ({customer}) por {amount_fmt}{(' el ' + date) if date else ''}.")
         if alerts:
             parts.append("Alertas de stock: " + ", ".join(alerts[:2]) + ("" if len(alerts) <= 2 else "…"))
 
@@ -555,7 +582,11 @@ def _build_action_confirmation_message(action_id: str, params: dict) -> str:
             desc = f'Crear el descuento "{nom}" con {val}% de descuento.'
         else:
             val = params.get("val_monto_descuento")
-            desc = f'Crear el descuento "{nom}" con ${val} de descuento.'
+            try:
+                val_fmt = f"${int(float(val or 0)):,}".replace(",", ".")
+            except Exception:
+                val_fmt = f"${val}"
+            desc = f'Crear el descuento "{nom}" con {val_fmt} de descuento.'
     elif action_id == "toggle_product_status":
         pid = params.get("product_id")
         nom = (params.get("product_name") or "").strip()
