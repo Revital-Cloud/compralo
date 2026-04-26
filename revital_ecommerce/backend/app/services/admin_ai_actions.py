@@ -56,6 +56,29 @@ def _sanitize_string(value: Any, max_len: int = 500) -> str:
     return s[:max_len] if s else ""
 
 
+def _format_cop(value: Any) -> str:
+    """Formatea montos en COP con separador de miles: $1.234.567."""
+    if value is None:
+        return "$0"
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return "$0"
+        if raw.startswith("$"):
+            return raw
+        cleaned = raw.replace("$", "").replace(".", "").replace(",", "").strip()
+        if cleaned.isdigit():
+            try:
+                return f"${int(cleaned):,}".replace(",", ".")
+            except Exception:
+                return raw
+        return raw
+    try:
+        return f"${int(float(value)):,}".replace(",", ".")
+    except Exception:
+        return "$0"
+
+
 def _execute_create_brand(db: Session, params: dict, user_id: str | Decimal) -> str:
     """Valida params y crea la marca usando el servicio existente."""
     from schemas.brand_schema import BrandCreate
@@ -75,7 +98,29 @@ def _execute_create_brand(db: Session, params: dict, user_id: str | Decimal) -> 
 
         ind_activo = params.get("ind_activo", True)
         brand = BrandCreate(nom_marca=nom)
-        svc_create_brand(db, brand, str(user_id))
+        # Mantener consistencia con el resto del backend: usar Decimal para IDs de usuario.
+        normalized_user_id = Decimal(str(user_id))
+        service_result = svc_create_brand(db, brand, normalized_user_id)
+
+        # La función SQL puede devolver texto de error en vez de lanzar excepción.
+        if service_result is None or (
+            isinstance(service_result, str) and "error" in service_result.lower()
+        ):
+            return (
+                f"No se pudo crear la marca «{nom}». "
+                f"Detalle: {service_result or 'la base de datos no confirmó la inserción'}."
+            )
+
+        # Verificación post-escritura para evitar falsos positivos del asistente.
+        verify_q = text(
+            "SELECT 1 FROM tab_marcas WHERE LOWER(nom_marca) = LOWER(:nom_marca) LIMIT 1"
+        )
+        if not db.execute(verify_q, {"nom_marca": nom}).first():
+            return (
+                f"No se pudo confirmar la creación de la marca «{nom}». "
+                "Por favor, intenta de nuevo."
+            )
+
         estado = "activa" if ind_activo else "inactiva"
         return f"Marca «{nom}» creada correctamente ({estado})."
     except Exception as e:
@@ -386,7 +431,7 @@ def _execute_create_discount(db: Session, params: dict, user_id: str | Decimal) 
         )
         
         # Construir mensaje de confirmación con detalles
-        tipo_texto = f"{val_porce}%" if tipo_calculo else f"${val_monto}"
+        tipo_texto = f"{val_porce}%" if tipo_calculo else _format_cop(val_monto)
         detalles = []
         if aplica_a != "todos":
             detalles.append(f"aplica a {aplica_a}")
@@ -445,7 +490,7 @@ def _execute_get_store_summary(db: Session, params: dict, user_id: str | Decimal
                 customer = order.get("customer", "Cliente")
                 amount = order.get("amount", 0)
                 date = order.get("date", "")[:10] if order.get("date") else ""
-                summary_parts.append(f"  • {customer}: ${amount:.2f} ({date})")
+                summary_parts.append(f"  • {customer}: {_format_cop(amount)} ({date})")
         
         # Alertas
         if alerts:
@@ -509,7 +554,7 @@ def _execute_list_products(db: Session, params: dict, user_id: str | Decimal) ->
             pid = p.get("product_id") or p.get("id_producto") or p.get("id")
             stock = p.get("stock_total") or p.get("num_stock") or 0
             precio = p.get("precio_min") or p.get("price_min") or p.get("val_precio") or 0
-            lines.append(f"- {nom} (ID: {pid}, stock: {stock}, precio: ${precio})")
+            lines.append(f"- {nom} (ID: {pid}, stock: {stock}, precio: {_format_cop(precio)} COP)")
         return "Productos:\n" + "\n".join(lines)
     except Exception as e:
         return f"Error al listar productos: {str(e)}"
@@ -538,9 +583,15 @@ def _execute_get_product(db: Session, params: dict, user_id: str | Decimal) -> s
         cat = product.get("nom_categoria") or product.get("category_name") or "N/A"
         marca = product.get("nom_marca") or "N/A"
         activo = "activo" if product.get("ind_activo", product.get("is_active", True)) else "inactivo"
+        try:
+            precio_num = float(precio or 0)
+        except Exception:
+            precio_num = 0.0
+        # Formato amigable para COP con separadores de miles.
+        precio_fmt = f"${precio_num:,.0f}".replace(",", ".")
         return (
             f"Producto: {nom} (ID: {pid})\n"
-            f"  Precio: ${precio} | Stock: {stock} | Categoría: {cat} | Marca: {marca} | Estado: {activo}"
+            f"  Precio: {precio_fmt} COP | Stock: {stock} | Categoría: {cat} | Marca: {marca} | Estado: {activo}"
         )
     except Exception as e:
         return f"Error al obtener producto: {str(e)}"
@@ -589,9 +640,9 @@ def _execute_list_orders(db: Session, params: dict, user_id: str | Decimal) -> s
         for o in orders[:10]:
             oid = o.get("id_orden")
             cliente = f"{o.get('nom_usuario', '')} {o.get('ape_usuario', '')}".strip() or o.get("email_usuario", "Cliente")
-            total = float(o.get("val_total_pedido") or 0)
+            total = o.get("val_total_pedido") or 0
             est = estado_map.get(o.get("ind_estado"), str(o.get("ind_estado")))
-            lines.append(f"- Orden #{oid}: {cliente} - ${total:.2f} ({est})")
+            lines.append(f"- Orden #{oid}: {cliente} - {_format_cop(total)} ({est})")
         return "Órdenes recientes:\n" + "\n".join(lines)
     except Exception as e:
         return f"Error al listar órdenes: {str(e)}"
@@ -610,7 +661,7 @@ def _execute_get_order(db: Session, params: dict, user_id: str | Decimal) -> str
             return f"No existe una orden con ID {oid}."
         orden = detail.get("orden", {})
         cliente = f"{orden.get('nom_usuario', '')} {orden.get('ape_usuario', '')}".strip() or orden.get("email_usuario", "Cliente")
-        total = float(orden.get("val_total_pedido") or 0)
+        total = orden.get("val_total_pedido") or 0
         est = orden.get("ind_estado", 1)
         estado_map = {1: "Pendiente", 2: "Completada", 3: "Cancelada", 4: "Cancelada"}
         productos = detail.get("productos", [])
@@ -619,7 +670,7 @@ def _execute_get_order(db: Session, params: dict, user_id: str | Decimal) -> str
             items += f" (+{len(productos) - 3} más)"
         return (
             f"Orden #{oid}: {cliente}\n"
-            f"  Total: ${total:.2f} | Estado: {estado_map.get(est, est)}\n"
+            f"  Total: {_format_cop(total)} | Estado: {estado_map.get(est, est)}\n"
             f"  Productos: {items}"
         )
     except Exception as e:
@@ -823,7 +874,7 @@ def _execute_get_top_categories_by_revenue(db: Session, params: dict, user_id: s
             sales = float(row.get("sales", 0) or 0)
             pct = float(row.get("percentage", 0) or 0)
             growth = float(row.get("growth", 0) or 0)
-            lines.append(f"{i}. {cat}: ${sales:,.0f} ({pct:.1f}% del total, crecimiento: {growth:+.1f}%)")
+            lines.append(f"{i}. {cat}: {_format_cop(sales)} ({pct:.1f}% del total, crecimiento: {growth:+.1f}%)")
         return "Categorías más vendidas por ingresos (últimos 30 días):\n" + "\n".join(lines)
     except Exception as e:
         return f"Error al obtener categorías: {str(e)}"
@@ -864,7 +915,7 @@ def _execute_get_geographic_sales(db: Session, params: dict, user_id: str | Deci
             region = row.get("region", "Sin especificar")
             orders = int(row.get("orders", 0) or 0)
             revenue = float(row.get("revenue", 0) or 0)
-            lines.append(f"• {region}: {orders} órdenes, ${revenue:,.0f}")
+            lines.append(f"• {region}: {orders} órdenes, {_format_cop(revenue)}")
         return "Ventas por región (últimos 30 días):\n" + "\n".join(lines)
     except Exception as e:
         return f"Error al obtener datos geográficos: {str(e)}"
@@ -902,7 +953,7 @@ def _execute_get_customer_demographics(db: Session, params: dict, user_id: str |
             age = row.get("ageGroup", "N/A")
             pct = float(row.get("percentage", 0) or 0)
             revenue = float(row.get("revenue", 0) or 0)
-            lines.append(f"• {age} años: {pct:.1f}% de ingresos (${revenue:,.0f})")
+            lines.append(f"• {age} años: {pct:.1f}% de ingresos ({_format_cop(revenue)})")
         return "Demografía de clientes por grupo de edad:\n" + "\n".join(lines)
     except Exception as e:
         return f"Error al obtener demografía: {str(e)}"

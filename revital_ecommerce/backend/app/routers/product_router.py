@@ -38,6 +38,7 @@ from schemas.product_schema import (
     ProductAdminParams,
     ToggleRequest,
     ProductCreateComposite,
+    ProductSocialProofResponse,
 )
 from schemas.auth_schema import UserInToken
 from services import product_service
@@ -807,6 +808,20 @@ async def reindex_product_embeddings(
         # Log interno (stacktrace) sin exponerlo al cliente.
         logger.exception("Error reindexing product embeddings (admin)")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=get_safe_message(e))
+
+
+@router.get("/products/{slug_or_id}/social-proof", response_model=ProductSocialProofResponse)
+async def get_product_social_proof(
+    slug_or_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Social proof para PDP: compras semanales + stock actual + flags de visualización.
+    """
+    social_proof = product_service.get_product_social_proof_by_slug_or_id(db, slug_or_id)
+    if social_proof is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no encontrado")
+    return social_proof
 
 
 # Detalle de producto por slug o id (debe ir después de /products/filter, /products/search, etc.)

@@ -236,6 +236,24 @@ class ProductFilterStats(BaseModel):
     class Config:
         from_attributes = True
 
+
+class ProductSocialProofResponse(BaseModel):
+    """Respuesta de social proof para PDP."""
+
+    weekly_purchases: int = Field(0, ge=0, description="Unidades vendidas del producto en los últimos 7 días.")
+    stock_left: int = Field(0, ge=0, description="Stock total actual del producto.")
+    show_weekly_purchases: bool = Field(
+        False,
+        description="True cuando weekly_purchases alcanza el umbral de visualización.",
+    )
+    show_low_stock: bool = Field(
+        False,
+        description="True cuando stock_left está dentro del umbral de escasez.",
+    )
+
+    class Config:
+        from_attributes = True
+
 # Creación compuesta: producto base + variantes + URLs de imágenes (una transacción)
 class ProductCreateBase(BaseModel):
     """Datos del producto (tab_products) sin precio/stock."""

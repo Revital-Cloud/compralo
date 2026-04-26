@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
-import { ProductGallery, ProductInfo, ProductVariantSelector, RelatedProducts } from "@/components/product"
+import { ProductGallery, ProductInfo, ProductVariantSelector, RelatedProducts, SocialProofWidget } from "@/components/product"
 import type { ProductColorOption } from "@/components/product/product-info"
 import { ReviewsSection } from "@/components/ui/reviews-section"
 import Loading from "@/components/ui/loading"
@@ -62,6 +62,15 @@ const ProductPageContent = () => {
     () => normalizeProductDetail(product as ApiProductResponse | undefined),
     [product]
   )
+
+  const { data: socialProof } = useQuery({
+    queryKey: ["productSocialProof", slug],
+    queryFn: () => productService.getProductSocialProof(slug),
+    enabled: !!slug && !!product,
+    staleTime: 60 * 1000,
+    retry: false,
+  })
+
   const variantSelector = useVariantSelector(productDetail, slug)
   const useVariantSelectorFlow = (productDetail?.attributeDefinitions?.length ?? 0) > 0
 
@@ -731,6 +740,8 @@ const ProductPageContent = () => {
                 />
               ) : undefined}
             />
+
+            {socialProof && <SocialProofWidget socialProof={socialProof} />}
           </div>
         </div>
 

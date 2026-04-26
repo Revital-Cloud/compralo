@@ -8,7 +8,7 @@ import { Button } from "@/components/ui"
 import MiniCartHover from "@/components/cart/minicart-hover"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui"
 import { type NavItem } from "@/lib/menu-config"
-import { MobileMenu, SearchBar, ProductSearchBar, UserMenu } from "./components"
+import { MobileMenu, ProductSearchBar, UserMenu } from "./components"
 import Link from "next/link"
 import { defaultMenuItems } from "@/lib/menu-config"
 import { useCartInfo } from "@/hooks/use-cart"
@@ -197,7 +197,7 @@ const EcommerceHeader: React.FC<EcommerceHeaderProps> = ({
 
           {/* Mobile Search - Solo visible en móvil */}
           <div className="sm:hidden pb-4">
-            <SearchBar />
+            <ProductSearchBar />
           </div>
         </div>
       </div>
