@@ -28,6 +28,7 @@ import type {
   Product,
   ProductAdmin,
   ProductAdminParams,
+  ProductSocialProof,
 } from '@/types/product';
 import type { PaginatedResponse, ApiResponse, PaginationParams } from '@/types/common';
 
@@ -57,6 +58,13 @@ export async function getProductsAdmin(params?: ProductAdminParams): Promise<Pro
  */
 export async function getProductBySlugOrId(slugOrId: string): Promise<Product> {
   return await get<Product>(`/products/${slugOrId}`);
+}
+
+/**
+ * Obtener social proof para PDP.
+ */
+export async function getProductSocialProof(slugOrId: string): Promise<ProductSocialProof> {
+  return await get<ProductSocialProof>(`/products/${slugOrId}/social-proof`);
 }
 
 /**
@@ -477,6 +485,7 @@ export async function deleteProvider(id: number): Promise<ApiResponse> {
 const productService = {
   getProducts,
   getProductBySlugOrId,
+  getProductSocialProof,
   getProductAdminDetailById,
   createProductComposite,
   updateProductComposite,

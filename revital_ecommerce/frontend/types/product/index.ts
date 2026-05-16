@@ -56,6 +56,13 @@ export interface Product extends ProductBase {
   review_count?: number;
 }
 
+export interface ProductSocialProof {
+  weekly_purchases: number;
+  stock_left: number;
+  show_weekly_purchases: boolean;
+  show_low_stock: boolean;
+}
+
 // =============================================================================
 // TIPOS PARA ADMINISTRACIÓN
 // =============================================================================

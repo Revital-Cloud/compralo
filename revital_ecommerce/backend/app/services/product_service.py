@@ -51,6 +51,8 @@ from services.out_of_stock_notification_service import (
 # y el router se encarga de la validación con el response_model.
 
 MAX_IMAGES_PER_VARIANT = 10
+SOCIAL_PROOF_WEEKLY_PURCHASES_MIN = 5
+SOCIAL_PROOF_LOW_STOCK_MAX = 8
 
 # Portada en listados / PDP resumido: galería "Sin color" (panel admin), no la primera variante por id de grupo
 SQL_IMG_PRINCIPAL_COALESCE_P = """COALESCE(
@@ -474,6 +476,76 @@ def get_product_by_slug_or_id(db: Session, slug_or_id: str):
         return get_product_by_id(db, Decimal(legacy.group(2)))
     # Por slug
     return get_product_by_slug(db, s)
+
+
+def _resolve_product_id_from_slug_or_id(db: Session, slug_or_id: str) -> Optional[int]:
+    """Resuelve el id de producto desde slug, id numérico o formato legacy."""
+    if not slug_or_id or not str(slug_or_id).strip():
+        return None
+
+    s = str(slug_or_id).strip()
+    if s.isdigit():
+        return int(s)
+
+    legacy = re.match(r"^(\d+)-null-null-(\d+)$", s, re.IGNORECASE)
+    if legacy:
+        return int(legacy.group(2))
+
+    row = db.execute(
+        text("SELECT id FROM tab_products WHERE slug = :slug AND is_active = TRUE LIMIT 1"),
+        {"slug": s},
+    ).mappings().first()
+    return int(row["id"]) if row and row.get("id") is not None else None
+
+
+def get_product_social_proof_by_slug_or_id(db: Session, slug_or_id: str) -> Optional[dict]:
+    """
+    Obtiene social proof para PDP:
+    - weekly_purchases: unidades vendidas últimos 7 días en órdenes completadas.
+    - stock_left: stock total actual del producto.
+    """
+    product_id = _resolve_product_id_from_slug_or_id(db, slug_or_id)
+    if product_id is None:
+        return None
+
+    weekly_row = db.execute(
+        text(
+            """
+            SELECT COALESCE(SUM(op.cant_producto), 0)::int AS weekly_purchases
+            FROM tab_orden_productos op
+            JOIN tab_ordenes o ON o.id_orden = op.id_orden
+            JOIN tab_product_variant_combinations c ON c.id = op.variant_id
+            JOIN tab_product_variant_groups g ON g.id = c.group_id
+            WHERE g.product_id = :product_id
+              AND o.ind_estado = 2
+              AND COALESCE(o.fec_insert, o.fec_pedido) >= (NOW() - INTERVAL '7 days')
+            """
+        ),
+        {"product_id": product_id},
+    ).mappings().first()
+
+    stock_row = db.execute(
+        text(
+            """
+            SELECT COALESCE(SUM(c.stock), 0)::int AS stock_left
+            FROM tab_product_variant_combinations c
+            JOIN tab_product_variant_groups g ON g.id = c.group_id
+            WHERE g.product_id = :product_id
+              AND c.is_active = TRUE
+            """
+        ),
+        {"product_id": product_id},
+    ).mappings().first()
+
+    weekly_purchases = int((weekly_row or {}).get("weekly_purchases") or 0)
+    stock_left = int((stock_row or {}).get("stock_left") or 0)
+
+    return {
+        "weekly_purchases": weekly_purchases,
+        "stock_left": stock_left,
+        "show_weekly_purchases": weekly_purchases >= SOCIAL_PROOF_WEEKLY_PURCHASES_MIN,
+        "show_low_stock": stock_left > 0 and stock_left <= SOCIAL_PROOF_LOW_STOCK_MAX,
+    }
 
 
 def get_product(id_categoria: Decimal, id_linea: Decimal, id_sublinea: Decimal, id_producto: Decimal, db: Session):

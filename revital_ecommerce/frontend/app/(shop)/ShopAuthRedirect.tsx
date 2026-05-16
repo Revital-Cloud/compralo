@@ -15,15 +15,19 @@ export function ShopAuthRedirect({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const redirectDone = useRef(false)
+  const isBuilderPreview =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).has('builderPreview')
 
   useEffect(() => {
     if (redirectDone.current || !isHydrated || isLoadingUser || !isUserAuthenticated) return
+    if (isBuilderPreview) return
     const userRole = Number(user?.id_rol)
     if (userRole === 1) {
       redirectDone.current = true
       router.replace('/admin')
     }
-  }, [isHydrated, isLoadingUser, isUserAuthenticated, user?.id_rol, router])
+  }, [isHydrated, isLoadingUser, isUserAuthenticated, isBuilderPreview, user?.id_rol, router])
 
   // Solo mostrar loading si aún no está hidratado O si hay token y estamos cargando el usuario.
   // Usuarios anónimos (sin token) no deben quedarse atascados en "Cargando...".

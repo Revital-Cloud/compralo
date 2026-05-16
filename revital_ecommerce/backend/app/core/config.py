@@ -48,6 +48,25 @@ class Settings(BaseSettings):
         FRONTEND_URL (str): URL del frontend para links en emails.
         VERIFY_EMAIL_URL (str): URL para verificación de email.
         RESET_PASSWORD_URL (str): URL para reset de contraseña.
+        WOMPI_PUBLIC_KEY (str): Clave pública de Wompi para integración.
+        WOMPI_PRIVATE_KEY (str): Clave privada de Wompi para integración.
+        WOMPI_EVENTS_SECRET (str): Clave de eventos de Wompi para integración.
+        WOMPI_INTEGRITY_SECRET (str): Clave de integridad de Wompi para integración.
+        WOMPI_ENVIRONMENT (str): Entorno de Wompi para integración.
+        GROQ_API_KEY (str): Clave API de Groq para funcionalidades de IA.
+        OLLAMA_BASE_URL (str): URL base de Ollama para embeddings.
+        OLLAMA_EMBED_MODEL (str): Modelo de Ollama para embeddings.
+        AI_SEARCH_MIN_BEST_SCORE (float): Puntuación mínima para resultados de búsqueda IA.
+        AI_SEARCH_DEFAULT_MIN_SCORE (float): Puntuación mínima por defecto para búsqueda IA.
+        AI_SEARCH_DEFAULT_MIN_SCORE_RATIO (float): Ratio de puntuación mínima por defecto para búsqueda IA.
+        AI_SEARCH_DEFAULT_MAX_SCORE_DROP (float): Puntuación máxima por defecto para búsqueda IA.
+        TURNSTILE_SECRET_KEY (str): Clave secreta de Turnstile para CAPTCHA.
+        TURNSTILE_ENABLED (bool): Indica si el CAPTCHA está habilitado.
+        
+        CRON_JOB_TOKEN (str): Token de cron job para carrito abandonado.
+        ABANDONED_CART_INACTIVITY_HOURS (int): Tiempo de inactividad para carrito abandonado.
+        ABANDONED_CART_SEND_COOLDOWN_HOURS (int): Tiempo de cooldown para envío de carrito abandonado.
+        ABANDONED_CART_BATCH_LIMIT (int): Límite de carritos abandonados por batch.
     """
 
     model_config = SettingsConfigDict(env_file=_ENV_FILES, case_sensitive=True, extra="ignore")
@@ -147,6 +166,9 @@ class Settings(BaseSettings):
     # Lista CSV opcional de tamaños extra solo para reintentos Servientrega (1300 / error carrier), ej: PAPER_4X6,ZPL
     ENVIA_SERVIENTREGA_FALLBACK_PRINT_SIZES: Optional[str] = None
 
+class Config:
+        env_file = _ENV_FILES
+        case_sensitive = True
 # Instancia global de configuración (carga .env y .env.development/.env.production)
 settings = Settings()
 

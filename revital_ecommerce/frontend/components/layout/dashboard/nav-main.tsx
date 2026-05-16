@@ -37,6 +37,7 @@ export function NavMain({
     { key: 'principal', label: 'Principal' },
     { key: 'catalogo', label: 'Catálogo' },
     { key: 'gestion', label: 'Gestión' },
+    { key: 'contenido', label: 'Contenido' },
     { key: 'otros', label: 'Otros' }
   ]
 
