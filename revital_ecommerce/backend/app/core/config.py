@@ -166,10 +166,6 @@ class Settings(BaseSettings):
     # Lista CSV opcional de tamaños extra solo para reintentos Servientrega (1300 / error carrier), ej: PAPER_4X6,ZPL
     ENVIA_SERVIENTREGA_FALLBACK_PRINT_SIZES: Optional[str] = None
 
-class Config:
-        env_file = _ENV_FILES
-        case_sensitive = True
-        
 # Instancia global de configuración (carga .env y .env.development/.env.production)
 settings = Settings()
 
