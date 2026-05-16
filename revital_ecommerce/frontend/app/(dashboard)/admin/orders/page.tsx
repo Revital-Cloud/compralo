@@ -35,23 +35,27 @@ const OrdersPage = () => {
   const calculatedStats = useMemo(() => {
     // Si hay stats del API (incluso si total es 0), usarlas
     if (stats && stats.total !== undefined) {
-      return stats
+      return {
+        ...stats,
+        en_camino: stats.en_camino ?? 0,
+      }
     }
     
     // Fallback: calcular desde las órdenes cargadas (solo como respaldo temporal)
     const total = orders.length
     const pendiente = orders.filter(o => o.ind_estado === 1).length
-    const completada = orders.filter(o => o.ind_estado === 2).length
-    const cancelada = orders.filter(o => o.ind_estado === 3).length
+    const en_camino = orders.filter(o => o.ind_estado === 2).length
+    const completada = orders.filter(o => o.ind_estado === 3).length
     const totalVentas = orders
-      .filter(o => o.ind_estado === 2)
+      .filter(o => o.ind_estado === 2 || o.ind_estado === 3)
       .reduce((sum, o) => sum + (o.val_total_pedido || 0), 0)
     
     return {
       total,
       pendiente,
+      en_camino,
       completada,
-      cancelada,
+      cancelada: 0,
       total_ventas: totalVentas
     }
   }, [stats, orders])

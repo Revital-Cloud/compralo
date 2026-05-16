@@ -7,6 +7,8 @@ export interface Order {
   email_usuario: string
   val_total_productos: number
   val_total_descuentos: number
+  /** Costo de envío COP (tab_ordenes.val_costo_envio). */
+  val_costo_envio?: number
   val_total_pedido: number
   ind_estado: number // 1, 2, 3
   metodo_pago?: string
@@ -36,10 +38,22 @@ export interface Address {
   ind_activa: boolean
 }
 
+/** Datos de guía Envia (`tab_ordenes_envio`) expuestos en detalle admin. */
+export interface OrderEnvioInfo {
+  tracking_number?: string | null
+  tracking_url?: string | null
+  label_url?: string | null
+  carrier?: string | null
+  service?: string | null
+  estado_envio?: string | null
+  costo_envio?: number | null
+}
+
 export interface OrderDetail {
   orden: Order
   productos: OrderProduct[]
   direccion_envio?: Address
+  envio?: OrderEnvioInfo | null
   descuentos_aplicados?: any
   puntos_ganados?: number
   des_observaciones?: string
@@ -48,6 +62,8 @@ export interface OrderDetail {
 export interface OrderStats {
   total?: number
   pendiente?: number
+  /** Órdenes pagadas, en ruta (ind_estado = 2). */
+  en_camino?: number
   completada?: number
   cancelada?: number
   total_ventas?: number

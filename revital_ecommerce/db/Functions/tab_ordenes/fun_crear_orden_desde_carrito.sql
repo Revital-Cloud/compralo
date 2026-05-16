@@ -12,6 +12,8 @@
  *   - p_observaciones: Observaciones adicionales de la orden (opcional)
  *   - p_usr_operacion: Usuario que realiza la operación
  *   - p_id_canje: ID del canje de puntos a aplicar (opcional)
+ *   - p_ind_estado, p_metodo_pago: estado y método cuando el pago ya está aprobado (opcional)
+ *   - p_costo_envio: costo de envío COP sumado al total (opcional, default 0)
  * 
  * RETORNA: JSON con estructura:
  *   - success: boolean (true/false)
@@ -48,7 +50,8 @@ CREATE OR REPLACE FUNCTION fun_crear_orden_desde_carrito(
     p_usr_operacion tab_ordenes.usr_insert%TYPE,
     p_id_canje tab_canjes_puntos_descuentos.id_canje%TYPE DEFAULT NULL,
     p_ind_estado tab_ordenes.ind_estado%TYPE DEFAULT NULL,
-    p_metodo_pago tab_ordenes.metodo_pago%TYPE DEFAULT NULL
+    p_metodo_pago tab_ordenes.metodo_pago%TYPE DEFAULT NULL,
+    p_costo_envio DECIMAL(10,2) DEFAULT 0
 ) RETURNS JSON AS $$
 DECLARE
     -- Variables principales del proceso
@@ -58,6 +61,7 @@ DECLARE
     v_total_productos DECIMAL(10,2) := 0;                    -- Total de productos sin descuentos
     v_total_descuentos DECIMAL(10,2) := 0;                   -- Total de descuentos aplicados
     v_total_final DECIMAL(10,2);                             -- Total final de la orden
+    v_costo_envio DECIMAL(10,2) := 0;                        -- Costo envío (COP)
     v_id_orden tab_ordenes.id_orden%TYPE;                    -- ID de la orden generada
     v_producto_record RECORD;                                -- Record para iterar productos
     v_direccion_valida BOOLEAN := FALSE;                     -- Validar dirección
@@ -511,9 +515,10 @@ BEGIN
         END IF;
     END IF;
     
-    -- PASO 8: Calcular total final
+    -- PASO 8: Calcular total final (productos - descuentos + envío)
     v_total_descuentos := LEAST(v_total_descuentos, v_total_productos);
-    v_total_final := v_total_productos - v_total_descuentos;
+    v_costo_envio := GREATEST(COALESCE(p_costo_envio, 0), 0);
+    v_total_final := v_total_productos - v_total_descuentos + v_costo_envio;
     
     -- Construir array completo de descuentos aplicados
     v_descuentos_aplicados := (
@@ -541,7 +546,8 @@ BEGIN
     -- Nota: trg_limpiar_carrito_pagado está definido solo para UPDATE; si la orden se crea ya como
     -- Pagada (INSERT ind_estado=2), la limpieza del carrito se hace en PASO 12b más abajo.
         INSERT INTO tab_ordenes (
-            id_orden, id_usuario, val_total_productos, val_total_descuentos, 
+            id_orden, id_usuario, val_total_productos, val_total_descuentos,
+            val_costo_envio,
             val_total_pedido, ind_estado, metodo_pago, des_observaciones,
                 detalle_descuentos_aplicados, usr_insert
         ) VALUES (
@@ -549,6 +555,7 @@ BEGIN
                 v_id_usuario,
             v_total_productos,
             v_total_descuentos,
+            v_costo_envio,
             v_total_final, 
             COALESCE(p_ind_estado, 1),  -- 1=Pendiente por defecto; 2=Pagada cuando pago ya aprobado
             p_metodo_pago,  -- NULL por defecto; 'tarjeta'/'transferencia'/etc cuando pago aprobado

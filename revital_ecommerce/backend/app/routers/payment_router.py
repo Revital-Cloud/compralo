@@ -289,8 +289,10 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
             existing = get_payment_by_reference(db, reference)
             if existing and existing.get("id_orden") is not None:
                 logger.info(f"Pago ya procesado para referencia checkout: {reference}")
+                from services import shipping_service as _shipping_svc
+                await _shipping_svc.finalize_envia_after_paid_order(db, int(existing["id_orden"]), reference)
                 return {"status": "ok"}
-            order_id = create_order_from_checkout_reference(db, reference, tx, id_usuario=None)
+            order_id = await create_order_from_checkout_reference(db, reference, tx, id_usuario=None)
             if order_id:
                 try:
                     from services.email_service import send_order_confirmation_for_order_id

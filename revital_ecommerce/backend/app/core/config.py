@@ -10,8 +10,10 @@ Entornos: se cargan variables desde .env y luego desde .env.development o
 .env.production según la variable ENVIRONMENT (por defecto: development).
 """
 import os
-from pydantic_settings import BaseSettings
 from typing import Optional
+
+from pydantic import AliasChoices, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Resolver qué archivo de entorno usar (development | production)
 _ENV = os.getenv("ENVIRONMENT", "development").strip().lower()
@@ -65,8 +67,10 @@ class Settings(BaseSettings):
         ABANDONED_CART_INACTIVITY_HOURS (int): Tiempo de inactividad para carrito abandonado.
         ABANDONED_CART_SEND_COOLDOWN_HOURS (int): Tiempo de cooldown para envío de carrito abandonado.
         ABANDONED_CART_BATCH_LIMIT (int): Límite de carritos abandonados por batch.
-        
     """
+
+    model_config = SettingsConfigDict(env_file=_ENV_FILES, case_sensitive=True, extra="ignore")
+
     # Configuración de la base de datos
     DATABASE_URL: str
     
@@ -133,9 +137,34 @@ class Settings(BaseSettings):
     ABANDONED_CART_SEND_COOLDOWN_HOURS: int = 24
     ABANDONED_CART_BATCH_LIMIT: int = 1000
 
-    class Config:
-        env_file = _ENV_FILES
-        case_sensitive = True
+    # Envia Shipping (sandbox por defecto; en producción usar https://api.envia.com y token prod)
+    ENVIA_API_BASE: str = Field(
+        default="https://api-test.envia.com",
+        validation_alias=AliasChoices("ENVIA_API_BASE", "ENVIA_BASE_URL"),
+    )
+    ENVIA_QUERIES_BASE: str = Field(
+        default="https://queries-test.envia.com",
+        validation_alias=AliasChoices("ENVIA_QUERIES_BASE", "ENVIA_QUERIES_URL"),
+    )
+    ENVIA_TOKEN: Optional[str] = None
+    ENVIA_ORIGIN_NAME: str = ""
+    ENVIA_ORIGIN_COMPANY: str = ""
+    ENVIA_ORIGIN_EMAIL: str = ""
+    ENVIA_ORIGIN_PHONE: str = ""
+    ENVIA_ORIGIN_STREET: str = ""
+    ENVIA_ORIGIN_NUMBER: str = "S/N"
+    ENVIA_ORIGIN_DISTRICT: str = ""
+    ENVIA_ORIGIN_CITY: str = ""
+    ENVIA_ORIGIN_STATE: str = ""
+    ENVIA_ORIGIN_POSTAL: str = ""
+
+    # Generación de guías CO: Envia exige printFormat + printSize en settings (ver API /ship/generate/)
+    ENVIA_PRINT_FORMAT: str = "PDF"
+    ENVIA_PRINT_SIZE: str = "STOCK_4X6"
+    # Si Servientrega rechaza el tamaño por defecto, probar p. ej. PAPER_7X4.75 (documentación Envia por carrier).
+    ENVIA_PRINT_SIZE_SERVIENTREGA: Optional[str] = None
+    # Lista CSV opcional de tamaños extra solo para reintentos Servientrega (1300 / error carrier), ej: PAPER_4X6,ZPL
+    ENVIA_SERVIENTREGA_FALLBACK_PRINT_SIZES: Optional[str] = None
 
 # Instancia global de configuración (carga .env y .env.development/.env.production)
 settings = Settings()

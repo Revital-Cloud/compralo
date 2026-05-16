@@ -26,7 +26,7 @@ from typing import Optional
 import logging
 
 from core.database import get_db
-from core.dependencies import get_current_user
+from core.dependencies import get_current_user, get_current_user_optional
 from core.tenant import get_store_from_request
 from schemas.auth_schema import UserInToken
 from schemas.payment_schema import (
@@ -146,8 +146,8 @@ async def create_checkout_session_endpoint(
       - `generate_checkout_reference_from_cart`
       - `generate_integrity_signature`
     - Tablas:
-      - Lee `tab_carritos`, `tab_carrito_productos`
-      - NO inserta en `tab_pagos` ni `tab_ordenes` en este paso
+      - Lee `tab_carritos`, `tab_carrito_productos`, `tab_direcciones_usuario`
+      - Inserta `tab_checkout_shipping` (metadata envío por `reference`)
 
     Resultado esperado:
     - Devuelve `reference`, `amount_in_cents`, `public_key`, `integrity_signature`
@@ -177,10 +177,48 @@ async def create_checkout_session_endpoint(
         total_final = float(totals.get("total_final", 0))
         if total_final <= 0:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El carrito está vacío o el total es inválido")
-        amount_in_cents = int(total_final * 100)
+        addr_ok = db.execute(
+            text(
+                "SELECT 1 FROM tab_direcciones_usuario WHERE id_direccion = :did AND id_usuario = :uid AND ind_activa = TRUE"
+            ),
+            {"did": id_direccion, "uid": int(cart_user_id)},
+        ).scalar()
+        if not addr_ok:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="La dirección de envío no existe o no pertenece al usuario",
+            )
+        shipping_cost = float(payload.shipping_cost)
+        amount_in_cents = int((total_final + shipping_cost) * 100)
         currency = "COP"
         codigo_descuento = getattr(payload, "codigo_descuento", None) or None
         reference = generate_checkout_reference_from_cart(cart_id, id_direccion, id_canje, codigo_descuento=codigo_descuento)
+        db.execute(
+            text(
+                """
+                INSERT INTO tab_checkout_shipping (
+                    reference, id_direccion, shipping_carrier, shipping_service, shipping_cost,
+                    weight_kg, length_cm, width_cm, height_cm, usr_insert
+                ) VALUES (
+                    :reference, :id_direccion, :shipping_carrier, :shipping_service, :shipping_cost,
+                    :weight_kg, :length_cm, :width_cm, :height_cm, :usr_insert
+                )
+                """
+            ),
+            {
+                "reference": reference,
+                "id_direccion": id_direccion,
+                "shipping_carrier": str(payload.shipping_carrier).strip().lower(),
+                "shipping_service": str(payload.shipping_service).strip(),
+                "shipping_cost": shipping_cost,
+                "weight_kg": float(payload.weight_kg),
+                "length_cm": float(payload.length_cm),
+                "width_cm": float(payload.width_cm),
+                "height_cm": float(payload.height_cm),
+                "usr_insert": int(cart_user_id),
+            },
+        )
+        db.commit()
         # Log de diagnóstico: estado del carrito al crear checkout (para comparar con confirm-checkout)
         cart_items_at_create = db.execute(
             text("SELECT COUNT(*) FROM tab_carrito_productos WHERE id_carrito = :cid"),
@@ -230,7 +268,7 @@ async def create_checkout_session_endpoint(
 async def get_order_by_reference(
     reference: str = Query(..., description="Reference del pago/checkout"),
     db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user)
+    current_user: Optional[UserInToken] = Depends(get_current_user_optional),
 ):
     """
     Permite resolver `order_id` por `reference` durante polling en frontend.
@@ -243,14 +281,94 @@ async def get_order_by_reference(
     Resultado:
     - `{order_id: <int>}` cuando ya existe asociación.
     - `{order_id: null}` mientras no se haya consolidado el pago/orden.
+
+    Sin JWT (vuelta desde Wompi): localiza por `reference` solamente si ya hay `id_orden`
+    (la referencia incluye sufijo aleatorio en checkout).
     """
-    row = db.execute(
-        text("SELECT id_orden FROM tab_pagos WHERE reference = :ref AND usr_insert = :uid"),
-        {"ref": reference, "uid": current_user.id_usuario}
-    ).fetchone()
+    if current_user is not None:
+        row = db.execute(
+            text("SELECT id_orden FROM tab_pagos WHERE reference = :ref AND usr_insert = :uid"),
+            {"ref": reference, "uid": current_user.id_usuario},
+        ).fetchone()
+    else:
+        row = db.execute(
+            text("SELECT id_orden FROM tab_pagos WHERE reference = :ref AND id_orden IS NOT NULL"),
+            {"ref": reference},
+        ).fetchone()
     if row and row.id_orden is not None:
         return {"order_id": int(row.id_orden)}
     return {"order_id": None}
+
+
+@router.get(
+    "/checkout-order-detail",
+    status_code=status.HTTP_200_OK,
+    summary="Items de orden tras pago Wompi (sin JWT; valida transacción)",
+    description=(
+        "Para la página payment-result cuando el navegador perdió el access token. "
+        "Valida reference + transaction_id contra Wompi (APPROVED), consolida la orden si aplica "
+        "y devuelve items. No sustituye el control de acceso al perfil."
+    ),
+)
+async def checkout_order_detail(
+    request: FastAPIRequest,
+    reference: str = Query(..., description="Referencia revital_cart_*"),
+    transaction_id: str = Query(..., description="ID transacción Wompi"),
+    db: Session = Depends(get_db),
+):
+    reference = reference.strip()
+    transaction_id = transaction_id.strip()
+    if not reference.startswith("revital_cart_"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Referencia no es de checkout",
+        )
+    wompi_config = get_store_from_request(request, db)
+    tx = await fetch_transaction_by_id(transaction_id, wompi_config)
+    if not tx:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No se pudo obtener la transacción de Wompi",
+        )
+    if (tx.get("reference") or "").strip() != reference:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La referencia de la transacción no coincide",
+        )
+    if tx.get("status") != "APPROVED":
+        return {"id_orden": None, "items": []}
+
+    existing = get_payment_by_reference(db, reference)
+    order_id: Optional[int] = (
+        int(existing["id_orden"])
+        if existing and existing.get("id_orden") is not None
+        else None
+    )
+
+    if order_id is None:
+        created = await create_order_from_checkout_reference(db, reference, tx, id_usuario=None)
+        order_id = int(created) if created is not None else None
+        if order_id is not None:
+            try:
+                import asyncio
+
+                from services.email_service import send_order_confirmation_for_order_id
+
+                asyncio.create_task(send_order_confirmation_for_order_id(order_id))
+            except Exception as e:
+                logger.warning(
+                    "checkout_order_detail: no se pudo programar email orden %s: %s",
+                    order_id,
+                    e,
+                )
+
+    if order_id is None:
+        return {"id_orden": None, "items": []}
+
+    full = order_service.get_order_with_items(db, int(order_id))
+    if not full:
+        return {"id_orden": int(order_id), "items": []}
+    return {"id_orden": int(order_id), "items": full.get("items") or []}
 
 
 @router.post(
@@ -263,7 +381,7 @@ async def confirm_checkout(
     payload: ConfirmCheckoutRequest,
     request: FastAPIRequest,
     db: Session = Depends(get_db),
-    current_user: UserInToken = Depends(get_current_user),
+    current_user: Optional[UserInToken] = Depends(get_current_user_optional),
 ):
     """
     Confirmar checkout tras pago en Wompi.
@@ -309,6 +427,8 @@ async def confirm_checkout(
                 db.rollback()
             except Exception:
                 pass
+        from services import shipping_service as _shipping_svc
+        await _shipping_svc.finalize_envia_after_paid_order(db, order_id, reference)
         return {"order_id": order_id}
     wompi_config = get_store_from_request(request, db)
     tx = await fetch_transaction_by_id(transaction_id, wompi_config)
@@ -326,8 +446,8 @@ async def confirm_checkout(
     # Regla principal: solo crear orden cuando Wompi confirme APPROVED.
     if tx.get("status") != "APPROVED":
         return {"order_id": None, "message": "La transacción no está aprobada"}
-    id_usuario = int(current_user.id_usuario)
-    order_id = create_order_from_checkout_reference(db, reference, tx, id_usuario)
+    id_usuario_token = int(current_user.id_usuario) if current_user is not None else None
+    order_id = await create_order_from_checkout_reference(db, reference, tx, id_usuario_token)
     if order_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

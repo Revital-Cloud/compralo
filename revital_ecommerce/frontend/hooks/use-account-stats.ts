@@ -17,7 +17,7 @@ import type { PointsPerUser } from '@/types/points'
  * 1) Si `userId` es falsy, retorna un objeto “cero” (evita llamadas a backend).
  * 2) Obtiene `orders` desde `GET /orders`.
  * 3) Calcula:
- *    - `completedOrders`: órdenes donde `ind_estado === 2`
+ *    - `completedOrders`: órdenes cerradas (`ind_estado === 3`)
  *    - `totalSpent`: suma de `val_total_pedido` en órdenes completadas
  * 4) Obtiene favoritos del usuario vía `favoritesService.getFavorites(userId)`
  * 5) Obtiene puntos vía `pointsService.getPointsPerUser()`
@@ -64,14 +64,14 @@ export function useAccountStats(userId?: string | number) {
         orders = []
       }
       
-      // Calcular total gastado y órdenes completadas
-      // ind_estado = 2 significa completada
-      const completedOrders = orders.filter(order => order.ind_estado === 2)
-      const totalSpent = completedOrders.reduce(
+      const paidOrders = orders.filter(
+        (order) => order.ind_estado === 2 || order.ind_estado === 3
+      )
+      const totalSpent = paidOrders.reduce(
         (sum, order) => sum + (Number(order.val_total_pedido) || 0),
         0
       )
-      const completedOrdersCount = completedOrders.length
+      const completedOrdersCount = orders.filter((order) => order.ind_estado === 3).length
 
       // Obtener favoritos del usuario
       let favoriteProductsCount = 0

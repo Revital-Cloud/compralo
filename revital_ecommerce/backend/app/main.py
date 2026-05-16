@@ -48,6 +48,8 @@ from routers.address_router import router as address_router
 from routers.points_per_user_router import router as points_per_user_router
 from routers.payment_router import router as payment_router
 from routers.payment_widget_router import router as payment_widget_router
+from routers.shipping_router import router as shipping_router
+from routers.envia_webhook_router import router as envia_webhook_router
 from routers.exchange_router import router as exchange_router
 from routers.order_router import router as order_router
 from routers.order_buy_provider_router import router as order_buy_provider_router
@@ -131,12 +133,16 @@ async def add_trace_id_middleware(request: Request, call_next):
 ALLOWED_CORS_ORIGINS = [
     # Producción
     "https://compralo.revital.cloud",
-    # Frontend local en dev
+    # Frontend local en dev (localhost y 127.0.0.1 son orígenes distintos para CORS)
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
     "http://localhost:3001",
+    "http://127.0.0.1:3001",
     # Frontend dev expuesto por IP del servidor
     "http://46.225.94.64:3001",
     # Compatibilidad con puerto 3002 si se usa en algún entorno
     "http://localhost:3002",
+    "http://127.0.0.1:3002",
     "http://46.225.94.64:3002",
 ]
 
@@ -359,6 +365,9 @@ app.include_router(payment_router, prefix=settings.API_STR, tags=["Payments"])
 
 # Incluye el router de pagos con widget de Wompi.
 app.include_router(payment_widget_router, prefix=settings.API_STR)
+
+app.include_router(shipping_router, prefix=settings.API_STR)
+app.include_router(envia_webhook_router, prefix=settings.API_STR)
 
 # Barra informativa superior (top info bar) - GET /top-info-bar/active público
 app.include_router(top_info_bar_router, prefix=settings.API_STR)

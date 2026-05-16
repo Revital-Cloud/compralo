@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 export const informationSchema = z.object({
-  deliveryMethod: z.enum(["ship", "pickup"]).optional(),
+  /** ID de `tab_direcciones_usuario` (no confundir con calle_direccion). */
+  id_direccion: z.string().trim().min(1, "Selecciona una dirección de envío"),
   nombre: z.string().trim().min(1, "Nombre requerido (no solo espacios)"),
   apellidos: z.string().trim().min(1, "Apellidos requeridos (no solo espacios)"),
   direccion: z.string().trim().min(1, "Debes seleccionar o crear una dirección"),

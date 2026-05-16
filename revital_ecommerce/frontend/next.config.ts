@@ -1,8 +1,27 @@
 import type { NextConfig } from "next";
 
+/**
+ * En dev, el navegador llama a `/api-be/*` (mismo origen que el shop) y Next reescribe al FastAPI.
+ * Así evita CORS/CSP y el caso "abro el front por IP pero NEXT_PUBLIC_API_URL es localhost".
+ */
+const devInternalApiOrigin = (
+  process.env.DEV_INTERNAL_API_ORIGIN || "http://127.0.0.1:8001"
+).replace(/\/$/, "");
+
 const nextConfig: NextConfig = {
   /* config options here */
   serverExternalPackages: ['@node-rs/argon2'],
+  async rewrites() {
+    if (process.env.NODE_ENV !== "development") {
+      return [];
+    }
+    return [
+      {
+        source: "/api-be/:path*",
+        destination: `${devInternalApiOrigin}/api/:path*`,
+      },
+    ];
+  },
   // En producción no se muestran console.log/info/debug/warn; solo console.error
   compiler: {
     removeConsole:
@@ -57,7 +76,11 @@ const nextConfig: NextConfig = {
             "http://localhost:8000",
             "http://localhost:8001",
             "http://localhost:8002",
+            "http://127.0.0.1:8000",
+            "http://127.0.0.1:8001",
+            "http://127.0.0.1:8002",
             "ws://localhost:*",
+            "ws://127.0.0.1:*",
           ]
         : []),
     ].join(' ');

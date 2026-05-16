@@ -128,17 +128,18 @@ def get_order_stats_admin(db: Session):
         dict: Estadísticas de órdenes
 
     Métricas:
-    - conteos por estado,
-    - total de ventas completadas.
+    - conteos: pendiente (1), en camino / pagada (2), completada (3);
+    - total_ventas: suma de pedidos pagados o cerrados (2 y 3).
     """
     try:
         query = text("""
         SELECT 
             COUNT(*) as total,
             COUNT(*) FILTER (WHERE ind_estado = 1) as pendiente,
-            COUNT(*) FILTER (WHERE ind_estado = 2) as completada,
-            COUNT(*) FILTER (WHERE ind_estado = 3) as cancelada,
-            COALESCE(SUM(val_total_pedido) FILTER (WHERE ind_estado = 2), 0) as total_ventas
+            COUNT(*) FILTER (WHERE ind_estado = 2) as en_camino,
+            COUNT(*) FILTER (WHERE ind_estado = 3) as completada,
+            0::bigint as cancelada,
+            COALESCE(SUM(val_total_pedido) FILTER (WHERE ind_estado IN (2, 3)), 0) as total_ventas
         FROM tab_ordenes
         """)
         result = db.execute(query)
@@ -149,6 +150,7 @@ def get_order_stats_admin(db: Session):
             # Asegurar que todos los conteos sean enteros.
             stats['total'] = int(stats.get('total', 0))
             stats['pendiente'] = int(stats.get('pendiente', 0))
+            stats['en_camino'] = int(stats.get('en_camino', 0))
             stats['completada'] = int(stats.get('completada', 0))
             stats['cancelada'] = int(stats.get('cancelada', 0))
             # `total_ventas` suele llegar como Decimal.
@@ -159,6 +161,7 @@ def get_order_stats_admin(db: Session):
             stats = {
                 'total': 0,
                 'pendiente': 0,
+                'en_camino': 0,
                 'completada': 0,
                 'cancelada': 0,
                 'total_ventas': Decimal('0')
@@ -199,8 +202,9 @@ def get_order_detail_admin(db: Session, id_orden: int):
             u.ape_usuario, 
             u.email_usuario,
             u.cel_usuario,
-            o.val_total_productos, 
-            o.val_total_descuentos, 
+            o.val_total_productos,
+            o.val_total_descuentos,
+            o.val_costo_envio,
             o.val_total_pedido,
             o.ind_estado, 
             o.metodo_pago, 
@@ -273,6 +277,20 @@ def get_order_detail_admin(db: Session, id_orden: int):
         orden_dict = _row_to_dict(order_data)
         descuentos = order_data.get("detalle_descuentos_aplicados") if hasattr(order_data, "get") else orden_dict.get("detalle_descuentos_aplicados")
 
+        envio_row = db.execute(
+            text(
+                """
+                SELECT e.tracking_number, e.tracking_url, e.label_url, e.carrier, e.service,
+                       e.estado_envio, e.costo_envio
+                FROM tab_ordenes_envio e
+                WHERE e.id_orden = :id_orden
+                LIMIT 1
+                """
+            ),
+            {"id_orden": id_orden},
+        ).mappings().first()
+        envio = _row_to_dict(envio_row) if envio_row else None
+
         # Mapear ítems al formato esperado por el panel admin.
         productos_list: list[dict[str, Any]] = []
         for it in raw_items:
@@ -292,6 +310,7 @@ def get_order_detail_admin(db: Session, id_orden: int):
             "orden": orden_dict,
             "productos": productos_list,
             "direccion_envio": direccion_envio,
+            "envio": envio,
             "puntos_ganados": points_value,
             "descuentos_aplicados": descuentos
         }
@@ -307,13 +326,15 @@ def update_order_status_admin(db: Session, id_orden: int, new_status: int, usr_u
     Args:
         db (Session): Sesión de base de datos
         id_orden (int): ID de la orden
-        new_status (int): Nuevo estado (1=Pendiente, 2=Completada, 3=Cancelada)
+        new_status (int): Nuevo estado (1=Pendiente, 2=Pagada/en camino, 3=Completada)
         usr_update (Decimal): ID del usuario que actualiza
 
     Uso:
     - Endpoint admin de cambio manual de estado.
     """
     try:
+        if new_status not in (1, 2, 3):
+            raise ValueError("Estado inválido: use 1 (pendiente), 2 (pagada/en camino) o 3 (completada)")
         query = text("""
         UPDATE tab_ordenes 
         SET ind_estado = :new_status, usr_update = :usr_update, fec_update = NOW()
@@ -385,6 +406,7 @@ def get_order_by_id(db:Session, id_orden: Decimal):
             id_usuario,
             val_total_productos,
             val_total_descuentos,
+            val_costo_envio,
             val_total_pedido,
             ind_estado,
             metodo_pago,
@@ -420,6 +442,7 @@ def get_order_detail(db:Session, id_orden: Decimal):
             id_usuario,
             val_total_productos,
             val_total_descuentos,
+            val_costo_envio,
             val_total_pedido,
             ind_estado,
             metodo_pago,
@@ -473,6 +496,7 @@ def create_order(
                 id_canje_val = int(order.id_canje)
             except (TypeError, ValueError):
                 pass
+        costo_envio_val = float(getattr(order, "costo_envio", 0) or 0)
         params = {
             "id_carrito": int(order.id_carrito),
             "id_direccion": int(order.id_direccion),
@@ -482,8 +506,15 @@ def create_order(
             "id_canje": id_canje_val,
             "ind_estado": ind_estado,
             "metodo_pago": metodo_pago,
+            "costo_envio": costo_envio_val,
         }
-        logger.info("create_order: id_carrito=%s, id_canje=%s, ind_estado=%s (descuento por puntos)", params["id_carrito"], params["id_canje"], ind_estado)
+        logger.info(
+            "create_order: id_carrito=%s, id_canje=%s, ind_estado=%s, costo_envio=%s",
+            params["id_carrito"],
+            params["id_canje"],
+            ind_estado,
+            costo_envio_val,
+        )
         query = text("""
         SELECT fun_crear_orden_desde_carrito(
             :id_carrito,
@@ -493,7 +524,8 @@ def create_order(
             :usr_insert,
             :id_canje,
             :ind_estado,
-            :metodo_pago
+            :metodo_pago,
+            :costo_envio
         )
         """).bindparams(bindparam("id_canje", type_=Integer))
         result = db.execute(query, params)

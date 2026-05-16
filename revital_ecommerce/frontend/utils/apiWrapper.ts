@@ -19,30 +19,81 @@ let failedQueue: Array<{ resolve: Function; reject: Function }> = [];
 /** Access token en memoria (SEC-001). No usar localStorage para reducir impacto de XSS. */
 let inMemoryAccessToken: string | null = null;
 
+/** Suscriptores para que React repinte cuando el token cambia sin pasar por Context (p. ej. redirect Wompi). */
+const accessTokenListeners = new Set<() => void>();
+
+function notifyAccessTokenListeners(): void {
+  accessTokenListeners.forEach((fn) => {
+    try {
+      fn();
+    } catch {
+      /* noop */
+    }
+  });
+}
+
+/**
+ * Suscripción para useSyncExternalStore (useAuth): al restaurar JWT tras redirect de pago, el header/layout se actualizan.
+ */
+export function subscribeAccessToken(callback: () => void): () => void {
+  accessTokenListeners.add(callback);
+  return () => {
+    accessTokenListeners.delete(callback);
+  };
+}
+
+const FALLBACK_PUBLIC_API = "http://localhost:8000/api";
+
+/**
+ * Base URL del API según entorno.
+ * - Producción: `NEXT_PUBLIC_API_URL` (cross-origin permitido por CORS del backend).
+ * - Desarrollo en navegador: mismo origen + `/api-be` (Next `rewrites` → FastAPI); evita CORS/CSP
+ *   y el fallo típico al abrir el shop por IP/127.0.0.1 con API en `localhost`.
+ * - Desarrollo en servidor (RSC/SSR): `DEV_INTERNAL_API_ORIGIN` + `/api` (por defecto 127.0.0.1:8001).
+ * - Desactivar proxy dev: `NEXT_PUBLIC_API_NO_PROXY=1` (vuelve a llamar directo a NEXT_PUBLIC_API_URL).
+ */
+export function getApiBaseURL(): string {
+  const direct =
+    process.env.NEXT_PUBLIC_API_URL?.trim() || FALLBACK_PUBLIC_API;
+  if (
+    process.env.NODE_ENV !== "development" ||
+    process.env.NEXT_PUBLIC_API_NO_PROXY === "1"
+  ) {
+    return direct;
+  }
+  if (typeof window !== "undefined") {
+    return `${window.location.origin}/api-be`;
+  }
+  const internal = (
+    process.env.DEV_INTERNAL_API_ORIGIN || "http://127.0.0.1:8001"
+  ).replace(/\/$/, "");
+  return `${internal}/api`;
+}
+
 /**
  * Crear y configurar la instancia de Axios
  */
 function createApiInstance(): AxiosInstance {
-  const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-  
-  // Log para debugging (solo en desarrollo)
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-    console.log('[API Wrapper] Base URL configurada:', baseURL);
-    console.log('[API Wrapper] NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
-  }
-  
   const instance = axios.create({
-    baseURL,
     timeout: 30000, // 30 segundos para operaciones complejas como pagos
     withCredentials: true, // Enviar cookies (refresh_token HTTPOnly) en refresh y logout
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   });
 
+  instance.interceptors.request.use((config) => {
+    config.baseURL = getApiBaseURL();
+    return config;
+  });
+
+  if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+    console.log("[API Wrapper] Base URL (dinámica):", getApiBaseURL());
+  }
+
   // Configurar interceptores
   setupInterceptors(instance);
-  
+
   return instance;
 }
 
@@ -227,6 +278,7 @@ export function getStoredToken(): string | null {
  */
 export function setAccessToken(accessToken: string): void {
   inMemoryAccessToken = accessToken;
+  notifyAccessTokenListeners();
 }
 
 /**
@@ -241,6 +293,7 @@ export function getStoredRefreshToken(): string | null {
  */
 export function storeTokens(accessToken: string, _refreshToken?: string): void {
   inMemoryAccessToken = accessToken;
+  notifyAccessTokenListeners();
 }
 
 /**
@@ -248,6 +301,7 @@ export function storeTokens(accessToken: string, _refreshToken?: string): void {
  */
 export function clearTokens(): void {
   inMemoryAccessToken = null;
+  notifyAccessTokenListeners();
 }
 
 /**
@@ -426,6 +480,7 @@ const apiWrapper = {
   storeTokens,
   clearTokens,
   isAuthenticated,
+  subscribeAccessToken,
   setPaymentCallbackToken,
   getTokenForPaymentCallback,
   clearPaymentCallbackToken,

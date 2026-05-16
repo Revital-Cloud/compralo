@@ -30,7 +30,8 @@ logger = logging.getLogger(__name__)
 from core.database import get_db
 from core.dependencies import get_current_user, require_admin
 from schemas.auth_schema import UserInToken
-from schemas.order_schema import Order, OrderCreate, ResponseMessage, CreateOrderResponse, OrderStats 
+from schemas.order_schema import Order, OrderCreate, ResponseMessage, CreateOrderResponse, OrderStats
+from schemas.shipping_schema import OrderShippingResponse
 from schemas.payment_schema import PayOrderPayload
 from services.wompi_service import wompi_service
 from services import order_service
@@ -233,6 +234,34 @@ async def get_order_detail_with_items(
     if order.get("id_usuario") != current_user.id_usuario:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No autorizado para ver esta orden")
     return order
+
+
+@router.get("/orders/{order_id}/shipping", response_model=OrderShippingResponse)
+async def get_order_shipping(
+    order_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(get_current_user),
+):
+    row = db.execute(
+        text(
+            """
+            SELECT e.tracking_number, e.tracking_url, e.label_url, e.carrier, e.estado_envio
+            FROM tab_ordenes o
+            LEFT JOIN tab_ordenes_envio e ON e.id_orden = o.id_orden
+            WHERE o.id_orden = :oid AND o.id_usuario = :uid
+            """
+        ),
+        {"oid": order_id, "uid": current_user.id_usuario},
+    ).fetchone()
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Orden no encontrada")
+    return OrderShippingResponse(
+        tracking_number=getattr(row, "tracking_number", None),
+        tracking_url=getattr(row, "tracking_url", None),
+        label_url=getattr(row, "label_url", None),
+        carrier=getattr(row, "carrier", None),
+        estado_envio=getattr(row, "estado_envio", None),
+    )
 
 
 @router.post("/order", response_model=Dict[str, Any], status_code=status.HTTP_201_CREATED)

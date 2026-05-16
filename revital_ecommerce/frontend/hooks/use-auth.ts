@@ -22,7 +22,11 @@ import {
   REGISTER_ATTEMPT_KEY,
 } from '@/lib/auth-attempt-limiter';
 import * as userService from '@/services/user.service';
-import { isAuthenticated, clearTokens } from '@/utils/apiWrapper';
+import {
+  subscribeAccessToken,
+  getStoredToken,
+  clearTokens,
+} from '@/utils/apiWrapper';
 import { useCookies } from './use-cookies';
 import type {
   LoginRequest,
@@ -34,7 +38,7 @@ import type {
   UserUpdate,
   RegisterRequest,
 } from '@/types';
-import { useEffect } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { useSessionRestoreState } from './session-restore-state';
 
 // Claves de queries para administrar caché de autenticación.
@@ -72,6 +76,14 @@ export function useAuth() {
   const { canUseCookie, isHydrated } = useCookies();
   const { isRestoring: isRestoringSession } = useSessionRestoreState();
 
+  /** Token en memoria con suscripción: tras redirect Wompi el layout/header repintan al restaurar JWT. */
+  const accessToken = useSyncExternalStore(
+    subscribeAccessToken,
+    getStoredToken,
+    () => null as string | null,
+  );
+  const hasToken = !!accessToken;
+
   // Query para obtener el usuario actual
   const {
     data: user,
@@ -80,7 +92,7 @@ export function useAuth() {
   } = useQuery({
     queryKey: AUTH_KEYS.currentUser,
     queryFn: authService.getCurrentUser,
-    enabled: isAuthenticated() && isHydrated, // Simplificado: solo verificar token y hidratación
+    enabled: hasToken && isHydrated,
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutos
     refetchOnWindowFocus: false,
@@ -293,10 +305,12 @@ export function useAuth() {
   const canUseCookies = () => canUseCookie('necessary');
 
   // Estado final de autenticación consumible por UI.
-  const isUserAuthenticated = isAuthenticated() && !!user && isHydrated;
+  const isUserAuthenticated = hasToken && !!user && isHydrated;
 
   return {
     user,
+    /** Hay Bearer token válido en memoria (puede estar cargando perfil). */
+    hasToken,
     isAuthenticated: isUserAuthenticated,
     isLoadingUser,
     isRestoringSession,
