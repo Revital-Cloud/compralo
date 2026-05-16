@@ -50,6 +50,8 @@ interface OrderDetail {
   fec_insert: string;
   val_total_productos: number;
   val_total_descuentos: number;
+  /** Costo de envío COP (tab_ordenes.val_costo_envio). */
+  val_costo_envio?: number;
   val_total_pedido: number;
   ind_estado: number;
   des_observaciones?: string | null;
@@ -58,11 +60,19 @@ interface OrderDetail {
   metodo_pago?: string | null;
 }
 
+interface OrderShippingLive {
+  tracking_number?: string | null;
+  tracking_url?: string | null;
+  label_url?: string | null;
+  carrier?: string | null;
+  estado_envio?: string | null;
+}
+
 function formatStatus(state: number) {
   switch (state) {
-    case 1: return "Pendiente";
-    case 2: return "Procesada";
-    case 3: return "Enviada/Cancelada";
+    case 1: return "Pendiente de pago";
+    case 2: return "En camino";
+    case 3: return "Completada";
     case 4: return "Cancelada";
     default: return "Desconocido";
   }
@@ -95,6 +105,11 @@ function formatCurrency(value: number) {
   return `$${Number(value || 0).toLocaleString()}`;
 }
 
+function isHttpUrl(s: string | null | undefined): boolean {
+  const t = (s ?? "").trim();
+  return t.startsWith("http://") || t.startsWith("https://");
+}
+
 function getOrderHeadline(state: number) {
   switch (state) {
     case 1:
@@ -102,7 +117,7 @@ function getOrderHeadline(state: number) {
     case 2:
       return "Tu pedido va en camino";
     case 3:
-      return "Tu pedido fue enviado";
+      return "Pedido completado";
     case 4:
       return "Este pedido fue cancelado";
     default:
@@ -130,6 +145,16 @@ export default function OrdersTab() {
       return await api.get<OrderDetail>(`/orders/${selectedOrder.id_orden}/detail`);
     },
     enabled: !!selectedOrder?.id_orden,
+  });
+
+  const { data: shippingLive } = useQuery({
+    queryKey: ["order-shipping", selectedOrder?.id_orden],
+    queryFn: async () => {
+      if (!selectedOrder?.id_orden) return null;
+      return await api.get<OrderShippingLive>(`/orders/${selectedOrder.id_orden}/shipping`);
+    },
+    enabled: !!selectedOrder?.id_orden,
+    retry: false,
   });
 
   const handleReviewSubmit = async (rating: number, comment: string) => {
@@ -343,6 +368,54 @@ export default function OrdersTab() {
                   </div>
                 </div>
 
+                {orderDetail.ind_estado >= 2 && (
+                  <div className="mt-6 rounded-lg border border-border bg-muted/30 p-4">
+                    <p className="text-sm font-medium text-foreground">Envío y seguimiento</p>
+                    {shippingLive?.carrier && (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        Transportista:{" "}
+                        <span className="text-foreground font-medium">{shippingLive.carrier}</span>
+                      </p>
+                    )}
+                    {shippingLive?.estado_envio && (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Estado del envío:{" "}
+                        <span className="text-foreground font-medium">{shippingLive.estado_envio}</span>
+                      </p>
+                    )}
+                    {shippingLive?.tracking_url && shippingLive?.tracking_number ? (
+                      <p className="mt-2 text-sm">
+                        <a
+                          href={shippingLive.tracking_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-medium text-primary underline-offset-4 hover:underline"
+                        >
+                          {shippingLive.tracking_number}
+                        </a>
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {shippingLive?.tracking_number
+                          ? shippingLive.tracking_number
+                          : "Cuando el transportista asigne el número de seguimiento, aparecerá aquí."}
+                      </p>
+                    )}
+                    {isHttpUrl(shippingLive?.label_url) ? (
+                      <p className="mt-2 text-sm">
+                        <a
+                          href={(shippingLive?.label_url ?? "").trim()}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-primary underline-offset-4 hover:underline"
+                        >
+                          Ver etiqueta (PDF)
+                        </a>
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+
                 {orderDetail.items && orderDetail.items.length > 0 ? (
                   <div className="space-y-6 pt-8">
                     {orderDetail.items.map((it: OrderProductItem, idx: number) => {
@@ -447,6 +520,14 @@ export default function OrdersTab() {
                       <div className="flex items-center justify-between text-muted-foreground">
                         <span>Descuentos</span>
                         <span>-{formatCurrency(orderDetail.val_total_descuentos || 0)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>Envío</span>
+                        <span>
+                          {Number(orderDetail.val_costo_envio ?? 0) > 0
+                            ? formatCurrency(Number(orderDetail.val_costo_envio))
+                            : "Gratis"}
+                        </span>
                       </div>
                       <div className="flex items-center justify-between font-semibold text-foreground">
                         <span>Total</span>

@@ -70,11 +70,11 @@ export const OrderDetailCards = ({ orderDetail }: OrderDetailCardsProps) => {
             <span className="text-sm font-medium">Estado:</span>
             <Badge className={
               orden.ind_estado === 1 ? 'bg-yellow-100 text-yellow-800' :
-              orden.ind_estado === 2 ? 'bg-green-100 text-green-800' :
-              'bg-red-100 text-red-800'
+              orden.ind_estado === 2 ? 'bg-sky-100 text-sky-900' :
+              'bg-green-100 text-green-800'
             }>
-              {orden.ind_estado === 1 ? 'Pendiente' :
-               orden.ind_estado === 2 ? 'Completada' : 'Cancelada'}
+              {orden.ind_estado === 1 ? 'Pendiente de pago' :
+               orden.ind_estado === 2 ? 'En camino' : 'Completada'}
             </Badge>
           </div>
         </CardContent>

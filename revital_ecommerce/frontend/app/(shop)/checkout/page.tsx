@@ -26,7 +26,7 @@ import { useCart } from "@/hooks/use-cart";
 import * as cartService from "@/services/cart.service";
 import { useAuth } from "@/hooks/use-auth";
 import { formatPrice } from "@/utils/format-price";
-import { ChevronLeft, Truck, Package, CreditCard, ShieldCheck, Plus, X } from "lucide-react";
+import { ChevronLeft, CreditCard, ShieldCheck, Plus, X, Loader2 } from "lucide-react";
 import WompiModal from "@/components/payment/wompi-modal";
 import type { CheckoutData } from "@/services/wompi-widget.service";
 import { PaymentMethodsRow } from "@/components/payment/payment-card-brands";
@@ -47,6 +47,31 @@ import {
   calculateDiscountedPrice, 
   calculateDiscountPercentage 
 } from "@/utils/discount-utils";
+import { getStoredToken, setPaymentCallbackToken } from "@/utils/apiWrapper";
+
+type ShippingRateOption = {
+  carrier: string;
+  service: string;
+  price: number;
+  name: string;
+  delivery_estimate?: string | null;
+};
+
+function shippingRateKey(r: ShippingRateOption) {
+  return `${r.carrier}::${r.service}`;
+}
+
+const PKG_LEN_CM = 30;
+const PKG_WID_CM = 22;
+const PKG_HGT_CM = 12;
+
+function estimateWeightKgFromItems(
+  cartItems: { cantidad?: number }[] | undefined
+): number {
+  const qty =
+    cartItems?.reduce((s, it) => s + (Number(it.cantidad) || 0), 0) || 1;
+  return Math.max(0.5, Math.min(50, qty * 0.35));
+}
 
 /**
  * Mapa de la página `checkout`.
@@ -73,9 +98,20 @@ const CheckoutPage = () => {
       router.replace(`/login?redirect=${redirect}`);
     }
   }, [isHydrated, isLoadingUser, isAuthenticated, router]);
+
+  // Persistir JWT en sessionStorage mientras el usuario está en checkout (respaldo si Wompi redirige sin pasar solo por el modal).
+  useEffect(() => {
+    if (!isHydrated || !isAuthenticated) return;
+    setPaymentCallbackToken();
+  }, [isHydrated, isAuthenticated]);
   
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
-  const [selectedShippingMethod, setSelectedShippingMethod] = useState<string>("");
+  /** Dirección confirmada al pasar a pago (cotización Envia). */
+  const [checkoutAddressId, setCheckoutAddressId] = useState<string>("");
+  const [shippingRates, setShippingRates] = useState<ShippingRateOption[]>([]);
+  const [shippingRatesLoading, setShippingRatesLoading] = useState(false);
+  const [shippingRatesError, setShippingRatesError] = useState<string | null>(null);
+  const [selectedShippingRateKey, setSelectedShippingRateKey] = useState<string>("");
   const [isWompiModalOpen, setIsWompiModalOpen] = useState(false);
   /** Datos para crear sesión de checkout (no se crea orden hasta que el pago sea aprobado). */
   const [checkoutDataForModal, setCheckoutDataForModal] = useState<CheckoutData | null>(null);
@@ -93,7 +129,7 @@ const CheckoutPage = () => {
   const informationForm = useForm<InformationFormData>({
     resolver: zodResolver(informationSchema),
     defaultValues: {
-      deliveryMethod: undefined,
+      id_direccion: "",
       nombre: "",
       apellidos: "",
       direccion: "",
@@ -126,17 +162,11 @@ const CheckoutPage = () => {
     },
   });
 
-  // Métodos de envío simulados (luego se conectarán con el backend)
-  const shippingMethods = [
-    { id: "coordinadora", name: "Coordinadora", price: 12860, estimatedDays: "3-5" },
-    { id: "servientrega", name: "Servientrega", price: 15000, estimatedDays: "2-4" },
-    { id: "tcc", name: "TCC", price: 12000, estimatedDays: "4-6" },
-  ];
-
   const subtotal = Number(totals?.total_productos) || Number(total) || 0;
-  const shipping = selectedShippingMethod
-    ? shippingMethods.find((m) => m.id === selectedShippingMethod)?.price || 0
-    : 0;
+  const selectedShippingRate = shippingRates.find(
+    (r) => shippingRateKey(r) === selectedShippingRateKey
+  );
+  const shipping = selectedShippingRate ? Number(selectedShippingRate.price) || 0 : 0;
   const totalConDescuentos = Number(totals?.total_final) ?? subtotal;
   const totalDescCanjeado = Number(totals?.total_desc_canjeado ?? 0);
 
@@ -165,14 +195,79 @@ const CheckoutPage = () => {
       : 0;
   const finalTotal = totalConDescuentos - descuentoCodigoAmount + shipping;
 
+  const weightKg = estimateWeightKgFromItems(items);
+
+  useEffect(() => {
+    if (currentStep !== 3 || !checkoutAddressId) return;
+    const idDir = Number(checkoutAddressId);
+    if (!Number.isFinite(idDir) || idDir < 1) return;
+
+    let cancelled = false;
+    (async () => {
+      setShippingRatesLoading(true);
+      setShippingRatesError(null);
+      try {
+        const token = getStoredToken();
+        const headers: HeadersInit = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const res = await fetch("/api/shipping/rates", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            id_direccion: idDir,
+            weight_kg: weightKg,
+            length_cm: PKG_LEN_CM,
+            width_cm: PKG_WID_CM,
+            height_cm: PKG_HGT_CM,
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (!res.ok) {
+          setShippingRates([]);
+          setShippingRatesError(
+            typeof data?.error === "string" ? data.error : "No se pudo cotizar el envío"
+          );
+          setSelectedShippingRateKey("");
+          return;
+        }
+        const list: ShippingRateOption[] = Array.isArray(data?.rates) ? data.rates : [];
+        setShippingRates(list);
+        if (list.length > 0) {
+          setSelectedShippingRateKey((prev) =>
+            prev && list.some((r) => shippingRateKey(r) === prev)
+              ? prev
+              : shippingRateKey(list[0])
+          );
+        } else {
+          setSelectedShippingRateKey("");
+        }
+      } catch {
+        if (!cancelled) {
+          setShippingRates([]);
+          setShippingRatesError("Error de red al cotizar envío");
+          setSelectedShippingRateKey("");
+        }
+      } finally {
+        if (!cancelled) setShippingRatesLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentStep, checkoutAddressId, weightKg]);
+
   // Handlers
   const handleInformationSubmit = (data: InformationFormData) => {
-    // Saltar el paso de envío y ir directamente a pago
+    setCheckoutAddressId(String(data.id_direccion || "").trim());
+    setSelectedShippingRateKey("");
+    setShippingRates([]);
+    setShippingRatesError(null);
     setCurrentStep(3);
   };
 
   const handleShippingSubmit = (data: ShippingFormData) => {
-    setSelectedShippingMethod(data.shippingMethod);
+    setSelectedShippingRateKey(data.shippingMethod);
     setCurrentStep(3);
   };
 
@@ -193,11 +288,25 @@ const CheckoutPage = () => {
     : [];
 
   const selectedAddress = activeAddresses.find(
-      (addr) => addr.id_direccion?.toString() === informationForm.getValues().direccion
+      (addr) => addr.id_direccion?.toString() === informationForm.getValues().id_direccion
     ) || activeAddresses[0];
 
     if (!selectedAddress?.id_direccion) {
       toast.error('Debes seleccionar una dirección de envío.');
+      return;
+    }
+
+    if (shippingRatesLoading) {
+      toast.info("Espera a que carguen las opciones de envío.");
+      return;
+    }
+    if (!selectedShippingRate) {
+      toast.error(
+        shippingRatesError ||
+          (shippingRates.length === 0
+            ? "No hay métodos de envío disponibles para tu dirección."
+            : "Selecciona un método de envío.")
+      );
       return;
     }
 
@@ -234,6 +343,13 @@ const CheckoutPage = () => {
       id_direccion: Number(selectedAddress.id_direccion),
       id_canje: idCanje,
       ...(codigoDescuento ? { codigo_descuento: codigoDescuento } : {}),
+      shipping_carrier: selectedShippingRate.carrier,
+      shipping_service: selectedShippingRate.service,
+      shipping_cost: Number(selectedShippingRate.price),
+      weight_kg: weightKg,
+      length_cm: PKG_LEN_CM,
+      width_cm: PKG_WID_CM,
+      height_cm: PKG_HGT_CM,
     };
     setCheckoutDataForModal(checkoutData);
     setIsWompiModalOpen(true);
@@ -325,7 +441,12 @@ const CheckoutPage = () => {
               <ShippingStep
                 form={shippingForm}
                 onSubmit={handleShippingSubmit}
-                shippingMethods={shippingMethods}
+                shippingMethods={shippingRates.map((r) => ({
+                  id: shippingRateKey(r),
+                  name: r.name || `${r.carrier} — ${r.service}`,
+                  price: r.price,
+                  estimatedDays: (r.delivery_estimate as string) || "—",
+                }))}
                 onBack={() => setCurrentStep(1)}
               />
             )}
@@ -335,8 +456,11 @@ const CheckoutPage = () => {
                 form={paymentForm}
                 onSubmit={handlePaymentSubmit}
                 informationData={informationForm.getValues()}
-                shippingMethod={selectedShippingMethod}
-                shippingMethods={shippingMethods}
+                shippingRatesLoading={shippingRatesLoading}
+                shippingRatesError={shippingRatesError}
+                shippingRates={shippingRates}
+                selectedShippingRateKey={selectedShippingRateKey}
+                onSelectShippingRate={setSelectedShippingRateKey}
                 onBack={() => setCurrentStep(1)}
               />
             )}
@@ -438,6 +562,7 @@ function InformationStep({
   // Llenar formulario cuando se selecciona una dirección
   React.useEffect(() => {
     if (selectedAddress) {
+      form.setValue("id_direccion", String(selectedAddress.id_direccion ?? ""));
       // Llenar campos de dirección (no sobrescribir nombre, apellidos y celular del perfil)
       form.setValue("direccion", selectedAddress.calle_direccion || "");
       form.setValue("complemento", selectedAddress.complemento || "");
@@ -447,8 +572,10 @@ function InformationStep({
       form.setValue("codigo_postal", selectedAddress.codigo_postal || "");
       form.setValue("barrio", selectedAddress.barrio || "");
       form.setValue("referencias", selectedAddress.referencias || "");
+    } else if (!selectedAddressId) {
+      form.setValue("id_direccion", "");
     }
-  }, [selectedAddress, form]);
+  }, [selectedAddress, selectedAddressId, form]);
 
   return (
     <Card>
@@ -456,31 +583,6 @@ function InformationStep({
         <h2 className="mb-6 text-xl font-bold sm:text-2xl">Información</h2>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {/* Método de entrega - Deshabilitado por ahora */}
-          <div className="opacity-50 pointer-events-none">
-            <Label className="mb-3 block">Método de entrega</Label>
-            <RadioGroup
-              value={form.watch("deliveryMethod")}
-              onValueChange={(value) => form.setValue("deliveryMethod", value as "ship" | "pickup")}
-              disabled
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="ship" id="ship" disabled />
-                <Label htmlFor="ship" className="flex items-center gap-2 cursor-not-allowed">
-                  <Truck className="h-4 w-4" />
-                  Envíar pedido
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="pickup" id="pickup" disabled />
-                <Label htmlFor="pickup" className="flex items-center gap-2 cursor-not-allowed">
-                  <Package className="h-4 w-4" />
-                  Recoger pedido
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-
           {/* Dirección de envío */}
           {true && (
             <div className="space-y-4 border-t pt-6">
@@ -534,11 +636,14 @@ function InformationStep({
                       const id = newAddress?.id_direccion ?? newAddress?.id;
                       if (id != null) {
                         setSelectedAddressId(String(id));
+                        form.setValue("id_direccion", String(id));
                       } else {
                         const list = await queryClient.fetchQuery({ queryKey: ["addresses"] }) as any[];
                         if (Array.isArray(list) && list.length > 0) {
                           const last = list[list.length - 1];
-                          setSelectedAddressId(String(last?.id_direccion ?? last?.id ?? ""));
+                          const lid = String(last?.id_direccion ?? last?.id ?? "");
+                          setSelectedAddressId(lid);
+                          if (lid) form.setValue("id_direccion", lid);
                         }
                       }
                       toast.success("Dirección creada. Selecciónala en el desplegable si no se eligió automáticamente.");
@@ -1031,18 +1136,24 @@ function PaymentStep({
   form,
   onSubmit,
   informationData,
-  shippingMethod,
-  shippingMethods,
+  shippingRatesLoading,
+  shippingRatesError,
+  shippingRates,
+  selectedShippingRateKey,
+  onSelectShippingRate,
   onBack,
 }: {
   form: any;
   onSubmit: (data: PaymentFormData) => void;
   informationData: any;
-  shippingMethod: string;
-  shippingMethods: any[];
+  shippingRatesLoading: boolean;
+  shippingRatesError: string | null;
+  shippingRates: ShippingRateOption[];
+  selectedShippingRateKey: string;
+  onSelectShippingRate: (key: string) => void;
   onBack: () => void;
 }) {
-  const selectedShipping = shippingMethods.find((m) => m.id === shippingMethod);
+  const selectedShipping = shippingRates.find((r) => shippingRateKey(r) === selectedShippingRateKey);
 
   return (
     <Card>
@@ -1057,7 +1168,7 @@ function PaymentStep({
           <div className="border-b pb-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Dirección de envío</span>
-              <Button type="button" variant="ghost" size="sm">
+              <Button type="button" variant="ghost" size="sm" onClick={onBack}>
                 Cambiar
               </Button>
             </div>
@@ -1067,17 +1178,53 @@ function PaymentStep({
             </p>
           </div>
 
-          {/* Método de envío */}
+          {/* Método de envío (cotización Envia) */}
           <div className="border-b pb-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Método de envío</span>
-              <Button type="button" variant="ghost" size="sm">
-                Cambiar
-              </Button>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              {selectedShipping?.name} - {formatPrice(selectedShipping?.price || 0)}
-            </p>
+            {shippingRatesLoading ? (
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Obteniendo tarifas de envío…
+              </p>
+            ) : shippingRatesError ? (
+              <p className="text-sm text-red-600 dark:text-red-400">{shippingRatesError}</p>
+            ) : shippingRates.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay tarifas disponibles para esta dirección.</p>
+            ) : (
+              <RadioGroup
+                value={selectedShippingRateKey}
+                onValueChange={onSelectShippingRate}
+                className="space-y-2"
+              >
+                {shippingRates.map((r) => {
+                  const key = shippingRateKey(r);
+                  return (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/40"
+                    >
+                      <div className="flex items-center gap-3">
+                        <RadioGroupItem value={key} id={`ship-${key}`} />
+                        <Label htmlFor={`ship-${key}`} className="cursor-pointer font-normal">
+                          <div className="font-medium">{r.name || `${r.carrier} — ${r.service}`}</div>
+                          {r.delivery_estimate && (
+                            <div className="text-xs text-muted-foreground">{r.delivery_estimate}</div>
+                          )}
+                        </Label>
+                      </div>
+                      <span className="text-sm font-semibold">{formatPrice(r.price)}</span>
+                    </div>
+                  );
+                })}
+              </RadioGroup>
+            )}
+            {!shippingRatesLoading && selectedShipping && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Seleccionado: {selectedShipping.name} — {formatPrice(selectedShipping.price)}
+              </p>
+            )}
           </div>
 
           {/* Métodos de pago */}

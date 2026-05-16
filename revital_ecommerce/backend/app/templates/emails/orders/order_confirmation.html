@@ -21,6 +21,7 @@
         {% if (order.discount_total or order.get('discount_total')) and (order.discount_total or order.get('discount_total')) != '0' %}
         <tr><td><strong>Descuentos</strong></td><td style="color:#16a34a; font-weight:700;">- ${{ order.discount_total or order.get('discount_total', '') }}</td></tr>
         {% endif %}
+        <tr><td><strong>Envío</strong></td><td>{% if order.shipping_free or order.get('shipping_free', false) %}Gratis{% else %}${{ order.shipping_cost or order.get('shipping_cost', '') }}{% endif %}</td></tr>
         <tr><td><strong>Total</strong></td><td class="price">${{ order.total }}</td></tr>
     </table>
 </div>
@@ -91,6 +92,7 @@
     <h3>Envío</h3>
     <table class="table">
         <tr><td><strong>Dirección</strong></td><td>{{ order.shipping_address or order.get('shipping_address', '') }}</td></tr>
+        <tr><td><strong>Costo de envío</strong></td><td>{% if order.shipping_free or order.get('shipping_free', false) %}Gratis{% else %}${{ order.shipping_cost or order.get('shipping_cost', '') }}{% endif %}</td></tr>
         <tr><td><strong>Método</strong></td><td>{{ order.shipping_method or order.get('shipping_method', '') }}</td></tr>
         <tr><td><strong>Entrega estimada</strong></td><td>{{ order.estimated_delivery or order.get('estimated_delivery', '') }}</td></tr>
     </table>

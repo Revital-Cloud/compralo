@@ -281,7 +281,32 @@ class EmailTemplates:
             'orders/order_confirmation.html',
             **order_data
         )
-    
+
+    def get_shipping_label_generated_template(
+        self,
+        *,
+        user_name: str,
+        order_id: int,
+        carrier_display: str,
+        service_display: str,
+        tracking_number: Optional[str],
+        tracking_url: Optional[str],
+        label_url: Optional[str],
+        order_url: str,
+    ) -> str:
+        """Email al cliente cuando Envia genera guía (PDF y/o seguimiento)."""
+        return self.render_template(
+            "orders/shipping_label_generated.html",
+            user_name=user_name,
+            order_id=order_id,
+            carrier_display=carrier_display,
+            service_display=service_display,
+            tracking_number=tracking_number or "",
+            tracking_url=tracking_url or "",
+            label_url=label_url or "",
+            order_url=order_url,
+        )
+
     def get_order_status_template(self, status_data: Dict[str, Any]) -> str:
         """
         Genera el template de cambio de estado de pedido.

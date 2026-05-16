@@ -57,9 +57,9 @@ export const OrderFilters = ({ filters, onFiltersChange, onClear }: OrderFilters
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los estados</SelectItem>
-            <SelectItem value="1">Pendiente</SelectItem>
-            <SelectItem value="2">Completada</SelectItem>
-            <SelectItem value="3">Cancelada</SelectItem>
+            <SelectItem value="1">Pendiente de pago</SelectItem>
+            <SelectItem value="2">Pagada (en camino)</SelectItem>
+            <SelectItem value="3">Completada</SelectItem>
           </SelectContent>
         </Select>
 

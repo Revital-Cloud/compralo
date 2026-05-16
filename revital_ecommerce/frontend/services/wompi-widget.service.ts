@@ -1360,6 +1360,13 @@ export interface CheckoutData {
   id_canje?: number | null;
   /** Código de cupón aplicado en el carrito; se envía al crear la sesión de checkout para aplicarlo al crear la orden. */
   codigo_descuento?: string | null;
+  shipping_carrier: string;
+  shipping_service: string;
+  shipping_cost: number;
+  weight_kg: number;
+  length_cm: number;
+  width_cm: number;
+  height_cm: number;
 }
 
 // Función helper para inicializar el pago

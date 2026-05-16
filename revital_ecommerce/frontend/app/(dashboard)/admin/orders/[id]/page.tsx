@@ -59,7 +59,9 @@ const OrderDetailPage = () => {
     )
   }
 
-  const { orden, productos, direccion_envio, puntos_ganados, descuentos_aplicados } = orderDetail
+  const { orden, productos, direccion_envio, puntos_ganados, descuentos_aplicados, envio } = orderDetail
+
+  const envioCOP = Number(orden.val_costo_envio ?? envio?.costo_envio ?? 0)
 
   // img_producto en la BD es JSONB: puede ser string (URL) u objeto { main, gallery?, thumbnails? }
   const getProductImageUrl = (img: unknown): string => {
@@ -103,9 +105,9 @@ const OrderDetailPage = () => {
                 <SelectValue placeholder="Estado" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">Pendiente</SelectItem>
-                <SelectItem value="2">Completada</SelectItem>
-                <SelectItem value="3">Cancelada</SelectItem>
+                <SelectItem value="1">Pendiente de pago</SelectItem>
+                <SelectItem value="2">Pagada (en camino)</SelectItem>
+                <SelectItem value="3">Completada</SelectItem>
               </SelectContent>
             </Select>
             {newStatus !== undefined && newStatus !== orden.ind_estado && (
@@ -124,6 +126,77 @@ const OrderDetailPage = () => {
 
       {/* Cards de información */}
       <OrderDetailCards orderDetail={orderDetail} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <IconPackage className="h-5 w-5" />
+            Envío y seguimiento
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm">
+          {!envio || (!envio.tracking_number && !envio.carrier && !envio.estado_envio) ? (
+            <p className="text-muted-foreground">
+              Aún no hay guía registrada para esta orden (o el pago aún no generó envío en Envia).
+            </p>
+          ) : (
+            <>
+              {envio.carrier && (
+                <p>
+                  <span className="font-medium text-foreground">Transportista:</span>{" "}
+                  <span className="text-muted-foreground">{envio.carrier}</span>
+                  {envio.service ? ` — ${envio.service}` : null}
+                </p>
+              )}
+              {envio.estado_envio && (
+                <p>
+                  <span className="font-medium text-foreground">Estado del envío:</span>{" "}
+                  <span className="text-muted-foreground">{envio.estado_envio}</span>
+                </p>
+              )}
+              {envio.costo_envio != null && envio.costo_envio !== undefined && (
+                <p>
+                  <span className="font-medium text-foreground">Costo envío (COP):</span>{" "}
+                  <span className="text-muted-foreground">
+                    ${Number(envio.costo_envio).toLocaleString("es-CO")}
+                  </span>
+                </p>
+              )}
+              {envio.tracking_number && envio.tracking_url && (
+                <p>
+                  <span className="font-medium text-foreground">Tracking:</span>{" "}
+                  <a
+                    href={envio.tracking_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary underline-offset-4 hover:underline"
+                  >
+                    {envio.tracking_number}
+                  </a>
+                </p>
+              )}
+              {envio.tracking_number && !envio.tracking_url && (
+                <p>
+                  <span className="font-medium text-foreground">Tracking:</span>{" "}
+                  <span className="text-muted-foreground">{envio.tracking_number}</span>
+                </p>
+              )}
+              {envio.label_url && (
+                <p>
+                  <a
+                    href={envio.label_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary underline-offset-4 hover:underline"
+                  >
+                    Ver etiqueta
+                  </a>
+                </p>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Información adicional */}
       <div className="grid gap-6 md:grid-cols-2">
@@ -401,6 +474,14 @@ const OrderDetailPage = () => {
                 <span className="break-all text-right font-medium">-${orden.val_total_descuentos.toLocaleString('es-CO')}</span>
               </div>
             )}
+            <div className="flex items-start justify-between gap-3">
+              <span>Envío:</span>
+              <span className="break-all text-right font-medium">
+                {envioCOP > 0
+                  ? `$${envioCOP.toLocaleString('es-CO')}`
+                  : 'Gratis'}
+              </span>
+            </div>
             <div className="flex items-start justify-between gap-3 border-t pt-3 text-lg font-bold">
               <span>Total:</span>
               <span className="break-all text-right">${orden.val_total_pedido.toLocaleString('es-CO')}</span>

@@ -129,6 +129,13 @@ class CheckoutCreateRequest(BaseModel):
     id_direccion: int = Field(..., description="ID de la dirección de envío")
     id_canje: Optional[int] = Field(None, description="ID del canje de puntos a aplicar (opcional)")
     codigo_descuento: Optional[str] = Field(None, description="Código de cupón a aplicar al crear la orden (opcional)")
+    shipping_carrier: str = Field(..., description="Carrier Envia (ej. coordinadora)")
+    shipping_service: str = Field(..., description="Código de servicio Envia cotizado")
+    shipping_cost: float = Field(..., ge=0, description="Costo envío acordado en COP")
+    weight_kg: float = Field(..., gt=0, description="Peso del paquete en kg")
+    length_cm: float = Field(..., gt=0, description="Largo en cm")
+    width_cm: float = Field(..., gt=0, description="Ancho en cm")
+    height_cm: float = Field(..., gt=0, description="Alto en cm")
 
 
 class PaymentCreateResponse(BaseModel):

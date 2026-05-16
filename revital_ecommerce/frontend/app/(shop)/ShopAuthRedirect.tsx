@@ -1,13 +1,19 @@
 'use client'
 
 import { useAuth } from '@/hooks/use-auth'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
-import { isAuthenticated } from '@/utils/apiWrapper'
 
 export function ShopAuthRedirect({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated: isUserAuthenticated, isLoadingUser, isHydrated } = useAuth()
+  const {
+    user,
+    hasToken,
+    isAuthenticated: isUserAuthenticated,
+    isLoadingUser,
+    isHydrated,
+  } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
   const redirectDone = useRef(false)
 
   useEffect(() => {
@@ -21,8 +27,10 @@ export function ShopAuthRedirect({ children }: { children: React.ReactNode }) {
 
   // Solo mostrar loading si aún no está hidratado O si hay token y estamos cargando el usuario.
   // Usuarios anónimos (sin token) no deben quedarse atascados en "Cargando...".
-  const hasToken = typeof window !== 'undefined' && isAuthenticated()
-  const showLayoutLoading = !isHydrated || (hasToken && isLoadingUser)
+  // No tapar toda la vista en resultado de pago: ahí se restaura el JWT y debe verse el mensaje de éxito.
+  const skipFullLayoutLoading = pathname?.startsWith('/checkout/payment-result') ?? false
+  const showLayoutLoading =
+    !isHydrated || (!skipFullLayoutLoading && hasToken && isLoadingUser)
 
   if (showLayoutLoading) {
     return (

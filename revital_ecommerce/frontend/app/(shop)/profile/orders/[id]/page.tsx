@@ -34,11 +34,20 @@ interface OrderProductItem {
   opciones_elegidas?: Record<string, string>;
 }
 
+interface OrderShippingLive {
+  tracking_number?: string | null;
+  tracking_url?: string | null;
+  label_url?: string | null;
+  carrier?: string | null;
+  estado_envio?: string | null;
+}
+
 interface OrderDetail {
   id_orden: number;
   fec_insert: string;
   val_total_productos: number;
   val_total_descuentos: number;
+  val_costo_envio?: number;
   val_total_pedido: number;
   ind_estado: number;
   des_observaciones?: string | null;
@@ -56,9 +65,9 @@ function formatStatus(state: number) {
   // `ind_estado` viene del backend como un entero y representa el ciclo de vida
   // de la orden. Mapeamos esos estados a textos amigables para UI.
   switch (state) {
-    case 1: return 'Pendiente';
-    case 2: return 'Procesada';
-    case 3: return 'Enviada/Cancelada';
+    case 1: return 'Pendiente de pago';
+    case 2: return 'En camino';
+    case 3: return 'Completada';
     case 4: return 'Cancelada';
     default: return 'Desconocido';
   }
@@ -90,6 +99,11 @@ function formatPaymentMethod(method?: string | null) {
   };
 
   return map[method] ?? method;
+}
+
+function isHttpUrl(s: string | null | undefined): boolean {
+  const t = (s ?? "").trim();
+  return t.startsWith("http://") || t.startsWith("https://");
 }
 
 function formatAddress(address: unknown) {
@@ -131,9 +145,9 @@ function getHeadlineByStatus(status: number) {
     case 1:
       return "Estamos procesando tu pedido";
     case 2:
-      return "¡Está en camino!";
+      return "¡Tu pedido va en camino!";
     case 3:
-      return "Tu pedido fue enviado";
+      return "Pedido completado";
     case 4:
       return "Tu pedido fue cancelado";
     default:
@@ -154,6 +168,12 @@ export default function OrderDetailPage() {
     enabled: !!id,
   });
 
+  const { data: shippingLive } = useQuery({
+    queryKey: ['order-shipping', id],
+    queryFn: async () => await api.get<OrderShippingLive>(`/orders/${id}/shipping`),
+    enabled: !!id,
+  });
+
   if (isLoading || !order) {
     // Estado de carga (y “sin datos” aún) hasta que el backend responda.
     return (
@@ -168,6 +188,9 @@ export default function OrderDetailPage() {
   const shippingLines = formatAddress(order.shipping_address);
   const billingLines = formatAddress(order.billing_address);
 
+  const trackNum = shippingLive?.tracking_number ?? order.tracking_number;
+  const trackUrl = shippingLive?.tracking_url ?? order.tracking_url;
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8">
       <div className="space-y-2">
@@ -180,21 +203,48 @@ export default function OrderDetailPage() {
       </div>
 
       <div className="mt-10 border-t border-border pt-8">
-        <p className="text-base font-semibold text-foreground">Tracking number</p>
-        {order.tracking_url && order.tracking_number ? (
+        <p className="text-base font-semibold text-foreground">Envío y seguimiento</p>
+        {(shippingLive?.carrier || order.shipping_method) && (
+          <p className="mt-2 text-sm text-muted-foreground">
+            Transportista:{" "}
+            <span className="text-foreground font-medium">
+              {shippingLive?.carrier || order.shipping_method}
+            </span>
+          </p>
+        )}
+        {shippingLive?.estado_envio && (
+          <p className="mt-1 text-sm text-muted-foreground">
+            Estado del envío:{" "}
+            <span className="text-foreground font-medium">{shippingLive.estado_envio}</span>
+          </p>
+        )}
+        {trackUrl && trackNum ? (
           <a
-            href={order.tracking_url}
+            href={trackUrl}
             target="_blank"
             rel="noreferrer"
             className="mt-2 inline-block text-base text-primary underline-offset-4 hover:underline"
           >
-            {order.tracking_number}
+            {trackNum}
           </a>
         ) : (
           <p className="mt-2 text-base text-muted-foreground">
-            {order.tracking_number || "Se asignará cuando el envío sea despachado"}
+            {trackNum ||
+              "Cuando el transportista asigne el número de seguimiento, aparecerá aquí."}
           </p>
         )}
+        {isHttpUrl(shippingLive?.label_url) ? (
+          <p className="mt-3">
+            <a
+              href={(shippingLive?.label_url ?? "").trim()}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm text-primary underline-offset-4 hover:underline"
+            >
+              Descargar etiqueta de envío (PDF)
+            </a>
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-10 border-t border-border pt-8">
@@ -300,6 +350,14 @@ export default function OrderDetailPage() {
           <div className="flex justify-between text-muted-foreground">
             <span>Descuentos</span>
             <span>-{formatPrice(order.val_total_descuentos || 0)}</span>
+          </div>
+          <div className="flex justify-between text-muted-foreground">
+            <span>Envío</span>
+            <span>
+              {Number(order.val_costo_envio ?? 0) > 0
+                ? formatPrice(Number(order.val_costo_envio))
+                : "Gratis"}
+            </span>
           </div>
           <div className="flex justify-between font-semibold">
             <span>Total</span>

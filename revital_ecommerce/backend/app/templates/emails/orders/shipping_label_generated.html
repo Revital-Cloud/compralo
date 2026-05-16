@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Guía de envío — Pedido #{{ order_id }} — {{ app_name }}{% endblock %}
+
+{% block preheader %}Tu pedido #{{ order_id }} ya tiene guía de envío. Descarga la etiqueta y consulta el seguimiento.{% endblock %}
+
+{% block content %}
+<div class="greeting">Guía de envío lista</div>
+
+<div class="alert alert-success">
+    {% if user_name %}<strong>Hola {{ user_name }},</strong>{% else %}<strong>Hola,</strong>{% endif %}
+    ya generamos la guía de tu pedido <strong>#{{ order_id }}</strong> con el transportista.
+</div>
+
+<div class="content-block">
+    <h2>Detalles del envío</h2>
+    <table class="table">
+        <tr><td><strong>N.º de orden</strong></td><td>#{{ order_id }}</td></tr>
+        <tr><td><strong>Transportista</strong></td><td>{{ carrier_display }}</td></tr>
+        <tr><td><strong>Servicio</strong></td><td>{{ service_display }}</td></tr>
+        {% if tracking_number %}
+        <tr><td><strong>Seguimiento</strong></td><td>{{ tracking_number }}</td></tr>
+        {% endif %}
+    </table>
+</div>
+
+<div class="content-block text-center">
+    {% if tracking_url and tracking_number %}
+    <p style="margin-bottom:16px;">
+        <a href="{{ tracking_url }}" style="display:inline-block;background:#dc2626;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Rastrear envío</a>
+    </p>
+    {% endif %}
+    {% if label_url %}
+    <p>
+        <a href="{{ label_url }}" style="display:inline-block;background:#111827;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;">Descargar etiqueta (PDF)</a>
+    </p>
+    <p class="text-muted text-small" style="margin-top:12px;">Si el botón no funciona, copia y pega este enlace en tu navegador:<br><span style="word-break:break-all;">{{ label_url }}</span></p>
+    {% endif %}
+</div>
+
+<div class="content-block">
+    <p class="text-muted">También puedes ver el estado de tu pedido en tu cuenta:</p>
+    <p class="text-center"><a href="{{ order_url }}" style="color:#dc2626;font-weight:600;">Ver mi pedido</a></p>
+</div>
+{% endblock %}

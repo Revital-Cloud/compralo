@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,7 +19,12 @@ import {
 } from "lucide-react";
 import { formatPrice } from "@/utils/format-price";
 import Loading from "@/components/ui/loading";
-import { getTokenForPaymentCallback, clearPaymentCallbackToken } from "@/utils/apiWrapper";
+import {
+  getTokenForPaymentCallback,
+  clearPaymentCallbackToken,
+  setAccessToken,
+} from "@/utils/apiWrapper";
+import { AUTH_KEYS } from "@/hooks/use-auth";
 import { clearCartStorage, useCartStore } from "@/stores/cart-store";
 
 type PaymentStatus = 'success' | 'pending' | 'declined' | 'error' | 'unknown';
@@ -131,6 +136,56 @@ const PaymentResultPage = () => {
     statusParam,
     transactionIdParam
   ]);
+
+  // Restaurar JWT en memoria antes del primer paint útil: tras redirect Wompi no hay Context que repinte por sí solo.
+  useLayoutEffect(() => {
+    if (statusParam !== "success" || !referenceParam?.startsWith("revital_cart_")) {
+      return;
+    }
+    const t = getTokenForPaymentCallback();
+    if (t) {
+      setAccessToken(t);
+      queryClient.invalidateQueries({ queryKey: AUTH_KEYS.currentUser });
+    }
+  }, [statusParam, referenceParam, queryClient]);
+
+  // Resumen de pedido + order_id sin depender del JWT: el backend valida Wompi (vuelta desde redirect).
+  useEffect(() => {
+    if (statusParam !== "success" || !referenceParam?.startsWith("revital_cart_") || !transactionIdParam) {
+      return;
+    }
+    let cancelled = false;
+    const run = async () => {
+      const start = Date.now();
+      while (!cancelled && Date.now() - start < POLL_TIMEOUT_MS) {
+        try {
+          const res = await fetch(
+            `/api/payments/checkout-order-detail?reference=${encodeURIComponent(referenceParam)}&transaction_id=${encodeURIComponent(transactionIdParam)}`
+          );
+          const data = await res.json().catch(() => ({}));
+          if (cancelled) return;
+          if (typeof data.id_orden === "number") {
+            setPollingOrderId(data.id_orden);
+            setPendingSince(null);
+            if (Array.isArray(data.items) && data.items.length > 0) {
+              setOrderPreview({
+                id_orden: data.id_orden,
+                items: data.items,
+              });
+            }
+            return;
+          }
+        } catch {
+          /* intentar de nuevo */
+        }
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [statusParam, referenceParam, transactionIdParam]);
 
   // Confirmar checkout y/o hacer polling: si tenemos transaction_id llamamos confirm-checkout (respaldo si el webhook no llegó)
   useEffect(() => {
@@ -338,6 +393,11 @@ const PaymentResultPage = () => {
     if (!paymentData.reference?.startsWith("revital_cart_")) return;
     if (finalizedCheckoutRef.current) return;
     finalizedCheckoutRef.current = true;
+    const callbackToken = getTokenForPaymentCallback();
+    if (callbackToken) {
+      setAccessToken(callbackToken);
+      queryClient.invalidateQueries({ queryKey: AUTH_KEYS.currentUser });
+    }
     clearPaymentCallbackToken();
     useCartStore.getState().clearCart();
     useCartStore.getState().setCartId(undefined);

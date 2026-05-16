@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui"
-import { IconShoppingCart, IconClock, IconCheck, IconX, IconCash } from '@tabler/icons-react'
+import { IconShoppingCart, IconClock, IconCheck, IconCash } from '@tabler/icons-react'
 import type { OrderStats } from '@/types/order'
 
 interface OrderStatsCardsProps {
@@ -13,8 +13,8 @@ export const OrderStatsCards = ({ stats }: OrderStatsCardsProps) => {
   // Valores por defecto para evitar errores de undefined
   const total = stats?.total ?? 0
   const pendiente = stats?.pendiente ?? 0
+  const enCamino = stats?.en_camino ?? 0
   const completada = stats?.completada ?? 0
-  const cancelada = stats?.cancelada ?? 0
   // Convertir total_ventas a número si viene como string (Decimal desde backend)
   const totalVentas = typeof stats?.total_ventas === 'string' 
     ? parseFloat(stats.total_ventas) || 0
@@ -50,26 +50,26 @@ export const OrderStatsCards = ({ stats }: OrderStatsCardsProps) => {
 
       <Card className="min-w-0 overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
-          <CardTitle className="text-xs sm:text-sm font-medium truncate">Completadas</CardTitle>
-          <IconCheck className="h-4 w-4 text-green-500" />
+          <CardTitle className="text-xs sm:text-sm font-medium truncate">En camino</CardTitle>
+          <IconClock className="h-4 w-4 text-sky-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-sm sm:text-base lg:text-lg xl:text-2xl font-bold text-green-600 tabular-nums">{completada.toLocaleString('es-CO')}</div>
+          <div className="text-sm sm:text-base lg:text-lg xl:text-2xl font-bold text-sky-600 tabular-nums">{enCamino.toLocaleString('es-CO')}</div>
           <p className="text-xs text-muted-foreground truncate">
-            Entregadas
+            Pagadas / en ruta
           </p>
         </CardContent>
       </Card>
 
       <Card className="min-w-0 overflow-hidden">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 gap-2">
-          <CardTitle className="text-xs sm:text-sm font-medium truncate">Canceladas</CardTitle>
-          <IconX className="h-4 w-4 text-red-500" />
+          <CardTitle className="text-xs sm:text-sm font-medium truncate">Completadas</CardTitle>
+          <IconCheck className="h-4 w-4 text-green-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-sm sm:text-base lg:text-lg xl:text-2xl font-bold text-red-600 tabular-nums">{cancelada.toLocaleString('es-CO')}</div>
+          <div className="text-sm sm:text-base lg:text-lg xl:text-2xl font-bold text-green-600 tabular-nums">{completada.toLocaleString('es-CO')}</div>
           <p className="text-xs text-muted-foreground truncate">
-            Canceladas
+            Cerradas (admin)
           </p>
         </CardContent>
       </Card>
@@ -84,7 +84,7 @@ export const OrderStatsCards = ({ stats }: OrderStatsCardsProps) => {
             ${totalVentas.toLocaleString('es-CO')}
           </div>
           <p className="text-xs text-muted-foreground truncate">
-            Ventas completadas
+            Pagadas o cerradas
           </p>
         </CardContent>
       </Card>

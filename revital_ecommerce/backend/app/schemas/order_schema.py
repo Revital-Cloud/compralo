@@ -87,6 +87,7 @@ class OrderCreate(BaseModel):
     des_observaciones: Optional[str] = Field(None, description="Observaciones adicionales sobre la orden.")
     usr_insert: Optional[Decimal] = Field(None, description="Identificador del usuario que insertó la orden.")
     id_canje: Optional[Decimal] = Field(None, description="Identificador del canje de puntos a aplicar.")
+    costo_envio: float = Field(default=0.0, ge=0, description="Costo de envío en COP sumado al total de la orden.")
 
     class Config:
         from_attributes = True
@@ -126,10 +127,14 @@ class OrderStats(BaseModel):
     - `GET /admin/stats`
     """
     total: Optional[int] = Field(default=0, description="Total de órdenes")
-    pendiente: Optional[int] = Field(default=0, description="Órdenes pendientes")
-    completada: Optional[int] = Field(default=0, description="Órdenes completadas")
-    cancelada: Optional[int] = Field(default=0, description="Órdenes canceladas")
-    total_ventas: Optional[Decimal] = Field(default=Decimal('0'), description="Total de ventas completadas")
+    pendiente: Optional[int] = Field(default=0, description="Órdenes pendientes de pago (ind_estado=1)")
+    en_camino: Optional[int] = Field(default=0, description="Órdenes pagadas en ruta (ind_estado=2)")
+    completada: Optional[int] = Field(default=0, description="Órdenes cerradas / entregadas (ind_estado=3)")
+    cancelada: Optional[int] = Field(default=0, description="Reservado; el esquema actual solo usa estados 1–3")
+    total_ventas: Optional[Decimal] = Field(
+        default=Decimal('0'),
+        description="Suma de totales en órdenes pagadas o cerradas (ind_estado 2 o 3)",
+    )
     
     class Config:
         from_attributes = True

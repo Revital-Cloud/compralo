@@ -362,6 +362,12 @@ async def send_order_confirmation_for_order_id(order_id: int) -> None:
         subtotal_fmt = _fmt_money(order_raw.get("val_total_productos"))
         discount_total_fmt = _fmt_money(order_raw.get("val_total_descuentos"))
         total_fmt = _fmt_money(order_raw.get("val_total_pedido"))
+        try:
+            ship_num = float(order_raw.get("val_costo_envio") or 0)
+        except (TypeError, ValueError):
+            ship_num = 0.0
+        shipping_cost_fmt = _fmt_money(ship_num) if ship_num > 0 else ""
+        shipping_free = ship_num <= 0
 
         items = []
         for it in order_raw.get("items") or []:
@@ -492,6 +498,8 @@ async def send_order_confirmation_for_order_id(order_id: int) -> None:
             "created_at": created_at,
             "subtotal": subtotal_fmt,
             "discount_total": discount_total_fmt,
+            "shipping_cost": shipping_cost_fmt,
+            "shipping_free": shipping_free,
             "total": total_fmt,
             "items": items,
             "discounts_applied": discounts_applied,
@@ -511,6 +519,101 @@ async def send_order_confirmation_for_order_id(order_id: int) -> None:
         logger.info(f"Email de confirmación de orden #{order_id} enviado a {user_email}")
     except Exception as e:
         logger.error(f"Error enviando email de confirmación de orden {order_id}: {e}", exc_info=True)
+    finally:
+        db.close()
+
+
+async def send_shipping_label_generated_email(
+    order_id: int,
+    carrier: str,
+    service: str,
+    tracking_number: Optional[str],
+    tracking_url: Optional[str],
+    label_url: Optional[str],
+) -> None:
+    """
+    Envía al comprador un correo con enlaces a la etiqueta PDF y al rastreo
+    cuando Envia genera la guía tras el pago.
+    """
+    if not label_url and not tracking_number:
+        logger.info(
+            "send_shipping_label_generated_email: omitido orden %s (sin etiqueta ni tracking)",
+            order_id,
+        )
+        return
+
+    db = SessionLocal()
+    try:
+        row = db.execute(
+            text(
+                """
+                SELECT u.email_usuario, u.nom_usuario, u.ape_usuario
+                FROM tab_ordenes o
+                JOIN tab_usuarios u ON u.id_usuario = o.id_usuario
+                WHERE o.id_orden = :oid
+                """
+            ),
+            {"oid": order_id},
+        ).fetchone()
+        if not row:
+            logger.warning("send_shipping_label_generated_email: orden %s no encontrada", order_id)
+            return
+        user_email = getattr(row, "email_usuario", None) or (row[0] if row else None)
+        if not user_email:
+            logger.warning("send_shipping_label_generated_email: orden %s sin email de usuario", order_id)
+            return
+
+        nom = (getattr(row, "nom_usuario", None) or "").strip()
+        ape = (getattr(row, "ape_usuario", None) or "").strip()
+        user_name = f"{nom} {ape}".strip()
+
+        carrier_display = (carrier or "").strip().title() or "Transportista"
+        service_display = (service or "").strip() or "—"
+        base = (settings.FRONTEND_URL or "").rstrip("/")
+        order_url = f"{base}/profile/orders/{order_id}"
+
+        html_content = email_templates.get_shipping_label_generated_template(
+            user_name=user_name,
+            order_id=order_id,
+            carrier_display=carrier_display,
+            service_display=service_display,
+            tracking_number=tracking_number,
+            tracking_url=tracking_url,
+            label_url=label_url,
+            order_url=order_url,
+        )
+        lines = [
+            f"Guía de envío — Pedido #{order_id} — {settings.APP_NAME}",
+            "",
+            f"Transportista: {carrier_display}",
+            f"Servicio: {service_display}",
+        ]
+        if tracking_number:
+            lines.append(f"Número de seguimiento: {tracking_number}")
+        if tracking_url:
+            lines.append(f"Rastrear envío: {tracking_url}")
+        if label_url:
+            lines.append(f"Descargar etiqueta (PDF): {label_url}")
+        lines.append(f"Ver tu pedido: {order_url}")
+        text_content = "\n".join(lines)
+
+        email_data = EmailSend(
+            to=user_email,
+            subject=f"Guía de envío — Pedido #{order_id} — {settings.APP_NAME}",
+            html_content=html_content,
+            text_content=text_content,
+        )
+        response = await send_basic_email(email_data)
+        if response.success:
+            logger.info("Email de guía Envia enviado a %s (orden #%s)", user_email, order_id)
+        else:
+            logger.warning(
+                "Email de guía Envia no enviado orden #%s: %s",
+                order_id,
+                response.message,
+            )
+    except Exception as e:
+        logger.exception("send_shipping_label_generated_email orden %s: %s", order_id, e)
     finally:
         db.close()
 

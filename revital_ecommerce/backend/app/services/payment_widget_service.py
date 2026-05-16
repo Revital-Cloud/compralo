@@ -45,6 +45,7 @@ from core.tenant import StoreWompiConfig, get_wompi_base_url
 from core.exceptions import get_safe_message, MSG_SERVICE_UNAVAILABLE
 from core.circuit_breaker import CircuitOpenError, run_with_circuit_breaker
 from services import order_service
+from services import shipping_service
 from services.out_of_stock_notification_service import notify_after_order_paid_stock_change
 
 logger = logging.getLogger(__name__)
@@ -306,7 +307,7 @@ async def fetch_transaction_by_id(
     return data.get("data") or data
 
 
-def create_order_from_checkout_reference(
+async def create_order_from_checkout_reference(
     db: Session,
     reference: str,
     tx: Dict[str, Any],
@@ -426,7 +427,9 @@ def create_order_from_checkout_reference(
         # Si ya quedó consolidado por el otro proceso, devolverlo.
         existing_locked = get_payment_by_reference(db, reference)
         if existing_locked and existing_locked.get("id_orden") is not None:
-            return int(existing_locked["id_orden"])
+            oid = int(existing_locked["id_orden"])
+            await shipping_service.finalize_envia_after_paid_order(db, oid, reference)
+            return oid
         # Si aún no existe orden, dejar que el cliente reintente en polling.
         return None
     existing = get_payment_by_reference(db, reference)
@@ -453,17 +456,32 @@ def create_order_from_checkout_reference(
             logger.warning(f"Al asegurar orden pagada para referencia existente: {e}")
             if db.in_transaction():
                 db.rollback()
+        await shipping_service.finalize_envia_after_paid_order(db, order_id_existing, reference)
         return order_id_existing
 
     try:
         from schemas.order_schema import OrderCreate
+        ship_row = db.execute(
+            text(
+                "SELECT id_direccion, shipping_cost FROM tab_checkout_shipping WHERE reference = :ref"
+            ),
+            {"ref": reference},
+        ).fetchone()
+        id_dir_order = int(ship_row.id_direccion) if ship_row else id_direccion
+        costo_envio = float(ship_row.shipping_cost) if ship_row else 0.0
+        if ship_row is None:
+            logger.warning(
+                "create_order_from_checkout_reference: sin tab_checkout_shipping para ref=%s; costo_envio=0",
+                reference,
+            )
         # id_canje entero para que la BD aplique descuento por puntos.
         order_data = OrderCreate(
             id_carrito=cart_id,
-            id_direccion=id_direccion,
+            id_direccion=Decimal(id_dir_order),
             codigo_descuento=codigo_descuento,
             des_observaciones=None,
             id_canje=Decimal(int(id_canje)) if id_canje is not None else None,
+            costo_envio=costo_envio,
         )
         pm = tx.get("payment_method", {}) if isinstance(tx.get("payment_method"), dict) else {}
         pm_type = pm.get("type") if pm else None
@@ -514,6 +532,7 @@ def create_order_from_checkout_reference(
         except Exception as pay_err:
             logger.warning(f"create_payment falló para orden {order_id} (orden ya creada como pagada): {pay_err}")
         logger.info(f"Orden {order_id} creada y marcada como pagada/procesada desde referencia checkout: {reference}")
+        await shipping_service.finalize_envia_after_paid_order(db, order_id, reference)
         return order_id
     except Exception as e:
         logger.error(f"Error creando orden desde referencia checkout: {e}", exc_info=True)
