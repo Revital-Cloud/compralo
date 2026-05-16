@@ -169,6 +169,7 @@ class Settings(BaseSettings):
 class Config:
         env_file = _ENV_FILES
         case_sensitive = True
+        
 # Instancia global de configuración (carga .env y .env.development/.env.production)
 settings = Settings()
 
