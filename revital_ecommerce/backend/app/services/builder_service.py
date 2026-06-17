@@ -64,8 +64,8 @@ def default_home_sections() -> List[Dict[str, Any]]:
             "cta_link": "/coleccion",
             "image": "",
         },
-        "categories": {"title": "Categorías", "columns": 4},
-        "product_grid": {"title": "Productos destacados", "columns": 3},
+        "categories": {"title": "Categorías", "columns": 3},
+        "product_grid": {"title": "Productos destacados", "columns": 4},
         "carousel": {
             "title": "Lo que dicen nuestros clientes",
             "quote_1": "Excelente experiencia, entrega muy rápida y todo tal como esperaba.",

@@ -1,5 +1,8 @@
-import { getApiBaseURL } from "@/utils/apiWrapper";
 import type { BuilderPagePublic } from "@/services/builder.service";
+
+// En server components usamos NEXT_PUBLIC_API_URL directamente (misma convención que
+// products/[id]/layout.tsx, sitemap.ts y los route handlers).
+const SERVER_API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
 
 /**
  * Lee la versión publicada de una página del CMS Builder desde el backend para
@@ -11,10 +14,9 @@ export async function getPublishedPage(slug: string): Promise<BuilderPagePublic 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3000);
   try {
-    const base = getApiBaseURL();
-    const res = await fetch(`${base}/builder/public/${slug}`, {
-      // Refresca como máximo cada 30s; los cambios publicados se ven casi al instante.
-      next: { revalidate: 30 },
+    const res = await fetch(`${SERVER_API_BASE}/builder/public/${slug}`, {
+      // Sin caché: al publicar desde el builder, el cambio se ve en el acto.
+      cache: "no-store",
       signal: controller.signal,
     });
     if (!res.ok) return null;

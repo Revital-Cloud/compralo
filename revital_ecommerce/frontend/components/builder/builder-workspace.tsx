@@ -15,7 +15,12 @@ export function BuilderWorkspace({ slug = "home" }: { slug?: string }) {
 
   return (
     <div className="space-y-3">
-      <BuilderTopbar title={builder.title} status={builder.hasPublished ? "published" : "draft"} />
+      <BuilderTopbar
+        title={builder.title}
+        status={builder.hasPublished ? "published" : "draft"}
+        seo={builder.seo}
+        onSeoChange={builder.updateSeo}
+      />
 
       <div className="grid gap-3 xl:grid-cols-[280px_1fr_280px]">
         <div className="flex h-[72vh] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-white/10 dark:bg-[#0f172a]">

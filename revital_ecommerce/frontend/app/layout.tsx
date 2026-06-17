@@ -34,39 +34,45 @@ const geistMono = Geist_Mono({
 
 const siteOrigin = getPublicSiteOrigin();
 const siteName = "Compralo";
-const siteDescription =
-  "Compralo es tu tienda online para descubrir y comprar productos de múltiples categorías con envíos rápidos y seguros.";
 
-// Metadata global para SEO y social sharing.
-export const metadata: Metadata = {
-  title: {
-    default: siteName,
-    template: `%s | ${siteName}`,
-  },
-  description: siteDescription,
-  metadataBase: new URL(siteOrigin),
-  openGraph: {
-    title: siteName,
-    description: siteDescription,
-    type: "website",
-    url: siteOrigin,
-    siteName,
-    locale: "es_ES",
-    images: [
-      {
-        url: "/api/og",
-        width: 1200,
-        height: 630,
-        alt: siteName,
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: siteName,
-    description: siteDescription,
-  },
-};
+// Metadata global para SEO y social sharing. El nombre del sitio (título, OG, etc.)
+// proviene del Theme global publicado (header.brand); cae a "Compralo" si no hay theme.
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getPublishedTheme();
+  const name = site?.header?.brand?.trim() || siteName;
+  const description =
+    `${name} es tu tienda online para descubrir y comprar productos de múltiples categorías con envíos rápidos y seguros.`;
+
+  return {
+    title: {
+      default: name,
+      template: `%s | ${name}`,
+    },
+    description,
+    metadataBase: new URL(siteOrigin),
+    openGraph: {
+      title: name,
+      description,
+      type: "website",
+      url: siteOrigin,
+      siteName: name,
+      locale: "es_ES",
+      images: [
+        {
+          url: "/api/og",
+          width: 1200,
+          height: 630,
+          alt: name,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: name,
+      description,
+    },
+  };
+}
 
 const apiOrigin = (() => {
   // Normaliza el origen de la API para habilitar preconnect sin arrastrar rutas.
@@ -90,11 +96,13 @@ export default async function RootLayout({
   const themeCss = themeToCssText(site);
   const themeFontHref = fontHref(site.theme.fonts?.body);
 
+  const brand = site.header?.brand?.trim() || siteName;
+
   // JSON-LD del sitio para mejorar resultados enriquecidos en buscadores.
   const websiteJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: siteName,
+    name: brand,
     url: siteOrigin,
     potentialAction: {
       "@type": "SearchAction",
@@ -106,9 +114,9 @@ export default async function RootLayout({
   const organizationJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: siteName,
+    name: brand,
     url: siteOrigin,
-    logo: `${siteOrigin}/favicon.ico`,
+    logo: site.theme?.logo_url?.trim() || `${siteOrigin}/favicon.ico`,
   };
 
   return (

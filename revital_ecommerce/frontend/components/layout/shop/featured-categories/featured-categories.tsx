@@ -8,7 +8,7 @@ import Link from "next/link"
 import FeaturedCategoriesSkeleton from "./featured-categories-skeleton"
 import FeaturedCategoriesError from "./featured-categories-error"
 
-const MotionLink = motion(Link)
+const MotionLink = motion.create(Link)
 
 const LG_COLS: Record<number, string> = {
   2: "lg:grid-cols-2",

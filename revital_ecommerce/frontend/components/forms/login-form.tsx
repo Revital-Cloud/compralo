@@ -16,7 +16,7 @@ import { ArrowLeft, Eye, EyeOff, Loader2 } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useAuth } from "@/hooks/use-auth"
 import type { LoginRequest } from "@/types"
 import { useSearchParams } from "next/navigation"
@@ -64,6 +64,9 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const [showPassword, setShowPassword] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileScriptLoaded, setTurnstileScriptLoaded] = useState(false);
+  const turnstileContainerRef = useRef<HTMLDivElement | null>(null);
+  const turnstileWidgetIdRef = useRef<string | null>(null);
   const searchParams = useSearchParams();
   
   // Hook de autenticación
@@ -133,23 +136,50 @@ export function LoginForm({
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
   const shouldUseTurnstile = Boolean(turnstileSiteKey);
 
+  // Si volvemos a /login por navegación cliente (SPA), el script de Turnstile
+  // ya está cargado y `onLoad` no se vuelve a disparar; detectamos que
+  // `window.turnstile` existe para poder renderizar de forma explícita.
   useEffect(() => {
     if (!shouldUseTurnstile) return;
+    if (typeof window !== "undefined" && (window as any).turnstile) {
+      setTurnstileScriptLoaded(true);
+    }
+  }, [shouldUseTurnstile]);
 
-    (window as any).__revitalTurnstileOnSuccess = (token: string) => setTurnstileToken(token);
-    (window as any).__revitalTurnstileOnExpired = () => setTurnstileToken(null);
-    (window as any).__revitalTurnstileOnError = () => setTurnstileToken(null);
+  // Render explícito + limpieza. Renderizamos el widget nosotros mismos (en vez
+  // del auto-render por clase `cf-turnstile`, que solo corre una vez por recarga
+  // completa) y llamamos a `turnstile.remove()` al desmontar para no dejar
+  // widgets huérfanos ("Cannot find Widget ...") y poder re-renderizar al volver.
+  useEffect(() => {
+    if (!shouldUseTurnstile || !turnstileScriptLoaded) return;
+    const turnstile = (window as any).turnstile;
+    const container = turnstileContainerRef.current;
+    if (!turnstile || !container || turnstileWidgetIdRef.current) return;
+
+    try {
+      turnstileWidgetIdRef.current = turnstile.render(container, {
+        sitekey: turnstileSiteKey,
+        callback: (token: string) => setTurnstileToken(token),
+        "expired-callback": () => setTurnstileToken(null),
+        "error-callback": () => setTurnstileToken(null),
+      });
+    } catch {
+      // ignore
+    }
 
     return () => {
-      try {
-        delete (window as any).__revitalTurnstileOnSuccess;
-        delete (window as any).__revitalTurnstileOnExpired;
-        delete (window as any).__revitalTurnstileOnError;
-      } catch {
-        // ignore
+      const id = turnstileWidgetIdRef.current;
+      if (id && typeof turnstile?.remove === "function") {
+        try {
+          turnstile.remove(id);
+        } catch {
+          // ignore
+        }
       }
+      turnstileWidgetIdRef.current = null;
+      setTurnstileToken(null);
     };
-  }, [shouldUseTurnstile]);
+  }, [shouldUseTurnstile, turnstileScriptLoaded, turnstileSiteKey]);
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -271,20 +301,15 @@ export function LoginForm({
                   )}
                 </div>
 
-                {/* Cloudflare Turnstile (managed) */}
+                {/* Cloudflare Turnstile (render explícito para sobrevivir a la navegación SPA) */}
                 {shouldUseTurnstile && (
                   <div className="grid gap-2 justify-items-center">
                     <Script
-                      src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+                      src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
                       strategy="afterInteractive"
+                      onLoad={() => setTurnstileScriptLoaded(true)}
                     />
-                    <div
-                      className="cf-turnstile"
-                      data-sitekey={turnstileSiteKey}
-                      data-callback="__revitalTurnstileOnSuccess"
-                      data-expired-callback="__revitalTurnstileOnExpired"
-                      data-error-callback="__revitalTurnstileOnError"
-                    />
+                    <div ref={turnstileContainerRef} />
                     {!turnstileToken && (
                       <p className="text-xs text-muted-foreground text-center">
                         Completa la verificación para poder iniciar sesión.

@@ -3,9 +3,23 @@ import type { NextConfig } from "next";
 /**
  * En dev, el navegador llama a `/api-be/*` (mismo origen que el shop) y Next reescribe al FastAPI.
  * Así evita CORS/CSP y el caso "abro el front por IP pero NEXT_PUBLIC_API_URL es localhost".
+ *
+ * El origen del backend se deriva de `NEXT_PUBLIC_API_URL` (única fuente de verdad del
+ * puerto por entorno: dev y prod definen ahí su backend). `DEV_INTERNAL_API_ORIGIN`
+ * permite forzar otro origen (p. ej. 127.0.0.1 cuando NEXT_PUBLIC_API_URL apunta a una
+ * IP de LAN para probar en móvil). El fallback final es el puerto de prod (8000).
  */
+const apiOriginFromPublic = (() => {
+  try {
+    const u = new URL(process.env.NEXT_PUBLIC_API_URL ?? "");
+    return `${u.protocol}//${u.host}`;
+  } catch {
+    return "";
+  }
+})();
+
 const devInternalApiOrigin = (
-  process.env.DEV_INTERNAL_API_ORIGIN || "http://127.0.0.1:8001"
+  process.env.DEV_INTERNAL_API_ORIGIN || apiOriginFromPublic || "http://127.0.0.1:8000"
 ).replace(/\/$/, "");
 
 const nextConfig: NextConfig = {

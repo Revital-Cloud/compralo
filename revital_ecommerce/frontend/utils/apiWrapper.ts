@@ -49,7 +49,8 @@ const FALLBACK_PUBLIC_API = "http://localhost:8000/api";
  * - Producción: `NEXT_PUBLIC_API_URL` (cross-origin permitido por CORS del backend).
  * - Desarrollo en navegador: mismo origen + `/api-be` (Next `rewrites` → FastAPI); evita CORS/CSP
  *   y el fallo típico al abrir el shop por IP/127.0.0.1 con API en `localhost`.
- * - Desarrollo en servidor (RSC/SSR): `DEV_INTERNAL_API_ORIGIN` + `/api` (por defecto 127.0.0.1:8001).
+ * - Desarrollo en servidor (RSC/SSR): `NEXT_PUBLIC_API_URL` (o `DEV_INTERNAL_API_ORIGIN` + `/api`
+ *   si se quiere forzar otro origen, p. ej. 127.0.0.1 con NEXT_PUBLIC_API_URL en IP de LAN).
  * - Desactivar proxy dev: `NEXT_PUBLIC_API_NO_PROXY=1` (vuelve a llamar directo a NEXT_PUBLIC_API_URL).
  */
 export function getApiBaseURL(): string {
@@ -64,10 +65,11 @@ export function getApiBaseURL(): string {
   if (typeof window !== "undefined") {
     return `${window.location.origin}/api-be`;
   }
-  const internal = (
-    process.env.DEV_INTERNAL_API_ORIGIN || "http://127.0.0.1:8001"
-  ).replace(/\/$/, "");
-  return `${internal}/api`;
+  // SSR/RSC en dev: usa el override explícito si existe; si no, NEXT_PUBLIC_API_URL.
+  if (process.env.DEV_INTERNAL_API_ORIGIN) {
+    return `${process.env.DEV_INTERNAL_API_ORIGIN.replace(/\/$/, "")}/api`;
+  }
+  return direct;
 }
 
 /**

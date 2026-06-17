@@ -101,11 +101,11 @@ export const BUILDER_DEFAULT_PROPS: Record<
   },
   categories: {
     title: "Categorías",
-    columns: 4,
+    columns: 3,
   },
   product_grid: {
     title: "Productos destacados",
-    columns: 3,
+    columns: 4,
   },
   carousel: {
     title: "Lo que dicen nuestros clientes",

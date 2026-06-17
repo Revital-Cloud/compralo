@@ -222,6 +222,11 @@ export function useBuilderEditor(slug: string = "home") {
     setIsDirty(true);
   }
 
+  function updateSeo(next: BuilderSeo) {
+    setSeo(next);
+    setIsDirty(true);
+  }
+
   const buildPayload = useCallback(
     () => ({ title, seo, sections }),
     [title, seo, sections],
@@ -282,6 +287,7 @@ export function useBuilderEditor(slug: string = "home") {
     hasPublished,
     setTitle,
     setSeo,
+    updateSeo,
     setSelectedSectionId,
     setViewport,
     setZoom,

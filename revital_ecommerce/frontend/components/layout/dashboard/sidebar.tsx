@@ -28,6 +28,7 @@ import {
 import { NavMain } from "@/components/layout/dashboard/nav-main"
 import { NavSecondary } from "@/components/layout/dashboard/nav-secondary"
 import { NavUser } from "@/components/layout/dashboard/nav-user"
+import { useSiteBrand } from "@/hooks/use-site-brand"
 import {
   Sidebar,
   SidebarContent,
@@ -159,6 +160,7 @@ const data = {
 }
 
 export function AppSidebar({ variant }: { variant: "sidebar" | "inset" }) {
+  const { brand, logoUrl } = useSiteBrand();
   return (
     <Sidebar
       variant={variant}
@@ -177,7 +179,7 @@ export function AppSidebar({ variant }: { variant: "sidebar" | "inset" }) {
                 <path className="fill-brand-secondary" d="M441.83,75.06c-4.32,118.31-38.28,185.28-84.47,231.11-3.22,3.2-8.23,3.71-12.07,1.3l-35.57-22.4c-4.62-2.91-10.64.41-10.64,5.87v140.38c0,5.26,4.25,9.53,9.51,9.56,78.36.44,153.52.47,192.25-4.16,9.85-1.18,13.22-13.75,5.29-19.7l-35.17-26.37c-3.1-2.33-3.57-6.8-1.02-9.72,103.04-118.15,93.62-227.41-15.41-311.86-5.07-3.93-12.48-.42-12.71,5.99Z"/>
               </svg>
             </div>
-            <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-brand dark:text-brand transition-colors duration-300 group-data-[collapsible=icon]:hidden">Compralo</span>
+            <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-brand dark:text-brand transition-colors duration-300 group-data-[collapsible=icon]:hidden">{brand}</span>
           </div>
         </div>
       </SidebarHeader>
