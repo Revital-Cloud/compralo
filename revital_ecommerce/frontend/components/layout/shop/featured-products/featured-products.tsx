@@ -60,7 +60,7 @@ function renderPrice(product: ProductFiltered, activeDiscounts?: Discount[]) {
     return (
       <div className="space-y-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-bold text-xl text-[#ec2538] dark:text-red-400">
+          <span className="font-bold text-xl text-brand dark:text-brand">
             {formatPrice(rangeHasDiscount ? rangeDiscountedMin : priceMin)}
             <span className="mx-1 font-normal text-gray-500 dark:text-gray-400">
               –
@@ -86,7 +86,7 @@ function renderPrice(product: ProductFiltered, activeDiscounts?: Discount[]) {
     return (
       <div className="space-y-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-bold text-xl text-[#ec2538] dark:text-red-400">
+          <span className="font-bold text-xl text-brand dark:text-brand">
             {formatPrice(discountedPrice)}
           </span>
           <Badge variant="destructive" className="text-[11px] px-2 py-0.5">
@@ -101,13 +101,24 @@ function renderPrice(product: ProductFiltered, activeDiscounts?: Discount[]) {
   }
 
   return (
-    <span className="font-bold text-xl text-[#ec2538] dark:text-red-400">
+    <span className="font-bold text-xl text-brand dark:text-brand">
       {formatPrice(discountedPrice)}
     </span>
   )
 }
 
-const FeaturedProducts = () => {
+const XL_COLS: Record<number, string> = {
+  2: "xl:grid-cols-2",
+  3: "xl:grid-cols-3",
+  4: "xl:grid-cols-4",
+  5: "xl:grid-cols-5",
+  6: "xl:grid-cols-6",
+};
+
+const FeaturedProducts = ({
+  content,
+}: { content?: { title?: string; columns?: number } } = {}) => {
+  const xlCols = XL_COLS[content?.columns ?? 4] ?? "xl:grid-cols-4";
   const router = useRouter()
   const { data: activeDiscounts } = useActiveDiscounts()
 
@@ -256,7 +267,7 @@ const FeaturedProducts = () => {
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div 
-          className="absolute -top-20 -right-20 w-60 h-60 bg-gradient-to-br from-[#ec2538]/10 to-[#fec806]/10 dark:from-[#ec2538]/20 dark:to-[#fec806]/20 rounded-full blur-3xl"
+          className="absolute -top-20 -right-20 w-60 h-60 bg-gradient-to-br from-brand/10 to-brand-secondary/10 dark:from-brand/20 dark:to-brand-secondary/20 rounded-full blur-3xl"
           animate={{ 
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.6, 0.3]
@@ -268,7 +279,7 @@ const FeaturedProducts = () => {
           }}
         />
         <motion.div 
-          className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-br from-[#FF8C00]/10 to-[#ec2538]/10 dark:from-[#FF8C00]/20 dark:to-[#ec2538]/20 rounded-full blur-3xl"
+          className="absolute -bottom-20 -left-20 w-60 h-60 bg-gradient-to-br from-brand-accent/10 to-brand/10 dark:from-brand-accent/20 dark:to-brand/20 rounded-full blur-3xl"
           animate={{ 
             scale: [1.2, 1, 1.2],
             opacity: [0.6, 0.3, 0.6]
@@ -283,7 +294,7 @@ const FeaturedProducts = () => {
         
         {/* Floating elements */}
         <motion.div 
-          className="absolute top-20 left-1/4 w-4 h-4 bg-[#FF8C00]/30 dark:bg-[#FF8C00]/50 rounded-full"
+          className="absolute top-20 left-1/4 w-4 h-4 bg-brand-accent/30 dark:bg-brand-accent/50 rounded-full"
           animate={{
             y: [0, -10, 0],
             opacity: [0.3, 0.6, 0.3]
@@ -295,7 +306,7 @@ const FeaturedProducts = () => {
           }}
         />
         <motion.div 
-          className="absolute top-40 right-1/4 w-3 h-3 bg-[#ec2538]/30 dark:bg-[#ec2538]/50 rounded-full"
+          className="absolute top-40 right-1/4 w-3 h-3 bg-brand/30 dark:bg-brand/50 rounded-full"
           animate={{
             y: [0, -15, 0],
             opacity: [0.4, 0.7, 0.4]
@@ -325,10 +336,18 @@ const FeaturedProducts = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            Productos{" "}
-            <span className="bg-gradient-to-r from-[#FF8C00] to-[#fec806] bg-clip-text text-transparent">
-              Destacados
-            </span>
+            {content?.title ? (
+              <span className="bg-gradient-to-r from-brand-accent to-brand-secondary bg-clip-text text-transparent">
+                {content.title}
+              </span>
+            ) : (
+              <>
+                Productos{" "}
+                <span className="bg-gradient-to-r from-brand-accent to-brand-secondary bg-clip-text text-transparent">
+                  Destacados
+                </span>
+              </>
+            )}
           </motion.h2>
           <motion.p 
             className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto transition-colors duration-300"
@@ -342,8 +361,8 @@ const FeaturedProducts = () => {
         </motion.div>
 
         {/* Products Grid */}
-        <motion.div 
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 max-w-7xl mx-auto"
+        <motion.div
+          className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${xlCols} gap-8 max-w-7xl mx-auto`}
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
@@ -383,7 +402,7 @@ const FeaturedProducts = () => {
                   {/* Discount Badge - Temporarily disabled until Product type is defined */}
                   {/* {product.descuento && product.descuento > 0 && (
                     <div className="absolute top-3 left-3">
-                      <span className="bg-[#ec2538] text-white text-xs font-bold px-2 py-1 rounded-full">
+                      <span className="bg-brand text-white text-xs font-bold px-2 py-1 rounded-full">
                         -{product.descuento}%
                       </span>
                     </div>
@@ -393,7 +412,7 @@ const FeaturedProducts = () => {
                 {/* Product Info */}
                 <div className="p-6 flex flex-col flex-grow">
                   <div className="mb-4 flex-grow">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-[#ec2538] dark:group-hover:text-red-400 transition-colors duration-300">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-brand dark:group-hover:text-red-400 transition-colors duration-300">
                       {product.name}
                     </h3>
                     <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2 transition-colors duration-300">
@@ -410,7 +429,7 @@ const FeaturedProducts = () => {
 
                   {/* Rating */}
                   <div className="flex items-center gap-1 mb-2">
-                    <Star className="w-4 h-4 fill-[#fec806] text-[#fec806]" />
+                    <Star className="w-4 h-4 fill-brand-secondary text-brand-secondary" />
                     <span className="text-sm text-gray-600 dark:text-gray-300 transition-colors duration-300">
                       {product.rating && product.rating > 0 ? product.rating.toFixed(1) : "0.0"}
                     </span>
@@ -423,7 +442,7 @@ const FeaturedProducts = () => {
                       initial="rest"
                       whileHover="hover"
                       onClick={() => handleViewDetails(product)}
-                      className="w-full border-2 border-[#ec2538] dark:border-red-400 text-[#ec2538] dark:text-red-400 hover:bg-[#ec2538] dark:hover:bg-red-400 hover:!text-white dark:hover:!text-white font-medium py-2 rounded-lg transition-all duration-300 cursor-pointer"
+                      className="w-full border-2 border-brand dark:border-brand text-brand dark:text-brand hover:bg-brand dark:hover:bg-brand hover:!text-white dark:hover:!text-white font-medium py-2 rounded-lg transition-all duration-300 cursor-pointer"
                     >
                       Ver Detalles
                     </motion.button>
@@ -431,7 +450,7 @@ const FeaturedProducts = () => {
                 </div>
 
                 {/* Hover effect overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#ec2538]/5 to-[#fec806]/5 dark:from-[#ec2538]/10 dark:to-[#fec806]/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-brand-secondary/5 dark:from-brand/10 dark:to-brand-secondary/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
               </div>
             </motion.div>
           ))}
@@ -447,10 +466,10 @@ const FeaturedProducts = () => {
         >
           <motion.button 
             onClick={handleViewAllProducts}
-            className="bg-gradient-to-r from-[#ec2538] to-[#FF8C00] text-white font-bold py-4 px-8 rounded-xl shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300 text-lg cursor-pointer"
+            className="bg-gradient-to-r from-brand to-brand-accent text-white font-bold py-4 px-8 rounded-xl shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300 text-lg cursor-pointer"
             whileHover={{ 
               scale: 1.05,
-              boxShadow: "0 25px 50px -12px rgba(236, 37, 56, 0.4)"
+              boxShadow: "0 25px 50px -12px rgb(var(--brand-primary-rgb)/0.4)"
             }}
             whileTap={{ scale: 0.95 }}
           >

@@ -26,7 +26,7 @@ const AboutSection: React.FC<AboutSectionProps> = ({
 }) => {
   return (
     <div className="space-y-4 sm:col-span-2 lg:col-span-1">
-      <h3 className="text-[#ec2538] dark:text-red-400 text-lg font-semibold transition-colors duration-300">{title}</h3>
+      <h3 className="text-brand dark:text-brand text-lg font-semibold transition-colors duration-300">{title}</h3>
       <p className="text-sm leading-relaxed pr-0 sm:pr-4 text-gray-600 dark:text-gray-300 transition-colors duration-300">
         {description}
       </p>

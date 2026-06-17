@@ -10,7 +10,18 @@ import FeaturedCategoriesError from "./featured-categories-error"
 
 const MotionLink = motion(Link)
 
-const FeaturedCategories = () => {
+const LG_COLS: Record<number, string> = {
+  2: "lg:grid-cols-2",
+  3: "lg:grid-cols-3",
+  4: "lg:grid-cols-4",
+  5: "lg:grid-cols-5",
+  6: "lg:grid-cols-6",
+};
+
+const FeaturedCategories = ({
+  content,
+}: { content?: { title?: string; columns?: number } } = {}) => {
+  const lgCols = LG_COLS[content?.columns ?? 3] ?? "lg:grid-cols-3";
   const router = useRouter()
   const { 
     data: categories = [], 
@@ -97,7 +108,7 @@ const FeaturedCategories = () => {
       {/* Background decorative elements */}
       <div className="absolute inset-0 overflow-hidden">
         <motion.div 
-          className="absolute -top-20 -right-20 w-60 h-60 bg-linear-to-br from-[#FF8C00]/10 to-[#fec806]/10 dark:from-[#FF8C00]/20 dark:to-[#fec806]/20 rounded-full blur-3xl"
+          className="absolute -top-20 -right-20 w-60 h-60 bg-linear-to-br from-brand-accent/10 to-brand-secondary/10 dark:from-brand-accent/20 dark:to-brand-secondary/20 rounded-full blur-3xl"
           animate={{ 
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.6, 0.3]
@@ -109,7 +120,7 @@ const FeaturedCategories = () => {
           }}
         />
         <motion.div 
-          className="absolute -bottom-20 -left-20 w-60 h-60 bg-linear-to-br from-[#ec2538]/10 to-[#FF8C00]/10 dark:from-[#ec2538]/20 dark:to-[#FF8C00]/20 rounded-full blur-3xl"
+          className="absolute -bottom-20 -left-20 w-60 h-60 bg-linear-to-br from-brand/10 to-brand-accent/10 dark:from-brand/20 dark:to-brand-accent/20 rounded-full blur-3xl"
           animate={{ 
             scale: [1.2, 1, 1.2],
             opacity: [0.6, 0.3, 0.6]
@@ -124,18 +135,18 @@ const FeaturedCategories = () => {
         
         {/* Floating geometric shapes */}
         <motion.div 
-          className="absolute top-20 left-1/4 w-4 h-4 bg-[#FF8C00]/30 dark:bg-[#FF8C00]/50 rounded-full"
+          className="absolute top-20 left-1/4 w-4 h-4 bg-brand-accent/30 dark:bg-brand-accent/50 rounded-full"
           variants={floatingVariants}
           animate="animate"
         />
         <motion.div 
-          className="absolute top-40 right-1/4 w-3 h-3 bg-[#ec2538]/30 dark:bg-[#ec2538]/50 rounded-full"
+          className="absolute top-40 right-1/4 w-3 h-3 bg-brand/30 dark:bg-brand/50 rounded-full"
           variants={floatingVariants}
           animate="animate"
           transition={{ delay: 1 }}
         />
         <motion.div 
-          className="absolute bottom-40 left-1/3 w-5 h-5 bg-[#fec806]/30 dark:bg-[#fec806]/50 rounded-full"
+          className="absolute bottom-40 left-1/3 w-5 h-5 bg-brand-secondary/30 dark:bg-brand-secondary/50 rounded-full"
           variants={floatingVariants}
           animate="animate"
           transition={{ delay: 2 }}
@@ -156,10 +167,18 @@ const FeaturedCategories = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            Explora Nuestras{" "}
-            <span className="bg-linear-to-br from-[#FF8C00] to-[#fec806] bg-clip-text text-transparent">
-              Categorías
-            </span>
+            {content?.title ? (
+              <span className="bg-linear-to-br from-brand-accent to-brand-secondary bg-clip-text text-transparent">
+                {content.title}
+              </span>
+            ) : (
+              <>
+                Explora Nuestras{" "}
+                <span className="bg-linear-to-br from-brand-accent to-brand-secondary bg-clip-text text-transparent">
+                  Categorías
+                </span>
+              </>
+            )}
           </motion.h2>
           <motion.p 
             className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto transition-colors duration-300"
@@ -193,8 +212,8 @@ const FeaturedCategories = () => {
 
         {/* Categories Grid */}
         {!isLoading && !error && (
-          <motion.div 
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto"
+          <motion.div
+            className={`grid grid-cols-1 md:grid-cols-2 ${lgCols} gap-8 max-w-6xl mx-auto`}
             variants={containerVariants}
             initial="hidden"
             animate="visible"
@@ -304,10 +323,10 @@ const FeaturedCategories = () => {
         >
           <MotionLink
             href="/categories"
-            className="inline-flex items-center justify-center min-h-12 min-w-12 bg-linear-to-br from-[#ec2538] to-[#FF8C00] text-white font-bold py-4 px-8 rounded-xl shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300 text-lg cursor-pointer"
+            className="inline-flex items-center justify-center min-h-12 min-w-12 bg-linear-to-br from-brand to-brand-accent text-white font-bold py-4 px-8 rounded-xl shadow-lg dark:shadow-gray-900/25 hover:shadow-xl transition-all duration-300 text-lg cursor-pointer"
             whileHover={{ 
               scale: 1.05,
-              boxShadow: "0 25px 50px -12px rgba(236, 37, 56, 0.4)"
+              boxShadow: "0 25px 50px -12px rgb(var(--brand-primary-rgb)/0.4)"
             }}
             whileTap={{ scale: 0.95 }}
           >

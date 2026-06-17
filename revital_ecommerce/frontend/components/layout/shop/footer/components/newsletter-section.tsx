@@ -22,7 +22,7 @@ const NewsletterSection: React.FC<NewsletterSectionProps> = ({ onSubscribe }) =>
   }
 
   return (
-    <div className="bg-gradient-to-r from-[#ec2538] to-[#FF8C00] dark:from-red-600 dark:to-orange-500 py-8 sm:py-12 transition-colors duration-300">
+    <div className="bg-gradient-to-r from-brand to-brand-accent dark:from-red-600 dark:to-orange-500 py-8 sm:py-12 transition-colors duration-300">
       <div className="container mx-auto px-4 text-center">
         <h2 className="text-white text-xl sm:text-2xl lg:text-3xl font-bold mb-2 leading-tight transition-colors duration-300">
           ÚNETE A NUESTRO CLUB VIP Y OBTÉN 15% DE DESCUENTO
@@ -41,7 +41,7 @@ const NewsletterSection: React.FC<NewsletterSectionProps> = ({ onSubscribe }) =>
           />
           <Button 
             type="submit"
-            className="bg-white hover:bg-white/90 dark:bg-white/95 dark:hover:bg-white text-[#ec2538] dark:text-gray-900 px-6 h-11 sm:h-10 font-medium transition-colors duration-300"
+            className="bg-white hover:bg-white/90 dark:bg-white/95 dark:hover:bg-white text-brand dark:text-gray-900 px-6 h-11 sm:h-10 font-medium transition-colors duration-300"
           >
             ENVIAR
           </Button>

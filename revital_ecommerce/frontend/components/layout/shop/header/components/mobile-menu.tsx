@@ -47,7 +47,7 @@ export function MobileMenu({ isOpen, onClose, items = [], pathname }: MobileMenu
           variant="ghost"
           size="sm"
           onClick={onClose}
-          className="p-2 text-gray-700 dark:text-gray-300 hover:text-[#ec2538] dark:hover:text-red-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+          className="p-2 text-gray-700 dark:text-gray-300 hover:text-brand dark:hover:text-brand hover:bg-gray-100 dark:hover:bg-gray-800"
           aria-label="Cerrar menú"
         >
           <X className="h-5 w-5" />
@@ -62,8 +62,8 @@ export function MobileMenu({ isOpen, onClose, items = [], pathname }: MobileMenu
               key={index}
               href={item.href || ""}
               className={cn(
-                "flex w-full items-center rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#ec2538] dark:hover:text-red-500 transition-colors duration-300",
-                pathname === item.href ? "text-[#ec2538] dark:text-red-500 font-semibold" : "text-gray-700 dark:text-gray-300"
+                "flex w-full items-center rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-brand dark:hover:text-brand transition-colors duration-300",
+                pathname === item.href ? "text-brand dark:text-brand font-semibold" : "text-gray-700 dark:text-gray-300"
               )}
               onClick={onClose}
             >
@@ -76,8 +76,8 @@ export function MobileMenu({ isOpen, onClose, items = [], pathname }: MobileMenu
             <Link
               href="/profile"
               className={cn(
-                "flex w-full items-center gap-2 rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#ec2538] dark:hover:text-red-500 transition-colors duration-300",
-                pathname === "/profile" ? "text-[#ec2538] dark:text-red-500 font-semibold" : "text-gray-700 dark:text-gray-300"
+                "flex w-full items-center gap-2 rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-brand dark:hover:text-brand transition-colors duration-300",
+                pathname === "/profile" ? "text-brand dark:text-brand font-semibold" : "text-gray-700 dark:text-gray-300"
               )}
               onClick={onClose}
             >
@@ -90,8 +90,8 @@ export function MobileMenu({ isOpen, onClose, items = [], pathname }: MobileMenu
               <Link
                 href="/login"
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#ec2538] dark:hover:text-red-500 transition-colors duration-300",
-                  pathname === "/login" ? "text-[#ec2538] dark:text-red-500 font-semibold" : "text-gray-700 dark:text-gray-300"
+                  "flex w-full items-center gap-2 rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-brand dark:hover:text-brand transition-colors duration-300",
+                  pathname === "/login" ? "text-brand dark:text-brand font-semibold" : "text-gray-700 dark:text-gray-300"
                 )}
                 onClick={onClose}
               >
@@ -101,8 +101,8 @@ export function MobileMenu({ isOpen, onClose, items = [], pathname }: MobileMenu
               <Link
                 href="/register"
                 className={cn(
-                  "flex w-full items-center gap-2 rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-[#ec2538] dark:hover:text-red-500 transition-colors duration-300",
-                  pathname === "/register" ? "text-[#ec2538] dark:text-red-500 font-semibold" : "text-gray-700 dark:text-gray-300"
+                  "flex w-full items-center gap-2 rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-brand dark:hover:text-brand transition-colors duration-300",
+                  pathname === "/register" ? "text-brand dark:text-brand font-semibold" : "text-gray-700 dark:text-gray-300"
                 )}
                 onClick={onClose}
               >
@@ -123,7 +123,7 @@ export function MobileMenu({ isOpen, onClose, items = [], pathname }: MobileMenu
               }}
               className={cn(
                 "flex w-full items-center gap-2 rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-300 text-left",
-                theme === "light" ? "text-[#ec2538] dark:text-red-500" : "text-gray-700 dark:text-gray-300"
+                theme === "light" ? "text-brand dark:text-brand" : "text-gray-700 dark:text-gray-300"
               )}
             >
               <Sun className="w-4 h-4" />
@@ -137,7 +137,7 @@ export function MobileMenu({ isOpen, onClose, items = [], pathname }: MobileMenu
               }}
               className={cn(
                 "flex w-full items-center gap-2 rounded-md p-2 text-xs sm:text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-300 text-left",
-                theme === "dark" ? "text-[#ec2538] dark:text-red-500" : "text-gray-700 dark:text-gray-300"
+                theme === "dark" ? "text-brand dark:text-brand" : "text-gray-700 dark:text-gray-300"
               )}
             >
               <Moon className="w-4 h-4" />

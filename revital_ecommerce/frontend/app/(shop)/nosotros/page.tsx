@@ -52,7 +52,7 @@ export default function AboutUsPage() {
           href="https://revital.cloud/"
           target="_blank"
           rel="noreferrer"
-          className="text-[#ec2538] dark:text-red-400 hover:underline font-medium"
+          className="text-brand dark:text-brand hover:underline font-medium"
         >
           Conoce más en revital.cloud
         </a>
@@ -74,7 +74,7 @@ export default function AboutUsPage() {
         <ul className="space-y-3">
           {MOCK.valores.map((v, i) => (
             <li key={i} className="flex gap-3">
-              <span className="font-medium text-[#ec2538] dark:text-red-400 shrink-0">{v.titulo}:</span>
+              <span className="font-medium text-brand dark:text-brand shrink-0">{v.titulo}:</span>
               <span className="text-gray-600 dark:text-gray-400">{v.desc}</span>
             </li>
           ))}
@@ -94,7 +94,7 @@ export default function AboutUsPage() {
 
       <Link
         href="/"
-        className="inline-flex items-center text-[#ec2538] dark:text-red-400 hover:underline font-medium"
+        className="inline-flex items-center text-brand dark:text-brand hover:underline font-medium"
       >
         ← Volver al inicio
       </Link>

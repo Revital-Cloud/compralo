@@ -539,7 +539,7 @@ export function CategoryModal({
             <Button
               type="button"
               disabled={isSubmitting}
-              className="w-full bg-[#fec806] text-black hover:bg-[#e6b800] sm:w-auto"
+              className="w-full bg-brand-secondary text-black hover:bg-[#e6b800] sm:w-auto"
               onClick={onGuardarClick}
             >
               {isSubmitting ? 'Guardando...' : 'Guardar'}

@@ -124,7 +124,7 @@ export const EditEntityModal: React.FC<EditEntityModalProps> = ({ open, onOpenCh
 
           <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">Cancelar</Button>
-            <Button type="submit" className="w-full bg-[#fec806] text-black hover:bg-[#e6b800] sm:w-auto">Guardar cambios</Button>
+            <Button type="submit" className="w-full bg-brand-secondary text-black hover:bg-[#e6b800] sm:w-auto">Guardar cambios</Button>
           </div>
         </form>
       </DialogContent>

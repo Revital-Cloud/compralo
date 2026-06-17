@@ -44,7 +44,7 @@ export default function TerminosPage() {
       </div>
       <Link
         href="/"
-        className="inline-flex items-center mt-8 text-[#ec2538] dark:text-red-400 hover:underline font-medium"
+        className="inline-flex items-center mt-8 text-brand dark:text-brand hover:underline font-medium"
       >
         ← Volver al inicio
       </Link>

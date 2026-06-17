@@ -47,7 +47,7 @@ const FeaturesSection: React.FC<FeaturesSectionProps> = ({ features = defaultFea
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
       {features.map((feature, index) => (
         <div key={index} className="flex items-center gap-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg transition-colors duration-300">
-          <div className="p-3 bg-[#ec2538] dark:bg-red-500 rounded-full flex-shrink-0 transition-colors duration-300">
+          <div className="p-3 bg-brand dark:bg-brand rounded-full flex-shrink-0 transition-colors duration-300">
             {feature.icon}
           </div>
           <div>

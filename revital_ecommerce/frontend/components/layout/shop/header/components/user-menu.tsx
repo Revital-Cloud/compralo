@@ -63,7 +63,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ className = "" }) => {
     return (
       <Link 
         href="/login" 
-        className="text-gray-700 dark:text-gray-300 cursor-pointer hover:text-[#ec2538] dark:hover:text-red-500 transition-colors duration-200 font-medium text-sm sm:text-base"
+        className="text-gray-700 dark:text-gray-300 cursor-pointer hover:text-brand dark:hover:text-brand transition-colors duration-200 font-medium text-sm sm:text-base"
       >
         Iniciar sesión
       </Link>
@@ -89,11 +89,11 @@ const UserMenu: React.FC<UserMenuProps> = ({ className = "" }) => {
   // Obtener color de fondo para el avatar
   const getAvatarColor = () => {
     const colors = [
-      "bg-gradient-to-br from-[#ec2538] to-[#FF8C00]",
-      "bg-gradient-to-br from-[#FF8C00] to-[#fec806]",
-      "bg-gradient-to-br from-[#fec806] to-[#ec2538]",
-      "bg-gradient-to-br from-[#ec2538] to-[#fec806]",
-      "bg-gradient-to-br from-[#FF8C00] to-[#ec2538]"
+      "bg-gradient-to-br from-brand to-brand-accent",
+      "bg-gradient-to-br from-brand-accent to-brand-secondary",
+      "bg-gradient-to-br from-brand-secondary to-brand",
+      "bg-gradient-to-br from-brand to-brand-secondary",
+      "bg-gradient-to-br from-brand-accent to-brand"
     ]
     const index = (user?.id_usuario || 0) % colors.length
     return colors[index]

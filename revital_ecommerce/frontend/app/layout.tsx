@@ -8,6 +8,8 @@ import QueryProvider from "@/providers/query-provider"
 import { cn } from "@/lib/utils";
 import { RefreshTokenProvider } from "@/components/providers/refresh-token-provider";
 import { getPublicSiteOrigin } from "@/utils/url-helpers";
+import { getPublishedTheme } from "@/lib/theme-public";
+import { DEFAULT_THEME, fontHref, themeToCssText } from "@/lib/theme-css";
 
 /**
  * Fuentes principales del sitio:
@@ -77,11 +79,17 @@ const apiOrigin = (() => {
   }
 })();
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Theme global publicado (CMS Builder). Si no hay nada publicado o el backend
+  // no responde, se usa el theme por defecto: el sitio nunca queda sin estilos.
+  const site = (await getPublishedTheme()) ?? DEFAULT_THEME;
+  const themeCss = themeToCssText(site);
+  const themeFontHref = fontHref(site.theme.fonts?.body);
+
   // JSON-LD del sitio para mejorar resultados enriquecidos en buscadores.
   const websiteJsonLd = {
     "@context": "https://schema.org",
@@ -118,6 +126,14 @@ export default function RootLayout({
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        {themeFontHref ? <link rel="stylesheet" href={themeFontHref} /> : null}
+        {/* Variables del Theme global: se inyectan al final del <head> para que
+            tengan prioridad sobre globals.css (además usan html:root/html.dark). */}
+        <style
+          id="theme-vars"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: themeCss }}
         />
       </head>
       <body

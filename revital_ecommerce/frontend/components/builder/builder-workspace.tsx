@@ -9,13 +9,13 @@ import { BuilderStructurePanel } from "./builder-structure-panel";
 import { BuilderTopbar } from "./builder-topbar";
 import { useBuilderEditor } from "./use-builder-editor";
 
-export function BuilderWorkspace() {
-  const builder = useBuilderEditor();
+export function BuilderWorkspace({ slug = "home" }: { slug?: string }) {
+  const builder = useBuilderEditor(slug);
   const [leftTab, setLeftTab] = useState<"insert" | "navigator">("insert");
 
   return (
     <div className="space-y-3">
-      <BuilderTopbar />
+      <BuilderTopbar title={builder.title} status={builder.hasPublished ? "published" : "draft"} />
 
       <div className="grid gap-3 xl:grid-cols-[280px_1fr_280px]">
         <div className="flex h-[72vh] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-white/10 dark:bg-[#0f172a]">
@@ -65,9 +65,14 @@ export function BuilderWorkspace() {
         </div>
 
         <BuilderPreviewPanel
+          isDirty={builder.isDirty}
+          isPublishing={builder.isPublishing}
+          isSaving={builder.isSaving}
           mode={builder.previewMode}
           onAddSection={() => setLeftTab("insert")}
           onModeChange={builder.setPreviewMode}
+          onPublish={builder.publish}
+          onSave={builder.save}
           onSelectSection={builder.setSelectedSectionId}
           onViewportChange={builder.setViewport}
           onZoomChange={builder.setZoom}

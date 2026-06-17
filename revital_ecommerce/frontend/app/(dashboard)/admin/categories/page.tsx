@@ -284,7 +284,7 @@ const CategoriesPage = () => {
         cell: ({ row }) => {
           const active = (row.original.ind_activo ?? (row.original as { is_active?: boolean }).is_active) !== false
           return (
-            <span className={active ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+            <span className={active ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-brand-secondary text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
               {active ? 'Activo' : 'Inactivo'}
             </span>
           )
@@ -552,7 +552,7 @@ const CategoriesPage = () => {
               </div>
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-1">Estado</h4>
-                <span className={(selectedCategory.ind_activo ?? (selectedCategory as { is_active?: boolean }).is_active) !== false ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+                <span className={(selectedCategory.ind_activo ?? (selectedCategory as { is_active?: boolean }).is_active) !== false ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-brand-secondary text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
                   {(selectedCategory.ind_activo ?? (selectedCategory as { is_active?: boolean }).is_active) !== false ? 'Activo' : 'Inactivo'}
                 </span>
               </div>

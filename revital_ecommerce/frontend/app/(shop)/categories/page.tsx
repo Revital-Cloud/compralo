@@ -97,7 +97,7 @@ export default function CategoriesPage() {
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-muted/25 to-background px-6 py-8 md:px-10 md:py-10 mb-10">
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgba(254,200,6,0.22),transparent_55%),radial-gradient(circle_at_80%_0%,rgba(249,115,22,0.14),transparent_45%)] opacity-80"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_15%_10%,rgb(var(--brand-secondary-rgb)/0.22),transparent_55%),radial-gradient(circle_at_80%_0%,rgba(249,115,22,0.14),transparent_45%)] opacity-80"
         />
         <div className="relative">
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">

@@ -103,7 +103,7 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
             <DropdownMenuGroup>
-              <DropdownMenuItem asChild className="cursor-pointer hover:bg-sidebar-accent hover:text-[#fec806] transition-colors duration-300">
+              <DropdownMenuItem asChild className="cursor-pointer hover:bg-sidebar-accent hover:text-brand-secondary transition-colors duration-300">
                 <Link href="/admin/account" className="flex items-center gap-2">
                   <IconUserCircle />
                   Cuenta

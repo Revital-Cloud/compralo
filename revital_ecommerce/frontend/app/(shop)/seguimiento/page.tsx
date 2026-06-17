@@ -24,7 +24,7 @@ export default function OrderTrackingPage() {
   return (
     <div className="container mx-auto px-4 py-10 max-w-4xl">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-        <Package className="h-8 w-8 text-[#ec2538] dark:text-red-400" />
+        <Package className="h-8 w-8 text-brand dark:text-brand" />
         {MOCK.titulo}
       </h1>
       <p className="text-gray-600 dark:text-gray-400 mb-8">
@@ -50,7 +50,7 @@ export default function OrderTrackingPage() {
         <ul className="space-y-3">
           {MOCK.estados.map((e) => (
             <li key={e.id} className="flex gap-3">
-              <span className="font-medium text-[#ec2538] dark:text-red-400 shrink-0">{e.nombre}:</span>
+              <span className="font-medium text-brand dark:text-brand shrink-0">{e.nombre}:</span>
               <span className="text-gray-600 dark:text-gray-400">{e.desc}</span>
             </li>
           ))}
@@ -61,7 +61,7 @@ export default function OrderTrackingPage() {
 
       <Link
         href="/"
-        className="inline-flex items-center text-[#ec2538] dark:text-red-400 hover:underline font-medium"
+        className="inline-flex items-center text-brand dark:text-brand hover:underline font-medium"
       >
         ← Volver al inicio
       </Link>

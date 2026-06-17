@@ -7,9 +7,18 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Garantiza que las clases de columnas dinámicas del CMS (categorías/productos)
+   se generen aunque se compongan por interpolación. */
+@source inline("lg:grid-cols-{2,3,4,5,6}");
+@source inline("xl:grid-cols-{2,3,4,5,6}");
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  /* Tokens de marca controlados por el Theme global (CMS Builder). */
+  --color-brand: var(--brand-primary);
+  --color-brand-secondary: var(--brand-secondary);
+  --color-brand-accent: var(--brand-accent);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -49,6 +58,14 @@
 
 :root {
   --radius: 0.625rem;
+  /* Colores de marca (los sobreescribe el Theme global publicado vía <style> en el layout). */
+  --brand-primary: #ec2538;
+  --brand-secondary: #fec806;
+  --brand-accent: #FF8C00;
+  /* Canales RGB de la marca, para usar alpha en rgb(var(--brand-*-rgb)/A). */
+  --brand-primary-rgb: 236 37 56;
+  --brand-secondary-rgb: 254 200 6;
+  --brand-accent-rgb: 255 140 0;
   /* Colores principales de Compralo - Valores hexadecimales exactos */
   --background: #F5F5F5;
   --foreground: #000000;

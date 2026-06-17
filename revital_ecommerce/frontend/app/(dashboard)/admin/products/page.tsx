@@ -476,7 +476,7 @@ const ProductsPage = () => {
       cell: ({ row }) => {
         const isActive = Boolean((row.original as any).is_active ?? (row.original as any).ind_activo_producto);
         return (
-          <span className={isActive ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+          <span className={isActive ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-brand-secondary text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
             {isActive ? 'Activo' : 'Inactivo'}
           </span>
         );
@@ -667,7 +667,7 @@ const ProductsPage = () => {
               <div className="grid gap-4">
                 <h4 className="text-sm font-medium text-muted-foreground">Estado</h4>
                 <p>
-                  <span className={selectedProduct.is_active ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+                  <span className={selectedProduct.is_active ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-brand-secondary text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
                     {selectedProduct.is_active ? 'Activo' : 'Inactivo'}
                   </span>
                 </p>

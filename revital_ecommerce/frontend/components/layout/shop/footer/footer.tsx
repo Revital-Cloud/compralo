@@ -18,9 +18,10 @@ import { useFooterCategories } from "@/hooks"
 interface FooterProps {
   className?: string
   onNewsletterSubscribe?: (email: string) => void
+  brand?: string
 }
 
-const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }) => {
+const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe, brand }) => {
   const { data: footerCategories, isLoading, error } = useFooterCategories()
 
   return (
@@ -74,7 +75,7 @@ const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }
                   <li key={index}>
                     <a 
                       href={link.href} 
-                      className="text-sm text-gray-600 dark:text-gray-400 hover:text-[#ec2538] dark:hover:text-red-400 transition-colors duration-300 block py-1"
+                      className="text-sm text-gray-600 dark:text-gray-400 hover:text-brand dark:hover:text-brand transition-colors duration-300 block py-1"
                     >
                       {link.label}
                     </a>
@@ -101,7 +102,7 @@ const Footer: React.FC<FooterProps> = ({ className = "", onNewsletterSubscribe }
         <Separator className="my-6 bg-gray-200 dark:bg-gray-700" />
 
         {/* Copyright */}
-        <CopyrightSection />
+        <CopyrightSection companyName={brand} />
       </div>
     </footer>
   )

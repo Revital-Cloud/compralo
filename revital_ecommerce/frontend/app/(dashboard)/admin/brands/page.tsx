@@ -95,7 +95,7 @@ const BrandsPage = () => {
       accessorKey: 'ind_activo',
       header: 'Estado',
       cell: ({ row }) => (
-        <span className={row.original.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+        <span className={row.original.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-brand-secondary text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
           {row.original.ind_activo ? 'Activo' : 'Inactivo'}
         </span>
       ),
@@ -238,7 +238,7 @@ const BrandsPage = () => {
               </div>
               <div>
                 <h4 className="text-sm font-medium text-muted-foreground mb-1">Estado</h4>
-                <span className={selectedBrand.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+                <span className={selectedBrand.ind_activo ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-brand-secondary text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
                   {selectedBrand.ind_activo ? 'Activo' : 'Inactivo'}
                 </span>
               </div>

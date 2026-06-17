@@ -32,7 +32,7 @@ export function NavSecondary({
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton 
                 asChild
-                className="text-gray-600 dark:text-gray-400 hover:text-[#fec806] hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
+                className="text-gray-600 dark:text-gray-400 hover:text-brand-secondary hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-300"
               >
                 <a
                   href={item.url}

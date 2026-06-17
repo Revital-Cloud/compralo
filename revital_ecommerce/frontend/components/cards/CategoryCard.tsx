@@ -82,7 +82,7 @@ export function CategoryCard({
         className={
           variant === 'highlighted'
             ? "absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,0.35),transparent_55%)] opacity-40"
-            : "absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(254,200,6,0.22),transparent_55%),radial-gradient(circle_at_85%_15%,rgba(249,115,22,0.12),transparent_45%)] opacity-65"
+            : "absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgb(var(--brand-secondary-rgb)/0.22),transparent_55%),radial-gradient(circle_at_85%_15%,rgba(249,115,22,0.12),transparent_45%)] opacity-65"
         }
       />
 

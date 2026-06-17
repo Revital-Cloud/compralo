@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import {
   BUILDER_DEFAULT_PROPS,
@@ -15,6 +16,15 @@ import type {
   BuilderSectionType,
   BuilderViewport,
 } from "./builder-types";
+import { builderService, type BuilderSeo } from "@/services/builder.service";
+import { toUserSafeApiDetail } from "@/utils/api-error-message";
+
+const EMPTY_SEO: BuilderSeo = { title: null, description: null, og_image: null };
+
+function errMessage(err: unknown, fallback: string): string {
+  const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+  return toUserSafeApiDetail(detail, fallback);
+}
 
 function createInitialSections(): BuilderSection[] {
   const base: BuilderSectionType[] = [
@@ -36,16 +46,71 @@ function createInitialSections(): BuilderSection[] {
   }));
 }
 
-export function useBuilderEditor() {
+/** Normaliza secciones que llegan de la API, rellenando defaults faltantes. */
+function normalizeSections(sections: BuilderSection[]): BuilderSection[] {
+  return sections.map((section) => ({
+    id: section.id ?? createBuilderId(section.type),
+    type: section.type,
+    visible: section.visible ?? true,
+    props: { ...(section.props ?? {}) },
+    style: { ...createDefaultStyle(), ...(section.style ?? {}) },
+  }));
+}
+
+export function useBuilderEditor(slug: string = "home") {
   const [sections, setSections] = useState<BuilderSection[]>(createInitialSections);
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
-    sections.find((section) => section.type === "carousel")?.id ?? sections[0]?.id ?? null,
-  );
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [viewport, setViewport] = useState<BuilderViewport>("desktop");
   const [zoom, setZoom] = useState<number>(80);
   const [previewMode, setPreviewMode] = useState<BuilderPreviewMode>("compose");
   const [insertSearch, setInsertSearch] = useState("");
   const [draggingId, setDraggingId] = useState<string | null>(null);
+
+  // Estado de persistencia / página
+  const [title, setTitle] = useState<string>("Página Principal");
+  const [seo, setSeo] = useState<BuilderSeo>(EMPTY_SEO);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isPublishing, setIsPublishing] = useState<boolean>(false);
+  const [isDirty, setIsDirty] = useState<boolean>(false);
+  const [hasPublished, setHasPublished] = useState<boolean>(false);
+
+  // Carga inicial de la página desde la API.
+  useEffect(() => {
+    let active = true;
+    setIsLoading(true);
+    builderService
+      .getPage(slug)
+      .then((page) => {
+        if (!active) return;
+        if (page) {
+          const loaded = page.sections?.length
+            ? normalizeSections(page.sections)
+            : createInitialSections();
+          setSections(loaded);
+          setSelectedSectionId(loaded[0]?.id ?? null);
+          setTitle(page.title ?? "Página Principal");
+          setSeo(page.seo ?? EMPTY_SEO);
+          setHasPublished(Boolean(page.has_published));
+        } else {
+          const initial = createInitialSections();
+          setSelectedSectionId(initial[0]?.id ?? null);
+        }
+        setIsDirty(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        const initial = createInitialSections();
+        setSections(initial);
+        setSelectedSectionId(initial[0]?.id ?? null);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [slug]);
 
   const selectedSection = useMemo(
     () => sections.find((item) => item.id === selectedSectionId) ?? null,
@@ -91,6 +156,7 @@ export function useBuilderEditor() {
 
     setSections((prev) => [...prev, newSection]);
     setSelectedSectionId(newSection.id);
+    setIsDirty(true);
   }
 
   function deleteSection(sectionId: string) {
@@ -100,6 +166,7 @@ export function useBuilderEditor() {
       const next = sections.find((item) => item.id !== sectionId);
       return next?.id ?? null;
     });
+    setIsDirty(true);
   }
 
   function toggleSectionVisibility(sectionId: string) {
@@ -110,6 +177,7 @@ export function useBuilderEditor() {
           : section,
       ),
     );
+    setIsDirty(true);
   }
 
   function updateSelectedProp(key: string, value: string | number) {
@@ -121,6 +189,7 @@ export function useBuilderEditor() {
           : section,
       ),
     );
+    setIsDirty(true);
   }
 
   function updateSelectedStyle(
@@ -135,6 +204,7 @@ export function useBuilderEditor() {
           : section,
       ),
     );
+    setIsDirty(true);
   }
 
   function startDrag(sectionId: string) {
@@ -149,7 +219,46 @@ export function useBuilderEditor() {
     if (!draggingId || draggingId === targetSectionId) return;
     setSections((prev) => reorderSections(prev, draggingId, targetSectionId));
     setDraggingId(null);
+    setIsDirty(true);
   }
+
+  const buildPayload = useCallback(
+    () => ({ title, seo, sections }),
+    [title, seo, sections],
+  );
+
+  const save = useCallback(async (): Promise<boolean> => {
+    setIsSaving(true);
+    try {
+      await builderService.savePage(slug, buildPayload());
+      setIsDirty(false);
+      toast.success("Borrador guardado correctamente");
+      return true;
+    } catch (err: unknown) {
+      toast.error(errMessage(err, "No se pudo guardar el borrador"));
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [slug, buildPayload]);
+
+  const publish = useCallback(async (): Promise<boolean> => {
+    setIsPublishing(true);
+    try {
+      // Guardamos el borrador primero para publicar exactamente lo que se ve.
+      await builderService.savePage(slug, buildPayload());
+      await builderService.publishPage(slug);
+      setIsDirty(false);
+      setHasPublished(true);
+      toast.success("Página publicada. Los cambios ya están en vivo.");
+      return true;
+    } catch (err: unknown) {
+      toast.error(errMessage(err, "No se pudo publicar la página"));
+      return false;
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [slug, buildPayload]);
 
   return {
     sections,
@@ -163,6 +272,16 @@ export function useBuilderEditor() {
     insertCategories,
     visibleCount,
     draggingId,
+    // estado de persistencia
+    title,
+    seo,
+    isLoading,
+    isSaving,
+    isPublishing,
+    isDirty,
+    hasPublished,
+    setTitle,
+    setSeo,
     setSelectedSectionId,
     setViewport,
     setZoom,
@@ -176,5 +295,7 @@ export function useBuilderEditor() {
     startDrag,
     endDrag,
     dropOnSection,
+    save,
+    publish,
   };
 }

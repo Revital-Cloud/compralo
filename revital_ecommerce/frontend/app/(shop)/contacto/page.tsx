@@ -46,32 +46,32 @@ export default function ContactPage() {
 
       <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 mb-10">
         <div className="flex gap-3 p-4 rounded-lg bg-gray-100 dark:bg-gray-800">
-          <Mail className="h-6 w-6 shrink-0 text-[#ec2538] dark:text-red-400" />
+          <Mail className="h-6 w-6 shrink-0 text-brand dark:text-brand" />
           <div>
             <p className="font-medium text-gray-900 dark:text-white">Email</p>
-            <a href={`mailto:${MOCK.email}`} className="text-gray-600 dark:text-gray-400 hover:text-[#ec2538] dark:hover:text-red-400">
+            <a href={`mailto:${MOCK.email}`} className="text-gray-600 dark:text-gray-400 hover:text-brand dark:hover:text-brand">
               {MOCK.email}
             </a>
           </div>
         </div>
         <div className="flex gap-3 p-4 rounded-lg bg-gray-100 dark:bg-gray-800">
-          <Phone className="h-6 w-6 shrink-0 text-[#ec2538] dark:text-red-400" />
+          <Phone className="h-6 w-6 shrink-0 text-brand dark:text-brand" />
           <div>
             <p className="font-medium text-gray-900 dark:text-white">Teléfono</p>
-            <a href={`tel:${MOCK.telefono.replace(/\s/g, "")}`} className="text-gray-600 dark:text-gray-400 hover:text-[#ec2538] dark:hover:text-red-400">
+            <a href={`tel:${MOCK.telefono.replace(/\s/g, "")}`} className="text-gray-600 dark:text-gray-400 hover:text-brand dark:hover:text-brand">
               {MOCK.telefono}
             </a>
           </div>
         </div>
         <div className="flex gap-3 p-4 rounded-lg bg-gray-100 dark:bg-gray-800 sm:col-span-2">
-          <MapPin className="h-6 w-6 shrink-0 text-[#ec2538] dark:text-red-400" />
+          <MapPin className="h-6 w-6 shrink-0 text-brand dark:text-brand" />
           <div>
             <p className="font-medium text-gray-900 dark:text-white">Dirección</p>
             <p className="text-gray-600 dark:text-gray-400">{MOCK.direccion}</p>
           </div>
         </div>
         <div className="flex gap-3 p-4 rounded-lg bg-gray-100 dark:bg-gray-800 sm:col-span-2">
-          <Clock className="h-6 w-6 shrink-0 text-[#ec2538] dark:text-red-400" />
+          <Clock className="h-6 w-6 shrink-0 text-brand dark:text-brand" />
           <div>
             <p className="font-medium text-gray-900 dark:text-white">Horario de atención</p>
             <p className="text-gray-600 dark:text-gray-400">{MOCK.horario}</p>
@@ -85,7 +85,7 @@ export default function ContactPage() {
 
       <Link
         href="/"
-        className="inline-flex items-center text-[#ec2538] dark:text-red-400 hover:underline font-medium"
+        className="inline-flex items-center text-brand dark:text-brand hover:underline font-medium"
       >
         ← Volver al inicio
       </Link>

@@ -3,11 +3,14 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
-import { Button } from "@/components/ui";
+import { Badge, Button } from "@/components/ui";
 
 export function BuilderTopbar({
+  title = "Constructor de Contenido",
+  status = "draft",
 }: {
-  // Topbar ahora es solo contextual; controles viven en "Vista previa".
+  title?: string;
+  status?: "published" | "draft";
 }) {
   return (
     <header className="rounded-lg border border-slate-200 bg-white px-4 py-3 dark:border-white/10 dark:bg-[#0f172a]">
@@ -24,7 +27,12 @@ export function BuilderTopbar({
             </Link>
           </Button>
           <div>
-            <h1 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-white">Constructor de Contenido</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-white">{title}</h1>
+              <Badge variant={status === "published" ? "default" : "secondary"}>
+                {status === "published" ? "Publicado" : "Borrador"}
+              </Badge>
+            </div>
             <p className="text-xs text-slate-500 dark:text-white/55">
               Organiza secciones, ajusta estilos y revisa el resultado en tiempo real.
             </p>

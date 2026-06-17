@@ -30,6 +30,7 @@ from middlewares.auth_middleware import AuthMiddleware
 from middlewares.security_middleware import SecurityMiddleware
 # from middlewares.role_middleware import SmartAuthMiddleware
 from routers.cms_router import router as cms_router
+from routers.builder_router import router as builder_router
 from routers.provider_router import router as provider_router
 from core.config import settings
 from routers.product_router import router as product_router
@@ -259,6 +260,7 @@ app.add_middleware(
         "/api/brands",        # GET público, POST/PUT/DELETE admin
         "/api/providers",     # GET público, POST/PUT/DELETE admin
         "/api/cms",          # GET público, POST/PUT/DELETE admin
+        "/api/builder",      # GET /builder/public/* público; resto admin (GET admin protegido en router)
         "/api/users",        # POST público (registro), resto admin-only
         "/api/admin",        # Todo requiere admin
         # "/api/email" se valida a nivel de router con dependencias;
@@ -310,6 +312,8 @@ app.include_router(category_router, prefix=settings.API_STR)
 app.include_router(attribute_router, prefix=settings.API_STR)
 
 app.include_router(cms_router, prefix=settings.API_STR)
+
+app.include_router(builder_router, prefix=settings.API_STR)
 
 app.include_router(favorites_router, prefix=settings.API_STR)
 

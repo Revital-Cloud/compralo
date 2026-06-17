@@ -3,5 +3,5 @@
 import { BuilderWorkspace } from "@/components/builder/builder-workspace";
 
 export default function BuilderCreatePage() {
-  return <BuilderWorkspace />;
+  return <BuilderWorkspace slug="home" />;
 }

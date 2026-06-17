@@ -47,6 +47,10 @@ const config: Config = {
           800: '#665600',
           900: '#332B00',
         },
+        // Tokens de marca controlados por el Theme global (CMS Builder).
+        brand: "var(--brand-primary)",
+        "brand-secondary": "var(--brand-secondary)",
+        "brand-accent": "var(--brand-accent)",
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",

@@ -119,7 +119,7 @@ const PointsPage = () => {
       accessorKey: 'ind_activo', 
       header: 'Estado', 
       cell: ({ row }) => (
-        <Badge className={row.original.ind_activo ? 'bg-[#fec806] text-black' : 'bg-red-100 text-red-800'}>
+        <Badge className={row.original.ind_activo ? 'bg-brand-secondary text-black' : 'bg-red-100 text-red-800'}>
           {row.original.ind_activo ? 'Activo' : 'Inactivo'}
         </Badge>
       ) 
@@ -224,7 +224,7 @@ const PointsPage = () => {
               <IconCheck className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <Badge className={activeRate.ind_activo ? 'bg-[#fec806] text-black' : 'bg-red-100 text-red-800'}>
+              <Badge className={activeRate.ind_activo ? 'bg-brand-secondary text-black' : 'bg-red-100 text-red-800'}>
                 {activeRate.ind_activo ? 'Activo' : 'Inactivo'}
               </Badge>
               <p className="text-xs text-muted-foreground mt-2">

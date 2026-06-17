@@ -133,8 +133,9 @@ function setupInterceptors(instance: AxiosInstance): void {
         '/tasa-activa',
         '/top-info-bar/active',
         '/homepage/stats',
+        '/builder/public/',
       ];
-      const isPublicEndpoint = publicEndpoints.some(endpoint => 
+      const isPublicEndpoint = publicEndpoints.some(endpoint =>
         config.url?.includes(endpoint)
       );
 
@@ -189,6 +190,7 @@ function setupInterceptors(instance: AxiosInstance): void {
         '/discounts/active',
         '/tasa-activa',
         '/homepage/stats',
+        '/builder/public/',
       ];
       const isPublicEndpoint = publicEndpoints.some(endpoint =>
         originalRequest.url?.includes(endpoint)

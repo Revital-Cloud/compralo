@@ -52,14 +52,14 @@ export const CatalogHeader: React.FC<CatalogHeaderProps> = ({
 
         {(onCreateClick || createUrl) && createLabel && (
           onCreateClick ? (
-            <Button className="min-w-0 flex-1 bg-[#fec806] text-black hover:bg-[#e6b800] sm:flex-none" onClick={onCreateClick}>
+            <Button className="min-w-0 flex-1 bg-brand-secondary text-black hover:bg-[#e6b800] sm:flex-none" onClick={onCreateClick}>
               <IconPlus className="h-4 w-4 mr-2" />
               <span className="truncate">{createLabel}</span>
             </Button>
           ) : (
             createUrl && (
               <Link href={createUrl} className="min-w-0 flex-1 sm:flex-none">
-                <Button className="w-full bg-[#fec806] text-black hover:bg-[#e6b800]">
+                <Button className="w-full bg-brand-secondary text-black hover:bg-[#e6b800]">
                   <IconPlus className="h-4 w-4 mr-2" />
                   <span className="truncate">{createLabel}</span>
                 </Button>

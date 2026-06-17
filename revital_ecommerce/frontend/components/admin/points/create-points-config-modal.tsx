@@ -146,7 +146,7 @@ export const CreatePointsConfigModal: React.FC<Props> = ({ open, onOpenChange })
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" className="bg-[#fec806] hover:bg-[#e6b800] text-black" disabled={createMutation.isPending || updateMutation.isPending}>
+            <Button type="submit" className="bg-brand-secondary hover:bg-[#e6b800] text-black" disabled={createMutation.isPending || updateMutation.isPending}>
               {createMutation.isPending || updateMutation.isPending ? 'Guardando...' : (activeRate ? 'Actualizar' : 'Crear configuración')}
             </Button>
           </div>

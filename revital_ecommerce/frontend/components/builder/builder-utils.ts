@@ -1,4 +1,27 @@
-import type { BuilderSection } from "./builder-types";
+import { BUILDER_DEFAULT_PROPS, createDefaultStyle } from "./builder-config";
+import type { BuilderSection, BuilderSectionType } from "./builder-types";
+
+/** Convierte un texto a slug seguro (minúsculas, sin acentos, con guiones). */
+export function slugify(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+/** Construye secciones con props/estilos por defecto a partir de una lista de tipos. */
+export function buildSectionsFromTypes(types: BuilderSectionType[]): BuilderSection[] {
+  return types.map((type) => ({
+    id: createBuilderId(type),
+    type,
+    props: { ...BUILDER_DEFAULT_PROPS[type] },
+    visible: true,
+    style: createDefaultStyle(),
+  }));
+}
 
 export function reorderSections(
   sections: BuilderSection[],

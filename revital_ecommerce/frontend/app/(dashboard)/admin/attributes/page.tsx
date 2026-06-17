@@ -218,7 +218,7 @@ const AttributesPage = () => {
           description="Crea atributos para asociarlos a categorías y usarlos en variantes de producto."
           iconPath="M12 6l-2 4-4 .5 3 3-.8 4.5L12 16l3.8 2-1-4.5 3-3-4-.5L12 6z"
           primaryAction={
-            <Button className="bg-[#fec806] hover:bg-[#e6b800] text-black" onClick={() => setOpenCreate(true)}>
+            <Button className="bg-brand-secondary hover:bg-[#e6b800] text-black" onClick={() => setOpenCreate(true)}>
               Agregar Atributo
             </Button>
           }
@@ -428,7 +428,7 @@ function AttributeModal({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button type="submit" disabled={isSubmitting} className="w-full bg-[#fec806] text-black hover:bg-[#e6b800] sm:w-auto">
+            <Button type="submit" disabled={isSubmitting} className="w-full bg-brand-secondary text-black hover:bg-[#e6b800] sm:w-auto">
               {isSubmitting ? 'Guardando...' : 'Guardar'}
             </Button>
           </div>

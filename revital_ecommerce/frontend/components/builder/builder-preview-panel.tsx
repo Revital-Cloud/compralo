@@ -1,5 +1,5 @@
 "use client";
-import { Monitor, Plus, Save, Smartphone, Tablet, UploadCloud } from "lucide-react";
+import { Loader2, Monitor, Plus, Save, Smartphone, Tablet, UploadCloud } from "lucide-react";
 
 import { BUILDER_VIEWPORTS } from "./builder-config";
 import { BuilderRealPreviewIframe } from "./builder-real-preview-iframe";
@@ -21,6 +21,11 @@ export function BuilderPreviewPanel({
   onViewportChange,
   onZoomChange,
   onAddSection,
+  onSave,
+  onPublish,
+  isSaving = false,
+  isPublishing = false,
+  isDirty = false,
 }: {
   sections: BuilderSection[];
   selectedId: string | null;
@@ -32,7 +37,13 @@ export function BuilderPreviewPanel({
   onViewportChange: (next: BuilderViewport) => void;
   onZoomChange: (next: number) => void;
   onAddSection: () => void;
+  onSave?: () => void;
+  onPublish?: () => void;
+  isSaving?: boolean;
+  isPublishing?: boolean;
+  isDirty?: boolean;
 }) {
+  const busy = isSaving || isPublishing;
   const scale = Math.max(0.4, zoom / 100);
   const viewportIcons = {
     desktop: Monitor,
@@ -48,7 +59,7 @@ export function BuilderPreviewPanel({
             <button
               className={`h-8 rounded-md px-3 text-xs font-medium transition-colors ${
                 mode === "compose"
-                  ? "bg-[#fec806] text-slate-900"
+                  ? "bg-brand-secondary text-slate-900"
                   : "text-slate-600 hover:text-slate-900 dark:text-white/70 dark:hover:text-white"
               }`}
               onClick={() => onModeChange("compose")}
@@ -59,7 +70,7 @@ export function BuilderPreviewPanel({
             <button
               className={`h-8 rounded-md px-3 text-xs font-medium transition-colors ${
                 mode === "site"
-                  ? "bg-[#fec806] text-slate-900"
+                  ? "bg-brand-secondary text-slate-900"
                   : "text-slate-600 hover:text-slate-900 dark:text-white/70 dark:hover:text-white"
               }`}
               onClick={() => onModeChange("site")}
@@ -78,7 +89,7 @@ export function BuilderPreviewPanel({
                   aria-label={BUILDER_VIEWPORTS[key].label}
                   className={`flex size-8 items-center justify-center rounded-md transition-colors ${
                     active
-                      ? "bg-[#fec806] text-slate-900"
+                      ? "bg-brand-secondary text-slate-900"
                       : "text-slate-600 hover:text-slate-900 dark:text-white/70 dark:hover:text-white"
                   }`}
                   key={key}
@@ -112,18 +123,25 @@ export function BuilderPreviewPanel({
 
         <div className="flex flex-wrap items-center gap-2">
           <button
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-slate-100 px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 dark:border-white/10 dark:bg-[#111a31] dark:text-white/90 dark:hover:bg-[#17213b]"
+            className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-slate-100 px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-[#111a31] dark:text-white/90 dark:hover:bg-[#17213b]"
+            disabled={busy || !onSave}
+            onClick={onSave}
             type="button"
           >
-            <Save className="size-4" />
-            Guardar cambios
+            {isSaving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+            {isSaving ? "Guardando..." : "Guardar cambios"}
+            {isDirty && !busy ? (
+              <span className="ml-0.5 size-1.5 rounded-full bg-amber-500" aria-label="Cambios sin guardar" />
+            ) : null}
           </button>
           <button
-            className="inline-flex h-9 items-center gap-2 rounded-md bg-[#fec806] px-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-[#e4b305]"
+            className="inline-flex h-9 items-center gap-2 rounded-md bg-brand-secondary px-3 text-sm font-semibold text-slate-900 transition-colors hover:bg-[#e4b305] disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={busy || !onPublish}
+            onClick={onPublish}
             type="button"
           >
-            <UploadCloud className="size-4" />
-            Publicar
+            {isPublishing ? <Loader2 className="size-4 animate-spin" /> : <UploadCloud className="size-4" />}
+            {isPublishing ? "Publicando..." : "Publicar"}
           </button>
           <button
             className="inline-flex h-9 items-center gap-2 rounded-md border border-slate-200 bg-slate-100 px-3 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-200 dark:border-white/10 dark:bg-[#111a31] dark:text-white/90 dark:hover:bg-[#17213b]"

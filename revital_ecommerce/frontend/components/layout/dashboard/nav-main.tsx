@@ -73,8 +73,8 @@ export function NavMain({
                         asChild
                         className={`transition-colors duration-300 ${
                           isActive 
-                            ? 'bg-[#fec806]/10 text-[#fec806] hover:bg-[#fec806]/20 border-l-4 border-[#fec806] group-data-[collapsible=icon]:border-l-0 group-data-[collapsible=icon]:ring-1 group-data-[collapsible=icon]:ring-[#fec806]/70 group-data-[collapsible=icon]:ring-inset' 
-                            : 'text-gray-700 dark:text-gray-300 hover:text-[#fec806] hover:bg-gray-100 dark:hover:bg-gray-800'
+                            ? 'bg-brand-secondary/10 text-brand-secondary hover:bg-brand-secondary/20 border-l-4 border-brand-secondary group-data-[collapsible=icon]:border-l-0 group-data-[collapsible=icon]:ring-1 group-data-[collapsible=icon]:ring-brand-secondary/70 group-data-[collapsible=icon]:ring-inset' 
+                            : 'text-gray-700 dark:text-gray-300 hover:text-brand-secondary hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
                       >
                         <Link
@@ -83,7 +83,7 @@ export function NavMain({
                             if (isMobile) setOpenMobile(false)
                           }}
                         >
-                          {item.icon && <item.icon className={isActive ? 'text-[#fec806]' : ''} />}
+                          {item.icon && <item.icon className={isActive ? 'text-brand-secondary' : ''} />}
                           <span className={isActive ? 'font-semibold' : ''}>{item.title}</span>
                         </Link>
                       </SidebarMenuButton>

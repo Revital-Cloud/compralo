@@ -111,7 +111,7 @@ export const useDiscountColumns = ({
       cell: ({ row }) => {
         const isActive = !!row.original.ind_activo;
         return (
-          <span className={isActive ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-[#fec806] text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
+          <span className={isActive ? 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-brand-secondary text-black' : 'inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-red-600 text-white'}>
             {isActive ? 'Activo' : 'Inactivo'}
           </span>
         );

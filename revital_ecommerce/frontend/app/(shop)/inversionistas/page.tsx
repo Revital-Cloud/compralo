@@ -57,7 +57,7 @@ export default function InvestorsPage() {
               key={i}
               className="p-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 text-center"
             >
-              <p className="text-2xl font-bold text-[#ec2538] dark:text-red-400">{c.valor}</p>
+              <p className="text-2xl font-bold text-brand dark:text-brand">{c.valor}</p>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{c.label}</p>
             </div>
           ))}
@@ -76,7 +76,7 @@ export default function InvestorsPage() {
 
       <Link
         href="/"
-        className="inline-flex items-center mt-8 text-[#ec2538] dark:text-red-400 hover:underline font-medium"
+        className="inline-flex items-center mt-8 text-brand dark:text-brand hover:underline font-medium"
       >
         ← Volver al inicio
       </Link>

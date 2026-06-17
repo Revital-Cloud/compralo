@@ -115,7 +115,7 @@ const CategoryPage = () => {
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-b from-muted/20 to-background px-5 py-7 md:px-8 md:py-9 mb-10">
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgba(254,200,6,0.18),transparent_55%),radial-gradient(circle_at_90%_10%,rgba(249,115,22,0.12),transparent_45%)] opacity-80"
+          className="absolute inset-0 bg-[radial-gradient(circle_at_15%_0%,rgb(var(--brand-secondary-rgb)/0.18),transparent_55%),radial-gradient(circle_at_90%_10%,rgba(249,115,22,0.12),transparent_45%)] opacity-80"
         />
         <div className="relative">
         <Button
