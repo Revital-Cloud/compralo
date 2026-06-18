@@ -159,6 +159,19 @@ export function useBuilderEditor(slug: string = "home") {
     setIsDirty(true);
   }
 
+  function insertPreset(preset: BuilderSection) {
+    const copy: BuilderSection = {
+      ...preset,
+      id: createBuilderId(preset.type),
+      props: { ...preset.props },
+      style: { ...createDefaultStyle(), ...preset.style },
+      visible: true,
+    };
+    setSections((prev) => [...prev, copy]);
+    setSelectedSectionId(copy.id);
+    setIsDirty(true);
+  }
+
   function deleteSection(sectionId: string) {
     setSections((prev) => prev.filter((section) => section.id !== sectionId));
     setSelectedSectionId((prevSelected) => {
@@ -180,7 +193,7 @@ export function useBuilderEditor(slug: string = "home") {
     setIsDirty(true);
   }
 
-  function updateSelectedProp(key: string, value: string | number) {
+  function updateSelectedProp(key: string, value: string | number | boolean) {
     if (!selectedSectionId) return;
     setSections((prev) =>
       prev.map((section) =>
@@ -294,6 +307,7 @@ export function useBuilderEditor(slug: string = "home") {
     setPreviewMode,
     setInsertSearch,
     addSection,
+    insertPreset,
     deleteSection,
     toggleSectionVisibility,
     updateSelectedProp,

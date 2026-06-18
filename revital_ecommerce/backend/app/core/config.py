@@ -117,6 +117,24 @@ class Settings(BaseSettings):
     # Es opcional; si falta, las rutas /admin/ai devuelven 503.
     GROQ_API_KEY: Optional[str] = None
 
+    # Modelos de Groq (configurables por entorno para no requerir deploy
+    # cuando Groq depreca/renombra un modelo).
+    # - LIGHT: rápido y barato, para la mayoría del chat admin.
+    # - HEAVY: más potente, solo para análisis explícitamente profundos.
+    GROQ_LIGHT_MODEL: str = "meta-llama/llama-4-scout-17b-16e-instruct"
+    GROQ_HEAVY_MODEL: str = "llama-3.3-70b-versatile"
+    # Tope de tokens de salida por respuesta del LLM (control de coste/latencia).
+    GROQ_MAX_TOKENS: int = 1024
+    # Límite de mensajes del chat admin por usuario y minuto (0 = sin límite).
+    GROQ_RATE_LIMIT_PER_MIN: int = 20
+    # Iteraciones máximas del loop de tools del asistente admin (encadenado de
+    # herramientas de lectura antes de forzar una respuesta de texto).
+    GROQ_MAX_TOOL_ITERATIONS: int = 3
+
+    # Cache en proceso de los datos del dashboard (segundos). 0 = desactivado.
+    # Se invalida automáticamente tras acciones de escritura del asistente AI.
+    DASHBOARD_CACHE_TTL_SECONDS: int = 30
+
     # AI Product Search (Ollama embeddings)
     # Son opcionales porque el backend tiene fallback a búsqueda clásica.
     OLLAMA_BASE_URL: Optional[str] = None

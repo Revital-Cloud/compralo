@@ -4,6 +4,15 @@ import { getPublicSiteOrigin } from "@/utils/url-helpers";
 const siteOrigin = getPublicSiteOrigin();
 const siteName = "Compralo";
 
+/**
+ * Serializa un objeto JSON-LD de forma segura para inyectar en un <script>.
+ * Escapa `<` para evitar que un valor controlado por el usuario (p. ej. el título
+ * SEO de una página del CMS) pueda cerrar el <script> e inyectar HTML (XSS).
+ */
+export function safeJsonLd(data: unknown): string {
+  return JSON.stringify(data).replace(/</g, "\\u003c");
+}
+
 export function buildCanonical(pathname: string): string {
   try {
     return new URL(pathname, siteOrigin).toString();

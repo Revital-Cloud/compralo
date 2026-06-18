@@ -1,6 +1,7 @@
-import type { Metadata } from "next"
 import Link from "next/link"
-import { buildOpenGraph, buildTwitter } from "@/lib/seo"
+import { managedPageMetadata } from "@/lib/cms-page"
+import { getPublishedPage } from "@/lib/builder-public"
+import { BuilderStorefrontRenderer } from "@/components/builder/storefront/page-renderer"
 
 const MOCK = {  
   fundacion: 2026,
@@ -20,27 +21,10 @@ const MOCK = {
   ],
 }
 
-export const generateMetadata = (): Metadata => {
-  const title = "Acerca de Revital"
-  const description =
-    "Conoce la misión, visión, valores y el equipo detrás de Revital."
+export const generateMetadata = () =>
+  managedPageMetadata("nosotros", { title: "Acerca de Revital", description: "Conoce la misión, visión, valores y el equipo detrás de Revital.", pathname: "/nosotros" })
 
-  return {
-    title,
-    description,
-    openGraph: buildOpenGraph({
-      title,
-      description,
-      pathname: "/nosotros",
-    }),
-    twitter: buildTwitter({
-      title,
-      description,
-    }),
-  }
-}
-
-export default function AboutUsPage() {
+function AboutUsPageStatic() {
   return (
     <div className="container mx-auto px-4 py-10 max-w-4xl">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -100,4 +84,16 @@ export default function AboutUsPage() {
       </Link>
     </div>
   )
+}
+
+export default async function AboutUsPage() {
+  const page = await getPublishedPage("nosotros")
+  if (page) {
+    return (
+      <div className="py-8 md:py-10">
+        <BuilderStorefrontRenderer sections={page.sections} />
+      </div>
+    )
+  }
+  return <AboutUsPageStatic />
 }

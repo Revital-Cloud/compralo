@@ -40,6 +40,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteOrigin}/products`, priority: 0.9 },
   ];
 
+  // Páginas publicadas del CMS Builder (/p/<slug>).
+  try {
+    const baseUrl = apiBase.endsWith("/") ? apiBase : `${apiBase}/`;
+    const pages = await fetchJson<Array<{ slug: string; is_home: boolean; updated_at?: string | null }>>(
+      new URL("builder/public-pages", baseUrl).toString(),
+    );
+    for (const page of pages) {
+      if (page.is_home) continue; // la home ya está en "/"
+      items.push({
+        url: `${siteOrigin}/p/${encodeURIComponent(page.slug)}`,
+        lastModified: toSitemapLastModified(page.updated_at),
+        priority: 0.6,
+      });
+    }
+  } catch {
+    // Sin páginas CMS en el sitemap si la API falla.
+  }
+
   // Para no romper el build si la API no está disponible (o está lenta),
   // hacemos un fallback a páginas base.
   try {

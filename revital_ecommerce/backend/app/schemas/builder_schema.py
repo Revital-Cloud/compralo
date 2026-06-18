@@ -139,3 +139,26 @@ class BuilderPagePublic(BaseModel):
     title: str
     seo: BuilderSeo
     sections: List[BuilderSection]
+
+
+class BuilderPublicPageRef(BaseModel):
+    """Referencia ligera de una página publicada (para sitemap/SEO)."""
+
+    slug: str
+    is_home: bool
+    updated_at: Optional[str] = None
+
+
+class BlockTemplate(BaseModel):
+    """Bloque reutilizable guardado por el admin ("Mis bloques")."""
+
+    id: str
+    name: str
+    section: BuilderSection
+
+
+class BlockTemplateCreate(BaseModel):
+    """Cuerpo del POST para guardar un bloque reutilizable."""
+
+    name: str = Field(..., min_length=1, max_length=80)
+    section: BuilderSection

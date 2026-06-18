@@ -10,7 +10,7 @@ import logging
 import json
 import re
 import time
-from typing import Any, Dict, Iterator, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from groq import Groq
 
@@ -18,12 +18,15 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Modelos recomendados en Groq:
+# Modelos recomendados en Groq (configurables vía entorno en core.config):
 # - LIGHT_MODEL: más rápido y barato, ideal para la mayoría de tareas de asistente/admin.
 # - HEAVY_MODEL: más potente, usar solo para análisis muy complejos o cuando se necesite explícitamente.
-LIGHT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
-HEAVY_MODEL = "llama-3.3-70b-versatile"
+LIGHT_MODEL = settings.GROQ_LIGHT_MODEL
+HEAVY_MODEL = settings.GROQ_HEAVY_MODEL
 DEFAULT_MODEL = LIGHT_MODEL
+
+# Tope de tokens de salida por defecto (control de coste/latencia).
+DEFAULT_MAX_TOKENS = settings.GROQ_MAX_TOKENS
 
 _FAILED_GENERATION_RE = re.compile(
     r"^<function=(?P<name>[a-zA-Z0-9_:-]+)>(?P<args>\{.*\})(?:</function>)?$",
@@ -34,6 +37,33 @@ _FAILED_GENERATION_RE = re.compile(
 def is_groq_available() -> bool:
     """Indica si Groq est? configurado (API key presente)."""
     return bool(settings.GROQ_API_KEY and settings.GROQ_API_KEY.strip())
+
+
+def usage_to_dict(usage: Any) -> Dict[str, int]:
+    """Normaliza el objeto/dict `usage` de Groq a {prompt,completion,total}_tokens."""
+    if usage is None:
+        return {}
+    get = usage.get if isinstance(usage, dict) else lambda k, d=None: getattr(usage, k, d)
+    out: Dict[str, int] = {}
+    for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+        try:
+            val = get(key)
+            if val is not None:
+                out[key] = int(val)
+        except Exception:
+            continue
+    return out
+
+
+def _log_usage(where: str, model: str, usage: Any) -> None:
+    """Registra el consumo de tokens (observabilidad de coste)."""
+    u = usage_to_dict(usage)
+    if u:
+        logger.info(
+            "Groq usage [%s] model=%s prompt=%s completion=%s total=%s",
+            where, model, u.get("prompt_tokens", 0),
+            u.get("completion_tokens", 0), u.get("total_tokens", 0),
+        )
 
 
 def _build_client() -> Groq:
@@ -59,61 +89,12 @@ def _is_rate_limit_error(exc: Exception) -> bool:
     return False
 
 
-def chat_completion_stream(
-    user_content: str,
-    system_content: Optional[str] = None,
-    model: str = DEFAULT_MODEL,
-    temperature: float = 0.3,
-) -> Iterator[str]:
-    """
-    Llama a Groq con stream=True y devuelve un generador de fragmentos de texto.
-    """
-    if not is_groq_available():
-        raise ValueError("GROQ_API_KEY no est? configurada.")
-
-    messages = []
-    if system_content:
-        messages.append({"role": "system", "content": system_content})
-    messages.append({"role": "user", "content": user_content})
-
-    max_retries = 2
-    base_delay = 0.5  # segundos
-    attempt = 0
-
-    while True:
-        try:
-            client = _build_client()
-            stream = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                temperature=temperature,
-                stream=True,
-            )
-            for chunk in stream:
-                if chunk.choices and chunk.choices[0].delta.content:
-                    yield chunk.choices[0].delta.content
-            return
-        except Exception as e:
-            if _is_rate_limit_error(e) and attempt < max_retries:
-                delay = base_delay * (2**attempt)
-                logger.warning(
-                    "Groq stream rate limited (intentando de nuevo %s/%s en %.2fs)",
-                    attempt + 1,
-                    max_retries,
-                    delay,
-                )
-                time.sleep(delay)
-                attempt += 1
-                continue
-            logger.exception("Unexpected error calling Groq (stream)")
-            raise RuntimeError(f"Error inesperado al usar Groq: {str(e)}") from e
-
-
 def chat_completion(
     user_content: str,
     system_content: Optional[str] = None,
     model: str = DEFAULT_MODEL,
     temperature: float = 0.3,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
 ) -> str:
     """
     Llama a Groq Chat Completions y devuelve el texto de la respuesta.
@@ -121,8 +102,9 @@ def chat_completion(
     Args:
         user_content: Contenido del mensaje del usuario.
         system_content: Contenido del mensaje de sistema (instrucciones). Opcional.
-        model: Modelo a usar. Por defecto llama-3.3-70b-versatile.
+        model: Modelo a usar. Por defecto el modelo ligero configurado.
         temperature: Temperatura (0-2). Por defecto 0.3 para respuestas m?s deterministas.
+        max_tokens: Tope de tokens de salida (control de coste/latencia).
 
     Returns:
         str: Contenido de la respuesta del asistente.
@@ -150,7 +132,9 @@ def chat_completion(
                 model=model,
                 messages=messages,
                 temperature=temperature,
+                max_tokens=max_tokens,
             )
+            _log_usage("chat_completion", model, getattr(response, "usage", None))
             content = response.choices[0].message.content
             return content or ""
         except Exception as e:
@@ -175,6 +159,7 @@ def chat_with_tools(
     model: str = DEFAULT_MODEL,
     temperature: float = 0.3,
     tool_choice: str = "auto",
+    max_tokens: int = DEFAULT_MAX_TOKENS,
 ) -> Dict[str, Any]:
     """
     Llama a Groq Chat Completions con tools (function calling) y devuelve la
@@ -199,9 +184,12 @@ def chat_with_tools(
                 tools=tools,
                 tool_choice=tool_choice,
                 temperature=temperature,
+                max_tokens=max_tokens,
             )
             # Convertimos a dict para desacoplar de la clase del SDK.
-            return response.to_dict() if hasattr(response, "to_dict") else dict(response)  # type: ignore[arg-type]
+            result = response.to_dict() if hasattr(response, "to_dict") else dict(response)  # type: ignore[arg-type]
+            _log_usage("chat_with_tools", model, result.get("usage") if isinstance(result, dict) else None)
+            return result
         except Exception as e:
             # Si es rate limit, aplicamos backoff y reintentamos.
             if _is_rate_limit_error(e) and attempt < max_retries:

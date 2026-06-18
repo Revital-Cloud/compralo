@@ -1051,6 +1051,13 @@ def execute_action_with_metadata(
     """
     message = execute_action(db, action_id, params, user_id)
     affected_entities = _get_affected_entities(action_id)
+    # Las acciones de escritura pueden cambiar KPIs/listados: invalidamos el
+    # cache del dashboard para no servir datos obsoletos tras la acción.
+    try:
+        from services.dashboard_service import invalidate_dashboard_cache
+        invalidate_dashboard_cache()
+    except Exception:
+        pass
     return {
         "message": message,
         "affected_entities": affected_entities,

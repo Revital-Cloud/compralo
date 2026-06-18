@@ -14,14 +14,26 @@ Bloques generados:
 - Órdenes recientes
 - Resumen agregado
 """
+import copy
 import json
+import time
 from decimal import Decimal
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import Dict, List, Any
 
+from core.config import settings
 from services.product_service import SQL_IMG_PRINCIPAL_COALESCE_P
+
+# Cache en proceso (por worker) de get_dashboard_data: time_range -> (expira_en, data).
+# TTL corto configurable; se invalida tras acciones de escritura del asistente AI.
+_DASHBOARD_CACHE: Dict[str, tuple] = {}
+
+
+def invalidate_dashboard_cache() -> None:
+    """Limpia el cache del dashboard (llamar tras escrituras que cambian KPIs)."""
+    _DASHBOARD_CACHE.clear()
 
 
 def _format_revenue_full(value: float) -> str:
@@ -56,7 +68,17 @@ def get_dashboard_data(db: Session, time_range: str = 'monthly') -> Dict[str, An
     3) Construye serie de ventas para gráfica.
     4) Trae top productos y últimas órdenes.
     5) Calcula resumen final y retorna payload homogéneo.
+
+    Cachea el resultado por `time_range` durante DASHBOARD_CACHE_TTL_SECONDS para
+    evitar recomputar agregados pesados en llamadas seguidas (p. ej. el chat AI).
+    Devuelve una copia profunda para que los callers no muten el valor cacheado.
     """
+    ttl = settings.DASHBOARD_CACHE_TTL_SECONDS
+    if ttl > 0:
+        cached = _DASHBOARD_CACHE.get(time_range)
+        if cached is not None and cached[0] > time.monotonic():
+            return copy.deepcopy(cached[1])
+
     try:
         # Calcular fechas según el rango de tiempo
         end_date = datetime.now()
@@ -88,7 +110,7 @@ def get_dashboard_data(db: Session, time_range: str = 'monthly') -> Dict[str, An
         # Calcular resumen de ventas
         summary = _get_sales_summary(db, sales_data)
         
-        return {
+        result = {
             'kpis': kpis,
             'salesData': sales_data,
             'bestSellers': best_sellers,
@@ -96,6 +118,9 @@ def get_dashboard_data(db: Session, time_range: str = 'monthly') -> Dict[str, An
             'summary': summary,
             'timeRange': time_range
         }
+        if ttl > 0:
+            _DASHBOARD_CACHE[time_range] = (time.monotonic() + ttl, copy.deepcopy(result))
+        return result
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al obtener datos del dashboard: {str(e)}")

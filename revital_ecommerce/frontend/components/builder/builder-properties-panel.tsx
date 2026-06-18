@@ -1,11 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { Eye, EyeOff, Palette, Trash2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { Bookmark, Eye, EyeOff, Loader2, Palette, Trash2, Upload } from "lucide-react";
+import { toast } from "sonner";
 
 import { BUILDER_FIELDS, BUILDER_SECTION_META } from "./builder-config";
-import type { BuilderSection, BuilderSectionStyle } from "./builder-types";
-import { Button, Input } from "@/components/ui";
+import type {
+  BuilderFieldConfig,
+  BuilderPropValue,
+  BuilderSection,
+  BuilderSectionStyle,
+} from "./builder-types";
+import { Button, Input, Switch, Textarea } from "@/components/ui";
+import { uploadProductImage } from "@/services/product.service";
 
 const alignOptions: BuilderSectionStyle["align"][] = ["left", "center", "right"];
 
@@ -15,12 +22,14 @@ export function BuilderPropertiesPanel({
   onToggleVisibility,
   onUpdateProp,
   onUpdateStyle,
+  onSaveAsBlock,
 }: {
   section: BuilderSection | null;
   onDelete: (sectionId: string) => void;
   onToggleVisibility: (sectionId: string) => void;
-  onUpdateProp: (key: string, value: string | number) => void;
+  onUpdateProp: (key: string, value: BuilderPropValue) => void;
   onUpdateStyle: (key: keyof BuilderSectionStyle, value: string | number) => void;
+  onSaveAsBlock?: (section: BuilderSection) => void;
 }) {
   const [rightTab, setRightTab] = useState<"element" | "style">("element");
 
@@ -55,14 +64,11 @@ export function BuilderPropertiesPanel({
         ) : (
           <>
             <div className="space-y-1.5">
-              <p className="text-sm font-semibold text-slate-900 dark:text-white">{BUILDER_SECTION_META[section.type].label}</p>
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                {BUILDER_SECTION_META[section.type]?.label ?? section.type}
+              </p>
               <div className="flex gap-2">
-                <Button
-                  onClick={() => onToggleVisibility(section.id)}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
+                <Button onClick={() => onToggleVisibility(section.id)} size="sm" type="button" variant="outline">
                   {section.visible ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
                   {section.visible ? "Visible" : "Oculta"}
                 </Button>
@@ -71,68 +77,42 @@ export function BuilderPropertiesPanel({
                   Eliminar
                 </Button>
               </div>
+              {onSaveAsBlock ? (
+                <Button
+                  className="w-full"
+                  onClick={() => onSaveAsBlock(section)}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <Bookmark className="size-4" />
+                  Guardar como bloque
+                </Button>
+              ) : null}
             </div>
 
-            <div className="space-y-3 border-t border-slate-200 pt-3 dark:border-white/10">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-white/45">
-                Contenido
-              </p>
-              {rightTab === "element"
-                ? BUILDER_FIELDS[section.type].map((field) => {
-                    const current = section.props[field.key];
-                    if (field.type === "number") {
-                      return (
-                        <div className="space-y-1.5" key={field.key}>
-                          <label className="text-xs font-medium">{field.label}</label>
-                          <Input
-                            className="h-8 border-slate-200 bg-white text-xs text-slate-900 dark:border-white/10 dark:bg-[#121a2f] dark:text-white"
-                            onChange={(event) =>
-                              onUpdateProp(field.key, Math.max(1, Number(event.target.value || 1)))
-                            }
-                            type="number"
-                            value={String(current ?? 1)}
-                          />
-                        </div>
-                      );
-                    }
-
-                    if (field.type === "image") {
-                      return (
-                        <div className="space-y-1.5" key={field.key}>
-                          <label className="text-xs font-medium">{field.label}</label>
-                          <Input
-                            className="h-8 border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-[#121a2f] dark:text-white dark:placeholder:text-white/35"
-                            onChange={(event) => onUpdateProp(field.key, event.target.value)}
-                            placeholder="https://..."
-                            type="url"
-                            value={String(current ?? "")}
-                          />
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="space-y-1.5" key={field.key}>
-                        <label className="text-xs font-medium">{field.label}</label>
-                        <Input
-                          className="h-8 border-slate-200 bg-white text-xs text-slate-900 dark:border-white/10 dark:bg-[#121a2f] dark:text-white"
-                          onChange={(event) => onUpdateProp(field.key, event.target.value)}
-                          type="text"
-                          value={String(current ?? "")}
-                        />
-                      </div>
-                    );
-                  })
-                : null}
-            </div>
-
-            {rightTab === "style" ? (
+            {rightTab === "element" ? (
+              <div className="space-y-3 border-t border-slate-200 pt-3 dark:border-white/10">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-white/45">
+                  Contenido
+                </p>
+                {(BUILDER_FIELDS[section.type] ?? []).length === 0 ? (
+                  <p className="text-xs text-slate-400 dark:text-white/40">Este bloque no tiene campos editables.</p>
+                ) : null}
+                {(BUILDER_FIELDS[section.type] ?? []).map((field) => (
+                  <FieldInput
+                    key={field.key}
+                    field={field}
+                    value={section.props[field.key]}
+                    onChange={(value) => onUpdateProp(field.key, value)}
+                  />
+                ))}
+              </div>
+            ) : (
               <div className="space-y-3 border-t border-slate-200 pt-3 dark:border-white/10">
                 <div className="flex items-center gap-2">
                   <Palette className="size-4" />
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-white/45">
-                    Estilo
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-white/45">Estilo</p>
                 </div>
 
                 <div className="space-y-1.5">
@@ -158,41 +138,142 @@ export function BuilderPropertiesPanel({
                     className="h-8 border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-[#121a2f]"
                     onChange={(event) => onUpdateStyle("bgColor", event.target.value)}
                     type="color"
-                    value={
-                      section.style.bgColor === "transparent"
-                        ? "#000000"
-                        : section.style.bgColor
-                    }
+                    value={section.style.bgColor === "transparent" ? "#000000" : section.style.bgColor}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-2">
-                  <NumberStyleInput
-                    label="Padding top"
-                    onValueChange={(value) => onUpdateStyle("paddingTop", value)}
-                    value={section.style.paddingTop}
-                  />
-                  <NumberStyleInput
-                    label="Padding bottom"
-                    onValueChange={(value) => onUpdateStyle("paddingBottom", value)}
-                    value={section.style.paddingBottom}
-                  />
-                  <NumberStyleInput
-                    label="Margin top"
-                    onValueChange={(value) => onUpdateStyle("marginTop", value)}
-                    value={section.style.marginTop}
-                  />
-                  <NumberStyleInput
-                    label="Margin bottom"
-                    onValueChange={(value) => onUpdateStyle("marginBottom", value)}
-                    value={section.style.marginBottom}
-                  />
+                  <NumberStyleInput label="Padding top" onValueChange={(v) => onUpdateStyle("paddingTop", v)} value={section.style.paddingTop} />
+                  <NumberStyleInput label="Padding bottom" onValueChange={(v) => onUpdateStyle("paddingBottom", v)} value={section.style.paddingBottom} />
+                  <NumberStyleInput label="Margin top" onValueChange={(v) => onUpdateStyle("marginTop", v)} value={section.style.marginTop} />
+                  <NumberStyleInput label="Margin bottom" onValueChange={(v) => onUpdateStyle("marginBottom", v)} value={section.style.marginBottom} />
                 </div>
               </div>
-            ) : null}
+            )}
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+const fieldInputCls =
+  "h-8 border-slate-200 bg-white text-xs text-slate-900 placeholder:text-slate-400 dark:border-white/10 dark:bg-[#121a2f] dark:text-white dark:placeholder:text-white/35";
+
+function FieldInput({
+  field,
+  value,
+  onChange,
+}: {
+  field: BuilderFieldConfig;
+  value: BuilderPropValue | undefined;
+  onChange: (value: BuilderPropValue) => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      {field.type !== "boolean" ? <label className="text-xs font-medium">{field.label}</label> : null}
+
+      {field.type === "number" ? (
+        <Input
+          className={fieldInputCls}
+          type="number"
+          value={String(value ?? 0)}
+          onChange={(e) => onChange(Math.max(0, Number(e.target.value || 0)))}
+        />
+      ) : field.type === "textarea" || field.type === "richtext" ? (
+        <Textarea
+          className="min-h-20 border-slate-200 bg-white text-xs text-slate-900 dark:border-white/10 dark:bg-[#121a2f] dark:text-white"
+          rows={field.type === "richtext" ? 6 : 3}
+          value={String(value ?? "")}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder}
+        />
+      ) : field.type === "color" ? (
+        <div className="flex items-center gap-2">
+          <input
+            type="color"
+            className="h-8 w-12 cursor-pointer rounded border bg-transparent"
+            value={String(value || "#000000")}
+            onChange={(e) => onChange(e.target.value)}
+          />
+          <Input className={fieldInputCls} value={String(value ?? "")} onChange={(e) => onChange(e.target.value)} />
+        </div>
+      ) : field.type === "select" ? (
+        <select
+          className="border-input h-8 w-full rounded-md border bg-transparent px-2 text-xs"
+          value={String(value ?? field.options?.[0]?.value ?? "")}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          {(field.options ?? []).map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      ) : field.type === "boolean" ? (
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-medium">{field.label}</label>
+          <Switch checked={value === true || value === "true"} onCheckedChange={(c) => onChange(c)} />
+        </div>
+      ) : field.type === "image" ? (
+        <ImageField value={String(value ?? "")} onChange={onChange} />
+      ) : (
+        <Input
+          className={fieldInputCls}
+          type={field.type === "link" ? "text" : "text"}
+          value={String(value ?? "")}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={field.placeholder ?? (field.type === "link" ? "/ruta o https://..." : undefined)}
+        />
+      )}
+
+      {field.help ? <p className="text-[11px] text-slate-400 dark:text-white/40">{field.help}</p> : null}
+    </div>
+  );
+}
+
+function ImageField({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function handleFile(file: File | undefined) {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const { url } = await uploadProductImage(file);
+      onChange(url);
+      toast.success("Imagen subida");
+    } catch {
+      toast.error("No se pudo subir la imagen");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex gap-2">
+        <Input
+          className={fieldInputCls}
+          type="url"
+          placeholder="https://..."
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+        <Button type="button" size="sm" variant="outline" disabled={uploading} onClick={() => inputRef.current?.click()}>
+          {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+        </Button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => handleFile(e.target.files?.[0])}
+        />
+      </div>
+      {value ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={value} alt="" className="h-16 w-full rounded border border-slate-200 object-cover dark:border-white/10" />
+      ) : null}
     </div>
   );
 }

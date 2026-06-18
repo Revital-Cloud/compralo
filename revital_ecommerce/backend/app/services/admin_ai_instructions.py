@@ -1,48 +1,12 @@
 """
-Instrucciones, prompts y keywords para el asistente de IA del panel admin.
+Instrucciones y prompts para el asistente de IA del panel admin.
 
-Centraliza todo el texto que define comportamiento e intenciones:
-keywords por intent, mensaje de fallback, prompts del LLM para chat, resumen y extracción de acciones.
+Centraliza el texto que define el comportamiento del asistente: mensaje de
+fallback y prompts del LLM para el chat (tool calling) y el resumen.
+
+El enrutamiento de intenciones lo hace el modelo vía tool calling; ya no hay
+listas de keywords por intent en el backend.
 """
-
-# ---------------------------------------------------------------------------
-# Keywords por intención (detección por substring en mensaje en minúsculas)
-# ---------------------------------------------------------------------------
-
-INTENT_PENDING_ORDERS = (
-    "ordenes pendientes", "órdenes pendientes", "pedidos pendientes", "pending orders",
-)
-INTENT_TOP_PRODUCTS = (
-    "productos más vendidos", "productos mas vendidos",
-    "producto más vendido", "producto mas vendido",
-    "mas vendidos", "más vendidos", "mas vendido", "más vendido",
-    "top productos", "best sellers", "mejor vendido", "más vendido",
-)
-INTENT_SALES_SUMMARY = (
-    "resumen de ventas", "resumen ventas", "ventas", "sales summary", "dashboard",
-)
-INTENT_ALERTS = ("alertas", "stock", "alerta", "alert")
-INTENT_RECENT_ORDERS = (
-    "órdenes recientes", "ordenes recientes", "pedidos recientes",
-    "últimas órdenes", "ultimas ordenes", "últimos pedidos", "ultimos pedidos",
-    "last orders", "recientes",
-)
-INTENT_GENERAL = (
-    "cómo va", "como va", "qué tal", "que tal", "resumen general",
-    "estado de la tienda", "dame un resumen", "cómo estamos", "como estamos",
-    "overview", "panorama", "visión general", "vision general",
-)
-INTENT_TOP_CATEGORIES = (
-    "categoría más vendida", "categoria mas vendida", "categorías más vendidas",
-    "categorias mas vendidas", "qué categoría vende más", "que categoria vende mas",
-    "ranking de categorías", "ranking categorias", "mejor categoría",
-    "top categorías", "top categorias", "top categoria", "top categorias",
-)
-INTENT_TOP_STOCK = (
-    "mayor stock", "más stock", "mas stock", "más inventario", "mas inventario",
-    "producto con más stock", "producto con mas stock", "producto mayor stock",
-    "productos con más stock", "productos con mas stock",
-)
 
 # ---------------------------------------------------------------------------
 # Mensajes al usuario
@@ -58,16 +22,6 @@ FALLBACK_REPLY = (
 # ---------------------------------------------------------------------------
 # Prompts del LLM (system / instrucciones)
 # ---------------------------------------------------------------------------
-
-CHAT_SYSTEM_PROMPT = (
-    "Eres un agente de IA para la tienda Compralo. "
-    "Responde SIEMPRE en español, de forma clara y directa. "
-    "NO te presentes ni repitas una frase de bienvenida a menos que el usuario pregunte explícitamente quién eres o qué eres. "
-    "Puedes ayudar con datos de órdenes, productos más vendidos, resumen de ventas y alertas de stock. "
-    "Responde en 1–3 frases. Usa SOLO los datos que te proporcionamos; no inventes ni infieras cifras o hechos que no estén explícitos en esos datos. "
-    "Regla anti-hallucination (obligatoria): si no puedes responder con certeza con la información disponible, responde exactamente: "
-    "\"No sé con certeza con la información disponible.\" y, si hace falta, una pregunta corta para que el usuario precise qué dato exacto revisar en Compralo."
-)
 
 SUMMARY_SYSTEM_PROMPT = (
     "Eres un asistente que resume datos de ecommerce en 2-4 frases en español, "
@@ -90,6 +44,15 @@ Eres un asistente de IA para el panel de administración de la tienda Compralo.
 - Describe únicamente el resultado y la pregunta de seguimiento necesaria para el usuario.
 - Puedes ayudar con datos de órdenes, productos más vendidos, resumen de ventas,
   alertas de stock y analytics avanzados usando únicamente la información que te proporcione el backend.
+
+Uso de herramientas (tool calling):
+- Para CUALQUIER dato del negocio, llama a la herramienta adecuada; nunca respondas cifras de memoria.
+- Puedes encadenar varias herramientas de lectura si hace falta (p. ej. listar categorías antes de actuar).
+- Cuando una herramienta te devuelva datos ya formateados (montos, nombres, listas), preséntalos al
+  usuario SIN alterar cifras, nombres ni montos. Resume si hace falta, pero no inventes ni redondees.
+- Usa el historial de la conversación para resolver referencias como "ese producto", "esa última orden"
+  o "el segundo de la lista": identifica el elemento en los mensajes previos y llama a la herramienta
+  correspondiente con ese dato (p. ej. get_product con el nombre, get_order con el ID).
 
 Alcance (muy estricto) y rechazo por fuera de tema:
 - Solo puedes ayudar con temas del panel de administración de Compralo: órdenes, productos, categorías, marcas, proveedores, usuarios, descuentos y analytics/estadísticas.

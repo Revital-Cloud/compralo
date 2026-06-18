@@ -12,21 +12,27 @@ from sqlalchemy.orm import Session
 import time
 
 from core.database import get_db
+from core.config import settings
 from core.dependencies import require_admin, UserInToken
 from core.exceptions import get_safe_message, MSG_SERVICE_UNAVAILABLE, MSG_BAD_GATEWAY
 from services.groq_service import is_groq_available, DEFAULT_MODEL
+from services.admin_ai_memory import count_recent_messages
 from services.admin_ai_service import (
-    detect_intent,
-    reply_for_intent,
-    reply_for_action,
-    handle_confirmation_or_new_intent,
-    stream_reply_sse,
     generate_dashboard_summary,
-    FALLBACK_REPLY,
     chat_with_admin_ai,
 )
 
 router = APIRouter(tags=["AI Admin"])
+
+
+def _enforce_rate_limit(db: Session, user_id) -> None:
+    """Aplica el límite de mensajes por minuto por usuario (429 si se supera)."""
+    limit = settings.GROQ_RATE_LIMIT_PER_MIN
+    if limit and count_recent_messages(db, user_id, seconds=60) >= limit:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Has alcanzado el límite de mensajes por minuto. Espera un momento e inténtalo de nuevo.",
+        )
 
 
 @router.get("/admin/ai/health", status_code=status.HTTP_200_OK)
@@ -81,6 +87,7 @@ async def post_ai_chat(
     message = raw.strip()
     if len(message) > 1000:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El mensaje no puede superar 1000 caracteres")
+    _enforce_rate_limit(db, current_user.id_usuario)
 
     try:
         reply = chat_with_admin_ai(message, db, current_user.id_usuario)
@@ -118,6 +125,7 @@ async def post_ai_chat_stream(
     message = raw.strip()
     if len(message) > 1000:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El mensaje no puede superar 1000 caracteres")
+    _enforce_rate_limit(db, current_user.id_usuario)
 
     def iter_chunks(text: str, chunk_size: int = 24) -> Iterator[str]:
         text = text or ""
@@ -126,21 +134,9 @@ async def post_ai_chat_stream(
         for i in range(0, len(text), chunk_size):
             yield text[i : i + chunk_size]
 
-    # Para "siempre streaming", hacemos:
-    # - Intent de lectura: streaming real con chunks desde el LLM.
-    # - Acciones/herramientas: hacemos chunking del texto final para mantener el mismo UX.
-    intent = detect_intent(message)
-    if intent:
-        def stream_gen():
-            yield from stream_reply_sse(message, intent, db, current_user.id_usuario)
-            yield b"data: [DONE]\n\n"
-
-        return StreamingResponse(
-            stream_gen(),
-            media_type="text/event-stream",
-            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-        )
-
+    # Un único pipeline (mismo que /admin/ai/chat): calculamos la respuesta con
+    # chat_with_admin_ai y la entregamos por chunks para mantener el UX de
+    # streaming. Así ambos endpoints responden igual al mismo mensaje.
     try:
         reply = chat_with_admin_ai(message, db, current_user.id_usuario)
     except ValueError as e:

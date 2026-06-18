@@ -4,7 +4,7 @@ import { InformativeChatbotWidget } from "@/components/chatbot-widget/informativ
 import { BuilderStorefrontRenderer } from "@/components/builder/storefront/page-renderer";
 import { getPublishedPage } from "@/lib/builder-public";
 import { DEFAULT_HOME_SECTIONS } from "@/lib/default-home-sections";
-import { buildOpenGraph, buildTwitter } from "@/lib/seo";
+import { buildCanonical, buildOpenGraph, buildTwitter } from "@/lib/seo";
 
 const DEFAULT_TITLE = "Tienda online de productos seleccionados";
 const DEFAULT_DESCRIPTION =
@@ -20,6 +20,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
   return {
     title,
     description,
+    alternates: { canonical: buildCanonical("/") },
     openGraph: buildOpenGraph({ title, description, pathname: "/", imageUrl }),
     twitter: buildTwitter({ title, description, imageUrl }),
   };

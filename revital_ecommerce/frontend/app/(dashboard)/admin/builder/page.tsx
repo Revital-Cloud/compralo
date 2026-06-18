@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   Clock3,
+  Copy,
   ExternalLink,
   FileText,
   Globe,
@@ -47,7 +48,7 @@ import type {
   BuilderSection,
   BuilderSectionType,
 } from "@/components/builder/builder-types";
-import { buildSectionsFromTypes, slugify } from "@/components/builder/builder-utils";
+import { buildSectionsFromTypes, createBuilderId, slugify } from "@/components/builder/builder-utils";
 import {
   builderService,
   type BuilderPageStatus,
@@ -147,6 +148,32 @@ export default function BuilderPage() {
       setDeleteTarget(null);
     },
     onError: (err) => toast.error(apiError(err, "No se pudo eliminar la página")),
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (page: BuilderPageSummary) => {
+      const detail = await builderService.getPage(page.slug);
+      const baseSlug = slugify(`${page.slug}-copia`);
+      const sections = (detail?.sections ?? []).map((s) => ({
+        ...s,
+        id: createBuilderId(s.type),
+        props: { ...s.props },
+        style: { ...s.style },
+      }));
+      await builderService.createPage({
+        slug: baseSlug,
+        title: `${page.title} (copia)`,
+        seo: detail?.seo,
+        sections,
+      });
+      return baseSlug;
+    },
+    onSuccess: (slug) => {
+      queryClient.invalidateQueries({ queryKey: ["builder-pages"] });
+      toast.success("Página duplicada");
+      router.push(`/admin/builder/edit/${slug}`);
+    },
+    onError: (err) => toast.error(apiError(err, "No se pudo duplicar la página")),
   });
 
   const metrics = useMemo(() => {
@@ -295,6 +322,15 @@ export default function BuilderPage() {
                           ) : null}
                           <Button asChild size="sm" variant="outline">
                             <Link href={editHref(page)}>Abrir constructor</Link>
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="Duplicar"
+                            disabled={duplicateMutation.isPending}
+                            onClick={() => duplicateMutation.mutate(page)}
+                          >
+                            <Copy className="size-4" />
                           </Button>
                           {!page.is_home ? (
                             <Button

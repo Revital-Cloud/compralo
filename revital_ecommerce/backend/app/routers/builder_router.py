@@ -23,11 +23,14 @@ from core.database import get_db
 from core.dependencies import require_admin
 from schemas.auth_schema import UserInToken
 from schemas.builder_schema import (
+    BlockTemplate,
+    BlockTemplateCreate,
     BuilderPageCreatePayload,
     BuilderPageDetail,
     BuilderPagePublic,
     BuilderPageSavePayload,
     BuilderPageSummary,
+    BuilderPublicPageRef,
 )
 from schemas.cms_schema import ResponseMessage
 from schemas.theme_schema import SiteThemeDetail, SiteThemePayload, SiteThemePublic
@@ -174,6 +177,15 @@ async def delete_builder_page(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
+@router.get("/builder/public-pages", response_model=list[BuilderPublicPageRef])
+async def list_public_builder_pages(db: Session = Depends(get_db)):
+    """Lista pública de páginas publicadas (para sitemap/SEO)."""
+    try:
+        return builder_service.list_published_slugs(db)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 @router.get("/builder/public/{slug}", response_model=BuilderPagePublic | None)
 async def get_public_builder_page(slug: str, db: Session = Depends(get_db)):
     """Versión publicada de una página para el storefront. Devuelve null si no existe."""
@@ -181,3 +193,46 @@ async def get_public_builder_page(slug: str, db: Session = Depends(get_db)):
         return builder_service.get_public_page(db, slug)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# Bloques reutilizables ("Mis bloques")
+# ---------------------------------------------------------------------------
+@router.get("/builder/blocks", response_model=list[BlockTemplate])
+async def list_builder_blocks(
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin()),
+):
+    """Lista los bloques reutilizables del admin."""
+    try:
+        return builder_service.list_blocks(db)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/builder/blocks", response_model=ResponseMessage, status_code=status.HTTP_201_CREATED)
+async def create_builder_block(
+    payload: BlockTemplateCreate = Body(...),
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin()),
+):
+    """Guarda una sección como bloque reutilizable."""
+    try:
+        builder_service.create_block(db, payload, current_user.id_usuario)
+        return ResponseMessage(message="Bloque guardado correctamente")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.delete("/builder/blocks/{block_id}", response_model=ResponseMessage, status_code=status.HTTP_200_OK)
+async def delete_builder_block(
+    block_id: str,
+    db: Session = Depends(get_db),
+    current_user: UserInToken = Depends(require_admin()),
+):
+    """Elimina un bloque reutilizable."""
+    try:
+        builder_service.delete_block(db, block_id, current_user.id_usuario)
+        return ResponseMessage(message="Bloque eliminado correctamente")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

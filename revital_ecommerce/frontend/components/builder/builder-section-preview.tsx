@@ -2,6 +2,8 @@
 
 import dynamic from "next/dynamic";
 import type { BuilderSection } from "./builder-types";
+import { GENERIC_BLOCK_TYPE_SET } from "./blocks/block-defs";
+import { renderGenericBlock } from "./blocks/blocks-render";
 
 const HeaderLive = dynamic(() => import("@/components/layout/shop/header/header"), {
   ssr: false,
@@ -57,6 +59,15 @@ export function BuilderSectionPreview({ section }: { section: BuilderSection }) 
     paddingTop: style.paddingTop,
     textAlign: style.align,
   } as const;
+
+  // Bloques de la biblioteca genérica: se renderizan tal cual en el lienzo.
+  if (GENERIC_BLOCK_TYPE_SET.has(section.type)) {
+    return (
+      <div className="overflow-hidden rounded-xl bg-white py-2 dark:bg-[#0f172a]" style={wrapperStyle}>
+        {renderGenericBlock(section)}
+      </div>
+    );
+  }
 
   // En composición renderizamos los componentes reales del storefront
   // y desactivamos su interacción interna para que el click lo gestione el builder.

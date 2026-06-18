@@ -1,7 +1,8 @@
-import type { Metadata } from "next"
 import Link from "next/link"
 import { RotateCcw, Clock, Package } from "lucide-react"
-import { buildOpenGraph, buildTwitter } from "@/lib/seo"
+import { managedPageMetadata } from "@/lib/cms-page"
+import { getPublishedPage } from "@/lib/builder-public"
+import { BuilderStorefrontRenderer } from "@/components/builder/storefront/page-renderer"
 
 const MOCK = {
   titulo: "Devoluciones",
@@ -20,31 +21,10 @@ const MOCK = {
   reembolso: "El reembolso se hará por el mismo medio de pago utilizado en la compra.",
 }
 
-export const generateMetadata = (): Metadata => {
-  const title = "Política de devoluciones"
-  const description =
-    "Consulta los plazos, condiciones y pasos para solicitar devoluciones y reembolsos en Compralo."
+export const generateMetadata = () =>
+  managedPageMetadata("devoluciones", { title: "Política de devoluciones", description: "Consulta los plazos, condiciones y pasos para solicitar devoluciones y reembolsos en Compralo.", pathname: "/devoluciones" })
 
-  return {
-    title,
-    description,
-    robots: {
-      index: true,
-      follow: true,
-    },
-    openGraph: buildOpenGraph({
-      title,
-      description,
-      pathname: "/devoluciones",
-    }),
-    twitter: buildTwitter({
-      title,
-      description,
-    }),
-  }
-}
-
-export default function ReturnsPage() {
+function ReturnsPageStatic() {
   return (
     <div className="container mx-auto px-4 py-10 max-w-4xl">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
@@ -101,4 +81,16 @@ export default function ReturnsPage() {
       </Link>
     </div>
   )
+}
+
+export default async function ReturnsPage() {
+  const page = await getPublishedPage("devoluciones")
+  if (page) {
+    return (
+      <div className="py-8 md:py-10">
+        <BuilderStorefrontRenderer sections={page.sections} />
+      </div>
+    )
+  }
+  return <ReturnsPageStatic />
 }

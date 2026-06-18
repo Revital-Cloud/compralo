@@ -13,15 +13,21 @@ Responsabilidades:
 - crear página, guardar borrador, publicar y eliminar.
 """
 import json
+import uuid
 from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from schemas.builder_schema import BuilderPageCreatePayload, BuilderPageSavePayload
+from schemas.builder_schema import (
+    BlockTemplateCreate,
+    BuilderPageCreatePayload,
+    BuilderPageSavePayload,
+)
 
 NOM_PREFIX = "builder_page:"
+BLOCK_PREFIX = "block_template:"
 HOME_SLUG = "home"
 
 
@@ -371,3 +377,103 @@ def delete_page(db: Session, slug: str, usr: Decimal) -> None:
     except Exception as e:
         db.rollback()
         raise Exception(f"Error al eliminar la página: {str(e)}")
+
+
+def list_published_slugs(db: Session) -> List[Dict[str, Any]]:
+    """Slugs de páginas publicadas (para sitemap/SEO). Solo con versión publicada."""
+    query = text(
+        """
+        SELECT nom_cms_content, des_cms_content, fec_update, fec_insert
+        FROM tab_cms_content
+        WHERE nom_cms_content LIKE :prefix AND ind_publicado = true
+        """
+    )
+    rows = db.execute(query, {"prefix": f"{NOM_PREFIX}%"}).mappings().all()
+    result: List[Dict[str, Any]] = []
+    for row in rows:
+        des = row["des_cms_content"]
+        if isinstance(des, str):
+            des = json.loads(des)
+        des = des or {}
+        if not des.get("published"):
+            continue
+        slug = des.get("slug") or row["nom_cms_content"].replace(NOM_PREFIX, "", 1)
+        updated = row["fec_update"] or row["fec_insert"]
+        result.append(
+            {
+                "slug": slug,
+                "is_home": bool(des.get("is_home")),
+                "updated_at": updated.isoformat() if updated else None,
+            }
+        )
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Bloques reutilizables ("Mis bloques")
+# ---------------------------------------------------------------------------
+def list_blocks(db: Session) -> List[Dict[str, Any]]:
+    """Lista los bloques reutilizables guardados por el admin."""
+    rows = db.execute(
+        text(
+            """
+            SELECT nom_cms_content, des_cms_content, fec_insert
+            FROM tab_cms_content
+            WHERE nom_cms_content LIKE :prefix
+            ORDER BY fec_insert DESC
+            """
+        ),
+        {"prefix": f"{BLOCK_PREFIX}%"},
+    ).mappings().all()
+
+    blocks: List[Dict[str, Any]] = []
+    for row in rows:
+        des = row["des_cms_content"]
+        if isinstance(des, str):
+            des = json.loads(des)
+        des = des or {}
+        if des.get("section"):
+            blocks.append(
+                {
+                    "id": des.get("id") or row["nom_cms_content"].replace(BLOCK_PREFIX, "", 1),
+                    "name": des.get("name") or "Bloque",
+                    "section": des["section"],
+                }
+            )
+    return blocks
+
+
+def create_block(db: Session, payload: BlockTemplateCreate, usr: Decimal) -> Dict[str, Any]:
+    """Guarda un bloque reutilizable a partir de una sección."""
+    try:
+        block_id = uuid.uuid4().hex[:12]
+        doc = {"id": block_id, "name": payload.name, "section": payload.section.model_dump()}
+        db.execute(
+            text(
+                """
+                INSERT INTO tab_cms_content
+                    (nom_cms_content, des_cms_content, num_version, ind_publicado, usr_insert, fec_insert)
+                VALUES
+                    (:nom, CAST(:des AS JSONB), 1, true, :usr, NOW())
+                """
+            ),
+            {"nom": f"{BLOCK_PREFIX}{block_id}", "des": json.dumps(doc), "usr": usr},
+        )
+        db.commit()
+        return {"id": block_id}
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al guardar el bloque: {str(e)}")
+
+
+def delete_block(db: Session, block_id: str, usr: Decimal) -> None:
+    """Elimina un bloque reutilizable."""
+    try:
+        db.execute(
+            text("DELETE FROM tab_cms_content WHERE nom_cms_content = :nom"),
+            {"nom": f"{BLOCK_PREFIX}{block_id}"},
+        )
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Error al eliminar el bloque: {str(e)}")

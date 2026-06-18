@@ -43,6 +43,12 @@ export interface BuilderSavePayload {
   sections: BuilderSection[];
 }
 
+export interface BlockTemplate {
+  id: string;
+  name: string;
+  section: BuilderSection;
+}
+
 export interface BuilderCreatePayload {
   slug: string;
   title: string;
@@ -86,6 +92,19 @@ export const builderService = {
     } catch {
       return null;
     }
+  },
+
+  // --- Bloques reutilizables ("Mis bloques") ---
+  async listBlocks(): Promise<BlockTemplate[]> {
+    return get<BlockTemplate[]>("/builder/blocks");
+  },
+
+  async createBlock(payload: { name: string; section: BuilderSection }): Promise<{ message: string }> {
+    return post<{ message: string }>("/builder/blocks", payload);
+  },
+
+  async deleteBlock(id: string): Promise<{ message: string }> {
+    return del<{ message: string }>(`/builder/blocks/${id}`);
   },
 };
 

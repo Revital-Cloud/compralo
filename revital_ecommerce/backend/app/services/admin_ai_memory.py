@@ -8,12 +8,19 @@ Permite:
 - Contexto automático para preguntas de resumen
 """
 import json
+import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from decimal import Decimal
 
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+
+logger = logging.getLogger(__name__)
+
+# Ventana de validez de una acción pendiente de confirmación. Pasado este
+# tiempo, un "sí" tardío NO ejecuta la acción (se considera expirada).
+PENDING_ACTION_TTL_MINUTES = 60
 
 
 def save_conversation(
@@ -55,11 +62,10 @@ def save_conversation(
         
         db.execute(insert_query, params)
         db.commit()
-    except Exception as e:
+    except Exception:
         db.rollback()
-        # No lanzar excepción para no interrumpir el flujo principal
-        # Solo loggear el error
-        print(f"Error al guardar conversación: {str(e)}")
+        # No lanzar excepción para no interrumpir el flujo principal; solo loggear.
+        logger.exception("Error al guardar conversación")
 
 
 def get_recent_conversations(
@@ -142,131 +148,158 @@ def get_recent_conversations(
             conversations.append(conv)
         
         return conversations
-    except Exception as e:
-        print(f"Error al obtener conversaciones recientes: {str(e)}")
+    except Exception:
+        logger.exception("Error al obtener conversaciones recientes")
         return []
 
 
-def build_conversation_context(
-    conversations: List[Dict[str, Any]],
-    max_tokens: int = 2000,
-) -> str:
-    """
-    Construye un contexto de texto a partir de conversaciones anteriores.
-    Útil para proporcionar contexto al LLM.
-    
-    Args:
-        conversations: Lista de conversaciones
-        max_tokens: Longitud máxima aproximada del contexto (caracteres)
-        
-    Returns:
-        String con el contexto formateado
-    """
-    if not conversations:
-        return ""
-    
-    context_parts = []
-    total_length = 0
-    
-    # Invertir para mostrar las más recientes primero
-    for conv in reversed(conversations):
-        message = conv.get("message", "")
-        reply = conv.get("reply", "")
-        
-        # Formato: "Usuario: ... | Asistente: ..."
-        conv_text = f"Usuario: {message}\nAsistente: {reply}\n"
-        
-        if total_length + len(conv_text) > max_tokens:
-            break
-        
-        context_parts.append(conv_text)
-        total_length += len(conv_text)
-    
-    if not context_parts:
-        return ""
-    
-    return "\n--- Conversaciones anteriores ---\n" + "\n".join(context_parts) + "\n--- Fin del contexto ---\n"
+def _iter_tool_calls(raw: Any) -> List[Dict[str, Any]]:
+    """Normaliza el campo tool_calls (string JSON o lista) a una lista de dicts."""
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        try:
+            raw = json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return []
+    return raw if isinstance(raw, list) else []
 
 
-def get_user_preferences_from_history(
+def get_pending_action(
     db: Session,
     user_id: str | int | Decimal,
-) -> Dict[str, Any]:
+) -> Optional[Dict[str, Any]]:
     """
-    Extrae preferencias del usuario basándose en el historial de conversaciones.
-    Por ejemplo: qué tipo de información pregunta más, qué herramientas usa más, etc.
-    
-    Args:
-        db: Sesión de base de datos
-        user_id: ID del usuario
-        
-    Returns:
-        Diccionario con preferencias extraídas
+    Devuelve la acción pendiente de confirmación del usuario, derivada del
+    historial persistido en `tab_ai_conversations`, o None si no hay ninguna.
+
+    Reemplaza el antiguo estado en memoria (`admin_ai_state`) para que el flujo
+    de confirmación funcione con múltiples workers/instancias y sobreviva a
+    reinicios.
+
+    Semántica (recorre el historial reciente de más nuevo a más antiguo); la
+    primera fila con un tool_call con `status` decide:
+    - "pending"                -> hay una acción pendiente activa.
+    - "executed" / "cancelled" -> la última acción ya se resolvió (no hay pendiente).
+    Las filas sin tool_calls con estado (respuestas normales/ambiguas) se ignoran.
     """
     try:
         user_decimal = Decimal(str(user_id))
+        cutoff = datetime.now() - timedelta(minutes=PENDING_ACTION_TTL_MINUTES)
         query = text("""
-            SELECT 
-                message,
-                reply,
-                tool_calls,
-                context_data
+            SELECT tool_calls
             FROM tab_ai_conversations
             WHERE id_usuario = :id_usuario
+                AND fec_conversation >= :cutoff
             ORDER BY fec_conversation DESC
-            LIMIT 50
+            LIMIT 20
         """)
-        
-        result = db.execute(query, {"id_usuario": user_decimal})
-        
-        # Analizar patrones
-        tool_usage = {}
-        intent_patterns = {
-            "resumen": 0,
-            "ventas": 0,
-            "productos": 0,
-            "ordenes": 0,
-            "crear": 0,
-        }
-        
-        for row in result.mappings().all():
-            message = (row.get("message") or "").lower()
-            tool_calls_raw = row.get("tool_calls")
-            
-            # Contar herramientas usadas
-            if tool_calls_raw:
-                try:
-                    # Manejar tool_calls: puede ser string JSON o ya parseado
-                    if isinstance(tool_calls_raw, str):
-                        tools = json.loads(tool_calls_raw)
-                    else:
-                        tools = tool_calls_raw
-                    
-                    if isinstance(tools, list):
-                        for tool in tools:
-                            tool_name = tool.get("name") if isinstance(tool, dict) else str(tool)
-                            tool_usage[tool_name] = tool_usage.get(tool_name, 0) + 1
-                except Exception:
-                    pass
-            
-            # Detectar patrones de intención
-            if any(word in message for word in ["resumen", "resumir", "resume"]):
-                intent_patterns["resumen"] += 1
-            if any(word in message for word in ["ventas", "venta", "revenue"]):
-                intent_patterns["ventas"] += 1
-            if any(word in message for word in ["producto", "productos"]):
-                intent_patterns["productos"] += 1
-            if any(word in message for word in ["orden", "ordenes", "pedido"]):
-                intent_patterns["ordenes"] += 1
-            if any(word in message for word in ["crear", "crea", "nuevo"]):
-                intent_patterns["crear"] += 1
-        
-        return {
-            "tool_usage": tool_usage,
-            "intent_patterns": intent_patterns,
-            "most_used_tool": max(tool_usage.items(), key=lambda x: x[1])[0] if tool_usage else None,
-            "most_common_intent": max(intent_patterns.items(), key=lambda x: x[1])[0] if intent_patterns else None,
-        }
-    except Exception as e:
-        print(f"Error al extraer preferencias: {str(e)}")
-        return {}
+        rows = db.execute(query, {"id_usuario": user_decimal, "cutoff": cutoff}).mappings().all()
+        for row in rows:
+            for tc in _iter_tool_calls(row.get("tool_calls")):
+                if not isinstance(tc, dict):
+                    continue
+                status = tc.get("status")
+                if status == "pending":
+                    name = tc.get("name")
+                    if not name:
+                        return None
+                    params = tc.get("params")
+                    return {"action": name, "params": params if isinstance(params, dict) else {}}
+                if status in ("executed", "cancelled"):
+                    return None
+        return None
+    except Exception:
+        logger.exception("Error al obtener acción pendiente")
+        return None
+
+
+def mark_pending_action_resolved(
+    db: Session,
+    user_id: str | int | Decimal,
+    pending: Dict[str, Any],
+    status: str = "cancelled",
+) -> None:
+    """
+    Marca como resuelta (por defecto, cancelada) una acción pendiente SIN
+    ejecutarla, persistiendo un marcador en el historial. Se usa cuando el
+    usuario cambia de intención antes de confirmar, para que `get_pending_action`
+    deje de considerarla activa.
+    """
+    action = (pending or {}).get("action")
+    if not action:
+        return
+    params = (pending or {}).get("params") or {}
+    save_conversation(
+        db,
+        user_id,
+        "",
+        "",
+        tool_calls=[{"name": action, "params": params, "status": status}],
+    )
+
+
+def build_history_messages(
+    conversations: List[Dict[str, Any]],
+    max_chars: int = 4000,
+) -> List[Dict[str, str]]:
+    """
+    Convierte el historial reciente en turnos de chat reales (role user/assistant)
+    para pasarlos al LLM. Así el modelo puede resolver referencias por sí mismo
+    ("ese producto", "esa última orden") sin lógica de regex en el backend.
+
+    `conversations` viene de `get_recent_conversations` (más nuevas primero). Se
+    seleccionan desde la más nueva hasta agotar `max_chars` y luego se devuelven
+    en orden cronológico (más antigua primero).
+    """
+    if not conversations:
+        return []
+
+    selected: List[tuple] = []
+    total = 0
+    for conv in conversations:  # más nuevas primero
+        message = conv.get("message") or ""
+        reply = conv.get("reply") or ""
+        # Saltar marcadores internos (cancelaciones de acciones) sin texto visible.
+        if not message and not reply:
+            continue
+        pair_len = len(message) + len(reply)
+        if total + pair_len > max_chars and selected:
+            break
+        selected.append((message, reply))
+        total += pair_len
+
+    messages: List[Dict[str, str]] = []
+    for message, reply in reversed(selected):  # a orden cronológico
+        if message:
+            messages.append({"role": "user", "content": message})
+        if reply:
+            messages.append({"role": "assistant", "content": reply})
+    return messages
+
+
+def count_recent_messages(
+    db: Session,
+    user_id: str | int | Decimal,
+    seconds: int = 60,
+) -> int:
+    """
+    Cuenta los mensajes reales del usuario en los últimos `seconds` segundos
+    (excluye marcadores internos sin texto). Base del rate-limit del chat admin,
+    multi-worker-safe al apoyarse en la BD compartida.
+    """
+    try:
+        user_decimal = Decimal(str(user_id))
+        cutoff = datetime.now() - timedelta(seconds=seconds)
+        query = text("""
+            SELECT COUNT(*) AS cnt
+            FROM tab_ai_conversations
+            WHERE id_usuario = :id_usuario
+                AND fec_conversation >= :cutoff
+                AND message <> ''
+        """)
+        row = db.execute(query, {"id_usuario": user_decimal, "cutoff": cutoff}).mappings().first()
+        return int((row or {}).get("cnt", 0) or 0)
+    except Exception:
+        logger.exception("Error al contar mensajes recientes (rate-limit)")
+        return 0

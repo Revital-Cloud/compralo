@@ -1,0 +1,174 @@
+[
+  {
+    "slug": "privacidad",
+    "title": "Política de privacidad",
+    "description": "Consulta cómo Compralo trata tus datos personales, qué información recopilamos y cuáles son tus derechos de protección de datos.",
+    "sections": [
+      {
+        "type": "heading",
+        "props": {
+          "text": "Política de Privacidad",
+          "level": "h1"
+        }
+      },
+      {
+        "type": "text",
+        "props": {
+          "text": "Última actualización: Febrero 2026"
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "La permanencia en el sistema será entendida como la aceptación de los términos y condiciones de la política de privacidad."
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "## Responsable del tratamiento\n\nEl responsable del tratamiento de tus datos personales es la tienda identificada en el sitio (Compralo / titular de la marca). Puedes contactarnos a través de la página de Contacto o al email indicado en el footer."
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "## Datos que recogemos\n\nRecopilamos datos de registro (email, nombre, apellidos), datos de perfil, direcciones de envío, historial de pedidos y datos de navegación necesarios para el funcionamiento del sitio. Los datos de pago son procesados exclusivamente por nuestra pasarela de pagos (Wompi); no almacenamos datos de tarjetas ni información financiera sensible."
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "## Finalidad y base legal\n\nUtilizamos tus datos para prestar el servicio de compra, gestionar tu cuenta, procesar pedidos, enviar comunicaciones transaccionales (confirmación de registro, órdenes, recuperación de contraseña) y, si lo autorizas, para análisis y marketing. La base legal incluye la ejecución del contrato, el consentimiento y el interés legítimo según la normativa aplicable."
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "## Derechos del titular\n\nTienes derecho a conocer, actualizar, rectificar y suprimir tus datos personales, así como a presentar quejas ante la autoridad de protección de datos. Para ejercer estos derechos, contacta a través del email de la página de Contacto o desde tu perfil de usuario cuando esté disponible la opción."
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "## Marco legal (Colombia)\n\nLey 1581 de 2012 – Protección de Datos Personales; Decreto 1377 de 2013; Decreto 1074 de 2015; Circular Externa 002 de 2015 – SIC."
+        }
+      }
+    ]
+  },
+  {
+    "slug": "terminos",
+    "title": "Términos y condiciones",
+    "description": "Lee los términos y condiciones de uso del sitio y las compras realizadas en Compralo.",
+    "sections": [
+      {
+        "type": "heading",
+        "props": {
+          "text": "Términos y condiciones",
+          "level": "h1"
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "- Registro: email, contraseña y datos de perfil; contraseñas protegidas con Argon2.\n- Roles: Cliente (compras, perfil, órdenes), Empleado y Administrador (gestión de tienda).\n- Carrito: puedes navegar y agregar productos sin cuenta; al iniciar sesión tu carrito anónimo se une a tu cuenta.\n- Condiciones de compra: precios, impuestos y costos de envío según lo mostrado en checkout; pagos mediante Wompi.\n- Comunicaciones: enviamos emails transaccionales (confirmación de registro, órdenes, recuperación de contraseña) vía Resend.\n- Aceptación: el uso de la plataforma implica la aceptación de los Términos de Servicio y la Política de Privacidad. Puedes consultarlos en el footer: Términos y Condiciones, Política de Privacidad, Política de Cookies, Accesibilidad.\n\n## Marco legal aplicable (Colombia):\n\n- Ley 1480 de 2011 – Estatuto del Consumidor\n- Ley 527 de 1999 – Comercio electrónico y mensajes de datos\n- Decreto 1074 de 2015 – Comercio, industria y turismo"
+        }
+      }
+    ]
+  },
+  {
+    "slug": "nosotros",
+    "title": "Acerca de Revital",
+    "description": "Conoce la misión, visión, valores y el equipo detrás de Revital.",
+    "sections": [
+      {
+        "type": "heading",
+        "props": {
+          "text": "Acerca de",
+          "level": "h1"
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "Construyendo productos digitales desde 2026. [Conoce más en revital.cloud](https://revital.cloud/)."
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "## Nuestra misión\n\nDiseñar y escalar software a medida para startups y empresas que necesitan velocidad sin perder calidad, con comunicación clara y estándares de ingeniería sólidos."
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "## Nuestra visión\n\nSer el socio técnico de referencia en la región para construir productos digitales confiables, rápidos y mantenibles, con mentalidad de producto global."
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "## Valores\n\n- **Claridad:** Sin jerga innecesaria: alcance, riesgos y plazos visibles desde el día uno.\n- **Ownership:** Pensamos como socios técnicos y asumimos responsabilidad de principio a fin.\n- **Calidad:** Código mantenible, revisable y con foco en rendimiento y experiencia de usuario."
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "## Equipo directivo\n\n- **Alejandro Hernández Lara** — Co-founder · Desarrollo\n- **Kevin Daniel Bermúdez Calderón** — Co-founder · Desarrollo\n- **Jhoan Camilo Suárez Mora** — Co-founder · Desarrollo"
+        }
+      }
+    ]
+  },
+  {
+    "slug": "devoluciones",
+    "title": "Política de devoluciones",
+    "description": "Consulta los plazos, condiciones y pasos para solicitar devoluciones y reembolsos en Compralo.",
+    "sections": [
+      {
+        "type": "heading",
+        "props": {
+          "text": "Devoluciones",
+          "level": "h1"
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "Política y proceso de devoluciones (información de ejemplo).\n\n## Plazo para devoluciones\n\n30 días desde la recepción del producto.\n\n## Condiciones\n\n- El producto debe estar sin usar, en su empaque original y con etiquetas.\n- Incluir factura o comprobante de compra.\n- Algunos productos (higiene, electrónica abierta) pueden tener restricciones.\n\n## Proceso en 4 pasos\n\n1. Contacta a atención al cliente indicando número de pedido y motivo.\n2. Te enviaremos una etiqueta o instrucciones para el envío de vuelta.\n3. Empaca el producto y entrégalo al mensajero o en el punto indicado.\n4. Tras la revisión, el reembolso se procesará en 5-10 días hábiles.\n\nEl reembolso se hará por el mismo medio de pago utilizado en la compra."
+        }
+      }
+    ]
+  },
+  {
+    "slug": "contacto",
+    "title": "Contacto | Compralo",
+    "description": "Ponte en contacto con el equipo de Compralo por email, teléfono o visita nuestras oficinas.",
+    "sections": [
+      {
+        "type": "heading",
+        "props": {
+          "text": "Contacto",
+          "level": "h1"
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "Escríbenos o visítanos cuando quieras."
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "## Email\n\ncontacto@compralo.com\n\n## Teléfono\n\n+57 1 234 5678\n\n## Dirección\n\nCalle 123 #45-67, Bogotá, Colombia\n\n## Horario de atención\n\nLunes a Viernes: 8:00 - 18:00 | Sábados: 9:00 - 14:00"
+        }
+      },
+      {
+        "type": "richtext",
+        "props": {
+          "content": "Formulario de contacto en desarrollo. Mientras tanto usa el email o teléfono."
+        }
+      }
+    ]
+  }
+]

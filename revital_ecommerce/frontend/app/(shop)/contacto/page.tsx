@@ -1,7 +1,8 @@
-import type { Metadata } from "next"
 import Link from "next/link"
 import { Mail, MapPin, Phone, Clock } from "lucide-react"
-import { buildOpenGraph, buildTwitter } from "@/lib/seo"
+import { managedPageMetadata } from "@/lib/cms-page"
+import { getPublishedPage } from "@/lib/builder-public"
+import { BuilderStorefrontRenderer } from "@/components/builder/storefront/page-renderer"
 
 const MOCK = {
   email: "contacto@compralo.com",
@@ -14,27 +15,10 @@ const MOCK = {
   ],
 }
 
-export const generateMetadata = (): Metadata => {
-  const title = "Contacto | Compralo"
-  const description =
-    "Ponte en contacto con el equipo de Compralo por email, teléfono o visita nuestras oficinas."
+export const generateMetadata = () =>
+  managedPageMetadata("contacto", { title: "Contacto | Compralo", description: "Ponte en contacto con el equipo de Compralo por email, teléfono o visita nuestras oficinas.", pathname: "/contacto" })
 
-  return {
-    title,
-    description,
-    openGraph: buildOpenGraph({
-      title,
-      description,
-      pathname: "/contacto",
-    }),
-    twitter: buildTwitter({
-      title,
-      description,
-    }),
-  }
-}
-
-export default function ContactPage() {
+function ContactPageStatic() {
   return (
     <div className="container mx-auto px-4 py-10 max-w-4xl">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -91,4 +75,16 @@ export default function ContactPage() {
       </Link>
     </div>
   )
+}
+
+export default async function ContactPage() {
+  const page = await getPublishedPage("contacto")
+  if (page) {
+    return (
+      <div className="py-8 md:py-10">
+        <BuilderStorefrontRenderer sections={page.sections} />
+      </div>
+    )
+  }
+  return <ContactPageStatic />
 }

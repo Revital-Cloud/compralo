@@ -51,7 +51,7 @@ class FakeSession:
                 "nom_cms_content": params["nom"],
                 "des_cms_content": json.loads(params["des"]),
                 "num_version": 1,
-                "ind_publicado": params["pub"],
+                "ind_publicado": params.get("pub", True),
                 "usr_insert": params["usr"],
                 "fec_insert": datetime(2026, 1, 1, 12, 0, 0),
                 "usr_update": None,

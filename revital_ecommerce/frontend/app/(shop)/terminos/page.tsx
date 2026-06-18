@@ -1,33 +1,13 @@
-import type { Metadata } from "next"
 import Link from "next/link"
 import { getSectionById } from "@/components/chatbot-widget/chatbot-menu-content"
-import { buildOpenGraph, buildTwitter } from "@/lib/seo"
+import { managedPageMetadata } from "@/lib/cms-page"
+import { getPublishedPage } from "@/lib/builder-public"
+import { BuilderStorefrontRenderer } from "@/components/builder/storefront/page-renderer"
 
-export const generateMetadata = (): Metadata => {
-  const title = "Términos y condiciones"
-  const description =
-    "Lee los términos y condiciones de uso del sitio y las compras realizadas en Compralo."
+export const generateMetadata = () =>
+  managedPageMetadata("terminos", { title: "Términos y condiciones", description: "Lee los términos y condiciones de uso del sitio y las compras realizadas en Compralo.", pathname: "/terminos" })
 
-  return {
-    title,
-    description,
-    robots: {
-      index: true,
-      follow: true,
-    },
-    openGraph: buildOpenGraph({
-      title,
-      description,
-      pathname: "/terminos",
-    }),
-    twitter: buildTwitter({
-      title,
-      description,
-    }),
-  }
-}
-
-export default function TerminosPage() {
+function TerminosPageStatic() {
   const section = getSectionById("terminos")
   const title = section?.title ?? "Términos y Condiciones"
   const content = section?.content ?? ""
@@ -50,4 +30,16 @@ export default function TerminosPage() {
       </Link>
     </div>
   )
+}
+
+export default async function TerminosPage() {
+  const page = await getPublishedPage("terminos")
+  if (page) {
+    return (
+      <div className="py-8 md:py-10">
+        <BuilderStorefrontRenderer sections={page.sections} />
+      </div>
+    )
+  }
+  return <TerminosPageStatic />
 }

@@ -1,6 +1,7 @@
-import type { Metadata } from "next"
 import Link from "next/link"
-import { buildOpenGraph, buildTwitter } from "@/lib/seo"
+import { managedPageMetadata } from "@/lib/cms-page"
+import { getPublishedPage } from "@/lib/builder-public"
+import { BuilderStorefrontRenderer } from "@/components/builder/storefront/page-renderer"
 
 const MOCK = {
   titulo: "Política de Privacidad",
@@ -30,31 +31,10 @@ const MOCK = {
   ],
 }
 
-export const generateMetadata = (): Metadata => {
-  const title = "Política de privacidad"
-  const description =
-    "Consulta cómo Compralo trata tus datos personales, qué información recopilamos y cuáles son tus derechos de protección de datos."
+export const generateMetadata = () =>
+  managedPageMetadata("privacidad", { title: "Política de privacidad", description: "Consulta cómo Compralo trata tus datos personales, qué información recopilamos y cuáles son tus derechos de protección de datos.", pathname: "/privacidad" })
 
-  return {
-    title,
-    description,
-    robots: {
-      index: true,
-      follow: true,
-    },
-    openGraph: buildOpenGraph({
-      title,
-      description,
-      pathname: "/privacidad",
-    }),
-    twitter: buildTwitter({
-      title,
-      description,
-    }),
-  }
-}
-
-export default function PrivacidadPage() {
+function PrivacidadPageStatic() {
   return (
     <div className="container mx-auto px-4 py-10 max-w-4xl">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -86,4 +66,16 @@ export default function PrivacidadPage() {
       </Link>
     </div>
   )
+}
+
+export default async function PrivacidadPage() {
+  const page = await getPublishedPage("privacidad")
+  if (page) {
+    return (
+      <div className="py-8 md:py-10">
+        <BuilderStorefrontRenderer sections={page.sections} />
+      </div>
+    )
+  }
+  return <PrivacidadPageStatic />
 }

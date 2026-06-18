@@ -10,6 +10,7 @@ import { RefreshTokenProvider } from "@/components/providers/refresh-token-provi
 import { getPublicSiteOrigin } from "@/utils/url-helpers";
 import { getPublishedTheme } from "@/lib/theme-public";
 import { DEFAULT_THEME, fontHref, themeToCssText } from "@/lib/theme-css";
+import { safeJsonLd } from "@/lib/seo";
 
 /**
  * Fuentes principales del sitio:
@@ -128,12 +129,12 @@ export default async function RootLayout({
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }}
         />
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(organizationJsonLd) }}
         />
         {themeFontHref ? <link rel="stylesheet" href={themeFontHref} /> : null}
         {/* Variables del Theme global: se inyectan al final del <head> para que

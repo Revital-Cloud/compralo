@@ -10,11 +10,17 @@ import {
 
 import type {
   BuilderFieldConfig,
+  BuilderPropValue,
   BuilderSectionMeta,
   BuilderSectionStyle,
   BuilderSectionType,
   BuilderViewport,
 } from "./builder-types";
+import {
+  GENERIC_DEFAULT_PROPS,
+  GENERIC_FIELDS,
+  GENERIC_META,
+} from "./blocks/block-defs";
 
 export const BUILDER_VIEWPORTS: Record<
   BuilderViewport,
@@ -25,7 +31,7 @@ export const BUILDER_VIEWPORTS: Record<
   mobile: { label: "Móvil", widthClass: "w-full max-w-[390px]" },
 };
 
-export const BUILDER_SECTION_META: Record<BuilderSectionType, BuilderSectionMeta> = {
+const DATA_SECTION_META: Partial<Record<BuilderSectionType, BuilderSectionMeta>> = {
   header: {
     label: "Header",
     description: "Navegación principal de la tienda",
@@ -77,9 +83,8 @@ export const BUILDER_SECTION_META: Record<BuilderSectionType, BuilderSectionMeta
   },
 };
 
-export const BUILDER_DEFAULT_PROPS: Record<
-  BuilderSectionType,
-  Record<string, string | number>
+const DATA_DEFAULT_PROPS: Partial<
+  Record<BuilderSectionType, Record<string, BuilderPropValue>>
 > = {
   header: {
     brand: "Compralo",
@@ -121,7 +126,7 @@ export const BUILDER_DEFAULT_PROPS: Record<
   },
 };
 
-export const BUILDER_FIELDS: Record<BuilderSectionType, BuilderFieldConfig[]> = {
+const DATA_FIELDS: Partial<Record<BuilderSectionType, BuilderFieldConfig[]>> = {
   header: [
     { key: "brand", label: "Marca", type: "text" },
     { key: "nav_1", label: "Navegación 1", type: "text" },
@@ -157,6 +162,22 @@ export const BUILDER_FIELDS: Record<BuilderSectionType, BuilderFieldConfig[]> = 
   ],
   footer: [{ key: "copyright", label: "Copyright", type: "text" }],
 };
+
+// Maps finales = secciones data-driven + biblioteca de bloques genéricos.
+export const BUILDER_SECTION_META = {
+  ...DATA_SECTION_META,
+  ...GENERIC_META,
+} as Record<BuilderSectionType, BuilderSectionMeta>;
+
+export const BUILDER_DEFAULT_PROPS = {
+  ...DATA_DEFAULT_PROPS,
+  ...GENERIC_DEFAULT_PROPS,
+} as Record<BuilderSectionType, Record<string, BuilderPropValue>>;
+
+export const BUILDER_FIELDS = {
+  ...DATA_FIELDS,
+  ...GENERIC_FIELDS,
+} as Record<BuilderSectionType, BuilderFieldConfig[]>;
 
 export function createDefaultStyle(): BuilderSectionStyle {
   return {

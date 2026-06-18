@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import EcommerceHeroCarousel from "@/components/layout/shop/hero/hero";
 import FeaturedProducts from "@/components/layout/shop/featured-products/featured-products";
 import type { BuilderSection } from "@/components/builder/builder-types";
+import { GENERIC_BLOCK_TYPES } from "@/components/builder/blocks/block-defs";
+import { renderGenericBlock } from "@/components/builder/blocks/blocks-render";
 
 const FeaturedCategories = dynamic(
   () => import("@/components/layout/shop/featured-categories/featured-categories"),
@@ -21,7 +23,13 @@ const TestimonialsSection = dynamic(
  * footer y la barra superior son globales (los gestiona el layout del storefront),
  * por eso no se renderizan aquí aunque existan en el documento del builder.
  */
-export const BODY_SECTION_TYPES = new Set(["hero", "categories", "product_grid", "carousel"]);
+export const BODY_SECTION_TYPES = new Set<string>([
+  "hero",
+  "categories",
+  "product_grid",
+  "carousel",
+  ...GENERIC_BLOCK_TYPES,
+]);
 
 /**
  * Selecciona las secciones que se renderizan en el cuerpo: visibles y de un tipo
@@ -58,6 +66,10 @@ function sectionWrapperStyle(section: BuilderSection): React.CSSProperties {
 
 function renderSection(section: BuilderSection) {
   const props = section.props ?? {};
+
+  // Bloques de la biblioteca genérica.
+  const generic = renderGenericBlock(section);
+  if (generic) return generic;
 
   switch (section.type) {
     case "hero":
