@@ -519,8 +519,11 @@ async def pay_cart_and_create_order(
                         pass
                     # Programar email de confirmación de compra.
                     try:
-                        from services.email_service import send_order_confirmation_for_order_id
-                        asyncio.create_task(send_order_confirmation_for_order_id(order_id))
+                        from services.email_service import (
+                            send_order_confirmation_for_order_id,
+                            schedule_background_task,
+                        )
+                        schedule_background_task(send_order_confirmation_for_order_id(order_id))
                     except Exception as e:
                         logger.warning("No se pudo programar email de confirmación: %s", e)
                     return {"status": "APPROVED", "order_id": order_id, "transaction_id": transaction_id}

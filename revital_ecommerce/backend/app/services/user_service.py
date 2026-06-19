@@ -148,9 +148,9 @@ def create_users(db: Session, user: UserCreate):
         
         result = db.execute(query, params)
         fetched_result = result.fetchone()
-        
+
         db.commit()
-        
+
         return fetched_result[0] if fetched_result else None
     except Exception as e:
         db.rollback()

@@ -696,6 +696,52 @@ def get_order_with_items(db: Session, id_orden: Decimal):
 
     enriched = dict(order)
     enriched["items"] = items
+
+    # Datos de guía/envío (Envia) para que el resumen del cliente y el email
+    # muestren tracking + etiqueta cuando ya se generó la guía.
+    try:
+        envio_row = db.execute(
+            text(
+                """
+                SELECT carrier, service, costo_envio, tracking_number, tracking_url,
+                       label_url, estado_envio, fecha_generacion, fecha_entrega
+                FROM tab_ordenes_envio
+                WHERE id_orden = :id_orden
+                ORDER BY id_envio DESC
+                LIMIT 1
+                """
+            ),
+            {"id_orden": id_orden_val},
+        ).mappings().first()
+        if envio_row:
+            ev = dict(envio_row)
+            enriched["envio"] = {
+                "carrier": ev.get("carrier"),
+                "service": ev.get("service"),
+                "costo_envio": _decimal_to_number(ev.get("costo_envio")),
+                "tracking_number": ev.get("tracking_number"),
+                "tracking_url": ev.get("tracking_url"),
+                "label_url": ev.get("label_url"),
+                "estado_envio": ev.get("estado_envio"),
+                "fecha_generacion": (
+                    ev.get("fecha_generacion").isoformat()
+                    if ev.get("fecha_generacion") is not None
+                    and hasattr(ev.get("fecha_generacion"), "isoformat")
+                    else ev.get("fecha_generacion")
+                ),
+                "fecha_entrega": (
+                    ev.get("fecha_entrega").isoformat()
+                    if ev.get("fecha_entrega") is not None
+                    and hasattr(ev.get("fecha_entrega"), "isoformat")
+                    else ev.get("fecha_entrega")
+                ),
+            }
+        else:
+            enriched["envio"] = None
+    except Exception as e:
+        logger.warning("get_order_with_items: no se pudo cargar envío para id_orden=%s: %s", id_orden_val, e)
+        enriched["envio"] = None
+
     return enriched
 
 

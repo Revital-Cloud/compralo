@@ -287,7 +287,7 @@ CREATE TABLE IF NOT EXISTS tab_usuarios (
 --datos personales adicionales
     ind_genero                  BOOLEAN 		NOT NULL,
     cel_usuario                 VARCHAR 		NOT NULL,
-    fec_nacimiento              DATE, 
+    fec_nacimiento              DATE,
 --ind_
     ind_activo                  BOOLEAN 		DEFAULT TRUE,
 -- Avatar (perfil: Facehash seed y colores hex)

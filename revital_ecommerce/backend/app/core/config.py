@@ -157,6 +157,17 @@ class Settings(BaseSettings):
     ENVIA_ORIGIN_CITY: str = ""
     ENVIA_ORIGIN_STATE: str = ""
     ENVIA_ORIGIN_POSTAL: str = ""
+    # Documento (NIT/CC) del remitente; algunas transportadoras CO (p. ej. TCC) lo exigen.
+    ENVIA_ORIGIN_DOCUMENT: Optional[str] = None
+    ENVIA_ORIGIN_DOCUMENT_TYPE: str = "NIT"
+
+    # Tipo de documento del destinatario para Envia. El NÚMERO es el id_usuario del
+    # cliente (en esta tienda el id_usuario ES la cédula). El tipo casi siempre es CC.
+    ENVIA_DEST_DEFAULT_DOCUMENT_TYPE: str = "CC"
+
+    # Lista CSV de transportadoras a OCULTAR en cotización/generación (p. ej. mientras
+    # no estén bien configuradas sus credenciales en Envia). Ej: "servientrega,tcc".
+    ENVIA_DISABLED_CARRIERS: Optional[str] = None
 
     # Generación de guías CO: Envia exige printFormat + printSize en settings (ver API /ship/generate/)
     ENVIA_PRINT_FORMAT: str = "PDF"

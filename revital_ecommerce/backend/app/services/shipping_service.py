@@ -101,8 +101,20 @@ def _extract_rates_list(body: Any) -> List[Dict[str, Any]]:
     return []
 
 
+def _disabled_carriers() -> set[str]:
+    """Carriers a ocultar (CSV en settings, normalizados en minúsculas)."""
+    raw = settings.ENVIA_DISABLED_CARRIERS or ""
+    return {c.strip().lower() for c in str(raw).split(",") if c.strip()}
+
+
+def _enabled_carriers_co() -> Tuple[str, ...]:
+    """CARRIERS_CO menos los deshabilitados (compara por slug en minúsculas)."""
+    disabled = _disabled_carriers()
+    return tuple(c for c in CARRIERS_CO if c.lower() not in disabled)
+
+
 def _origin_payload() -> Dict[str, Any]:
-    return {
+    out: Dict[str, Any] = {
         "name": settings.ENVIA_ORIGIN_NAME or settings.COMPANY_NAME,
         "company": settings.ENVIA_ORIGIN_COMPANY or settings.COMPANY_NAME,
         "email": settings.ENVIA_ORIGIN_EMAIL or settings.SUPPORT_EMAIL,
@@ -115,6 +127,12 @@ def _origin_payload() -> Dict[str, Any]:
         "country": "CO",
         "postalCode": str(settings.ENVIA_ORIGIN_POSTAL or "110111"),
     }
+    # Documento del remitente (NIT/CC); algunas transportadoras CO lo exigen.
+    doc = (settings.ENVIA_ORIGIN_DOCUMENT or "").strip()
+    if doc:
+        out["identificationType"] = (settings.ENVIA_ORIGIN_DOCUMENT_TYPE or "NIT").strip()
+        out["identificationNumber"] = doc
+    return out
 
 
 def _digits_phone(phone: str) -> str:
@@ -127,10 +145,22 @@ def destination_from_address_row(
     row: Any,
     phone: str,
     email: Optional[str] = None,
+    document: Optional[str] = None,
+    document_type: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Mapea fila tab_direcciones_usuario (+ teléfono usuario) al JSON destination Envia."""
+    """Mapea fila tab_direcciones_usuario (+ teléfono usuario) al JSON destination Envia.
+
+    `document`/`document_type`: documento del destinatario (NIT/CC) que exigen algunas
+    transportadoras (p. ej. TCC). El número se pasa explícitamente (en esta tienda es el
+    id_usuario del cliente); el tipo usa ENVIA_DEST_DEFAULT_DOCUMENT_TYPE (CC) si no se da.
+    """
     calle = str(getattr(row, "calle_direccion", "") or "").strip() or "Calle"
-    nombre = str(getattr(row, "nombre_direccion", "") or "").strip() or "Cliente"
+    # Nombre del destinatario = nombre real del cliente (no el apodo de la dirección,
+    # p. ej. "casa"/"trabajo"). Si no hay nombre de usuario, cae al apodo de la dirección.
+    nom_usuario = str(getattr(row, "nom_usuario", "") or "").strip()
+    ape_usuario = str(getattr(row, "ape_usuario", "") or "").strip()
+    nombre_cliente = f"{nom_usuario} {ape_usuario}".strip()
+    nombre = nombre_cliente or str(getattr(row, "nombre_direccion", "") or "").strip() or "Cliente"
     parts = calle.rsplit(" ", 1)
     if len(parts) == 2 and parts[1].isdigit():
         street, number = parts[0], parts[1]
@@ -150,6 +180,12 @@ def destination_from_address_row(
     em = (email or "").strip()
     if em and "@" in em:
         out["email"] = em[:120]
+    doc = (document or "").strip()
+    if doc:
+        out["identificationType"] = (
+            document_type or settings.ENVIA_DEST_DEFAULT_DOCUMENT_TYPE or "CC"
+        ).strip()
+        out["identificationNumber"] = doc[:20]
     return out
 
 
@@ -478,19 +514,26 @@ async def get_shipping_rates(
     ordenada por precio ascendente.
     """
     packages = _package_payload(weight_kg, length_cm, width_cm, height_cm)
+    carriers = _enabled_carriers_co()
+    if not carriers:
+        logger.warning("get_shipping_rates: todas las transportadoras están deshabilitadas (ENVIA_DISABLED_CARRIERS)")
+        return []
     async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as client:
         origin = await enrich_colombia_destination(client, _origin_payload())
         dest = await enrich_colombia_destination(client, dict(destination))
         tasks = [
             _post_rate_for_carrier(client, carrier, origin, dest, packages)
-            for carrier in CARRIERS_CO
+            for carrier in carriers
         ]
         groups = await asyncio.gather(*tasks)
-    for slug_attempt, g in zip(CARRIERS_CO, groups):
+    for slug_attempt, g in zip(carriers, groups):
         logger.info("Envia cotización carrier=%s tarifas_parseadas=%d", slug_attempt, len(g))
     merged: List[Dict[str, Any]] = []
     for g in groups:
         merged.extend(g)
+    disabled = _disabled_carriers()
+    if disabled:
+        merged = [r for r in merged if str(r.get("carrier") or "").lower() not in disabled]
     merged.sort(key=lambda x: x["price"])
     merged = _best_rate_per_carrier(merged)
     return merged
@@ -547,6 +590,11 @@ def _parse_envia_generate_response(data: Any) -> Dict[str, Any]:
         "urlLabel",
         "url_label",
         "printFormat1",
+        "label",
+        "labelFile",
+        "pdf",
+        "pdfUrl",
+        "url",
     )
     track_url_keys = (
         "trackUrl",
@@ -718,7 +766,8 @@ def load_address_and_phone(
         text(
             """
             SELECT d.id_direccion, d.nombre_direccion, d.calle_direccion, d.ciudad, d.departamento,
-                   d.codigo_postal, d.barrio, d.id_usuario, u.cel_usuario, u.email_usuario
+                   d.codigo_postal, d.barrio, d.id_usuario,
+                   u.nom_usuario, u.ape_usuario, u.cel_usuario, u.email_usuario
             FROM tab_direcciones_usuario d
             JOIN tab_usuarios u ON u.id_usuario = d.id_usuario
             WHERE d.id_direccion = :did
@@ -744,12 +793,33 @@ async def finalize_envia_after_paid_order(
     Tras pago aprobado: genera guía Envia, inserta tab_ordenes_envio y enlaza tab_ordenes.id_envio.
     Idempotente si id_envio ya está asignado. No relanza excepción si Envia falla (solo log).
     """
-    row_lock = db.execute(
-        text("SELECT id_envio FROM tab_ordenes WHERE id_orden = :oid"),
+    # Idempotencia útil: solo se omite si YA existe una guía con tracking o etiqueta.
+    # Si hay una fila de envío vacía (intento previo que no devolvió guía), se
+    # permite reintentar y completarla — antes quedaba bloqueada para siempre.
+    existing_envio = db.execute(
+        text(
+            """
+            SELECT id_envio, tracking_number, label_url
+            FROM tab_ordenes_envio
+            WHERE id_orden = :oid
+            ORDER BY id_envio DESC
+            LIMIT 1
+            """
+        ),
         {"oid": order_id},
     ).fetchone()
-    if row_lock and getattr(row_lock, "id_envio", None) is not None:
-        return
+    existing_envio_id: Optional[int] = None
+    if existing_envio is not None:
+        has_tracking = bool((getattr(existing_envio, "tracking_number", None) or "").strip())
+        has_label = bool((getattr(existing_envio, "label_url", None) or "").strip())
+        if has_tracking or has_label:
+            return
+        existing_envio_id = int(existing_envio.id_envio)
+        logger.info(
+            "finalize_envia: guía previa vacía order_id=%s id_envio=%s — reintentando generación",
+            order_id,
+            existing_envio_id,
+        )
 
     ship = db.execute(
         text(
@@ -769,6 +839,14 @@ async def finalize_envia_after_paid_order(
     id_direccion = int(ship.id_direccion)
     carrier = str(ship.shipping_carrier).lower().strip()
     service = str(ship.shipping_service).strip()
+
+    if carrier in _disabled_carriers():
+        logger.warning(
+            "finalize_envia: carrier '%s' deshabilitado (ENVIA_DISABLED_CARRIERS); no se genera guía order_id=%s",
+            carrier,
+            order_id,
+        )
+        return
     costo = float(ship.shipping_cost or 0)
     w_kg = float(ship.weight_kg)
     l_cm = float(ship.length_cm)
@@ -788,7 +866,18 @@ async def finalize_envia_after_paid_order(
         logger.error("finalize_envia: dirección %s no válida para usuario %s", id_direccion, id_usuario)
         return
     addr_row, phone, dest_email = loaded
-    destination = destination_from_address_row(addr_row, phone, dest_email)
+
+    # En esta tienda el id_usuario ES el número de identificación (cédula) del cliente.
+    # Algunas transportadoras (p. ej. TCC) exigen el documento del destinatario, así que
+    # se usa el id_usuario como número y el tipo por defecto (CC) de settings.
+    try:
+        user_doc = str(int(id_usuario))
+    except (TypeError, ValueError):
+        user_doc = None
+
+    destination = destination_from_address_row(
+        addr_row, phone, dest_email, document=user_doc
+    )
 
     totals = db.execute(
         text(
@@ -819,38 +908,66 @@ async def finalize_envia_after_paid_order(
         logger.exception("finalize_envia: fallo al generar guía Envia order_id=%s: %s", order_id, e)
         return
 
-    next_id = db.execute(text("SELECT COALESCE(MAX(id_envio), 0) + 1 AS n FROM tab_ordenes_envio")).scalar()
-    id_envio = int(next_id) if next_id is not None else 1
     tracking = label.get("tracking_number")
     track_url = label.get("track_url")
     label_url = label.get("label_url")
 
     try:
-        db.execute(
-            text(
-                """
-                INSERT INTO tab_ordenes_envio (
-                    id_envio, id_orden, id_direccion, carrier, service, costo_envio,
-                    tracking_number, tracking_url, label_url, estado_envio, fecha_generacion
-                ) VALUES (
-                    :id_envio, :id_orden, :id_direccion, :carrier, :service, :costo_envio,
-                    :tracking_number, :tracking_url, :label_url, :estado_envio, NOW()
-                )
-                """
-            ),
-            {
-                "id_envio": id_envio,
-                "id_orden": order_id,
-                "id_direccion": id_direccion,
-                "carrier": carrier,
-                "service": service,
-                "costo_envio": int(round(costo)),
-                "tracking_number": tracking,
-                "tracking_url": track_url,
-                "label_url": label_url,
-                "estado_envio": "generada",
-            },
-        )
+        if existing_envio_id is not None:
+            # Completar la guía vacía de un intento previo.
+            id_envio = existing_envio_id
+            db.execute(
+                text(
+                    """
+                    UPDATE tab_ordenes_envio
+                    SET carrier = :carrier, service = :service, costo_envio = :costo_envio,
+                        tracking_number = :tracking_number, tracking_url = :tracking_url,
+                        label_url = :label_url, estado_envio = :estado_envio,
+                        fecha_generacion = NOW()
+                    WHERE id_envio = :id_envio
+                    """
+                ),
+                {
+                    "id_envio": id_envio,
+                    "carrier": carrier,
+                    "service": service,
+                    "costo_envio": int(round(costo)),
+                    "tracking_number": tracking,
+                    "tracking_url": track_url,
+                    "label_url": label_url,
+                    "estado_envio": "generada",
+                },
+            )
+        else:
+            next_id = db.execute(
+                text("SELECT COALESCE(MAX(id_envio), 0) + 1 AS n FROM tab_ordenes_envio")
+            ).scalar()
+            id_envio = int(next_id) if next_id is not None else 1
+            db.execute(
+                text(
+                    """
+                    INSERT INTO tab_ordenes_envio (
+                        id_envio, id_orden, id_direccion, carrier, service, costo_envio,
+                        tracking_number, tracking_url, label_url, estado_envio, fecha_generacion
+                    ) VALUES (
+                        :id_envio, :id_orden, :id_direccion, :carrier, :service, :costo_envio,
+                        :tracking_number, :tracking_url, :label_url, :estado_envio, NOW()
+                    )
+                    """
+                ),
+                {
+                    "id_envio": id_envio,
+                    "id_orden": order_id,
+                    "id_direccion": id_direccion,
+                    "carrier": carrier,
+                    "service": service,
+                    "costo_envio": int(round(costo)),
+                    "tracking_number": tracking,
+                    "tracking_url": track_url,
+                    "label_url": label_url,
+                    "estado_envio": "generada",
+                },
+            )
         db.execute(
             text("UPDATE tab_ordenes SET id_envio = :eid, fec_update = NOW() WHERE id_orden = :oid"),
             {"eid": id_envio, "oid": order_id},
