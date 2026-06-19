@@ -792,7 +792,15 @@ async def finalize_envia_after_paid_order(
     """
     Tras pago aprobado: genera guía Envia, inserta tab_ordenes_envio y enlaza tab_ordenes.id_envio.
     Idempotente si id_envio ya está asignado. No relanza excepción si Envia falla (solo log).
+
+    Es además el hook único post-pago: emite la factura electrónica antes de la
+    lógica de Envía (la factura no depende del envío). Es idempotente por orden y
+    tolerante a fallos, por lo que no afecta el flujo de pago/envío.
     """
+    # Hook post-pago: factura electrónica (segura, nunca relanza).
+    from services.invoice_service import emitir_factura_safe
+    await emitir_factura_safe(db, int(order_id))
+
     # Idempotencia útil: solo se omite si YA existe una guía con tracking o etiqueta.
     # Si hay una fila de envío vacía (intento previo que no devolvió guía), se
     # permite reintentar y completarla — antes quedaba bloqueada para siempre.

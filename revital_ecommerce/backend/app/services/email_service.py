@@ -358,6 +358,53 @@ async def send_order_confirmation_email(order_data: Dict[str, Any]) -> bool:
         return False
 
 
+async def send_invoice_email(
+    user_email: str,
+    user_name: str,
+    order_id: int,
+    numero: Optional[str] = None,
+    cufe: Optional[str] = None,
+    pdf_url: Optional[str] = None,
+) -> bool:
+    """
+    Envía al cliente la factura electrónica emitida (link al PDF/consulta DIAN).
+
+    Es un correo propio (Resend) con el branding de la tienda: funciona aunque el
+    proveedor (Factus) no tenga activado su envío automático de correo.
+    """
+    try:
+        company = settings.COMPANY_NAME
+        boton = (
+            f'<a href="{pdf_url}" style="display:inline-block;background:#111;color:#fff;'
+            f'text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600">'
+            f'Ver / descargar factura</a>'
+            if pdf_url else ""
+        )
+        html_content = f"""
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#222">
+          <h2>Tu factura electrónica</h2>
+          <p>Hola {user_name or 'cliente'}, tu factura del pedido <strong>#{order_id}</strong> ya está disponible.</p>
+          <ul style="line-height:1.7">
+            {f'<li><strong>Número:</strong> {numero}</li>' if numero else ''}
+            {f'<li><strong>CUFE:</strong> <span style="font-family:monospace;font-size:12px">{cufe}</span></li>' if cufe else ''}
+          </ul>
+          <p style="margin:24px 0">{boton}</p>
+          <p style="color:#666;font-size:13px">Documento equivalente a la factura electrónica de venta validada por la DIAN.</p>
+          <p style="color:#999;font-size:12px">{company}</p>
+        </div>
+        """
+        email_data = EmailSend(
+            to=user_email,
+            subject=f"Factura electrónica de tu pedido #{order_id}",
+            html_content=html_content,
+        )
+        response = await send_basic_email(email_data)
+        return response.success
+    except Exception as e:
+        logger.error(f"Error al enviar email de factura (orden {order_id}): {str(e)}")
+        return False
+
+
 async def send_order_confirmation_for_order_id(order_id: int) -> None:
     """
     Obtiene los datos de la orden, construye el payload para el template
