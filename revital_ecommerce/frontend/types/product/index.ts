@@ -108,6 +108,8 @@ export interface ProductAdminParams {
 
 /** Variante para crear/editar (tab_product_variants: id, product_id, sku, price, stock, is_active; sin color/size) */
 export interface VariantCreateItem {
+  /** id de la combinación existente; se envía al editar para reconciliar por id y evitar duplicados. */
+  id?: number | string | null;
   sku?: string | null;
   price: number;
   stock: number;

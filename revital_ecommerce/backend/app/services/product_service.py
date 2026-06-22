@@ -1755,49 +1755,19 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
         if msg and str(msg).strip().upper().startswith("ERROR"):
             raise Exception(str(msg))
 
-        # No eliminar variantes/grupos que estén referenciados por órdenes o carritos activos.
-        # De lo contrario, falla por FK (tab_orden_productos.variant_id / tab_carrito_productos.variant_id -> combinations.id).
-        locked_group_rows = db.execute(text("""
-            SELECT DISTINCT g.id
-            FROM tab_product_variant_groups g
-            JOIN tab_product_variant_combinations c ON c.group_id = g.id
+        # Reconciliación por id de combinación: las variantes existentes traen su id desde el
+        # frontend. Se actualizan en sitio (conservando id → carrito/órdenes siguen válidos), las
+        # nuevas se insertan y las que ya no vienen se desactivan/eliminan al final. Esto evita
+        # duplicar variantes cuando cambia la agrupación dominante (color/tipo) entre ediciones,
+        # que era el origen del bug de variantes duplicadas.
+        existing_rows = db.execute(text("""
+            SELECT c.id
+            FROM tab_product_variant_combinations c
+            JOIN tab_product_variant_groups g ON g.id = c.group_id
             WHERE g.product_id = :pid
-              AND (
-                    EXISTS (SELECT 1 FROM tab_orden_productos op WHERE op.variant_id = c.id)
-                 OR EXISTS (SELECT 1 FROM tab_carrito_productos cp WHERE cp.variant_id = c.id)
-              )
         """), {"pid": product_id}).fetchall()
-        locked_group_ids = [int(r[0]) for r in locked_group_rows if r and r[0] is not None]
-
-        db.execute(text("""
-            DELETE FROM tab_product_variant_images
-            WHERE variant_group_id IN (
-                SELECT id FROM tab_product_variant_groups
-                WHERE product_id = :pid
-                  AND id <> ALL(:locked_ids)
-            )
-        """), {"pid": product_id, "locked_ids": locked_group_ids})
-        db.execute(text("""
-            DELETE FROM tab_product_variant_combinations
-            WHERE id IN (
-                SELECT c.id
-                FROM tab_product_variant_combinations c
-                JOIN tab_product_variant_groups g ON g.id = c.group_id
-                WHERE g.product_id = :pid
-                  AND g.id <> ALL(:locked_ids)
-                  AND NOT EXISTS (SELECT 1 FROM tab_orden_productos op WHERE op.variant_id = c.id)
-                  AND NOT EXISTS (SELECT 1 FROM tab_carrito_productos cp WHERE cp.variant_id = c.id)
-            )
-        """), {"pid": product_id, "locked_ids": locked_group_ids})
-        db.execute(text("""
-            DELETE FROM tab_product_variant_groups g
-            WHERE g.product_id = :pid
-              AND g.id <> ALL(:locked_ids)
-              AND NOT EXISTS (
-                    SELECT 1 FROM tab_product_variant_combinations c
-                    WHERE c.group_id = g.id
-              )
-        """), {"pid": product_id, "locked_ids": locked_group_ids})
+        existing_ids = {int(r[0]) for r in existing_rows if r and r[0] is not None}
+        kept_ids = set()
 
         all_attr_ids = set()
         for v in payload.variants:
@@ -1811,6 +1781,7 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
         groups_by_dominant = _group_variants_by_dominant(payload.variants, dominant_attr_id)
         # Nombre del atributo dominante al actualizar: mismo criterio que en create_product_composite
         dominant_attr_name = _get_attribute_name(db, dominant_attr_id, default="color")
+        sin_color_gid = None
 
         product_image_urls = getattr(payload, "image_urls", None) or []
         # Grupo "Sin color" para imágenes del producto (panel admin / PDP); no copiar a grupos de color
@@ -1888,30 +1859,10 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                     )
                     ord_next += 1
 
-            # Combinaciones: borrar solo las no referenciadas (órdenes/carrito);
-            # actualizar las referenciadas existentes; insertar el resto.
-            db.execute(text("""
-                DELETE FROM tab_product_variant_combinations c
-                WHERE c.group_id = :gid
-                  AND NOT EXISTS (
-                    SELECT 1 FROM tab_orden_productos op WHERE op.variant_id = c.id
-                  )
-                  AND NOT EXISTS (
-                    SELECT 1 FROM tab_carrito_productos cp WHERE cp.variant_id = c.id
-                  )
-            """), {"gid": group_id})
-            ref_rows = db.execute(text("""
-                SELECT c.id FROM tab_product_variant_combinations c
-                WHERE c.group_id = :gid
-                  AND (
-                        EXISTS (SELECT 1 FROM tab_orden_productos op WHERE op.variant_id = c.id)
-                     OR EXISTS (SELECT 1 FROM tab_carrito_productos cp WHERE cp.variant_id = c.id)
-                  )
-                ORDER BY c.id
-            """), {"gid": group_id}).fetchall()
-            ref_ids = [int(r[0]) for r in ref_rows if r and r[0] is not None]
-
-            for idx, v in enumerate(variants_in_group):
+            # Combinaciones: reconciliar por id. La variante que trae un id existente se actualiza
+            # en sitio (y se reasigna su group_id por si cambió la agrupación dominante); la que no
+            # trae id —o cuyo id no pertenece al producto— se inserta como nueva.
+            for v in variants_in_group:
                 internal_attrs = {}
                 if v.attributes:
                     for k, val in v.attributes.items():
@@ -1935,17 +1886,26 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                 attrs_json = json.dumps(internal_attrs) if internal_attrs else "{}"
                 tipo_clasif = (v.tipo_clasificacion and v.tipo_clasificacion.strip()) or None if hasattr(v, 'tipo_clasificacion') else None
                 sku_to_try = (v.sku and v.sku.strip()) or None
-                if idx < len(ref_ids):
-                    cid = ref_ids[idx]
+
+                vid = None
+                raw_id = getattr(v, "id", None)
+                if raw_id is not None:
+                    try:
+                        vid = int(raw_id)
+                    except (TypeError, ValueError):
+                        vid = None
+
+                if vid is not None and vid in existing_ids and vid not in kept_ids:
                     prev_row = db.execute(
-                        text("SELECT stock, sku FROM tab_product_variant_combinations WHERE id = :cid"),
-                        {"cid": cid},
+                        text("SELECT stock FROM tab_product_variant_combinations WHERE id = :cid"),
+                        {"cid": vid},
                     ).fetchone()
                     old_stock = int(prev_row[0] or 0) if prev_row else 0
                     new_stock = int(v.stock or 0)
                     db.execute(text("""
                         UPDATE tab_product_variant_combinations
-                        SET sku = COALESCE(:sku, sku),
+                        SET group_id = :gid,
+                            sku = COALESCE(:sku, sku),
                             price = :price,
                             stock = :stock,
                             attributes = CAST(:attrs AS JSONB),
@@ -1955,6 +1915,7 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                             fec_update = NOW()
                         WHERE id = :cid
                     """), {
+                        "gid": group_id,
                         "sku": sku_to_try,
                         "price": v.price,
                         "stock": v.stock,
@@ -1962,8 +1923,9 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                         "active": v.is_active,
                         "tipo_clasif": tipo_clasif,
                         "usr": usr_update,
-                        "cid": cid,
+                        "cid": vid,
                     })
+                    kept_ids.add(vid)
                     if new_stock == 0 and old_stock > 0:
                         pname_row = db.execute(
                             text("SELECT name FROM tab_products WHERE id = :pid"),
@@ -1974,7 +1936,7 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                             db,
                             product_id=int(product_id),
                             product_name=pname,
-                            variant_id=int(cid),
+                            variant_id=int(vid),
                             sku=sku_to_try,
                             order_id=None,
                             source_label="Edición en panel admin",
@@ -1992,7 +1954,7 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                             db,
                             product_id=int(product_id),
                             product_name=pname,
-                            variant_id=int(cid),
+                            variant_id=int(vid),
                             sku=sku_to_try,
                             current_stock=new_stock,
                             order_id=None,
@@ -2021,13 +1983,50 @@ def update_product_composite(db: Session, product_id: Decimal, payload: ProductC
                         break
                     if not rc or str(rc).strip().upper().startswith("ERROR"):
                         raise Exception(str(rc) if rc else "Error al insertar combinación")
+                    kept_ids.add(int(str(rc).replace("OK:", "").strip()))
 
-            for j in range(len(variants_in_group), len(ref_ids)):
+        # Combinaciones existentes que ya no vienen en el payload: desactivar si están referenciadas
+        # por cualquier tabla con FK (no se pueden borrar) o eliminar si no lo están. Se comprueban
+        # TODAS las FK hacia combinations (órdenes, carrito, órdenes de compra, movimientos y lotes
+        # de inventario); de lo contrario el DELETE rompería la edición por violación de FK.
+        for cid in (existing_ids - kept_ids):
+            referenced = db.execute(text("""
+                SELECT 1
+                WHERE EXISTS (SELECT 1 FROM tab_orden_productos op WHERE op.variant_id = :cid)
+                   OR EXISTS (SELECT 1 FROM tab_carrito_productos cp WHERE cp.variant_id = :cid)
+                   OR EXISTS (SELECT 1 FROM tab_orden_compra_proveedor ocp WHERE ocp.variant_id = :cid)
+                   OR EXISTS (SELECT 1 FROM tab_movimientos_inventario mi WHERE mi.variant_id = :cid)
+                   OR EXISTS (SELECT 1 FROM tab_lotes_inventario li WHERE li.variant_id = :cid)
+            """), {"cid": cid}).fetchone()
+            if referenced:
                 db.execute(text("""
                     UPDATE tab_product_variant_combinations
                     SET is_active = FALSE, usr_update = :usr, fec_update = NOW()
                     WHERE id = :cid
-                """), {"cid": ref_ids[j], "usr": usr_update})
+                """), {"cid": cid, "usr": usr_update})
+            else:
+                db.execute(
+                    text("DELETE FROM tab_product_variant_combinations WHERE id = :cid"),
+                    {"cid": cid},
+                )
+
+        # Limpiar grupos que quedaron sin ninguna combinación (excepto el grupo "Sin color" que
+        # guarda las imágenes de producto), junto con sus imágenes huérfanas.
+        db.execute(text("""
+            DELETE FROM tab_product_variant_images
+            WHERE variant_group_id IN (
+                SELECT g.id FROM tab_product_variant_groups g
+                WHERE g.product_id = :pid
+                  AND (:sin_color_gid IS NULL OR g.id <> :sin_color_gid)
+                  AND NOT EXISTS (SELECT 1 FROM tab_product_variant_combinations c WHERE c.group_id = g.id)
+            )
+        """), {"pid": product_id, "sin_color_gid": sin_color_gid})
+        db.execute(text("""
+            DELETE FROM tab_product_variant_groups g
+            WHERE g.product_id = :pid
+              AND (:sin_color_gid IS NULL OR g.id <> :sin_color_gid)
+              AND NOT EXISTS (SELECT 1 FROM tab_product_variant_combinations c WHERE c.group_id = g.id)
+        """), {"pid": product_id, "sin_color_gid": sin_color_gid})
 
         db.commit()
         # Intento de indexación automática (no bloqueante).
