@@ -194,7 +194,9 @@ export function ProductFormComposite({
                   tipoClasificacion = String(fromAttr).trim()
                 }
               }
+              const vidNum = (v as { id?: number }).id
               return {
+                id: vidNum != null && !Number.isNaN(Number(vidNum)) ? Number(vidNum) : undefined,
                 price: Number(v.price),
                 stock: Number(v.stock),
                 is_active: v.is_active ?? true,
@@ -408,6 +410,7 @@ export function ProductFormComposite({
         if (found?.id != null) attrs[String(colorAttr.attribute_id)] = found.id
       }
       return {
+        ...(v.id != null && !Number.isNaN(Number(v.id)) ? { id: Number(v.id) } : {}),
         price: Number(v.price),
         stock: Number(v.stock) >= 0 ? Number(v.stock) : 0,
         is_active: v.is_active ?? true,

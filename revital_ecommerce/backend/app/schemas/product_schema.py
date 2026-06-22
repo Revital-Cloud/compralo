@@ -267,6 +267,7 @@ class ProductCreateBase(BaseModel):
 
 class VariantCreateItem(BaseModel):
     """Una variante a crear (tab_product_variants): precio, stock, opcionalmente sku; atributos en tab_product_variant_attributes."""
+    id: Optional[Decimal] = Field(None, description="id de la combinación existente (tab_product_variant_combinations.id); presente al editar para reconciliar por id y no duplicar.")
     sku: Optional[str] = Field(None, description="SKU; si vacío el backend genera.")
     price: Decimal = Field(..., ge=0, description="Precio.")
     stock: int = Field(0, ge=0, description="Stock.")
