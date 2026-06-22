@@ -5,6 +5,12 @@ node_modules
 .pnp
 .pnp.js
 
+# Python bytecode (never commit compiled artifacts; they break `git pull` on servers)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
 # Local env files
 .env
 .env.local
