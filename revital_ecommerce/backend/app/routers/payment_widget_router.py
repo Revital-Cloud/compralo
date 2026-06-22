@@ -188,6 +188,7 @@ async def create_checkout_session_endpoint(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="La dirección de envío no existe o no pertenece al usuario",
             )
+
         shipping_cost = float(payload.shipping_cost)
         amount_in_cents = int((total_final + shipping_cost) * 100)
         currency = "COP"
@@ -350,11 +351,12 @@ async def checkout_order_detail(
         order_id = int(created) if created is not None else None
         if order_id is not None:
             try:
-                import asyncio
+                from services.email_service import (
+                    send_order_confirmation_for_order_id,
+                    schedule_background_task,
+                )
 
-                from services.email_service import send_order_confirmation_for_order_id
-
-                asyncio.create_task(send_order_confirmation_for_order_id(order_id))
+                schedule_background_task(send_order_confirmation_for_order_id(order_id))
             except Exception as e:
                 logger.warning(
                     "checkout_order_detail: no se pudo programar email orden %s: %s",
@@ -458,9 +460,11 @@ async def confirm_checkout(
             ),
         )
     try:
-        from services.email_service import send_order_confirmation_for_order_id
-        import asyncio
-        asyncio.create_task(send_order_confirmation_for_order_id(order_id))
+        from services.email_service import (
+            send_order_confirmation_for_order_id,
+            schedule_background_task,
+        )
+        schedule_background_task(send_order_confirmation_for_order_id(order_id))
     except Exception as e:
         logger.warning(f"No se pudo programar email de confirmación: {e}")
     return {"order_id": order_id}

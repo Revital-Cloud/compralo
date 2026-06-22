@@ -52,6 +52,7 @@ from routers.shipping_router import router as shipping_router
 from routers.envia_webhook_router import router as envia_webhook_router
 from routers.exchange_router import router as exchange_router
 from routers.order_router import router as order_router
+from routers.invoice_router import router as invoice_router
 from routers.order_buy_provider_router import router as order_buy_provider_router
 from routers.movements_inventory_router import router as movements_inventory_router
 from routers.dashboard_router import router as dashboard_router
@@ -353,6 +354,7 @@ app.include_router(ai_description_router, prefix=settings.API_STR)
 
 # Incluye el router de órdenes con un prefijo de API.
 app.include_router(order_router, prefix=settings.API_STR)
+app.include_router(invoice_router, prefix=settings.API_STR)
 
 # Incluye el router de ordenes de compra a proveedores con un prefijo de API.
 app.include_router(order_buy_provider_router, prefix=settings.API_STR)

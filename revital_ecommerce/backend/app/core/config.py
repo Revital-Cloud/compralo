@@ -113,6 +113,18 @@ class Settings(BaseSettings):
     WOMPI_INTEGRITY_SECRET: str
     WOMPI_ENVIRONMENT: str = "sandbox"
 
+    # Factus (facturación electrónica DIAN). Proveedor por defecto del BillingProvider.
+    # OAuth2 password-grant: requiere client_id/secret + usuario/clave del sandbox.
+    # Todos opcionales: si faltan, se usa el MockProvider (CUFE simulado, sin red).
+    FACTUS_BASE_URL: str = "https://api-sandbox.factus.com.co"
+    FACTUS_CLIENT_ID: Optional[str] = None
+    FACTUS_CLIENT_SECRET: Optional[str] = None
+    FACTUS_USERNAME: Optional[str] = None
+    FACTUS_PASSWORD: Optional[str] = None
+    FACTUS_NUMBERING_RANGE_ID: Optional[str] = None  # rango de numeración (resolución) del sandbox
+    # Proveedor de facturación activo: "mock" | "factus".
+    BILLING_PROVIDER: str = "mock"
+
     # Groq: clave API para funcionalidades de IA (resumen/chat admin).
     # Es opcional; si falta, las rutas /admin/ai devuelven 503.
     GROQ_API_KEY: Optional[str] = None
@@ -157,6 +169,17 @@ class Settings(BaseSettings):
     ENVIA_ORIGIN_CITY: str = ""
     ENVIA_ORIGIN_STATE: str = ""
     ENVIA_ORIGIN_POSTAL: str = ""
+    # Documento (NIT/CC) del remitente; algunas transportadoras CO (p. ej. TCC) lo exigen.
+    ENVIA_ORIGIN_DOCUMENT: Optional[str] = None
+    ENVIA_ORIGIN_DOCUMENT_TYPE: str = "NIT"
+
+    # Tipo de documento del destinatario para Envia. El NÚMERO es el id_usuario del
+    # cliente (en esta tienda el id_usuario ES la cédula). El tipo casi siempre es CC.
+    ENVIA_DEST_DEFAULT_DOCUMENT_TYPE: str = "CC"
+
+    # Lista CSV de transportadoras a OCULTAR en cotización/generación (p. ej. mientras
+    # no estén bien configuradas sus credenciales en Envia). Ej: "servientrega,tcc".
+    ENVIA_DISABLED_CARRIERS: Optional[str] = None
 
     # Generación de guías CO: Envia exige printFormat + printSize en settings (ver API /ship/generate/)
     ENVIA_PRINT_FORMAT: str = "PDF"

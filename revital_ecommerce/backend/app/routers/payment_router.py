@@ -295,8 +295,11 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
             order_id = await create_order_from_checkout_reference(db, reference, tx, id_usuario=None)
             if order_id:
                 try:
-                    from services.email_service import send_order_confirmation_for_order_id
-                    asyncio.create_task(send_order_confirmation_for_order_id(order_id))
+                    from services.email_service import (
+                        send_order_confirmation_for_order_id,
+                        schedule_background_task,
+                    )
+                    schedule_background_task(send_order_confirmation_for_order_id(order_id))
                 except Exception as e:
                     logger.warning(f"No se pudo programar email de confirmación: {e}")
                 logger.info(f"Orden {order_id} creada tras webhook (referencia checkout): {reference}")
@@ -381,8 +384,11 @@ async def handle_wompi_webhook(request: Request, db: Session = Depends(get_db)):
             if order_id is not None:
                 try:
                     _order_id = int(order_id) if not isinstance(order_id, int) else order_id
-                    from services.email_service import send_order_confirmation_for_order_id
-                    asyncio.create_task(send_order_confirmation_for_order_id(_order_id))
+                    from services.email_service import (
+                        send_order_confirmation_for_order_id,
+                        schedule_background_task,
+                    )
+                    schedule_background_task(send_order_confirmation_for_order_id(_order_id))
                 except Exception as e:
                     logger.warning(f"No se pudo programar email de confirmación: {e}")
         

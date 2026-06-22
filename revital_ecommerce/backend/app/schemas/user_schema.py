@@ -61,10 +61,10 @@ class UserBase(BaseModel):
     fec_nacimiento: Optional[str] = Field(None, description="Fecha de nacimiento del usuario.")
     ind_activo: Optional[bool] = Field(None, description="Indica si el usuario está activo.")
     usr_insert: Optional[Decimal] = Field(None, description="Usuario que insertó el registro.")
-    
+
     class Config:
         from_attributes = True
-        
+
 class UserCreate(UserBase):
     """
     Esquema para la Creación de Usuarios.

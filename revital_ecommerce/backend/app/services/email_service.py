@@ -7,6 +7,7 @@ autenticación, pedidos, marketing y notificaciones administrativas.
 
 Enfoque funcional: funciones puras, sin estado compartido, fácil testing.
 """
+import asyncio
 import resend
 import logging
 from decimal import Decimal
@@ -23,6 +24,46 @@ from services.email_templates import email_templates
 from services.discount_service import get_birthday_discount
 
 logger = logging.getLogger(__name__)
+
+# Referencias fuertes a tareas en segundo plano: el event loop solo guarda una
+# referencia débil, así que sin esto el GC puede cancelar el correo a mitad de
+# camino (footgun de asyncio.create_task). Ver docs de asyncio.create_task.
+_background_tasks: set = set()
+
+
+def schedule_background_task(coro) -> None:
+    """Programa una corrutina en segundo plano de forma segura y observable.
+
+    - Si hay event loop en ejecución (request FastAPI), crea la tarea y mantiene
+      una referencia fuerte hasta que termine (evita que el GC la cancele).
+    - Si no hay loop (contexto síncrono), ejecuta la corrutina hasta completarse.
+    - Registra en log cualquier excepción de la tarea (antes se perdían en silencio).
+    """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop is None:
+        try:
+            asyncio.run(coro)
+        except Exception:
+            logger.exception("schedule_background_task: tarea en contexto síncrono falló")
+        return
+
+    task = loop.create_task(coro)
+    _background_tasks.add(task)
+
+    def _done(t: "asyncio.Task") -> None:
+        _background_tasks.discard(t)
+        try:
+            exc = t.exception()
+        except asyncio.CancelledError:
+            return
+        if exc is not None:
+            logger.error("Tarea en segundo plano falló: %s", exc, exc_info=exc)
+
+    task.add_done_callback(_done)
 
 def _configure_resend():
     """
@@ -317,6 +358,53 @@ async def send_order_confirmation_email(order_data: Dict[str, Any]) -> bool:
         return False
 
 
+async def send_invoice_email(
+    user_email: str,
+    user_name: str,
+    order_id: int,
+    numero: Optional[str] = None,
+    cufe: Optional[str] = None,
+    pdf_url: Optional[str] = None,
+) -> bool:
+    """
+    Envía al cliente la factura electrónica emitida (link al PDF/consulta DIAN).
+
+    Es un correo propio (Resend) con el branding de la tienda: funciona aunque el
+    proveedor (Factus) no tenga activado su envío automático de correo.
+    """
+    try:
+        company = settings.COMPANY_NAME
+        boton = (
+            f'<a href="{pdf_url}" style="display:inline-block;background:#111;color:#fff;'
+            f'text-decoration:none;padding:12px 20px;border-radius:8px;font-weight:600">'
+            f'Ver / descargar factura</a>'
+            if pdf_url else ""
+        )
+        html_content = f"""
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#222">
+          <h2>Tu factura electrónica</h2>
+          <p>Hola {user_name or 'cliente'}, tu factura del pedido <strong>#{order_id}</strong> ya está disponible.</p>
+          <ul style="line-height:1.7">
+            {f'<li><strong>Número:</strong> {numero}</li>' if numero else ''}
+            {f'<li><strong>CUFE:</strong> <span style="font-family:monospace;font-size:12px">{cufe}</span></li>' if cufe else ''}
+          </ul>
+          <p style="margin:24px 0">{boton}</p>
+          <p style="color:#666;font-size:13px">Documento equivalente a la factura electrónica de venta validada por la DIAN.</p>
+          <p style="color:#999;font-size:12px">{company}</p>
+        </div>
+        """
+        email_data = EmailSend(
+            to=user_email,
+            subject=f"Factura electrónica de tu pedido #{order_id}",
+            html_content=html_content,
+        )
+        response = await send_basic_email(email_data)
+        return response.success
+    except Exception as e:
+        logger.error(f"Error al enviar email de factura (orden {order_id}): {str(e)}")
+        return False
+
+
 async def send_order_confirmation_for_order_id(order_id: int) -> None:
     """
     Obtiene los datos de la orden, construye el payload para el template
@@ -493,6 +581,30 @@ async def send_order_confirmation_for_order_id(order_id: int) -> None:
         except Exception:
             shipping_address_str = "A confirmar"
 
+        # Guía de envío (Envia): si ya se generó al confirmar el pago, incluir
+        # tracking + enlaces de etiqueta/seguimiento en el correo de confirmación.
+        envio = order_raw.get("envio") or {}
+        shipping_guide = None
+        shipping_method = "A confirmar"
+        if envio:
+            carrier_disp = (str(envio.get("carrier") or "").strip().title()) or None
+            service_disp = (str(envio.get("service") or "").strip()) or None
+            tracking_number = envio.get("tracking_number") or None
+            tracking_url = envio.get("tracking_url") or None
+            label_url = envio.get("label_url") or None
+            if any([carrier_disp, tracking_number, tracking_url, label_url]):
+                shipping_guide = {
+                    "carrier": carrier_disp,
+                    "service": service_disp,
+                    "tracking_number": tracking_number,
+                    "tracking_url": tracking_url,
+                    "label_url": label_url,
+                    "estado_envio": envio.get("estado_envio") or None,
+                }
+                parts = [p for p in [carrier_disp, service_disp] if p]
+                if parts:
+                    shipping_method = " · ".join(parts)
+
         order_dict = {
             "id": order_id,
             "created_at": created_at,
@@ -505,7 +617,8 @@ async def send_order_confirmation_for_order_id(order_id: int) -> None:
             "discounts_applied": discounts_applied,
             "points_earned": points_earned,
             "shipping_address": shipping_address_str,
-            "shipping_method": "A confirmar",
+            "shipping_method": shipping_method,
+            "shipping_guide": shipping_guide,
             "estimated_delivery": "3-7 días hábiles",
         }
         order_data = {
