@@ -1482,6 +1482,18 @@ function OrderSummary({
             <span>Envío</span>
             <span>{shipping > 0 ? formatPrice(shipping) : "Gratis"}</span>
           </div>
+          {(() => {
+            // IVA incluido (informativo): contenido en el precio de los productos
+            // (precios con IVA incluido). El desglose exacto va en la factura.
+            const goods = Math.max(0, total - shipping);
+            const ivaIncluido = Math.round(goods - goods / 1.19);
+            return ivaIncluido > 0 ? (
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>IVA incluido (19%)</span>
+                <span>{formatPrice(ivaIncluido)}</span>
+              </div>
+            ) : null;
+          })()}
           <div className="flex justify-between font-bold text-lg pt-2 border-t">
             <span>Total</span>
             <span>{formatPrice(total)}</span>

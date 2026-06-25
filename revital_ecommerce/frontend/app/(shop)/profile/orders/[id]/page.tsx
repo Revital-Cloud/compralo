@@ -3,7 +3,7 @@
 import api from '@/utils/apiWrapper';
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Package } from 'lucide-react';
+import { Loader2, Package, FileText } from 'lucide-react';
 import { formatPrice } from '@/utils/format-price';
 import Image from 'next/image';
 import { getProductImageUrl } from '@/utils/image-helpers';
@@ -40,6 +40,18 @@ interface OrderShippingLive {
   label_url?: string | null;
   carrier?: string | null;
   estado_envio?: string | null;
+}
+
+interface Factura {
+  id_factura: number;
+  estado_dian: 'PENDING' | 'SENT' | 'ACCEPTED' | 'REJECTED';
+  cufe?: string | null;
+  numero?: string | null;
+  pdf_url?: string | null;
+  val_base_gravable?: number;
+  val_total_iva?: number;
+  val_total_excluido?: number;
+  val_total?: number;
 }
 
 interface OrderDetail {
@@ -172,6 +184,20 @@ export default function OrderDetailPage() {
     queryKey: ['order-shipping', id],
     queryFn: async () => await api.get<OrderShippingLive>(`/orders/${id}/shipping`),
     enabled: !!id,
+  });
+
+  // Factura electrónica de la orden (puede no existir aún -> 404 silencioso).
+  const { data: factura } = useQuery({
+    queryKey: ['order-factura', id],
+    queryFn: async () => {
+      try {
+        return await api.get<Factura>(`/orders/${id}/factura`);
+      } catch {
+        return null; // sin factura emitida todavía
+      }
+    },
+    enabled: !!id,
+    retry: false,
   });
 
   if (isLoading || !order) {
@@ -359,6 +385,12 @@ export default function OrderDetailPage() {
                 : "Gratis"}
             </span>
           </div>
+          {typeof factura?.val_total_iva === 'number' && factura.val_total_iva > 0 && (
+            <div className="flex justify-between text-muted-foreground">
+              <span>IVA incluido</span>
+              <span>{formatPrice(factura.val_total_iva)}</span>
+            </div>
+          )}
           <div className="flex justify-between font-semibold">
             <span>Total</span>
             <span>{formatPrice(order.val_total_pedido)}</span>
@@ -387,6 +419,40 @@ export default function OrderDetailPage() {
           <div className="mt-6">
             <p className="font-medium">Observaciones</p>
             <p className="mt-1 text-muted-foreground">{order.des_observaciones}</p>
+          </div>
+        )}
+
+        {/* Factura electrónica (DIAN) */}
+        {factura?.estado_dian === 'ACCEPTED' && (
+          <div className="mt-8 rounded-lg border border-border p-4">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <p className="font-medium">Factura electrónica</p>
+            </div>
+            <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+              {factura.numero && (
+                <div className="flex justify-between">
+                  <span>Número</span>
+                  <span className="font-medium text-foreground">{factura.numero}</span>
+                </div>
+              )}
+              {factura.cufe && (
+                <div className="flex justify-between gap-4">
+                  <span>CUFE</span>
+                  <span className="truncate font-mono text-xs">{factura.cufe}</span>
+                </div>
+              )}
+            </div>
+            {factura.pdf_url && (
+              <a
+                href={factura.pdf_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-flex items-center gap-2 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90"
+              >
+                <FileText className="h-4 w-4" /> Ver / descargar factura
+              </a>
+            )}
           </div>
         )}
       </div>

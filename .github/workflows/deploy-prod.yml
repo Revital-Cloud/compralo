@@ -50,7 +50,11 @@ jobs:
           export PATH="$(dirname $(command -v node)):$PATH"
 
           cd /home/revital/revital
-          git pull origin main
+          # Sincroniza con origin/main de forma robusta: descarta cambios locales en archivos
+          # versionados (p.ej. .pyc regenerados por la app) que harían fallar un `git pull`.
+          # No toca archivos sin versionar (venv, node_modules, .env).
+          git fetch origin main
+          git reset --hard origin/main
 
           sudo cp /tmp/compralo-api.service /etc/systemd/system/compralo-api.service
           sudo systemctl daemon-reload
