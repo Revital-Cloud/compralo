@@ -126,7 +126,7 @@ def chat_completion(
         user_content: Contenido del mensaje del usuario.
         system_content: Contenido del mensaje de sistema (instrucciones). Opcional.
         model: Modelo a usar. Por defecto openai/gpt-oss-20b.
-        temperature: Temperatura (0-2). Por defecto 0.3 para respuestas m?s deterministas.
+        temperature: Temperatura (0-2). Por defecto 0.3 para respuestas más deterministas.
 
     Returns:
         str: Contenido de la respuesta del asistente.
