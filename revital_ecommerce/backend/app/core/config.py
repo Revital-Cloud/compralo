@@ -128,6 +128,10 @@ class Settings(BaseSettings):
     # Groq: clave API para funcionalidades de IA (resumen/chat admin).
     # Es opcional; si falta, las rutas /admin/ai devuelven 503.
     GROQ_API_KEY: Optional[str] = None
+    # Modelos opcionales; si faltan, se usan los defaults de groq_service.
+    # Útil para rotar sin redeploy cuando Groq depreca/renombra un modelo.
+    GROQ_LIGHT_MODEL: Optional[str] = None
+    GROQ_HEAVY_MODEL: Optional[str] = None
 
     # AI Product Search (Ollama embeddings)
     # Son opcionales porque el backend tiene fallback a búsqueda clásica.

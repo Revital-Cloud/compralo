@@ -725,9 +725,9 @@ def _select_model_for_admin_ai(message: str) -> str:
     Selecciona el modelo de Groq a usar para el chat admin.
 
     Patrón:
-    - Por defecto, usar el modelo ligero (Scout 17B) para casi todo.
-    - Usar el modelo pesado (70B) solo si el mensaje es muy largo o explícitamente
-      pide un análisis/profundidad inusual.
+    - Por defecto, usar el modelo ligero (gpt-oss-20b) para casi todo.
+    - Usar el modelo pesado (gpt-oss-120b) solo si el mensaje es muy largo o
+      explícitamente pide un análisis/profundidad inusual.
     """
     msg = message.strip()
     msg_lower = msg.lower()

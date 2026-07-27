@@ -18,11 +18,15 @@ from core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Modelos recomendados en Groq:
-# - LIGHT_MODEL: más rápido y barato, ideal para la mayoría de tareas de asistente/admin.
-# - HEAVY_MODEL: más potente, usar solo para análisis muy complejos o cuando se necesite explícitamente.
-LIGHT_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
-HEAVY_MODEL = "llama-3.3-70b-versatile"
+# Modelos de producción en Groq (reemplazan Llama Scout / 3.3 70B, deprecados 2026):
+# - LIGHT: gpt-oss-20b — rápido y barato, tool calling; default del asistente admin.
+# - HEAVY: gpt-oss-120b — más capaz; mensajes largos o análisis profundo.
+# Overrides vía GROQ_LIGHT_MODEL / GROQ_HEAVY_MODEL en el entorno.
+_DEFAULT_LIGHT_MODEL = "openai/gpt-oss-20b"
+_DEFAULT_HEAVY_MODEL = "openai/gpt-oss-120b"
+
+LIGHT_MODEL = (settings.GROQ_LIGHT_MODEL or _DEFAULT_LIGHT_MODEL).strip() or _DEFAULT_LIGHT_MODEL
+HEAVY_MODEL = (settings.GROQ_HEAVY_MODEL or _DEFAULT_HEAVY_MODEL).strip() or _DEFAULT_HEAVY_MODEL
 DEFAULT_MODEL = LIGHT_MODEL
 
 _FAILED_GENERATION_RE = re.compile(
@@ -121,8 +125,8 @@ def chat_completion(
     Args:
         user_content: Contenido del mensaje del usuario.
         system_content: Contenido del mensaje de sistema (instrucciones). Opcional.
-        model: Modelo a usar. Por defecto llama-3.3-70b-versatile.
-        temperature: Temperatura (0-2). Por defecto 0.3 para respuestas m?s deterministas.
+        model: Modelo a usar. Por defecto openai/gpt-oss-20b.
+        temperature: Temperatura (0-2). Por defecto 0.3 para respuestas más deterministas.
 
     Returns:
         str: Contenido de la respuesta del asistente.
