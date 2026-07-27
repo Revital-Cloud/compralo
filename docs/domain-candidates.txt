@@ -1,0 +1,20 @@
+# Candidatos de marca — panel agentic ops (.ai)
+# Uso: python docs/check_domain_availability.py -f docs/domain-candidates.txt
+
+accord.ai
+trace.ai
+mode.ai
+keep.ai
+fresh.ai
+glow.ai
+agree.ai
+pact.ai
+qora.ai
+nylo.ai
+nylis.ai
+bryxo.ai
+mandrix.ai
+synql.ai
+watch.ai
+notice.ai
+coach.ai

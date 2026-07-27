@@ -1,0 +1,18 @@
+# Criba DNS (sin NS/A) — verificar en registrador antes de comprar.
+# WhoisXML API bloqueada por IP al momento del scan; no es confirmación final.
+
+linvy.ai
+rovly.ai
+mivly.ai
+oplix.ai
+oplar.ai
+jorly.ai
+zorly.ai
+pinva.ai
+zelva.ai
+rivna.ai
+relno.ai
+belno.ai
+revuna.ai
+linquo.ai
+verquo.ai

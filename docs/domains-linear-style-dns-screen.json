@@ -1,0 +1,494 @@
+[
+  {
+    "domain": "alio.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "ario.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "beam.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "bedrock.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "bevel.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "blueprint.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "cast.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "chamfer.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "clio.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "crest.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "crisp.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "dash.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "elio.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "enso.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "flexo.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "flint.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "flio.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "framly.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "framr.ai",
+    "has_dns": false,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "glio.ai",
+    "has_dns": false,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "groove.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "hinge.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "horizon.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "ilio.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "kern.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "keystone.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "kiro.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "latch.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "lattice.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "leva.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "levo.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "linar.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "lineo.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "linly.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "liro.ai",
+    "has_dns": false,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "loft.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "meridian.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "mesh.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "mevo.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "miso.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "nexo.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "nivo.ai",
+    "has_dns": false,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "notch.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "obsidian.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "olio.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "orio.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "parallel.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "plexo.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "plio.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "plot.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "plume.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "prio.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "quartz.ai",
+    "has_dns": false,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "radius.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "reva.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "revo.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "ridge.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "rift.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "riso.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "rivet.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "scaffold.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "segment.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "siro.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "skyline.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "slate.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "span.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "teva.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "tevo.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "tilt.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "trio.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "ulio.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "verce.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "verly.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "verso.ai",
+    "has_dns": false,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "veva.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "vevo.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "viso.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "warp.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "weft.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "weld.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "wireframe.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  },
+  {
+    "domain": "ziro.ai",
+    "has_dns": true,
+    "whois": "error",
+    "score": "TAKEN"
+  }
+]
