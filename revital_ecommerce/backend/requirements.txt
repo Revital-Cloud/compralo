@@ -9,7 +9,7 @@ click==8.1.8
 cloudinary==1.44.1
 colorama==0.4.6
 cryptography==45.0.3
-dnspython==2.7.0
+dnspython==2.9.0
 email_validator==2.2.0
 fastapi==0.135.1
 fastapi-cli==0.0.7
